@@ -91,6 +91,12 @@ text.test.ts, scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
+A scene is shared with the C host too: `examples/sensors/scenes/sensors-click.json` (a click on the Sensors page's pill)
+is replayed by `bun solid/main.ts --scene …` and by the generated C page's host
+(`./build/sensors/app-generated --scene …`; `desktop/scene.c` is the parser, strict on purpose, and its limits are in
+`native/README.md`, "The generated page's events: a state machine"), both landing on
+`examples/sensors/expected-thorvg-g.png`.
+
 **Styles live where the markup does.** A page may declare its tokens and styles in its own `.tsx`
 (`import * as css from "cssints/clay" with { type: "cssints" }`) — `app/Widgets.tsx` does. The child spawns only when the
 source mentions cssints, costs about 0.9 s once per page at load (the same as a `styles.ts` module: it is Node and
@@ -967,17 +973,21 @@ reporting the outermost box fails `FAIL the innermost box under the pointer, not
 228×33 where the tab's 97×33 are wanted); and the phases taken from the frame before the last fail `FAIL the panel prints
 that frame's four, in ms`.
 
-Not here: **picking an element by clicking it into the tree** (a click on the page selects
-nothing: the panel follows the pointer, and the tree has no row to keep selected); the panel is one page's (it holds
-the `Widgets` component's element, so another page needs its own dev page); the tree has no window/scrolling of its own
-(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes. Editing a value
-live *is* here now — the fourth section below.
+**Picking** is here too: a press on the page (not on the panel) selects the innermost node under the pointer — a box
+with a role and an id, the same one the hovered line reports, so the switch's track reports the switch and the page's
+padding reports nothing — moves the tree's cursor to its row (the row starts with `>`), pins the hovered line and
+switches the values to it. The pin holds when the pointer leaves; `Escape` or a press on empty space clears it. A box
+with no role is never the pick (its nearest node ancestor is), and a node with no id has no `ui.bounds` and no row to
+keep. Not here: the panel is one page's (it holds the `Widgets` component's element, so another page needs its own dev
+page); the tree has no window/scrolling of its own (a big page's rows would run off the panel); and the numbers are not
+resampled while nothing changes. Editing a value live and saving a session *are* here now — the sections below.
 
 ### The live values (the fourth section)
 
 `bun solid/main.ts dev`, the panel's fourth section: the picked box's style numbers, edited through the value channel
 (`ui.value`) while the page runs. The pointer picks (the innermost box with an id and a role, as the hovered box finds
-it) and the box stays picked when the pointer leaves the page; picking another drops the previous one's live values. The
+it) and the box stays picked when the pointer leaves the page; a click pins a box instead (the pick above), and the
+overrides are the page's, keyed by element id, so a box keeps its numbers when the pointer picks another. The
 first line names it with its bounds, and the rows are the numbers `src/pack.ts`'s `FIELDS` that `ui.c` reads: `width`
 and `height` (a stretch or fit axis reads the box's laid-out size, and a step pins the axis to a pixel), the padding's
 four sides, `gap`, `radius` (all four corners in one row where they are one number, a row a corner where they are not),
@@ -1009,6 +1019,24 @@ messages pinned in the test (the write's twice): the width's row writing the hei
 wider: "40,118 280×281", wanted "40,118 281×32"`), a radius row one float along (`FAIL the radius rounds the corner`),
 a reset that writes the live value back (`FAIL ... and the page is the page before the edit, byte for byte: false`), and
 a step without its clamp (`FAIL an alpha past 255 stays 255: 259, wanted 255`).
+
+### A session as a file
+
+`bun solid/main.ts dev --tune path.json` loads the panel's overrides before the first frame; `s`, with the values part
+focused, writes the current ones back to the same path (`dev-tune.json` when the flag is absent). The file is data only:
+
+```json
+{ "values": [ { "id": "wifi", "field": "radius", "value": 16 } ] }
+```
+
+an element id the page has, one of the panel's own row names (`width`, `radius`, `bg.r`, `padding.l`, …; `radius` writes
+all four corners), and a number. Entries are written sorted by id and in the panel's row order, so the same session is
+the same bytes. Loading checks every entry and fails with its number and why: an unknown id (`tune: entry 1: no element
+"nope" on the page`), an unknown field (`tune: entry 1: "radiusX" is not a panel field`) and an out-of-range value
+(`tune: entry 1: bg.r 300 is out of range 0..255`). `solid/tune.test.ts` holds it: a two-entry file is the frame of the
+same two edits by hand, byte for byte; `s` writes that file and it loads back to the same frame; the three messages; and
+a mutation that writes a field name the loader does not know fails the load with `tune: entry 1: "radius!" is not a
+panel field`.
 
 ## Notes
 

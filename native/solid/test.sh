@@ -11,6 +11,9 @@ S0="bun solid/main.ts --warm 30"
 $S0 --expect examples/sensors/expected-thorvg.png
 $S0 --click 180 250 --expect examples/sensors/expected-thorvg-g.png
 THEME=light $S0 --expect examples/sensors/expected-thorvg-light.png
+# a scene from the shared format (examples/sensors/scenes/sensors-click.json): a click on the pill at its coordinates,
+# 30 frames of settle, the last frame the same one the C host replays from the same file
+bun solid/main.ts --scene examples/sensors/scenes/sensors-click.json --expect examples/sensors/expected-thorvg-g.png
 bun solid/test.ts
 # the Widgets page (headless button, switch, checkbox, disclosure, radio, tabs, slider, toolbar; the focus manager): scripted keys, then the frame
 # the page's entry is over by the first key: every frame below is at rest (`--warm 30`)
@@ -254,4 +257,12 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
   node browser/solid-check.mjs
 else
   echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs)"
+fi
+# the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
+# field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.
+printf '{"values":[{"id":"wifi","field":"radius","value":16}]}\n' > "${TMPDIR:-/tmp}/cssints-dev-tune.json"
+$DEV --warm 30 --tune "${TMPDIR:-/tmp}/cssints-dev-tune.json" --png "${TMPDIR:-/tmp}/cssints-dev-tune.png"
+printf '{"values":[{"id":"wifi","field":"radiusX","value":16}]}\n' > "${TMPDIR:-/tmp}/cssints-dev-tune-bad.json"
+if $DEV --warm 1 --tune "${TMPDIR:-/tmp}/cssints-dev-tune-bad.json" --png "${TMPDIR:-/tmp}/cssints-dev-tune-bad.png" >/dev/null 2>&1; then
+  echo "FAIL: a session with an unknown field did not fail"; exit 1
 fi

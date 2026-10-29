@@ -559,8 +559,19 @@ Each step ends in a check that fails when it breaks.
    git cannot rot; `InlineDemo.tsx` (styles in the .tsx, no styles module) is generated and compiled for the literal
    path. Mutation: `units` to `units_active` in the base frame fails at `renderData.rectangle.backgroundColor`, one digit
    of a value fails at the text's bytes. Cost: about 1.2 s a state (3.5 s for the three) plus one C compile.
-   Left: **events are dropped** (`Clay_OnHover`, keys, `onPress`): the C page is one static frame and cannot toggle
-   `use_g`; a host that wants the other frame builds it. No run-time signals for the same reason. Not emitted: Dialog and
+   **Done: the events** (`--events`, `examples/sensors/page_generated_events.c`). The page is a state machine: six states
+   (the two signals × the pointer's none/`:hover`/`:active` over `Units`), one frame a state and theme, `sensors_state_count`,
+   `sensors_state_name`, the handler ids, and `sensors_next(state, id, event)` with `CLAY_EVENT_PRESS`/`CLAY_EVENT_RELEASE`
+   (`generator/events.h`). Each state is the frame the page declares, derived by replaying `states.json`'s actions and
+   the pointer at build time; a press or a release the generator cannot name in `states.json` fails the build, and so
+   does a handler with no id. The desktop host (`desktop/build.sh examples/sensors --generated`) and the browser's wasm
+   keep the state and dispatch a click through the table, and `examples/sensors/scenes/sensors-click.json` — the shared
+   scene format, read in C by `desktop/scene.c` — replays the same click to `expected-thorvg-g.png`; the Solid host
+   replays the same file to the same frame. `gen.c` walks base → press → release → press → release, `10 commands,
+   identical` against `page.c` at every step. What is not there: **run-time signals** (a state is one frame);
+   hovering is entered by a release over the element, not tracked by pointer motion; the table's click flips on the
+   release (the Solid page's `onClick`) where `page.c`'s `Clay_OnHover` flips on the press edge, so a held generated
+   `--press` shows the current signal. Not emitted: Dialog and
    Widgets' menu (floats; `Clay_ElementDeclaration.floating` would print, but no page proves it and the pointer capture
    is the host's), List (the viewport's offset is `Clay_GetScrollOffset()`, which `ui_open` asks Clay for each frame, not
    a declaration), Field (typing is SDL's text events) and Widgets itself (12 Tab stops and keys; a static frame is
@@ -625,7 +636,7 @@ Each step ends in a check that fails when it breaks.
 
 8. **Done: the browser.** `browser/page.c` is Clay plus **step 5's generated C, unchanged** (`page_generated.c` and
    `page_generated_g.c`), compiled by `zig cc -target wasm32-wasi` (a libc; there is no emscripten and no `wasm-ld` on
-   this machine, and Apple's clang has no wasm target) into 131,609 bytes: 10 commands, 19 slots each, read out of the
+   this machine, and Apple's clang has no wasm target) into 156,766 bytes: 10 commands, 19 slots each, read out of the
    wasm's memory by `browser/render.js` — type, id, box, colour, corner radii, border widths, text bytes. The one import
    is `env.measure`: Clay's measure callback calls Canvas2D, so the layout is the font the canvas draws with (Roboto
    from `vendor/fonts`), not a table from another raster. The draw is Canvas2D: `roundRect` fills, borders as the
@@ -633,11 +644,16 @@ Each step ends in a check that fails when it breaks.
    box, `clip()` for a scissor. `frame(0)`/`frame(1)` are the two generated frames; `w` or the button toggles them, which
    is the only state on this target (the generated C has no events). No framework and no build step in the page: a static
    `index.html` plus the wasm, 8,816 bytes of page (10,487 with `draw.js`, which the Solid page shares).
+   box, `clip()` for a scissor. The wasm runs step 5's **state machine** (`page_generated_events.c`): `press(x, y)` and
+   `release(x, y)` ask the table through Clay's hit test, `frame()` draws `sensors_frame(state, light)` and `state()`
+   reports it, so a click on the pill (or `w`, or the button) lands on state 4, the clicked and hovered `use_g` frame.
+   No framework and no build step in the page: a static `index.html` plus the wasm, 10,012 bytes of page.
    Check: `browser/check.mjs`, Chromium through Playwright, in `test.sh`. (a) the wasm's `dump()` — the last frame
    through `desktop/clay_dump.c`, the emitter every target writes — against `solid/goldens/sensors.json`, the Solid
    Sensors page's own golden: 10 commands, field by field, the boxes inside 4 px (Canvas2D does not hint a font and the
    golden's ThorVG metrics sum glyph advances, so a 20 px line is up to 3 px wider and a centred box moves by half of
-   that); the hand-written table the check had is gone. (b) the
+   that); the hand-written table the check had is gone. The post-click frame is compared the same way with the desktop
+   C host's own `--click` dump, and the state it lands on is printed (`state 4 "use_g=true + hover Units"`). (b) the
    raster against two stored frames, as per-region (command box) mean colours plus each text line's ink box, not per
    pixel: against its own `browser/expected.png` every 8×8 block is within 3/255 (identical here); against ThorVG's frame
    6.4 % (base) and 10.0 % (`use_g`) of pixels differ, every region mean within 13.9/255, every text ink box within 4 px,
@@ -645,8 +661,9 @@ Each step ends in a check that fails when it breaks.
    drawn by another rasteriser. The browser's own frame is the regression guard, ThorVG's the design. Cost, headless
    Chromium on an M2: 0.08 ms a frame for the layout, the commands and one readback (100 frames), so the raster is the
    cost and it is the compositor's.
-   Limits: no Solid in the page (a static generated frame, as step 5's); no events beyond the unit toggle, so it cannot
-   drive the other states; no ThorVG (Canvas2D instead); no touch, no scrolling, images or floats (the page has none, and
+   Limits: no Solid in the page (a static generated frame, as step 5's); the events are the generated table's (a click,
+   its press and release — no keys, no typed text, no wheel, and a hover state is entered by a release, not tracked by
+   motion); no ThorVG (Canvas2D instead); no touch, no scrolling, images or floats (the page has none, and
    an image command is counted and not drawn); DPR is one scale factor and nothing else; a browser refuses to fetch the
    wasm from `file://`, so the page is served (`node browser/check.mjs --serve`). What would make it real was the host's
    JS in the browser (Solid over Clay in the page, as on the desktop, with the same input path) and the generated C kept
@@ -1011,9 +1028,20 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    frames at rest, declare 0.050 ms and layout 0.033 ms with nothing overridden, 0.048/0.038 ms with five rows
    overridden (the noise; a write is one float, and `ui_open`'s 180-byte `memcpy` is per overridden element). Check:
    `solid/tune.test.ts` (the 17 rows of the switch, a radius's corner pixel, a width's a11y bounds, a colour's fill, the
-   clamps, `r` and `Shift+R` byte for byte, the window, the cost) and four mutations with their messages. Still later
-   here: picking an element by clicking it into the tree; and no pointer on a row (no dragging a number, no colour
-   picker), no script of a tuning session into a file, and no editing a style the page did not declare.
+   clamps, `r` and `Shift+R` byte for byte, the window, the cost) and four mutations with their messages.
+   **Done: the pick and the session file** (2026-10-29). A press on the page (not on the panel) selects the innermost
+   node under it — a box with a role and an id; a box without a role reports its nearest node ancestor, a node without
+   an id is skipped — moves the tree's cursor to its row (`>`), pins the hovered-box line and switches the values to
+   it; the pin holds when the pointer leaves, and `Escape` or a press on empty space clears it. A session is the
+   overrides as data, `{ "values": [ { "id", "field", "value" } ] }` with the panel's row names: `--tune path` loads it
+   before the first frame and `s` writes the current one to the same path (`dev-tune.json` by default). Loading fails
+   with the entry and why on an unknown id, an unknown field or an out-of-range value; two entries loaded are the frame
+   of the same two edits by hand, byte for byte, and `s`'s file loads back to it. Check: `solid/dev.test.ts` (the click
+   on a tab and on the button, a pin that holds, Escape and empty space) and `solid/tune.test.ts` (the pinned rows and
+   `r`, the two-entry replay, `s` and its load, the three messages), and two mutations: the pick taking the outermost
+   box lands on the tablist, and the writer naming a field the loader does not know fails the load with its entry.
+   Remaining here: no pointer on a row (no dragging a number, no colour picker), no multi-element session in the suite
+   (the format carries an id, the tests hold one box), and no editing a style the page did not declare.
    Also later: style reload without a restart (our "reload on save"); and a static first frame shown
    by the window before Bun and the first layout are ready.
 

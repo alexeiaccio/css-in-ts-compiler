@@ -188,10 +188,12 @@ async function main() {
     }
 
     try {
-        // the no-JS page: the use_g frame's commands, the reference this page's click is compared with
+        // the no-JS page: the frame its own state machine reaches through the same click at the same point, the reference
+        // this page's click is compared with (its table is the generated one: press, release on the pill)
         await cPage.goto(`http://127.0.0.1:${port}/browser/index.html`);
         await cPage.waitForFunction(() => window.__page, null, { timeout: 15000 });
-        await cPage.evaluate(() => window.__page.render(1));
+        await cPage.evaluate(() => (window.__page.press(180, 248), window.__page.release(180, 248)));
+        const cState = await cPage.evaluate(() => [window.__page.state(), window.__page.stateName(window.__page.state())]);
         const cDump = JSON.parse(await cPage.evaluate(() => window.__page.dump()));
 
         await page.goto(`http://127.0.0.1:${port}/browser/solid/index.html`);
@@ -226,16 +228,15 @@ async function main() {
         if (hovered?.color !== "#303544") bad("hover after the click", `the pill is ${hovered?.color}, not its hover #303544`);
         else ok("hover after the click", "the pill is on its hover token #303544");
 
-        // ... and with the pointer off the pill the frame is the no-JS page's use_g frame, field for field and box for
-        // box: the two is the same Clay tree, measured by the same Canvas2D. The desktop's scripted click leaves the
-        // pointer on the pill, so its stored use_g frame keeps the hover; this comparison is at rest instead
-        await page.evaluate(() => window.__page.pointer(10, 10));
+        // ... and with the pointer still on the pill the frame is the no-JS page's clicked frame (its state machine's
+        // "use_g + hover Units"), field for field and box for box: the two is the same Clay tree, laid out by Clay in
+        // each and measured by the same Canvas2D
         await page.evaluate(() => window.__page.warm(2));
         const clicked = JSON.parse(await page.evaluate(() => window.__page.dump()));
         const names = new Map();
         for (const command of clicked.commands) if (command.element) names.set(command.id, command.element);
         named(cDump, names);
-        compareSamePage("commands, after the click vs the no-JS page's use_g frame", cDump, clicked);
+        compareSamePage(`commands, after the click vs the no-JS page's state ${cState[0]} "${cState[1]}"`, cDump, clicked);
 
         // the release is the click: a second one goes back, and its frame is the base frame again, field for field
         await page.mouse.move(rect.x + 180, rect.y + 250);

@@ -949,16 +949,25 @@ Cost (Apple M2, one thread, `--bench 200`, five runs each, medians; the machine 
 The page's own first-mount entry is off (the Widgets page is given no motion hook): the entry draws ~21 frames over a
 page that does not change, and this page is about the frames after it. `solid/dev.test.ts` holds the panel's content
 (the 28 rows, the ring after Tab, the hovered box, the four phases against the frame that changed the page, the counters,
-0 draws at rest) and lists three mutations with their failure messages. Not there yet: picking an element by clicking it
-into the tree — the live values are the section below.
+0 draws at rest) and lists three mutations with their failure messages. **A pick** is here too: a press on the page
+selects the innermost node under it — a box with a role and an id, the same one the hovered line reports, so a press on
+the switch's track (no role) is the switch, and a press on the page's padding is empty space — and moves the tree's
+cursor to its row (the row starts with `>`), pins the hovered-box line and switches the live values to it. The pin
+holds when the pointer leaves; `Escape`, or a press on empty space, clears it and the panel follows the pointer again.
+A box with no role is never picked (the nearest node with one is), and a node with no id has no `ui.bounds`, so it is
+skipped: the answer is the nearest ancestor that has both. The tree has no scrolling of its own — the 28 rows fit the
+panel — so the cursor's row is always declared. `solid/dev.test.ts` holds the click block; a pick that takes the
+outermost box instead lands on the tablist (`FAIL the click picks the innermost node, not its tablist: "> tablist
+40,359", wanted "> tab "Overview""`).
 
 ### The live values: a box's numbers, edited while the page runs
 
 Rune's item 7, second half (`solid/app/Dev.tsx`, `tuneRows`): the panel's fourth section lists the picked box's style
 numbers that the value channel can move, and edits them while the page runs. The pointer over a node of the page picks
 it — the same innermost box with an id and a role that the hovered-box line reports — and it *stays* picked when the
-pointer leaves the page (the panel is not the page, and the keyboard needs the numbers to stay); picking another box
-drops the previous one's live values. The section's first line names it with its bounds (`wifi  switch "Wi-Fi"  40,118
+pointer leaves the page (the panel is not the page, and the keyboard needs the numbers to stay); a click pins a box
+instead, and the overrides are the page's own, keyed by element id, so a box keeps its numbers when the pointer picks
+another. The section's first line names it with its bounds (`wifi  switch "Wi-Fi"  40,118
 280×32`), and the rows are `src/pack.ts`'s `FIELDS` that `ui.c` reads:
 
 | Row | The number | Step |
@@ -1021,10 +1030,21 @@ corner: "48,53,68,255", wanted "16,18,24,255"`; a reset that writes the live val
 the page before the edit, byte for byte: false, wanted true`; and a step without its clamp fails `FAIL an alpha past 255
 stays 255: 259, wanted 255`.
 
-Not there: no pointer on a row (no dragging a number and no colour picker — the arrows are the only control), no script
-of a tuning session into a file (the overrides are the panel's memory and go with the process), no editing a style the
-page does not declare (a text's colour and the modes above), and the panel is still one page's (`Widgets`): a second
-page needs its own dev page. Picking an element by clicking it into the tree is still later.
+A **session** is the overrides as data. `bun solid/main.ts dev --tune path.json` reads one before the first frame, and
+`s` (with the values part focused) writes the current one to the same path (`dev-tune.json` when the flag is absent).
+The file is `{ "values": [ { "id": "wifi", "field": "radius", "value": 16 } ] }`: one element, one of the panel's row
+names (`radius`, `bg.r`, `padding.l`, `width`, …; `radius` writes all four corners), and a number. Entries are written
+sorted by id and in the panel's row order, so the same session is the same bytes. Loading checks every entry and fails
+with its number and why: an element the page does not have (`tune: entry 1: no element "nope" on the page`), a name
+that is not a row (`tune: entry 1: "radiusX" is not a panel field`), and a number out of the row's range (`tune: entry
+1: bg.r 300 is out of range 0..255`). A file of two entries is the frame of the same two edits by hand, byte for byte,
+and `s`'s file loads back to it (`solid/tune.test.ts`); a writer naming a field the loader does not know fails that load
+with `tune: entry 1: "radius!" is not a panel field`.
+
+Not there: no pointer on a row (no dragging a number and no colour picker — the arrows are the only control), no
+multi-element replay in the suite (the format gives every entry an id, so a session may span boxes, but the tests hold
+one), no editing a style the page does not declare (a text's colour and the modes above), and the panel is still one
+page's (`Widgets`): a second page needs its own dev page.
 
 ## Text: the oracles, and why there is no weight correction
 
@@ -1319,6 +1339,111 @@ window for the run), a font or a device change (the vendored Roboto, one pixel d
 own data options (`--count`, `--posts`, `--wide`: a scene has its page at its own size), and a theme change mid-run (`t`
 is a key and works, but `theme` is the starting one). And the scenes are written by hand: nothing records a live window
 into one yet.
+
+## The generated page's events: a state machine
+
+The generated C page used to be one static frame per file: a host that wanted the clicked or pressed frame had to be given
+that file at build time, and a click in the page did nothing. `generator/page-to-c.ts --events` emits the same page as a
+**state machine** instead — `examples/sensors/page_generated_events.c` — one frame a state and the table a host dispatches
+with:
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/Sensors.tsx \
+  --styles examples/sensors/styles.ts --states examples/sensors/states.json \
+  --events examples/sensors/page_generated_events.c --events-name sensors
+```
+
+A **state** is the frame the page declares: its signals plus the pointer's overlay (`:hover`/`:active` over an element
+with an `onClick`/`onPress`). The signal states are the `--states` entries with no `pointer` action (`use_g=false`,
+`use_g=true`); the generator derives each one's overlays by replaying its actions and drawing the pointer at build time,
+and names a derived state after a `--states` entry whose frame is identical (`pressed=true` is `use_g=false` with the
+pointer held down on `Units`). For the Sensors page the six states are:
+
+| index | state | the frame |
+| --- | --- | --- |
+| 0 | `use_g=false` | the base frame |
+| 1 | `use_g=false + hover Units` | the pointer over the pill, up |
+| 2 | `pressed=true` | `units_active`, m/s² values — the file `page_generated_pressed.c` holds |
+| 3 | `use_g=true` | the `use_g` frame |
+| 4 | `use_g=true + hover Units` | the clicked frame, hovered: `expected-thorvg-g.png` |
+| 5 | `use_g=true + press Units` | `units_active`, g values |
+
+The generated API (`<name>` is `--events-name`):
+
+| symbol | what it is |
+| --- | --- |
+| `void <name>_frame(int state, int light)` | draw one state: `light` 0 is the base theme, 1 the one variant (`light`) |
+| `void <name>_frame_<i>`, `_<i>_light` | the same, one function a state and theme, for a target that wants the symbol |
+| `int <name>_state_count(void)` | the states, 6 here |
+| `const char *<name>_state_name(int state)` | `--states`' key, or how the generator derived it (`use_g=true + hover Units`) |
+| `int <name>_handler_count(void)`, `uint32_t <name>_handler_id(int)` | the elements a click can reach, by Clay's id (`Units`), in tree order |
+| `int <name>_next(int state, uint32_t id, int event)` | the state after an event on an element; the state itself when the table has no entry |
+
+`event` is `CLAY_EVENT_PRESS` or `CLAY_EVENT_RELEASE`, in `generator/events.h` (they are not Clay's
+`CLAY_POINTER_DATA_*`: Clay's are a per-frame click flag, and a state machine needs the two edges apart). A **press** is
+the button down over the element: the element's `onPress` runs, and the frame is its `:active`. A **release** is the
+button up over the element the press was on: its `onClick` runs (a click), and the frame is the state its signal now
+declares with `:hover` — so the pill's click is `0 → 2 → 4` and the click again is `4 → 5 → 1`. The table is total over
+its states and handlers: a press or a release the state does not take is an entry that leads to itself (the host also
+checks the release is over the pressed element, and puts the state back where the press found it if it is not).
+
+A transition the generator cannot express as a frame of a state `--states` names is a **build error**, not a dropped
+event: `state "use_g=false": a press on "Units" leads to a frame no state in …/states.json names (a signal it changes is
+not one of the state machine's)`. An element with a handler and no `id` fails too (the table could not address it), and
+`--events` carries the base theme and one variant, so a page with more themes is refused.
+
+**The host dispatches.** `desktop/build.sh examples/sensors --generated` links `desktop/host.c` against the state file
+(`PAGE_STATES`, `PAGE_STATE_PREFIX=sensors`) instead of the hand page: the state is the host's `int`, `Clay_SetPointerState`
+gives the element under the pointer (from the last frame's boxes, as `page.c`'s `Clay_OnHover` is), a down edge asks
+`sensors_next(state, id, CLAY_EVENT_PRESS)`, an up edge asks for the release (or returns to the state before the press),
+and every frame draws `sensors_frame(state, light)` — no rebuild, no JS, no page signal. `t` still toggles the theme.
+`examples/sensors/gen.c` is the same walk as a test: the six old frame comparisons, then `step 0: state 0 "use_g=false":
+10 commands, identical`, step 1 the press (`pressed=true`), step 2 the release (state 4), step 3 the second press (state 5)
+and step 4 its release (state 1), each against the hand-written `page.c`'s tree at the same signal, pointer and button.
+The trajectory ends with the signal where it started, the pointer still over the pill.
+
+The hand C page and the Solid page differ on one edge, and the table follows the Solid page: `page.c`'s `Clay_OnHover`
+fires on `CLAY_POINTER_DATA_PRESSED_THIS_FRAME`, so its `--press` already shows the *next* signal (`expected-pressed.png`
+is `units_active` with the g values), while the Solid page's `onClick` and the table's release flip it on the way up (a
+held generated `--press` shows `units_active` with the m/s² values). What the table reproduces is `page.c`'s *frame* at a
+given signal, pointer and button — the command arrays gen.c compares — not its toggle's edge.
+
+**The browser** (`browser/page.c`) keeps the same state machine in the wasm: `press(x, y)` and `release(x, y)` ask the
+table through Clay's hit test, `frame()` draws the state, `state()`/`state_name(i)` report it. `w`, the button and a
+pointer click on the canvas are one click at the pill's centre; the post-click frame is dumped through the same emitter
+and `browser/check.mjs` compares its commands with the desktop's own `--click` dump (`build/sensors/app`, 4px boxes for
+Canvas2D's metrics) and its raster with the desktop's `expected-thorvg-g.png`, and reports `state 4 "use_g=true + hover
+Units"`. The browser's own `expected-g.png` was re-stored: it is now the clicked (hovered) frame, not the plain `use_g`
+frame the old `frame(1)` drew.
+
+**A scene drives it.** `examples/sensors/scenes/sensors-click.json` is the click as a file, in the format the Solid host
+already replays (three pointer steps and a settle). The C host reads it itself — `desktop/scene.c`, a strict recursive
+descent over the format's strings, numbers, booleans and arrays — and replays one frame a step:
+
+```sh
+./build/sensors/app-generated --scene examples/sensors/scenes/sensors-click.json --expect examples/sensors/expected-thorvg-g.png
+# scene sensors-click: page sensors, 4 steps, 33 frames, ending state 4 "use_g=true + hover Units"
+# examples/sensors/expected-thorvg-g.png: identical, 10 commands
+```
+
+The Solid host replays the same file with `bun solid/main.ts --scene …` and lands on the same stored frame, so the format
+has two replaying targets. The C parser's limits are stated in `desktop/scene.c`: the kinds are `pointer`, `settle` and
+`frame` (`key`, `text` and `wheel` are refused by name), a string is UTF-8 with the JSON escapes but no `\uXXXX`, numbers
+are JSON's grammar via `strtod`, no `null` and no nested objects, at most 64 steps, and a step's frame (seconds × 60,
+rounded) may not go back — `step 1: out of order: t 0 is frame 0, after a step at t 0.0166667 (frame 1)`. The page's
+name and size must be the build's (`sensors`, 360x360).
+
+What the table cannot carry: **a key** (a page that answers `t` or Tab outside a click has no event in it); **a signal
+outside `states.json`** (the generator refuses the transition it cannot name, so a new signal is a new entry in the file,
+not a silent dead end); **an animation or a clock** (a state is one frame; a settle is the host's frames, and a C page
+has no motion tracks); **pointer hover as a track** (a hovered state is entered by a release over the element, not by
+moving over it — the frame after a click is hovered, a later move away does not change it); a drag, a wheel, typed text,
+a float, an image, `:focus` (a prop, not a signal) and more than one theme variant per page.
+
+Two mutations are the proof, run by hand: mapping state 2's release to state 3 instead of 4 fails the walk with
+`FAIL step 2: command 7 (1) differs at renderData.rectangle.backgroundColor (state 3 "use_g=true")`, and deleting the
+order check in `desktop/scene.c` lets a scene whose second step goes back to frame 0 run silently — it ends in state 0
+and `10,114` pixels off `expected-thorvg-g.png` instead of naming `step 1`.
 
 
 ## The frame as data: command-stream goldens
