@@ -858,6 +858,10 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   p.science();
   check("the bar, feed and status stay in the window on Science", [p.box("sky-bar"), p.box("sky-feed"), p.box("sky-status")], [[0, 0, 360, 64], [0, 64, 360, 664], [0, 728, 360, 32]]);
   check("the feed is the page's colour", p.pixel(180, 70), PAGE);
+  // a click on the bar's gear is a screen's now, not the bar's: the settings screen's third, over the content area
+  // (solid/settings.test.ts is that screen's own test)
+  p.clickOn("sky-gear");
+  check("a click on the bar's gear opens the settings screen over the feed", p.box("sky-settings"), [0, 64, 360, 696]);
 }
 
 // --- the scrollbar: a 4px thumb 2px in from the feed's right edge, and none at all when the feed fits (Discover's three
@@ -976,7 +980,7 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
 //     (its own screen is solid/profile.test.ts's)
 {
   const p = fresh();
-  check("a page with the profile closed has the bar's tab and the feed as its stops", p.input.focus.tabOrder(), ["sky-tabs-tab-0", "sky-feed"]);
+  check("a page with the profile closed has the bar's tab, the feed and the settings gear as its stops", p.input.focus.tabOrder(), ["sky-tabs-tab-0", "sky-feed", "sky-gear"]);
   check("the author's row has a box of its own in the card", [p.box("sky-author-1")[2], p.box("sky-author-1")[3]], [312, 38]);
   p.clickOn("sky-author-1");
   p.settle(40);

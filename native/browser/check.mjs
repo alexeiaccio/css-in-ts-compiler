@@ -1,11 +1,11 @@
 // The browser target's check: build the wasm (browser/build.sh), load browser/index.html in Chromium through
 // Playwright, and compare two things that a pixel comparison alone would miss:
 //
-//   (a) the command array. The wasm's commands, read out of its memory, against the desktop's own commands for the
-//       same generated C (browser/dump-commands.c: Clay + SDL_ttf/Roboto, the frame in examples/sensors/). Types, ids,
-//       colours, strings and font sizes must match exactly; boxes within a tolerance, because Canvas2D does not hint a
-//       font and SDL_ttf sums integer glyph advances: a 20px line comes out up to 3px wider, and a centred text box
-//       moves by half of that.
+//   (a) the command array. The wasm dumps the frame through desktop/clay_dump.c — the emitter the Solid host and the C
+//       page on the desktop write — and the check compares that JSON with solid/goldens/sensors.json, the same golden
+//       the Solid page and the C page are held to. Every field must match exactly but the box: the golden's boxes are
+//       ThorVG's metrics (the page's design), the wasm's are Canvas2D's, which does not hint a font — a 20px line comes
+//       out up to 3px wider, and a centred text box moves by half of that, so the boxes keep a 4px tolerance.
 //   (b) the raster, in two steps, because anti-aliasing, glyph hinting and rounded-corner coverage differ between
 //       Canvas2D and ThorVG, so "the same pixels" is not a claim that holds:
 //       — against browser/expected.png, this browser's own frame (a regression guard, rewritten with --update): every
@@ -19,9 +19,12 @@
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { readFile, writeFile, stat } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { extname, join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// the goldens' formatter (solid/dump.ts stores them with it), for a value's message and the effects' comparison
+import { format } from '../solid/src/format.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BROWSER = join(ROOT, 'browser');
@@ -29,34 +32,9 @@ const WASM_DIR = process.env.WASM_DIR || join(process.env.TMPDIR || '/tmp', 'css
 const SIZE = 360;
 const update = process.argv.includes('--update');
 
-// The desktop's frame for this generated C: browser/dump-commands.c's output, one record a command. Keep in step with
-// examples/sensors/page_generated*.c; a change in the page is a change here.
-const DESKTOP = {
-    0: [
-        { type: 1, id: 3621781681, x: 0, y: 0, w: 360, h: 360, color: '#101218', radius: [0, 0, 0, 0] },
-        { type: 3, id: 1503750332, x: 121.5, y: 40, w: 117, h: 38, color: '#e63c3c', fontSize: 32, text: 'Sensors' },
-        { type: 3, id: 13290005, x: 147.5, y: 86, w: 65, h: 17, color: '#969baa', fontSize: 14, text: 'accel m/s²' },
-        { type: 3, id: 836677627, x: 93.5, y: 111, w: 173, h: 24, color: '#ebebf0', fontSize: 20, text: '+1.16  -0.72  +10.04' },
-        { type: 3, id: 4012295685, x: 156, y: 143, w: 48, h: 17, color: '#969baa', fontSize: 14, text: 'gyro °/s' },
-        { type: 3, id: 3277418918, x: 113, y: 168, w: 134, h: 24, color: '#ebebf0', fontSize: 20, text: '+2.2  +4.8  +0.0' },
-        { type: 3, id: 2685258275, x: 118.5, y: 200, w: 123, h: 24, color: '#f08c32', fontSize: 20, text: '|a| 10.14 m/s²' },
-        { type: 1, id: 3516868942, x: 80, y: 232, w: 200, h: 38, color: '#242834', radius: [19, 19, 19, 19] },
-        { type: 3, id: 234384054, x: 146.5, y: 242.5, w: 67, h: 17, color: '#ebebf0', fontSize: 14, text: 'switch to g' },
-        { type: 2, id: 545630851, x: 80, y: 232, w: 200, h: 38, color: '#969baa', radius: [19, 19, 19, 19], border: [1, 1, 1, 1] },
-    ],
-    1: [
-        { type: 1, id: 3621781681, x: 0, y: 0, w: 360, h: 360, color: '#101218', radius: [0, 0, 0, 0] },
-        { type: 3, id: 1503750332, x: 121.5, y: 40, w: 117, h: 38, color: '#e63c3c', fontSize: 32, text: 'Sensors' },
-        { type: 3, id: 13290005, x: 158.5, y: 86, w: 43, h: 17, color: '#969baa', fontSize: 14, text: 'accel g' },
-        { type: 3, id: 836677627, x: 99, y: 111, w: 162, h: 24, color: '#ebebf0', fontSize: 20, text: '+0.12  -0.07  +1.02' },
-        { type: 3, id: 4012295685, x: 156, y: 143, w: 48, h: 17, color: '#969baa', fontSize: 14, text: 'gyro °/s' },
-        { type: 3, id: 3277418918, x: 113, y: 168, w: 134, h: 24, color: '#ebebf0', fontSize: 20, text: '+2.2  +4.8  +0.0' },
-        { type: 3, id: 2685258275, x: 140, y: 200, w: 80, h: 24, color: '#f08c32', fontSize: 20, text: '|a| 1.03 g' },
-        { type: 1, id: 3516868942, x: 80, y: 232, w: 200, h: 38, color: '#242834', radius: [19, 19, 19, 19] },
-        { type: 3, id: 234384054, x: 135.5, y: 242.5, w: 89, h: 17, color: '#ebebf0', fontSize: 14, text: 'switch to m/s²' },
-        { type: 2, id: 545630851, x: 80, y: 232, w: 200, h: 38, color: '#969baa', radius: [19, 19, 19, 19], border: [1, 1, 1, 1] },
-    ],
-};
+// The golden the whole page is held to: the Solid page's last frame (solid/dump.ts), the same tree as the generated C
+// this wasm runs. It is the base state; the use_g frame has no golden, only its two stored rasters below.
+const GOLDEN = JSON.parse(readFileSync(join(ROOT, 'solid/goldens/sensors.json'), 'utf8'));
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.ttf': 'font/ttf',
     '.png': 'image/png', '.json': 'application/json' };
@@ -81,25 +59,43 @@ function serve() {
     });
 }
 
-/** (a) the command array, field by field, against the desktop's. */
-function compareCommands(useG, got) {
-    const want = DESKTOP[useG], name = `commands frame(${useG})`;
-    if (got.length !== want.length) return bad(name, `${got.length} commands, want ${want.length}`);
-    let worst = 0;
+/** The golden's names, by Clay id: the wasm has no id strings (a C page has Clay's hashes only), so a command's
+ *  `element` is null and is filled from the golden — the same page, the same ids. */
+function named(dump) {
+    const names = new Map();
+    for (const command of GOLDEN.commands) if (command.element) names.set(command.id, command.element);
+    for (const command of dump.commands)
+        if (command.element == null && names.has(command.id)) command.element = names.get(command.id);
+}
+
+/** (a) the command array, field by field, against the golden of the same page: every field exactly but the boxes. */
+function compareCommands(useG, dump) {
+    const name = `commands frame(${useG})`;
+    const want = GOLDEN.commands;
+    if (dump.commands.length !== want.length) return bad(name, `${dump.commands.length} commands, want ${want.length}`);
+    let worst = 0, worstAt = 0;
     for (let i = 0; i < want.length; i++) {
-        const a = want[i], b = got[i], at = `${name} #${i}`;
-        if (a.type !== b.type || a.id !== b.id) return bad(at, `type/id ${b.type}/${b.id}, want ${a.type}/${a.id}`);
-        if (a.color !== b.color) return bad(at, `colour ${b.color}, want ${a.color}`);
-        if ((a.text ?? '') !== (b.text ?? '')) return bad(at, `text ${JSON.stringify(b.text)}, want ${JSON.stringify(a.text)}`);
-        if ((a.fontSize ?? 0) !== (b.fontSize ?? 0)) return bad(at, `fontSize ${b.fontSize}, want ${a.fontSize}`);
-        for (const k of ['x', 'y', 'w', 'h']) worst = Math.max(worst, Math.abs(a[k] - b[k]));
-        for (const k of ['radius', 'border'])
-            for (let j = 0; j < 4; j++) worst = Math.max(worst, Math.abs((a[k]?.[j] ?? 0) - (b[k]?.[j] ?? 0)));
+        const a = want[i], b = dump.commands[i];
+        const text = typeof b.text === 'string' ? ` ${JSON.stringify(b.text)}` : '';
+        const who = `${name} #${i} (${b.type}${text})`;
+        for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+            if (key === 'box') {
+                for (let k = 0; k < 4; k++) {
+                    const d = Math.abs(a.box[k] - b.box[k]);
+                    if (d > worst) worst = d, worstAt = i;
+                }
+                continue;
+            }
+            if (format(a[key]) !== format(b[key]))
+                return bad(who, `${key === 'color' ? 'colour' : key} ${format(b[key])}, want ${format(a[key])}`);
+        }
     }
-    // Canvas2D and SDL_ttf measure the same Roboto differently: Canvas2D does not hint, SDL_ttf sums integer
+    // Canvas2D and the golden's ThorVG measure the same Roboto differently: Canvas2D does not hint, ThorVG sums glyph
     // advances, so a 20px line is up to 3px wider here and the centred box starts up to 1.5px to the side
-    if (worst > 4) return bad(name, `a box is ${worst.toFixed(2)}px off the desktop's`);
-    ok(name, `10 commands, same order, colours and strings; worst box ${worst.toFixed(2)}px`);
+    if (worst > 4) return bad(name, `command ${worstAt}'s box is ${worst.toFixed(2)}px off the golden's`);
+    const effects = format(GOLDEN.effects) === format(dump.effects) ? '' : ` (the effects differ: ${format(dump.effects)})`;
+    if (effects) return bad(`${name} effects`, effects);
+    ok(name, `${want.length} commands, same order and fields as the golden; worst box ${worst.toFixed(2)}px`);
 }
 
 /** (b1) the raster as 8x8 block means, done in the page: the canvas and a reference image, both on a 2D canvas. */
@@ -238,7 +234,12 @@ async function main() {
 
         for (const useG of [0, 1]) {
             const got = await page.evaluate(g => window.__page.render(g), useG);
-            compareCommands(useG, got);
+            // the golden is the page's base state; the use_g frame keeps its two rasters below
+            if (!useG) {
+                const dump = JSON.parse(await page.evaluate(() => window.__page.dump()));
+                named(dump);
+                compareCommands(useG, dump);
+            }
 
             const shot = await page.locator('#frame').screenshot();
             const own = join(BROWSER, useG ? 'expected-g.png' : 'expected.png');

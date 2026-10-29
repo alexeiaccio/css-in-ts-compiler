@@ -24,10 +24,15 @@ export const kernelWarnings = new WeakMap<Kernel, readonly KernelWarning[]>();
 // The custom properties a kernel declares: `--x:` in its css, `@property --x` in its atProperty.
 const VARS = /(--[\w-]+)\s*:|@property\s+(--[\w-]+)/g;
 
+// The scope of a kernel key (`reveal.core`), and whether a custom property is one of its names (`--reveal-*`).
+const scopeOf = (key: string) => key.slice(0, key.indexOf("."));
+const owns = (scope: string, property: string) => property.startsWith(`--${scope}-`);
+
 /**
  * Registers a kernel by key, on first use (a global rule with atProperty: its css in _.k, its atProperty at the top
- * of the sheet, both once however many styles use it). The same key with other css, another key that declares one of
- * its custom properties, and another key for a marker it prints are build errors at `at`; a `requires` that a target
+ * of the sheet, both once however many styles use it). The same key with other css, another key of the same scope that
+ * declares one of its names, another scope's key that declares a name neither owns, and another key for a marker it
+ * prints are build errors at `at`; a `requires` that a target
  * lacks is a support warning, unless one of `runtimes` (those of the style) polyfills it and reaches that target
  * (`uncovered`); so is a declaration of a kernel written as styles that a target lacks (`kernelWarnings`), by the same rule.
  */
@@ -56,9 +61,20 @@ export const addKernel = Effect.fnUntraced(function* (
       : [...`${kernel.css}\n${kernel.atProperty ?? ""}`.matchAll(VARS)].map((m) => m[1] ?? m[2]!);
     for (const [other, e] of kernels) {
       const v = vars.find((x) => e.vars.includes(x));
-      if (v)
+      if (!v) continue;
+      // One scope's names are a namespace (`--motion-o` is motion's, and reveal's kernel sets it too): a kernel may
+      // declare a name another scope owns, but not one of its own scope's short names beside another kernel of that
+      // scope (the two are alternatives, and a shared short name is an authoring mistake), nor a name neither of them
+      // owns (two plugins picking the same free name would interfere silently).
+      const [here, there] = [scopeOf(key), scopeOf(other)];
+      const clash = here === there ? owns(here, v) : ![here, there].some((scope) => owns(scope, v));
+      if (clash)
         return yield* fail(
-          `kernels ${other} and ${key} both declare ${v}: a plugin picks its own short custom-property names`,
+          `kernels ${other} and ${key} both declare ${v}: ${
+            here === there
+              ? "two kernels of one scope may not share one of its custom-property names"
+              : "a plugin picks its own short custom-property names"
+          }`,
         );
     }
     kernels.set(key, (entry = { kernel, vars, markers: new Set(), users: new Set() }));

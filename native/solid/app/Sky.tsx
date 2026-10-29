@@ -31,6 +31,9 @@ import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 import { FIELDS, variant } from "../src/pack.ts";
 import type { State } from "../src/pack.ts";
+// the page's third screen (the feed, the thread, then settings): its own file, so this one keeps the feed, the bar and
+// the thread — its gear, its frame and its controls are `Settings.tsx`'s
+import { skySettings } from "./Settings.tsx";
 // the app's own thread model: rowsOf flattens a ThreadScreen (the API's ThreadNode over PostView) the way csssky-tui's
 // rows and the terminal's cells do, and the words (goneText, moreLabel), the sort (topFirst) and the depth cut
 // (MAX_DEPTH) are the app's, imported rather than copied. Its PostView becomes this page's card in `postOf` below.
@@ -41,36 +44,9 @@ import { mediaText, rowsOf } from "../../../apps/csssky-tui/src/model.ts";
 import { createProfile } from "./Profile.tsx";
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
-// the sky palette: the page, the card one tonal step above it (its top; the gradient's deep end is a step below), the
-// hover step, the muted step and the accent blue; the ring is the same blue the other pages use.
-const t = css.createTokens({
-  color: {
-    $type: "color",
-    page: { $value: "rgb(16 19 22)" },
-    panel: { $value: "rgb(27 32 38)" },
-    panelDeep: { $value: "rgb(21 25 30)" },
-    hover: { $value: "rgb(34 40 49)" },
-    hoverDeep: { $value: "rgb(28 33 40)" },
-    ink: { $value: "rgb(230 233 236)" },
-    muted: { $value: "rgb(139 152 165)" },
-    accent: { $value: "rgb(59 156 240)" },
-    ring: { $value: "rgb(92 176 255)" },
-  },
-});
-css.createGlobalTheme(t, "light", {
-  color: {
-    page: "rgb(243 245 247)",
-    panel: "rgb(255 255 255)",
-    panelDeep: "rgb(240 243 246)",
-    hover: "rgb(232 238 244)",
-    hoverDeep: "rgb(222 229 236)",
-    ink: "rgb(15 20 25)",
-    muted: "rgb(86 99 111)",
-    accent: "rgb(17 112 207)",
-    ring: "rgb(11 98 189)",
-  },
-});
-const font = css.fonts("Roboto");
+// the sky palette (the page, the card one tonal step above it, the hover step, the muted step and the accent blue) is
+// `Sky.styles.ts`'s: the settings screen's styles are built from the same tokens, so the two screens are one palette
+import { font, t } from "./Sky.styles.ts";
 
 const root = css.cn(css.width("stretch"), css.height("stretch"), css.flexDirection("column"), css.bg(t.color.page));
 
@@ -698,12 +674,23 @@ export function Sky(props: {
   input: Input;
   motion?: Motion;
   theme?: () => string | undefined;
+  /** The host's write-back of the theme: the settings screen's radio calls it, so that the frame's theme — the one every
+   *  style's variant is picked by — is the page's too (`main.ts` sets its own `theme` variable, which its frame reads). */
+  setTheme?: (theme: string | undefined) => void;
   posts?: readonly Post[];
   /** The thread's data: a post's at-uri in, its screen out (the AppView's call by default; a test's promise, or the
    *  recorded fixture of an offline frame, replaces it). */
   load?: Loader;
 }) {
   const { input } = props;
+  // The page's theme: the host's (`main.ts`'s `t` key, `THEME=light`) or the settings screen's pick, which is written back
+  // to the host so that its frame — the one that picks every style's variant — and the page's fades agree. A signal, kept
+  // while the page runs and never stored.
+  const [theme, setTheme] = createSignal(props.theme?.());
+  const pickTheme = (next: string | undefined): void => {
+    setTheme(next);
+    props.setTheme?.(next);
+  };
   const [focused, setFocused] = createSignal(false);
   const [selected, setSelected] = createSignal<{ feed: number; i: number } | null>(null);
   // what the tree wears this frame, set by the tick (before the flush, so in this frame): the cards on their hover style
@@ -782,10 +769,10 @@ export function Sky(props: {
 
   /** The ends of a fade, from the page's own packed styles: the card rests on the panel and lands on the hover tone; a
    *  tab rests on the page it sits on (its box has no background at rest) and lands on its hover tone. */
-  const cardEnds = () => [backgroundOf(s.card, props.theme?.()), backgroundOf(s.cardHover, props.theme?.())];
-  const tabEnds = () => [backgroundOf(s.root, props.theme?.()), backgroundOf(s.tab, props.theme?.(), true)];
+  const cardEnds = () => [backgroundOf(s.card, theme()), backgroundOf(s.cardHover, theme())];
+  const tabEnds = () => [backgroundOf(s.root, theme()), backgroundOf(s.tab, theme(), true)];
   /** The label's two ends: the muted token and the accent, as the packed text styles carry them under the frame's theme. */
-  const labelEnds = () => [textColorOf(s.tabText, props.theme?.()), textColorOf(s.tabTextOn, props.theme?.())];
+  const labelEnds = () => [textColorOf(s.tabText, theme()), textColorOf(s.tabTextOn, theme())];
 
   /** The tablist is the page's first stop and the feed the second. The panels are not stops of their own: the feed is one
    *  (the tabs' `focusablePanels` says so, or Tab would land on a panel the page draws no box for). */
@@ -1099,6 +1086,11 @@ export function Sky(props: {
    *  the window is the measuring pass's (every card declared) that is the whole feed in one frame. */
   const tick = (dt: number) => {
     const t = feedScroll.now;
+    // the settings screen's own frame: an entry, its scroll, and the text size, whose answer re-measures the feed (a
+    // taller card is another content end and another thumb)
+    if (settings.tick(dt)) heights.length = 0;
+    // the host's `t` key flips the frame's theme behind the page's back: the page follows it
+    if (props.setTheme !== undefined && props.theme?.() !== theme()) pickTheme(props.theme?.());
     // the selection first: a tab that becomes active starts its underline at once (a frame later would flash the
     // literal's full colour before the fade's first 0), and the one that had it fades out; a new feed's cards are other
     // posts, so the heights measured for the old feed are not theirs
@@ -1216,12 +1208,14 @@ export function Sky(props: {
   // thread's, and the feed's everywhere else, as it always was (a wheel over the status line scrolls it).
   const wheel = (dx: number, dy: number) => {
     if (profile.isOpen()) return profile.wheel(dx, dy);
+    if (settings.open()) return settings.wheel(dx, dy);
     if (!threadOpen()) return feedScroll.wheel(dx, dy);
     if (ui.over(threadViewId) || ui.over(threadBarId)) threadScroll.wheel(dx, dy);
   };
   // ... and so is the pointer: only the open screen's machine may see a drag, so the feed's press never travels under it
   const pointer = (x: number, y: number, down: boolean, touch?: boolean) => {
     if (profile.isOpen()) profile.pointer(x, y, down, touch);
+    else if (settings.open()) settings.pointer(x, y, down, touch);
     else if (threadOpen()) threadScroll.pointer(x, y, down, touch);
     else feedScroll.pointer(x, y, down, touch);
   };
@@ -1250,6 +1244,10 @@ export function Sky(props: {
     keyUp: () => false,
   };
   const bind = input.add(part);
+  // the settings screen, the page's third: its gear is a Tab stop after the feed's (the page's keys are the ones it has
+  // always had first, and the gear is the tablist's neighbour in the bar), and its own frame runs first in the tick — the
+  // text size re-measures the feed — and its stops are the page's while it is up
+  const settings = skySettings({ input, styles: s, theme: () => theme(), pickTheme, under: () => threadOpen() });
 
   // the page's third screen (app/Profile.tsx): a card's author opens the profile. It is set up here, after the feed's stop,
   // so its own stops (the back control, the tablist, the clip) sit after the feed's in the page's order; the screen itself
@@ -1276,23 +1274,39 @@ export function Sky(props: {
               {...binds[i]!}
               {...a11y(tab)}
               style={under(i) ? s.tabOn : s.tab}
-              // a tab is the feed's: it switches the feed and leaves a thread (and a profile) over it, whatever the history says
+              // a tab is the feed's: it switches the feed and leaves a thread, a profile and the settings screen
+              // over it, whatever their history says
               onClick={() => {
                 binds[i]!.onClick?.();
                 if (profile.isOpen()) profile.close();
                 if (threadOpen()) closeThread();
+                settings.close();
               }}
             >
               <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{feeds[i]!.name}</text>
             </box>
           ))}
         </box>
+        {/* the settings screen's gear, at the bar's right end: the app's own Settings control, a button named "Settings".
+            A press on it is the screen's and takes no focus of its own (a click on it leaves the focus where it was, and
+            the screen gives it back when it closes) */}
+        <box
+          {...a11y(settings.gear.part)}
+          label="Settings"
+          onPress={settings.gear.press}
+          onClick={settings.gear.bind.onClick}
+          style={settings.gear.style}
+        >
+          <box style={settings.gear.bar} />
+          <box style={settings.gear.bar} />
+          <box style={settings.gear.bar} />
+        </box>
       </box>
       {/* the feed and its status line stay declared under the thread (its clip keeps its offset, its cards their boxes and
-          the selection); the covered screen is out of the a11y tree while the thread is mounted */}
+          the selection); the covered screen is out of the a11y tree while a screen is up */}
       <box
         {...bind}
-        hidden={threadShown() || profile.shown()}
+        hidden={threadShown() || profile.shown() || settings.shown()}
         onPress={() => (bind.onPress(), feedScroll.press())}
         style={s.view}
       >
@@ -1331,16 +1345,16 @@ export function Sky(props: {
                     if (!feedScroll.dragged) profile.open();
                   }}
                 >
-                  <text style={s.name}>{post().name || post().handle}</text>
-                  <text style={s.meta}>
+                  <text style={settings.tx.name()}>{post().name || post().handle}</text>
+                  <text style={settings.tx.meta()}>
                     {post().name ? `@${post().handle} · ${ago(post().created)}` : ago(post().created)}
                   </text>
                 </box>
                 <box id={`sky-body-${i}`} style={s.bodyBox}>
-                  <text style={s.body}>{post().text}</text>
+                  <text style={settings.tx.body()}>{post().text}</text>
                 </box>
-                {post().media ? <text style={s.media}>{post().media}</text> : null}
-                <text style={s.counts}>
+                {post().media ? <text style={settings.tx.media()}>{post().media}</text> : null}
+                <text style={settings.tx.counts()}>
                   {`${num(post().replies)} replies · ${num(post().reposts)} reposts · ${num(post().likes)} likes`}
                 </text>
               </box>
@@ -1355,7 +1369,7 @@ export function Sky(props: {
       </box>
       {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
       <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
-      <box id="sky-status" hidden={threadShown() || profile.shown()} style={s.status}>
+      <box id="sky-status" hidden={threadShown() || profile.shown() || settings.shown()} style={s.status}>
         <text style={s.statusText}>{statusOf()}</text>
       </box>
       {/* the thread screen: a root float over the content area, its header (the back control and the title) above its own
@@ -1367,7 +1381,7 @@ export function Sky(props: {
           id={THREAD}
           role="region"
           label={headPost() ? `Thread — @${headPost()!.handle}` : "Thread"}
-          hidden={profile.shown()}
+          hidden={profile.shown() || settings.shown()}
           style={s.thread}
         >
           <box id={HEAD} style={s.head}>
@@ -1455,9 +1469,12 @@ export function Sky(props: {
           <box id={THREAD_BAR} style={s.threadThumb} onPress={() => threadScroll.thumb()} />
         </box>
       </Show>
-      {/* the profile screen: declared last, so its root float (the thread's style, z 2) draws over the thread when one is
-          under it; the whole screen keeps its own state, its list and its motion (app/Profile.tsx) */}
+      {/* the profile screen: declared last, so its root float (the thread's style, z 2) draws over the thread when
+          one is under it; the whole screen keeps its own state, its list and its motion (app/Profile.tsx) */}
       {profile.screen()}
+      {/* the settings screen: a float over the content area (and over the thread, if one is up); its own file draws
+          it, and the node is the presence's, so it stays mounted for its exit */}
+      <Show when={settings.shown()}>{settings.view()}</Show>
     </box>
   );
 }

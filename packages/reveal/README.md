@@ -1,16 +1,23 @@
 # @cssints/reveal
 
-Scroll-driven reveal animations for [cssints](../../README.md): an element runs one of
-[@cssints/motion](../motion/README.md)'s entrance presets as it scrolls into view, on `animation-timeline: view()` and
-`animation-range`, as one chain member of `cssints/plugin` `scope()`. In the spirit of
-[the supersonic plugin](https://github.com/the-illarionov/the-supersonic-plugin-for-scroll-based-animation) and
-[lax.js](https://github.com/alexfoxy/lax.js), with the browser doing the work. Where a target lacks scroll-driven
-animations, a 0.3 kB script plays the same keyframes once when the element enters.
+Entrance animations for [cssints](../../README.md), on [@cssints/motion](../motion/README.md)'s presets, as two chain
+members of `cssints/plugin` `scope()`:
+
+- **`reveal()`** is scroll-_driven_: an element runs the entrance as it scrolls into view, on `animation-timeline: view()`
+  and `animation-range`, so the scroll scrubs it. In the spirit of
+  [the supersonic plugin](https://github.com/the-illarionov/the-supersonic-plugin-for-scroll-based-animation) and
+  [lax.js](https://github.com/alexfoxy/lax.js), with the browser doing the work.
+- **`appear()`** is scroll-_triggered_: the scroll only decides _when_ a normal, time-based animation plays, on
+  `timeline-trigger` + `animation-trigger`. It keeps its own duration and easing, so a slow scroll cannot stretch the
+  entrance. The case is [utilitybend's article on CSS animation triggers](https://utilitybend.com/blog/scroll-triggered-animation-as-the-missing-piece-for-scrollytelling-on-the-web).
+
+Where a target lacks the feature a member runs on, a 0.4 kB script plays the same animation once when the element enters.
 
 ```ts
 import { cn, hover } from "cssints" with { type: "cssints" };
-import { reveal } from "@cssints/reveal" with { type: "cssints" };
+import { appear, reveal } from "@cssints/reveal" with { type: "cssints" };
 
+// scroll-driven: the scroll scrubs it
 export const fade = reveal();
 export const card = reveal()
   .preset("slide-in-up")
@@ -18,7 +25,13 @@ export const card = reveal()
   .duration("500ms")
   .easing("linear");
 export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")));
+
+// scroll-triggered: it plays once on entry, with its own time
+export const lede = appear().preset("slide-in-up").duration("600ms").easing("linear");
+export const band = appear().preset("fade-in").inOut();
 ```
+
+The CSS of `reveal()` (`fade` and `card` above):
 
 ```css
 @layer _.k {
@@ -76,61 +89,146 @@ export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")
 }
 ```
 
+The CSS of `appear()` (`lede` and `band` above):
+
+```css
+@layer _.k {
+  /* motion's keyframes, the two rules reveal() names too (one pair for the page) */
+  ._reveal-enter {
+    animation: var(--reveal-enter-k) var(--reveal-enter-d) var(--reveal-enter-e) both;
+    timeline-trigger: --reveal-t view() var(--reveal-enter-g);
+    --reveal-enter-k: kf-7f473efd;
+    --reveal-enter-rk: kf-4f766ef7;
+    --reveal-enter-d: 300ms;
+    --reveal-enter-e: ease-out;
+    --reveal-enter-g: entry 100% exit 0%;
+    --reveal-enter: play-once;
+    --reveal-leave: none;
+    --motion-o: 0;
+    --motion-x: 0;
+    --motion-y: 0;
+    --motion-s: 1;
+    --motion-b: 0;
+    animation-trigger: --reveal-t var(--reveal-enter) var(--reveal-leave);
+    trigger-scope: --reveal-t;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ._reveal-enter {
+      animation-name: var(--reveal-enter-rk);
+    }
+  }
+  /* only when a target lacks animation triggers */
+  @supports not (animation-trigger: none) {
+    [data-reveal] ._reveal-enter:not([data-reveal-in]) {
+      animation-play-state: paused;
+    }
+  }
+}
+@layer _.a {
+  ._5mnsmm {
+    --reveal-enter: play-forwards;
+  }
+  ._67iv7r {
+    --reveal-leave: play-backwards;
+  }
+  ._1a9p5a9 {
+    --motion-y: 25%;
+  }
+  ._knj5bv {
+    --motion-o: 0;
+  }
+  ._oflqj4 {
+    --reveal-enter-e: linear;
+  }
+  ._rsl9nu {
+    --reveal-enter-d: 600ms;
+  }
+}
+```
+
 ## Rules
 
 - **Methods**, each once, in any order, all optional: `preset(name)` (`fade-in`), `range(<'animation-range'>)`
-  (`entry 0% cover 40%`), `duration(<time [0s,∞]>)` (300ms) and `easing(<easing-function>)` (`ease-out`). Each is one
-  class that sets a custom property, so a method works under a condition. Where the timeline is native, the range
-  decides when the animation runs and the scroll drives it (back and forth); the duration and the easing shape the
-  fallback's one play (the easing applies to the scrubbed progress too).
+  (`entry 0% cover 40%` for `reveal()`, `entry 100% exit 0%` for `appear()`), `duration(<time [0s,∞]>)` (300ms) and
+  `easing(<easing-function>)` (`ease-out`). Each is one class that sets a custom property, so a method works under a
+  condition.
+- **`reveal()`.** Where the timeline is native, the range decides when the animation runs and the scroll drives it (back
+  and forth); the duration and the easing shape the fallback's one play (the easing applies to the scrubbed progress too).
+- **`appear()`.** The range is the _activation_ range of the trigger: the element is fully in at `entry 100%`, so the
+  animation plays there and not while it is entering. The animation then runs over `duration()` with `easing()`, whatever
+  the scroll does. The default actions are `play-once none`: it plays once and stays, which is what an entrance wants —
+  and exactly what the fallback does. `inOut()` sets `play-forwards play-backwards`, so it plays back out when the
+  element leaves (where the triggers are native).
 - **Presets** are motion's entrance presets: `fade-in`, `slide-in-up`, `slide-in-down`, `slide-in-left`,
   `slide-in-right`, `scale-in`, `blur-in`. The `-out` ones are not: the fallback can only play when an element enters.
-- **Reuse of motion.** The kernel names motion's `motionKeyframes.in` and `motionKeyframes.reducedIn`, which carries
-  their rules (shared with `motion()` on the same page: one rule each), and a preset sets the values those keyframes
-  read, from motion's `presets` table under motion's names (`motionVars`). Nothing is copied, not even a name.
-- **Reduced motion.** Under `prefers-reduced-motion: reduce` the kernel runs the opacity-only keyframes (motion's rule):
-  a slide, scale or blur becomes a fade over the same range.
-- **One kernel, written as styles.** The `animation` shorthand resets `animation-timeline` and `animation-range`; a
-  kernel prints a shorthand before its longhands, so the timeline set beside it wins.
-- **Conflicts.** `reveal()` sets the animation: a `cn()` that holds it and an `animation*` property is a build error,
-  derived from the kernel: `cssints: reveal: kernel core sets animation, animation-timeline, animation-range, animation-name (this style also sets animation-duration)`.
+- **Reuse of motion.** Both members name motion's `motionKeyframes.in` and `motionKeyframes.reducedIn`, so that rule is
+  motion's kernel, printed once however many styles use it, and a preset sets the values those keyframes read from
+  motion's `presets` table under motion's names (`motionVars`). Only each member's own properties are its own names:
+  `appear()`'s are `--reveal-enter-*`, because `reveal()`'s kernel declares the scope's short names (`--reveal-k` and
+  the rest) and two kernels of one scope may not share one of them. A scope may reuse a name another scope owns — that
+  is how both of them set `--motion-*` — so `motion()`, `reveal()` and `appear()` can sit on one page.
+- **`trigger-scope` is required.** The trigger name is the kernel's (`--reveal-t`) and every element of the class shares
+  it; without `trigger-scope: --reveal-t`, the last element in the document would drive every card. With it, two boxes
+  of the same class trigger independently (checked in Chrome 156). Two different styles on one page do not collide
+  either: each kernel has its own name.
+- **Reduced motion.** Under `prefers-reduced-motion: reduce` each kernel runs the opacity-only keyframes (motion's rule):
+  a slide, scale or blur becomes a fade over the same range or trigger.
+- **One kernel, written as styles.** The `animation` shorthand resets `animation-timeline` and `animation-trigger`; a
+  kernel prints a shorthand before its longhands, so the declarations beside it win.
+- **Conflicts.** `reveal()` and `appear()` set the animation: a `cn()` that holds one and an `animation*` property is a
+  build error, derived from the kernel:
+  `cssints: reveal: kernel enter sets animation, timeline-trigger, animation-trigger, trigger-scope, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `reveal.preset: unexpected "fade-out" in "fade-out",
-expected fade-in | ...`, `reveal.range: unexpected "sideways" in "entry 0% sideways"`.
+  expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
 
 ## Browsers
 
-- **Native**: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
-  `animation-range`). Firefox has them behind a flag only.
-- **The fallback.** When a browserslist target lacks them, the build adds the `@supports not` rule above to the sheet
-  (it stays out of the sheet for targets that all have them), and the kernel's `animation-timeline` and `animation-range` give no warning: the runtime polyfills both. The
-  script, `@cssints/reveal/runtime`, comes with it: the runtime entry names it (`script`), so the module that uses
-  `reveal()` imports it through `virtual:cssints/runtime/reveal.io`, which is empty when every target has the timeline.
-  Nothing to import by hand. In the browser it does nothing where `CSS.supports("animation-timeline:view()")`; elsewhere it
-  marks `<html data-reveal>` (the rule then holds each reveal at its first frame) and an `IntersectionObserver` gives an
-  element `data-reveal-in` when it enters the viewport, which plays the keyframes once, over `duration()`. A
-  `MutationObserver` picks up elements added later. 536 bytes minified, 319 gzip; no imports.
+- **Native.** `reveal()`: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
+  `animation-range`); Firefox has them behind a flag only. `appear()`: Chrome 146, Edge 146, Opera 130
+  (`css.properties.animation-trigger`, `timeline-trigger` and `trigger-scope`); Firefox and Safari have no animation
+  triggers today. CSS animation triggers are a candidate for Interop 2027.
+- **The fallback.** When a browserslist target lacks the feature a member runs on, the build adds that member's
+  `@supports not` rule above to the sheet (it stays out of the sheet for targets that all have it), and the kernel's
+  declarations give no support warning: the runtime polyfills them. The script, `@cssints/reveal/runtime`, comes with
+  it: each runtime entry names it (`script`), so a module that uses `reveal()` imports it through
+  `virtual:cssints/runtime/reveal.io` and one that uses `appear()` through `virtual:cssints/runtime/reveal.io-appear`;
+  each is empty when every target has its feature. Nothing to import by hand.
+- **One script, two gates.** In the browser the script does nothing where both features work. It gates on
+  `CSS.supports("animation-timeline:view()")` for `reveal()` and `CSS.supports("animation-trigger:none")` for
+  `appear()`: it marks `<html data-reveal>` (the rule then holds each fallback animation at its first frame) and an
+  `IntersectionObserver` gives an element `data-reveal-in` when it enters the viewport, which plays the keyframes once,
+  over `duration()`. A `MutationObserver` picks up elements added later. 605 bytes minified, 369 gzip; no imports.
+- **The fallback equals `appear()`'s default.** Playing once on entry is exactly `play-once none`, so on Firefox and
+  Safari `appear()` needs no extra behaviour; it cannot play back out (`inOut()`), follow the range, or react to the
+  scroll.
 - **Why not a polyfill.** [flackr's scroll-timeline polyfill](https://github.com/flackr/scroll-timeline) scrubs the
   animation as the native timeline does, but it is about 61 kB minified (17 kB gzip), rewrites stylesheets and runs on
-  every scroll. A reveal is an entrance: playing it once on entry is what most sites want, costs 1/50 of the bytes and
+  every scroll. An entrance is a one-shot: playing it once on entry is what most sites want, costs 1/50 of the bytes and
   nothing per scroll. The price is that the fallback is not scrubbed and ignores `range()`.
-- Without the script, a target that lacks the timeline plays the animation on load, as `motion()` would: nothing stays
+- Without the script, a target that lacks the feature plays the animation on load, as `motion()` would: nothing stays
   hidden.
-- Tested in Chrome 154 and WebKit 26.6 (native, and the fallback forced) and Firefox 155 (the fallback):
-  `bun run test:browsers`.
+- Tested in Chrome 156 (native triggers and the fallback forced), Firefox 157 (the fallback) and WebKit 27.2 (the
+  reveal timeline native, the fallback for `appear()`): `bun run test:browsers`.
 
 ## Limits
 
 - With targets that mix both (the default browserslist), the script ships to every browser and only probes where the
-  timeline is native.
+  feature is native.
 - The fallback does not follow the range, the scroll direction or an element that leaves the viewport: it plays once. An
   element that gets the class after it is in the document (not added with it) is not seen.
-- Until the script runs, a reveal below the fold may start playing; it is paused where it is and resumes on entry. The
-  script runs with the first module that uses `reveal()`.
+- Until the script runs, an animation below the fold may start playing; it is paused where it is and resumes on entry.
+  The script runs with the first module that uses `reveal()` or `appear()`.
+- None of `motion()`, `reveal()` and `appear()` may be put on one element: each sets the `animation`, which two
+  kernels of one style refuse (`kernels ... both set animation`). On a page they share motion's keyframes and custom
+  properties.
+- The trigger is on the animated element itself. A tall section that triggers its children is written by hand:
+  `css.timelineTrigger()` and `css.animationTrigger()` on the section, and `css.animationTrigger()` on the child. A
+  separate trigger element and a `.from("--name")` method are deferred.
 - Entrance presets only, one per element; for an exit on scroll write the animation with `animationTimeline("view()")`
   and `animationRange("exit ...")` yourself.
 
 ```bash
-cd packages/reveal && bun run test            # fixtures through the engine (output by targets, runtime module, conflicts, errors)
+cd packages/reveal && bun run test            # fixtures through the engine (output by targets, runtime modules, conflicts, errors)
 cd packages/reveal && bun run test:browsers   # Chrome, Firefox and WebKit through playwright-core
 ```
 

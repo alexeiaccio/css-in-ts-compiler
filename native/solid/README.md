@@ -823,6 +823,52 @@ offset, the entry's blend, reduced motion's stored frame and no exit, the a11y t
 the mutations — the author's row opening the profile alone (the card's press is still the thread's), the media tab's
 list at 0 with its 13 cards after the Posts list was scrolled, and the feed's offset still 0 while the profile's moved.
 
+**The settings screen is the page's third** (`app/Settings.tsx`, `bun solid/main.ts sky` then the gear). A gear at the
+bar's right end — the app's Settings nav item, three 16x2 boxes since Roboto has no gear — opens a screen built like the
+thread's: a root float one z above the thread's (696 = the window less the bar, pointer captured, so it stacks over a
+thread and its back returns to that thread), a 44px header with the back control and "Settings", its own clip element on
+a third instance of the page's scroll machine (the three panel rows fit its 652, so it never scrolls and its thumb stays
+out), and the card entry as one group — 12px low and 0 opacity on `spatial(0.3)`/`effect(0.3)`, reversed under
+`presence(0.3)`, and reduced motion neither. Escape (from either stop or the page's last resort), the back control and a
+click on a tab return to what was up — the feed, or the thread the gear was pressed over, the history one step — and the
+focus the opening pushed is popped back, so the frame under it is byte-identical. Five stops are the screen's while it
+is up and disabled while it is down (the back control, the theme group, the switch, the size group, the clip), with the
+covered screen's stops disabled under it.
+
+The three rows are the app's own settings, each one real: **Theme** is a `createRadioGroup` (Dark/Light) — a controlled
+group, since the page's theme is the truth — and its pick is written back to the host through `Sky`'s `setTheme` prop
+(`main.ts`'s own `theme` variable, which its frame's `theme` getter reads for every style's variant, as its `t` key
+flips it): the whole palette turns, the page's fade ends with it. **Reduced motion** is a `createSwitch` over
+`setReducedMotion`, starting on the platform's `--reduced-motion` flag: the tracks then land at once, so the frame after
+a card's click is the settled thread. **Text size** is a second radio group (Regular/Large): the page's styles are
+literals, so the feed card's five text styles get a Large variant each, two steps up in `fontSize` and `lineHeight` (a
+Clay text carries both as numbers; a token cannot), and the feed re-measures on the frame the size changed (`Sky` drops
+its height cache then: `tick`'s answer), its content, its thumb and its end with it. The values are signals for as long
+as the page runs — no storage, nothing persisted — and the palette they are drawn from is `app/Sky.styles.ts`, so the
+bar, the feed, the thread and this screen are one set of tokens.
+
+| Frame | Keys | Shows |
+| --- | --- | --- |
+| `sky-settings` | `--warm 40 --click 324 32 --settle 40` | the screen at rest: Back, Settings, the Theme row with Dark checked, the switch off, Text size with Regular checked |
+| `sky-settings-mid` | `--settle 2` | two frames into the entry: the screen 10px low and faint over the feed |
+| `sky-settings-light` | `THEME=light … --keys Tab,ArrowRight --settle 40` | the light palette with Light picked (the theme group is one Tab from Back, an arrow checks it) |
+| `sky-settings-large` | `--keys Tab,Tab,Tab,ArrowRight --settle 40` | Large picked (three Tabs to the size group), the ring on it |
+
+Checked by `bun solid/settings.test.ts`: the gear's box (40x28 at x 303.86, the tabs unmoved), the screen's
+`0,64 360x696`, its 44px header, the three rows (75.58/56/75.58 tall, 8 apart) and the clip's no-thumb; the Tab order of
+the screen (Back, the theme group, the switch, the size group, the clip, then nothing) and the a11y tree (the gear a
+button named "Settings", the region, the two `radiogroup`s with their radios' `checked`, the switch, the covered feed
+pruned); the theme (`16/19/22` → `243/245/247` at the bar, at the screen and `27/32/38` → `255/255/255` at a row, the ring
+on the picked radio and back); reduced motion (the switch is `reduced()`, the click's next frame is the settled thread —
+0 bytes of the 20-frame one — and without it 672,965 bytes off); the text size (the card 190 → 222, the body's box 20 →
+44, Science's content 742 → 830, the thumb 531.2 tall, the end 166, and back at Regular the card 190 and the feed's frame
+byte-identical); back (the control, Escape from a stop and from nothing, a tab click) to the feed's exact frame; the
+screen opened over a thread, back to that thread's frame with the thread's back focused again and its clip its next stop;
+the entry's own two frames and reduced motion's one; the stored frame byte for byte; and a mutation per control (the
+theme reaching the bar as well as the screen, the switch being the page's flag, the size the cards'). The fifteen frames
+that show the bar were re-stored deliberately: the gear's 96 pixels in a 16x12 box at 315,26 are the whole difference in
+every one of them, and the command golden gained its three rectangles and the one node.
+
 ## The text sheet, and the oracles behind it
 
 `app/Sheet.tsx` is not an app page: twelve lines of the strings and sizes the pages draw (11 to 32 px) in one column,
@@ -921,11 +967,48 @@ reporting the outermost box fails `FAIL the innermost box under the pointer, not
 228×33 where the tab's 97×33 are wanted); and the phases taken from the frame before the last fail `FAIL the panel prints
 that frame's four, in ms`.
 
-Not here: **editing a value live** (a `tune!`-style slider or a colour swatch that writes one style field through the
-value channel while the page runs) and **picking an element by clicking it into the tree** (a click on the page selects
+Not here: **picking an element by clicking it into the tree** (a click on the page selects
 nothing: the panel follows the pointer, and the tree has no row to keep selected); the panel is one page's (it holds
 the `Widgets` component's element, so another page needs its own dev page); the tree has no window/scrolling of its own
-(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes.
+(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes. Editing a value
+live *is* here now — the fourth section below.
+
+### The live values (the fourth section)
+
+`bun solid/main.ts dev`, the panel's fourth section: the picked box's style numbers, edited through the value channel
+(`ui.value`) while the page runs. The pointer picks (the innermost box with an id and a role, as the hovered box finds
+it) and the box stays picked when the pointer leaves the page; picking another drops the previous one's live values. The
+first line names it with its bounds, and the rows are the numbers `src/pack.ts`'s `FIELDS` that `ui.c` reads: `width`
+and `height` (a stretch or fit axis reads the box's laid-out size, and a step pins the axis to a pixel), the padding's
+four sides, `gap`, `radius` (all four corners in one row where they are one number, a row a corner where they are not),
+`bg.r/g/b/a`, `border.r/g/b/a` where the style draws a border, a float's `offsetX/offsetY/expandW/expandH/zIndex`, a
+shadow's `shadowBlur`, a gradient's `gradientAlpha`, and the group's `alpha`, `scale`, `translateX`, `translateY` and
+`rotate`. A row is live even where the renderer only reads it at layout — the page re-declares its tree every frame, so
+a width moves a box and its a11y bounds. Not rows: a text's colour (fields 51..54 are a text's own, and the picked
+element is a box) and the modes and enums of the 45 (`capture`, `clip`, the sizing type, an alignment, a float's
+attach).
+
+`Tab`/`Shift+Tab` walk the page's controls and then the panel's three stops (the tree, the hovered box, the values, the
+page's last three); `Up`/`Down` (`Home`/`End`) pick a row, `Left`/`Right` (or `-`/`+`) step it — 1 a pixel, 4 a colour
+channel, 0.1 an alpha, 0.01 a scale, 1 a degree — clamped to the field's range; `r` resets the row to the style's
+literal and `Shift+R` all of them. A reset drops the override instead of writing the number, so the declare is the
+style's own floats again and the page's pixels are byte-identical to before the edit (the panel's own frame section
+prints the frame's milliseconds, so its digits are the one thing that moves). `*` marks a live value, `>` (with the
+accent) the cursor, and a box with more than 18 rows shows a window of them with `4-21 of 21` in the footer: the panel
+cannot scroll (Clay squeezes a fitted column into its box), so the four sections fit it — two rows a line, and the
+column's gap is 2px.
+
+`solid/tune.test.ts` holds it, with `dev-harness.ts`'s page (shared with `dev.test.ts`): the switch's 17 rows and their
+numbers and the same numbers from the style's own `resolve`; the panel's three Tab stops and `Tab`/`Shift+Tab` between
+them; `Right` on the radius eight times rounding the corner (`48,53,68` to the page's `16,18,24` at the corner pixel)
+and the row reading `>* radius 16`; the width moving the box and the a11y row (`280×32` → `281×32`); `bg.r` to 255 and
+the row's fill red; the clamps (an alpha at 255, a padding at 0); `r` and `Shift+R` with five rows overridden, the page
+byte-for-byte and the panel's sections the ones before; the `*`; a bordered box's window; and the cost (declare and
+layout with five overrides, and the draw of an edited frame). Three mechanisms' mutations were run and reverted, their
+messages pinned in the test (the write's twice): the width's row writing the height's floats (`FAIL the box is a pixel
+wider: "40,118 280×281", wanted "40,118 281×32"`), a radius row one float along (`FAIL the radius rounds the corner`),
+a reset that writes the live value back (`FAIL ... and the page is the page before the edit, byte for byte: false`), and
+a step without its clamp (`FAIL an alpha past 255 stays 255: 259, wanted 255`).
 
 ## Notes
 
@@ -1000,3 +1083,11 @@ What the goldens cannot see is the README's list: the pixels (anti-aliasing, a s
 pixels, a gradient's dither), glyph shaping, and everything a frame does not declare (key timing, the focus trap, a
 hover that has not moved the tree). A custom command's pointer is an address and the frame's hash is left out of the
 goldens for the same reason (with an image it hashes the image's pointer).
+
+`solid/goldens/sensors.json` is also the gate of the page on the other two hosts — the C page on the desktop
+(`desktop/host.c --dump`, compared by `dump-check.ts`) and the wasm in the browser (`browser/page.c`'s `dump()`,
+compared by `browser/check.mjs`) — both through `desktop/clay_dump.c`, the emitter this section's `ui_dump_json` is an
+adapter over. It is one golden because it is one page: the same tree from the same `examples/sensors/styles.ts`, and
+measured first, the C page's commands equal these, boxes included (both are laid out with ThorVG's metrics); the browser
+keeps the 4 px tolerance Canvas2D's advances need. `solid/dump.test.ts` still owns the file: it is the only thing that
+stores it (`--update`), and the other hosts only read it.

@@ -1,7 +1,9 @@
-// @cssints/reveal: an entrance animation driven by scroll, on @cssints/motion's presets and keyframes. The kernel runs
-// motion's `in` keyframes on `animation-timeline: view()` over `animation-range`; a preset only sets the values those
-// keyframes read, under motion's names (`motionVars`). Where a target lacks scroll-driven animations, a runtime holds the animation paused (its
-// CSS) until its script, ./runtime.ts, sees the element enter, then it plays once over its duration.
+// @cssints/reveal: entrance animations on @cssints/motion's presets, as two members of one scope. `reveal()` is
+// scroll-driven: the kernel runs motion's `in` keyframes on `animation-timeline: view()` over `animation-range`, so the
+// scroll scrubs the animation. `appear()` is scroll-triggered: `timeline-trigger` + `animation-trigger` decide *when* a
+// time-based animation plays, so it keeps its own duration and easing and the scroll only starts it. A preset only sets
+// the values the keyframes read. Where a target lacks the feature a member runs on, a runtime holds its animation paused
+// (its CSS) until its script, ./runtime.ts, sees the element enter, then it plays once over its duration.
 import { motionKeyframes, motionVars, presets, type PresetName } from "@cssints/motion";
 import { scope } from "cssints/plugin";
 
@@ -20,8 +22,9 @@ const emitPreset = (name: string) => {
 };
 
 const supported = "animation-timeline:view()";
+const triggers = "animation-trigger:none";
 
-/** The scope of `reveal()`, for a scope that embeds it (its kernel `core`). */
+/** The scope of `reveal()` and `appear()`, for a scope that embeds it (their kernels `core` and `enter`). */
 export const revealScope = scope("reveal", {
   // motion's keyframes, fade-in by default, on the view timeline (after the `animation` shorthand, which resets it: the
   // kernel prints a shorthand before its longhands); under reduced motion only the opacity moves. The runtime below
@@ -46,11 +49,50 @@ export const revealScope = scope("reveal", {
       css.media("(prefers-reduced-motion: reduce)")(css.animationName("var(--_rk)")),
     ],
   },
+  // the same entrance, but time-based: a view timeline names the trigger (`--_t`), which plays the animation on entry
+  // and leaves it at its end frame. `trigger-scope` keeps the name to this element: without it every element of the class
+  // shares one trigger and the last one in the document drives them all. The `animation` shorthand resets
+  // `animation-trigger`, so it comes first. Under reduced motion only the opacity moves. It runs motion's keyframes and
+  // sets motion's names, as `core` does; its own properties are its own short names, since two kernels of one scope may
+  // not share one of theirs.
+  "#enter": {
+    css: (css) => [
+      css.vars({
+        "--_enter-k": motionKeyframes.in,
+        "--_enter-rk": motionKeyframes.reducedIn,
+        "--_enter-d": "300ms",
+        "--_enter-e": "ease-out",
+        "--_enter-g": "entry 100% exit 0%",
+        "--_enter": "play-once",
+        "--_leave": "none",
+        [motionVars.opacity]: 0,
+        [motionVars.x]: 0,
+        [motionVars.y]: 0,
+        [motionVars.scale]: 1,
+        [motionVars.blur]: 0,
+      }),
+      css.animation("var(--_enter-k) var(--_enter-d) var(--_enter-e) both"),
+      css.timelineTrigger("--_t view() var(--_enter-g)"),
+      css.animationTrigger("--_t var(--_enter) var(--_leave)"),
+      css.triggerScope("--_t"),
+      css.media("(prefers-reduced-motion: reduce)")(css.animationName("var(--_enter-rk)")),
+    ],
+  },
   // without a view timeline the animation is time-based: held at its start until runtime.ts marks the element in view
   "#io": {
     polyfills: ["css.properties.animation-timeline", "css.properties.animation-range"],
     script: "@cssints/reveal/runtime",
     css: `@supports not (${supported}){[data-reveal] &:not([data-reveal-in]){animation-play-state:paused}}`,
+  },
+  // without animation triggers the animation is time-based too: the same fallback, on its own feature
+  "#io-appear": {
+    polyfills: [
+      "css.properties.animation-trigger",
+      "css.properties.timeline-trigger",
+      "css.properties.trigger-scope",
+    ],
+    script: "@cssints/reveal/runtime",
+    css: `@supports not (${triggers}){[data-reveal] &:not([data-reveal-in]){animation-play-state:paused}}`,
   },
   reveal: {
     uses: ["core", "io"],
@@ -61,6 +103,23 @@ export const revealScope = scope("reveal", {
       easing: { args: "<easing-function>", emit: (v) => [["--_e", v]] },
     },
   },
+  // the same methods, on the trigger's own names; `inOut()` is the one trigger action reveal() has no use for
+  appear: {
+    uses: ["enter", "io-appear"],
+    chain: {
+      preset: { args: names, emit: emitPreset },
+      range: { args: "<'animation-range'>", emit: (v) => [["--_enter-g", v]] },
+      duration: { args: "<time [0s,∞]>", emit: (v) => [["--_enter-d", v]] },
+      easing: { args: "<easing-function>", emit: (v) => [["--_enter-e", v]] },
+      inOut: {
+        args: "",
+        emit: () => [
+          ["--_enter", "play-forwards"],
+          ["--_leave", "play-backwards"],
+        ],
+      },
+    },
+  },
 });
 
 /**
@@ -68,5 +127,12 @@ export const revealScope = scope("reveal", {
  * preset driven by the element's scroll into view, each method once and optional (`fade-in`, `entry 0% cover 40%`,
  * 300ms and `ease-out` for the fallback, which plays once on entry). Under `prefers-reduced-motion: reduce` only the
  * opacity moves. It sets the animation, so an `animation*` property in the same `cn()` is a build error.
+ *
+ * `appear().preset("slide-in-up").duration("600ms").easing("linear")`: motion's entrance preset triggered by the
+ * element's scroll into view, each method once and optional (`fade-in`, `entry 100% exit 0%`, 300ms and `ease-out`).
+ * The scroll only starts the animation: it keeps its own duration and easing. `inOut()` plays it forwards on entry and
+ * backwards on exit, where the triggers are native; the default plays it once and stays. Under
+ * `prefers-reduced-motion: reduce` only the opacity moves. It sets the animation, so an `animation*` property in the
+ * same `cn()` is a build error.
  */
-export const { reveal } = revealScope.export();
+export const { reveal, appear } = revealScope.export();

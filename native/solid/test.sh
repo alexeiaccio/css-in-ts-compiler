@@ -221,3 +221,23 @@ $S --warm 40 --click 180 155 --settle 40 --click2 178 289 --settle2 40 --expect 
 # switch back to the top, back's byte-identical frame, a profile from a thread returning to it, the entry and reduced
 # motion, the a11y tree, the stored frames, and the mutations
 bun solid/profile.test.ts
+# the Sky's settings screen (the page's third, app/Settings.tsx): the gear at the bar's right end opens it — three rows,
+# each one a real control: the theme radio switches the page's palette (every style's variant is picked by the frame's
+# theme, which the pick writes to the host, so the bar and the cards turn with the screen), the reduced-motion switch
+# calls `setReducedMotion` (the flag every track reads), and the text size re-lays the feed's cards out (their height, the
+# feed's content and its thumb). `sky-settings` is the screen at rest, `sky-settings-mid` the entry two frames in (12px
+# low, 0 opacity, the page's card entry), `sky-settings-light` the light palette with Light picked (the theme group is one
+# Tab from the back control, an arrow picks) and `sky-settings-large` the Large text (three Tabs to the size group)
+SG="bun solid/main.ts sky"
+$SG --warm 40 --click 324 32 --settle 40 --expect solid/frames/sky-settings.png
+$SG --warm 40 --click 324 32 --settle 2 --expect solid/frames/sky-settings-mid.png
+THEME=light $SG --warm 40 --click 324 32 --keys Tab,ArrowRight --settle 40 --expect solid/frames/sky-settings-light.png
+$SG --warm 40 --click 324 32 --keys Tab,Tab,Tab,ArrowRight --settle 40 --expect solid/frames/sky-settings-large.png
+bun solid/settings.test.ts
+# the dev panel's live values (Rune's item 7, second half): the panel's fourth section writes a style's packed fields
+# through the value channel (`ui.value`) while the page runs — the picked box's numbers, edited with the panel's own
+# keys, with `r`/`Shift+R` dropping the override so the declare is the style's literal again. tune.test.ts holds it: the
+# switch's 17 rows and their numbers, the panel's three Tab stops, a radius's corner pixel, a width's box and a11y
+# bounds, a colour's fill, the clamps at 255 and 0, `r` and `Shift+R` byte for byte, the `*`, the row window, and the
+# cost with five rows overridden (0.050 ms of declare and 0.033 of layout at rest, 0.048/0.038 with five: the noise).
+bun solid/tune.test.ts

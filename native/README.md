@@ -25,8 +25,9 @@ generator/clay-header.ts   styles.ts -> styles.h through the cssints plugin
 generator/page-to-c.ts     a Solid page at build time to C: renders it, walks the tree, reuses styles.h's names
 examples/units/            the pill proven on the board, and same.c: generated vs hand-written, same render commands
 examples/sensors/          the Sensors page: styles.ts, page.c, its stored frames
-desktop/                   host.c (SDL3 window or a headless frame), clay_renderer_thorvg.c, thorvg_wg.c, build.sh,
-                           build-thorvg-gpu.sh (ThorVG's WebGPU engine, from source)
+desktop/                   host.c (SDL3 window or a headless frame, --dump), clay_renderer_thorvg.c, thorvg_wg.c, build.sh,
+                           build-thorvg-gpu.sh (ThorVG's WebGPU engine, from source), clay_dump.c/.h (a frame as JSON, every target)
+dump-check.ts              a C host's dump against a golden, field by field (desktop/host.c --dump, the C page)
 solid/                     Solid 2 on the desktop: a universal renderer over Clay through bun:ffi; the Sensors and Widgets pages (solid/README.md)
 focus/                     the focus manager: Tab order, roving focus in groups, restore (no DOM), focus/README.md
 terminal/                  the same page in cells: Clay -> terminal/cells.c -> ANSI truecolour; demo, --dump, --keys.
@@ -752,6 +753,42 @@ Not here: a fetch of a profile (one recording, shown for whichever author is pre
 recording's), a follow button, the app's paging (each tab is its one recorded page; no cursor and no Sentinel), and a
 card of the profile's list opening its own post's thread.
 
+**The settings screen: the page's third.** A gear at the bar's right end opens it — the app's own Settings nav item, its
+glyph three 16x2 boxes (Roboto has no gear glyph and Clay has no icons) in a 40x28 box that ends at the bar's content
+edge — and the screen is built like the thread's: a root float over the content area one z above the thread's, so it
+opens over a thread as well; a 44px header with the back control and "Settings"; its own clip element on a third
+instance of the page's scroll machine (the three rows fit the 652, so it never scrolls and its thumb stays out); the same
+group entry (12px low and 0 opacity on `spatial(0.3)`/`effect(0.3)`, `presence(0.3)` for the exit, and reduced motion
+neither); and Escape, the back control or a click on a tab returning to what was up — the feed, or the thread the screen
+was opened from. Its five stops (the back control, the theme group, the switch, the size group and the clip) are the
+page's Tab stops while it is up and disabled while it is down, the covered screen's stops are disabled under it, and the focus its opening
+pushed comes back on the way out, so the frame under it is byte-identical (measured: the thread's back control has its
+ring again, 0 bytes of 1,094,400).
+
+Its three rows are controls that change the page, not a drawing of one. **Theme** is a radio group, Dark and Light: every
+style's variant is picked by the *frame's* theme, so the pick is written back to the host (`Sky`'s `setTheme` prop —
+main.ts's own `theme` variable, which its frame's `theme` getter reads and its `t` key flips) and the whole palette
+follows, the page's own fades with it (they read the same signal): measured, the bar's ground and the screen's `16/19/22`
+→ `243/245/247` and a row's panel `27/32/38` → `255/255/255`. **Reduced motion** is a `createSwitch` that calls
+`setReducedMotion`, starting on the platform's flag (`--reduced-motion`), so afterwards every retarget lands at once:
+measured, the frame after a card's click is the settled thread (0 bytes of the 20-frame one), where without it the same
+frame differs by 672,965. **Text size** is a second radio group, Regular and Large: the page's styles are literals and a
+Clay text carries its `fontSize` and `lineHeight` as numbers, so no token can carry them — the feed card's five text
+styles have a Large variant each, two steps up (16/22 → 18/24, 12/16 → 13/18, 14/20 → 16/22, 13/18 → 15/20 twice), built
+in `app/Settings.tsx` from the page's own tokens (the palette is `app/Sky.styles.ts`'s now, shared by the two screens).
+The card grows 190 → 222 and its body's one 20px line is two 22px ones; the feed re-measures (the page drops its height
+cache on the frame the size changed), so Science's 742px of content is 830, its thumb 594.2 is 531.2 and its end 78 is
+166; back at Regular the card and the feed's whole frame are byte-identical to before. The thread's cards keep Regular.
+
+The values are the page's while it runs — signals and `motion.ts`'s flag, no storage read or written — so a window starts
+from `THEME=light` or the dark palette, from the platform's motion flag and at Regular. Not here: the app's full
+appearance set (the accent hue's slider, the corners, the fonts — `apps/csssky/src/settings.ts`), which this page's tokens
+have no handles for, and a persisted choice. Four frames (`solid/settings.test.ts`): `sky-settings`, `sky-settings-mid`
+(two frames into the entry), `sky-settings-light` (Light picked, the ring on it) and `sky-settings-large`. The fifteen Sky
+frames that show the bar were re-stored deliberately: the gear draws 96 pixels in a 16x12 box at 315,26 (its three
+bar-glyph rows) and nothing else in any of them moved, measured pixel for pixel against the previous files; the command
+golden (`solid/goldens/sky.json`) gained those three rectangles and the one a11y node.
+
 **A page's entry, once.** The four plain pages — List, Widgets, Sensors, Text field — get the same first mount from one
 helper (`solid/src/entry.ts`): the root element's subtree (its id is `Root` on all four) starts 8px low and at alpha 0 and
 settles on its literals over `spatial(0.25, 0)` for `TRANSLATE_Y` and `effect(0.25)` for `ALPHA` — the group fields, so
@@ -911,9 +948,82 @@ Cost (Apple M2, one thread, `--bench 200`, five runs each, medians; the machine 
 The page's own first-mount entry is off (the Widgets page is given no motion hook): the entry draws ~21 frames over a
 page that does not change, and this page is about the frames after it. `solid/dev.test.ts` holds the panel's content
 (the 28 rows, the ring after Tab, the hovered box, the four phases against the frame that changed the page, the counters,
-0 draws at rest) and lists three mutations with their failure messages. Not there yet: **`tune!`-style live values** (a
-control in the panel that writes a style field through the value channel while the page runs) — item 7's second half,
-still later — and picking an element by clicking it into the tree.
+0 draws at rest) and lists three mutations with their failure messages. Not there yet: picking an element by clicking it
+into the tree — the live values are the section below.
+
+### The live values: a box's numbers, edited while the page runs
+
+Rune's item 7, second half (`solid/app/Dev.tsx`, `tuneRows`): the panel's fourth section lists the picked box's style
+numbers that the value channel can move, and edits them while the page runs. The pointer over a node of the page picks
+it — the same innermost box with an id and a role that the hovered-box line reports — and it *stays* picked when the
+pointer leaves the page (the panel is not the page, and the keyboard needs the numbers to stay); picking another box
+drops the previous one's live values. The section's first line names it with its bounds (`wifi  switch "Wi-Fi"  40,118
+280×32`), and the rows are `src/pack.ts`'s `FIELDS` that `ui.c` reads:
+
+| Row | The number | Step |
+| --- | --- | --- |
+| `width`, `height` | the box's size; a `stretch` or `fit` axis has no pixel of its own in the 45, so the row reads the box's laid-out size and a step pins the axis to a pixel (type, min and max at once) | 1 |
+| `padding.l`, `.r`, `.t`, `.b`, `gap` | the layout's padding and child gap | 1 |
+| `radius` | all four corners at once; where they are not one number the row is `radius.tl`, `.tr`, `.br`, `.bl` (a tab's 8 8 0 0) | 1 |
+| `bg.r`, `.g`, `.b`, `.a` | the fill's four channels | 4 |
+| `border.r`, `.g`, `.b`, `.a` | the border's colour, listed only where the style draws a border (any of its four widths) | 4 |
+| `offsetX`, `offsetY`, `expandW`, `expandH`, `zIndex` | a float's (`css.float`) block, listed only for a float, which is the only element `ui.c` reads it for | 1 |
+| `shadowBlur` | the blur of the style's shadow (`ui_shadow`'s argument, field 45), listed for a shadow | 1 |
+| `gradientAlpha` | the opacity of the style's background image (field 50), listed for a gradient | 0.1 |
+| `alpha`, `scale`, `translateX`, `translateY`, `rotate` | the renderer's group: the whole subtree's opacity 0..255, scale about its box centre (1 = none), offset in px, and rotation in degrees (fields 46..49 and 55) | 0.1, 0.01, 1, 1, 1 |
+
+Every one is a live value, including the ones the renderer only reads at layout (a width, a padding, a gap, a radius):
+the page re-declares its own tree every frame, so a value that moved a box re-lays it out, moves its a11y bounds and its
+siblings. What is **not** a row: a **text's** colour (fields 51..54 are a text's own floats, not its box's, and a text's
+colour is only reachable through a text with an id — the picked element is a hovered box), and the **modes and enums**
+of the 45: `capture` and `clip` (0/1), the sizing type, an alignment, the layout direction, a float's attach and its
+parent's id halves. A step does not read those as values, so the section does not offer them.
+
+The keys, when the values part has the panel's focus (`Tab`/`Shift+Tab` walk the page's own controls, then the panel's
+three stops — the tree, the hovered box and the values, which are the page's last three):
+
+- `Up`/`Down` (and `Home`/`End`) pick a row; `Left`/`Right` (or `-`/`+`) step it by the table's step, clamped to the
+  field's range (a colour 0..255, a size 0..8192, an alpha 0..255, a scale 0..8, a translate or an offset -4096..4096,
+  a `zIndex` -32768..32767, a rotation -360..360).
+- `r` resets the row to the style's literal, `Shift+R` all of them. A reset does not write the literal: it *drops* the
+  override, so the declare falls back to the style's own floats and the frame is the frame before the edit again — the
+  page's pixels byte for byte (the panel's own frame section prints the milliseconds of the frame that last changed the
+  page, so its digits are the one thing that moves between two readings of the same state).
+- `>` is the cursor (the row is drawn in the accent too), and `*` before a row's name marks a live value, so the reader
+  can tell the panel's number from the style's. The section's footer is the keys, what `*` is, and — when the box has
+  more rows than the panel has room for — which rows of how many it is showing (`4-21 of 21`): the list is a window of
+  18 rows, two a line, that follows the cursor. The panel cannot scroll: Clay squeezes a fitted column into its box, so
+  what the four sections declare has to fit the 760px it has (the gap's 2px instead of 3 is what the fourth section
+  needed).
+
+The writes are the Dialog page's mechanism: `ui.value(id, field, value)` at the panel's tick, before the tree is
+declared, into the renderer's table for that frame only (`ui_begin` clears it). No page state is touched, so the page's
+literals are untouched, and nothing is written while nothing is overridden — an untouched panel's frame is the frame it
+was. Cost (Apple M2, one thread, in `solid/tune.test.ts`'s own measurement, 120 frames at rest, medians; the machine had
+other work on it): declare **0.050** ms and layout **0.033** ms with no override, **0.048**/**0.038** ms with five rows
+overridden — inside the noise, because a write is one float into a 64-entry table and `ui_open` copies the element's 180
+bytes once for an element that has any override (a `memcpy` per overridden element, as the Dialog's tracks are). The
+same two medians read 0.057 and 0.130 in a run with three other agents' suites on the machine, which is the machine and
+not the writes: five `ui.value` calls and one 180-byte copy cannot cost 70 µs. An
+edit's own frame draws the window as any changed frame does: **6.9..13.1 ms** of draw for the page and the panel in
+four runs on a machine with other work on it (a machine busy with other agents drew the same frame at 38 ms, so the raster is what the load moves).
+
+`solid/tune.test.ts` holds it: the switch's 17 rows and their numbers (and the same numbers from the style's own
+`resolve`), the panel's three Tab stops, `Right` on the radius rounding the corner (`48,53,68` → the page's own
+`16,18,24` at the corner pixel) and the row's text, the width moving the box and the a11y tree's bounds (`280×32` →
+`281×32`), `bg.r` running to 255 and the row's fill going red, the clamps (an alpha at 255 stays 255, a padding at 0
+stays 0), `r` and `Shift+R` (five rows overridden) with the page byte-identical to before, the `*`, the window, and the
+cost. Three mechanisms' mutations were run and reverted, the write's twice: the width's row writing the height's
+floats fails `FAIL the box is a pixel
+wider: "40,118 280×281", wanted "40,118 281×32"`; a `radius` row one float along fails `FAIL the radius rounds the
+corner: "48,53,68,255", wanted "16,18,24,255"`; a reset that writes the live value back fails `FAIL ... and the page is
+the page before the edit, byte for byte: false, wanted true`; and a step without its clamp fails `FAIL an alpha past 255
+stays 255: 259, wanted 255`.
+
+Not there: no pointer on a row (no dragging a number and no colour picker — the arrows are the only control), no script
+of a tuning session into a file (the overrides are the panel's memory and go with the process), no editing a style the
+page does not declare (a text's colour and the modes above), and the panel is still one page's (`Widgets`): a second
+page needs its own dev page. Picking an element by clicking it into the tree is still later.
 
 ## Text: the oracles, and why there is no weight correction
 
@@ -1010,6 +1120,8 @@ bun solid/text-oracle.ts                                      # the text sheet's
 bun solid/text-oracle.ts --density 2                          # ... at the window's pixel density; --canvas against Chrome's Canvas2D
 bun solid/text-oracle.ts --update                             # re-store the sheet and its references (needs swiftc; --canvas playwright)
 ./build/sensors/app --press 180 250 --png out.png             # headless: a press held at 180,250, the frame written while pressed
+./build/sensors/app --raster thorvg --dump out.json           # headless: the frame as JSON (desktop/clay_dump.c), the Solid goldens' schema
+node dump-check.ts solid/goldens/sensors.json out.json        # ... compared with the Solid Sensors page's golden, field by field
 IMAGE=1 ./build/sensors/app --raster thorvg --png out.png    # the IMAGE=1 variant: the page's 32x32 image, loaded by ThorVG from its path
 sh terminal/build.sh && ./terminal/demo                       # the Sensors page in characters: Tab, Up/Down, Space, t; q quits
 ./terminal/demo --page sky                                    # apps/csssky-tui in characters: the feed; enter opens the thread
@@ -1037,12 +1149,14 @@ node browser/check.mjs --serve # http://127.0.0.1:<port>/browser/index.html — 
 
 | What         | Size       |
 | ------------ | ---------- |
-| `page.wasm`  | 104,375 B  |
-| the page     | 8,505 B (index.html + render.js) |
+| `page.wasm`  | 131,609 B  |
+| the page     | 8,816 B (index.html + render.js) |
 
-`browser/check.mjs` builds nothing: `browser/build.sh` does, into `$TMPDIR`, because the wasm is a build product.
-`browser/dump-commands.c` is how the desktop's command table in the check was produced (Clay + SDL_ttf/Roboto, the
-frame in `examples/sensors/expected-thorvg.png`); it is not part of the page.
+`browser/check.mjs` builds nothing: `browser/build.sh` does, into `$TMPDIR`, because the wasm is a build product. The
+wasm exports `dump()`: the last frame as the JSON of `desktop/clay_dump.c`, the one emitter on every target, and the
+check compares it with `solid/goldens/sensors.json` — the same golden the Solid page and the C page are held to — so
+the browser has no command table of its own any more. `page.wasm` carries the emitter's `vsnprintf` (about 27 KB) for
+that comparison; the page itself does not need it.
 
 ## The sky screens in a terminal
 
@@ -1142,9 +1256,10 @@ into one yet.
 
 ## The frame as data: command-stream goldens
 
-A stored frame answers "did the pixels change" and not "what changed". `ui_dump_json(path)` (solid/native/ui.c) writes
-the last frame as JSON instead, and `bun solid/dump.ts <page>` renders a page exactly as `main.ts`'s headless path does
-for its stored frame — the same size, input and motion hook, run to rest, no raster — and stores it in `solid/goldens/`:
+A stored frame answers "did the pixels change" and not "what changed". One emitter, `desktop/clay_dump.c`, writes the
+last frame as JSON for every target, and `bun solid/dump.ts <page>` renders a page exactly as `main.ts`'s headless path
+does for its stored frame — the same size, input and motion hook, run to rest, no raster — and stores it in
+`solid/goldens/`:
 
 ```sh
 bun solid/dump.ts sensors                  # the JSON to stdout, the counts to stderr
@@ -1152,6 +1267,15 @@ bun solid/dump.ts sky --out /tmp/sky.json  # ... or to a file
 bun solid/dump.ts widgets --update         # re-store solid/goldens/widgets.json
 bun solid/dump.test.ts                     # every golden, field by field (solid/test.sh runs it)
 ```
+
+The emitter is Clay and libc only — no SDL, no ThorVG, no file I/O: it returns the bytes, and each host writes them the way
+its target can (a file, a buffer JS reads out of the wasm's memory). `ClayDumpFrame` (`desktop/clay_dump.h`) is the
+command array plus what a host knows about it: the frame's size, scale and hash; the page's id strings (`names`, by
+Clay's hash, from `ui_open`/`ui_text` — the Solid host interns them, a C page has only the hashes, so a command's
+`element` is null); each node's Clay id and the two text fields a command does not carry (`textAlign`, `textWrap`, per
+node); and the renderer's effect tables (`shadows`, `backdrops`, `gradients`, `groups` — the C page has none of them, so
+it passes them empty). `ui_dump_json` (`solid/native/ui.c`) is now the Solid host's adapter over it and writes the same
+bytes it always has: the five goldens did not change.
 
 The JSON carries what a draw reads and nothing else, so a diff of it is a diff of the frame:
 
@@ -1190,7 +1314,44 @@ What it cannot see: the pixels — anti-aliasing, a shadow's raster (the geometr
 blurred pixels, a gradient's dither, a glyph's shaping (ThorVG applies no kerning, and the dump has the declared size and
 the finished box, not the advances), and the raster's density beyond the `scale` it records. Nor anything the frame does
 not declare: a part's handlers and key timing (`widgets.test.ts`, `list.test.ts`), the focus trap (`dialog.test.ts`), a
-hover that has not moved the tree, or what a page would draw next. The per-target half is unfinished on purpose: the C
-pages (`examples/sensors/page.c`), the browser's `browser/dump-commands.c` and the board still compare commands with
-their own tables, so only the desktop's Solid pages have goldens; one dump for every target is the next step, together
-with the scene files of item 4 and the board's own loop.
+hover that has not moved the tree, or what a page would draw next.
+
+### The C page and the browser, through the same emitter
+
+The desktop host takes `--dump out.json` (`desktop/host.c`), so the C page's command stream is the same emitter's and
+its layout is the raster's own:
+
+```sh
+./build/sensors/app --raster thorvg --dump /tmp/sensors.json       # the C page (examples/sensors)
+node dump-check.ts solid/goldens/sensors.json /tmp/sensors.json    # vs the Solid page's golden
+sensors: 10 commands, identical
+```
+
+One golden, not a second one beside the C page: the hand-written C page and the Solid page are the same tree from the
+same `styles.ts`, and both are laid out with ThorVG's metrics, so all 10 commands compare equal field by field, the
+boxes included — measured before the golden was shared. `dump-check.ts` settles the three things a C host does not know
+and the golden does, and compares the rest byte for byte as `solid/src/format.ts` writes it (the formatter `solid/dump.ts`
+stores the goldens with): a command's `element` is resolved by id (the same page, the same ids, the host keeps no
+strings); the frame's hash is dropped (a C host writes zero, a golden never stores one); the `a11y` snapshot is dropped
+(the Solid host's alone). A miss names the command and the field, as the Solid test's does — a colour in
+`examples/sensors/styles.ts`:
+
+```
+FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 4 (text "gyro °/s") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 9 (border) colour 150/155/170/255 -> 160/165/180/255
+```
+
+The browser is the third host: `browser/page.c` exports `dump()`, which writes the wasm's last frame through the same
+emitter into its linear memory, and `browser/check.mjs` compares that JSON with `solid/goldens/sensors.json` — the
+same golden, no table of its own any more (`browser/dump-commands.c` is gone). Every field is exact but the `box`: the
+golden's boxes are ThorVG's metrics, the wasm's are Canvas2D's, which does not hint a font, so a 20px line comes out up
+to 3px wider and a centred box starts half of that to the side; the 4px tolerance is the one the old table had. A box
+that moves fails as `FAIL commands frame(0): command 7's box is 10.00px off the golden's` (measured by widening the
+Units pill to 210), and a colour as a named field. The wasm's `use_g` frame has no golden of its own: its two stored
+rasters are its gate.
+
+What is still per-target: the board has no dump at all; a golden of a page's light theme (a variant is
+`capture(page, "light")` plus one file) and of the use_g frame; a custom command's pointer (an address, kept out of the
+goldens) and a frame's hash (with an image it hashes the image's pointer; also kept out). Nothing here sees the pixels,
+glyph shaping, a shadow's raster or a gradient's dither: the raster stays the final gate.
