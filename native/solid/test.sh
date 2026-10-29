@@ -205,3 +205,19 @@ bun solid/scene.test.ts
 # slide, the one frame that carries every table. Re-store a page after a deliberate change — read the diff first — with
 # `bun solid/dump.ts <page> --update`; one page's JSON alone with `bun solid/dump.ts <page>` (stdout).
 bun solid/dump.test.ts
+# the profile screen (the page's third screen): a card's author — its name-and-handle row, the app's own `<a>` on the
+# name (apps/csssky/src/post/Post.tsx) — opens apps/csssky's recorded profile (test/fixtures/profile-head.json and the
+# three author feeds, read by solid/app/profile.ts; nothing fetches): the drawn 56px disc, the name, handle, bio and
+# counts, the app's Posts/Replies/Media tabs as a headless tablist, and each tab's cards on the page's own scroll machine
+# (a fresh one per tab, so a switch starts at the top). Back / Escape return to the feed it left, or to the thread a
+# thread's card opened it from, untouched under it. The screen enters as one group (12px low, 0 opacity, 0.3s, the card
+# entry's tracks), so `sky-profile-mid` is two frames into it; `sky-profile-media` is a second headless click on the Media
+# tab after the settle (its ring and underline, and thirteen cards with their media lines).
+$S --warm 40 --click 180 155 --settle 40 --expect solid/frames/sky-profile.png
+$S --warm 40 --click 180 155 --settle 2 --expect solid/frames/sky-profile-mid.png
+THEME=light $S --warm 40 --click 180 155 --settle 40 --expect solid/frames/sky-profile-light.png
+$S --warm 40 --click 180 155 --settle 40 --click2 178 289 --settle2 40 --expect solid/frames/sky-profile-media.png
+# ... and the screen's own test: the recording's head and tabs, the press, the tabs' lists, the list's scroll and thumb, a
+# switch back to the top, back's byte-identical frame, a profile from a thread returning to it, the entry and reduced
+# motion, the a11y tree, the stored frames, and the mutations
+bun solid/profile.test.ts

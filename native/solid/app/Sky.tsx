@@ -38,6 +38,7 @@ import { topFirst } from "../../../apps/csssky/src/api.ts";
 import type { threadScreen, ThreadNode } from "../../../apps/csssky/src/api.ts";
 import { embedParts } from "../../../apps/csssky/src/post/model.ts";
 import { mediaText, rowsOf } from "../../../apps/csssky-tui/src/model.ts";
+import { createProfile } from "./Profile.tsx";
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
 // the sky palette: the page, the card one tonal step above it (its top; the gradient's deep end is a step below), the
@@ -991,9 +992,35 @@ export function Sky(props: {
       input.focus.blur();
     }
   };
-  // Escape anywhere else (the bar's tablist) is the page's last resort, with the host's own fallback beside it
+  // ... and the profile screen's cover: while it is up the feed's stop is disabled (the profile's own screen registers it)
+  // and the thread's two stops leave the Tab order, the thread still declared under the profile; its back takes the focus
+  // again when the profile closes onto it, and the feed's screen blurs when anything over it goes.
+  let covered = "";
+  const cover = () => {
+    const thread = threadOpen();
+    const up = profile.isOpen();
+    const key = thread ? (up ? "under" : "thread") : up ? "profile" : "feed";
+    if (key === covered) return;
+    const was = covered;
+    covered = key;
+    if (key === "profile") input.focus.register(VIEW, { disabled: true });
+    else if (key === "feed") input.focus.register(VIEW, { disabled: false });
+    if (thread) {
+      input.focus.register(backPart.id, { disabled: up });
+      input.focus.register(regionPart.id, { disabled: up });
+    }
+    if (key === "thread") input.focus.focus(backPart.id);
+    else if (key === "feed" && was !== "") input.focus.blur();
+  };
+  // Escape anywhere else (the bar's tablist) is the page's last resort, with the host's own fallback beside it: the top
+  // screen first (the profile over the thread), then the thread
   const hostFallback = input.fallback;
-  input.fallback = (name) => (name === "Escape" && threadOpen() ? (leaveThread(), true) : (hostFallback?.(name) ?? false));
+  input.fallback = (name) =>
+    name === "Escape" && profile.isOpen()
+      ? (profile.close(), true)
+      : name === "Escape" && threadOpen()
+        ? (leaveThread(), true)
+        : (hostFallback?.(name) ?? false);
   onCleanup(() => (input.fallback = hostFallback));
 
   /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
@@ -1170,6 +1197,7 @@ export function Sky(props: {
     // the node has left: the data it showed is no longer needed
     if (!mounted && state() !== null) setState(null);
     stops(open);
+    cover();
     if (mounted) {
       // the rows' real content from the last frame's layout (the last row's bottom, the clip's own offset added back, and
       // the 12px padding below it), then the offset the machine presents and the fade of its thumb
@@ -1181,16 +1209,20 @@ export function Sky(props: {
       if (view && last) threadContent = Math.max(0, last[1] + last[3] - view[1] - ui.scrollOffset(THREAD_VIEW) + PAD);
       threadScroll.tick(dt);
     }
+    // the profile screen's own frame: its entry (or exit), its list's content and its machine
+    profile.tick(dt);
   };
-  // The wheel is the screen's under the pointer: the thread's clip (and its thumb) while the thread is open — the bar
-  // above it is nobody's — and the feed's everywhere else, as it always was (a wheel over the status line scrolls it).
+  // The wheel is the screen's under the pointer: the profile's clip and thumb while it is up (over the thread), then the
+  // thread's, and the feed's everywhere else, as it always was (a wheel over the status line scrolls it).
   const wheel = (dx: number, dy: number) => {
+    if (profile.isOpen()) return profile.wheel(dx, dy);
     if (!threadOpen()) return feedScroll.wheel(dx, dy);
     if (ui.over(threadViewId) || ui.over(threadBarId)) threadScroll.wheel(dx, dy);
   };
   // ... and so is the pointer: only the open screen's machine may see a drag, so the feed's press never travels under it
   const pointer = (x: number, y: number, down: boolean, touch?: boolean) => {
-    if (threadOpen()) threadScroll.pointer(x, y, down, touch);
+    if (profile.isOpen()) profile.pointer(x, y, down, touch);
+    else if (threadOpen()) threadScroll.pointer(x, y, down, touch);
     else feedScroll.pointer(x, y, down, touch);
   };
   if (props.motion)
@@ -1219,6 +1251,11 @@ export function Sky(props: {
   };
   const bind = input.add(part);
 
+  // the page's third screen (app/Profile.tsx): a card's author opens the profile. It is set up here, after the feed's stop,
+  // so its own stops (the back control, the tablist, the clip) sit after the feed's in the page's order; the screen itself
+  // keeps its state, its motion and its element.
+  const profile = createProfile({ input, styles: s, postOf, ago, num });
+
   const statusOf = () => {
     const f = feed();
     const sel = selected();
@@ -1239,9 +1276,10 @@ export function Sky(props: {
               {...binds[i]!}
               {...a11y(tab)}
               style={under(i) ? s.tabOn : s.tab}
-              // a tab is the feed's: it switches the feed and leaves a thread, whatever the history says
+              // a tab is the feed's: it switches the feed and leaves a thread (and a profile) over it, whatever the history says
               onClick={() => {
                 binds[i]!.onClick?.();
+                if (profile.isOpen()) profile.close();
                 if (threadOpen()) closeThread();
               }}
             >
@@ -1254,7 +1292,7 @@ export function Sky(props: {
           the selection); the covered screen is out of the a11y tree while the thread is mounted */}
       <box
         {...bind}
-        hidden={threadShown()}
+        hidden={threadShown() || profile.shown()}
         onPress={() => (bind.onPress(), feedScroll.press())}
         style={s.view}
       >
@@ -1274,9 +1312,11 @@ export function Sky(props: {
                   selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card
                 }
                 onClick={() => {
-                  // a press that dragged the feed is not a click on the card it started on; one that did not selects the
-                  // card and opens that post's thread, by the record's own at-uri (no uri, no thread)
+                  // a press that dragged the feed is not a click on the card it started on; one on the author's row is that
+                  // row's own (it opens the profile), and the rest of the card selects the post and opens its thread, by the
+                  // record's own at-uri (no uri, no thread)
                   if (feedScroll.dragged) return;
+                  if (ui.over(Buffer.from(`sky-author-${i}`))) return;
                   const p = feed().posts[i];
                   if (!p?.uri) return;
                   setSelected({ feed: active(), i });
@@ -1284,7 +1324,13 @@ export function Sky(props: {
                 }}
               >
                 <box id={`sky-avatar-${i}`} style={AVATARS[post().handle.split(".")[0]!]!} />
-                <box style={s.nameLine}>
+                <box
+                  id={`sky-author-${i}`}
+                  style={s.nameLine}
+                  onClick={() => {
+                    if (!feedScroll.dragged) profile.open();
+                  }}
+                >
                   <text style={s.name}>{post().name || post().handle}</text>
                   <text style={s.meta}>
                     {post().name ? `@${post().handle} · ${ago(post().created)}` : ago(post().created)}
@@ -1309,7 +1355,7 @@ export function Sky(props: {
       </box>
       {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
       <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
-      <box id="sky-status" hidden={threadShown()} style={s.status}>
+      <box id="sky-status" hidden={threadShown() || profile.shown()} style={s.status}>
         <text style={s.statusText}>{statusOf()}</text>
       </box>
       {/* the thread screen: a root float over the content area, its header (the back control and the title) above its own
@@ -1317,7 +1363,13 @@ export function Sky(props: {
           tombstone's words as a note, a "Show N more replies" row as a button, and — while the loader has no answer — the
           one muted row its state has, the error one beside the retry it offers */}
       <Show when={threadShown()}>
-        <box id={THREAD} role="region" label={headPost() ? `Thread — @${headPost()!.handle}` : "Thread"} style={s.thread}>
+        <box
+          id={THREAD}
+          role="region"
+          label={headPost() ? `Thread — @${headPost()!.handle}` : "Thread"}
+          hidden={profile.shown()}
+          style={s.thread}
+        >
           <box id={HEAD} style={s.head}>
             <box {...backBind} {...a11y(back.part)} label="Back" style={s.back}>
               <text style={s.backText}>Back</text>
@@ -1342,7 +1394,11 @@ export function Sky(props: {
                       {row.focus && AVATARS[row.post.handle.split(".")[0]!] ? (
                         <box id="sky-thread-avatar" style={AVATARS[row.post.handle.split(".")[0]!]!} />
                       ) : null}
-                      <box style={s.nameLine}>
+                      <box
+                        id={`sky-thread-author-${index()}`}
+                        style={s.nameLine}
+                        onClick={() => profile.open()}
+                      >
                         <text style={s.name}>{row.post.name || row.post.handle}</text>
                         <text style={s.meta}>
                           {row.post.name ? `@${row.post.handle} · ${ago(row.post.created)}` : ago(row.post.created)}
@@ -1399,6 +1455,9 @@ export function Sky(props: {
           <box id={THREAD_BAR} style={s.threadThumb} onPress={() => threadScroll.thumb()} />
         </box>
       </Show>
+      {/* the profile screen: declared last, so its root float (the thread's style, z 2) draws over the thread when one is
+          under it; the whole screen keeps its own state, its list and its motion (app/Profile.tsx) */}
+      {profile.screen()}
     </box>
   );
 }

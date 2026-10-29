@@ -972,6 +972,22 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   check("a finger's tap that never moves still clicks", u.status(), "Michael Warburton — 1 of 3");
 }
 
+// --- the author's row is the profile's press and the card's is still the thread's; a closed profile adds no Tab stop
+//     (its own screen is solid/profile.test.ts's)
+{
+  const p = fresh();
+  check("a page with the profile closed has the bar's tab and the feed as its stops", p.input.focus.tabOrder(), ["sky-tabs-tab-0", "sky-feed"]);
+  check("the author's row has a box of its own in the card", [p.box("sky-author-1")[2], p.box("sky-author-1")[3]], [312, 38]);
+  p.clickOn("sky-author-1");
+  p.settle(40);
+  check("a press on it opens the profile over the feed", p.box("sky-profile"), [0, 64, 360, 696]);
+  check("... and not the post's thread", p.box("sky-thread"), []);
+  check("the feed's card stays unselected (the profile is a navigation, not a selection)", p.status(), "Discover — 3 posts");
+  p.tap("Escape");
+  p.settle(40);
+  check("Escape closes it: the feed is back", p.box("sky-profile"), []);
+}
+
 dispose();
 if (failed) process.exit(1);
 console.log(
@@ -988,6 +1004,6 @@ console.log(
     "a press outside the feed that grabs nothing, and reduced motion's 1:1 drag with no fling), the keyboard scrolling " +
     "the same track (Down/Up 40, " +
     "PageDown a viewport, Home/End), the tabs switching the feed and the empty News case, a card click recording the " +
-    "selection, the page fitting",
+    "selection, the author's row opening the profile (its own screen is solid/profile.test.ts's), the page fitting",
 );
 process.exit(0);
