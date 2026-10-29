@@ -907,7 +907,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    canvas gamma, not our renderer: stored as `frames/text-canvas.png` and pinned in the test as a band, not matched.
    That leaves fonts other than Roboto-Regular (one face is vendored; a second face is a font feature) and the terminal
    and board, whose text is a cell grid.
-7. **Partly done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
+7. **Done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
    360px column with a 300px panel beside it, in the same frame: the page's **a11y tree** as indented rows
    (`role "name" [states] x,y w×h` — `a11y.ts`'s snapshot of the page's own subtree, bounds from `ui.bounds`, and `no
    bounds` where the page drew no box; 28 rows for that page), the **box under the pointer** (the innermost box with an
@@ -925,9 +925,27 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    `dev.png`, `dev-hover.png`, `dev-light.png`, `dev-tree.png`. Check: `solid/dev.test.ts` — the 28 rows and their
    states, the switch's row and the ring after Tab, the hovered box (the tab, not its tablist), the four phases against
    the frame that changed the page, `0.00` ms of draw and a still `ui.draws()` over 20 idle frames, the light theme,
-   reduced motion — and three mutations with their messages. Still later: **`tune!`-style live values** (a control in
-   the panel that writes a style field through the value channel while the page runs) and picking an element by clicking
-   it into the tree. Also later: style reload without a restart (our "reload on save"); and a static first frame shown
+   reduced motion — and three mutations with their messages.
+   **Done: `tune!`-style live values** (2026-10-29) — the panel's fourth section. The picked box's style numbers that the
+   value channel can move are rows with their numbers: `width`/`height` (a stretch or fit axis reads the laid-out size,
+   and a step pins the axis to a pixel), the padding's four sides, `gap`, `radius` (a corner a row where they differ),
+   the background's and border's channels, a float's offsets/expand/`zIndex`, a shadow's blur, a gradient's alpha, and
+   the group's `alpha`/`scale`/`translateX`/`translateY`/`rotate` — live even where a field only matters at layout,
+   because the page re-declares every frame. Not rows: a text's colour (a text's own floats, reachable only through a
+   text with an id) and the modes and enums of the 45 (`capture`, `clip`, the sizing type, an alignment, a float's
+   attach). `Tab`/`Shift+Tab` walk the page then the panel's three stops (the tree, the hovered box, the values);
+   `Up`/`Down` pick a row, `Left`/`Right` (or `-`/`+`) step it (1 a pixel, 4 a colour channel, 0.1 an alpha, 1 a degree),
+   clamped to the field's range; `r` resets the row and `Shift+R` all of them — by *dropping* the override, so the
+   declare is the style's literal again and the page is byte-identical to before the edit; `*` marks a live value, `>`
+   (and the accent) the cursor, and a list longer than 18 rows is a window with `4-21 of 21` in its footer (the panel
+   cannot scroll: Clay squeezes a fitted column into its box, so its four sections have to fit the 760px). Measured: 120
+   frames at rest, declare 0.050 ms and layout 0.033 ms with nothing overridden, 0.048/0.038 ms with five rows
+   overridden (the noise; a write is one float, and `ui_open`'s 180-byte `memcpy` is per overridden element). Check:
+   `solid/tune.test.ts` (the 17 rows of the switch, a radius's corner pixel, a width's a11y bounds, a colour's fill, the
+   clamps, `r` and `Shift+R` byte for byte, the window, the cost) and four mutations with their messages. Still later
+   here: picking an element by clicking it into the tree; and no pointer on a row (no dragging a number, no colour
+   picker), no script of a tuning session into a file, and no editing a style the page did not declare.
+   Also later: style reload without a restart (our "reload on save"); and a static first frame shown
    by the window before Bun and the first layout are ready.
 
 Not taking: Rust, Taffy, wgpu, Parley, AccessKit, their per-OS shells, split-process development, subsecond

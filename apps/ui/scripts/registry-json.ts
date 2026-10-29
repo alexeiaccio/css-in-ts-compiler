@@ -32,45 +32,122 @@ interface Starter {
   readonly name: string;
   readonly title: string;
   readonly description: string;
+  /** The item also ships its conformance test: the fixture, the driver it walks with and the browser config. */
+  readonly tested?: boolean;
+  /** Files of the kit a copy of this component needs beside it (relative to `src/registry`). */
+  readonly with?: ReadonlyArray<string>;
+  /** Other items this one is composed with (their files arrive here too, `with`). */
+  readonly also?: ReadonlyArray<string>;
 }
 
 const STARTERS: ReadonlyArray<Starter> = [
   {
+    tested: false,
+    name: "card",
+    title: "Card",
+    description: "A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+  },
+  {
+    name: "field",
+    tested: false,
+    with: ["input/input.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Field",
+    description:
+      "A label, a control, a hint and an error: the ids and the ARIA are `createField`'s",
+    also: ["@cssints/input"],
+  },
+  {
+    name: "input",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Input",
+    description: "A text field on the neutral theme, and the control `Field` puts in by default",
+  },
+  {
+    name: "toolbar",
+    title: "Toolbar",
+    description:
+      "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+  },
+  {
     name: "switch",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
     title: "Switch",
     description: "APG switch on @cssints/headless, on the neutral theme, with its scenario test",
   },
   {
     name: "disclosure",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
     title: "Disclosure",
     description:
       "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
   },
   {
     name: "button",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Button",
-    description: "APG button and toggle button on @cssints/headless, on the neutral theme",
+    description:
+      "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
   },
   {
     name: "checkbox",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
     title: "Checkbox",
     description: "APG checkbox, including the mixed tri-state, on @cssints/headless",
   },
   {
     name: "radio",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
     title: "Radio group",
     description: "APG radio group with roving tabindex or aria-activedescendant focus",
   },
   {
     name: "tabs",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
     title: "Tabs",
     description: "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
   },
   {
     name: "accordion",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
     title: "Accordion",
     description: "APG accordion: multiple or single expansion, headed triggers, collapsible",
   },
+];
+
+// A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
+// it imports arrive beside it. `tested` adds the conformance test a copy can run: the fixture, the DOM driver and the config.
+const kitFiles = (item: Starter) => [
+  file(target(`${item.name}.tsx`), "registry:ui", `src/registry/${item.name}/${item.name}.tsx`),
+  ...(item.with ?? []).map((path) =>
+    file(target(path.split("/").at(-1) ?? path), "registry:file", `src/registry/${path}`),
+  ),
+  ...(item.tested
+    ? [
+        file(
+          target(`${item.name}.fixture.tsx`),
+          "registry:file",
+          `src/registry/${item.name}/${item.name}.fixture.tsx`,
+        ),
+        file(target("dom-driver.ts"), "registry:file", `src/registry/${item.name}/dom-driver.ts`),
+        file(
+          target(`${item.name}.browser.test.tsx`),
+          "registry:file",
+          `src/registry/${item.name}/${item.name}.browser.test.tsx`,
+        ),
+        file("src/vitest.browser.config.ts", "registry:file", "vitest.browser.config.ts"),
+      ]
+    : []),
 ];
 
 const starter = (item: Starter) => ({
@@ -79,28 +156,13 @@ const starter = (item: Starter) => ({
   type: "registry:ui",
   title: item.title,
   description: item.description,
-  dependencies: ["@cssints/headless"],
+  dependencies: ["@cssints/headless", "cssints"],
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
   // `solid-js` rc, which this item cannot know.
-  devDependencies: ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-  registryDependencies: ["@cssints/theme"],
-  files: [
-    file(target(`${item.name}.tsx`), "registry:ui", `src/registry/${item.name}/${item.name}.tsx`),
-    file(target(`${item.name}.css`), "registry:file", `src/registry/${item.name}/${item.name}.css`),
-    file(
-      target(`${item.name}.fixture.tsx`),
-      "registry:file",
-      `src/registry/${item.name}/${item.name}.fixture.tsx`,
-    ),
-    file(target("dom-driver.ts"), "registry:file", `src/registry/${item.name}/dom-driver.ts`),
-    file(
-      target(`${item.name}.browser.test.tsx`),
-      "registry:file",
-      `src/registry/${item.name}/${item.name}.browser.test.tsx`,
-    ),
-    file("src/vitest.browser.config.ts", "registry:file", "vitest.browser.config.ts"),
-  ],
+  devDependencies: item.tested ? ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"] : [],
+  registryDependencies: ["@cssints/theme", ...(item.also ?? [])],
+  files: kitFiles(item),
 });
 
 const theme = {
@@ -158,12 +220,13 @@ const lines = [
   ...STARTERS.map((item) => `- ${item.name}: ${item.description}. \`add @cssints/${item.name}\``),
   "- theme: the neutral theme as plain custom properties; arrives with any starter",
   "",
-  "## How a skin is written",
+  "## How a component is written",
   "",
-  "Each skin is authored on cssints (`src/registry/<name>/<name>.ts`) and compiled to `<name>.css`",
-  "by `scripts/component-css.ts`; an item ships the compiled sheet, so a project needs no cssints",
-  "plugin and the copy can run the conformance test it arrives with. The theme is compiled from",
-  "`tokens.ts` the same way. Every value a skin reads is a theme custom property.",
+  "A component is one `.tsx`: styles are `cn()`/`cv()` with the theme's tokens, states are the ARIA",
+  "attributes the widget announces (`attr()`, `within()`), and `render` replaces a part with another",
+  "component or tag. A copy needs `cssints` in the project's Vite config; `theme.ts` and `tokens.ts`",
+  "arrive with it, and `theme.css` is the same theme for a project without the plugin. The",
+  "combinations are checked in `src/registry/combos.browser.test.tsx`.",
   "",
 ];
 mkdirSync(join(root, "public"), { recursive: true });

@@ -4,8 +4,6 @@
   "type": "module",
   "scripts": {
     "build": "vp build",
-    "css": "node --experimental-strip-types scripts/component-css.ts",
-    "css:check": "node --experimental-strip-types scripts/component-css.ts --check",
     "deploy": "bun alchemy deploy --stage prod --yes",
     "destroy": "bun alchemy destroy --stage prod",
     "dev": "vp dev",

@@ -877,9 +877,82 @@ Cost (Apple M2, one thread, `--bench 200`, five runs each, medians; the machine 
 The page's own first-mount entry is off (the Widgets page is given no motion hook): the entry draws ~21 frames over a
 page that does not change, and this page is about the frames after it. `solid/dev.test.ts` holds the panel's content
 (the 28 rows, the ring after Tab, the hovered box, the four phases against the frame that changed the page, the counters,
-0 draws at rest) and lists three mutations with their failure messages. Not there yet: **`tune!`-style live values** (a
-control in the panel that writes a style field through the value channel while the page runs) — item 7's second half,
-still later — and picking an element by clicking it into the tree.
+0 draws at rest) and lists three mutations with their failure messages. Not there yet: picking an element by clicking it
+into the tree — the live values are the section below.
+
+### The live values: a box's numbers, edited while the page runs
+
+Rune's item 7, second half (`solid/app/Dev.tsx`, `tuneRows`): the panel's fourth section lists the picked box's style
+numbers that the value channel can move, and edits them while the page runs. The pointer over a node of the page picks
+it — the same innermost box with an id and a role that the hovered-box line reports — and it *stays* picked when the
+pointer leaves the page (the panel is not the page, and the keyboard needs the numbers to stay); picking another box
+drops the previous one's live values. The section's first line names it with its bounds (`wifi  switch "Wi-Fi"  40,118
+280×32`), and the rows are `src/pack.ts`'s `FIELDS` that `ui.c` reads:
+
+| Row | The number | Step |
+| --- | --- | --- |
+| `width`, `height` | the box's size; a `stretch` or `fit` axis has no pixel of its own in the 45, so the row reads the box's laid-out size and a step pins the axis to a pixel (type, min and max at once) | 1 |
+| `padding.l`, `.r`, `.t`, `.b`, `gap` | the layout's padding and child gap | 1 |
+| `radius` | all four corners at once; where they are not one number the row is `radius.tl`, `.tr`, `.br`, `.bl` (a tab's 8 8 0 0) | 1 |
+| `bg.r`, `.g`, `.b`, `.a` | the fill's four channels | 4 |
+| `border.r`, `.g`, `.b`, `.a` | the border's colour, listed only where the style draws a border (any of its four widths) | 4 |
+| `offsetX`, `offsetY`, `expandW`, `expandH`, `zIndex` | a float's (`css.float`) block, listed only for a float, which is the only element `ui.c` reads it for | 1 |
+| `shadowBlur` | the blur of the style's shadow (`ui_shadow`'s argument, field 45), listed for a shadow | 1 |
+| `gradientAlpha` | the opacity of the style's background image (field 50), listed for a gradient | 0.1 |
+| `alpha`, `scale`, `translateX`, `translateY`, `rotate` | the renderer's group: the whole subtree's opacity 0..255, scale about its box centre (1 = none), offset in px, and rotation in degrees (fields 46..49 and 55) | 0.1, 0.01, 1, 1, 1 |
+
+Every one is a live value, including the ones the renderer only reads at layout (a width, a padding, a gap, a radius):
+the page re-declares its own tree every frame, so a value that moved a box re-lays it out, moves its a11y bounds and its
+siblings. What is **not** a row: a **text's** colour (fields 51..54 are a text's own floats, not its box's, and a text's
+colour is only reachable through a text with an id — the picked element is a hovered box), and the **modes and enums**
+of the 45: `capture` and `clip` (0/1), the sizing type, an alignment, the layout direction, a float's attach and its
+parent's id halves. A step does not read those as values, so the section does not offer them.
+
+The keys, when the values part has the panel's focus (`Tab`/`Shift+Tab` walk the page's own controls, then the panel's
+three stops — the tree, the hovered box and the values, which are the page's last three):
+
+- `Up`/`Down` (and `Home`/`End`) pick a row; `Left`/`Right` (or `-`/`+`) step it by the table's step, clamped to the
+  field's range (a colour 0..255, a size 0..8192, an alpha 0..255, a scale 0..8, a translate or an offset -4096..4096,
+  a `zIndex` -32768..32767, a rotation -360..360).
+- `r` resets the row to the style's literal, `Shift+R` all of them. A reset does not write the literal: it *drops* the
+  override, so the declare falls back to the style's own floats and the frame is the frame before the edit again — the
+  page's pixels byte for byte (the panel's own frame section prints the milliseconds of the frame that last changed the
+  page, so its digits are the one thing that moves between two readings of the same state).
+- `>` is the cursor (the row is drawn in the accent too), and `*` before a row's name marks a live value, so the reader
+  can tell the panel's number from the style's. The section's footer is the keys, what `*` is, and — when the box has
+  more rows than the panel has room for — which rows of how many it is showing (`4-21 of 21`): the list is a window of
+  18 rows, two a line, that follows the cursor. The panel cannot scroll: Clay squeezes a fitted column into its box, so
+  what the four sections declare has to fit the 760px it has (the gap's 2px instead of 3 is what the fourth section
+  needed).
+
+The writes are the Dialog page's mechanism: `ui.value(id, field, value)` at the panel's tick, before the tree is
+declared, into the renderer's table for that frame only (`ui_begin` clears it). No page state is touched, so the page's
+literals are untouched, and nothing is written while nothing is overridden — an untouched panel's frame is the frame it
+was. Cost (Apple M2, one thread, in `solid/tune.test.ts`'s own measurement, 120 frames at rest, medians; the machine had
+other work on it): declare **0.050** ms and layout **0.033** ms with no override, **0.048**/**0.038** ms with five rows
+overridden — inside the noise, because a write is one float into a 64-entry table and `ui_open` copies the element's 180
+bytes once for an element that has any override (a `memcpy` per overridden element, as the Dialog's tracks are). The
+same two medians read 0.057 and 0.130 in a run with three other agents' suites on the machine, which is the machine and
+not the writes: five `ui.value` calls and one 180-byte copy cannot cost 70 µs. An
+edit's own frame draws the window as any changed frame does: **6.9..13.1 ms** of draw for the page and the panel in
+four runs on a machine with other work on it (a machine busy with other agents drew the same frame at 38 ms, so the raster is what the load moves).
+
+`solid/tune.test.ts` holds it: the switch's 17 rows and their numbers (and the same numbers from the style's own
+`resolve`), the panel's three Tab stops, `Right` on the radius rounding the corner (`48,53,68` → the page's own
+`16,18,24` at the corner pixel) and the row's text, the width moving the box and the a11y tree's bounds (`280×32` →
+`281×32`), `bg.r` running to 255 and the row's fill going red, the clamps (an alpha at 255 stays 255, a padding at 0
+stays 0), `r` and `Shift+R` (five rows overridden) with the page byte-identical to before, the `*`, the window, and the
+cost. Three mechanisms' mutations were run and reverted, the write's twice: the width's row writing the height's
+floats fails `FAIL the box is a pixel
+wider: "40,118 280×281", wanted "40,118 281×32"`; a `radius` row one float along fails `FAIL the radius rounds the
+corner: "48,53,68,255", wanted "16,18,24,255"`; a reset that writes the live value back fails `FAIL ... and the page is
+the page before the edit, byte for byte: false, wanted true`; and a step without its clamp fails `FAIL an alpha past 255
+stays 255: 259, wanted 255`.
+
+Not there: no pointer on a row (no dragging a number and no colour picker — the arrows are the only control), no script
+of a tuning session into a file (the overrides are the panel's memory and go with the process), no editing a style the
+page does not declare (a text's colour and the modes above), and the panel is still one page's (`Widgets`): a second
+page needs its own dev page. Picking an element by clicking it into the tree is still later.
 
 ## Text: the oracles, and why there is no weight correction
 
