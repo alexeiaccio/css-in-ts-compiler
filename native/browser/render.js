@@ -157,11 +157,17 @@ function toggle() { render(!useG); }
 button.addEventListener('click', toggle);
 window.addEventListener('keydown', e => { if (e.key === 'w' || e.key === 'W') toggle(); });
 
-// for browser/check.mjs: the commands of the last frame, a frame count for the timing, and the Clay error count
+// for browser/check.mjs: the commands of the last frame, a frame count for the timing, the Clay error count, and the
+// last frame as the JSON of desktop/clay_dump.c — the dump every target writes, which a check compares with a golden
 window.__page = {
     commands: () => lastFrame,
     render,
     errors: () => wasm.errors(),
+    dump() {
+        const length = wasm.dump();
+        const at = wasm.dump_ptr();
+        return new TextDecoder().decode(new Uint8Array(wasm.memory.buffer, at, length));
+    },
     bench(n = 100) {
         const t0 = performance.now();
         for (let i = 0; i < n; i++) {
