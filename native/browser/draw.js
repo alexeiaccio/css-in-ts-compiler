@@ -28,6 +28,50 @@ export const FONT = 'Roboto, "Helvetica Neue", Arial, sans-serif'; // bundled Ro
 
 export const TYPE = { RECTANGLE: 1, BORDER: 2, TEXT: 3, IMAGE: 4, SCISSOR_START: 5, SCISSOR_END: 6 };
 
+// A backdrop's blur is the desktop's CPU blur: a separable box blur, three passes each way, which is a gaussian to the
+// eye and has no kernel to build (desktop/clay_renderer_thorvg.c's Clay_ThorVG_BoxBlurH/V, the same arithmetic). A pass
+// of radius r three times has a gaussian's variance, so CSS's blur (sigma = blur / 2, the shadow's reading) picks
+// r = (sqrt(1 + 4 sigma^2) - 1) / 2. The window is clamped to the region's ends, as the desktop clamps to the box's.
+function boxBlurH(src, dst, w, h, r) {
+    const n = 2 * r + 1;
+    for (let y = 0; y < h; y++) {
+        const row = y * w * 4;
+        let sr = 0, sg = 0, sb = 0;
+        for (let i = -r; i <= r; i++) {
+            const x = i < 0 ? 0 : (i >= w ? w - 1 : i);
+            sr += src[row + x * 4], sg += src[row + x * 4 + 1], sb += src[row + x * 4 + 2];
+        }
+        for (let x = 0; x < w; x++) {
+            dst[row + x * 4] = (sr / n) | 0, dst[row + x * 4 + 1] = (sg / n) | 0, dst[row + x * 4 + 2] = (sb / n) | 0;
+            dst[row + x * 4 + 3] = src[row + x * 4 + 3];
+            const out = x - r < 0 ? 0 : x - r, into = x + r + 1 >= w ? w - 1 : x + r + 1;
+            sr += src[row + into * 4] - src[row + out * 4];
+            sg += src[row + into * 4 + 1] - src[row + out * 4 + 1];
+            sb += src[row + into * 4 + 2] - src[row + out * 4 + 2];
+        }
+    }
+}
+
+function boxBlurV(src, dst, w, h, r) {
+    const n = 2 * r + 1, stride = w * 4;
+    for (let x = 0; x < w; x++) {
+        let sr = 0, sg = 0, sb = 0;
+        for (let i = -r; i <= r; i++) {
+            const y = i < 0 ? 0 : (i >= h ? h - 1 : i), at = y * stride + x * 4;
+            sr += src[at], sg += src[at + 1], sb += src[at + 2];
+        }
+        for (let y = 0; y < h; y++) {
+            const at = y * stride + x * 4;
+            dst[at] = (sr / n) | 0, dst[at + 1] = (sg / n) | 0, dst[at + 2] = (sb / n) | 0;
+            dst[at + 3] = src[at + 3];
+            const out = y - r < 0 ? 0 : y - r, into = y + r + 1 >= h ? h - 1 : y + r + 1;
+            sr += src[into * stride + x * 4] - src[out * stride + x * 4];
+            sg += src[into * stride + x * 4 + 1] - src[out * stride + x * 4 + 1];
+            sb += src[into * stride + x * 4 + 2] - src[out * stride + x * 4 + 2];
+        }
+    }
+}
+
 /** Loads the same Roboto the desktop draws with; a fallback font is fine, it is measured the same way. `url` is
  *  resolved against the document, so each page passes its own path to vendor/fonts. */
 export async function loadFont(url) {
@@ -53,6 +97,7 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
     const ascent = new Map(); // font size -> ascent in px, for the baseline
     const bitmaps = new Map(); // path -> an Image, loading or decoded
     const layers = []; // one offscreen canvas a group nesting level, made the first time one is needed
+    let clips = 0; // the scissor scopes open in the current pass: a backdrop inside one is not blurred (the desktop's rule)
 
     /** The wasm's env.measure: Canvas2D measures the string with the font the canvas draws with. */
     function measure(wasm, ptr, len, fontId, size) {
@@ -86,6 +131,16 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
     /** A CSS colour from a 0-255 channel triple and an opacity. */
     const rgba = (c, a = 1) => `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${a})`;
 
+    /** One draw at the command's own alpha (the backdrop's dim, a text or a border fading): the frame's composite times
+     *  the command's, as ThorVG draws the colour's alpha. */
+    const withAlpha = (target, a, draw) => {
+        if (a >= 1) return draw();
+        const before = target.globalAlpha;
+        target.globalAlpha = before * Math.max(0, a);
+        draw();
+        target.globalAlpha = before;
+    };
+
     /** The shadow of the element a command belongs to: its box, of the command's radii, offset, filled and blurred. The
      *  desktop draws it as a ThorVG scene with a gaussian of blur / 2; Canvas2D's filter is that same gaussian. */
     function shadow(target, c, s) {
@@ -101,10 +156,14 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
     /** A box filled with a linear gradient along CSS's line: the direction (sin θ, -cos θ) (0deg is up, 90 right), the
      *  length |w·sinθ| + |h·cosθ|, from the box's centre out to both ends — the desktop's Clay_ThorVG_FillGradient. */
     function gradient(target, c, g) {
+        // the element's own background alpha (the backdrop's dim) and the gradient's (a hover's cross-fade)
+        const before = target.globalAlpha;
+        const alpha = before * c.alpha;
         // a fading gradient is composited over the box's solid colour, so what is under it is the page animating (a hover)
         if (g.alpha < 255) {
             roundRect(target, c.x, c.y, c.w, c.h, c.radius);
             target.fillStyle = c.color;
+            target.globalAlpha = alpha;
             target.fill();
         }
         const rad = (g.angle * Math.PI) / 180;
@@ -115,11 +174,35 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
             cx + (dx * len) / 2, cy + (dy * len) / 2);
         for (const s of g.stops) fill.addColorStop(Math.min(1, Math.max(0, s.offset)), rgba(s.color, s.color[3] / 255));
         roundRect(target, c.x, c.y, c.w, c.h, c.radius);
-        const alpha = target.globalAlpha;
-        if (g.alpha < 255) target.globalAlpha = alpha * (g.alpha / 255);
+        target.globalAlpha = g.alpha < 255 ? alpha * (g.alpha / 255) : alpha;
         target.fillStyle = fill;
         target.fill();
-        target.globalAlpha = alpha;
+        target.globalAlpha = before;
+    }
+
+    /** A backdrop (`css.backdrop`): the pixels under the command's box, as they are now, blurred by the three-pass box
+     *  blur above and written back; the element's own translucent fill is then drawn over it as its rectangle. Only
+     *  the box is read and written, so nothing outside it moves. A backdrop inside a scissor is not blurred, as on the
+     *  desktop; a second one a frame would blur the first one's pixels (the desktop cuts once). */
+    function backdrop(target, c, blur) {
+        if (!(blur > 0) || clips > 0) return;
+        const m = target.getTransform();
+        const scale = Math.abs(m.a);
+        const x0 = Math.max(0, Math.floor(m.a * c.x + m.e)), y0 = Math.max(0, Math.floor(m.d * c.y + m.f));
+        const x1 = Math.min(target.canvas.width, Math.ceil(m.a * (c.x + c.w) + m.e));
+        const y1 = Math.min(target.canvas.height, Math.ceil(m.d * (c.y + c.h) + m.f));
+        const w = x1 - x0, h = y1 - y0;
+        if (w <= 0 || h <= 0) return;
+        const sigma = (blur * scale) / 2;
+        let r = Math.round((Math.sqrt(1 + 4 * sigma * sigma) - 1) / 2);
+        if (r < 1) r = 1;
+        const image = target.getImageData(x0, y0, w, h);
+        const a = image.data, b = new Uint8ClampedArray(a.length);
+        for (let pass = 0; pass < 3; pass++) {
+            boxBlurH(a, b, w, h, r);
+            boxBlurV(b, a, w, h, r);
+        }
+        target.putImageData(image, x0, y0);
     }
 
     /** The picture of an image's path: decoded once, and the frame after it arrives is the one that shows it. */
@@ -138,36 +221,43 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
     function command(target, c, plan, at) {
         const s = plan?.shadows.get(at);
         if (s) shadow(target, c, s);
+        // the desktop draws the element's shadow before its cut, so the shadow is on the page the blur reads
+        const bd = plan?.backdrops.get(at);
+        if (bd !== undefined) backdrop(target, c, bd);
         switch (c.type) {
         case TYPE.RECTANGLE: {
             const g = plan?.gradients.get(at);
             if (g) gradient(target, c, g);
-            else {
+            else withAlpha(target, c.alpha, () => {
                 roundRect(target, c.x, c.y, c.w, c.h, c.radius);
                 target.fillStyle = c.color;
                 target.fill();
-            }
+            });
             break;
         }
-        case TYPE.BORDER: borderRect(target, c); break;
+        case TYPE.BORDER: withAlpha(target, c.alpha, () => borderRect(target, c)); break;
         case TYPE.TEXT:
             target.font = fontFor(c.fontSize);
             target.fillStyle = c.color;
             target.textBaseline = 'alphabetic';
             // Clay's box is the text's line box; the alphabetic baseline sits one ascent below its top
-            target.fillText(c.text, c.x, c.y + (ascent.get(c.fontSize) ?? c.fontSize * 0.8));
+            withAlpha(target, c.alpha, () =>
+                target.fillText(c.text, c.x, c.y + (ascent.get(c.fontSize) ?? c.fontSize * 0.8)));
             break;
         case TYPE.SCISSOR_START: {
             const clip = new Path2D();
             clip.rect(c.x, c.y, c.w, c.h);
             target.save();
             target.clip(clip);
+            clips++;
             break;
         }
-        case TYPE.SCISSOR_END: target.restore(); break;
+        case TYPE.SCISSOR_END: target.restore(); clips = Math.max(0, clips - 1); break;
         case TYPE.IMAGE: {
             const img = bitmap(c.text);
-            if (img) target.drawImage(img, c.x, c.y, c.w, c.h); // ThorVG's tvg_picture_set_size: scaled into the box
+            // ThorVG's tvg_picture_set_size: scaled into the box. An image command carries no colour, so its alpha
+            // slot is 0: the picture is drawn whole.
+            if (img) target.drawImage(img, c.x, c.y, c.w, c.h);
             break;
         }
         }
@@ -222,20 +312,23 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
     /** Which command draws which effect: a shadow and a gradient belong to the element's first command with its id. */
     function plan(commands, effects) {
         if (!effects) return null;
-        const shadows = new Map(), gradients = new Map(), groups = new Map();
-        const drawnShadow = new Set(), drawnGradient = new Set();
+        const shadows = new Map(), backdrops = new Map(), gradients = new Map(), groups = new Map();
+        const drawnShadow = new Set(), drawnBackdrop = new Set(), drawnGradient = new Set();
         for (let i = 0; i < commands.length; i++) {
             const c = commands[i];
             const s = effects.shadows.get(c.id);
             if (s && !drawnShadow.has(c.id)) drawnShadow.add(c.id), shadows.set(i, s);
             if (c.type !== TYPE.RECTANGLE) continue;
+            // the desktop cuts the frame at the element's first *rectangle* (Clay_ThorVG_BackdropOf)
+            const b = effects.backdrops.get(c.id);
+            if (b !== undefined && !drawnBackdrop.has(c.id)) drawnBackdrop.add(c.id), backdrops.set(i, b);
             const g = effects.gradients.get(c.id);
             if (g && !drawnGradient.has(c.id)) drawnGradient.add(c.id), gradients.set(i, g);
         }
         // a group that contains another is drawn first: by its start, and the longer range first where two start together
         for (const g of [...effects.groups].sort((a, b) => a.start - b.start || b.end - a.end))
             if (!groups.has(g.start)) groups.set(g.start, g);
-        return { shadows, gradients, groups };
+        return { shadows, backdrops, gradients, groups };
     }
 
     /** The command array as pixels: an empty canvas, then the commands and the effects beside them. */
@@ -243,6 +336,7 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, width, height);
         ctx.globalAlpha = 1;
+        clips = 0;
         paint(ctx, commands, plan(commands, effects), 0, commands.length - 1, 0);
     }
 

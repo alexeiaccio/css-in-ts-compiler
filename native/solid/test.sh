@@ -261,14 +261,18 @@ bun solid/tune.test.ts
 # keyboard — Tab twice focuses the Wi-Fi switch (the a11y snapshot and the ring's pixel), Space checks it (the snapshot, the
 # track's fill, a pixel), Tab to the settings tree and ArrowDown move the roving node — and compares the base frame with
 # goldens/widgets.json (4px boxes) and the raster with browser/expected-widgets.png and solid/frames/widgets-initial.png.
+# The Dialog page (browser/solid/dialog.ts) is the two root floats and the menu's glass: dialog-check.mjs holds the
+# closed, open and mid-entry frames to solid/frames/dialog-*, the menu's mid-slide frame to solid/goldens/dialog.json
+# (a shadow, a backdrop and a group in one frame), and the backdrop's blur as an A/B against `?glass=0`.
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null
   bun browser/solid/build.ts >/dev/null
   node browser/solid-check.mjs
   node browser/sky-check.mjs
+  node browser/dialog-check.mjs
 else
-  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs)"
+  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/dialog-check.mjs)"
 fi
 # the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
 # field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.

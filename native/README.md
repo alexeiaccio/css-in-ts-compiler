@@ -1205,11 +1205,15 @@ browser/solid/shell.ts       what both pages share: the canvas, the loop (create
 browser/solid/keys.ts        a DOM KeyboardEvent as the name src/input.ts takes (the table below), into the page's Input
 browser/solid/page.ts        Sensors: mountPage with the page's own size and its motion hook
 browser/solid/widgets.ts     Widgets: the same, plus createInput() and the page's props as main.ts builds them
-browser/solid/build.ts       Bun.build: page.js and widgets.js (two entry points); one resolution, src/frame.ts's
-                             ./ffi.ts and app/Widgets.tsx's ../src/ffi.ts -> ffi-browser.ts
+browser/solid/dialog.ts      Dialog: the same, with the two root floats (the modal's backdrop and its panel) and the
+                             menu's glass, whose `css.backdrop` comes from the effects table
+browser/solid/build.ts       Bun.build: page.js, widgets.js, sky.js and dialog.js (one entry point each); one resolution,
+                             src/frame.ts's ./ffi.ts and app/Widgets.tsx's ../src/ffi.ts -> ffi-browser.ts
 browser/solid/index.html     the Sensors canvas and its script
 browser/solid/widgets.html   the Widgets canvas (360x760, tabindex=0) and its script
+browser/solid/dialog.html    the Dialog canvas (360x480, tabindex=0) and its script
 browser/solid-check.mjs      Chromium: the commands, a real click, the rasters, the keys, the sizes and the ms
+browser/dialog-check.mjs     Chromium: the Dialog's four frames, the menu's golden, the backdrop's blur and its cost
 ```
 
 `sh browser/build.sh` builds both modules: `page.wasm` is the no-JS path (unchanged), `ui.wasm` is this one. Neither is
@@ -1249,7 +1253,7 @@ space, so nothing is toggled). The ring is the page's own `:focus` style (2px `t
 **The second page.** Sensors and Widgets share the shell: the same wasm, `src/renderer.ts`, `src/frame.ts`,
 `browser/draw.js`, `ffi-browser.ts`, `globals.ts`, `keys.ts` and `window.__page`. They differ in their component, their
 size (360x360, 360x760), their HTML file, and one prop: Widgets takes an `Input` (made with `createInput()`, as main.ts
-makes it) and a drag state, and its keys go into that Input. The two bundles are separate files (two entry points, no
+makes it) and a drag state, and its keys go into that Input. The bundles are separate files (one entry point each, no
 shared chunk), so a page loaded alone needs nothing from the other's; the shared code is one source.
 
 The two host globals the desktop's modules read are shimmed in `browser/solid/globals.ts`: `Bun.nanoseconds` (the
@@ -1292,10 +1296,12 @@ sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the two 
 node browser/solid-check.mjs                        # the Sensors base frame, the click, the raster, the sizes
 node browser/sky-check.mjs                          # the Sky page: its frame, gradient, avatars, shadow, entry
 node browser/sky-check.mjs --serve                  # http://127.0.0.1:<port>/browser/solid/sky.html, for a person
-sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the two bundles, in $TMPDIR
+sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the bundles, in $TMPDIR
 node browser/solid-check.mjs                        # both pages: the commands, the click, the rasters, the keys
 node browser/solid-check.mjs --update               # ... and re-store browser/expected-widgets.png
 node browser/solid-check.mjs --serve                # the pages' URLs, for a person (/browser/solid/index.html, widgets.html)
+node browser/dialog-check.mjs                       # the Dialog: its four frames, the menu's golden, the glass's blur
+node browser/dialog-check.mjs --serve               # http://127.0.0.1:<port>/browser/solid/dialog.html, for a person
 ```
 
 `solid-check.mjs`: (a) the base frame dumped through the same emitter against `solid/goldens/sensors.json` — 10
@@ -1338,10 +1344,11 @@ The desktop's ThorVG renderer draws four things a Clay command does not carry, f
 | group | the value channel's 46–49 and 55 (`ui_value`) | the element's subtree's commands — the range the C works out from the frame's element tree, which Clay's commands carry as `userData` — drawn into an offscreen canvas of the frame's size and composited once: `globalAlpha` of alpha/255, then the translate, the rotation and the scale about the first command's box centre (one matrix, `Clay_ThorVG_SettleGroup`'s) |
 | image | `ui_image(path)`, a `css.image` style | the picture decoded from its path once (`Image`), `drawImage` scaled into the command's box, as `tvg_picture_set_size` |
 
-A backdrop (`ui_backdrop`) is **recorded and hashed, not blurred**: `draw.js` draws the element's own translucent fill
-and no blur of what is under it. The Sky page has none (the Dialog's menu has the one in this repository, and the Dialog
-is not in the browser yet), so a JS box blur would be a fourth effect with no page to prove it — it is the next thing
-here, and it is cheap (a `getImageData` of the box, three box-blur passes, a `putImageData`).
+A backdrop (`ui_backdrop`) is a fifth: `draw.js` reads the element's first rectangle's box out of the canvas with
+`getImageData`, blurs it three times each way (the desktop's `Clay_ThorVG_BoxBlurH/V`: a box of radius
+`(sqrt(1 + 4 sigma^2) - 1) / 2`, `sigma = blur / 2`, the region's edges clamping the window) and writes it back with
+`putImageData`, then draws the element's own translucent fill over it — the desktop's cut, without a second scene. The
+Dialog's menu is the one page with a backdrop; it costs **0.8 ms a frame** for its 150x134 box (below).
 
 The image path a style carries is an absolute path in this checkout: `sky.ts` maps the part from `/examples/` on to the
 page's URL, and the check's server serves the repo tree, so the avatars are the committed PNGs.
@@ -1383,21 +1390,71 @@ differ by a level or two, and it is visible in the cards' darkest stretches, not
 differs is the rasteriser: Canvas2D's glyphs against ThorVG's advances (the card boxes move a pixel or two, so a
 region's mean takes the worst 12.8/255), and the anti-aliasing of the avatars' discs and the cards' rounded corners.
 
-What it still is not, honestly: four pages of eight (Widgets, Dialog, Text field, List, Sheet, Dev — the ones that need
-more DOM input than the Sky page does); the backdrop's blur (above); no touch (the wasm still has `ui_touch_map`,
-nothing sends a finger's event); no HMR or dev server story — the bundle is built once, by hand; and the framework's
-cost is the bundle's 300 KB (gzip 71 KB) against the no-JS page's 4.7 KB, for a JS tree and a state machine instead of
-a static frame. The generated C stays the no-JS path, which is what the board already is.
-What it still is not, honestly: two pages of eight (each other page has its own keys and the List's and Sky's scroll
-machines, which are untried here — `src/vscroll`'s wheel is in, `Input`'s typed text is not, and neither are a page's
-dialogs and floats); no renderer effects — `ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value channel's group
-fields (46–50, 55: alpha, scale, translate, rotate, gradient alpha) were ThorVG's tables, and Canvas2D here draws only the
-command array, so a shadow, a gradient, a backdrop, a scene transform or an image is a frame this target draws without
-them (the Sensors page's first-mount entry writes two of them, which is why the check warms 31 frames and why its commands
-are the settled ones); no touch (the wasm still has `ui_touch_map`, nothing sends a finger's event); no HMR or dev server
-story — the bundle is built once, by hand; and the framework's cost is the bundle's 240 KB (Sensors, 57 KB gzip) and
-336 KB (Widgets, 75 KB gzip) against the no-JS page's 5 KB, for a JS tree and 12 Tab stops instead of a static frame. The
-generated C stays the no-JS path, which is what the board already is.
+What it still is not, honestly: the four pages whose keys and scroll machines are untried here (Text field, List,
+Sheet, Dev — `src/vscroll`'s wheel is in, `Input`'s typed text is not); the backdrop's blur on a second page (the
+Dialog's menu is the only `css.backdrop`); no touch (the wasm still has `ui_touch_map`, nothing sends a finger's event);
+no HMR or dev server story — the bundles are built once, by hand; and the framework's cost is the bundle's 240 KB
+(Sensors, 57 KB gzip) and 336 KB (Widgets, 75 KB gzip) against the no-JS page's 5 KB, for a JS tree and 12 Tab stops
+instead of a static frame. The generated C stays the no-JS path, which is what the board already is.
+
+### The Dialog page in the browser
+
+`browser/solid/dialog.ts` + `dialog.html` run `solid/app/Dialog.tsx` **unmodified** (360x480) with its own
+`createInput()`: `Tab`/`Shift+Tab` walk the page, `Enter` opens the modal and moves the focus to Cancel, `Tab` then
+cycles the dialog's two controls (the trap is `input.modal`, so the page's own controls are unreachable while it is
+open), `Escape` closes it, and `Tab Tab Enter` opens the Zoom menu, whose arrows, `Home`/`End`, `Enter` and `Escape` are
+the desktop's. `?glass=0` renders the menu without `css.backdrop` (the app's `glass` prop) for the A/B below;
+`?bench=0` leaves out the shell's twenty-frame auto bench, so the check's motion clock starts at its first frame.
+
+**The floats.** Both overlays are Clay root floats (`css.float({ root: true })`): the backdrop is the whole window, dims
+it and captures the pointer; the panel is centred on the root and captures too. The menu is a float parented to
+`zoom-trigger`. Clay lays them out; the browser surface needed **nothing new for the floats themselves** — the packed
+style already carries the float's attach/offset/expand/z/capture (slots 32-44) and the value channel's offset y (field
+39), so the layout is the desktop's. What the page did need was the two renderer effects beside them: the group (fields
+46/47, the panel's and the menu's alpha and scale) and the backdrop, which the shell now hands to `draw.js` with the
+commands (`readEffects`) — the Sensors and Widgets pages have no effect, and their frames are byte-identical after it.
+
+**The backdrop's blur.** `ui_backdrop` is still recorded and hashed as before; `draw.js` now draws it. At the element's
+first rectangle it takes the pixels under that box with `getImageData`, runs the desktop's separable box blur (three
+passes each way, radius `r = (sqrt(1 + 4 sigma^2) - 1) / 2` with `sigma = blur / 2`, the box clamped at its ends) and
+writes them back with `putImageData`; the element's own translucent fill is then drawn over them, so the glass's text
+and border stay crisp. Only the box is read and written: a pixel outside it does not move. A backdrop inside a scissor
+is not blurred (the desktop's rule), and a second one in the same frame would blur the first one's pixels (the desktop
+cuts once) — the Dialog has one.
+
+Its cost: the menu's 150x134 box is **0.84 ms a frame** — the same page at rest with the menu open reads 1.91 ms a
+frame with the glass and 1.07 ms with `glass: false` (100 frames each, headless Chromium, M2). The modal's backdrop is a
+plain `rgb(0 0 0 / 0.55)` rectangle with no `css.backdrop`, so opening the modal costs the panel's shadow instead:
+0.12 ms a frame closed, 1.92 with it open. The bundle is 245,583 B (`dialog.js`, unminified), the page 1,663 B and
+`ui.wasm` 141,104 B, unchanged.
+
+`node browser/dialog-check.mjs` (in `solid/test.sh`, the same zig/bun/Chromium guard as its siblings):
+
+| what | measured |
+| --- | --- |
+| the closed frame against `solid/frames/dialog-closed.png` | **6.40%** of pixels differ; every command box's mean within **15.9/255**, every text's ink box within **4 px**, the frame's mean within **0.93/255** |
+| `Enter`, 30 frames: the open frame against `solid/frames/dialog-open.png` | **24.52%** of pixels differ (the shadow's soft falloff is two rasterisers'), box means within **13.6/255**, ink within **3 px**, the frame's mean **1.01/255**; the panel `40,163,280x154` centred, the backdrop `0,0,360,480`, the shadow's blur 32 |
+| the backdrop's dim | the page `16,18,24` reads **7,8,10** under it: `rgb(0 0 0 / 0.55)` |
+| a pixel of the panel's shadow | 4 px left of the panel **6,6,8** (luma 6.1) against the dimmed page **7,8,10** (7.9) |
+| the entry 3 frames in (`keyboard.down` + 3 frames is exactly 3/60) against `solid/frames/dialog-entry-mid.png` | **31.80%** of pixels differ, box means within **15.1/255**, the frame's mean **1.15/255**; the panel **7.81 px above its rest**; the group at alpha **239/255** and scale **0.978**; inside it **35,39,50** between the dimmed page **11,13,17** and the settled **36,40,52** |
+| the menu 2 frames into its slide against `solid/goldens/dialog.json` | 22 commands, every field the golden's, the worst box **3.59 px** (`"200%"`, Canvas2D's line heights), and the effects tables identical: the shadow at blur 3.45, the backdrop at 10, the group at alpha 233, scale 0.9703, rotate -1.484° |
+| the settled glass against `solid/frames/dialog-menu.png` | **20.62%** of pixels differ, box means within **18.7/255**, ink within **4 px**, the frame's mean **1.16/255** |
+| the blur, A/B against `?glass=0` | over the trigger's border the glass reads **22,24,30** and the same page without it **40,43,49** (**19/255** apart); the worst step down a 16 px scan across that border **1** under the glass against **23** without it; nothing outside the menu's box moved |
+| `Escape` | the closed frame again, **0 of 691,200** pixels differ, and the same commands and effects |
+| the trap | `Enter` focuses Cancel; `Tab` cycles OK -> Cancel -> OK -> Cancel, `Shift+Tab` back to OK; the page's Open settings is never a stop |
+
+Each holds as a mutation: drawing the backdrop as its flat tint alone (no blur) fails only the A/B — over the trigger's
+border both pages read `40,43,49`, "the page under the glass is not blurred" — while the menu's region means still pass,
+which is why the A/B is there; ignoring the value channel's float offset y (field 39 in `browser/ui.c`) makes the
+mid-entry panel read `y 163.00`, "not above its rest 163.00", and moves the menu's golden frame's `"200%"` box by
+16.18 px.
+
+What is not there, honestly: the glass is the Dialog's alone (no other page has a `css.backdrop`); the menu's group and
+its blur are drawn per frame, so a page that blurs every frame pays the 0.8 ms; a second backdrop (or glass under glass)
+would read the first one's pixels; the mid-entry frame's *text ink* is not compared, because the translucent panel
+covers the page's own `100%` row there and the two rasterisers put that row's bottom 7 px apart (the panel's offset, the
+group's alpha and scale, and the box means are); and there is still no touch (the wasm has `ui_touch_map`, nothing sends
+a finger's event) and no HMR (the bundle is built by hand).
 
 ## The sky screens in a terminal
 

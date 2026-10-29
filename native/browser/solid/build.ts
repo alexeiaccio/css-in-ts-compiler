@@ -63,7 +63,7 @@ const solidPlugin = {
 };
 
 const result = await Bun.build({
-  entrypoints: [join(here, "page.ts"), join(here, "widgets.ts"), join(here, "sky.ts")],
+  entrypoints: [join(here, "page.ts"), join(here, "widgets.ts"), join(here, "sky.ts"), join(here, "dialog.ts")],
   target: "browser",
   // the bundler's `development` condition would pick @solidjs/signals/dist/dev.js, whose diagnostics refuse the writes a
   // page makes in its component body (Sky.tsx's cells); the desktop runs the production signals, so the page is the same
