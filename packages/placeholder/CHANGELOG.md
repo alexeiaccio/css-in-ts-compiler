@@ -1,5 +1,13 @@
 # @cssints/placeholder
 
+## 0.12.0
+
+### Patch Changes
+
+- Updated dependencies [a694911]
+- Updated dependencies [ee3e52b]
+  - cssints@0.12.0
+
 ## 0.11.0
 
 ### Patch Changes
