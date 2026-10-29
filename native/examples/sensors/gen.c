@@ -2,8 +2,9 @@
 // by hand (examples/sensors/page.c): Clay must give the same render commands, field by field.
 //
 // Two things are compared:
-//   — the three single-state files (page_generated.c, page_generated_g.c, page_generated_pressed.c) with the hand page
-//     at that state, in the dark and the light theme (the six comparisons this file always made);
+//   — the four single-state files (page_generated.c, page_generated_g.c, page_generated_pressed.c and
+//     page_generated_image.c) with the hand page at that state, in the dark and the light theme (the six comparisons
+//     this file always made, and the image's two);
 //   — the *state machine* (page_generated_events.c): a sequence of a click on Units and the click after it, its state
 //     asked of `sensors_next` at every edge and its frame drawn through `sensors_frame`, against the hand page at the
 //     same place — so the table is held to the page's own behaviour, not to itself.
@@ -17,13 +18,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-// page_generated.c: use_g=false; page_generated_g.c: use_g=true; page_generated_pressed.c: the pointer over Units, held
+// page_generated.c: use_g=false; page_generated_g.c: use_g=true; page_generated_pressed.c: the pointer over Units, held;
+// page_generated_image.c: the IMAGE=1 variant, the page's 32x32 glyph under the title (a prop of the Solid page)
 void app_frame(void);
 void app_frame_light(void);
 void app_frame_g(void);
 void app_frame_g_light(void);
 void app_frame_pressed(void);
 void app_frame_pressed_light(void);
+void app_frame_image(void);
+void app_frame_image_light(void);
 
 // page_generated_events.c: the same page as a state machine, the frames through `sensors_frame(state, light)`
 int sensors_state_count(void);
@@ -43,10 +47,10 @@ static void on_units(Clay_ElementId id, Clay_PointerData p, void *user)
 }
 
 // examples/sensors/page.c's app_frame, with its run-time inputs as arguments: the signal (use_g), the theme (light),
-// the pointer on the pill (over) and the button (down, which page.c reads from Clay_PointerOver). The strings are the
-// page's own.
+// the pointer on the pill (over), the button (down, which page.c reads from Clay_PointerOver) and the IMAGE=1 variant
+// (image, page.c's getenv). The strings are the page's own.
 #define T(name) (light ? name##_light : name)
-static void hand(int use_g, int light, int down, int over)
+static void hand(int use_g, int light, int down, int over, int image)
 {
     const float scale = use_g ? 1.0f / 9.80665f : 1.0f;
     const char *unit = use_g ? "g" : "m/s\u00b2";
@@ -62,6 +66,8 @@ static void hand(int use_g, int light, int down, int over)
         CLAY(CLAY_ID("Title"), {}) {
             CLAY_TEXT(CLAY_STRING("Sensors"), T(title_text));
         }
+        // page.c: if (image_on) CLAY(CLAY_ID("Glyph"), T(glyph)) {}
+        if (image) CLAY(CLAY_ID("Glyph"), T(glyph)) {}
         CLAY_TEXT(str(label), T(caption_text));
         CLAY_TEXT(str(accel), T(value_text));
         CLAY_TEXT(CLAY_STRING("gyro \u00b0/s"), T(caption_text));
@@ -103,6 +109,20 @@ static int same_box(Clay_BoundingBox a, Clay_BoundingBox b)
     return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
 }
 
+/** A command type's name, for the message: the types this page's two variants emit. */
+static const char *kind(int t)
+{
+    switch (t) {
+    case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: return "rectangle";
+    case CLAY_RENDER_COMMAND_TYPE_BORDER: return "border";
+    case CLAY_RENDER_COMMAND_TYPE_TEXT: return "text";
+    case CLAY_RENDER_COMMAND_TYPE_IMAGE: return "image";
+    case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START: return "clip";
+    case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END: return "clip end";
+    default: return "?";
+    }
+}
+
 /** The name of the first field that differs, or NULL. Only the command types this page emits. */
 static const char *difference(const Clay_RenderCommand *a, const Clay_RenderCommand *b)
 {
@@ -135,6 +155,18 @@ static const char *difference(const Clay_RenderCommand *a, const Clay_RenderComm
             return "renderData.text.stringContents.chars";
         return NULL;
     }
+    case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
+        const Clay_ImageRenderData *x = &a->renderData.image, *y = &b->renderData.image;
+        if (!same_color(x->backgroundColor, y->backgroundColor)) return "renderData.image.backgroundColor";
+        if (!same_radius(x->cornerRadius, y->cornerRadius)) return "renderData.image.cornerRadius";
+        // the path: Clay passes imageData through untouched, so the two styles' literals must be the same bytes
+        const char *px = x->imageData, *py = y->imageData;
+        if (px || py) {
+            if (!px || !py) return "renderData.image.imageData";
+            if (strcmp(px, py)) return "renderData.image.imageData (path)";
+        }
+        return NULL;
+    }
     default:
         // no other command type on this page; if one appears, the comparison above stops being a proof
         return "commandType not covered by this comparison";
@@ -142,7 +174,7 @@ static const char *difference(const Clay_RenderCommand *a, const Clay_RenderComm
 }
 
 /** One generated frame against the hand-written page: the same commands, or the first difference printed. */
-static int check(const char *what, void (*generated)(void), int use_g, int light, int down)
+static int check(const char *what, void (*generated)(void), int use_g, int light, int down, int image)
 {
     Clay_RenderCommand gen[MAX_COMMANDS], manual[MAX_COMMANDS];
     Clay_BeginLayout();
@@ -155,7 +187,7 @@ static int check(const char *what, void (*generated)(void), int use_g, int light
     memcpy(gen, g.internalArray, (size_t)g.length * sizeof *gen);
 
     Clay_BeginLayout();
-    hand(use_g, light, down, 0);
+    hand(use_g, light, down, 0, image);
     Clay_RenderCommandArray h = Clay_EndLayout(0);
 
     if (g.length != h.length) {
@@ -165,7 +197,7 @@ static int check(const char *what, void (*generated)(void), int use_g, int light
     for (int i = 0; i < g.length; i++) {
         const char *d = difference(&gen[i], &h.internalArray[i]);
         if (d) {
-            printf("FAIL %s: command %d (%d) differs at %s\n", what, i, (int)gen[i].commandType, d);
+            printf("FAIL %s: command %d (%s) differs at %s\n", what, i, kind(gen[i].commandType), d);
             return 0;
         }
     }
@@ -187,7 +219,7 @@ static int check_step(int step, int state, int use_g, int down, int over)
     memcpy(gen, g.internalArray, (size_t)g.length * sizeof *gen);
 
     Clay_BeginLayout();
-    hand(use_g, 0, down, over);
+    hand(use_g, 0, down, over, 0);
     Clay_RenderCommandArray h = Clay_EndLayout(0);
     const char *name = sensors_state_name(state);
 
@@ -199,7 +231,7 @@ static int check_step(int step, int state, int use_g, int down, int over)
     for (int i = 0; i < g.length; i++) {
         const char *d = difference(&gen[i], &h.internalArray[i]);
         if (d) {
-            printf("FAIL step %d: command %d (%d) differs at %s (state %d \"%s\")\n", step, i, (int)gen[i].commandType,
+            printf("FAIL step %d: command %d (%s) differs at %s (state %d \"%s\")\n", step, i, kind(gen[i].commandType),
                    d, state, name);
             return 0;
         }
@@ -216,12 +248,18 @@ int main(void)
     Clay_SetMeasureTextFunction(measure, NULL);
     int ok = 1;
     // the six frames the three files hold: the page at rest, after the click, and held, each dark and light
-    ok = check("dark, use_g=false", app_frame, 0, 0, 0) && ok;
-    ok = check("light, use_g=false", app_frame_light, 0, 1, 0) && ok;
-    ok = check("dark, use_g=true", app_frame_g, 1, 0, 0) && ok;
-    ok = check("light, use_g=true", app_frame_g_light, 1, 1, 0) && ok;
-    ok = check("dark, pressed", app_frame_pressed, 0, 0, 1) && ok;
-    ok = check("light, pressed", app_frame_pressed_light, 0, 1, 1) && ok;
+    ok = check("dark, use_g=false", app_frame, 0, 0, 0, 0) && ok;
+    ok = check("light, use_g=false", app_frame_light, 0, 1, 0, 0) && ok;
+    ok = check("dark, use_g=true", app_frame_g, 1, 0, 0, 0) && ok;
+    ok = check("light, use_g=true", app_frame_g_light, 1, 1, 0, 0) && ok;
+    ok = check("dark, pressed", app_frame_pressed, 0, 0, 1, 0) && ok;
+    ok = check("light, pressed", app_frame_pressed_light, 0, 1, 1, 0) && ok;
+    // the IMAGE=1 variant: the same page with the 32x32 glyph, the image command's type, id, box and path too
+    const int images = check("dark, image", app_frame_image, 0, 0, 0, 1) +
+                       check("light, image", app_frame_image_light, 0, 1, 0, 1);
+    ok = images == 2 && ok;
+    if (images == 2) puts("2 images, identical");
+    else printf("FAIL: %d of the 2 image frames are identical\n", images);
 
     // the state machine, from the table: base -> press -> release -> press -> release
     printf("states: %d\n", sensors_state_count());
