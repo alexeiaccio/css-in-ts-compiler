@@ -2013,3 +2013,30 @@ bare leaves (an alias `"{color.bg}"` to one resolved to no token), and `Tokens<>
 `$type`, so a root-level `$type` reaches its leaves — a gap that only mattered once the root could hold values. **Left:** no
 `token.<type>` change (a standalone token builder already exists), no value constructors, no `$root`/`$extends`/`$ref` of
 DTCG, and arrays are still `{ $value }` (a `cubicBezier`, a shadow list): the rule is one sentence, "a string or a number".
+
+## vitest browser mode and the evaluation: `cssints/eval`, and why the kit's tests run on the dev server (2026-10-29)
+
+Asked by the user ("can anything be done about vitest browser mode not running cssints sites?"), after a styled component of
+`apps/ui` could not be imported by a vitest browser test at all: even `export const box = cn(bg("#f00"))` failed, with
+"the plugin helpers run at build time, once the cssints library is loaded" and later `__at is not a function`. **The cause is a
+condition, not a runner**: the plugin prepends `import { __at, __site, … } from "cssints"` to every module with sites, which it
+then evaluates in the app's **ssr** environment; vitest's browser mode puts `browser` in that environment's `resolve.conditions`
+(its own default for the client, merged into both), so `cssints` resolves to its browser runtime (`_cx`, `_cv` only) — no
+`__at`, no registry, and `globalThis.__cssints` never set. The user's guess ("предилд?") does not help: `browser` is an export
+condition, and the built `dist/` carries the same `browser` branch (`dist/runtime.mjs`). **The fix is a specifier that cannot be
+redirected**: a new `cssints/eval` subpath (development → `src/index.ts`, default → `dist/index.mjs`, no `browser` key) and
+`instrument.ts` prepends it instead of `cssints`; the client copy of a module is pure data (`export const box = "_ajndqy _dku3ci"`),
+so the browser never sees it. Verified: `packages/cssints`' suite green, `apps/lab` (dev server, real evaluation) green, and a
+vitest browser test of `cn(bg("#f00"))` passes. **A second wall stands behind it, and that is where this stopped**: with the
+library loading, the same evaluation fails on `require is not defined` — vitest's ssr environment serves CJS dependencies as ESM
+(`lightningcss`, `magic-string`) — and the alternative, the plugin evaluating in its own private server as a build does (a
+`createServer({ configFile: false, plugins: [cssints({ inner: true })] })`), fails on Solid instead: the evaluated `@cssints/headless`
+modules load `solid-js/dist/server.dev.js` there while the app's environment picks the client build (`solid.dev.js`), and Solid's
+server build crashes with `Cannot set properties of undefined (setting 'server')` (`OBSERVE.server` with `OBSERVE` undefined).
+The private server copies the app's `resolve.alias` and ssr conditions but not its **plugins** (the Solid plugin is what makes
+the client build the right one), and passing resolved plugin instances into a second server is its own risk. So: **the styled
+components' tests run on the dev server** (`apps/ui/test/combos.mjs`: a page of pairs, Chromium, computed styles), the APG
+conformance stays where it belongs (`@cssints/headless`'s own browser tests, and the compiled starters of `apps/ui` that still
+ship a sheet), and `apps/ui`'s vitest suite covers the compiled starters only. **Left**: a test-environment evaluator (case 2
+above) worth its own ticket — the private server needs the app's user plugins (or a way to resolve framework entries as the app
+does), which is what would let a copy ship a vitest test it can run.

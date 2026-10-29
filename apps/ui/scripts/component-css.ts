@@ -17,7 +17,9 @@ import { build } from "vite";
 const root = new URL("..", import.meta.url).pathname;
 
 /** Every starter whose sheet is generated; a new skin adds its directory name here. */
-const NAMES = ["switch", "disclosure", "button", "checkbox", "radio", "tabs", "accordion"] as const;
+// `button`, `card`, `field` and `input` are styled in their `.tsx` (cssints macros, `cv()`, tokens): a copy of those needs
+// the plugin, so there is no sheet to compile for them.
+const NAMES = ["switch", "disclosure", "checkbox", "radio", "tabs", "accordion"] as const;
 
 const check = process.argv.includes("--check");
 const tmp = join(root, ".component-css");
@@ -98,9 +100,7 @@ const compile = async (name: string): Promise<string> => {
     throw new Error(`${name}: the build emitted no stylesheet`);
   }
   const source = asset.source;
-  const body = unwrapLayers(
-    typeof source === "string" ? source : new TextDecoder().decode(source),
-  );
+  const body = unwrapLayers(typeof source === "string" ? source : new TextDecoder().decode(source));
   if (body === "") {
     throw new Error(`${name}: the skin emitted no rules`);
   }

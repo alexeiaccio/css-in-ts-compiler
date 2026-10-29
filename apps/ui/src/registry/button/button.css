@@ -1,8 +1,0 @@
-/* Generated from button.ts by scripts/component-css.ts. Do not edit. */
-.ui-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);width:max-content;padding:var(--space-2) var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-button-background);font:inherit;font-size:var(--font-size);color:var(--color-text);cursor:pointer}
-.ui-button:hover{background:var(--color-button-background-pressed);border-color:var(--color-border-hover)}
-.ui-button:active{background:var(--color-tint-300)}
-.ui-button[aria-pressed="true"]{background:var(--color-highlight);border-color:var(--color-highlight);color:var(--color-on-highlight)}
-.ui-button[aria-pressed="true"]:hover{background:var(--color-highlight-pressed);border-color:var(--color-highlight-pressed)}
-.ui-button[aria-disabled="true"]{border-color:var(--color-border-disabled);background:var(--color-button-background);color:var(--color-text-disabled);cursor:not-allowed}
-.ui-button:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}

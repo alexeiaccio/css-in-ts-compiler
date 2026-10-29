@@ -13,18 +13,26 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 
 ## Items
 
+- card: A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`. `add @cssints/card`
+- field: A label, a control, a hint and an error: the ids and the ARIA are `createField`'s. `add @cssints/field`
+- input: A text field on the neutral theme, and the control `Field` puts in by default. `add @cssints/input`
 - switch: APG switch on @cssints/headless, on the neutral theme, with its scenario test. `add @cssints/switch`
 - disclosure: APG disclosure on @cssints/headless, on the neutral theme, with its scenario test. `add @cssints/disclosure`
-- button: APG button and toggle button on @cssints/headless, on the neutral theme. `add @cssints/button`
+- button: APG button and toggle button: `tone` and `size` variants, and `render` for a link. `add @cssints/button`
 - checkbox: APG checkbox, including the mixed tri-state, on @cssints/headless. `add @cssints/checkbox`
 - radio: APG radio group with roving tabindex or aria-activedescendant focus. `add @cssints/radio`
 - tabs: APG tabs: roving tabindex, automatic or manual activation, wrapped arrows. `add @cssints/tabs`
 - accordion: APG accordion: multiple or single expansion, headed triggers, collapsible. `add @cssints/accordion`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
-## How a skin is written
+## How a component is written
 
-Each skin is authored on cssints (`src/registry/<name>/<name>.ts`) and compiled to `<name>.css`
-by `scripts/component-css.ts`; an item ships the compiled sheet, so a project needs no cssints
-plugin and the copy can run the conformance test it arrives with. The theme is compiled from
-`tokens.ts` the same way. Every value a skin reads is a theme custom property.
+A styled component (`button`, `card`, `field`, `input`) is one `.tsx`: styles are `cn()`/`cv()`
+with the theme's tokens, states are the ARIA attributes the widget announces (`attr()`,
+`within()`), and `render` replaces a part with another component or tag. Such a copy needs
+`cssints` in the project's Vite config; the combinations (`Card` + `Button`, `Field` + `Input`)
+are checked in this repository's `test/combos.mjs`.
+
+The older starters (`switch`, `disclosure`, `checkbox`, `radio`, `tabs`, `accordion`) ship a
+compiled sheet authored in `src/registry/<name>/<name>.ts`, so a copy needs no plugin and runs
+its conformance test as it arrives. The theme is compiled from `tokens.ts` the same way.

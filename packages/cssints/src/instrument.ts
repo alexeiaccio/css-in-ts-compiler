@@ -15,6 +15,10 @@ import { ImportError } from "./errors.ts";
 import { groups } from "./groups-data.ts";
 
 export const RUNTIME = "cssints";
+// The library itself, for the code the evaluation imports: the bare "cssints" resolves by the app's conditions, and a
+// runner that sets `browser` for its ssr environment (vitest's browser mode does) would get the browser runtime, which has
+// no `__at` and no registry. The subpath carries no `browser` condition, so it is the library wherever it is evaluated.
+export const LIBRARY = "cssints/eval";
 // A cv() or scv() site and a cn() with runtime arguments become calls of the runtime; the plugin imports them as `__cv`,
 // `__scv` and `__cx` into the modules that have one.
 export const CV_CALL = "__cv(";
@@ -546,11 +550,11 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
     ms.overwrite(
       d.start,
       d.end,
-      `import { css as __css${i}, __group as __group${i} } from ${Formatter.formatJson(RUNTIME)}; const ${bind} = ${source};`,
+      `import { css as __css${i}, __group as __group${i} } from ${Formatter.formatJson(LIBRARY)}; const ${bind} = ${source};`,
     );
   });
   ms.prepend(
-    `import { __at, __cnGroup, __nocn, __site, __unseen } from ${Formatter.formatJson(RUNTIME)};\n`,
+    `import { __at, __cnGroup, __nocn, __site, __unseen } from ${Formatter.formatJson(LIBRARY)};\n`,
   );
   if (hoisted.length)
     ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);

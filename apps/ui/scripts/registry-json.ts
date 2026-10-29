@@ -32,9 +32,41 @@ interface Starter {
   readonly name: string;
   readonly title: string;
   readonly description: string;
+  /**
+   * The component styles itself with cssints (macros and tokens in the `.tsx`): the item needs the plugin, ships the source
+   * only, and its test is the combinations suite (`test/combos.mjs`). The older starters ship a compiled sheet instead.
+   */
+  readonly styled?: boolean;
+  /** Files of the kit a copy of this component needs beside it (relative to `src/registry`). */
+  readonly with?: ReadonlyArray<string>;
+  /** Other items this one is composed with (their files arrive here too, `with`). */
+  readonly also?: ReadonlyArray<string>;
 }
 
 const STARTERS: ReadonlyArray<Starter> = [
+  {
+    name: "card",
+    title: "Card",
+    description: "A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`",
+    styled: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+  },
+  {
+    name: "field",
+    title: "Field",
+    description:
+      "A label, a control, a hint and an error: the ids and the ARIA are `createField`'s",
+    styled: true,
+    also: ["@cssints/input"],
+    with: ["input/input.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+  },
+  {
+    name: "input",
+    title: "Input",
+    description: "A text field on the neutral theme, and the control `Field` puts in by default",
+    styled: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+  },
   {
     name: "switch",
     title: "Switch",
@@ -49,7 +81,10 @@ const STARTERS: ReadonlyArray<Starter> = [
   {
     name: "button",
     title: "Button",
-    description: "APG button and toggle button on @cssints/headless, on the neutral theme",
+    description:
+      "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
+    styled: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
   },
   {
     name: "checkbox",
@@ -73,34 +108,46 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
 ];
 
+// A styled component is source that needs cssints in the project's build: no compiled sheet, no copied conformance test
+// (the behaviour is `@cssints/headless`'s, tested there; the look is one component's, and the combinations suite covers the
+// pairs). The older starters still ship the sheet their copy reads.
+const kitFiles = (item: Starter) => [
+  file(target(`${item.name}.tsx`), "registry:ui", `src/registry/${item.name}/${item.name}.tsx`),
+  ...(item.with ?? []).map((path) =>
+    file(target(path.split("/").at(-1) ?? path), "registry:file", `src/registry/${path}`),
+  ),
+];
+
+const compiledFiles = (item: Starter) => [
+  file(target(`${item.name}.tsx`), "registry:ui", `src/registry/${item.name}/${item.name}.tsx`),
+  file(target(`${item.name}.css`), "registry:file", `src/registry/${item.name}/${item.name}.css`),
+  file(
+    target(`${item.name}.fixture.tsx`),
+    "registry:file",
+    `src/registry/${item.name}/${item.name}.fixture.tsx`,
+  ),
+  file(target("dom-driver.ts"), "registry:file", `src/registry/${item.name}/dom-driver.ts`),
+  file(
+    target(`${item.name}.browser.test.tsx`),
+    "registry:file",
+    `src/registry/${item.name}/${item.name}.browser.test.tsx`,
+  ),
+  file("src/vitest.browser.config.ts", "registry:file", "vitest.browser.config.ts"),
+];
+
 const starter = (item: Starter) => ({
   $schema: "https://ui.shadcn.com/schema/registry-item.json",
   name: item.name,
   type: "registry:ui",
   title: item.title,
   description: item.description,
-  dependencies: ["@cssints/headless"],
+  dependencies: item.styled ? ["@cssints/headless", "cssints"] : ["@cssints/headless"],
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
   // `solid-js` rc, which this item cannot know.
-  devDependencies: ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-  registryDependencies: ["@cssints/theme"],
-  files: [
-    file(target(`${item.name}.tsx`), "registry:ui", `src/registry/${item.name}/${item.name}.tsx`),
-    file(target(`${item.name}.css`), "registry:file", `src/registry/${item.name}/${item.name}.css`),
-    file(
-      target(`${item.name}.fixture.tsx`),
-      "registry:file",
-      `src/registry/${item.name}/${item.name}.fixture.tsx`,
-    ),
-    file(target("dom-driver.ts"), "registry:file", `src/registry/${item.name}/dom-driver.ts`),
-    file(
-      target(`${item.name}.browser.test.tsx`),
-      "registry:file",
-      `src/registry/${item.name}/${item.name}.browser.test.tsx`,
-    ),
-    file("src/vitest.browser.config.ts", "registry:file", "vitest.browser.config.ts"),
-  ],
+  devDependencies: item.styled ? [] : ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+  registryDependencies: ["@cssints/theme", ...(item.also ?? [])],
+  files: item.styled ? kitFiles(item) : compiledFiles(item),
 });
 
 const theme = {
@@ -158,12 +205,17 @@ const lines = [
   ...STARTERS.map((item) => `- ${item.name}: ${item.description}. \`add @cssints/${item.name}\``),
   "- theme: the neutral theme as plain custom properties; arrives with any starter",
   "",
-  "## How a skin is written",
+  "## How a component is written",
   "",
-  "Each skin is authored on cssints (`src/registry/<name>/<name>.ts`) and compiled to `<name>.css`",
-  "by `scripts/component-css.ts`; an item ships the compiled sheet, so a project needs no cssints",
-  "plugin and the copy can run the conformance test it arrives with. The theme is compiled from",
-  "`tokens.ts` the same way. Every value a skin reads is a theme custom property.",
+  "A styled component (`button`, `card`, `field`, `input`) is one `.tsx`: styles are `cn()`/`cv()`",
+  "with the theme's tokens, states are the ARIA attributes the widget announces (`attr()`,",
+  "`within()`), and `render` replaces a part with another component or tag. Such a copy needs",
+  "`cssints` in the project's Vite config; the combinations (`Card` + `Button`, `Field` + `Input`)",
+  "are checked in this repository's `test/combos.mjs`.",
+  "",
+  "The older starters (`switch`, `disclosure`, `checkbox`, `radio`, `tabs`, `accordion`) ship a",
+  "compiled sheet authored in `src/registry/<name>/<name>.ts`, so a copy needs no plugin and runs",
+  "its conformance test as it arrives. The theme is compiled from `tokens.ts` the same way.",
   "",
 ];
 mkdirSync(join(root, "public"), { recursive: true });

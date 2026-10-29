@@ -4,16 +4,9 @@
   "type": "registry:ui",
   "title": "Accordion",
   "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
-  "dependencies": [
-    "@cssints/headless"
-  ],
-  "devDependencies": [
-    "@cssints/apg-specs@^0.6.0",
-    "@quint-machine/core@0.1.0"
-  ],
-  "registryDependencies": [
-    "@cssints/theme"
-  ],
+  "dependencies": ["@cssints/headless"],
+  "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+  "registryDependencies": ["@cssints/theme"],
   "files": [
     {
       "path": "accordion.tsx",
