@@ -1402,22 +1402,42 @@ generated C stays the no-JS path, which is what the board already is.
 ## The sky screens in a terminal
 
 `apps/csssky-tui` (`../apps/csssky-tui`) ported to cells: the same cards, the same recorded fixtures, the same palette
-from its `styles.ts`. Its two screens and the profile of the sibling web app `apps/csssky`:
+from its `styles.ts`. Its two screens and two of the sibling web app `apps/csssky`'s:
 
 | screen | data | keys |
 | --- | --- | --- |
 | the feed (`--page sky`) | `apps/csssky`'s `home-discover-1` and `home-science-1` (three posts each; News has no fixture) | `tab`/`shift-tab` between the bar and the list, `left`/`right` the tabs (which switch the feed), `j`/`k` or `up`/`down` the list, `1`-`3` a feed, `enter` opens, `t` the theme, `q` quits |
 | a thread (`--page thread`) | `thread.json`: the parent, the post, its replies | `j`/`k` or the arrows, `esc` back |
 | a profile (`--page profile`) | `profile.json`, `profile-posts`, `profile-replies`, `profile-media` | `left`/`right` the tabs, `tab` to the list, `j`/`k` or `up`/`down`, `enter` opens a thread, `esc` back |
+| the notifications (`n` on the feed, or `--page notifications`) | **hand-carried**, and this is the one screen that is: the app has no notifications screen, model or fixture | `tab`/`shift-tab` the rows in order (wrapping at either end), `j`/`k` or `up`/`down` the roving row, `enter` opens a post's thread, `esc` back |
 
 The focus is `terminal/focus.c`, a port of the semantics of `focus/src/focus.ts` (not shared code with it): Tab stops in
 document order with the focus released at either end (a terminal has no platform to hand Tab to, so the page presses it
 again and wraps), a group as one stop with roving focus, and `focus(id)` refusing a disabled stop. A click is a press
 and a release over one control; the terminal has no pointer motion beyond that.
 
-What stays unported: `apps/csssky-tui` has no profile screen of its own (that one is the web app's, on the same data
-layer and fixtures); no fetching (the frame is the recorded fixture), no images (a media line), no quote box, no
-wrapping (a body is one clipped row), the app's system theme, and the app shell (a bar, a list, a footer is all).
+**The notifications.** `apps/csssky` has no `notifications/` and no route for one, and `apps/csssky/test/fixtures` holds
+no `listNotifications` answer (the only notifications in it are a recorded post *about* the notifications redesign), so
+`terminal/notify.c` carries five rows of its own: the app's five kinds — `liked your post`, `reposted`, `followed you`,
+`mentioned you`, `replied` — with an actor and a post out of the recorded fixtures (`home-discover-1`,
+`home-science-1`, `thread.json`), the post's text as the snippet the app shows under the verb (none for the follow,
+which has no post), and the post's own `createdAt` through the app's `ago()`, so a frame does not depend on the clock.
+The screen is the shared one: the bar, the app's header row (`Notifications`), the cards of the page's own scroll, the
+footer. The focused card is the accent border *and* the next panel tone, so the ring is visible in a plain dump as well
+as in the ANSI.
+
+**The shell's path to it.** `apps/csssky`'s nav (`Shell.tsx`) has Home, a profile and Settings, and the feed's bar is
+its three feed tabs, so a notifications screen has no place in either: the feed opens it with `n` (not in the feed's
+footer line, which is the tui's own string), and `--page notifications` starts the stack there. The stack is
+`terminal/shell.c`'s: `enter` pushes `thread.c` from a notification's post, `esc` pops back to the notifications, and
+`esc` again to the feed.
+
+What stays unported: `apps/csssky-tui` has neither a profile nor a notifications screen of its own (the profile here is
+the web app's, on the same data layer and fixtures; the notifications are the web app's too, hand-carried); no fetching
+(the frame is the recorded fixture — and for the notifications no recording exists at all), no unread counts or their
+badge, none of the notifications' grouping (`All`/`Mentions`, "and 3 others liked your post"), no actor avatars (a
+glyph), no images (a media line), no quote box, no wrapping (a body is one clipped row), the app's system theme, and
+the app shell (a bar, a list, a footer is all).
 
 `cssints` is the workspace package (`"cssints": "workspace:*"`, `../packages/cssints`), not a release from npm: the
 tests run with `--conditions=development`, which resolves to its sources, so an edit to the engine is seen at once; `dist`
