@@ -93,34 +93,22 @@ The CSS of `appear()` (`lede` and `band` above):
 
 ```css
 @layer _.k {
-  @keyframes kf-0d1310bc-reveal {
-    from {
-      opacity: var(--reveal-enter-o);
-      translate: var(--reveal-enter-x) var(--reveal-enter-y);
-      scale: var(--reveal-enter-s);
-      filter: blur(var(--reveal-enter-b));
-    }
-  }
-  @keyframes kf-af544ea2-reveal {
-    from {
-      opacity: var(--reveal-enter-o);
-    }
-  }
+  /* motion's keyframes, the two rules reveal() names too (one pair for the page) */
   ._reveal-enter {
     animation: var(--reveal-enter-k) var(--reveal-enter-d) var(--reveal-enter-e) both;
     timeline-trigger: --reveal-t view() var(--reveal-enter-g);
-    --reveal-enter-k: kf-0d1310bc-reveal;
-    --reveal-enter-rk: kf-af544ea2-reveal;
+    --reveal-enter-k: kf-7f473efd;
+    --reveal-enter-rk: kf-4f766ef7;
     --reveal-enter-d: 300ms;
     --reveal-enter-e: ease-out;
     --reveal-enter-g: entry 100% exit 0%;
     --reveal-enter: play-once;
     --reveal-leave: none;
-    --reveal-enter-o: 0;
-    --reveal-enter-x: 0;
-    --reveal-enter-y: 0;
-    --reveal-enter-s: 1;
-    --reveal-enter-b: 0;
+    --motion-o: 0;
+    --motion-x: 0;
+    --motion-y: 0;
+    --motion-s: 1;
+    --motion-b: 0;
     animation-trigger: --reveal-t var(--reveal-enter) var(--reveal-leave);
     trigger-scope: --reveal-t;
   }
@@ -143,11 +131,11 @@ The CSS of `appear()` (`lede` and `band` above):
   ._67iv7r {
     --reveal-leave: play-backwards;
   }
-  ._gqrxp1 {
-    --reveal-enter-y: 25%;
+  ._1a9p5a9 {
+    --motion-y: 25%;
   }
-  ._oa1u6n {
-    --reveal-enter-o: 0;
+  ._knj5bv {
+    --motion-o: 0;
   }
   ._oflqj4 {
     --reveal-enter-e: linear;
@@ -173,13 +161,12 @@ The CSS of `appear()` (`lede` and `band` above):
   element leaves (where the triggers are native).
 - **Presets** are motion's entrance presets: `fade-in`, `slide-in-up`, `slide-in-down`, `slide-in-left`,
   `slide-in-right`, `scale-in`, `blur-in`. The `-out` ones are not: the fallback can only play when an element enters.
-- **Reuse of motion.** `reveal()` names motion's `motionKeyframes.in` and `motionKeyframes.reducedIn`, so their rule
-  is motion's kernel, printed once however many styles use it, and a preset sets the values those keyframes read, from
-  motion's `presets` table under motion's names (`motionVars`). `appear()` reads the same `presets`, but it
-  cannot run motion's keyframes rule: two kernels of one scope may not declare one custom property (the engine's rule),
-  and motion's keyframes read `--motion-*`, which `reveal()`'s kernel declares too. So its kernel carries the same
-  keyframes and values under names of its own (`--reveal-enter-*`), and the two members can sit on one page. Nothing is
-  copied from motion but the values of its presets.
+- **Reuse of motion.** Both members name motion's `motionKeyframes.in` and `motionKeyframes.reducedIn`, so that rule is
+  motion's kernel, printed once however many styles use it, and a preset sets the values those keyframes read from
+  motion's `presets` table under motion's names (`motionVars`). Only each member's own properties are its own names:
+  `appear()`'s are `--reveal-enter-*`, because `reveal()`'s kernel declares the scope's short names (`--reveal-k` and
+  the rest) and two kernels of one scope may not share one of them. A scope may reuse a name another scope owns — that
+  is how both of them set `--motion-*` — so `motion()`, `reveal()` and `appear()` can sit on one page.
 - **`trigger-scope` is required.** The trigger name is the kernel's (`--reveal-t`) and every element of the class shares
   it; without `trigger-scope: --reveal-t`, the last element in the document would drive every card. With it, two boxes
   of the same class trigger independently (checked in Chrome 156). Two different styles on one page do not collide
@@ -231,9 +218,9 @@ The CSS of `appear()` (`lede` and `band` above):
   element that gets the class after it is in the document (not added with it) is not seen.
 - Until the script runs, an animation below the fold may start playing; it is paused where it is and resumes on entry.
   The script runs with the first module that uses `reveal()` or `appear()`.
-- **`motion()` and `reveal()` cannot sit in one app.** Both kernels declare motion's custom properties (`--motion-o`
-  and the rest), which the engine refuses: "a plugin picks its own short custom-property names". `appear()` has names of
-  its own, so it can sit beside `motion()` (and beside `reveal()`).
+- None of `motion()`, `reveal()` and `appear()` may be put on one element: each sets the `animation`, which two
+  kernels of one style refuse (`kernels ... both set animation`). On a page they share motion's keyframes and custom
+  properties.
 - The trigger is on the animated element itself. A tall section that triggers its children is written by hand:
   `css.timelineTrigger()` and `css.animationTrigger()` on the section, and `css.animationTrigger()` on the child. A
   separate trigger element and a `.from("--name")` method are deferred.

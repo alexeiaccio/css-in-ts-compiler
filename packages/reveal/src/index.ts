@@ -11,26 +11,15 @@ import { scope } from "cssints/plugin";
 const names =
   "fade-in | slide-in-up | slide-in-down | slide-in-left | slide-in-right | scale-in | blur-in" as const;
 
-// What a preset moves from, in the custom properties its keyframes read.
+// What a preset moves from, in motion's own custom properties (those its keyframes read).
 const fields = Object.keys(motionVars) as (keyof typeof motionVars)[];
-const presetEmit = (vars: Readonly<Record<keyof typeof motionVars, string>>) => (name: string) => {
+const emitPreset = (name: string) => {
   const p = presets[name as PresetName];
   return fields.flatMap((f) => {
     const v = p[f];
-    return v === undefined ? [] : [[vars[f], v] as const];
+    return v === undefined ? [] : [[motionVars[f], v] as const];
   });
 };
-// reveal() runs motion's own keyframes, so it sets motion's names. appear() cannot: two kernels of one scope may not
-// declare one custom property, so its kernel carries the same keyframes and values under names of its own.
-const emitPreset = presetEmit(motionVars);
-const entered = {
-  opacity: "--_enter-o",
-  x: "--_enter-x",
-  y: "--_enter-y",
-  scale: "--_enter-s",
-  blur: "--_enter-b",
-} as const;
-const emitEntered = presetEmit(entered);
 
 const supported = "animation-timeline:view()";
 const triggers = "animation-trigger:none";
@@ -63,39 +52,31 @@ export const revealScope = scope("reveal", {
   // the same entrance, but time-based: a view timeline names the trigger (`--_t`), which plays the animation on entry
   // and leaves it at its end frame. `trigger-scope` keeps the name to this element: without it every element of the class
   // shares one trigger and the last one in the document drives them all. The `animation` shorthand resets
-  // `animation-trigger`, so it comes first. Under reduced motion only the opacity moves. Its own custom-property names:
-  // `core` already declares motion's, and two kernels may not declare one property.
+  // `animation-trigger`, so it comes first. Under reduced motion only the opacity moves. It runs motion's keyframes and
+  // sets motion's names, as `core` does; its own properties are its own short names, since two kernels of one scope may
+  // not share one of theirs.
   "#enter": {
-    css: (css) => {
-      const moved = css.cn(
-        css.opacity("var(--_enter-o)"),
-        css.translate("var(--_enter-x) var(--_enter-y)"),
-        css.scale("var(--_enter-s)"),
-        css.filter("blur(var(--_enter-b))"),
-      );
-      const faded = css.opacity("var(--_enter-o)");
-      return [
-        css.vars({
-          "--_enter-k": css.keyframes({ from: moved }),
-          "--_enter-rk": css.keyframes({ from: faded }),
-          "--_enter-d": "300ms",
-          "--_enter-e": "ease-out",
-          "--_enter-g": "entry 100% exit 0%",
-          "--_enter": "play-once",
-          "--_leave": "none",
-          "--_enter-o": 0,
-          "--_enter-x": 0,
-          "--_enter-y": 0,
-          "--_enter-s": 1,
-          "--_enter-b": 0,
-        }),
-        css.animation("var(--_enter-k) var(--_enter-d) var(--_enter-e) both"),
-        css.timelineTrigger("--_t view() var(--_enter-g)"),
-        css.animationTrigger("--_t var(--_enter) var(--_leave)"),
-        css.triggerScope("--_t"),
-        css.media("(prefers-reduced-motion: reduce)")(css.animationName("var(--_enter-rk)")),
-      ];
-    },
+    css: (css) => [
+      css.vars({
+        "--_enter-k": motionKeyframes.in,
+        "--_enter-rk": motionKeyframes.reducedIn,
+        "--_enter-d": "300ms",
+        "--_enter-e": "ease-out",
+        "--_enter-g": "entry 100% exit 0%",
+        "--_enter": "play-once",
+        "--_leave": "none",
+        [motionVars.opacity]: 0,
+        [motionVars.x]: 0,
+        [motionVars.y]: 0,
+        [motionVars.scale]: 1,
+        [motionVars.blur]: 0,
+      }),
+      css.animation("var(--_enter-k) var(--_enter-d) var(--_enter-e) both"),
+      css.timelineTrigger("--_t view() var(--_enter-g)"),
+      css.animationTrigger("--_t var(--_enter) var(--_leave)"),
+      css.triggerScope("--_t"),
+      css.media("(prefers-reduced-motion: reduce)")(css.animationName("var(--_enter-rk)")),
+    ],
   },
   // without a view timeline the animation is time-based: held at its start until runtime.ts marks the element in view
   "#io": {
@@ -126,7 +107,7 @@ export const revealScope = scope("reveal", {
   appear: {
     uses: ["enter", "io-appear"],
     chain: {
-      preset: { args: names, emit: emitEntered },
+      preset: { args: names, emit: emitPreset },
       range: { args: "<'animation-range'>", emit: (v) => [["--_enter-g", v]] },
       duration: { args: "<time [0s,∞]>", emit: (v) => [["--_enter-d", v]] },
       easing: { args: "<easing-function>", emit: (v) => [["--_enter-e", v]] },

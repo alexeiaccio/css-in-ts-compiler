@@ -121,15 +121,14 @@ assert.ok(
 // the default targets have Firefox: the fallback CSS is in the sheet
 assert.ok(out.includes(fallback), out);
 
-// appear: its own copy of the keyframes (two kernels of one scope may not declare one custom property), time-based, on a
-// trigger named by the kernel; the `animation` shorthand first (it resets animation-trigger), then the trigger
-const played = /@keyframes (kf-\w+-reveal)\{from\{opacity:var\(--reveal-enter-o\);translate:/.exec(
-  appearOut,
-)?.[1];
-const reducedPlayed = /@keyframes (kf-\w+-reveal)\{from\{opacity:var\(--reveal-enter-o\)\}\}/.exec(
-  appearOut,
-)?.[1];
+// appear: motion's keyframes too (one rule each, as reveal() names them), time-based, on a trigger named by the kernel;
+// the `animation` shorthand first (it resets animation-trigger), then the trigger
+assert.equal(appearOut.match(/@keyframes /g)?.length, 2, appearOut);
+const played = /--reveal-enter-k:(kf-\w+)/.exec(appearOut)?.[1];
+const reducedPlayed = /--reveal-enter-rk:(kf-\w+)/.exec(appearOut)?.[1];
 assert.ok(played && reducedPlayed, appearOut);
+assert.equal(played, enter, "motion's `in` keyframes, the rule reveal() names");
+assert.equal(reducedPlayed, reduced, "motion's reduced-motion keyframes");
 const kernel = /\._reveal-enter\{([^}]*)\}/.exec(appearOut)?.[1]?.split(";") ?? [];
 assert.equal(
   kernel[0],
@@ -145,16 +144,16 @@ assert.ok(
 assert.deepEqual(
   kernel.slice(1).toSorted(),
   [
-    "--reveal-enter-b:0",
+    "--motion-b:0",
+    "--motion-o:0",
+    "--motion-s:1",
+    "--motion-x:0",
+    "--motion-y:0",
     "--reveal-enter-d:300ms",
     "--reveal-enter-e:ease-out",
     "--reveal-enter-g:entry 100% exit 0%",
     `--reveal-enter-k:${played}`,
-    "--reveal-enter-o:0",
     `--reveal-enter-rk:${reducedPlayed}`,
-    "--reveal-enter-s:1",
-    "--reveal-enter-x:0",
-    "--reveal-enter-y:0",
     "--reveal-enter:play-once",
     "--reveal-leave:none",
     "animation-trigger:--reveal-t var(--reveal-enter) var(--reveal-leave)",
@@ -171,6 +170,17 @@ assert.ok(
 );
 assert.ok(appearOut.includes(appearFallback), appearOut);
 
+// motion(), reveal() and appear() in one module: the same keyframes and motion's custom properties, shared by scopes
+const mixed = await code("motion.ts");
+assert.match(mixed, /export const m = "_motion-core( _\w+)+";/, mixed);
+assert.match(mixed, /export const r = "_reveal-core";/, mixed);
+assert.match(mixed, /export const a = "_reveal-enter";/, mixed);
+const mixedCss = flat(plugins[0].api.sheet([`${root}/motion.ts`]));
+// motion names four (in, out, and their reduced twins); the other two members add none of their own
+assert.equal(mixedCss.match(/@keyframes /g)?.length, 4, mixedCss);
+for (const k of ["._motion-core{", "._reveal-core{", "._reveal-enter{"])
+  assert.ok(mixedCss.includes(k), `${k}\n${mixedCss}`);
+
 // a preset sets motion's custom properties; the other methods the kernel's
 for (const d of [
   "--motion-o:0",
@@ -184,9 +194,9 @@ for (const d of [
 assert.match(out, /@layer _\.b \{ \._\w+:hover\{--reveal-d:1s\}/);
 // appear: its range/duration/easing are the kernel's, `inOut()` the trigger's actions
 for (const d of [
-  "--reveal-enter-o:0",
-  "--reveal-enter-y:25%",
-  "--reveal-enter-b:5px",
+  "--motion-o:0",
+  "--motion-y:25%",
+  "--motion-b:5px",
   "--reveal-enter-g:entry 50% exit 0%",
   "--reveal-enter-d:600ms",
   "--reveal-enter-e:linear",
