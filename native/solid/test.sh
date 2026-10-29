@@ -250,6 +250,11 @@ bun solid/tune.test.ts
 # base frame with goldens/sensors.json, a real click on the Units pill with the no-JS page's use_g frame, the raster
 # with browser/expected.png, and prints the bundle's and the wasm's size and the frame's ms. Skips (with a message) when
 # zig, bun or Playwright's chromium is not installed.
+# The Widgets page (browser/solid/widgets.ts) is the second one, and the one with keys: the same shell, its own Input, the
+# DOM's Tab/Shift+Tab/Space/Enter/arrows/Home/End named by browser/solid/keys.ts. The check drives them with Playwright's
+# keyboard — Tab twice focuses the Wi-Fi switch (the a11y snapshot and the ring's pixel), Space checks it (the snapshot, the
+# track's fill, a pixel), Tab to the settings tree and ArrowDown move the roving node — and compares the base frame with
+# goldens/widgets.json (4px boxes) and the raster with browser/expected-widgets.png and solid/frames/widgets-initial.png.
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null

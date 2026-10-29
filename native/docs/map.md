@@ -672,7 +672,7 @@ Each step ends in a check that fails when it breaks.
    drawn by another rasteriser. The browser's own frame is the regression guard, ThorVG's the design. Cost, headless
    Chromium on an M2: 0.08 ms a frame for the layout, the commands and one readback (100 frames), so the raster is the
    cost and it is the compositor's.
-   Limits: no Solid in the page (a static generated frame, as step 5's); the events are the generated table's (a click,
+   Limits: the page itself is a static generated frame, as step 5's; the events are the generated table's (a click,
    its press and release — no keys, no typed text, no wheel, and a hover state is entered by a release, not tracked by
    motion); no ThorVG (Canvas2D instead); no touch, no scrolling, images or floats (the page has none, and
    an image command is counted and not drawn); DPR is one scale factor and nothing else; a browser refuses to fetch the
@@ -703,12 +703,31 @@ Each step ends in a check that fails when it breaks.
    the no-JS page's `frame(1)` field for field and box for box (0 px) and a second click returns to the base frame
    identically; with the pointer on it the pill carries its `:hover` (48,53,68), which the generated C cannot have. (c)
    the canvas against `browser/expected.png`: 0.00 % of pixels differ, worst 8x8 block 0.0/255.
-   What is still not there: the other seven pages (they need a DOM map for `src/input.ts`'s key names, and the List's and
-   Sky's scroll machines are untried), the renderer's side tables (`ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and
-   the value channel's group fields 46–50 and 55: a command array alone has no scene, so a shadow, a gradient, a
-   backdrop, a transform or an image is a frame this target draws without it — the Sensors page's entry is why the check
-   warms 31 frames), touch (the wasm has `ui_touch_map`, nothing sends a finger's event), and a dev server or HMR (the
-   bundle is built by hand). The generated C is still the no-JS page, unchanged, which is what the board already is.
+   **Done: the keyboard and the second page** (2026-10-29). The browser has the desktop's keys. `browser/solid/keys.ts`
+   names a DOM `KeyboardEvent` as `src/input.ts`'s `keyName` names SDL's — Tab and Shift+Tab, `" "` for Space, Enter,
+   Escape, Backspace, Delete, the arrows, Home/End, PageUp/PageDown, letters (`Shift+A` is the page's own chord) and digits,
+   read from `event.code` where SDL's keycode is the key and not the character — and puts the name into the page's `Input`
+   before the frame is declared, as main.ts's loop does; Tab, Space and the arrows are `preventDefault`ed, so the browser
+   neither moves its focus nor scrolls. The canvas is `tabindex="0"` and a press focuses it (the page does not take the
+   focus on load), so a `keydown` reaches it. `browser/solid/shell.ts` is what the two pages share — the canvas, the loop,
+   the pointer, the keys and `window.__page` — and `browser/solid/widgets.ts` with `widgets.html` is the second page:
+   `solid/app/Widgets.tsx` unmodified, its own `createInput()`, 59 commands, its own bundle (335,796 B, 0.25-0.26 ms a
+   frame against Sensors' 239,871 B and 0.08-0.09). Check, in `browser/solid-check.mjs` and `solid/test.sh`: Widgets' base
+   frame against `solid/goldens/widgets.json` (59 commands, every field, worst box 3.16 px), its raster against
+   `browser/expected-widgets.png` (0.00 % of pixels) and against the desktop's `solid/frames/widgets-initial.png` the way
+   `check.mjs` holds this browser to ThorVG's (8.36 % of pixels; command means within 17.3/255, text ink within 3 px, the
+   frame's mean colour 1.41/255), and Playwright's keys: Tab twice focuses the Wi-Fi switch (the a11y snapshot's `focused`
+   and the 2 px ring's pixel), Space checks it (the snapshot, the track's fill #3c404e -> #f08c32, a pixel of it), Tab on
+   to the settings tree (the `Network` item) and ArrowDown move the roving node to `Wi-Fi`. A key that is not mapped leaves
+   the switch unfocused; a frame declared before the key is queued makes the tree and the pixels disagree by one key (the
+   snapshot has `focused` and `checked`, the canvas still draws the page's background at the switch's edge).
+   What is still not there: six more pages (each has its own keys, and the List's and Sky's scroll machines are untried;
+   `src/vscroll`'s wheel is in, `Input`'s typed text is not, and neither are a page's dialogs and floats), the renderer's
+   side tables (`ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value channel's group fields 46–50 and 55: a
+   command array alone has no scene, so a shadow, a gradient, a backdrop, a transform or an image is a frame this target
+   draws without it — the Sensors page's entry is why the check warms 31 frames), touch (the wasm has `ui_touch_map`,
+   nothing sends a finger's event), and a dev server or HMR (the bundles are built by hand). The generated C is still the
+   no-JS page, unchanged, which is what the board already is.
 
 
 ## What Rune's research gives us (2026-10-23)

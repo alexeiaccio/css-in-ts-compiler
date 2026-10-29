@@ -8,10 +8,11 @@
 <style>
   body { margin: 0; background: #0b0d12; color: #969baa; font: 13px/1.4 system-ui, sans-serif;
          display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; }
-  canvas { width: 360px; height: 360px; display: block; cursor: default; }
+  /* tabindex=0 makes the canvas focusable, and its focus is the page's own 2px ring, so no browser outline */
+  canvas { width: 360px; height: 360px; display: block; cursor: default; outline: none; }
   .bar { display: flex; gap: 12px; align-items: center; }
 </style>
-<canvas id="frame" width="360" height="360" aria-label="The Sensors page: Solid over Clay, drawn from Clay's commands"></canvas>
+<canvas id="frame" width="360" height="360" tabindex="0" aria-label="The Sensors page: Solid over Clay, drawn from Clay's commands"></canvas>
 <div class="bar">
   <span>click the pill, or press its mouse button</span>
   <span id="ms"></span>

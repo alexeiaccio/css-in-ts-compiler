@@ -1,6 +1,9 @@
-// The Solid page's bundle, for the browser: browser/solid/page.ts and the desktop's own modules, compiled by Bun.
+// The Solid pages' bundles, for the browser: browser/solid/page.ts (Sensors), browser/solid/widgets.ts (the Widgets page,
+// which takes keys) and the desktop's own modules, compiled by Bun. Two entry points, two bundles: page.js and widgets.js
+// are separate files with their own copies of the firmware they share (the shell, the renderer, Clay's binding), because a
+// page loaded alone should need nothing from the other's; the shared code is one source, not one chunk.
 //
-//   bun browser/solid/build.ts [out.directory]   -> <out>/page.js (default ${TMPDIR:-/tmp}/cssints-native-web/solid)
+//   bun browser/solid/build.ts [out.directory]   -> <out>/page.js and <out>/widgets.js (default ${TMPDIR:-/tmp}/cssints-native-web/solid)
 //
 // The loaders are the desktop's (solid/plugin.ts): a `.tsx` through @solidjs/compiler's universal transform, a
 // `styles.ts` through the cssints plugin in a Node child (compile-styles.ts), and a `.tsx` that declares its own styles
@@ -28,9 +31,9 @@ const solidPlugin = {
     onResolve: (opts: { filter: RegExp }, fn: (args: { path: string; importer: string }) => unknown) => void;
     onLoad: (opts: { filter: RegExp }, fn: (args: { path: string }) => unknown) => void;
   }) {
-    // solid/src/frame.ts imports the desktop's bun:ffi binding; in the page it is the wasm's
+    // solid/src/frame.ts and solid/app/Widgets.tsx import the desktop's bun:ffi binding; in the page it is the wasm's
     build.onResolve({ filter: /(^|\/)ffi\.ts$/ }, (args) => {
-      if (!args.path.endsWith("ffi.ts") || !args.importer.includes("/solid/src/")) return undefined;
+      if (!args.path.endsWith("ffi.ts") || !args.importer.startsWith(join(root, "solid") + "/")) return undefined;
       return { path: ffi };
     });
     build.onLoad({ filter: /\.tsx$/ }, async ({ path }) => {
@@ -50,7 +53,7 @@ const solidPlugin = {
 };
 
 const result = await Bun.build({
-  entrypoints: [join(here, "page.ts")],
+  entrypoints: [join(here, "page.ts"), join(here, "widgets.ts")],
   target: "browser",
   outdir,
   plugins: [solidPlugin as never],

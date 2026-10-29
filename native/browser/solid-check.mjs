@@ -1,22 +1,34 @@
-// The Solid page in the browser, checked against the two things that make it the same page as the desktop's:
+// The Solid pages in the browser, checked against the two things that make them the same pages as the desktop's:
 //
-//   (a) its command array. browser/ui.c dumps the frame through desktop/clay_dump.c — the emitter every host writes —
-//       and the base frame is compared with solid/goldens/sensors.json, the golden the Solid page on the desktop and the
-//       generated C page are held to: every field exactly, the boxes within 4 px (the golden's are ThorVG's metrics;
-//       Canvas2D does not hint a font, so a 20 px line comes out up to 3 px wider and a centred box moves by half).
-//   (b) a click on the Units pill. The real one: Playwright puts the mouse on the pill, the page's DOM listeners set the
-//       pointer src/frame.ts's View reads, and the release runs the element's onClick. The frame it makes must be the
-//       no-JS page's use_g frame — the same wasm layout, the same Canvas2D measure — field for field, box for box; the
+//   (a) their command arrays. browser/ui.c dumps the frame through desktop/clay_dump.c — the emitter every host writes —
+//       and each page's base frame is compared with its golden (solid/goldens/sensors.json, solid/goldens/widgets.json),
+//       the goldens the Solid pages on the desktop and the generated C page are held to: every field exactly, the boxes
+//       within 4 px (the goldens' are ThorVG's metrics; Canvas2D does not hint a font, so a 20 px line comes out a few px
+//       wider and a centred box moves by half, and each line's rounded-up height pushes the rows below it down a little).
+//   (b) a click on the Units pill (Sensors). The real one: Playwright puts the mouse on the pill, the page's DOM listeners
+//       set the pointer src/frame.ts's View reads, and the release runs the element's onClick. The frame it makes must be
+//       the no-JS page's use_g frame — the same wasm layout, the same Canvas2D measure — field for field, box for box; the
 //       no-JS page (browser/index.html) is opened beside this one for it, so the comparison is between two runs of the
 //       same Clay and the same font, and a difference is this page's alone.
-//   (c) the raster: its canvas against browser/expected.png (the no-JS page's own base frame), every 8x8 block's mean
-//       colour within 3/255 — check.mjs's tolerance for this browser's own frames.
+//   (c) their rasters. Each canvas against the browser's own stored frame — browser/expected.png for Sensors,
+//       browser/expected-widgets.png for Widgets (this run's, rewritten with --update): every 8x8 block's mean colour
+//       within 3/255 and 2% of the pixels, check.mjs's tolerance for this browser's own frames. And against the desktop's
+//       own frame (solid/frames/widgets-initial.png), the way check.mjs holds this browser to ThorVG's: the mean colour of
+//       every command's box (the ones at least 8x8 px: a thin band cannot survive the 4 px the boxes may differ by), each
+//       text line's ink box, and the frame's mean colour, with check.mjs's numbers (region 20/255, ink 4 px, frame mean
+//       3/255, 12% of pixels).
+//   (d) the keyboard (Widgets), the one thing no stored frame can show: Playwright's keys into the page's DOM listeners,
+//       browser/solid/keys.ts's names, the page's own Input. Tab twice focuses the Wi-Fi switch — in the page's
+//       accessibility tree (solid/a11y.ts's snapshot of the same Solid tree) and in the pixels (the 2 px ring's colour at
+//       the switch's edge); Space checks it (the tree's `checked`, the track's fill from #3c404e to #f08c32, and a pixel
+//       of it); Tab on to the settings tree and ArrowDown move the roving node (the tree item's `focused` state).
 //
 //   node browser/solid-check.mjs            the check (build first: sh browser/build.sh && bun browser/solid/build.ts)
-//   node browser/solid-check.mjs --serve    serve the page and print its URL, for looking at it by hand
+//   node browser/solid-check.mjs --update   rewrite browser/expected-widgets.png from this run
+//   node browser/solid-check.mjs --serve    serve the pages and print their URLs, for looking at them by hand
 import { chromium } from "playwright";
 import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, writeFile, stat } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,10 +40,14 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BROWSER = join(ROOT, "browser");
 const WASM_DIR = process.env.WASM_DIR || join(process.env.TMPDIR || "/tmp", "cssints-native-web");
 const BUNDLE = join(WASM_DIR, "solid/page.js");
+const WIDGETS_BUNDLE = join(WASM_DIR, "solid/widgets.js");
 const SIZE = 360;
+const WIDGETS_SIZE = 760;
+const update = process.argv.includes("--update");
 
-// the golden the page is held to: the Solid page's last frame on the desktop, the same tree as the generated C
+// the goldens the pages are held to: each page's last frame on the desktop, the same trees as the generated C
 const GOLDEN = JSON.parse(readFileSync(join(ROOT, "solid/goldens/sensors.json"), "utf8"));
+const WIDGETS_GOLDEN = JSON.parse(readFileSync(join(ROOT, "solid/goldens/widgets.json"), "utf8"));
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".wasm": "application/wasm", ".ttf": "font/ttf",
     ".png": "image/png", ".json": "application/json" };
@@ -43,10 +59,11 @@ function serve() {
     return new Promise(done => {
         const server = createServer(async (req, res) => {
             const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
-            // the build products, outside the repo: the two wasms and the bundle
+            // the build products, outside the repo: the two wasms and the two bundles
             const built = path === "/browser/page.wasm" ? join(WASM_DIR, "page.wasm")
                 : path === "/browser/solid/ui.wasm" ? join(WASM_DIR, "ui.wasm")
                 : path === "/browser/solid/page.js" ? BUNDLE
+                : path === "/browser/solid/widgets.js" ? WIDGETS_BUNDLE
                 : join(ROOT, path);
             try {
                 const body = await readFile(built);
@@ -66,15 +83,14 @@ function named(dump, names) {
         if (command.element == null && names.has(command.id)) command.element = names.get(command.id);
 }
 
-/** (a) the base frame against the golden: every field exactly but the boxes (ThorVG's metrics, 4 px). */
-function compareGolden(dump) {
-    const name = "commands, base frame vs solid/goldens/sensors.json";
-    const want = GOLDEN.commands;
+/** (a) a base frame against its golden: every field exactly but the boxes (ThorVG's metrics; `boxMax` px). */
+function compareGolden(name, golden, dump, boxMax) {
+    const want = golden.commands;
     if (dump.commands.length !== want.length) return bad(name, `${dump.commands.length} commands, want ${want.length}`);
     let worst = 0, worstAt = 0;
     for (let i = 0; i < want.length; i++) {
         const a = want[i], b = dump.commands[i];
-        const text = typeof b.text === "string" ? ` ${JSON.stringify(b.text)}` : "";
+        const text = typeof b.text === "string" && b.text ? ` ${JSON.stringify(b.text)}` : "";
         const who = `${name} #${i} (${b.type}${text})`;
         for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
             if (key === "box") {
@@ -90,17 +106,13 @@ function compareGolden(dump) {
     }
     const at = want[worstAt];
     const where = at?.text ? `command #${worstAt} (${JSON.stringify(at.text)})` : `command #${worstAt}`;
-    if (worst > 4) return bad(name, `${where}'s box is ${worst.toFixed(2)}px off the golden's`);
-    const effects = format(GOLDEN.effects) === format(dump.effects) ? "" : ` (the effects differ: ${format(dump.effects)})`;
-    if (effects) return bad(`${name} effects`, effects);
-    // the worst box is the pill's, below the texts: the measure callback rounds every line height up (37.5 -> 38 at
-    // 32px, 16.4 -> 17 at 14px, as browser/render.js does for the no-JS page), ThorVG's is exact, and five lines put it
-    // 3.375px lower. The no-JS page's check reports the same 3.38 on this command
+    if (worst > boxMax) return bad(name, `${where}'s box is ${worst.toFixed(2)}px off the golden's, over ${boxMax}`);
+    if (format(golden.effects) !== format(dump.effects)) return bad(`${name} effects`, format(dump.effects));
     ok(name, `${want.length} commands, same order and fields as the golden; worst box ${worst.toFixed(2)}px ` +
         `(${where}: the line heights Canvas2D's measure rounds up)`);
 }
 
-/** (b) the clicked frame against the no-JS page's: the same Clay, the same font — every field and every box, exactly. */
+/** (b) a frame against the no-JS page's: the same Clay, the same font — every field and every box, exactly. */
 function compareSamePage(name, want, got) {
     if (got.commands.length !== want.commands.length)
         return bad(name, `${got.commands.length} commands, the no-JS page's ${want.commands.length}`);
@@ -128,9 +140,10 @@ function compareSamePage(name, want, got) {
     ok(name, `${want.commands.length} commands, every field and box the same; worst box ${worst.toExponential(1)}px`);
 }
 
-/** (c) the raster as 8x8 block means, done in the page: the canvas and a reference image, both on a 2D canvas. */
+/** (c1) a raster as 8x8 block means, done in the page: the canvas and a reference image, both on a 2D canvas. */
 const DIFF = async (refURL) => {
-    const a = document.getElementById('frame').getContext('2d').getImageData(0, 0, 360, 360);
+    const canvas = document.getElementById('frame');
+    const a = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
     const img = new Image();
     img.src = refURL;
     await img.decode();
@@ -164,8 +177,171 @@ function assertBlocks(name, diff, { blockMax, pixelPct }) {
     ok(name, `${pct.toFixed(2)}% of pixels differ, worst 8x8 block ${diff.worstBlock.toFixed(1)}/255 at (${diff.worstAt})`);
 }
 
+/** (c2) another rasteriser's frame: per command box, the mean colour of the region and, for text, its ink box. */
+const REGIONS = async ({ refURL, boxes, min }) => {
+    const canvas = document.getElementById('frame');
+    const a = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    const img = new Image();
+    img.src = refURL;
+    await img.decode();
+    const rc = document.createElement('canvas');
+    rc.width = a.width;
+    rc.height = a.height;
+    const rcx = rc.getContext('2d');
+    rcx.drawImage(img, 0, 0, a.width, a.height);
+    const b = rcx.getImageData(0, 0, a.width, a.height).data;
+    const mean = (d, x0, y0, x1, y1) => {
+        const s = [0, 0, 0], n = Math.max(1, (x1 - x0) * (y1 - y0));
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+            const i = (y * a.width + x) * 4;
+            for (let k = 0; k < 3; k++) s[k] += d[i + k];
+        }
+        return s.map(v => v / n);
+    };
+    // a text box's background is the fill of the last rectangle drawn before it (the root's, or the row's); ink is what
+    // is far from that colour, so anti-aliased edge pixels do not count as glyph
+    const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+    const inkBox = (d, box, bg) => {
+        let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+        for (let y = Math.max(0, box.y); y < Math.min(a.height, box.y + box.h); y++)
+            for (let x = Math.max(0, box.x); x < Math.min(a.width, box.x + box.w); x++) {
+                const i = (y * a.width + x) * 4;
+                const dd = Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]);
+                if (dd > 120) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+            }
+        return x1 < 0 ? null : [x0, x1, y0, y1];
+    };
+    // the whole frame's mean colour: moved ink cancels out, a wrong palette does not
+    let differing = 0;
+    const meanA = [0, 0, 0], meanB = [0, 0, 0];
+    for (let i = 0; i < a.data.length; i += 4) {
+        if (a.data[i] !== b[i] || a.data[i + 1] !== b[i + 1] || a.data[i + 2] !== b[i + 2]) differing++;
+        for (let k = 0; k < 3; k++) meanA[k] += a.data[i + k], meanB[k] += b[i + k];
+    }
+    const n = a.width * a.height;
+    const frameMean = Math.max(...meanA.map((v, k) => Math.abs(v / n - meanB[k] / n)));
+    const regionDelta = [], inkDelta = [];
+    let fill = '#000000'; // the last rectangle's colour: a text box's background
+    for (const box of boxes) {
+        if (box.type === 1) fill = box.color;
+        const r = { x: Math.round(box.x), y: Math.round(box.y), w: Math.round(box.w), h: Math.round(box.h) };
+        r.x = Math.max(0, r.x), r.y = Math.max(0, r.y);
+        r.w = Math.min(a.width - r.x, r.w), r.h = Math.min(a.height - r.y, r.h);
+        // a region thinner than `min` is not compared: the boxes may differ by up to 4 px, so a 4 px band is all offset
+        if (r.w < min || r.h < min) continue;
+        const ma = mean(a.data, r.x, r.y, r.x + r.w, r.y + r.h);
+        const mb = mean(b, r.x, r.y, r.x + r.w, r.y + r.h);
+        regionDelta.push({ box, delta: Math.max(...ma.map((v, k) => Math.abs(v - mb[k]))) });
+        if (box.type === 3) {
+            const bg = rgb(fill), ia = inkBox(a.data, r, bg), ib = inkBox(b, r, bg);
+            if (ia && ib) inkDelta.push({ box, ia, ib, delta: Math.max(...ia.map((v, k) => Math.abs(v - ib[k]))) });
+            else if (!ia && !ib) inkDelta.push({ box, delta: 0 });
+            else inkDelta.push({ box, delta: 99 });
+        }
+    }
+    const worst = list => list.reduce((m, e) => (e.delta > m.delta ? e : m), { delta: 0 });
+    return { differing, total: n, frameMean, region: worst(regionDelta), ink: worst(inkDelta) };
+};
+
+function assertRegions(name, diff, { regionMax, inkMax, meanMax, pixelPct }) {
+    const pct = (100 * diff.differing) / diff.total;
+    if (diff.region.delta > regionMax)
+        return bad(name, `the region of ${JSON.stringify(diff.region.box.text || diff.region.box.type)} at ` +
+            `(${diff.region.box.x},${diff.region.box.y}) ${diff.region.box.w}x${diff.region.box.h} differs by ` +
+            `${diff.region.delta.toFixed(1)}/255 in the mean, over ${regionMax}`);
+    if (diff.ink.delta > inkMax)
+        return bad(name, `the ink of "${diff.ink.box.text}" is ${diff.ink.delta.toFixed(0)}px off (${diff.ink.ia} vs ${diff.ink.ib}), over ${inkMax}`);
+    if (diff.frameMean > meanMax) return bad(name, `the frame's mean colour is ${diff.frameMean.toFixed(2)}/255 off, over ${meanMax}`);
+    if (pct > pixelPct) return bad(name, `${pct.toFixed(1)}% of pixels differ, over ${pixelPct}%`);
+    ok(name, `${pct.toFixed(2)}% of pixels differ; region means within ${diff.region.delta.toFixed(1)}/255, ` +
+        `text ink within ${diff.ink.delta.toFixed(2)}px ("${diff.ink.box?.text}"), the frame's mean colour within ${diff.frameMean.toFixed(2)}/255`);
+}
+
+/** A node of the page's accessibility snapshot, by role and name (solid/a11y.ts's `snapshot`, run in the page). */
+function findNode([role, name]) {
+    const find = (node) => {
+        if (node.role === role && (name === undefined || node.name === name)) return node;
+        for (const child of node.children) {
+            const hit = find(child);
+            if (hit) return hit;
+        }
+        return undefined;
+    };
+    return find(window.__page.a11y());
+}
+
+/** The focused nodes of the snapshot: the states a key changes. */
+function focusedNodes() {
+    const out = [];
+    const walk = (node) => {
+        if (node.states.focused) out.push({ role: node.role, name: node.name, states: node.states });
+        for (const child of node.children) walk(child);
+    };
+    walk(window.__page.a11y());
+    return out;
+}
+
+/** The RGBA of one pixel of the page's canvas, in layout pixels. */
+const pixelAt = ([x, y]) => Array.from(document.getElementById("frame").getContext("2d").getImageData(x, y, 1, 1).data);
+
+/** The switch's track: the only 44x24 rectangle of the frame (the page's s.track). */
+const trackOf = () => window.__page.commands().find((c) => c.type === 1 && c.w === 44 && c.h === 24);
+
+const RING = "90,170,255,255"; // the focus ring's token: Widgets' t.color.ring
+const TRACK = { off: "#3c404e", on: "#f08c32" }; // the switch's track: t.color.off, t.color.on
+
+/** The Widgets page: the keys no stored frame can drive, and the switch and tree they move through. */
+async function checkKeyboard(page) {
+    const box = await page.locator("#frame").boundingBox();
+    // a press on the page's own padding (28px of it at the top): empty space, so nothing is focused or toggled, and the
+    // canvas takes the DOM's focus, which is what a keydown needs
+    await page.mouse.click(box.x + 6, box.y + 6);
+    const focused = await page.evaluate(() => document.activeElement?.id ?? null);
+    if (focused !== "frame") bad("DOM focus", `a press on the canvas leaves the focus on ${focused ?? "nothing"}, not the frame`);
+    else ok("DOM focus", "a press on the canvas focuses it (tabindex=0), so its keydown is the page's");
+
+    // Tab twice: the button, then the switch
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const wifi = await page.evaluate(findNode, ["switch", "Wi-Fi"]);
+    if (wifi?.states.focused !== true) return bad("Tab Tab: the switch", `the snapshot's switch is ${format(wifi?.states ?? null)}, not focused`);
+    ok("Tab Tab: the switch", `the snapshot has role switch, name "Wi-Fi", focused (bounds ${format(wifi.bounds)})`);
+    // ... and the ring is the pixels: the 2px border's colour one px inside the row's left edge
+    const [wx, wy, , wh] = wifi.bounds;
+    const ring = await page.evaluate(pixelAt, [wx + 1, wy + wh / 2]);
+    if (ring.join(",") !== RING) bad("Tab Tab: the ring", `the switch's edge is ${ring.join(",")}, not the ring's ${RING}`);
+    else ok("Tab Tab: the ring", `the switch's edge is ${RING} (t.color.ring), as the desktop's stored frame draws it`);
+
+    // Space: checked in the tree, and the track's fill from the off token to the accent
+    const before = await page.evaluate(trackOf);
+    if (before?.color !== TRACK.off) bad("Space: the track before", `the track is ${before?.color}, not ${TRACK.off}`);
+    await page.keyboard.press("Space");
+    const after = await page.evaluate(trackOf);
+    const checked = await page.evaluate(findNode, ["switch", "Wi-Fi"]);
+    if (checked?.states.checked !== true) bad("Space: checked", `the snapshot's switch is ${format(checked?.states ?? null)}, not checked`);
+    else ok("Space: checked", "the snapshot's switch has checked: true");
+    if (after?.color !== TRACK.on) return bad("Space: the fill", `the track is ${after?.color}, not the accent ${TRACK.on} (it was ${before?.color})`);
+    ok("Space: the fill", `the track's fill ${before?.color} -> ${after?.color} (t.color.off -> t.color.accent)`);
+    // the thumb has moved to the right end, so the accent is what the left half of the track now shows
+    const [tx, ty, , th] = [after.x, after.y, after.w, after.h];
+    const fillPixel = await page.evaluate(pixelAt, [tx + 10, ty + th / 2]);
+    if (fillPixel.join(",") !== "240,140,50,255") bad("Space: the pixel", `the track's left half is ${fillPixel.join(",")}, not the accent 240,140,50,255`);
+    else ok("Space: the pixel", "the track's left half is the accent 240,140,50,255: the thumb is at its right end");
+
+    // the settings tree: ten more Tabs reach it, and ArrowDown moves the roving node
+    for (let n = 0; n < 10; n++) await page.keyboard.press("Tab");
+    const network = await page.evaluate(findNode, ["treeitem", "Network"]);
+    if (network?.states.focused !== true) bad("Tab to the tree", `the snapshot's "Network" is ${format(network?.states ?? null)}, not focused`);
+    else ok("Tab to the tree", "the snapshot's first tree item, \"Network\", is focused (the tree is one stop)");
+    await page.keyboard.press("ArrowDown");
+    const afterDown = await page.evaluate(focusedNodes);
+    const roving = afterDown.find((n) => n.role === "treeitem" && n.name === "Wi-Fi");
+    if (roving?.states.focused !== true) bad("ArrowDown in the tree", `the snapshot's tree items are ${format(afterDown)}, "Wi-Fi" is not focused`);
+    else ok("ArrowDown in the tree", `the roving node is "${roving.name}" (${format(afterDown.length)} node focused, "Network" left)`);
+}
+
 async function main() {
-    const missing = [join(WASM_DIR, "page.wasm"), join(WASM_DIR, "ui.wasm"), BUNDLE].filter(f => !existsSync(f));
+    const missing = [join(WASM_DIR, "page.wasm"), join(WASM_DIR, "ui.wasm"), BUNDLE, WIDGETS_BUNDLE].filter(f => !existsSync(f));
     if (missing.length) {
         console.log(`missing build product(s): ${missing.join(", ")}`);
         console.log(`run "sh browser/build.sh && bun browser/solid/build.ts" first`);
@@ -173,16 +349,18 @@ async function main() {
     }
     const { server, port } = await serve();
     if (process.argv.includes("--serve")) {
-        console.log(`http://127.0.0.1:${port}/browser/solid/index.html   (Ctrl-C to stop)`);
-        console.log(`http://127.0.0.1:${port}/browser/index.html         (the no-JS page)`);
+        console.log(`http://127.0.0.1:${port}/browser/solid/index.html     (Sensors, Ctrl-C to stop)`);
+        console.log(`http://127.0.0.1:${port}/browser/solid/widgets.html   (Widgets, the keys: click the frame first)`);
+        console.log(`http://127.0.0.1:${port}/browser/index.html           (the no-JS page)`);
         return; // no browser to drive: serve the pages for a person to open
     }
     const browser = await chromium.launch();
     const viewport = { width: SIZE + 80, height: SIZE + 160 };
     const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
     const cPage = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+    const wPage = await browser.newPage({ viewport: { width: SIZE + 80, height: WIDGETS_SIZE + 160 }, deviceScaleFactor: 1 });
     const logs = [];
-    for (const p of [page, cPage]) {
+    for (const p of [page, cPage, wPage]) {
         p.on("console", m => logs.push(m.text()));
         p.on("pageerror", e => logs.push(`pageerror: ${e.message}`));
     }
@@ -207,11 +385,11 @@ async function main() {
 
         // (a) the base frame
         const base = JSON.parse(await page.evaluate(() => window.__page.dump()));
-        compareGolden(base);
+        compareGolden("commands, Sensors base frame vs solid/goldens/sensors.json", GOLDEN, base, 4);
 
         // (c) the raster, before any click moves the page
         const diff = await page.evaluate(DIFF, "/browser/expected.png");
-        assertBlocks("raster, base frame vs browser/expected.png", diff, { blockMax: 3, pixelPct: 2 });
+        assertBlocks("raster, Sensors base frame vs browser/expected.png", diff, { blockMax: 3, pixelPct: 2 });
 
         // (b) the click: the real input path — Playwright's mouse, the page's DOM listeners, src/frame.ts's events, the
         // Units element's onClick. The pill is at x 80..280, y 228.6..266.6 (the golden's box), so its centre is (180, 250)
@@ -256,7 +434,48 @@ async function main() {
         console.log(`info ${bundle} B of bundle (page.js), ${wasm} B of wasm (ui.wasm), ${html} B of index.html`);
         console.log(`info ${ms.toFixed(2)} ms a frame (100 frames: the tree declared, Clay's layout, the commands, ` +
             `Canvas2D's raster, one readback)`);
-        if (logs.some(l => l.startsWith("pageerror"))) bad("page", logs.join("; "));
+
+        // --- the Widgets page: the same tree and shell, a page that takes keys
+        await wPage.goto(`http://127.0.0.1:${port}/browser/solid/widgets.html`);
+        await wPage.waitForFunction(() => window.__page, null, { timeout: 20000 });
+        await wPage.evaluate(() => window.__page.warm(31));
+        const wErrors = await wPage.evaluate(() => window.__page.errors());
+        if (wErrors) bad("clay, widgets", `${wErrors} Clay errors`); else ok("clay, widgets", "no errors");
+
+        // (a) the base frame against the page's golden
+        const wBase = JSON.parse(await wPage.evaluate(() => window.__page.dump()));
+        compareGolden("commands, Widgets base frame vs solid/goldens/widgets.json", WIDGETS_GOLDEN, wBase, 4);
+
+        // (c) the raster: the browser's own stored frame, then the desktop's. The page's own frame is the canvas's own
+        // pixels (toDataURL), not a screenshot: the element's CSS box rounds to 761 px at 760, and an element screenshot
+        // would be a scaled copy of it
+        const shot = Buffer.from((await wPage.evaluate(() => document.getElementById("frame").toDataURL("image/png")))
+            .slice("data:image/png;base64,".length), "base64");
+        const own = join(BROWSER, "expected-widgets.png");
+        if (update || !existsSync(own)) {
+            await writeFile(own, shot);
+            console.log(`wrote browser/expected-widgets.png (${shot.length} bytes)`);
+        } else {
+            const ownDiff = await wPage.evaluate(DIFF, "/browser/expected-widgets.png");
+            assertBlocks("raster, Widgets base frame vs browser/expected-widgets.png", ownDiff, { blockMax: 3, pixelPct: 2 });
+        }
+        // the design's frame: ThorVG's raster of the same page on the desktop, per command box (check.mjs's numbers)
+        const wBoxes = await wPage.evaluate(() => window.__page.commands());
+        const regions = await wPage.evaluate(REGIONS, { refURL: "/solid/frames/widgets-initial.png", boxes: wBoxes, min: 16 });
+        assertRegions("raster, Widgets base frame vs the desktop's solid/frames/widgets-initial.png", regions,
+            { regionMax: 20, inkMax: 4, meanMax: 3, pixelPct: 12 });
+
+        // (d) the keys: the one thing a stored frame cannot show
+        await checkKeyboard(wPage);
+
+        const wMs = await wPage.evaluate(() => window.__page.bench(100));
+        const wBundle = (await stat(WIDGETS_BUNDLE)).size;
+        const wHtml = (await stat(join(BROWSER, "solid/widgets.html"))).size;
+        console.log(`info ${wBundle} B of bundle (widgets.js) and ${wHtml} B of widgets.html, on the same ui.wasm ` +
+            `(${wasm} B)`);
+        console.log(`info ${wMs.toFixed(2)} ms a frame on Widgets (100 frames: declare, Clay's layout, the commands, ` +
+            `Canvas2D's raster, one readback)`);
+        if (logs.some(l => l.startsWith("pageerror"))) bad("page", logs.filter(l => l.startsWith("pageerror")).join("; "));
     } finally {
         await browser.close();
         server.close();

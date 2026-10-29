@@ -245,8 +245,9 @@ if command -v zig >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null
   node browser/check.mjs
-  # ... and the Solid page in the same browser, on the desktop's own modules (browser/solid/): its check is in
-  # solid/test.sh, which has just run above with the same guard
+  # ... and the Solid pages in the same browser, on the desktop's own modules (browser/solid/): two of them now, Sensors
+  # and Widgets, the second driven by the keyboard. Their check is in solid/test.sh, which has just run above with the
+  # same guard
 else
   echo "browser: no zig, node or Playwright chromium, skipped (sh browser/build.sh && node browser/check.mjs)"
 fi
