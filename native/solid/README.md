@@ -76,14 +76,18 @@ app/Field.tsx      the Text field page: the headless text field, its caret and s
 app/List.tsx       the List page: thirty rows in a viewport Clay clips and scrolls, the wheel and the keys, and its styles
 app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tablist switching it, drawn avatars, wrapped
                    bodies, and the thread screen a card opens (the replies at their depths, the "Show N more" row)
+app/Profile.tsx    the Sky page's third screen: a card's author opens the recorded profile (the disc, name, handle, bio and
+                   counts, the app's Posts/Replies/Media tabs and their lists on the page's own machine)
+app/profile.ts     the profile's data (no cssints, no Solid): the app's recorded head and three author feeds mapped into the
+                   page's records, read at run time from apps/csssky/test/fixtures/
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
 frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
                    its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
 scenes/            the record of four stored frames: widgets-switch-on, list-select, sky-scrolled, dialog-menu — each a
                    page's typed events with times, replayed by scene.test.ts (and by main.ts --scene)
 main.ts            the host (window and headless)
-test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts,
-scene.test.ts      the checks the stored frames cannot make
+test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, profile.test.ts,
+text.test.ts, scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
@@ -706,7 +710,7 @@ with their backup after the revert.
 
 **What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app,
 and the thread is that fixture's for whichever card is pressed (no AppView request, and no reply's own thread beyond the
-one branch the data holds). The profile and the settings screens are not pages yet. No images in post media — the media is a line (`[image]`, `[image: …]`,
+one branch the data holds). The settings screen is not a page yet. No images in post media — the media is a line (`[image]`, `[image: …]`,
 `[video]`, `[link: …]`), as in the terminal. No avatars beyond the six committed PNGs (a real author's avatar is a remote
 file). The drag is the window's mouse or a finger's events (SDL's finger events go into the same pointer; there is no
 touchscreen here, so no finger has tried it). The name and the handle are two lines,
@@ -772,6 +776,52 @@ without a third ask), a pending answer a back overtook, the scroll's `1758`/`110
 reduced motion's stored frame, the a11y tree of all three states, the stored frame (`the recorded fixture reproduces it
 byte for byte`), and a mutation per state: an at-once loader never draws the loading row (its frame is not the pending
 one), and a reject after a loaded thread shows the error's two rows, not the thread that was up.
+
+## The profile screen
+
+`app/Profile.tsx` is the page's **third screen**: a post card's **author** — its name-and-handle row, the app's own
+`<a href="/profile/<handle>">` on the name (`apps/csssky/src/post/Post.tsx`) — is a press of its own, while the avatar
+and the rest of the card still open the post's thread, and a thread's cards' authors open it too. It is built as the
+thread is: a **root float over the content area** under the same bar (the thread's style, declared after it, so drawn
+over it when a thread is under it), a 44px header with the back control and the word "Profile", and its own clip element
+on the page's own scroll machine (a third instance). The history is **one deep**: a profile from a card's author returns
+to the feed, and its frame is byte-identical to the one before the press (0 bytes of 1,094,400); one opened from a
+thread's card returns to that thread, its rows and its own offset untouched under the profile.
+
+The header is the app's recorded profile, mapped by one function: `app/profile.ts`'s `profileOf` reads
+`apps/csssky/test/fixtures/profile-head.json` and the three author feeds at run time with `readFileSync` (the way
+`apps/csssky-tui` reads its models — ~140 KB of JSON, so not transcribed), once, on the first opening, and maps the
+`ProfileViewDetailed` into the page's record: the drawn 56px disc (the recording's author, bsky.app, has no committed
+PNG, so it is the app's fallback tile, not an image), the display name, `@handle`, the bio (a `whiteSpace("normal")`
+text in a stretch box, so Clay wraps it) and the three counts in the app's words (`apps/csssky/src/post/model.ts`'s
+`count` with the profile's `|| "0"`): `35M followers · 15 following · 865 posts`. Below it the app's three tabs —
+**Posts, Replies, Media** (`TABS` of `apps/csssky/src/profile/model.ts`) — as a headless tablist like the bar's
+(`createTabs`: one Tab stop, Left/Right and Home/End move and switch, the 2px underline, the ring when a click focuses
+one), and each tab is its fixture's cards, drawn by the page's own card (`styles.card`): 11, 10 and 13 of them, the Media
+tab's every card with its `[image: …]`/`[video]`/`[link: …]` line. The header and the tablist stay put; the list scrolls
+under them on the machine, whose instance is **fresh per tab** — a switch starts the list at the top, never at the old
+tab's offset (the test scrolled 70.8 first and the media list is at 0). The screen enters and leaves as one group on the
+card entry's tracks (`presence(0.3)`, so reduced motion has neither). The a11y tree: a `region` named
+`Profile — @bsky.app`, a `button` "Back", the tablist, and one `article` per card named by its author, with the feed
+(and a thread under it) pruned.
+
+| Frame | Keys | Shows |
+| --- | --- | --- |
+| `sky-profile` | `--warm 40 --click 180 155 --settle 40` | the profile at rest: Back and Profile, the disc, Bluesky, `@bsky.app`, the bio, the counts, the Posts tab underlined, its first cards |
+| `sky-profile-mid` | `--settle 2` | two frames into the entry: the screen 10px low and faint over the feed |
+| `sky-profile-media` | `--settle 40 --click2 178 289 --settle2 40` | the Media tab (a second headless click after the settle): thirteen cards with their media lines, the tab's ring and underline |
+| `sky-profile-light` | `THEME=light … --settle 40` | the same profile in the palette's light theme (the screen's own token set, `--profile-color-*`) |
+
+`bun solid/profile.test.ts` is the screen's: the recording through `profileOf` (the head's fields and the three tabs'
+11/10/13 cards and their media lines), the press (the header's 44, the head's 166, the tablist's 35.58 and the list's
+clip 450.43; the back 28 tall at 12; the name, handle, bio and counts' text; the drawn disc; the underlined first tab;
+the body's press still opening the thread), the tabs switching the list (Posts' 11, Replies' 10 and Aster ID first,
+Media's 13 with 13 media lines), the list's own scroll (2652 of content in the 450.43 clip → 2201.57, the thumb
+`max(24, 450.43²/2652)` = 51.16 at 354/4px, one notch 10, End/Home, and a switch to 0), back / Escape / the bar's tab
+returning to the feed's frame byte for byte with nothing focused, a profile from a thread back to that thread at its own
+offset, the entry's blend, reduced motion's stored frame and no exit, the a11y tree (22 nodes), the stored frames, and
+the mutations — the author's row opening the profile alone (the card's press is still the thread's), the media tab's
+list at 0 with its 13 cards after the Posts list was scrolled, and the feed's offset still 0 while the profile's moved.
 
 **The settings screen is the page's third** (`app/Settings.tsx`, `bun solid/main.ts sky` then the gear). A gear at the
 bar's right end — the app's Settings nav item, three 16x2 boxes since Roboto has no gear — opens a screen built like the

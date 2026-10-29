@@ -462,6 +462,7 @@ Each step ends in a check that fails when it breaks.
    from the clip (…)`, and reusing the thread's offset for the feed fails `FAIL the feed's offset after back is its own`
    (and 667,725 bytes of the frame). What is still not there: a fetch of a real thread from the AppView (the page has one
    recorded fixture, shown for whichever card is pressed), a reply's own thread beyond the one branch the data holds, and
+   the settings screen (the profile is the third screen below).
    the profile screen (its sibling's).
    **Done: the thread comes from the AppView, through an injectable loader.** The transcription above — and its "what is
    still not there" list — is replaced: a
@@ -493,6 +494,24 @@ Each step ends in a check that fails when it breaks.
    What is still not there: replies below `depth` 6 or a parent chain past 20, a cursor's paging, a cache (every press
    asks; back restores the screen it came from), the labeler moderation `api.ts` applies (this page has no labels), and a
    real service's auth.
+   **Done: the profile screen.** A card's author — the name-and-handle row, the app's own `<a href="/profile/…">` on the
+   name (`apps/csssky/src/post/Post.tsx`), not the avatar — opens the author's profile as the page's third screen, built
+   like the thread's: a root float over the content area (the thread's style, declared after it and so over it), its own
+   44px header with Back and "Profile", a third clip element on the page's own scroll machine, and the card entry's group
+   under `presence(0.3)`. The header is the app's recorded `getProfile` answer
+   (`apps/csssky/test/fixtures/profile-head.json`) through `solid/app/profile.ts`'s `profileOf`, one mapper like `postOf`:
+   the drawn 56px disc (the recording's author has no committed PNG), the display name, `@handle`, the wrapped bio and
+   `35M followers · 15 following · 865 posts` in the app's `stat` words. Below it the app's Posts/Replies/Media tabs
+   (`TABS` of `apps/csssky/src/profile/model.ts`) as a headless tablist like the bar's, each holding its fixture's cards
+   (11, 10, 13; the Media tab's all carry their media lines); the machine is fresh per tab, so a switch starts the list at
+   the top. The history is one deep: a profile from a card returns to the feed (0 bytes of 1,094,400), one from a thread's
+   card to that thread at its own offset and rows (the thread is not re-asked and not moved). The data is read at run time
+   from `apps/csssky/test/fixtures/` — ~140 KB of JSON, so not transcribed, once, on the first opening — and **nothing
+   fetches**. Numbers (`solid/profile.test.ts`): the header 44, the head 166, the tablist 35.58, the list's clip 450.43;
+   the Posts list 2652 of content in it, the thumb 51.16, one notch 10, End 2201.57. Four frames: `sky-profile.png`,
+   `sky-profile-mid.png`, `sky-profile-media.png`, `sky-profile-light.png`. What is still not there: a fetch (one
+   recording, for whichever author is pressed), a follow button, the app's paging (one page a tab), and a card of the
+   profile's list opening its own thread. The settings screen is the sibling's.
    **Done: the settings screen** (`solid/app/Settings.tsx`, the page's third). A gear at the bar's right end — the app's
    own Settings nav item, three 16x2 boxes because Roboto has no gear — opens a screen built like the thread's: a root
    float one z above the thread's (so it opens over a thread and its back returns to that thread, the history one step),

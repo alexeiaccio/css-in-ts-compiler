@@ -661,7 +661,7 @@ after the settle, `--click2`/`--settle2`). The eight frames of the feed (Discove
 entry, a hover, the band and a tab mid-fade) are byte-identical to before the screen existed.
 
 Not here: fetching a real thread from the AppView (the page has the one recorded fixture, for whichever card is
-pressed), a reply's own thread beyond the one branch the data holds, and the profile and settings screens.
+pressed), a reply's own thread beyond the one branch the data holds, and the settings screen.
 
 **The thread's data is the AppView's, through one injectable loader.** This replaces the transcription above (that
 paragraph's rows and its "not here" line): a card's press now asks the page's `load(uri)` — a post's at-uri in (the
@@ -717,6 +717,41 @@ with a cursor (`getPostThread`'s `parentHeight` and `depth` are the whole reques
 again, and back restores the screen it came from without asking), the moderation `apps/csssky/src/api.ts` applies to a
 logged-out viewer (this page shapes a `hidden`/labelled post as a post — it has no labeler), and a real service's auth
 (the public AppView, no login).
+
+**The profile screen.** A card's author — the **name-and-handle row**, which is the app's own affordance, an
+`<a href="/profile/<handle>">` on the name (`apps/csssky/src/post/Post.tsx`) — is a press of its own, while the avatar and
+the rest of the card still open the post's thread; a thread's cards' authors open it too (the app's card is the same card
+there). The screen is the page's **third**, built like the thread's: a root float over the content area under the same bar
+(the thread's own style, so z 2 and the same 696, declared after it and so drawn over it), a 44px header with the back
+control and the word "Profile", and its own clip element on the page's own scroll machine (a third instance). The history
+is **one deep**: a profile opened from a card's author returns to the feed — its frame byte-identical (0 bytes of
+1,094,400) — and one opened from a thread's card returns to that thread, whose rows and own offset stay untouched under
+the profile (the thread's data is not re-asked). The header is the app's recorded profile
+(`apps/csssky/test/fixtures/profile-head.json`) through `solid/app/profile.ts`'s `profileOf`, one mapper like `postOf`: the
+drawn 56px disc (the recording's author, bsky.app, has no committed PNG, so it is the app's fallback tile and not an
+image), the display name, `@handle`, the bio wrapped (`whiteSpace("normal")` in a stretch box) and the counts in the app's
+words (`apps/csssky/src/post/model.ts`'s `count` with the profile's `|| "0"`), so `35M followers · 15 following · 865
+posts`. Below it the app's three tabs (`TABS` of `apps/csssky/src/profile/model.ts`: **Posts, Replies, Media**) as a
+headless tablist like the bar's — one Tab stop, arrows and Home/End move and switch, the 2px underline — and each tab is
+its fixture's cards (11, 10 and 13; the Media tab's every card carries its `[image: …]` / `[video]` / `[link: …]` line),
+the same card the feed draws. The header and the tablist stay put while the list scrolls under them, and the machine is
+**fresh per tab**, so a switch starts the list at its top, never at the old tab's offset. The screen enters and leaves as
+one group on the card entry's tracks (`presence(0.3)`), so reduced motion has neither, and its a11y tree is a `region`
+named `Profile — @handle` over a `button` "Back", the tablist and one `article` per card named by its author, with the
+feed (and a thread under it) pruned.
+
+The data is the app's recordings, read at run time with `readFileSync` from `apps/csssky/test/fixtures/` (the head and the
+three author feeds) the way `apps/csssky-tui` reads its models — ~140 KB of JSON, so not transcribed — once, on the first
+opening. **No fetch**: the thread's loader is the page's only network path and this screen does not use it. Four stored
+frames: `sky-profile.png` (the settled screen), `sky-profile-mid.png` (two frames into the entry), `sky-profile-media.png`
+(a second headless click on the Media tab, so its cards and their media lines are up) and `sky-profile-light.png`. Numbers
+(`solid/profile.test.ts`): the header 44, the head 166, the tablist 35.58 and the list's clip 450.43; the Posts list's
+2652 of content in that clip, the thumb `max(24, 450.43²/2652)` = 51.16, one notch 10, End 2201.57; back's 0 bytes of
+1,094,400.
+
+Not here: a fetch of a profile (one recording, shown for whichever author is pressed — the header's fields are that
+recording's), a follow button, the app's paging (each tab is its one recorded page; no cursor and no Sentinel), and a
+card of the profile's list opening its own post's thread.
 
 **The settings screen: the page's third.** A gear at the bar's right end opens it — the app's own Settings nav item, its
 glyph three 16x2 boxes (Roboto has no gear glyph and Clay has no icons) in a 40x28 box that ends at the bar's content
