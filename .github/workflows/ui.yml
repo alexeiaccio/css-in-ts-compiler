@@ -13,16 +13,26 @@ on:
     paths:
       - apps/ui/**
       - templates/**
-      - packages/headless/**
-      - packages/apg-specs/**
+      - packages/headless/src/**
+      - packages/headless/test/**
+      - packages/headless/vite.config.ts
+      - packages/apg-specs/src/**
+      - packages/apg-specs/specs/**
+      - packages/apg-specs/scenarios/**
+      - packages/apg-specs/scripts/**
       - scripts/starter-smoke.mjs
       - .github/workflows/ui.yml
   pull_request:
     paths:
       - apps/ui/**
       - templates/**
-      - packages/headless/**
-      - packages/apg-specs/**
+      - packages/headless/src/**
+      - packages/headless/test/**
+      - packages/headless/vite.config.ts
+      - packages/apg-specs/src/**
+      - packages/apg-specs/specs/**
+      - packages/apg-specs/scenarios/**
+      - packages/apg-specs/scripts/**
       - scripts/starter-smoke.mjs
       - .github/workflows/ui.yml
   workflow_dispatch:
