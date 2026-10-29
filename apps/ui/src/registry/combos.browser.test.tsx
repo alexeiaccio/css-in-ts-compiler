@@ -5,15 +5,9 @@
 import { render } from "@solidjs/web";
 import type { JSX } from "@solidjs/web";
 import { flush } from "solid-js";
-import { beforeAll, describe, expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 
-import { Fields, Mode, Nesting, Renders, Sizes } from "./combos.fixture.tsx";
-
-// The sheet is loaded once every view is transformed: its content is the CSS of the modules transformed so far, and a static
-// import could be resolved before the components (vitest transforms the graph as it goes).
-beforeAll(async () => {
-  await import("./sheet.ts");
-});
+import { Fields, Mode, Nesting, Renders, Sizes, Toolbars } from "./combos.fixture.tsx";
 
 const mount = (view: () => JSX.Element): HTMLElement => {
   const root = document.createElement("div");
@@ -58,6 +52,14 @@ describe("the kit composes", () => {
     expect(style(buttons[1]!).paddingLeft).toBe("8px");
     expect(style(buttons[1]!).fontSize).toBe("12px");
     expect(style(buttons[2]!).backgroundColor).not.toBe(style(buttons[0]!).backgroundColor);
+  });
+
+  it("sizes the controls a toolbar holds, through the context and not a prop", () => {
+    const root = mount(() => <Toolbars />);
+    const buttons = root.querySelectorAll<HTMLElement>('[data-part="button"]');
+    expect(style(buttons[0]!).paddingTop).toBe("8px");
+    expect(style(buttons[1]!).paddingTop).toBe("4px");
+    expect(style(buttons[1]!).paddingLeft).toBe("8px");
   });
 
   it("lets render replace a part and keeps the props and the state live", () => {

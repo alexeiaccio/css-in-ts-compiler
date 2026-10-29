@@ -2062,6 +2062,7 @@ conformance stays where it belongs (`@cssints/headless`'s own browser tests, and
 ship a sheet), and `apps/ui`'s vitest suite covers the compiled starters only. **Left**: a test-environment evaluator (case 2
 above) worth its own ticket — the private server needs the app's user plugins (or a way to resolve framework entries as the app
 does), which is what would let a copy ship a vitest test it can run.
+
 ## `appear()`: scroll-triggered presets beside `reveal()` (cssints-wyoy, 2026-10-29)
 
 Found by `@cssints/reveal`, after [utilitybend's article on CSS animation triggers](https://utilitybend.com/blog/scroll-triggered-animation-as-the-missing-piece-for-scrollytelling-on-the-web): `reveal()` scrubs an entrance with the scroll (`animation-timeline: view()`), so a slow scroll makes the entrance slow too — it oozes. A scroll-_triggered_ animation is the missing piece: the scroll only decides _when_ a normal time-based animation plays, with its own duration and easing. `appear()` is a second chain member of the same scope, not a new package: the presets, the keyframes, the runtime entry and the IntersectionObserver fallback are `reveal()`'s, and a package for one more member would duplicate all of them. It takes the same `preset()`, `range()`, `duration()` and `easing()`, and adds `inOut()`: `play-forwards play-backwards`, so an entrance can play back out; the default is `play-once none`, which is what an entrance wants and exactly what the fallback does.
@@ -2077,3 +2078,19 @@ Where a target lacks triggers (Firefox and Safari today; Chrome/Edge 146+ and Op
 `addKernel` refused two kernels that declare one custom property, across scopes too: `@cssints/motion`'s kernel sets `--motion-*` and `@cssints/reveal`'s kernel sets them as well (its presets write motion's names), so `motion()` and `reveal()` in one app was `cssints: kernels motion.core and reveal.core both declare --motion-o: a plugin picks its own short custom-property names` — a build error for a legitimate combination, measured while `appear()` (cssints-wyoy) was written: its first kernel carried a copy of motion's keyframes and values to get around it, one extra `@keyframes` pair and five properties.
 
 The rule is now ownership. A scope's names are its namespace (`--reveal-*`); `--motion-*` is motion's. Two kernels of **one** scope may not declare one of that scope's own names: they are alternatives of one plugin, and a shared short name is an authoring mistake (`kernels twin.a and twin.b both declare --twin-w: two kernels of one scope may not share one of its custom-property names`). Two kernels of **different** scopes may not declare a name **neither** owns (`--bx-w`): two plugins picking the same free name would interfere without a word (`seams.mjs` keeps `box.core` + `ring.core`); a name one of them owns is reuse, and allowed. And a scope **may** declare a name another scope owns: that is reuse, and the two kernels can sit on one page. `appear()` now names motion's keyframes rules and sets `--motion-*`, like `reveal()`; only its own properties are its own short names (`--reveal-enter-*`), because `reveal()`'s kernel declares the scope's. One keyframes pair for the whole page, the preset classes shared between the members, and `motion()`, `reveal()` and `appear()` coexist (on different elements: each still sets the `animation`, so two of them on one element is the older "both set animation" error). The API.md paragraph on kernels, its build-error list and its reuse sentence say the same; the changeset is `cssints` minor.
+
+## The kit is one shape: every starter styles itself, and a toolbar is a context (2026-10-29)
+
+The six starters that still shipped a compiled sheet (`switch`, `disclosure`, `checkbox`, `radio`, `tabs`, `accordion`) now
+style themselves like the four before them — `cn()`/`cv()` with the theme's tokens, states off the ARIA the widget announces
+(`attr()`, and `group()`/`within()` for a chevron, a thumb, a check), and no `.ts` skin, no `.css`, no
+`scripts/component-css.ts`: the sheet a copy needs is the one its own `.tsx` produces, and `theme.ts`/`tokens.ts` arrive with
+the item (`theme.css` stays as the same theme for a project without the plugin). The registry generator lost the `styled`
+split: every component is `kitFiles`, and `tested` decides whether the conformance test (fixture, DOM driver, browser config)
+travels with it — the six keep theirs. **`Toolbar`** is the first container of the kit: `role="toolbar"` with a name,
+`data-size`/`data-orientation`, and `group()` — a control inside reads `within(attr("data-size","sm"))`, so a compact toolbar
+makes the buttons it holds compact without a prop on each (`combos.browser.test.tsx` holds it to 8px and 4px of padding-top).
+**Left**: sibling geometry — a button group whose inner corners collapse, dividers between adjacent items — is the one thing the
+contexts do not carry: `frame()` passes a radius down the tree, not sideways, and a user class has no `:first-child` (`nest()`
+is kernel-only). The two ways are parts (`ButtonGroup.Item`, the container knows the index) or a small `@cssints/group` member
+whose kernel uses `nest("& > * + *")`; not chosen yet.

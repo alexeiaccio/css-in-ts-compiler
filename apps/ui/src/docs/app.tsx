@@ -176,6 +176,54 @@ export const Docs = (): JSX.Element => {
 
               <section class="docs__section">
                 <h2 class="docs__heading">How the component is written</h2>
+                <p class="docs__note">
+                  Styles live in <code>{`src/registry/${entry().name}/${entry().name}.tsx`}</code>:{" "}
+                  <code>cn()</code> and <code>cv()</code> with the theme's tokens, states read off
+                  the attributes the widget announces (<code>css.attr()</code>,{" "}
+                  <code>css.within()</code>), and <code>render</code> replacing a part with another
+                  component or tag. The declarations are checked against the CSS grammar and the
+                  theme against <code>check.contrast</code> at build time.
+                </p>
+                <p class="docs__note">
+                  A copy ships that source, so <strong>your project needs cssints</strong> in its
+                  Vite config; <code>theme.ts</code> with <code>tokens.ts</code> arrives with the
+                  item, and <code>theme.css</code> is the same theme compiled for a project without
+                  the plugin. The look is composed beside other components: <code>Card</code> hands
+                  its inner radius down through <code>frame()</code>, a <code>data-mode</code> scope
+                  moves every token of the subtree, and a <code>Toolbar</code>'s size reaches the
+                  buttons it holds.
+                </p>
+              </section>
+
+              <section class="docs__section">
+                <h2 class="docs__heading">Add it</h2>
+                <div class="docs__command">
+                  <code>{command(entry().name)}</code>
+                  <button class="docs__chip" onClick={() => void copy(command(entry().name))}>
+                    {copied() === command(entry().name) ? "copied" : "copy"}
+                  </button>
+                </div>
+                <p class="docs__note">
+                  Solid 2 (<code>2.0.0-rc.13</code>) and Vite+ are required; see the starter
+                  template in the repository. The theme arrives with the first starter.
+                </p>
+              </section>
+
+              <Show when={preflight()}>
+                {(result) => (
+                  <section class="docs__section">
+                    <h2 class="docs__heading">Conformance</h2>
+                    <p class="docs__note">
+                      Published as <code>{result().version}</code>: the copied test passed before
+                      the release was written ({result().files} files,{" "}
+                      {result().passedAt.slice(0, 10)}).
+                    </p>
+                  </section>
+                )}
+              </Show>
+
+              <section class="docs__section">
+                <h2 class="docs__heading">How the component is written</h2>
                 <Show
                   when={entry().files.some((file) => file.target.endsWith(`${entry().name}.css`))}
                   fallback={

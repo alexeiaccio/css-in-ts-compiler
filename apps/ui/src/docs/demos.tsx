@@ -5,6 +5,7 @@ import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.ts
 import { Button } from "../registry/button/button.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
+import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
@@ -81,6 +82,22 @@ const CardDemo = (): JSX.Element => (
         </CardBody>
       </Card>
     </div>
+  </div>
+);
+
+const ToolbarDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Toolbar label="Default">
+      <Button>Undo</Button>
+      <Button tone="quiet">Redo</Button>
+      <Button tone="quiet">Share</Button>
+    </Toolbar>
+    {/* size="sm" is the context: the buttons inside are compact without a prop of their own */}
+    <Toolbar label="Compact" size="sm">
+      <Button>Undo</Button>
+      <Button tone="quiet">Redo</Button>
+      <Button tone="quiet">Share</Button>
+    </Toolbar>
   </div>
 );
 
@@ -167,6 +184,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   card: CardDemo,
   field: FieldDemo,
   input: InputDemo,
+  toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,
   checkbox: CheckboxDemo,

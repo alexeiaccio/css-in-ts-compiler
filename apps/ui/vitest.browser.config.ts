@@ -17,6 +17,8 @@ export default defineConfig({
     // a browser test has no app entry: the sheet a component's class belongs to arrives through `virtual:cssints.css`, and
     // vitest drops CSS imports unless it is told to process them
     css: true,
+    // the sheet of the modules a test imports: a test page has no app entry to bring it in
+    setupFiles: ["src/registry/sheet.ts"],
     // `src/components/ui/` is where a copy lands; `registry/` is where the items are authored
     // in this repository, next to the page that renders them.
     include: ["src/components/ui/**/*.browser.test.tsx", "src/registry/**/*.browser.test.tsx"],

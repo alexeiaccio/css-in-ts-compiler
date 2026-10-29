@@ -5,7 +5,38 @@ import {
 } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 
-import "./radio.css";
+import * as css from "cssints" with { type: "cssints" };
+
+import { t } from "../theme.ts" with { type: "cssints" };
+const labelClass = css.fontSize(t.font.size);
+
+const groupClass = css.cn(css.display("flex"), css.flexDirection("column"), css.gap(t.space._2));
+
+const itemClass = css.cn(
+  css.display("inline-flex"),
+  css.alignItems("center"),
+  css.gap(t.space._2),
+  css.fontSize(t.font.size),
+  css.color(t.color.text),
+  css.cursor("pointer"),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("2px")),
+  css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
+);
+
+const circleClass = css.cn(
+  css.display("inline-block"),
+  css.width("1rem"),
+  css.height("1rem"),
+  css.border("1px solid", t.color.border),
+  css.borderRadius("999px"),
+  css.bg(t.color.surface),
+  css.boxShadow("inset 0 0 0 3px " + t.color.surface),
+  css.attr("aria-checked", "true")(
+    css.bg(t.color.highlight),
+    css.border("1px solid", t.color.highlight),
+    css.boxShadow("inset 0 0 0 3px " + t.color.surface),
+  ),
+);
 
 /**
  * APG radio group, styled: `role=radiogroup` with `role=radio` children, arrows move and check.
@@ -69,7 +100,7 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
         root = element;
       }}
       data-part="radiogroup"
-      class="ui-radiogroup"
+      class={groupClass}
       onKeyDown={(event) => {
         group.radiogroupProps.onKeyDown(event);
         queueMicrotask(syncFocus);
@@ -84,15 +115,15 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
               radios.set(index, element);
             }}
             data-part="radio"
-            class="ui-radio"
+            class={itemClass}
             onClick={(event) => {
               radio.onClick();
               syncFocus();
               event.currentTarget.focus();
             }}
           >
-            <span aria-hidden="true" class="ui-radio__circle" />
-            <span class="ui-radio__label">{props.children(value, index)}</span>
+            <span aria-hidden="true" class={circleClass} />
+            <span class={labelClass}>{props.children(value, index)}</span>
           </div>
         );
       })}

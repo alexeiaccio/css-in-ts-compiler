@@ -2,7 +2,33 @@ import { type Tabs as TabsController, type TabsOptions, createTabs } from "@cssi
 import { For, createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
-import "./tabs.css";
+import * as css from "cssints" with { type: "cssints" };
+
+import { t } from "../theme.ts" with { type: "cssints" };
+
+const rootClass = css.display("flex") + " " + css.flexDirection("column");
+const listClass = css.cn(
+  css.display("flex"),
+  css.gap(t.space._1),
+  css.borderBottom("1px solid", t.color.border),
+);
+const tabClass = css.cn(
+  css.padding(t.space._2, t.space._3),
+  css.bg("transparent"),
+  css.border("none"),
+  css.borderBottom("2px solid", "transparent"),
+  css.color(t.color.muted),
+  css.fontSize(t.font.size),
+  css.cursor("pointer"),
+  css.hover(css.color(t.color.text)),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
+  css.attr("aria-selected", "true")(
+    css.color(t.color.text),
+    css.borderBottom("2px solid", t.color.highlight),
+  ),
+  css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
+);
+const panelClass = css.cn(css.padding(t.space._3, 0));
 
 /**
  * APG tabs, styled: a tablist, its tabs and the panels they show.
@@ -55,18 +81,18 @@ export const Tabs = (props: TabsProps): JSX.Element => {
   );
 
   return (
-    <div class="ui-tabs">
+    <div class={rootClass}>
       <div
         {...tabs.tablistProps}
         ref={(element) => {
           list = element;
         }}
         data-part="tablist"
-        class="ui-tabs__list"
+        class={listClass}
       >
         <For each={Array.from({ length: props.items }, (_, index) => index)}>
           {(index) => (
-            <button {...tabs.tabProps(index)} data-part="tab" class="ui-tabs__tab">
+            <button {...tabs.tabProps(index)} data-part="tab" class={tabClass}>
               {props.tab(index)}
             </button>
           )}
@@ -74,7 +100,7 @@ export const Tabs = (props: TabsProps): JSX.Element => {
       </div>
       <For each={Array.from({ length: props.items }, (_, index) => index)}>
         {(index) => (
-          <div {...tabs.tabpanelProps(index)} data-part="tabpanel" class="ui-tabs__panel">
+          <div {...tabs.tabpanelProps(index)} data-part="tabpanel" class={panelClass}>
             {props.panel?.(index)}
           </div>
         )}

@@ -9,6 +9,7 @@ import { Button } from "./button/button.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
+import { Toolbar } from "./toolbar/toolbar.tsx";
 
 export const Nesting = (): JSX.Element => (
   <Card>
@@ -61,6 +62,17 @@ export const Renders = (): JSX.Element => {
     </>
   );
 };
+
+export const Toolbars = (): JSX.Element => (
+  <>
+    <Toolbar label="Loose">
+      <Button>One</Button>
+    </Toolbar>
+    <Toolbar label="Compact" size="sm">
+      <Button>Two</Button>
+    </Toolbar>
+  </>
+);
 
 export const Fields = (): JSX.Element => (
   <>

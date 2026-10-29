@@ -6,7 +6,47 @@ import {
 import { For } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
-import "./accordion.css";
+import * as css from "cssints" with { type: "cssints" };
+
+import { t } from "../theme.ts" with { type: "cssints" };
+
+const rootClass = css.cn(
+  css.border("1px solid", t.color.border),
+  css.borderRadius(t.radius.md),
+  css.overflow("hidden"),
+);
+const headingClass = css.cn(css.margin(0), css.fontSize(t.font.size));
+const triggerClass = css.cn(
+  css.group(),
+  css.display("flex"),
+  css.alignItems("center"),
+  css.gap(t.space._2),
+  css.width("100%"),
+  css.padding(t.space._3, t.space._4),
+  css.bg("transparent"),
+  css.border("none"),
+  css.color(t.color.text),
+  css.fontSize(t.font.size),
+  css.fontWeight("500"),
+  css.textAlign("left"),
+  css.cursor("pointer"),
+  css.hover(css.bg(t.color.buttonBackground)),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
+  css.attr("aria-expanded", "true")(css.bg(t.color.buttonBackground)),
+  css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
+);
+const chevronClass = css.cn(
+  css.fontSize(t.font.sizeSm),
+  css.color(t.color.muted),
+  css.transition("transform 120ms"),
+  css.within(css.attr("aria-expanded", "true"))(css.transform("rotate(90deg)")),
+);
+const panelClass = css.cn(
+  css.padding(t.space._3, t.space._4),
+  css.color(t.color.muted),
+  css.borderTop("1px solid", t.color.border),
+  css.fontSize(t.font.size),
+);
 
 /**
  * APG accordion, styled: headed triggers and the regions they expand.
@@ -52,25 +92,17 @@ export const Accordion = (props: AccordionProps): JSX.Element => {
   props.onReady?.(accordion);
 
   return (
-    <div class="ui-accordion">
+    <div class={rootClass}>
       <For each={Array.from({ length: props.items }, (_, index) => index)}>
         {(index) => (
           <>
-            <h3
-              {...accordion.headingProps(index)}
-              data-part="heading"
-              class="ui-accordion__heading"
-            >
-              <button
-                {...accordion.triggerProps(index)}
-                data-part="trigger"
-                class="ui-accordion__trigger"
-              >
-                <span aria-hidden="true" class="ui-accordion__chevron" />
+            <h3 {...accordion.headingProps(index)} data-part="heading" class={headingClass}>
+              <button {...accordion.triggerProps(index)} data-part="trigger" class={triggerClass}>
+                <span aria-hidden="true" class={chevronClass} />
                 <span>{props.trigger(index)}</span>
               </button>
             </h3>
-            <div {...accordion.panelProps(index)} data-part="panel" class="ui-accordion__panel">
+            <div {...accordion.panelProps(index)} data-part="panel" class={panelClass}>
               {props.panel?.(index)}
             </div>
           </>
