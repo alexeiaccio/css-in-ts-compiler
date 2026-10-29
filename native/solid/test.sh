@@ -205,3 +205,10 @@ bun solid/scene.test.ts
 # slide, the one frame that carries every table. Re-store a page after a deliberate change — read the diff first — with
 # `bun solid/dump.ts <page> --update`; one page's JSON alone with `bun solid/dump.ts <page>` (stdout).
 bun solid/dump.test.ts
+# the dev panel's live values (Rune's item 7, second half): the panel's fourth section writes a style's packed fields
+# through the value channel (`ui.value`) while the page runs — the picked box's numbers, edited with the panel's own
+# keys, with `r`/`Shift+R` dropping the override so the declare is the style's literal again. tune.test.ts holds it: the
+# switch's 17 rows and their numbers, the panel's three Tab stops, a radius's corner pixel, a width's box and a11y
+# bounds, a colour's fill, the clamps at 255 and 0, `r` and `Shift+R` byte for byte, the `*`, the row window, and the
+# cost with five rows overridden (0.050 ms of declare and 0.033 of layout at rest, 0.048/0.038 with five: the noise).
+bun solid/tune.test.ts

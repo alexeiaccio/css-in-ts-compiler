@@ -871,11 +871,48 @@ reporting the outermost box fails `FAIL the innermost box under the pointer, not
 228×33 where the tab's 97×33 are wanted); and the phases taken from the frame before the last fail `FAIL the panel prints
 that frame's four, in ms`.
 
-Not here: **editing a value live** (a `tune!`-style slider or a colour swatch that writes one style field through the
-value channel while the page runs) and **picking an element by clicking it into the tree** (a click on the page selects
+Not here: **picking an element by clicking it into the tree** (a click on the page selects
 nothing: the panel follows the pointer, and the tree has no row to keep selected); the panel is one page's (it holds
 the `Widgets` component's element, so another page needs its own dev page); the tree has no window/scrolling of its own
-(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes.
+(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes. Editing a value
+live *is* here now — the fourth section below.
+
+### The live values (the fourth section)
+
+`bun solid/main.ts dev`, the panel's fourth section: the picked box's style numbers, edited through the value channel
+(`ui.value`) while the page runs. The pointer picks (the innermost box with an id and a role, as the hovered box finds
+it) and the box stays picked when the pointer leaves the page; picking another drops the previous one's live values. The
+first line names it with its bounds, and the rows are the numbers `src/pack.ts`'s `FIELDS` that `ui.c` reads: `width`
+and `height` (a stretch or fit axis reads the box's laid-out size, and a step pins the axis to a pixel), the padding's
+four sides, `gap`, `radius` (all four corners in one row where they are one number, a row a corner where they are not),
+`bg.r/g/b/a`, `border.r/g/b/a` where the style draws a border, a float's `offsetX/offsetY/expandW/expandH/zIndex`, a
+shadow's `shadowBlur`, a gradient's `gradientAlpha`, and the group's `alpha`, `scale`, `translateX`, `translateY` and
+`rotate`. A row is live even where the renderer only reads it at layout — the page re-declares its tree every frame, so
+a width moves a box and its a11y bounds. Not rows: a text's colour (fields 51..54 are a text's own, and the picked
+element is a box) and the modes and enums of the 45 (`capture`, `clip`, the sizing type, an alignment, a float's
+attach).
+
+`Tab`/`Shift+Tab` walk the page's controls and then the panel's three stops (the tree, the hovered box, the values, the
+page's last three); `Up`/`Down` (`Home`/`End`) pick a row, `Left`/`Right` (or `-`/`+`) step it — 1 a pixel, 4 a colour
+channel, 0.1 an alpha, 0.01 a scale, 1 a degree — clamped to the field's range; `r` resets the row to the style's
+literal and `Shift+R` all of them. A reset drops the override instead of writing the number, so the declare is the
+style's own floats again and the page's pixels are byte-identical to before the edit (the panel's own frame section
+prints the frame's milliseconds, so its digits are the one thing that moves). `*` marks a live value, `>` (with the
+accent) the cursor, and a box with more than 18 rows shows a window of them with `4-21 of 21` in the footer: the panel
+cannot scroll (Clay squeezes a fitted column into its box), so the four sections fit it — two rows a line, and the
+column's gap is 2px.
+
+`solid/tune.test.ts` holds it, with `dev-harness.ts`'s page (shared with `dev.test.ts`): the switch's 17 rows and their
+numbers and the same numbers from the style's own `resolve`; the panel's three Tab stops and `Tab`/`Shift+Tab` between
+them; `Right` on the radius eight times rounding the corner (`48,53,68` to the page's `16,18,24` at the corner pixel)
+and the row reading `>* radius 16`; the width moving the box and the a11y row (`280×32` → `281×32`); `bg.r` to 255 and
+the row's fill red; the clamps (an alpha at 255, a padding at 0); `r` and `Shift+R` with five rows overridden, the page
+byte-for-byte and the panel's sections the ones before; the `*`; a bordered box's window; and the cost (declare and
+layout with five overrides, and the draw of an edited frame). Three mechanisms' mutations were run and reverted, their
+messages pinned in the test (the write's twice): the width's row writing the height's floats (`FAIL the box is a pixel
+wider: "40,118 280×281", wanted "40,118 281×32"`), a radius row one float along (`FAIL the radius rounds the corner`),
+a reset that writes the live value back (`FAIL ... and the page is the page before the edit, byte for byte: false`), and
+a step without its clamp (`FAIL an alpha past 255 stays 255: 259, wanted 255`).
 
 ## Notes
 
