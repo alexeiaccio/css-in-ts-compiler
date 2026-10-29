@@ -728,7 +728,7 @@ Each step ends in a check that fails when it breaks.
    effects)` draws them: a shadow as its box plus Canvas2D's `blur(blur / 2)` (ThorVG's sigma), a gradient along CSS's
    gradient line over the box's solid fill at a fading alpha, a group as an offscreen canvas composited once with the
    alpha and the translate/rotation/scale about the first command's box centre, an image as `drawImage` into its box.
-   A backdrop is recorded, hashed and **not** blurred (the Dialog, its only page, is not in the browser yet).
+   A backdrop is recorded and hashed; `draw.js` draws it now (the Dialog's menu, below).
    `browser/solid/sky.ts` + `sky.html` run `solid/app/Sky.tsx` unmodified with `src/input.ts`'s keys from the DOM, the
    wheel through the page's own scroll track, and its thread loader a promise that never settles. Check:
    `browser/sky-check.mjs` against `solid/frames/sky.png`, per command box and per text line: every box's mean within
@@ -739,9 +739,34 @@ Each step ends in a check that fails when it breaks.
    8 frames in is the group (alpha 179/255, 3.59 px down, three rows of card below its resting edge). Each of those
    fails if its effect is removed from `draw.js` alone. Cost: `ui.wasm` 141,104 B (52,269 B gzip), `sky.js` 300,229 B
    (71,434 B gzip), 0.73–0.80 ms a frame with the effects and the avatar bitmaps.
-   Limits: the backdrop's blur, the other six pages, touch, and no HMR; the bundle is the production `solid-js` (the
-   bundler's `development` condition picks `@solidjs/signals`' dev build, whose diagnostics refuse `Sky.tsx`'s writes in
-   its component body).
+   **Done: the Dialog page, the two root floats and the backdrop's blur** (2026-10-29). `browser/solid/dialog.ts` +
+   `dialog.html` run `solid/app/Dialog.tsx` unmodified at 360x480 with its own `createInput()`: the modal's backdrop and
+   panel are Clay root floats and the menu is a float off its trigger, so the floats' path needed **nothing new on this
+   surface** — the packed style's slots 32-44 and the value channel's offset y (field 39) already carry them. What it did
+   need was `shell.ts` handing the effect tables to `draw.js` with the commands (Sensors and Widgets have none; their
+   frames are unchanged, 0.00 % of pixels). `draw.js` now draws `ui_backdrop`: at the element's first rectangle it takes
+   the pixels under the box with `getImageData`, runs the desktop's separable box blur (three passes each way, radius
+   `r = (sqrt(1 + 4 sigma^2) - 1) / 2`, `sigma = blur / 2`, the box clamping the window) and writes them back, then the
+   element's translucent fill over them; a backdrop inside a scissor is skipped and a second one would read the first
+   one's pixels (the desktop cuts once). Cost: **0.84 ms** for the menu's 150x134 box — 1.91 ms a frame with the glass
+   against 1.07 with `?glass=0` (100 frames, headless Chromium, M2). Check: `browser/dialog-check.mjs`, in `solid/test.sh`.
+   The closed frame against `frames/dialog-closed.png`: 6.40 % of pixels differ, box means within 15.9/255, ink within
+   4 px, the frame's mean 0.93/255. `Enter` then 30 frames: 24.52 %, 13.6/255, 3 px, 1.01/255, the panel
+   `40,163,280x154` centred, the backdrop the window, its shadow at blur 32; the dim reads 7,8,10 where the page is
+   16,18,24, and 4 px left of the panel 6,6,8 (luma 6.1) against 7.9. The entry 3 frames in (keyboard.down + 3 frames is
+   exactly 3/60) against `frames/dialog-entry-mid.png`: 31.80 %, 15.1/255, the frame's mean 1.15/255, the panel 7.81 px
+   above its rest, the group at alpha 239/255 and scale 0.978. The menu 2 frames in against `goldens/dialog.json`: 22
+   commands, every field, the worst box 3.59 px, and the effects tables identical (shadow 3.45, backdrop 10, group alpha
+   233, scale 0.9703, rotate -1.484°). The settled glass against `frames/dialog-menu.png`: 20.62 %, 18.7/255, 4 px,
+   1.16/255. The blur's own A/B: over the trigger's border the glass is 22,24,30 against 40,43,49 without it (19/255),
+   the scan's worst step 1 against 23, nothing outside the box moved. `Escape` returns 0 of 691,200 pixels to the closed
+   frame and the trap cycles Cancel/OK. Mutations: no blur fails only the A/B ("the page under the glass is not
+   blurred", both 40,43,49), and ignoring field 39 makes the mid-entry panel read "at y 163.00, not above its rest
+   163.00". Bundle 245,583 B (`dialog.js`), page 1,663 B, the same `ui.wasm` 141,104 B; 0.12 ms a frame closed, 1.92 with
+   the modal open.
+   Limits: the other six pages, touch, and no HMR (a second backdrop, or glass under glass, would read the first one's
+   pixels); the bundle is the production `solid-js` (the bundler's `development` condition picks `@solidjs/signals`' dev
+   build, whose diagnostics refuse `Sky.tsx`'s writes in its component body).
    **Done: the keyboard and the second page** (2026-10-29). The browser has the desktop's keys. `browser/solid/keys.ts`
    names a DOM `KeyboardEvent` as `src/input.ts`'s `keyName` names SDL's — Tab and Shift+Tab, `" "` for Space, Enter,
    Escape, Backspace, Delete, the arrows, Home/End, PageUp/PageDown, letters (`Shift+A` is the page's own chord) and digits,
@@ -760,6 +785,11 @@ Each step ends in a check that fails when it breaks.
    to the settings tree (the `Network` item) and ArrowDown move the roving node to `Wi-Fi`. A key that is not mapped leaves
    the switch unfocused; a frame declared before the key is queued makes the tree and the pixels disagree by one key (the
    snapshot has `focused` and `checked`, the canvas still draws the page's background at the switch's edge).
+   What is still not there: four more pages (each has its own keys, and the List's and Sky's scroll machines are untried;
+   `src/vscroll`'s wheel is in, `Input`'s typed text is not), a second page with a backdrop (the Dialog's menu has the
+   only one; a second one in a frame would read the first one's pixels), touch (the wasm has `ui_touch_map`, nothing
+   sends a finger's event), and a dev server or HMR (the bundles are built by hand). The generated C is still the no-JS
+   page, unchanged, which is what the board already is.
    What is still not there: six more pages (each has its own keys, and the List's and Sky's scroll machines are untried;
    `src/vscroll`'s wheel is in, `Input`'s typed text is not, and neither are a page's dialogs and floats), the renderer's
    side tables (`ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value channel's group fields 46–50 and 55: a

@@ -1141,6 +1141,11 @@ browser/solid/shell.ts      what both pages share: the canvas, the loop (createD
 browser/solid/keys.ts       a DOM KeyboardEvent as the name this directory's src/input.ts takes, into the page's Input
 browser/solid/page.ts       Sensors: this src/renderer.ts, this src/frame.ts and app/Sensors.tsx, no Input
 browser/solid/widgets.ts    the Widgets page: the same shell, createInput() and app/Widgets.tsx as main.ts builds it
+browser/solid/dialog.ts     the Dialog page: the same shell and Input, app/Dialog.tsx's two root floats (the modal's
+                            backdrop and panel) and the menu's glass, with `?glass=0` for the blur's A/B
+browser/solid/dialog.html   the Dialog canvas (360x480, tabindex=0) and its script
+browser/dialog-check.mjs    Chromium: the Dialog's closed/open/entry frames, the menu's golden, the backdrop's blur
+browser/solid/build.ts      Bun.build --target=browser, one entry point each; this src/frame.ts's ./ffi.ts and
 browser/solid/list.ts       the List: the same shell, and app/List.tsx unmodified on src/vscroll.ts's machine (the wheel's
                             pixels reduced to notches, the page's own offset, the thumb, the keys' reveal)
 browser/solid/field.ts      the Text field: app/Field.tsx unmodified, the DOM's characters through Input.textInput and
@@ -1154,8 +1159,10 @@ browser/solid/build.ts      Bun.build --target=browser, one bundle a page; this 
 The effects are the desktop renderer's, drawn by Canvas2D: `browser/draw.js` turns a table row into a shadow (the box
 plus a blur), a gradient (a `createLinearGradient` along CSS's line, over the box's solid fill when the value channel has
 faded it), a group (the subtree's commands into an offscreen canvas, composited once with the alpha and the
-scale/rotate/translate about the first command's centre) and an image (a decoded bitmap scaled into the box). No dither
-and no backdrop blur; both are in `native/README.md`'s browser chapter, with the Sky page's measured deviations.
+scale/rotate/translate about the first command's centre), an image (a decoded bitmap scaled into the box) and a backdrop
+(the box's pixels under the element, the desktop's three-pass box blur, then the element's translucent fill over them).
+No dither; both it and the backdrop's 0.8 ms are in `native/README.md`'s browser chapter, with the pages' measured
+deviations.
 
 `bun browser/solid/build.ts` writes `page.js` and `sky.js` to `${TMPDIR:-/tmp}/cssints-native-web/solid`, and
 `node browser/solid-check.mjs` and `node browser/sky-check.mjs` (which `solid/test.sh` runs last, skipped without zig,

@@ -13,7 +13,7 @@ import type { Motion } from "../../solid/src/entry.ts";
 import { createDrawer, createFrame } from "../../solid/src/frame.ts";
 import type { Input } from "../../solid/src/input.ts";
 import { El, render } from "../../solid/src/renderer.ts";
-import { createSurface, loadFont, readCommands } from "../draw.js";
+import { createSurface, loadFont, readCommands, readEffects } from "../draw.js";
 import { bindCanvas, setMeasure, ui, wasm } from "./ffi-browser.ts";
 import { attachKeys } from "./keys.ts";
 
@@ -159,11 +159,16 @@ export async function mountPage(options: Options): Promise<void> {
     return had;
   };
 
+  /** One frame's commands and the renderer's tables beside them (a page with no effect has empty ones). */
+  function paint(): void {
+    surface.draw(readCommands(wasm), readEffects(wasm));
+  }
+
   /** One iteration of the desktop's window loop: the wheel, then the frame; the canvas is drawn when the drawer drew. */
   function step(dt: number, discrete = false): boolean {
     pumpWheel();
     const painted = draw(px, py, down, dt, discrete);
-    if (painted) surface.draw(readCommands(wasm));
+    if (painted) paint();
     return painted;
   }
 
@@ -215,13 +220,15 @@ export async function mountPage(options: Options): Promise<void> {
       const t0 = performance.now();
       for (let i = 0; i < n; i++) {
         frame(px, py, down, 1 / 60, false);
-        surface.draw(readCommands(wasm));
+        paint();
         ctx.getImageData(0, 0, 1, 1); // a readback, so the raster is done, not just queued
       }
       return (performance.now() - t0) / n;
     },
   };
 
+  // a page a person opens prints its ms; `?bench=0` takes the auto bench (twenty frames) out of the way, for a check
+  // whose frames have to start at the first one
   const ms = document.getElementById("ms");
-  if (ms) ms.textContent = `${window.__page.bench(20).toFixed(2)} ms a frame`;
+  if (ms && new URLSearchParams(location.search).get("bench") !== "0") ms.textContent = `${window.__page.bench(20).toFixed(2)} ms a frame`;
 }

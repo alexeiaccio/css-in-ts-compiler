@@ -69,6 +69,7 @@ const result = await Bun.build({
     join(here, "sky.ts"),
     join(here, "list.ts"),
     join(here, "field.ts"),
+    join(here, "dialog.ts"),
   ],
   target: "browser",
   // the bundler's `development` condition would pick @solidjs/signals/dist/dev.js, whose diagnostics refuse the writes a
