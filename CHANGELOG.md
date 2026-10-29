@@ -2,6 +2,13 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.12.1 (2026-10-29)
+
+### Patch changes
+
+- `cssints/eval` is in the published manifest: `publishConfig.exports` shadows the top-level one at publish time, and the subpath
+  was only in the latter (a consumer resolved it through the `./*` wildcard, without its own types).
+
 ## 0.12.0 (2026-10-29)
 
 ### Minor changes

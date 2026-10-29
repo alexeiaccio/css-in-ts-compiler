@@ -1,6 +1,6 @@
 {
   "name": "@cssints/fonts",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Fonts for cssints: @font-face rules with a metric-matched fallback face, and cap-height trimming",
   "license": "MIT",
   "repository": {

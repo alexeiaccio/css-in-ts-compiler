@@ -1,6 +1,6 @@
 {
   "name": "@cssints/balance",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "text-wrap: balance and pretty for cssints, with a script that balances lines in browsers without text-wrap: balance",
   "license": "MIT",
   "repository": {

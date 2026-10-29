@@ -1,6 +1,6 @@
 {
   "name": "@cssints/fluid",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "fluid() for cssints: clamp() between two widths, computed at build time, with the WCAG 1.4.4 zoom check",
   "license": "MIT",
   "repository": {
