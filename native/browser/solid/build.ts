@@ -1,0 +1,64 @@
+// The Solid page's bundle, for the browser: browser/solid/page.ts and the desktop's own modules, compiled by Bun.
+//
+//   bun browser/solid/build.ts [out.directory]   -> <out>/page.js (default ${TMPDIR:-/tmp}/cssints-native-web/solid)
+//
+// The loaders are the desktop's (solid/plugin.ts): a `.tsx` through @solidjs/compiler's universal transform, a
+// `styles.ts` through the cssints plugin in a Node child (compile-styles.ts), and a `.tsx` that declares its own styles
+// through compile.tsx.ts. They are restated here rather than imported because `plugin()` from "bun" registers a
+// *runtime* loader and Bun.build does not take a registered plugin; the children are the same files. On top, one
+// resolution: src/frame.ts's `./ffi.ts` (bun:ffi) is browser/solid/ffi-browser.ts, the wasm's binding.
+import { transform } from "@solidjs/compiler";
+import { join, resolve } from "node:path";
+
+const here = import.meta.dir;
+const root = resolve(here, "../.."); // native/
+const outdir = process.argv[2] ?? join(process.env.TMPDIR ?? "/tmp", "cssints-native-web/solid");
+
+const renderer = join(root, "solid/src/renderer.ts");
+const compileStyles = join(root, "solid/compile-styles.ts");
+const compileTsx = join(root, "solid/compile.tsx.ts");
+// solid-js's package map gives Bun's runtime the server build (its `node` condition), which the desktop's plugin then
+// redirects to the client one; the bundler's `browser` condition already picks dist/solid.js, so no redirect is needed.
+
+const ffi = join(here, "ffi-browser.ts");
+
+const solidPlugin = {
+  name: "cssints-native-browser",
+  setup(build: {
+    onResolve: (opts: { filter: RegExp }, fn: (args: { path: string; importer: string }) => unknown) => void;
+    onLoad: (opts: { filter: RegExp }, fn: (args: { path: string }) => unknown) => void;
+  }) {
+    // solid/src/frame.ts imports the desktop's bun:ffi binding; in the page it is the wasm's
+    build.onResolve({ filter: /(^|\/)ffi\.ts$/ }, (args) => {
+      if (!args.path.endsWith("ffi.ts") || !args.importer.includes("/solid/src/")) return undefined;
+      return { path: ffi };
+    });
+    build.onLoad({ filter: /\.tsx$/ }, async ({ path }) => {
+      const code = await Bun.file(path).text();
+      if (!code.includes("cssints"))
+        return { contents: transform(code, { filename: path, moduleName: renderer, generate: "universal" }).code, loader: "ts" };
+      const run = Bun.spawnSync(["node", "--conditions=development", compileTsx, path]);
+      if (!run.success) throw new Error(`cssints: ${path}\n${run.stderr}`);
+      return { contents: run.stdout.toString(), loader: "ts" };
+    });
+    build.onLoad({ filter: /(^|[/.])styles\.ts$/ }, ({ path }) => {
+      const run = Bun.spawnSync(["node", "--conditions=development", compileStyles, path]);
+      if (!run.success) throw new Error(`cssints: ${path}\n${run.stderr}`);
+      return { contents: run.stdout.toString(), loader: "js" };
+    });
+  },
+};
+
+const result = await Bun.build({
+  entrypoints: [join(here, "page.ts")],
+  target: "browser",
+  outdir,
+  plugins: [solidPlugin as never],
+  sourcemap: "none",
+});
+
+if (!result.success) {
+  for (const log of result.logs) console.error(log);
+  process.exit(1);
+}
+for (const out of result.outputs) console.log(`${out.path} (${out.size} bytes)`);

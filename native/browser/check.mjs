@@ -269,8 +269,10 @@ async function main() {
 
         const ms = await page.evaluate(() => window.__page.bench(100));
         const wasmBytes = (await stat(join(WASM_DIR, 'page.wasm'))).size;
-        const pageBytes = (await stat(join(BROWSER, 'index.html'))).size + (await stat(join(BROWSER, 'render.js'))).size;
-        console.log(`info ${wasmBytes} B of wasm, ${pageBytes} B of page (index.html + render.js)`);
+        // the page is index.html, its script, and the drawing both web targets share (draw.js)
+        const pageBytes = (await stat(join(BROWSER, 'index.html'))).size +
+            (await stat(join(BROWSER, 'render.js'))).size + (await stat(join(BROWSER, 'draw.js'))).size;
+        console.log(`info ${wasmBytes} B of wasm, ${pageBytes} B of page (index.html + render.js + draw.js)`);
         console.log(`info ${ms.toFixed(2)} ms a frame (100 frames: layout in the wasm, the commands to Canvas2D, one readback)`);
         if (logs.some(l => l.startsWith('pageerror'))) bad('page', logs.join('; '));
     } finally {
