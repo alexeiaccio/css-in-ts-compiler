@@ -34,6 +34,9 @@ export function keyName(code: number, mod = 0): string | undefined {
   if (mod & CTRL_ALT_GUI) return undefined;
   const name = KEYS[code] ?? (code > 32 && code < 127 ? String.fromCharCode(code) : undefined);
   if (name === "Tab" && mod & SHIFT) return "Shift+Tab";
+  // a letter with Shift keeps its Shift: a page's own chord ("Shift+R", the dev panel's reset-all). The parts take no
+  // shifted letter otherwise (a character comes through `insert`, not `keyDown`), so nothing loses a key to this.
+  if (mod & SHIFT && name !== undefined && name >= "a" && name <= "z") return `Shift+${name.toUpperCase()}`;
   // Shift with an arrow, Home or End is a selection chord, not a move
   if (mod & SHIFT && name && name.length > 1 && name !== "Enter" && name !== "Escape") return undefined;
   return name;
@@ -41,7 +44,8 @@ export function keyName(code: number, mod = 0): string | undefined {
 
 /**
  * `keyName`, keeping Shift on the chords a text field selects with: "Shift+ArrowLeft", "Shift+Home". The focus manager
- * is only ever given Tab and Shift+Tab, so no other part sees a name it did not have before.
+ * is only ever given Tab and Shift+Tab, so no part sees a selection chord it did not have before (a shifted letter has a
+ * name of its own, `keyName`'s "Shift+R").
  */
 export function selectionName(code: number, mod = 0): string | undefined {
   const name = keyName(code, mod);

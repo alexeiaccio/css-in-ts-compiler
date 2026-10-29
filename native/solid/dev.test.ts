@@ -1,22 +1,17 @@
-// The dev page (`solid/app/Dev.tsx`): the Widgets page with a panel beside it, and the panel's three sections asserted
-// from the page's own strings — the a11y tree's rows (roles, names, states, bounds), the hovered box, and the frame's
-// phases and counters. Frames are driven as the window does it (the pointer and the keys in, then one frame), and the
-// panel is read from the tree the frame declared, so a section is asserted as a developer sees it.
+// The dev page (`solid/app/Dev.tsx`): the Widgets page with a panel beside it, and the panel's sections asserted from
+// the page's own strings — the a11y tree's rows (roles, names, states, bounds), the hovered box, the frame's phases and
+// counters (the live values have `tune.test.ts` of their own). Frames are driven as the window does it (the pointer and
+// the keys in, then one frame) by `dev-harness.ts`, and the panel is read from the tree the frame declared, so a section
+// is asserted as a developer sees it.
 //
 // The phase sanity is not a benchmark: the four are ≥ 0, they are a frame's own (printed to 0.01ms), the draw is the
 // largest of them on a frame that draws, a frame at rest measures no draw, and `ui.draws()` stands still — a panel that
 // reprinted its numbers every frame would fail that last one. The mutations are named beside the checks they fail.
-import "./plugin.ts";
+import { at, fresh, size, stats, ui, _dispose } from "./dev-harness.ts";
 
 import type { A11yNode } from "./a11y.ts";
 
-const { ui } = await import("./src/ffi.ts");
-const { createFrame, createDrawer } = await import("./src/frame.ts");
-const { createInput } = await import("./src/input.ts");
-const { El, render, Txt } = await import("./src/renderer.ts");
 const { setReducedMotion } = await import("./src/motion.ts");
-const { Dev, size, stats } = await import("./app/Dev.tsx");
-const { snapshot } = await import("./a11y.ts");
 
 let failed = 0;
 const check = (what: string, got: unknown, want: unknown) => {
@@ -24,100 +19,8 @@ const check = (what: string, got: unknown, want: unknown) => {
   if (a !== b) failed++, console.error(`FAIL ${what}: ${a}, wanted ${b}`);
 };
 const two = (n: number) => (n / 1e6).toFixed(2);
-const FONT = new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname;
 const box = (id: string) => [...ui.bounds(Buffer.from(id))!];
-/** `x,y w×h` of a box, as the panel rounds it. */
-const at = (b: number[]) => `${Math.round(b[0]!)},${Math.round(b[1]!)} ${Math.round(b[2]!)}×${Math.round(b[3]!)}`;
-
-let dispose = () => {};
-
-/** The page as the window runs it: a fresh Dev, the host's frame over the panel's `stats`, and one step per input. */
-function fresh(options: { theme?: string } = {}) {
-  dispose();
-  stats.length = 0;
-  ui.init(size.width, size.height);
-  ui.font(FONT);
-  const root = new El("root");
-  const input = createInput();
-  input.fallback = () => false;
-  const drag: { onPointer?: (x: number, y: number, down: boolean) => void } = {};
-  const motion: { tick?: (dt: number) => void } = {};
-  dispose = render(() => Dev({ input, motion, drag }), root);
-  // what the panel sees at each reading: the host's counters and how many frames the frame loop has pushed, taken at
-  // the tick, after the page's own sampling. The panel's numbers are asserted against these, not against a guess
-  const reads: { draws: number; presents: number; frames: number }[] = [];
-  const tick = motion.tick;
-  motion.tick = (dt) => {
-    tick?.(dt);
-    reads.push({ draws: ui.draws(), presents: ui.presents(), frames: stats.length });
-  };
-  // the host wires the page's hook to the frame's tick, as main.ts does
-  const frame = createFrame(root, {
-    stats,
-    tick: (dt) => motion.tick?.(dt),
-    get theme() {
-      return options.theme;
-    },
-    onPointer: (x, y, down) => drag.onPointer?.(x, y, down),
-    onPressMiss: () => input.pressMiss(),
-  });
-  const draw = createDrawer(frame, stats);
-  let pointer: [number, number] = [-1, -1];
-  let down = false;
-  const find = (pred: (el: El) => boolean, from: El = root): El[] =>
-    from.children.flatMap((c) => (c instanceof El ? [...(pred(c) ? [c] : []), ...find(pred, c)] : []));
-  const text = (el: El): string => el.children.map((c) => (c instanceof Txt ? c.text : text(c))).join("");
-  const texts = (el: El): string[] =>
-    el.children.flatMap((c) => (!(c instanceof El) ? [] : c.tag === "text" ? [text(c)] : texts(c)));
-  const left = () => find((el) => el.props.id === "Root")[0]!;
-  const panel = () => find((el) => el.props.id === "dev-panel")[0]!;
-  /** The three sections of the panel, split by their headers, as the texts the frame declares. */
-  const sections = () => {
-    const lines = texts(panel());
-    const [i, j] = [lines.indexOf("hovered box"), lines.indexOf("frame")];
-    return { rows: lines.slice(1, i), hover: lines.slice(i + 1, j), frame: lines.slice(j + 1) };
-  };
-  // a step with `render` on: `frame` draws, which is what its fourth phase times (the host's drawer draws outside it)
-  const step = () => frame(pointer[0]!, pointer[1]!, down, 1 / 60);
-  step(), step();
-  return {
-    input,
-    root,
-    left,
-    panel,
-    texts,
-    text,
-    find,
-    reads,
-    sections,
-    snap: (): A11yNode => snapshot(left()),
-    step,
-    /** a whole key press with a frame after it */
-    tap(name: string) {
-      input.down(name);
-      input.up(name);
-      step();
-    },
-    /** the pointer to a point, a frame there, and one more for the panel's phase line */
-    hover(x: number, y: number) {
-      pointer = [x, y];
-      step();
-      step();
-    },
-    press() {
-      down = true;
-      step();
-    },
-    release() {
-      down = false;
-      step();
-    },
-    /** N frames at rest through the host's drawer: no input, and a draw only when the frame's hash says so */
-    idle(n: number) {
-      for (let i = 0; i < n; i++) draw(pointer[0]!, pointer[1]!, false, 1 / 60);
-    },
-  };
-}
+const dispose = _dispose;
 
 // --- the Widgets page inside the dev page is that page, at its own size, in the left column
 {
