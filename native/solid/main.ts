@@ -199,6 +199,9 @@ const dispose = render(
                   input,
                   motion,
                   theme: () => theme,
+                  // the settings screen's theme radio writes the host's own `theme`: its frame's `theme` getter is read
+                  // by every style's variant, so the palette follows the page
+                  setTheme: (next) => (theme = next),
                   posts: posts ? synthetic(posts) : undefined,
                   load: loadSky(process.argv),
                 })

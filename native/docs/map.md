@@ -462,7 +462,7 @@ Each step ends in a check that fails when it breaks.
    from the clip (…)`, and reusing the thread's offset for the feed fails `FAIL the feed's offset after back is its own`
    (and 667,725 bytes of the frame). What is still not there: a fetch of a real thread from the AppView (the page has one
    recorded fixture, shown for whichever card is pressed), a reply's own thread beyond the one branch the data holds, and
-   the profile and settings screens.
+   the profile screen (its sibling's).
    **Done: the thread comes from the AppView, through an injectable loader.** The transcription above — and its "what is
    still not there" list — is replaced: a
    card's press asks the page's `load(uri)` (a post's at-uri in, the API's `ThreadScreen` out) and the screen opens in its
@@ -493,6 +493,26 @@ Each step ends in a check that fails when it breaks.
    What is still not there: replies below `depth` 6 or a parent chain past 20, a cursor's paging, a cache (every press
    asks; back restores the screen it came from), the labeler moderation `api.ts` applies (this page has no labels), and a
    real service's auth.
+   **Done: the settings screen** (`solid/app/Settings.tsx`, the page's third). A gear at the bar's right end — the app's
+   own Settings nav item, three 16x2 boxes because Roboto has no gear — opens a screen built like the thread's: a root
+   float one z above the thread's (so it opens over a thread and its back returns to that thread, the history one step),
+   a 44px header with Back and "Settings", its own clip on a third instance of the scroll machine (the three rows fit the
+   652, so no thumb), the card entry as one group under `presence(0.3)`, five stops of its own while it is up (the back
+   control, the theme group, the switch, the size group and the clip) with the covered screen's stops disabled, and the
+   focus the opening pushed popped back on the way out (the thread's back control has its ring again: 0 bytes). Three
+   controls, each real: **Theme** (Dark/Light) writes the pick back to the host's `theme`, which the frame's `theme`
+   getter reads, so every style's variant and the page's fades follow (`16/19/22` → `243/245/247`, a row's panel
+   `27/32/38` → `255/255/255`); **Reduced motion** is a `createSwitch` on `setReducedMotion`, so the frame after a card's
+   click is the settled thread (0 bytes, against 672,965 without it); **Text size** (Regular/Large) picks two variants of
+   each of the feed card's five text styles (a Clay text carries its `fontSize`/`lineHeight`; no token can), the card
+   190 → 222, Science's content 742 → 830, its thumb 594.2 → 531.2 and its end 78 → 166, the page dropping its height
+   cache on the frame of the change, and back at Regular the feed's frame byte-identical. The values live as long as the
+   page runs (signals and the flag; no storage, no persisted choice), and the palette moved to `solid/app/Sky.styles.ts`
+   so both screens' styles are the same tokens. Four frames — `sky-settings`, `sky-settings-mid` (two frames into the
+   entry), `sky-settings-light` (Light picked by the keyboard: one Tab from Back, then an arrow) and `sky-settings-large`
+   (three Tabs to the size group) — and the fifteen Sky frames that show the bar were re-stored deliberately: the diff of
+   every one of them is the gear's 96 pixels in a 16x12 box at 315,26, measured pixel for pixel against the old files,
+   and the command golden gained its three rectangles and one node.
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`

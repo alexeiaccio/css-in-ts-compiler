@@ -717,6 +717,42 @@ again, and back restores the screen it came from without asking), the moderation
 logged-out viewer (this page shapes a `hidden`/labelled post as a post — it has no labeler), and a real service's auth
 (the public AppView, no login).
 
+**The settings screen: the page's third.** A gear at the bar's right end opens it — the app's own Settings nav item, its
+glyph three 16x2 boxes (Roboto has no gear glyph and Clay has no icons) in a 40x28 box that ends at the bar's content
+edge — and the screen is built like the thread's: a root float over the content area one z above the thread's, so it
+opens over a thread as well; a 44px header with the back control and "Settings"; its own clip element on a third
+instance of the page's scroll machine (the three rows fit the 652, so it never scrolls and its thumb stays out); the same
+group entry (12px low and 0 opacity on `spatial(0.3)`/`effect(0.3)`, `presence(0.3)` for the exit, and reduced motion
+neither); and Escape, the back control or a click on a tab returning to what was up — the feed, or the thread the screen
+was opened from. Its five stops (the back control, the theme group, the switch, the size group and the clip) are the
+page's Tab stops while it is up and disabled while it is down, the covered screen's stops are disabled under it, and the focus its opening
+pushed comes back on the way out, so the frame under it is byte-identical (measured: the thread's back control has its
+ring again, 0 bytes of 1,094,400).
+
+Its three rows are controls that change the page, not a drawing of one. **Theme** is a radio group, Dark and Light: every
+style's variant is picked by the *frame's* theme, so the pick is written back to the host (`Sky`'s `setTheme` prop —
+main.ts's own `theme` variable, which its frame's `theme` getter reads and its `t` key flips) and the whole palette
+follows, the page's own fades with it (they read the same signal): measured, the bar's ground and the screen's `16/19/22`
+→ `243/245/247` and a row's panel `27/32/38` → `255/255/255`. **Reduced motion** is a `createSwitch` that calls
+`setReducedMotion`, starting on the platform's flag (`--reduced-motion`), so afterwards every retarget lands at once:
+measured, the frame after a card's click is the settled thread (0 bytes of the 20-frame one), where without it the same
+frame differs by 672,965. **Text size** is a second radio group, Regular and Large: the page's styles are literals and a
+Clay text carries its `fontSize` and `lineHeight` as numbers, so no token can carry them — the feed card's five text
+styles have a Large variant each, two steps up (16/22 → 18/24, 12/16 → 13/18, 14/20 → 16/22, 13/18 → 15/20 twice), built
+in `app/Settings.tsx` from the page's own tokens (the palette is `app/Sky.styles.ts`'s now, shared by the two screens).
+The card grows 190 → 222 and its body's one 20px line is two 22px ones; the feed re-measures (the page drops its height
+cache on the frame the size changed), so Science's 742px of content is 830, its thumb 594.2 is 531.2 and its end 78 is
+166; back at Regular the card and the feed's whole frame are byte-identical to before. The thread's cards keep Regular.
+
+The values are the page's while it runs — signals and `motion.ts`'s flag, no storage read or written — so a window starts
+from `THEME=light` or the dark palette, from the platform's motion flag and at Regular. Not here: the app's full
+appearance set (the accent hue's slider, the corners, the fonts — `apps/csssky/src/settings.ts`), which this page's tokens
+have no handles for, and a persisted choice. Four frames (`solid/settings.test.ts`): `sky-settings`, `sky-settings-mid`
+(two frames into the entry), `sky-settings-light` (Light picked, the ring on it) and `sky-settings-large`. The fifteen Sky
+frames that show the bar were re-stored deliberately: the gear draws 96 pixels in a 16x12 box at 315,26 (its three
+bar-glyph rows) and nothing else in any of them moved, measured pixel for pixel against the previous files; the command
+golden (`solid/goldens/sky.json`) gained those three rectangles and the one a11y node.
+
 **A page's entry, once.** The four plain pages — List, Widgets, Sensors, Text field — get the same first mount from one
 helper (`solid/src/entry.ts`): the root element's subtree (its id is `Root` on all four) starts 8px low and at alpha 0 and
 settles on its literals over `spatial(0.25, 0)` for `TRANSLATE_Y` and `effect(0.25)` for `ALPHA` — the group fields, so
