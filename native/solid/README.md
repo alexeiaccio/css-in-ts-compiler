@@ -773,6 +773,52 @@ reduced motion's stored frame, the a11y tree of all three states, the stored fra
 byte for byte`), and a mutation per state: an at-once loader never draws the loading row (its frame is not the pending
 one), and a reject after a loaded thread shows the error's two rows, not the thread that was up.
 
+**The settings screen is the page's third** (`app/Settings.tsx`, `bun solid/main.ts sky` then the gear). A gear at the
+bar's right end — the app's Settings nav item, three 16x2 boxes since Roboto has no gear — opens a screen built like the
+thread's: a root float one z above the thread's (696 = the window less the bar, pointer captured, so it stacks over a
+thread and its back returns to that thread), a 44px header with the back control and "Settings", its own clip element on
+a third instance of the page's scroll machine (the three panel rows fit its 652, so it never scrolls and its thumb stays
+out), and the card entry as one group — 12px low and 0 opacity on `spatial(0.3)`/`effect(0.3)`, reversed under
+`presence(0.3)`, and reduced motion neither. Escape (from either stop or the page's last resort), the back control and a
+click on a tab return to what was up — the feed, or the thread the gear was pressed over, the history one step — and the
+focus the opening pushed is popped back, so the frame under it is byte-identical. Five stops are the screen's while it
+is up and disabled while it is down (the back control, the theme group, the switch, the size group, the clip), with the
+covered screen's stops disabled under it.
+
+The three rows are the app's own settings, each one real: **Theme** is a `createRadioGroup` (Dark/Light) — a controlled
+group, since the page's theme is the truth — and its pick is written back to the host through `Sky`'s `setTheme` prop
+(`main.ts`'s own `theme` variable, which its frame's `theme` getter reads for every style's variant, as its `t` key
+flips it): the whole palette turns, the page's fade ends with it. **Reduced motion** is a `createSwitch` over
+`setReducedMotion`, starting on the platform's `--reduced-motion` flag: the tracks then land at once, so the frame after
+a card's click is the settled thread. **Text size** is a second radio group (Regular/Large): the page's styles are
+literals, so the feed card's five text styles get a Large variant each, two steps up in `fontSize` and `lineHeight` (a
+Clay text carries both as numbers; a token cannot), and the feed re-measures on the frame the size changed (`Sky` drops
+its height cache then: `tick`'s answer), its content, its thumb and its end with it. The values are signals for as long
+as the page runs — no storage, nothing persisted — and the palette they are drawn from is `app/Sky.styles.ts`, so the
+bar, the feed, the thread and this screen are one set of tokens.
+
+| Frame | Keys | Shows |
+| --- | --- | --- |
+| `sky-settings` | `--warm 40 --click 324 32 --settle 40` | the screen at rest: Back, Settings, the Theme row with Dark checked, the switch off, Text size with Regular checked |
+| `sky-settings-mid` | `--settle 2` | two frames into the entry: the screen 10px low and faint over the feed |
+| `sky-settings-light` | `THEME=light … --keys Tab,ArrowRight --settle 40` | the light palette with Light picked (the theme group is one Tab from Back, an arrow checks it) |
+| `sky-settings-large` | `--keys Tab,Tab,Tab,ArrowRight --settle 40` | Large picked (three Tabs to the size group), the ring on it |
+
+Checked by `bun solid/settings.test.ts`: the gear's box (40x28 at x 303.86, the tabs unmoved), the screen's
+`0,64 360x696`, its 44px header, the three rows (75.58/56/75.58 tall, 8 apart) and the clip's no-thumb; the Tab order of
+the screen (Back, the theme group, the switch, the size group, the clip, then nothing) and the a11y tree (the gear a
+button named "Settings", the region, the two `radiogroup`s with their radios' `checked`, the switch, the covered feed
+pruned); the theme (`16/19/22` → `243/245/247` at the bar, at the screen and `27/32/38` → `255/255/255` at a row, the ring
+on the picked radio and back); reduced motion (the switch is `reduced()`, the click's next frame is the settled thread —
+0 bytes of the 20-frame one — and without it 672,965 bytes off); the text size (the card 190 → 222, the body's box 20 →
+44, Science's content 742 → 830, the thumb 531.2 tall, the end 166, and back at Regular the card 190 and the feed's frame
+byte-identical); back (the control, Escape from a stop and from nothing, a tab click) to the feed's exact frame; the
+screen opened over a thread, back to that thread's frame with the thread's back focused again and its clip its next stop;
+the entry's own two frames and reduced motion's one; the stored frame byte for byte; and a mutation per control (the
+theme reaching the bar as well as the screen, the switch being the page's flag, the size the cards'). The fifteen frames
+that show the bar were re-stored deliberately: the gear's 96 pixels in a 16x12 box at 315,26 are the whole difference in
+every one of them, and the command golden gained its three rectangles and the one node.
+
 ## The text sheet, and the oracles behind it
 
 `app/Sheet.tsx` is not an app page: twelve lines of the strings and sizes the pages draw (11 to 32 px) in one column,

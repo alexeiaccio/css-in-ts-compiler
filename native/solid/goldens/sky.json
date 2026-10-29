@@ -28,6 +28,13 @@
         ],
         "role": "tablist",
         "states": {}
+      },
+      {
+        "bounds": [303.8583984375, 18, 40, 28],
+        "children": [],
+        "name": "Settings",
+        "role": "button",
+        "states": {}
       }
     ],
     "role": "document",
@@ -41,6 +48,9 @@
     { "box": [71.8945312, 17.2109375, 77.9052734, 29.578125], "color": [59, 156, 240, 255], "element": null, "id": 3211223829, "radii": [0, 0, 0, 0], "type": "border", "widths": [0, 0, 0, 2, 0], "z": 0 },
     { "align": "left", "box": [161.799805, 23.2109375, 52.4121094, 17.578125], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 3053064546, "letterSpacing": 0, "lineHeight": 0, "size": 15, "text": "Science", "type": "text", "wrap": "words", "z": 0 },
     { "align": "left", "box": [236.211914, 23.2109375, 37.6464844, 17.578125], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 3217059549, "letterSpacing": 0, "lineHeight": 0, "size": 15, "text": "News", "type": "text", "wrap": "words", "z": 0 },
+    { "box": [315.858398, 26, 16, 2], "color": [139, 152, 165, 255], "element": null, "id": 2401642270, "radii": [1, 1, 1, 1], "type": "rectangle", "z": 0 },
+    { "box": [315.858398, 31, 16, 2], "color": [139, 152, 165, 255], "element": null, "id": 2170555282, "radii": [1, 1, 1, 1], "type": "rectangle", "z": 0 },
+    { "box": [315.858398, 36, 16, 2], "color": [139, 152, 165, 255], "element": null, "id": 3819884594, "radii": [1, 1, 1, 1], "type": "rectangle", "z": 0 },
     { "axes": ["horizontal", "vertical"], "box": [0, 64, 360, 664], "element": "sky-feed", "id": 3675395467, "type": "scissor-start", "z": 0 },
     { "box": [0, 64, 360, 664], "color": [16, 19, 22, 255], "element": "sky-feed", "id": 3675395467, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
     { "box": [12, 76, 336, 190], "color": [27, 32, 38, 255], "element": "sky-card-0", "id": 2859307046, "radii": [12, 12, 12, 12], "type": "rectangle", "z": 0 },

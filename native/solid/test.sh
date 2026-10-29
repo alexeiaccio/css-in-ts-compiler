@@ -205,6 +205,19 @@ bun solid/scene.test.ts
 # slide, the one frame that carries every table. Re-store a page after a deliberate change — read the diff first — with
 # `bun solid/dump.ts <page> --update`; one page's JSON alone with `bun solid/dump.ts <page>` (stdout).
 bun solid/dump.test.ts
+# the Sky's settings screen (the page's third, app/Settings.tsx): the gear at the bar's right end opens it — three rows,
+# each one a real control: the theme radio switches the page's palette (every style's variant is picked by the frame's
+# theme, which the pick writes to the host, so the bar and the cards turn with the screen), the reduced-motion switch
+# calls `setReducedMotion` (the flag every track reads), and the text size re-lays the feed's cards out (their height, the
+# feed's content and its thumb). `sky-settings` is the screen at rest, `sky-settings-mid` the entry two frames in (12px
+# low, 0 opacity, the page's card entry), `sky-settings-light` the light palette with Light picked (the theme group is one
+# Tab from the back control, an arrow picks) and `sky-settings-large` the Large text (three Tabs to the size group)
+SG="bun solid/main.ts sky"
+$SG --warm 40 --click 324 32 --settle 40 --expect solid/frames/sky-settings.png
+$SG --warm 40 --click 324 32 --settle 2 --expect solid/frames/sky-settings-mid.png
+THEME=light $SG --warm 40 --click 324 32 --keys Tab,ArrowRight --settle 40 --expect solid/frames/sky-settings-light.png
+$SG --warm 40 --click 324 32 --keys Tab,Tab,Tab,ArrowRight --settle 40 --expect solid/frames/sky-settings-large.png
+bun solid/settings.test.ts
 # the dev panel's live values (Rune's item 7, second half): the panel's fourth section writes a style's packed fields
 # through the value channel (`ui.value`) while the page runs — the picked box's numbers, edited with the panel's own
 # keys, with `r`/`Shift+R` dropping the override so the declare is the style's literal again. tune.test.ts holds it: the
