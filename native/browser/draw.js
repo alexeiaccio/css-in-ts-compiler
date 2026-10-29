@@ -83,6 +83,15 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
         target.fill('evenodd');
     }
 
+    /** A command's own opacity: Clay's colour carries an alpha and ThorVG draws with it (a translucent fill, border or
+     *  glyph), so the page's canvas does too. `paint` is the fill or the text at the path already built. */
+    function alpha(target, c, paint) {
+        const outer = target.globalAlpha;
+        if (c.alpha < 1) target.globalAlpha = outer * c.alpha;
+        paint();
+        target.globalAlpha = outer;
+    }
+
     /** A CSS colour from a 0-255 channel triple and an opacity. */
     const rgba = (c, a = 1) => `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${a})`;
 
@@ -145,17 +154,17 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
             else {
                 roundRect(target, c.x, c.y, c.w, c.h, c.radius);
                 target.fillStyle = c.color;
-                target.fill();
+                alpha(target, c, () => target.fill());
             }
             break;
         }
-        case TYPE.BORDER: borderRect(target, c); break;
+        case TYPE.BORDER: alpha(target, c, () => borderRect(target, c)); break;
         case TYPE.TEXT:
             target.font = fontFor(c.fontSize);
             target.fillStyle = c.color;
             target.textBaseline = 'alphabetic';
             // Clay's box is the text's line box; the alphabetic baseline sits one ascent below its top
-            target.fillText(c.text, c.x, c.y + (ascent.get(c.fontSize) ?? c.fontSize * 0.8));
+            alpha(target, c, () => target.fillText(c.text, c.x, c.y + (ascent.get(c.fontSize) ?? c.fontSize * 0.8)));
             break;
         case TYPE.SCISSOR_START: {
             const clip = new Path2D();

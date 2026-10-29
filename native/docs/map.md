@@ -767,6 +767,32 @@ Each step ends in a check that fails when it breaks.
    draws without it — the Sensors page's entry is why the check warms 31 frames), touch (the wasm has `ui_touch_map`,
    nothing sends a finger's event), and a dev server or HMR (the bundles are built by hand). The generated C is still the
    no-JS page, unchanged, which is what the board already is.
+   **Done: the List and the Text field** (2026-10-29). The two things the shell could not carry: a page that owns its
+   scroll offset, and a page that takes typed text. `browser/solid/list.ts` (`list.html`) is `solid/app/List.tsx`
+   unmodified on its own `createInput()` and `src/vscroll.ts`'s machine; the wheel reaches the page's `motion.onWheel`
+   (the shell drains `ui.wheel` into it before the frame) reduced to its sign, one event a notch with SDL's sign, because
+   a DOM delta is in pixels and the machine counts notches: three notches, a rest frame apart, move the offset 30 px and
+   row 0's top by −30.00 px, the thumb at +8.02 px of the viewport, 64.14 px tall, 4 px wide 2 px in (`barOf` for 30 of
+   658), Tab easing the offset back to 0 for the selected row and ArrowDown moving it (the readout "Room A1 — 1 of 30" →
+   "Room B1 — 2 of 30", the row's fill 36,40,52,255). `browser/solid/field.ts` (`field.html`) is `solid/app/Field.tsx`
+   unmodified: a canvas has no `beforeinput` and no composition, so the printable characters come from the `keydown`'s
+   `key` into `Input.textInput` (the call `main.ts` makes for SDL's TEXTINPUT), and `keys.ts`'s `selectionChord` names
+   the selection keys `keyName` refuses — Tab twice, "Ada" is the page's value and the frame's (`Value: "Ada" (3)`, the
+   caret at x 80.16), Backspace one character and −8.70 px, two Shift+ArrowLeft a run of 19.46 px whose middle is
+   97,69,51 (the accent at 30% over the surface), the caret 1 px before it. `browser/draw.js` draws a command's own alpha
+   for that — the first translucent plain rectangle on this target; no other page's frame moves (all its commands are
+   opaque). Check: `browser/input-check.mjs` — the List's base frame against `solid/goldens/list.json` (36 commands,
+   worst box 0.94 px) and its raster against `solid/frames/list-top.png` (7.18 % of pixels; means within 14.4/255, ink
+   within 1.00 px, the frame's mean within 1.55/255), the field against `solid/frames/field-typed.png` (11.53 %;
+   15.3/255, ink 4.00 px, 1.23/255), and the typed run's ink in the same box as the desktop's (52..80 px). Mutations it
+   catches: the wheel dropped on its way to the page — "the offset is 0, want 30", "row 0's top moved 0px, want -30";
+   a character sent as a key instead of `textInput` — the value is "" and the caret stays at 52 (the run's ink 18 px
+   against the desktop's 170). Cost: `list.js` 197,252 B (49,199 B gzip) and 0.17 ms a frame, `field.js` 236,785 B
+   (55,208 B gzip) and 0.14 ms on the same `ui.wasm` (141,104 B, 52,269 B gzip).
+   Limits: no IME (no composition event on a canvas; an `EditContext` would be the way), no clipboard, no pointer drag
+   of the List's rows or thumb in the browser (the desktop's `list.test.ts` has it), no touch; four of the shell's pages
+   are real now (Sensors, Widgets, List, Text field) and the Sky has its own loop — Dialog, Sheet and Dev are still not
+   here.
 
 
 ## What Rune's research gives us (2026-10-23)
