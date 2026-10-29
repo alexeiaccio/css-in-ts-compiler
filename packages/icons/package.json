@@ -1,6 +1,6 @@
 {
   "name": "@cssints/icons",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Icons for cssints: iconify JSON collections and SVG folders as a mask style, no runtime",
   "license": "MIT",
   "repository": {

@@ -1,5 +1,11 @@
 # @cssints/devtools
 
+## 0.12.1
+
+### Patch Changes
+
+- @cssints/css-grammar@0.12.1
+
 ## 0.12.0
 
 ### Patch Changes
