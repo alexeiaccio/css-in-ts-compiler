@@ -128,6 +128,8 @@ export function createSurface(ctx, { width = W, height = H, dpr = 1, image = (pa
         target.fill('evenodd');
     }
 
+    /** A command's own opacity: Clay's colour carries an alpha and ThorVG draws with it (a translucent fill, border or
+     *  glyph), so the page's canvas does too. `paint` is the fill or the text at the path already built. */
     /** A CSS colour from a 0-255 channel triple and an opacity. */
     const rgba = (c, a = 1) => `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${a})`;
 

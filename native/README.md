@@ -1456,25 +1456,95 @@ covers the page's own `100%` row there and the two rasterisers put that row's bo
 group's alpha and scale, and the box means are); and there is still no touch (the wasm has `ui_touch_map`, nothing sends
 a finger's event) and no HMR (the bundle is built by hand).
 
+### The List and the Text field in the browser
+
+`browser/solid/list.ts` (`list.html`) and `browser/solid/field.ts` (`field.html`) are the shell's third and fourth pages:
+`solid/app/List.tsx` and `solid/app/Field.tsx` **unmodified**, each with its own `createInput()`. They are the two things
+the shell could not carry: a page that owns its scroll offset, and a page that takes typed text.
+
+**The wheel, into the page's own track.** The List's viewport is `src/vscroll.ts`'s machine, not Clay's scroll
+container (`ui.autoScroll(false)`, and the track writes the offset into the clip element every frame), so a wheel event
+has to reach the page's `motion.onWheel` — which the shell drains `ui.wheel` into before each frame, and the page then
+asks `ui.over` whether the pointer was on the viewport or on its visible thumb. A DOM wheel event's delta is in pixels
+and the machine counts notches (10px each, SDL's ±1), so `list.ts` reduces the host's delta to its sign, one event a
+notch, with the sign turned round (SDL's wheel y is positive away from the user, a browser's `deltaY` positive scrolling
+down) — the mapping `sky.ts`'s own wheel already makes. Measured: three notches, a rest frame apart (a run at 60Hz is a
+flick, which the track flings), move the offset **30px** and row 0's top by **−30.00px**; the thumb is then at the
+viewport's top **+8.02px**, **64.14px** tall (max(24, 240²/898)) and 4px wide 2px in, which is `barOf`'s geometry for
+30px of 658. Tab brings the selected row back into view (the offset eases to 0) and ArrowDown moves the selection a row:
+the readout goes "Room A1 — 1 of 30" → "Room B1 — 2 of 30" and the new row is the flow's only filled one (36,40,52,255).
+
+**The typed text, through `Input.textInput`.** A canvas is no editable element: no `beforeinput`, no `input` and no
+composition event is dispatched to it, so `field.ts` takes the printable characters from the `keydown`'s `key` — the
+string SDL's TEXTINPUT gives — and calls `Input.textInput(text)`, the call `main.ts` makes for SDL's text events, one
+frame on the event. The keys the focus manager's table drops stay the shell's (Tab, Shift+Tab, Backspace, Delete, the
+arrows, Home/End, Enter, Escape); Shift with Left, Right, Home or End is a selection chord, which `keyName` refuses as a
+move and `keys.ts`'s `selectionChord` names ("Shift+ArrowLeft"). Measured: Tab twice focuses the field (the a11y
+snapshot's `textbox "Name"`, the caret at x **52**), typing "Ada" reaches the page's own state and the frame
+(`Value: "Ada" (3)`, the caret after the run at x **80.16**), Backspace is one character and one advance (**−8.70px**),
+and two Shift+ArrowLeft make a run of **19.46px** whose middle is **97,69,51** — the accent at 30% over the field's
+36,40,52 — with the caret 1px before it. `browser/draw.js` draws a command's own alpha for that (Clay's colour carries
+one, ThorVG honours it; the selection is this target's first translucent plain rectangle), which changes no frame of the
+other pages (every command they draw is opaque).
+
+`node browser/input-check.mjs` holds them: the List's base frame against `solid/goldens/list.json` (36 commands, every
+field, the worst box **0.94px** — Canvas2D's line heights rounded up), its raster against `solid/frames/list-top.png`
+(**7.18%** of pixels differ; the boxes' means within **14.4/255**, the text's ink within **1.00px**, the frame's mean
+within **1.55/255**), and the wheel, the thumb and the keys above; the field against `solid/frames/field-typed.png`
+(**11.53%**; **15.3/255**, ink **4.00px**, mean **1.23/255**), the typed run's ink in the same box as the desktop's
+(52..80 px), the caret's and the selection's pixels above. Cost: `list.js` **197,252 B** (49,199 B gzip) and **0.17 ms**
+a frame, `field.js` **236,785 B** (55,208 B gzip) and **0.14 ms** (100 frames: the tree declared, Clay's layout, the
+commands, Canvas2D's raster, one readback), on the same `ui.wasm` (141,104 B, 52,269 B gzip) as the other pages.
+
+What they are not: no IME — a canvas gets no composition event, so `textInput` receives characters and not a
+composition's phases (an `EditContext` would be the way, Chromium only, and nothing here asks for it); no clipboard
+(`paste` is an editable element's event too); no pointer drag of the List's rows or of its thumb, and none of the Sky
+feed — the machine's drags are `solid/list.test.ts`'s and `sky.test.ts`'s, while the browser checks drive the wheel, the
+thumb's geometry and the keys; and no touch (the shell listens to the mouse only, and the wasm's `ui_touch_map` has no
+fibre of it). A typed character and a selection chord
+are `preventDefault`ed, as the keys the shell consumes are (the shell's own `consumed` list: Tab, Space, the arrows,
+Home/End, PageUp/Down, Enter, Backspace, Delete), so a character never reaches a browser accelerator; a Cmd, Ctrl or
+Alt chord is left to the browser.
+
 ## The sky screens in a terminal
 
 `apps/csssky-tui` (`../apps/csssky-tui`) ported to cells: the same cards, the same recorded fixtures, the same palette
-from its `styles.ts`. Its two screens and the profile of the sibling web app `apps/csssky`:
+from its `styles.ts`. Its two screens and two of the sibling web app `apps/csssky`'s:
 
 | screen | data | keys |
 | --- | --- | --- |
 | the feed (`--page sky`) | `apps/csssky`'s `home-discover-1` and `home-science-1` (three posts each; News has no fixture) | `tab`/`shift-tab` between the bar and the list, `left`/`right` the tabs (which switch the feed), `j`/`k` or `up`/`down` the list, `1`-`3` a feed, `enter` opens, `t` the theme, `q` quits |
 | a thread (`--page thread`) | `thread.json`: the parent, the post, its replies | `j`/`k` or the arrows, `esc` back |
 | a profile (`--page profile`) | `profile.json`, `profile-posts`, `profile-replies`, `profile-media` | `left`/`right` the tabs, `tab` to the list, `j`/`k` or `up`/`down`, `enter` opens a thread, `esc` back |
+| the notifications (`n` on the feed, or `--page notifications`) | **hand-carried**, and this is the one screen that is: the app has no notifications screen, model or fixture | `tab`/`shift-tab` the rows in order (wrapping at either end), `j`/`k` or `up`/`down` the roving row, `enter` opens a post's thread, `esc` back |
 
 The focus is `terminal/focus.c`, a port of the semantics of `focus/src/focus.ts` (not shared code with it): Tab stops in
 document order with the focus released at either end (a terminal has no platform to hand Tab to, so the page presses it
 again and wraps), a group as one stop with roving focus, and `focus(id)` refusing a disabled stop. A click is a press
 and a release over one control; the terminal has no pointer motion beyond that.
 
-What stays unported: `apps/csssky-tui` has no profile screen of its own (that one is the web app's, on the same data
-layer and fixtures); no fetching (the frame is the recorded fixture), no images (a media line), no quote box, no
-wrapping (a body is one clipped row), the app's system theme, and the app shell (a bar, a list, a footer is all).
+**The notifications.** `apps/csssky` has no `notifications/` and no route for one, and `apps/csssky/test/fixtures` holds
+no `listNotifications` answer (the only notifications in it are a recorded post *about* the notifications redesign), so
+`terminal/notify.c` carries five rows of its own: the app's five kinds — `liked your post`, `reposted`, `followed you`,
+`mentioned you`, `replied` — with an actor and a post out of the recorded fixtures (`home-discover-1`,
+`home-science-1`, `thread.json`), the post's text as the snippet the app shows under the verb (none for the follow,
+which has no post), and the post's own `createdAt` through the app's `ago()`, so a frame does not depend on the clock.
+The screen is the shared one: the bar, the app's header row (`Notifications`), the cards of the page's own scroll, the
+footer. The focused card is the accent border *and* the next panel tone, so the ring is visible in a plain dump as well
+as in the ANSI.
+
+**The shell's path to it.** `apps/csssky`'s nav (`Shell.tsx`) has Home, a profile and Settings, and the feed's bar is
+its three feed tabs, so a notifications screen has no place in either: the feed opens it with `n` (not in the feed's
+footer line, which is the tui's own string), and `--page notifications` starts the stack there. The stack is
+`terminal/shell.c`'s: `enter` pushes `thread.c` from a notification's post, `esc` pops back to the notifications, and
+`esc` again to the feed.
+
+What stays unported: `apps/csssky-tui` has neither a profile nor a notifications screen of its own (the profile here is
+the web app's, on the same data layer and fixtures; the notifications are the web app's too, hand-carried); no fetching
+(the frame is the recorded fixture — and for the notifications no recording exists at all), no unread counts or their
+badge, none of the notifications' grouping (`All`/`Mentions`, "and 3 others liked your post"), no actor avatars (a
+glyph), no images (a media line), no quote box, no wrapping (a body is one clipped row), the app's system theme, and
+the app shell (a bar, a list, a footer is all).
 
 `cssints` is the workspace package (`"cssints": "workspace:*"`, `../packages/cssints`), not a release from npm: the
 tests run with `--conditions=development`, which resolves to its sources, so an edit to the engine is seen at once; `dist`

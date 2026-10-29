@@ -1146,6 +1146,13 @@ browser/solid/dialog.ts     the Dialog page: the same shell and Input, app/Dialo
 browser/solid/dialog.html   the Dialog canvas (360x480, tabindex=0) and its script
 browser/dialog-check.mjs    Chromium: the Dialog's closed/open/entry frames, the menu's golden, the backdrop's blur
 browser/solid/build.ts      Bun.build --target=browser, one entry point each; this src/frame.ts's ./ffi.ts and
+browser/solid/list.ts       the List: the same shell, and app/List.tsx unmodified on src/vscroll.ts's machine (the wheel's
+                            pixels reduced to notches, the page's own offset, the thumb, the keys' reveal)
+browser/solid/field.ts      the Text field: app/Field.tsx unmodified, the DOM's characters through Input.textInput and
+                            keys.ts's selectionChord (a canvas has no beforeinput and no composition)
+browser/input-check.mjs     the two pages' check: the List's golden and raster, its wheel, its thumb and its keys; the
+                            field's typed text, its caret and its selection's pixels, against frames/field-typed.png
+browser/solid/build.ts      Bun.build --target=browser, one bundle a page; this src/frame.ts's ./ffi.ts and
                             app/Widgets.tsx's ../src/ffi.ts are resolved to ffi-browser.ts
 ```
 

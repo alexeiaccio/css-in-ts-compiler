@@ -213,6 +213,82 @@ grep -q "Thread numbering is out of beta" "$OUT/profile-scroll.txt" ||
   { echo "FAIL: the third profile card did not scroll into view"; exit 1; }
 grep -q "Pinned" "$OUT/profile-scroll.txt" && { echo "FAIL: the profile list did not scroll past the first card"; exit 1; }
 
+# the notifications screen (terminal/notify.c): apps/csssky has no notifications screen, model or fixture, so its five
+# rows are hand-carried (terminal/notify.c says which): the five verbs the app's notifications have, an actor and a post
+# out of the recorded fixtures, the post's own time. 80x26: the bar, the header row, five cards, the footer; the focused
+# card is the accent border *and* the next panel tone, so the ring reads as '.' inside the card in a plain dump too.
+./terminal/demo --page notifications --cols 80 --rows 26 --dump "$OUT/notify.txt"
+cmp "$OUT/notify.txt" terminal/expected-notify.txt ||
+  { echo "FAIL: terminal/expected-notify.txt is stale (a row's actor, verb, snippet or time changed)"; exit 1; }
+for v in "liked your post" "reposted" "followed you" "mentioned you" "replied"; do
+  grep -q "$v" "$OUT/notify.txt" || { echo "FAIL: no notification row has the verb \"$v\""; exit 1; }
+done
+echo "notifications: the five rows — liked your post, reposted, followed you, mentioned you, replied"
+# the focus order is the document's: the ring is the focused card's accent rows, and Tab walks the rows in order (the
+# layers release the focus at either end; the page presses Tab again, so it wraps). Each step prints the row it landed on.
+ring_text() {
+  ansi_rows "$1" | awk -v esc="$ESC" 'index($0, esc "[38;2;59;156;240m") == 1 {
+    l = $0; gsub(esc "\\[[0-9;]*m", "", l); print l }'
+}
+./terminal/demo --page notifications --cols 80 --rows 26 --ansi "$OUT/notify.ansi"
+n=$(accent_rows "$OUT/notify.ansi")
+[ "$n" = 4 ] || { echo "FAIL: at rest the ring is $n rows, want 4 (Erik Strub's card, the first row)"; exit 1; }
+ring_text "$OUT/notify.ansi" | grep -q "Erik Strub" || { echo "FAIL: at rest the ring is not on the first row"; exit 1; }
+echo "notifications: at rest the ring is on the first row (Erik Strub, $n rows)"
+for pair in "Tab|Titania|4" "Tab,Tab|Michael Warburton|4" "Tab,Tab,Tab|jlp2024|4" "Tab,Tab,Tab,Tab|Mina Kimes|3"; do
+  k=${pair%%|*}; rest=${pair#*|}; who=${rest%%|*}; h=${rest##*|}
+  ./terminal/demo --page notifications --cols 80 --rows 26 --keys "$k" --ansi "$OUT/notify-tab.ansi"
+  n=$(accent_rows "$OUT/notify-tab.ansi")
+  [ "$n" = "$h" ] || { echo "FAIL: $k: the ring is $n rows, want $h ($who's card)"; exit 1; }
+  ring_text "$OUT/notify-tab.ansi" | grep -q "$who" || { echo "FAIL: $k: the ring is not on $who"; exit 1; }
+  echo "notifications: $k — the ring is on $who ($n rows)"
+done
+# Shift+Tab from the first row is released by the layer and pressed again: the last row, the follow, whose card is 3 rows
+./terminal/demo --page notifications --cols 80 --rows 26 --keys Shift+Tab --ansi "$OUT/notify-shift.ansi"
+n=$(accent_rows "$OUT/notify-shift.ansi")
+[ "$n" = 3 ] || { echo "FAIL: Shift+Tab from the first row: $n accent rows, want 3 (the follow, the last row)"; exit 1; }
+ring_text "$OUT/notify-shift.ansi" | grep -q "Mina Kimes" ||
+  { echo "FAIL: Shift+Tab from the first row did not wrap to the last"; exit 1; }
+echo "notifications: Shift+Tab from the first row wraps to the last (Mina Kimes, 3 rows)"
+# the arrows move the ring a row (the roving the app's list does): Tab to the second row, ArrowDown to the third
+./terminal/demo --page notifications --cols 80 --rows 26 --keys Tab,ArrowDown --dump "$OUT/notify-focus.txt"
+cmp "$OUT/notify-focus.txt" terminal/expected-notify-focus.txt ||
+  { echo "FAIL: terminal/expected-notify-focus.txt is stale (Tab and ArrowDown did not land on Michael Warburton's row)"; exit 1; }
+echo "notifications: Tab and ArrowDown put the ring on the third row (expected-notify-focus.txt)"
+# Enter opens the notification's post as the thread, and Escape comes back to the frame it left
+./terminal/demo --page notifications --cols 80 --rows 26 --keys Enter --dump "$OUT/notify-thread.txt"
+grep -q "Thread (esc: back)" "$OUT/notify-thread.txt" ||
+  { echo "FAIL: Enter on a notification did not open its post's thread"; exit 1; }
+./terminal/demo --page notifications --cols 80 --rows 26 --keys Enter,Escape --dump "$OUT/notify-back.txt"
+cmp "$OUT/notify-back.txt" "$OUT/notify.txt" || { echo "FAIL: Escape did not come back to the notifications frame"; exit 1; }
+# a follow has no post: Enter on it opens nothing, and the screen stays
+./terminal/demo --page notifications --cols 80 --rows 26 --keys Tab,Tab,Tab,Tab,Enter --dump "$OUT/notify-follow.txt"
+grep -q "Thread (esc: back)" "$OUT/notify-follow.txt" && { echo "FAIL: Enter on a follow opened a thread"; exit 1; }
+grep -q "Mina Kimes" "$OUT/notify-follow.txt" || { echo "FAIL: Tab four times did not reach the follow"; exit 1; }
+echo "notifications: Enter opens a post's thread, Escape is its frame, and a follow opens none"
+# a click focuses and opens a card as the feed's cards do; on the follow it only focuses it
+./terminal/demo --page notifications --cols 80 --rows 26 --click 10,3 --dump "$OUT/notify-click.txt"
+grep -q "Thread (esc: back)" "$OUT/notify-click.txt" || { echo "FAIL: a click on a card did not open its thread"; exit 1; }
+./terminal/demo --page notifications --cols 80 --rows 26 --click 10,19 --ansi "$OUT/notify-click2.ansi"
+n=$(accent_rows "$OUT/notify-click2.ansi")
+[ "$n" = 3 ] || { echo "FAIL: a click on the follow card left $n accent rows, want 3"; exit 1; }
+ring_text "$OUT/notify-click2.ansi" | grep -q "Mina Kimes" || { echo "FAIL: the click did not focus the follow's card"; exit 1; }
+echo "notifications: a click opens a card's thread, and a follow's card only takes the ring"
+# the page's own scroll, as the thread's and the profile's: four rows down at 12 rows has the follow in view, the first out
+./terminal/demo --page notifications --cols 80 --rows 12 --keys ArrowDown,ArrowDown,ArrowDown,ArrowDown --dump "$OUT/notify-scroll.txt"
+grep -q "Mina Kimes" "$OUT/notify-scroll.txt" || { echo "FAIL: the follow did not scroll into view"; exit 1; }
+grep -q "Erik Strub" "$OUT/notify-scroll.txt" && { echo "FAIL: the list did not scroll past the first card"; exit 1; }
+echo "notifications: four rows down at 12 rows scrolls the follow into view"
+# the shell's path to it: the app's nav (Shell.tsx) is Home, a profile and Settings, and the feed's bar is the feed's
+# tabs, so a notifications place is in neither: the feed opens it with `n`, and Escape is the feed's frame again
+./terminal/demo --page sky --cols 80 --rows 20 --keys n --dump "$OUT/sky-notify.txt"
+grep -q "Notifications (esc: back)" "$OUT/sky-notify.txt" ||
+  { echo "FAIL: n on the feed did not open the notifications"; exit 1; }
+./terminal/demo --page sky --cols 80 --rows 20 --keys n,Escape --dump "$OUT/sky-notify-back.txt"
+cmp "$OUT/sky-notify-back.txt" "$OUT/sky.txt" ||
+  { echo "FAIL: Escape from the notifications did not come back to the feed frame"; exit 1; }
+echo "notifications: n from the feed opens it, and Escape is the feed's frame"
+
 # termbox2 (terminal/tb2.c). It needs a terminal -- tb_init opens /dev/tty -- so it runs under a pty (script, whose
 # stdin is the pty too, so a click is the bytes a terminal sends). 256 colours unless COLORTERM says truecolour.
 if command -v script >/dev/null 2>&1; then

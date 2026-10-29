@@ -40,6 +40,8 @@ interface Page {
   dump(): string;
   /** The page's tree as a screen reader would walk it (solid/a11y.ts's `snapshot`), in the page. */
   a11y(): unknown;
+  /** An element's box from the last frame's layout (`ui.bounds`): the List's rows and thumb, the field's caret. */
+  bounds(id: string): number[] | undefined;
   bench(n?: number): number;
 }
 
@@ -183,6 +185,9 @@ export async function mountPage(options: Options): Promise<void> {
   }
   requestAnimationFrame(tick);
 
+  // the ids `bounds` encodes: Clay holds the pointer it hashed, so an id's bytes are made once and kept
+  const bound = new Map<string, Uint8Array>();
+
   // for browser/solid-check.mjs: the same scripted frames main.ts --png/--click take, the last frame's commands, dump and
   // a11y tree, and the frame's ms. `warm` is dump.ts's `--warm 30` (31 frames at 1/60), so a page's first-mount entry is
   // over. Functions, so nothing can hold a stale command list.
@@ -204,6 +209,12 @@ export async function mountPage(options: Options): Promise<void> {
       return new TextDecoder().decode(new Uint8Array(wasm.memory.buffer, wasm.dump_ptr(), length));
     },
     a11y: () => snapshot(root),
+    /** A box of the last frame's layout, as [x, y, w, h] (the element's own, clipped or not), or undefined for an id the
+     *  page did not declare. The bytes are made once an id, as every id is. */
+    bounds(id: string) {
+      const box = ui.bounds(bound.get(id) ?? (bound.set(id, new TextEncoder().encode(id)), bound.get(id)!));
+      return box === undefined ? undefined : [...box];
+    },
     /** Ms a frame: the tree declared, Clay's layout, the commands read out, Canvas2D's raster and one readback. */
     bench(n = 100) {
       const t0 = performance.now();

@@ -603,27 +603,39 @@ Each step ends in a check that fails when it breaks.
    `test.sh`; dropping the text colour fails the ANSI assert.
    **`csssky-tui` in cells**: `terminal/sky.c` is its home screen (the bar with the three feed tabs, the cards from
    `apps/csssky`'s recorded `home-discover-1`/`home-science-1`, the footer), `terminal/thread.c` its thread (the
-   parent, the post with its full time and counts in words, the replies at their depth), and `terminal/profile.c`
-   `apps/csssky`'s profile (the header, the Posts/Replies/Media tabs, those three fixtures) — the tui has no profile
-   screen of its own, and that is the one honest gap in "port the app's screens". `terminal/focus.c` is the keyboard
-   focus: stops in document order, Tab/Shift+Tab with the focus released at either end, a group as one stop with
-   roving focus (an orientation, wrap and leave-at-the-edge), and `focus(id)` refusing a disabled stop — the semantics
-   of `focus/src/focus.ts`, not shared code with it (the C page has no DOM to register into, so its stops are rebuilt
-   when a feed or a tab changes the rows). `terminal/shell.c` is the screen stack (`enter` pushes, `esc` pops). The
-   pages' rings are the focus state, not two ints. Check: `terminal/test_focus.c` (Tab order, the release, a roving
-   group with and without wrap, leaving at an edge, memory, Home/End, a disabled stop), `terminal/expected-thread.txt`
-   and `expected-profile.txt` (the two screens), `expected-sky-focus.txt` (the bar focused, its roving tab the active
-   feed) and, in `test.sh`, the accent border's rows in the ANSI of focused/unfocused frames (a click and `ArrowDown`
-   move the ring), the bar's wrap, the list leaving at its edge, a click on a control of each screen, and the scroll of
-   the thread and of the profile. Breaking the group's wrap, or its leave, fails both a unit test and a page test.
+   parent, the post with its full time and counts in words, the replies at their depth), `terminal/profile.c`
+   `apps/csssky`'s profile (the header, the Posts/Replies/Media tabs, those three fixtures) and `terminal/notify.c`
+   `apps/csssky`'s notifications (the header row, then a card a kind: the actor, the verb — liked your post, reposted,
+   followed you, mentioned you, replied — the post's snippet where there is one, the time), which the feed opens with
+   `n` because neither the app's nav (Home, a profile, Settings) nor the feed's bar (its feed tabs) has a place for it.
+   The tui has neither the profile nor the notifications screen of its own: the profile is the web app's, on its data
+   layer and fixtures, and the notifications are **hand-carried**, because the app has no notifications screen, model or
+   fixture — the app's five verbs, actors and posts out of the recorded fixtures, the post's own time.
+   `terminal/focus.c` is the keyboard focus: stops in document order, Tab/Shift+Tab with the focus released at either
+   end, a group as one stop with roving focus (an orientation, wrap and leave-at-the-edge), and `focus(id)` refusing a
+   disabled stop — the semantics of `focus/src/focus.ts`, not shared code with it (the C page has no DOM to register
+   into, so its stops are rebuilt when a feed or a tab changes the rows). `terminal/shell.c` is the screen stack
+   (`enter` pushes, `esc` pops). The pages' rings are the focus state, not two ints. Check: `terminal/test_focus.c` (Tab
+   order, the release, a roving group with and without wrap, leaving at an edge, memory, Home/End, a disabled stop),
+   `terminal/expected-thread.txt` and `expected-profile.txt` (the two screens), `expected-sky-focus.txt` (the bar
+   focused, its roving tab the active feed), `expected-notify.txt` and `expected-notify-focus.txt` (the notifications at
+   rest — the ring on the first row, whose card carries the accent border and the next panel tone — and after Tab and
+   ArrowDown, the third row's) and, in
+   `test.sh`, the accent border's rows in the ANSI of focused/unfocused frames (a click and `ArrowDown`
+   move the ring), the five verbs' texts, the rows' Tab order one key at a time and its wrap at either end, a follow's
+   Enter opening nothing, the notifications' own scroll and `n` from the feed, the bar's wrap, the list leaving at its
+   edge, a click on a control of each screen, and the scroll of the thread and of the profile. Breaking the group's
+   wrap, or its leave, fails both a unit test and a page test; swapping a verb's text fails the stored notifications
+   dump, and taking the rows out of the Tab order fails its focus-order check (`Tab: the ring is 0 rows, want 4`).
    Left: **termbox2 is in** (`terminal/vendor/termbox2.h`, upstream master, MIT, sha256 `e019abb9`; `terminal/tb2.c`: truecolour or 256, keys and the mouse, checked through a pty in
    `test.sh`), and so are clicks; what a click cannot do is hover — termbox2 reports no motion events. Still left:
-   `csssky-tui`'s own profile and notifications screens (it has neither; the profile here is the web app's), its data
-   fetching and paging (every frame is one recorded fixture), images (a media line; counted and reported, not drawn),
-   quote boxes, a body that wraps (one clipped row), the system theme of `src/system.ts` (the static dark/light ones
-   are ported), the wheel and dragging, wide glyphs and emoji (a code point is one cell), floating overlays (untried),
-   sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius is a square corner),
-   scrollback, and Solid on the terminal (the pages are C, as step 5's). The
+   `csssky-tui`'s own profile screen (the one here is the web app's), notifications in the tui itself (the terminal
+   shows the web app's, hand-carried), its data fetching and paging (every frame is one recorded fixture), unread
+   counts and their badge, the notifications' grouping and the actor's avatar, images (a media line; counted and
+   reported, not drawn), quote boxes, a body that wraps (one clipped row), the system theme of `src/system.ts` (the
+   static dark/light ones are ported), the wheel and dragging, wide glyphs and emoji (a code point is one cell),
+   floating overlays (untried), sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius
+   is a square corner), scrollback, and Solid on the terminal (the pages are C, as step 5's). The
    cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25 columns, so a page's pixel lengths
    have to be re-cut to land on cell boundaries, and text smaller or larger than a cell is the same cell.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
@@ -778,6 +790,39 @@ Each step ends in a check that fails when it breaks.
    only one; a second one in a frame would read the first one's pixels), touch (the wasm has `ui_touch_map`, nothing
    sends a finger's event), and a dev server or HMR (the bundles are built by hand). The generated C is still the no-JS
    page, unchanged, which is what the board already is.
+   What is still not there: six more pages (each has its own keys, and the List's and Sky's scroll machines are untried;
+   `src/vscroll`'s wheel is in, `Input`'s typed text is not, and neither are a page's dialogs and floats), the renderer's
+   side tables (`ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value channel's group fields 46–50 and 55: a
+   command array alone has no scene, so a shadow, a gradient, a backdrop, a transform or an image is a frame this target
+   draws without it — the Sensors page's entry is why the check warms 31 frames), touch (the wasm has `ui_touch_map`,
+   nothing sends a finger's event), and a dev server or HMR (the bundles are built by hand). The generated C is still the
+   no-JS page, unchanged, which is what the board already is.
+   **Done: the List and the Text field** (2026-10-29). The two things the shell could not carry: a page that owns its
+   scroll offset, and a page that takes typed text. `browser/solid/list.ts` (`list.html`) is `solid/app/List.tsx`
+   unmodified on its own `createInput()` and `src/vscroll.ts`'s machine; the wheel reaches the page's `motion.onWheel`
+   (the shell drains `ui.wheel` into it before the frame) reduced to its sign, one event a notch with SDL's sign, because
+   a DOM delta is in pixels and the machine counts notches: three notches, a rest frame apart, move the offset 30 px and
+   row 0's top by −30.00 px, the thumb at +8.02 px of the viewport, 64.14 px tall, 4 px wide 2 px in (`barOf` for 30 of
+   658), Tab easing the offset back to 0 for the selected row and ArrowDown moving it (the readout "Room A1 — 1 of 30" →
+   "Room B1 — 2 of 30", the row's fill 36,40,52,255). `browser/solid/field.ts` (`field.html`) is `solid/app/Field.tsx`
+   unmodified: a canvas has no `beforeinput` and no composition, so the printable characters come from the `keydown`'s
+   `key` into `Input.textInput` (the call `main.ts` makes for SDL's TEXTINPUT), and `keys.ts`'s `selectionChord` names
+   the selection keys `keyName` refuses — Tab twice, "Ada" is the page's value and the frame's (`Value: "Ada" (3)`, the
+   caret at x 80.16), Backspace one character and −8.70 px, two Shift+ArrowLeft a run of 19.46 px whose middle is
+   97,69,51 (the accent at 30% over the surface), the caret 1 px before it. `browser/draw.js` draws a command's own alpha
+   for that — the first translucent plain rectangle on this target; no other page's frame moves (all its commands are
+   opaque). Check: `browser/input-check.mjs` — the List's base frame against `solid/goldens/list.json` (36 commands,
+   worst box 0.94 px) and its raster against `solid/frames/list-top.png` (7.18 % of pixels; means within 14.4/255, ink
+   within 1.00 px, the frame's mean within 1.55/255), the field against `solid/frames/field-typed.png` (11.53 %;
+   15.3/255, ink 4.00 px, 1.23/255), and the typed run's ink in the same box as the desktop's (52..80 px). Mutations it
+   catches: the wheel dropped on its way to the page — "the offset is 0, want 30", "row 0's top moved 0px, want -30";
+   a character sent as a key instead of `textInput` — the value is "" and the caret stays at 52 (the run's ink 18 px
+   against the desktop's 170). Cost: `list.js` 197,252 B (49,199 B gzip) and 0.17 ms a frame, `field.js` 236,785 B
+   (55,208 B gzip) and 0.14 ms on the same `ui.wasm` (141,104 B, 52,269 B gzip).
+   Limits: no IME (no composition event on a canvas; an `EditContext` would be the way), no clipboard, no pointer drag
+   of the List's rows or thumb in the browser (the desktop's `list.test.ts` has it), no touch; four of the shell's pages
+   are real now (Sensors, Widgets, List, Text field) and the Sky has its own loop — Dialog, Sheet and Dev are still not
+   here.
 
 
 ## What Rune's research gives us (2026-10-23)
