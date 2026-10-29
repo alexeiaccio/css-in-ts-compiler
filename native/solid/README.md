@@ -1119,3 +1119,25 @@ adapter over. It is one golden because it is one page: the same tree from the sa
 measured first, the C page's commands equal these, boxes included (both are laid out with ThorVG's metrics); the browser
 keeps the 4 px tolerance Canvas2D's advances need. `solid/dump.test.ts` still owns the file: it is the only thing that
 stores it (`--update`), and the other hosts only read it.
+
+## In the browser
+
+This host's modules are the page's, unmodified. `browser/solid/` holds the four files a browser target needs:
+
+```
+browser/ui.c                the flat ui_* surface over Clay alone (solid/native/ui.c minus SDL, the window, ThorVG,
+                            the renderer's tables and images), compiled by browser/build.sh to ui.wasm
+browser/solid/ffi-browser.ts  the same `ui` object this directory's src/ffi.ts exports, over that wasm
+browser/solid/page.ts       the loop: this src/renderer.ts, this src/frame.ts and app/Sensors.tsx, requestAnimationFrame,
+                            the mouse as the pointer, browser/draw.js for the raster
+browser/solid/build.ts      Bun.build --target=browser; src/frame.ts's ./ffi.ts is resolved to ffi-browser.ts
+```
+
+`bun browser/solid/build.ts` writes `page.js` to `${TMPDIR:-/tmp}/cssints-native-web/solid`, and
+`node browser/solid-check.mjs` (which `solid/test.sh` runs last, skipped without zig, bun or Playwright's chromium) holds
+the page to `goldens/sensors.json`, to the no-JS page's use_g frame after a real click, and to
+`browser/expected.png`. The two globals these modules read from the host — `Bun.nanoseconds` and `Buffer.from` — are
+shimmed in `browser/solid/globals.ts`; nothing else of Bun or Node is reached. What the browser surface drops from
+`solid/native/ui.c` (the shadow, backdrop, gradient and group tables, images, the window, key and text queues, the
+clipboard, PNG I/O, `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the
+one page it carries, and its cost, are in `native/README.md`'s browser chapter.

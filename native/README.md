@@ -34,7 +34,8 @@ terminal/                  the same page in cells: Clay -> terminal/cells.c -> A
                            The sky screens (home, thread, profile) and their focus layer (terminal/focus.c)
 vendor/                    clay.h and Clay's SDL3 renderer (e6cc369), a font
 headless/                  button, switch, checkbox, disclosure as signals + neutral parts, checked against Quint specs
-browser/                   the same page as WebAssembly on a canvas: page.c (Clay + generated C), render.js, check.mjs
+browser/                   the same page as WebAssembly on a canvas: page.c (Clay + generated C), draw.js, render.js,
+                           check.mjs; and solid/ — the Solid page in the browser over ui.c, ffi-browser.ts, page.ts, build.ts
 docs/map.md                targets, layers, order of work
 ```
 
@@ -1156,10 +1157,10 @@ node browser/check.mjs --serve                                # ...or serve the 
 ## Browser (WASM)
 
 The same generated C as step 5, compiled with `zig cc -target wasm32-wasi` (a libc; there is no emscripten here) and
-drawn by `browser/render.js` on a `<canvas>`: rectangles, inside borders, `roundRect` corners, `fillText`, `clip()` for
-a scissor. No framework and no build step at run time. Text is measured by Canvas2D through one wasm import, so Clay
-lays out with the same font the canvas draws with (Roboto from `vendor/fonts`), and `w` or the button switches the
-`use_g` frame.
+drawn by `browser/draw.js` on a `<canvas>` (rectangles, inside borders, `roundRect` corners, `fillText`, `clip()` for a
+scissor), which `browser/render.js` — the no-JS page's own two frames and its readouts — loads. No framework and no
+build step at run time. Text is measured by Canvas2D through one wasm import, so Clay lays out with the same font the
+canvas draws with (Roboto from `vendor/fonts`), and `w` or the button switches the `use_g` frame.
 
 ```sh
 sh browser/build.sh            # -> ${TMPDIR:-/tmp}/cssints-native-web/page.wasm, next to the generated styles.h
@@ -1170,13 +1171,79 @@ node browser/check.mjs --serve # http://127.0.0.1:<port>/browser/index.html — 
 | What         | Size       |
 | ------------ | ---------- |
 | `page.wasm`  | 131,609 B  |
-| the page     | 8,816 B (index.html + render.js) |
+| the page     | 10,487 B (index.html + render.js + draw.js) |
 
 `browser/check.mjs` builds nothing: `browser/build.sh` does, into `$TMPDIR`, because the wasm is a build product. The
 wasm exports `dump()`: the last frame as the JSON of `desktop/clay_dump.c`, the one emitter on every target, and the
 check compares it with `solid/goldens/sensors.json` — the same golden the Solid page and the C page are held to — so
 the browser has no command table of its own any more. `page.wasm` carries the emitter's `vsnprintf` (about 27 KB) for
 that comparison; the page itself does not need it.
+
+### The Solid page in the browser
+
+The desktop's modules play in the page too: `browser/solid/page.ts` imports `solid/src/renderer.ts`, `solid/src/frame.ts`
+and `solid/app/Sensors.tsx` **unmodified**, `browser/solid/build.ts` bundles them with Bun (`--target=browser`, the same
+JSX and cssints loaders as `solid/plugin.ts`), and Clay runs in a second wasm module beside the generated page's.
+
+```
+browser/ui.c                 the desktop's flat ui_* surface over Clay only: no SDL, no window, no ThorVG
+browser/solid/ffi-browser.ts the same `ui` object as solid/src/ffi.ts, over the wasm: a growing heap, TextEncoder,
+                             the style's Float32Array copied in, Canvas2D answering env.measure
+browser/solid/page.ts        the frame loop: render(Sensors) into an El tree, createDrawer, requestAnimationFrame,
+                             the mouse and the wheel as the pointer, the canvas drawn by browser/draw.js
+browser/solid/build.ts       Bun.build: page.js; one resolution, src/frame.ts's ./ffi.ts -> ffi-browser.ts
+browser/solid/index.html     the canvas and the script
+browser/solid-check.mjs      Chromium: the commands, a real click, the raster, the sizes and the ms
+```
+
+`sh browser/build.sh` builds both modules: `page.wasm` is the no-JS path (unchanged), `ui.wasm` is this one. Neither is
+committed. The loop is `src/frame.ts`'s `createDrawer`: the tree is declared and laid out every `requestAnimationFrame`,
+and the canvas is drawn only when the frame hash moved or a discrete input came in — a page at rest costs a layout and
+no pixels, as on the desktop. A press or a release runs its frame on the event, so a click cannot land both inside one
+frame. Keys have no page to reach: `Sensors` takes no input, and the desktop's SDL key names (`src/input.ts`) have no
+DOM map here yet.
+
+The two host globals the desktop's modules read are shimmed in `browser/solid/globals.ts`: `Bun.nanoseconds` (the
+frame's phases, `performance.now`) and `Buffer.from` (the page's entry id). Of the desktop binding's pixels,
+`ui.pixel(x, y)` and `ui.pixels(w, h)` are the page's canvas (`getImageData`, at the raster's density) and
+`png`/`savePng`/`diffPng` have no file system to work on — the check writes the canvas with Playwright instead; the
+command array itself is the wasm's (`cmds`, `cmd_count`, `cmd_size`), which is what `draw.js` and the dump read.
+
+| What            | Size                                    |
+| --------------- | --------------------------------------- |
+| `ui.wasm`       | 136,338 B (50,215 B gzip)               |
+| `page.js`       | 228,467 B (54,144 B gzip), unminified   |
+| `index.html`    | 1,181 B                                 |
+| a frame         | 0.08-0.09 ms: declare, layout, commands, Canvas2D, one readback (100 frames, headless Chromium, M2) |
+
+`browser/solid-check.mjs` is `browser/check.mjs`'s sibling and runs in `solid/test.sh` (skipped, with a message, when
+zig, bun or Playwright's chromium is missing):
+
+```sh
+sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the bundle, in $TMPDIR
+node browser/solid-check.mjs                        # the base frame, the click, the raster, the sizes
+node browser/solid-check.mjs --serve                # http://127.0.0.1:<port>/browser/solid/index.html, for a person
+```
+
+(a) the base frame dumped through the same emitter against `solid/goldens/sensors.json`: 10 commands, every field and
+every box — the worst box 3.38 px, the Units pill sitting that much lower because the measure callback rounds every
+line height up (37.5 -> 38 at 32px, 16.4 -> 17 at 14px, `draw.js`, as the no-JS page's does) while ThorVG's is exact;
+the no-JS page's own check reports the same 3.38 on the same command. (b) a real click: Playwright's mouse on the
+pill, the page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; while the pointer is on the
+pill the frame carries its `:hover` (48,53,68), and with the
+pointer off it the use_g frame is the no-JS page's `frame(1)` field for field and box for box, 0 px — two runs of the
+same Clay and the same Canvas2D measure, so a difference could only be this page's. A second click returns to the base
+frame, again identical. (c) the canvas against `browser/expected.png`: 0.00% of pixels differ, worst 8x8 block 0.0/255.
+
+What it still is not, honestly: one page of eight (the others need `src/input.ts`'s key map, the List's and Sky's scroll
+machines, and are untried); no renderer effects — `ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value
+channel's group fields (46–50, 55: alpha, scale, translate, rotate, gradient alpha) were ThorVG's tables, and Canvas2D
+here draws only the command array, so a shadow, a gradient, a backdrop, a scene transform or an image is a frame this
+target draws without them (the Sensors page's first-mount entry writes two of them, which is why the check warms 31
+frames and why its commands are the settled ones); no touch (the wasm still has `ui_touch_map`, nothing sends a finger's
+event); no HMR or dev server story — the bundle is built once, by hand; and the framework's cost is the bundle's 229 KB
+(gzip 54 KB) against the no-JS page's 4.7 KB, for a JS tree and a state machine instead of a static frame. The generated
+C stays the no-JS path, which is what the board already is.
 
 ## The sky screens in a terminal
 

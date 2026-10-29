@@ -244,6 +244,20 @@ bun solid/settings.test.ts
 # bounds, a colour's fill, the clamps at 255 and 0, `r` and `Shift+R` byte for byte, the `*`, the row window, and the
 # cost with five rows overridden (0.050 ms of declare and 0.033 of layout at rest, 0.048/0.038 with five: the noise).
 bun solid/tune.test.ts
+
+# The same page in a browser, on these modules: the desktop's src/frame.ts and src/renderer.ts over Clay in wasm
+# (browser/ui.c), the command array drawn by browser/draw.js, the pointer from the page's mouse. The check compares the
+# base frame with goldens/sensors.json, a real click on the Units pill with the no-JS page's use_g frame, the raster
+# with browser/expected.png, and prints the bundle's and the wasm's size and the frame's ms. Skips (with a message) when
+# zig, bun or Playwright's chromium is not installed.
+if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
+   node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
+  sh browser/build.sh >/dev/null
+  bun browser/solid/build.ts >/dev/null
+  node browser/solid-check.mjs
+else
+  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs)"
+fi
 # the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
 # field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.
 printf '{"values":[{"id":"wifi","field":"radius","value":16}]}\n' > "${TMPDIR:-/tmp}/cssints-dev-tune.json"
