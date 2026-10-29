@@ -10,9 +10,11 @@
 // `ui.wasm` and the bundle are served from browser/solid/, so the fetch is relative to the document, as render.js
 // fetches browser/page.wasm.
 //
-// What this binding cannot bring over is the desktop's window and renderer (see browser/ui.c): the window members are
-// stubs, `pixel`/`pixels` read the page's own canvas (browser/solid/page.ts binds it), and `png`/`savePng`/`diffPng`
-// have no file system — the check writes the canvas with Playwright instead.
+// The desktop's renderer's effects are the C's tables (a shadow, a gradient, a group, an image, a backdrop): browser/ui.c
+// fills them beside the commands and browser/draw.js draws them, so `shadow`, `backgroundImage`, `image`, the value
+// channel's group fields and `value`'s packed fields all reach the page. What this binding cannot bring over is the
+// desktop's window: the window members are stubs, `pixel`/`pixels` read the page's own canvas (browser/solid/page.ts
+// binds it), and `png`/`savePng`/`diffPng` have no file system — the check writes the canvas with Playwright instead.
 
 type Ptr = number;
 
@@ -47,6 +49,13 @@ interface Exports {
   ui_scroll_to(id: Ptr, len: number, axis: number, v: number): number;
   ui_scroll_put(id: Ptr, len: number, axis: number, v: number): number;
   ui_touch_map(fx: number, fy: number, out: Ptr): void;
+  ui_image(path: Ptr, len: number): void;
+  ui_shadow(x: number, y: number, blur: number, r: number, g: number, b: number, a: number): void;
+  ui_backdrop(blur: number): void;
+  ui_backgroundImage(kind: number, angle: number, count: number, stops: Ptr): void;
+  fx(kind: number): Ptr;
+  fx_count(kind: number): number;
+  fx_stride(kind: number): number;
 }
 
 let onMeasure: (ptr: Ptr, len: number, fontId: number, size: number) => void = () => {};
@@ -168,12 +177,17 @@ export const ui = {
   open: (id: Uint8Array | undefined, style: Float32Array) =>
     wasm.ui_open(id ? idPtr(id) : null, id ? id.length : 0, floats(style)),
   value: (id: Uint8Array, field: number, v: number) => wasm.ui_value(idPtr(id), id.length, field, v),
-  /** No image target: Canvas2D draws the command array, and a path is not a decoded bitmap here. */
-  image: (_path: Uint8Array) => {},
-  /** The desktop's renderer tables (a shadow, a backdrop, a gradient): accepted, and nothing draws them. */
-  shadow: (_x: number, _y: number, _blur: number, _r: number, _g: number, _b: number, _a: number) => {},
-  backdrop: (_blur: number) => {},
-  backgroundImage: (_kind: number, _angle: number, _count: number, _stops: Float32Array) => {},
+  /** The image of the element the next `open` declares (a css.image style): the path, which the C interns for the process
+   *  and browser/draw.js decodes into a bitmap. */
+  image: (path: Uint8Array) => wasm.ui_image(copy(path), path.length),
+  /** The shadow of the element the next `open` declares (a css.shadow style): offset, blur, colour 0-255. */
+  shadow: (x: number, y: number, blur: number, r: number, g: number, b: number, a: number) =>
+    wasm.ui_shadow(x, y, blur, r, g, b, a),
+  /** The backdrop of the element the next `open` declares: recorded and hashed; the page draws its tint, not the blur. */
+  backdrop: (blur: number) => wasm.ui_backdrop(blur),
+  /** The background image of the element the next `open` declares: a linear gradient, `count` stops of 5 floats each. */
+  backgroundImage: (kind: number, angle: number, count: number, stops: Float32Array) =>
+    wasm.ui_backgroundImage(kind, angle, count, floats(stops)),
   close: () => wasm.ui_close(),
   text: (id: Uint8Array | undefined, bytes: Uint8Array, style: Float32Array) =>
     wasm.ui_text(id ? idPtr(id) : null, id ? id.length : 0, copy(bytes), bytes.length, floats(style)),

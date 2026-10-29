@@ -61,14 +61,14 @@ canvas.addEventListener("mouseup", (e) => {
 canvas.addEventListener("mouseleave", () => {
   px = py = -1, down = false;
 });
-// SDL's wheel y is positive away from the user, and a browser's deltaY is positive scrolling down the page: the same
-// sign. `ui.wheel` feeds Clay's containers and the page's own channel; the loop drains it before the frame, as the
-// desktop's window loop does with ui.wheelPop
+// SDL's wheel is ±1 a notch, positive away from the user (a wheel up); a browser's delta is pixels, positive a wheel
+// down. One event is one notch, with the sign turned round (nothing on this page scrolls, the Sensors page has no clip
+// element, but the same wheel goes to Clay's containers when a page keeps its own scrolling).
 canvas.addEventListener(
   "wheel",
   (e) => {
     e.preventDefault();
-    ui.wheel(e.deltaX, e.deltaY);
+    ui.wheel(-Math.sign(e.deltaX), -Math.sign(e.deltaY));
   },
   { passive: false },
 );
