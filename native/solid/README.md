@@ -91,6 +91,12 @@ text.test.ts, scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
+A scene is shared with the C host too: `examples/sensors/scenes/sensors-click.json` (a click on the Sensors page's pill)
+is replayed by `bun solid/main.ts --scene …` and by the generated C page's host
+(`./build/sensors/app-generated --scene …`; `desktop/scene.c` is the parser, strict on purpose, and its limits are in
+`native/README.md`, "The generated page's events: a state machine"), both landing on
+`examples/sensors/expected-thorvg-g.png`.
+
 **Styles live where the markup does.** A page may declare its tokens and styles in its own `.tsx`
 (`import * as css from "cssints/clay" with { type: "cssints" }`) — `app/Widgets.tsx` does. The child spawns only when the
 source mentions cssints, costs about 0.9 s once per page at load (the same as a `styles.ts` module: it is Node and

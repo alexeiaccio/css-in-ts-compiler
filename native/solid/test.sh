@@ -11,6 +11,9 @@ S0="bun solid/main.ts --warm 30"
 $S0 --expect examples/sensors/expected-thorvg.png
 $S0 --click 180 250 --expect examples/sensors/expected-thorvg-g.png
 THEME=light $S0 --expect examples/sensors/expected-thorvg-light.png
+# a scene from the shared format (examples/sensors/scenes/sensors-click.json): a click on the pill at its coordinates,
+# 30 frames of settle, the last frame the same one the C host replays from the same file
+bun solid/main.ts --scene examples/sensors/scenes/sensors-click.json --expect examples/sensors/expected-thorvg-g.png
 bun solid/test.ts
 # the Widgets page (headless button, switch, checkbox, disclosure, radio, tabs, slider, toolbar; the focus manager): scripted keys, then the frame
 # the page's entry is over by the first key: every frame below is at rest (`--warm 30`)

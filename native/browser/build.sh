@@ -12,10 +12,11 @@ mkdir -p "$OUT"
 node --conditions=development "$ROOT/generator/clay-header.ts" "$ROOT/examples/sensors/styles.ts" "$OUT/styles.h"
 
 # A reactor (not a command) module: _initialize runs libc's constructors, and the exports are init/frame/cmds. No
-# imports at all, so the page needs no WASI shim; measure is the only one (env.measure, from render.js).
+# imports at all, so the page needs no WASI shim; measure is the only one (env.measure, from render.js). The page is the
+# generated state machine (--events): the wasm keeps the state and a press/release asks its table.
 zig cc -target wasm32-wasi -mexec-model=reactor -Oz -Wall -Wno-unused-function -Wno-missing-field-initializers \
-  -Wno-unused-variable -I "$OUT" -I "$ROOT/vendor/clay" \
-  "$ROOT/browser/page.c" "$ROOT/examples/sensors/page_generated.c" "$ROOT/examples/sensors/page_generated_g.c" \
+  -Wno-unused-variable -I "$OUT" -I "$ROOT/vendor/clay" -I "$ROOT/generator" \
+  "$ROOT/browser/page.c" "$ROOT/examples/sensors/page_generated_events.c" \
   -Wl,--strip-all -o "$OUT/page.wasm"
 
 echo "$OUT/page.wasm ($(wc -c < "$OUT/page.wasm" | tr -d ' ') bytes)"

@@ -1253,6 +1253,111 @@ own data options (`--count`, `--posts`, `--wide`: a scene has its page at its ow
 is a key and works, but `theme` is the starting one). And the scenes are written by hand: nothing records a live window
 into one yet.
 
+## The generated page's events: a state machine
+
+The generated C page used to be one static frame per file: a host that wanted the clicked or pressed frame had to be given
+that file at build time, and a click in the page did nothing. `generator/page-to-c.ts --events` emits the same page as a
+**state machine** instead — `examples/sensors/page_generated_events.c` — one frame a state and the table a host dispatches
+with:
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/Sensors.tsx \
+  --styles examples/sensors/styles.ts --states examples/sensors/states.json \
+  --events examples/sensors/page_generated_events.c --events-name sensors
+```
+
+A **state** is the frame the page declares: its signals plus the pointer's overlay (`:hover`/`:active` over an element
+with an `onClick`/`onPress`). The signal states are the `--states` entries with no `pointer` action (`use_g=false`,
+`use_g=true`); the generator derives each one's overlays by replaying its actions and drawing the pointer at build time,
+and names a derived state after a `--states` entry whose frame is identical (`pressed=true` is `use_g=false` with the
+pointer held down on `Units`). For the Sensors page the six states are:
+
+| index | state | the frame |
+| --- | --- | --- |
+| 0 | `use_g=false` | the base frame |
+| 1 | `use_g=false + hover Units` | the pointer over the pill, up |
+| 2 | `pressed=true` | `units_active`, m/s² values — the file `page_generated_pressed.c` holds |
+| 3 | `use_g=true` | the `use_g` frame |
+| 4 | `use_g=true + hover Units` | the clicked frame, hovered: `expected-thorvg-g.png` |
+| 5 | `use_g=true + press Units` | `units_active`, g values |
+
+The generated API (`<name>` is `--events-name`):
+
+| symbol | what it is |
+| --- | --- |
+| `void <name>_frame(int state, int light)` | draw one state: `light` 0 is the base theme, 1 the one variant (`light`) |
+| `void <name>_frame_<i>`, `_<i>_light` | the same, one function a state and theme, for a target that wants the symbol |
+| `int <name>_state_count(void)` | the states, 6 here |
+| `const char *<name>_state_name(int state)` | `--states`' key, or how the generator derived it (`use_g=true + hover Units`) |
+| `int <name>_handler_count(void)`, `uint32_t <name>_handler_id(int)` | the elements a click can reach, by Clay's id (`Units`), in tree order |
+| `int <name>_next(int state, uint32_t id, int event)` | the state after an event on an element; the state itself when the table has no entry |
+
+`event` is `CLAY_EVENT_PRESS` or `CLAY_EVENT_RELEASE`, in `generator/events.h` (they are not Clay's
+`CLAY_POINTER_DATA_*`: Clay's are a per-frame click flag, and a state machine needs the two edges apart). A **press** is
+the button down over the element: the element's `onPress` runs, and the frame is its `:active`. A **release** is the
+button up over the element the press was on: its `onClick` runs (a click), and the frame is the state its signal now
+declares with `:hover` — so the pill's click is `0 → 2 → 4` and the click again is `4 → 5 → 1`. The table is total over
+its states and handlers: a press or a release the state does not take is an entry that leads to itself (the host also
+checks the release is over the pressed element, and puts the state back where the press found it if it is not).
+
+A transition the generator cannot express as a frame of a state `--states` names is a **build error**, not a dropped
+event: `state "use_g=false": a press on "Units" leads to a frame no state in …/states.json names (a signal it changes is
+not one of the state machine's)`. An element with a handler and no `id` fails too (the table could not address it), and
+`--events` carries the base theme and one variant, so a page with more themes is refused.
+
+**The host dispatches.** `desktop/build.sh examples/sensors --generated` links `desktop/host.c` against the state file
+(`PAGE_STATES`, `PAGE_STATE_PREFIX=sensors`) instead of the hand page: the state is the host's `int`, `Clay_SetPointerState`
+gives the element under the pointer (from the last frame's boxes, as `page.c`'s `Clay_OnHover` is), a down edge asks
+`sensors_next(state, id, CLAY_EVENT_PRESS)`, an up edge asks for the release (or returns to the state before the press),
+and every frame draws `sensors_frame(state, light)` — no rebuild, no JS, no page signal. `t` still toggles the theme.
+`examples/sensors/gen.c` is the same walk as a test: the six old frame comparisons, then `step 0: state 0 "use_g=false":
+10 commands, identical`, step 1 the press (`pressed=true`), step 2 the release (state 4), step 3 the second press (state 5)
+and step 4 its release (state 1), each against the hand-written `page.c`'s tree at the same signal, pointer and button.
+The trajectory ends with the signal where it started, the pointer still over the pill.
+
+The hand C page and the Solid page differ on one edge, and the table follows the Solid page: `page.c`'s `Clay_OnHover`
+fires on `CLAY_POINTER_DATA_PRESSED_THIS_FRAME`, so its `--press` already shows the *next* signal (`expected-pressed.png`
+is `units_active` with the g values), while the Solid page's `onClick` and the table's release flip it on the way up (a
+held generated `--press` shows `units_active` with the m/s² values). What the table reproduces is `page.c`'s *frame* at a
+given signal, pointer and button — the command arrays gen.c compares — not its toggle's edge.
+
+**The browser** (`browser/page.c`) keeps the same state machine in the wasm: `press(x, y)` and `release(x, y)` ask the
+table through Clay's hit test, `frame()` draws the state, `state()`/`state_name(i)` report it. `w`, the button and a
+pointer click on the canvas are one click at the pill's centre; the post-click frame is dumped through the same emitter
+and `browser/check.mjs` compares its commands with the desktop's own `--click` dump (`build/sensors/app`, 4px boxes for
+Canvas2D's metrics) and its raster with the desktop's `expected-thorvg-g.png`, and reports `state 4 "use_g=true + hover
+Units"`. The browser's own `expected-g.png` was re-stored: it is now the clicked (hovered) frame, not the plain `use_g`
+frame the old `frame(1)` drew.
+
+**A scene drives it.** `examples/sensors/scenes/sensors-click.json` is the click as a file, in the format the Solid host
+already replays (three pointer steps and a settle). The C host reads it itself — `desktop/scene.c`, a strict recursive
+descent over the format's strings, numbers, booleans and arrays — and replays one frame a step:
+
+```sh
+./build/sensors/app-generated --scene examples/sensors/scenes/sensors-click.json --expect examples/sensors/expected-thorvg-g.png
+# scene sensors-click: page sensors, 4 steps, 33 frames, ending state 4 "use_g=true + hover Units"
+# examples/sensors/expected-thorvg-g.png: identical, 10 commands
+```
+
+The Solid host replays the same file with `bun solid/main.ts --scene …` and lands on the same stored frame, so the format
+has two replaying targets. The C parser's limits are stated in `desktop/scene.c`: the kinds are `pointer`, `settle` and
+`frame` (`key`, `text` and `wheel` are refused by name), a string is UTF-8 with the JSON escapes but no `\uXXXX`, numbers
+are JSON's grammar via `strtod`, no `null` and no nested objects, at most 64 steps, and a step's frame (seconds × 60,
+rounded) may not go back — `step 1: out of order: t 0 is frame 0, after a step at t 0.0166667 (frame 1)`. The page's
+name and size must be the build's (`sensors`, 360x360).
+
+What the table cannot carry: **a key** (a page that answers `t` or Tab outside a click has no event in it); **a signal
+outside `states.json`** (the generator refuses the transition it cannot name, so a new signal is a new entry in the file,
+not a silent dead end); **an animation or a clock** (a state is one frame; a settle is the host's frames, and a C page
+has no motion tracks); **pointer hover as a track** (a hovered state is entered by a release over the element, not by
+moving over it — the frame after a click is hovered, a later move away does not change it); a drag, a wheel, typed text,
+a float, an image, `:focus` (a prop, not a signal) and more than one theme variant per page.
+
+Two mutations are the proof, run by hand: mapping state 2's release to state 3 instead of 4 fails the walk with
+`FAIL step 2: command 7 (1) differs at renderData.rectangle.backgroundColor (state 3 "use_g=true")`, and deleting the
+order check in `desktop/scene.c` lets a scene whose second step goes back to frame 0 run silently — it ends in state 0
+and `10,114` pixels off `expected-thorvg-g.png` instead of naming `step 1`.
+
 
 ## The frame as data: command-stream goldens
 

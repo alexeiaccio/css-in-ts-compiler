@@ -1,11 +1,18 @@
 // The Sensors page evaluated at build time from solid/app/Sensors.tsx (generator/page-to-c.ts) against the page written
-// by hand (examples/sensors/page.c): Clay must give the same render commands, field by field. Six comparisons: the base
-// state, the clicked one (use_g) and the pressed pill, each in the dark and the light theme. The generated C is
-// compiled in, not read at run time: the test regenerates the .c files and compiles them here.
+// by hand (examples/sensors/page.c): Clay must give the same render commands, field by field.
+//
+// Two things are compared:
+//   — the three single-state files (page_generated.c, page_generated_g.c, page_generated_pressed.c) with the hand page
+//     at that state, in the dark and the light theme (the six comparisons this file always made);
+//   — the *state machine* (page_generated_events.c): a sequence of a click on Units and the click after it, its state
+//     asked of `sensors_next` at every edge and its frame drawn through `sensors_frame`, against the hand page at the
+//     same place — so the table is held to the page's own behaviour, not to itself.
 #define CLAY_IMPLEMENTATION
+#include "events.h"
 #include "styles.h"
 
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +25,12 @@ void app_frame_g_light(void);
 void app_frame_pressed(void);
 void app_frame_pressed_light(void);
 
+// page_generated_events.c: the same page as a state machine, the frames through `sensors_frame(state, light)`
+int sensors_state_count(void);
+const char *sensors_state_name(int state);
+int sensors_next(int state, uint32_t id, int event);
+void sensors_frame(int state, int light);
+
 #define MAX_COMMANDS 64
 
 static const float ACCEL[3] = {1.159f, -0.718f, 10.044f}, GYRO[3] = {2.23f, 4.82f, 0.02f};
@@ -29,10 +42,11 @@ static void on_units(Clay_ElementId id, Clay_PointerData p, void *user)
     (void)id, (void)p, (void)user;
 }
 
-// examples/sensors/page.c's app_frame, with its two run-time inputs as arguments: the signal (use_g), the theme (light)
-// and the pressed pointer (down, which page.c reads from Clay_PointerOver). The strings are the page's own.
+// examples/sensors/page.c's app_frame, with its run-time inputs as arguments: the signal (use_g), the theme (light),
+// the pointer on the pill (over) and the button (down, which page.c reads from Clay_PointerOver). The strings are the
+// page's own.
 #define T(name) (light ? name##_light : name)
-static void hand(int use_g, int light, int down)
+static void hand(int use_g, int light, int down, int over)
 {
     const float scale = use_g ? 1.0f / 9.80665f : 1.0f;
     const char *unit = use_g ? "g" : "m/s\u00b2";
@@ -53,7 +67,8 @@ static void hand(int use_g, int light, int down)
         CLAY_TEXT(CLAY_STRING("gyro \u00b0/s"), T(caption_text));
         CLAY_TEXT(str(gyro), T(value_text));
         CLAY_TEXT(str(mag), T(magnitude_text));
-        CLAY(CLAY_ID("Units"), down ? T(units_active) : T(units)) {
+        // page.c: pressed ? units_active : over ? units_hover : units
+        CLAY(CLAY_ID("Units"), down ? T(units_active) : over ? T(units_hover) : T(units)) {
             Clay_OnHover(on_units, NULL);
             CLAY_TEXT(str(use_g ? "switch to m/s\u00b2" : "switch to g"), T(unitsLabel_text));
         }
@@ -140,7 +155,7 @@ static int check(const char *what, void (*generated)(void), int use_g, int light
     memcpy(gen, g.internalArray, (size_t)g.length * sizeof *gen);
 
     Clay_BeginLayout();
-    hand(use_g, light, down);
+    hand(use_g, light, down, 0);
     Clay_RenderCommandArray h = Clay_EndLayout(0);
 
     if (g.length != h.length) {
@@ -158,6 +173,41 @@ static int check(const char *what, void (*generated)(void), int use_g, int light
     return 1;
 }
 
+/** One step of the state machine: its frame against the hand page at the same signals, pointer and button. */
+static int check_step(int step, int state, int use_g, int down, int over)
+{
+    Clay_RenderCommand gen[MAX_COMMANDS];
+    Clay_BeginLayout();
+    sensors_frame(state, 0);
+    Clay_RenderCommandArray g = Clay_EndLayout(0);
+    if (g.length > MAX_COMMANDS) {
+        printf("FAIL step %d: %d commands, more than the %d kept\n", step, g.length, MAX_COMMANDS);
+        return 0;
+    }
+    memcpy(gen, g.internalArray, (size_t)g.length * sizeof *gen);
+
+    Clay_BeginLayout();
+    hand(use_g, 0, down, over);
+    Clay_RenderCommandArray h = Clay_EndLayout(0);
+    const char *name = sensors_state_name(state);
+
+    if (g.length != h.length) {
+        printf("FAIL step %d: %d generated commands, %d hand-written (state %d \"%s\")\n", step, g.length, h.length,
+               state, name);
+        return 0;
+    }
+    for (int i = 0; i < g.length; i++) {
+        const char *d = difference(&gen[i], &h.internalArray[i]);
+        if (d) {
+            printf("FAIL step %d: command %d (%d) differs at %s (state %d \"%s\")\n", step, i, (int)gen[i].commandType,
+                   d, state, name);
+            return 0;
+        }
+    }
+    printf("step %d: state %d \"%s\": %d commands, identical\n", step, state, name, g.length);
+    return 1;
+}
+
 int main(void)
 {
     uint32_t n = Clay_MinMemorySize();
@@ -165,13 +215,34 @@ int main(void)
                     (Clay_ErrorHandler){0});
     Clay_SetMeasureTextFunction(measure, NULL);
     int ok = 1;
+    // the six frames the three files hold: the page at rest, after the click, and held, each dark and light
     ok = check("dark, use_g=false", app_frame, 0, 0, 0) && ok;
     ok = check("light, use_g=false", app_frame_light, 0, 1, 0) && ok;
     ok = check("dark, use_g=true", app_frame_g, 1, 0, 0) && ok;
     ok = check("light, use_g=true", app_frame_g_light, 1, 1, 0) && ok;
     ok = check("dark, pressed", app_frame_pressed, 0, 0, 1) && ok;
     ok = check("light, pressed", app_frame_pressed_light, 0, 1, 1) && ok;
+
+    // the state machine, from the table: base -> press -> release -> press -> release
+    printf("states: %d\n", sensors_state_count());
+    for (int i = 0; i < sensors_state_count(); i++) printf("  %d \"%s\"\n", i, sensors_state_name(i));
+    const uint32_t units = CLAY_ID("Units").id;
+    int state = 0, step = 0;
+    ok = check_step(step++, state, 0, 0, 0) && ok;
+    state = sensors_next(state, units, CLAY_EVENT_PRESS);
+    ok = check_step(step++, state, 0, 1, 1) && ok;
+    state = sensors_next(state, units, CLAY_EVENT_RELEASE);
+    ok = check_step(step++, state, 1, 0, 1) && ok;
+    state = sensors_next(state, units, CLAY_EVENT_PRESS);
+    ok = check_step(step++, state, 1, 1, 1) && ok;
+    state = sensors_next(state, units, CLAY_EVENT_RELEASE);
+    ok = check_step(step++, state, 0, 0, 1) && ok;
+    // the second click came back to the page before the first, with the pointer still over the pill
+    if (state != 1) {
+        printf("FAIL: the second release is state %d, wanted 1 (\"%s\")\n", state, sensors_state_name(1));
+        ok = 0;
+    }
     if (!ok) return 1;
-    puts("sensors generated page: the same render commands as the hand-written page");
+    puts("sensors generated page: the same render commands as the hand-written page, and a click on Units is a state");
     return 0;
 }
