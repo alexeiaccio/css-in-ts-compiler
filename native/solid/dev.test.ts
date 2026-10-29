@@ -130,6 +130,56 @@ const dispose = _dispose;
   check("the panel's own boxes are not the page's", p.sections().hover[0], "nothing");
 }
 
+// --- a click on the page picks the box under it: the tree's cursor marks its row, the hovered line pins it and the
+// values switch to it; a press on empty space or Escape clears the pin
+// (mutation: a pick that takes the outermost box under the pointer lands on the tablist — `FAIL the click picks the
+// innermost node, not its tablist: "> tablist 40,359", wanted "> tab "Overview""`)
+{
+  const p = fresh();
+  const tab = box("tabs-tab-0");
+  p.click(tab[0]! + tab[2]! / 2, tab[1]! + tab[3]! / 2);
+  const s = p.sections();
+  const row = s.rows.find((r) => r.startsWith(">"));
+  check("the click picks the innermost node, not its tablist", row?.split(" ").slice(0, 3).join(" "), '> tab "Overview"');
+  check("the pinned line is the box's", s.hover, ['tabs-tab-0  tab "Overview"', at(tab)]);
+  check("the values switch to it", s.values.target, `tabs-tab-0  tab "Overview"  ${at(tab)}`);
+  // a pin holds while the pointer leaves; without one the hovered line would follow it
+  p.hover(200, 400);
+  check("the pin holds while the pointer is elsewhere", p.sections().hover[0], 'tabs-tab-0  tab "Overview"');
+  // Escape clears it: the hovered line is the pointer's again, and the tree loses its cursor
+  p.focus("dev-values");
+  p.tap("Escape");
+  check("Escape drops the pin", p.sections().rows.some((r) => r.startsWith(">")), false);
+  check("... and the hovered line is the pointer's", p.sections().hover[0], 'tabs-tabpanel-0  tabpanel "Overview"');
+  console.log(
+    `dev: a click on the tab pins "${row}"; Escape unpins to "${p.sections().hover[0]}"`,
+  );
+}
+
+// --- a click on the button: the picked box is the page's own control, and its row is the button's
+{
+  const p = fresh();
+  const press = box("press");
+  p.click(press[0]! + 10, press[1]! + press[3]! / 2);
+  const s = p.sections();
+  check("the button's click picks it", s.hover[0], 'press  button "Presses: 1"');
+  check("the tree's cursor is the button's row", s.rows.find((r) => r.startsWith(">"))?.startsWith('> button "Presses: 1"'), true);
+  check("the values name the button and its box", s.values.target, 'press  button "Presses: 1"  40,72 280×40');
+}
+
+// --- a click on empty space: the pin is gone and the hovered line is the background's again
+{
+  const p = fresh();
+  const wifi = box("wifi");
+  p.click(wifi[0]! + wifi[2]! / 2, wifi[1]! + wifi[3]! / 2);
+  check("the switch was pinned", p.sections().rows.some((r) => r.startsWith(">")), true);
+  p.click(5, 5);
+  const s = p.sections();
+  check("empty space clears the pin", s.rows.some((r) => r.startsWith(">")), false);
+  check("... and the hovered line is the background's", s.hover, ["nothing", "the pointer is over the page's background"]);
+  check("the values keep the last box (the pointer has none)", s.values.target.startsWith("wifi  switch"), true);
+}
+
 // --- the frame's phases: the last frame's four, the mean and the max of the last 30, and the counters
 {
   const p = fresh();

@@ -2,6 +2,25 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.12.1 (2026-10-29)
+
+### Patch changes
+
+- `cssints/eval` is in the published manifest: `publishConfig.exports` shadows the top-level one at publish time, and the subpath
+  was only in the latter (a consumer resolved it through the `./*` wildcard, without its own types).
+
+## 0.12.0 (2026-10-29)
+
+### Minor changes
+
+- appear(): the same entrance presets as reveal(), but scroll-triggered (timeline-trigger + animation-trigger) with their own duration and easing, an inOut() method, and the same IntersectionObserver fallback
+- The library is imported by a subpath that cannot resolve to a browser build (`cssints/eval`), and a runner whose ssr
+  environment is not one (vitest's browser mode puts `browser` in its conditions) gets an evaluation server of the plugin's own,
+  with the app's aliases, dedupe, conditions and `noExternal`; `cssints({ evaluation: { inline: [...] } })` names what a framework
+  needs inlined when that environment inlines everything. A styled component — `cv()`, tokens, `attr()`/`within()` and `render` —
+  now runs its browser test in vitest, which it could not before.
+- Kernels: a scope may declare a custom property another scope owns (motion's `--motion-*` in reveal's kernel), so `motion()` and `reveal()` can sit in one app; two kernels of one scope still may not share one of its names, nor may two scopes share a name neither of them owns
+
 ## 0.11.0 (2026-10-28)
 
 ### Minor changes

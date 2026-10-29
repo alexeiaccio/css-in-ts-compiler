@@ -1,5 +1,24 @@
 # @cssints/reveal
 
+## 0.12.1
+
+### Patch Changes
+
+- @cssints/motion@0.12.1
+
+## 0.12.0
+
+### Minor Changes
+
+- dd14bc0: appear(): the same entrance presets as reveal(), but scroll-triggered (timeline-trigger + animation-trigger) with their own duration and easing, an inOut() method, and the same IntersectionObserver fallback
+
+### Patch Changes
+
+- Updated dependencies [a694911]
+- Updated dependencies [ee3e52b]
+  - cssints@0.12.0
+  - @cssints/motion@0.12.0
+
 ## 0.11.0
 
 ### Patch Changes

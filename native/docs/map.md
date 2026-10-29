@@ -995,9 +995,20 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    frames at rest, declare 0.050 ms and layout 0.033 ms with nothing overridden, 0.048/0.038 ms with five rows
    overridden (the noise; a write is one float, and `ui_open`'s 180-byte `memcpy` is per overridden element). Check:
    `solid/tune.test.ts` (the 17 rows of the switch, a radius's corner pixel, a width's a11y bounds, a colour's fill, the
-   clamps, `r` and `Shift+R` byte for byte, the window, the cost) and four mutations with their messages. Still later
-   here: picking an element by clicking it into the tree; and no pointer on a row (no dragging a number, no colour
-   picker), no script of a tuning session into a file, and no editing a style the page did not declare.
+   clamps, `r` and `Shift+R` byte for byte, the window, the cost) and four mutations with their messages.
+   **Done: the pick and the session file** (2026-10-29). A press on the page (not on the panel) selects the innermost
+   node under it — a box with a role and an id; a box without a role reports its nearest node ancestor, a node without
+   an id is skipped — moves the tree's cursor to its row (`>`), pins the hovered-box line and switches the values to
+   it; the pin holds when the pointer leaves, and `Escape` or a press on empty space clears it. A session is the
+   overrides as data, `{ "values": [ { "id", "field", "value" } ] }` with the panel's row names: `--tune path` loads it
+   before the first frame and `s` writes the current one to the same path (`dev-tune.json` by default). Loading fails
+   with the entry and why on an unknown id, an unknown field or an out-of-range value; two entries loaded are the frame
+   of the same two edits by hand, byte for byte, and `s`'s file loads back to it. Check: `solid/dev.test.ts` (the click
+   on a tab and on the button, a pin that holds, Escape and empty space) and `solid/tune.test.ts` (the pinned rows and
+   `r`, the two-entry replay, `s` and its load, the three messages), and two mutations: the pick taking the outermost
+   box lands on the tablist, and the writer naming a field the loader does not know fails the load with its entry.
+   Remaining here: no pointer on a row (no dragging a number, no colour picker), no multi-element session in the suite
+   (the format carries an id, the tests hold one box), and no editing a style the page did not declare.
    Also later: style reload without a restart (our "reload on save"); and a static first frame shown
    by the window before Bun and the first layout are ready.
 

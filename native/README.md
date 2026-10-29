@@ -948,16 +948,25 @@ Cost (Apple M2, one thread, `--bench 200`, five runs each, medians; the machine 
 The page's own first-mount entry is off (the Widgets page is given no motion hook): the entry draws ~21 frames over a
 page that does not change, and this page is about the frames after it. `solid/dev.test.ts` holds the panel's content
 (the 28 rows, the ring after Tab, the hovered box, the four phases against the frame that changed the page, the counters,
-0 draws at rest) and lists three mutations with their failure messages. Not there yet: picking an element by clicking it
-into the tree — the live values are the section below.
+0 draws at rest) and lists three mutations with their failure messages. **A pick** is here too: a press on the page
+selects the innermost node under it — a box with a role and an id, the same one the hovered line reports, so a press on
+the switch's track (no role) is the switch, and a press on the page's padding is empty space — and moves the tree's
+cursor to its row (the row starts with `>`), pins the hovered-box line and switches the live values to it. The pin
+holds when the pointer leaves; `Escape`, or a press on empty space, clears it and the panel follows the pointer again.
+A box with no role is never picked (the nearest node with one is), and a node with no id has no `ui.bounds`, so it is
+skipped: the answer is the nearest ancestor that has both. The tree has no scrolling of its own — the 28 rows fit the
+panel — so the cursor's row is always declared. `solid/dev.test.ts` holds the click block; a pick that takes the
+outermost box instead lands on the tablist (`FAIL the click picks the innermost node, not its tablist: "> tablist
+40,359", wanted "> tab "Overview""`).
 
 ### The live values: a box's numbers, edited while the page runs
 
 Rune's item 7, second half (`solid/app/Dev.tsx`, `tuneRows`): the panel's fourth section lists the picked box's style
 numbers that the value channel can move, and edits them while the page runs. The pointer over a node of the page picks
 it — the same innermost box with an id and a role that the hovered-box line reports — and it *stays* picked when the
-pointer leaves the page (the panel is not the page, and the keyboard needs the numbers to stay); picking another box
-drops the previous one's live values. The section's first line names it with its bounds (`wifi  switch "Wi-Fi"  40,118
+pointer leaves the page (the panel is not the page, and the keyboard needs the numbers to stay); a click pins a box
+instead, and the overrides are the page's own, keyed by element id, so a box keeps its numbers when the pointer picks
+another. The section's first line names it with its bounds (`wifi  switch "Wi-Fi"  40,118
 280×32`), and the rows are `src/pack.ts`'s `FIELDS` that `ui.c` reads:
 
 | Row | The number | Step |
@@ -1020,10 +1029,21 @@ corner: "48,53,68,255", wanted "16,18,24,255"`; a reset that writes the live val
 the page before the edit, byte for byte: false, wanted true`; and a step without its clamp fails `FAIL an alpha past 255
 stays 255: 259, wanted 255`.
 
-Not there: no pointer on a row (no dragging a number and no colour picker — the arrows are the only control), no script
-of a tuning session into a file (the overrides are the panel's memory and go with the process), no editing a style the
-page does not declare (a text's colour and the modes above), and the panel is still one page's (`Widgets`): a second
-page needs its own dev page. Picking an element by clicking it into the tree is still later.
+A **session** is the overrides as data. `bun solid/main.ts dev --tune path.json` reads one before the first frame, and
+`s` (with the values part focused) writes the current one to the same path (`dev-tune.json` when the flag is absent).
+The file is `{ "values": [ { "id": "wifi", "field": "radius", "value": 16 } ] }`: one element, one of the panel's row
+names (`radius`, `bg.r`, `padding.l`, `width`, …; `radius` writes all four corners), and a number. Entries are written
+sorted by id and in the panel's row order, so the same session is the same bytes. Loading checks every entry and fails
+with its number and why: an element the page does not have (`tune: entry 1: no element "nope" on the page`), a name
+that is not a row (`tune: entry 1: "radiusX" is not a panel field`), and a number out of the row's range (`tune: entry
+1: bg.r 300 is out of range 0..255`). A file of two entries is the frame of the same two edits by hand, byte for byte,
+and `s`'s file loads back to it (`solid/tune.test.ts`); a writer naming a field the loader does not know fails that load
+with `tune: entry 1: "radius!" is not a panel field`.
+
+Not there: no pointer on a row (no dragging a number and no colour picker — the arrows are the only control), no
+multi-element replay in the suite (the format gives every entry an id, so a session may span boxes, but the tests hold
+one), no editing a style the page does not declare (a text's colour and the modes above), and the panel is still one
+page's (`Widgets`): a second page needs its own dev page.
 
 ## Text: the oracles, and why there is no weight correction
 
