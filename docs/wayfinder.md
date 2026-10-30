@@ -2043,26 +2043,6 @@ colour), the size cascade (`data-size="sm"` on a `group()` ancestor), `render` (
 `aria-invalid` on an `Input` and on a `textarea`; `packages/cssints`' own suite and `apps/lab` stay green. **Left**: the copied
 item's `vitest.browser.config.ts` does not carry `evaluation.inline` yet (the registry ships the old config to the compiled
 starters), and nothing reminds a project to import the sheet in a test — a copied styled item would need both.
-||||||| 351df737
-`__at`, no registry, and `globalThis.__cssints` never set. The user's guess ("предилд?") does not help: `browser` is an export
-condition, and the built `dist/` carries the same `browser` branch (`dist/runtime.mjs`). **The fix is a specifier that cannot be
-redirected**: a new `cssints/eval` subpath (development → `src/index.ts`, default → `dist/index.mjs`, no `browser` key) and
-`instrument.ts` prepends it instead of `cssints`; the client copy of a module is pure data (`export const box = "_ajndqy _dku3ci"`),
-so the browser never sees it. Verified: `packages/cssints`' suite green, `apps/lab` (dev server, real evaluation) green, and a
-vitest browser test of `cn(bg("#f00"))` passes. **A second wall stands behind it, and that is where this stopped**: with the
-library loading, the same evaluation fails on `require is not defined` — vitest's ssr environment serves CJS dependencies as ESM
-(`lightningcss`, `magic-string`) — and the alternative, the plugin evaluating in its own private server as a build does (a
-`createServer({ configFile: false, plugins: [cssints({ inner: true })] })`), fails on Solid instead: the evaluated `@cssints/headless`
-modules load `solid-js/dist/server.dev.js` there while the app's environment picks the client build (`solid.dev.js`), and Solid's
-server build crashes with `Cannot set properties of undefined (setting 'server')` (`OBSERVE.server` with `OBSERVE` undefined).
-The private server copies the app's `resolve.alias` and ssr conditions but not its **plugins** (the Solid plugin is what makes
-the client build the right one), and passing resolved plugin instances into a second server is its own risk. So: **the styled
-components' tests run on the dev server** (`apps/ui/test/combos.mjs`: a page of pairs, Chromium, computed styles), the APG
-conformance stays where it belongs (`@cssints/headless`'s own browser tests, and the compiled starters of `apps/ui` that still
-ship a sheet), and `apps/ui`'s vitest suite covers the compiled starters only. **Left**: a test-environment evaluator (case 2
-above) worth its own ticket — the private server needs the app's user plugins (or a way to resolve framework entries as the app
-does), which is what would let a copy ship a vitest test it can run.
-
 ## `appear()`: scroll-triggered presets beside `reveal()` (cssints-wyoy, 2026-10-29)
 
 Found by `@cssints/reveal`, after [utilitybend's article on CSS animation triggers](https://utilitybend.com/blog/scroll-triggered-animation-as-the-missing-piece-for-scrollytelling-on-the-web): `reveal()` scrubs an entrance with the scroll (`animation-timeline: view()`), so a slow scroll makes the entrance slow too — it oozes. A scroll-_triggered_ animation is the missing piece: the scroll only decides _when_ a normal time-based animation plays, with its own duration and easing. `appear()` is a second chain member of the same scope, not a new package: the presets, the keyframes, the runtime entry and the IntersectionObserver fallback are `reveal()`'s, and a package for one more member would duplicate all of them. It takes the same `preset()`, `range()`, `duration()` and `easing()`, and adds `inOut()`: `play-forwards play-backwards`, so an entrance can play back out; the default is `play-once none`, which is what an entrance wants and exactly what the fallback does.
