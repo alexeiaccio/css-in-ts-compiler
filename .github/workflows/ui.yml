@@ -1,7 +1,8 @@
 # Checks the styled starters and the starter kit, and deploys ui.cssints.dev on master.
 #
 # The check job is what a release rests on: every starter's own conformance test in Chromium, then the starter template
-# smoke test — copy `templates/solid-vite`, install it, `add @cssints/switch` from the live registry, run the copied test.
+# smoke test — copy `templates/solid-vite`, install it, add every item of `apps/ui/r` from a local server, run the copied
+# tests and type-check the copy, then `add @cssints/switch` from the live registry last.
 # Publishing the items themselves is `apps/registry-host` in effects-of-atmosphere (it needs the PDS credentials).
 #
 # Secrets for the deploy: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see apps/ui/README.md).
