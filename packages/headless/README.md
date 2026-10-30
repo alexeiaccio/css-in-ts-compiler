@@ -65,7 +65,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -188,6 +188,70 @@ const pages = createPagination({ page: 3, pageCount: 12, hrefFor: (page) => `/is
 - **The count is announced once**, in a `role="status"` line ("Page 3 of 12"), not in every link. Pass `labels.status` to translate it.
 - **`hrefFor` is what makes it work without JS**: with it every page is a real link; without it they are buttons and the host owns navigation.
 - **Target size is the skin's job**: 24x24 CSS px at AA, 44x44 at AAA.
+
+## Table
+
+`createTable` is sortable column headers and row selection on a **native `<table>`**: a `<caption>`, `<thead>`, `<tbody>`, `<th scope="col">` and `<td>` carry the semantics, so the primitive adds no `role` and no `aria-rowindex`, only what the elements cannot say themselves (`aria-sort` on the sorted column, `aria-selected` on a row, the mixed select-all state, and the totals a windowed table hides). It is a grid with a header row but **without the grid's navigation**: the cells keep their own focus, and `createGrid` stays the widget for roving cell focus. There is no spec of its own — it composes the two state models the package already has, `grid-sort.qnt` and `grid-selection.qnt` — so `test/table.browser.test.tsx` is its oracle.
+
+```tsx
+const table = createTable({
+  columns: [
+    { key: "title", abbr: "Title" },
+    { key: "status", sortable: false },
+    { key: "count", numeric: true },
+  ],
+  rows, // the host's ids, in the host's order: it sorts its data from the descriptor
+  selection: "multiple",
+  defaultSort: { key: "title", direction: "ascending" },
+  labels: { table: "Open issues", selectRow: (id) => `Select ${nameOf(id)}` },
+  onSortChange: (sort) => setSort(sort), // the host re-sorts its data and passes `rows` again
+});
+
+<table {...table.tableProps}>
+  <caption {...table.captionProps}>Open issues</caption>
+  <thead>
+    <tr>
+      {table.selectAllProps && (
+        <th>
+          <span {...table.selectAllProps} />
+        </th>
+      )}
+      {columns.map((column) => {
+        const sortButton = table.headerButtonProps(column.key); // undefined when not sortable
+        return (
+          <th {...table.headerCellProps(column.key)}>
+            {sortButton ? <button {...sortButton}>{column.key}</button> : column.key}
+          </th>
+        );
+      })}
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map((id) => (
+      <tr {...table.rowProps(id)}>
+        {table.selectAllProps && (
+          <td>
+            <span {...table.rowCheckboxProps(id)} />
+          </td>
+        )}
+        {columns.map((column) => (
+          <td {...table.cellProps(id, column.key)}>{cellOf(id, column.key)}</td>
+        ))}
+      </tr>
+    ))}
+  </tbody>
+</table>;
+```
+
+- **Sorting is the host's data.** The primitive carries the descriptor (`sort()`) and announces it; it never reorders anything. The host maps the descriptor onto its own array and renders `rows` again.
+- **`aria-sort` is on the sorted column only.** A sortable header that is not sorted carries nothing (ARIA's default is "not sorted"), and a `sortable: false` column is fully inert: no `aria-sort`, and `headerButtonProps` is `undefined`, so the host renders no button and it is not a tab stop.
+- **The cycle is tri-state by default** (`ascending` -> `descending` -> unsorted), so a table can be put back in its own order; `sortCycle: "toggle"` gives `ascending` <-> `descending` and never returns to unsorted, which is what the APG grid example does. A new column always starts `ascending`, and only one column is ever sorted.
+- **Rows are ids, not a count.** The host sorts its data, so an id keeps naming the same row across a re-sort while an index would not; the primitive never learns the row's content.
+- **Selection** is `"none"` (the default), `"single"` or `"multiple"`, over ids: `selected()` is the list, `rowProps(id)` carries `aria-selected` and a click that selects, and `toggleRow` / `toggleAll` are the programmatic path. The row's checkbox stops its own click from reaching the row, so the two controls never toggle the same row twice.
+- **Select-all exists only for `"multiple"`** (`selectAllProps` and `rowCheckboxProps` are `undefined` otherwise: one control over one selection is meaningless). It is a `role="checkbox"`, not a native `input`: the mixed state of a native checkbox is a DOM property (`indeterminate`), and what a screen reader must hear is `aria-checked="mixed"`. It toggles the rows the table renders — a windowed table therefore toggles its window and keeps the rest of the selection.
+- **Windowed rows or columns** pass `rowCount` / `columnCount`: then `aria-rowcount` and `aria-colcount` are carried, and every cell gets its `aria-colindex`. A table that renders all of them carries neither (it would only repeat what the markup says).
+- **`numeric` is a layout hint** for the host's skin (right alignment, tabular figures): HTML has no attribute for it, so the primitive carries nothing.
+- Solid 2 arrives through delegated events; a host that reads the DOM right after a click waits a tick.
 
 ## Confirm
 

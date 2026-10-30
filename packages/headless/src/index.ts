@@ -79,6 +79,7 @@ export * from "./slider-multithumb";
 export * from "./spinbutton";
 export * from "./status";
 export * from "./switch";
+export * from "./table";
 export * from "./textbox";
 export * from "./tabs";
 export * from "./timeline";
