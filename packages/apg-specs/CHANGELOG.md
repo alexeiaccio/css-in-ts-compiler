@@ -1,5 +1,14 @@
 # @cssints/apg-specs
 
+## 0.19.0
+
+### Minor Changes
+
+- 2022f38: `createSlider` and `createSpinbutton` take `disabled`: a disabled slider announces `aria-disabled` on its thumb, keeps
+  the thumb as its tab stop and drops every key and rail press; a disabled spinbutton's field announces `aria-disabled`
+  and carries the native `disabled`, takes no typing or spin key, and offers neither stepper. The APG specs record it as a
+  deliberate extension of the patterns (no model var), so the browser tests are its oracle.
+
 ## 0.18.0
 
 No changes in this release.
