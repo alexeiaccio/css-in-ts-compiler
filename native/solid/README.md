@@ -1183,6 +1183,17 @@ Space and the arrows are `preventDefault`ed: the canvas holds the DOM's focus (`
 `focus()`), so the browser must not take Tab for its chrome or Space and the arrows for a scroll. The table is in
 `native/README.md`'s browser chapter.
 
+`browser/solid/text.ts` is the field's text above that keyboard. A canvas gets no composition event, so the text comes
+from an editable surface: Chromium's `EditContext` (`canvas.editContext = new EditContext()`, with its `compositionstart`,
+`textupdate` and `compositionend`), or a hidden 1px `<textarea>` where the browser has none (its keys cloned onto the
+canvas, so Tab and the field's own keys still work; `?ime=input` forces it, which is how the checks drive both). Either
+path commits one string, at `compositionend`, through `Input.textInput` — the desktop has no composition, so a draft is
+never previewed nor inserted — and only while a text field has the focus. The clipboard is Cmd/Ctrl+C/X/V/A on a focused
+field: `Input.clipboard("copy")`/`("cut")` into `navigator.clipboard.writeText`, `readText()` → `Input.textInput` for a
+paste (one frame after the promise; the field is untouched until it settles), and select-all is the field's own Home then
+Shift+End. `browser/ime-check.mjs` holds the path on both surfaces: the draft that never lands, the committed "Ada" as the
+typed run's 192 px of ink with the caret at x 80.16, and the four chords.
+
 `bun browser/solid/build.ts` writes `page.js` and `widgets.js` to `${TMPDIR:-/tmp}/cssints-native-web/solid`, and
 `node browser/solid-check.mjs` (which `solid/test.sh` runs last, skipped without zig, bun or Playwright's chromium) holds
 both pages to their goldens (`goldens/sensors.json`, `goldens/widgets.json`) and their rasters, the Sensors page to the
