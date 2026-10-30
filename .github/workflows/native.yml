@@ -1,0 +1,45 @@
+# The native workspace's checks that need no graphics stack: the Clay headers and the C against them (native/check.sh), the
+# focus manager's walk, and the headless widgets against their Quint scenarios. The frames — SDL3, ThorVG's software raster,
+# the browser's canvas — are compared on a Mac with brew's SDL3 and ThorVG: `bun run test:native` (native/test.sh), not here.
+# The `sensors` page's C is generated through the Solid renderer, which is a bun:ffi library built with those, so that step
+# stays local too.
+name: native
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - native/**
+      - packages/cssints/src/**
+      - packages/cssints/package.json
+      - packages/headless/**
+      - packages/apg-specs/**
+      - .github/workflows/native.yml
+  pull_request:
+    paths:
+      - native/**
+      - packages/cssints/src/**
+      - packages/cssints/package.json
+      - packages/headless/**
+      - packages/apg-specs/**
+      - .github/workflows/native.yml
+  workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      # the generator and the tests resolve "cssints" to its sources (`--conditions=development`), so nothing is built first
+      - run: sh native/ci.sh

@@ -3,23 +3,16 @@
 # the same file as esp32's). Runs from native/ whatever the caller's directory is (`bun run test:native` at the repo root).
 set -e
 cd "$(dirname "$0")"
-CLAY_H="${CLAY_H:-$PWD/vendor/clay}"
+# Steps 1-3: the Clay headers and the C against them (check.sh, which a machine with no graphics stack runs on its own); it
+# writes into $OUT here, beside the frames.
 OUT="${TMPDIR:-/tmp}/cssints-native-test"
-mkdir -p "$OUT/sensors"
-node --conditions=development generator/clay-header.ts examples/units/styles.ts "$OUT/styles.h"
-cc -std=c99 -I "$OUT" -I "$CLAY_H" examples/units/same.c -lm -o "$OUT/same"
-"$OUT/same"
-# the Sensors header (a state, a theme, fonts) against the same clay.h
-node --conditions=development generator/clay-header.ts examples/sensors/styles.ts "$OUT/sensors/styles.h"
-cc -std=c99 -Wall -Wno-unused-variable -I "$OUT/sensors" -I "$CLAY_H" examples/sensors/header.c -lm -o "$OUT/header"
-"$OUT/header"
+NATIVE_OUT="$OUT" sh check.sh
 
 # Step 5: the Solid Sensors page evaluated at build time to C, in three states, and its render commands compared by
 # gen.c with the hand-written page.c (base, clicked, pressed; each in the dark and the light theme). The generator is
 # deterministic: the committed C is regenerated here and must come out byte for byte, so the file in git cannot rot.
 # The fourth file is the same page as a state machine (`--events`): one frame a state, and the transition table gen.c
 # then walks (base, a press on Units, its release, the click again, and back) against the hand page at every step.
-mkdir -p "$OUT/sensors-gen"
 P="bun --conditions=development generator/page-to-c.ts solid/app/Sensors.tsx --styles examples/sensors/styles.ts --states examples/sensors/states.json"
 $P --state use_g=false --out "$OUT/sensors-gen/page_generated.c"
 $P --state use_g=true --name app_frame_g --out "$OUT/sensors-gen/page_generated_g.c"
