@@ -1496,15 +1496,64 @@ within **1.55/255**), and the wheel, the thumb and the keys above; the field aga
 a frame, `field.js` **236,785 B** (55,208 B gzip) and **0.14 ms** (100 frames: the tree declared, Clay's layout, the
 commands, Canvas2D's raster, one readback), on the same `ui.wasm` (141,104 B, 52,269 B gzip) as the other pages.
 
-What they are not: no IME — a canvas gets no composition event, so `textInput` receives characters and not a
-composition's phases (an `EditContext` would be the way, Chromium only, and nothing here asks for it); no clipboard
-(`paste` is an editable element's event too); no pointer drag of the List's rows or of its thumb, and none of the Sky
+What they are not: no pointer drag of the List's rows or of its thumb, and none of the Sky
 feed — the machine's drags are `solid/list.test.ts`'s and `sky.test.ts`'s, while the browser checks drive the wheel, the
 thumb's geometry and the keys; and no touch (the shell listens to the mouse only, and the wasm's `ui_touch_map` has no
 fibre of it). A typed character and a selection chord
 are `preventDefault`ed, as the keys the shell consumes are (the shell's own `consumed` list: Tab, Space, the arrows,
 Home/End, PageUp/Down, Enter, Backspace, Delete), so a character never reaches a browser accelerator; a Cmd, Ctrl or
-Alt chord is left to the browser.
+Alt chord is the field's clipboard or the browser's (the subsection below).
+
+### The input method and the clipboard in the browser
+
+**Two paths, and the one each browser takes.** A canvas is dispatched no composition, so the text has to come from an
+editable surface: Chromium's `EditContext` is the standard's answer (`canvas.editContext = new EditContext()`) and WebKit
+has none. `browser/solid/text.ts` takes the EditContext where the browser has it — the canvas carries the control, and the
+control's `compositionstart`, `textupdate` and `compositionend` are the page's — and a hidden, 1px, transparent `<textarea>`
+where it does not: the textarea holds the DOM's focus, its `keydown`/`keyup` are cloned onto the canvas (a key the page
+consumed — Tab, Space, the arrows — is `preventDefault`ed on the real event too, so the browser neither moves its focus nor
+scrolls), its `beforeinput` cancels the plain character the keydown already took, and its composition events are the
+composition's. `?ime=input` forces the fallback, which is how `browser/ime-check.mjs` drives both paths in one browser:
+Chromium takes the EditContext, and the forced page is the textarea's (no `canvas.editContext`, the TEXTAREA focused).
+
+**What a composition does to the model: one insertion, at its end.** The desktop has no composition at all — SDL hands it
+committed characters — so the draft an IME presents never reaches the page: it stays in the module's buffer, and nothing is
+inserted, declared or drawn while it is being composed (the candidate window is the browser's; a canvas gets no inline
+preview). `compositionend`'s string goes through `Input.textInput`, the call the desktop's SDL_TEXTINPUT makes, and only
+while a text field has the focus (`textInput` answers false otherwise), then one frame. A keydown inside a composition is
+the IME's, and the page's character path drops it (`text.composing()`). Measured: the draft "Ada" (three `textupdate`s)
+leaves the value `""`, the frame's 20 commands and its 18 px of caret ink exactly as they were; `compositionend` with
+"Ada" gives `Value: "Ada" (3)`, the caret at x **80.16** and **192 px** of ink in **52..80 × 212..229** — the numbers
+`input-check.mjs` measures for the same run typed key by key.
+
+**The clipboard.** Cmd/Ctrl+C, X, V and A on a focused field, over `navigator.clipboard` and the page's own model: copy is
+`Input.clipboard("copy")` into `writeText`; cut is `Input.clipboard("cut")` — the field's own copy and backspace rule, the
+op `main.ts` makes for SDL's chord — and then `writeText`; paste is `readText()` → `Input.textInput`; select-all is the
+field's own Home then Shift+End, so no second selection model exists here. Copy, cut and select-all act on the event and run
+one frame. A paste cannot: the permission is a promise, so the field is untouched until it settles and then one frame shows
+the insert — the canvas keeps the old frame while the clipboard is being read, not a half-applied one. Measured:
+Shift+Home then Ctrl+C puts `"Ada"` in the clipboard; Backspace empties the field; Ctrl+V brings it back (`"Ada"`, the caret
+at **80.16**, the **192 px**); Shift+Home + Ctrl+X empties the field and keeps `"Ada"`; Ctrl+A selects the **28.16 px** run
+and a key replaces the whole value (`"B"`). A chord on a page with no field focused is the browser's, as `keyName` decides
+for the desktop's.
+
+**Cost.** `field.js` **248,670 B** (**57,075 B** gzip) — **3,386 B** over the page without the text path (245,284 B) —
+`field.html` **1,865 B**, on the same `ui.wasm` (141,104 B). The path costs no frame: at rest the page still
+draws nothing, and a frame with the field focused and a composition open is **0.12–0.19 ms** against **0.14–0.27** at rest
+(100 frames each: the same, and the noise between them). The text is a buffer until `compositionend` and one `textInput` call;
+the clipboard is two DOM calls on the event and a promise on a paste.
+
+**What genuinely remains.** A real input method was not driven: Playwright cannot, so the check dispatches the sequence a
+composition produces (`compositionstart`, the `textupdate`s, `compositionend`) — no candidate window, no dead key, none of
+an IME's own keydowns (Chromium's keyCode 229/"Process") — and what the tests hold is the string's way into the model, the
+caret and the pixels it leaves, not the IME's. A script whose IME sends several clauses with `textformatupdate` (a
+Japanese conversion, an autocomplete) is not driven either: the format is ignored and the committed `data` is what is
+inserted. The EditContext carries no mirror of the field's value (`updateText` is not called), so an IME sees an empty
+context and composes its string as one insertion, without the surrounding text a native field would give it. The
+clipboard's permission is the page's: an insecure context has no `navigator.clipboard`, so the chords fall through to the
+browser's own (a no-op on a canvas), and the check grants `clipboard-read`/`clipboard-write` to its context rather than
+letting the browser ask. And the fallback's textarea takes the DOM's focus, so `document.activeElement` is the textarea
+there and the canvas here (the canvas keeps the page's own ring and `aria-label` either way).
 
 ### The Dev page and the Text sheet in the browser
 

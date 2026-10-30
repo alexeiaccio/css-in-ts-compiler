@@ -2,18 +2,23 @@
 // headless/, its caret and its selection drawn as runs of text and 1px boxes), with its own createInput() on
 // browser/solid/shell.ts — the loop, the pointer, the keys and window.__page as on the other pages.
 //
-// Typing is the DOM's, and it is the one thing a canvas cannot do for itself: it is no editable element, so there is no
-// beforeinput, no input and no composition — the printable characters come from the keydown's `key`, which is the string
-// SDL's TEXTINPUT gives (`Input.textInput(text)`, the call the desktop's text events make), and the keys the focus
-// manager's table drops stay keys.ts's (Tab, Shift+Tab, Backspace, Delete, the arrows, Home/End, Enter, Escape). Shift
-// with Left, Right, Home or End is a selection chord, which `keyName` refuses as a move (`selectionChord`), and the page
-// draws the selection it makes.
+// Typing is the DOM's, and it is the one thing a canvas cannot do for itself: it is no editable element, so it has no
+// beforeinput, no input and no composition of its own — the printable characters come from the keydown's `key`, which is
+// the string SDL's TEXTINPUT gives (`Input.textInput(text)`, the call the desktop's text events make), and the keys the
+// focus manager's table drops stay keys.ts's (Tab, Shift+Tab, Backspace, Delete, the arrows, Home/End, Enter, Escape).
+// Shift with Left, Right, Home or End is a selection chord, which `keyName` refuses as a move (`selectionChord`), and the
+// page draws the selection it makes.
+//
+// An input method and the clipboard are text.ts's: Chromium's `EditContext` on the canvas (a hidden textarea where the
+// browser has none), whose committed string comes in through the same `Input.textInput`, and Cmd/Ctrl+C/X/V/A on the
+// focused field.
 import "./globals.ts";
 
 import { Field, size } from "../../solid/app/Field.tsx";
 import { createInput } from "../../solid/src/input.ts";
 import { selectionChord } from "./keys.ts";
 import { mountPage } from "./shell.ts";
+import { attachText } from "./text.ts";
 
 const input = createInput();
 // one frame on the event, as a press and a key have: the shell's own
@@ -30,14 +35,16 @@ await mountPage({
 });
 
 const canvas = document.getElementById("frame") as HTMLCanvasElement;
+const text = attachText(canvas, input, () => frame());
 
 // The typed text, beside the shell's key listener: the two do not overlap — `keyName` drops a selection chord and takes
 // no character, and a printable key is a letter, a digit or a mark, not one of the keys it names. Cmd, Ctrl and Alt
-// chords are the browser's (as `keyName` decides), and an IME has no path here: a canvas is not editable, so no
-// composition event is ever dispatched to it and `Input.textInput` gets characters, not a composition's phases.
-// A character and a selection chord are `preventDefault`ed, as the shell's consumed keys are: the canvas is the focused
-// element, and a typed character must not reach a browser accelerator (Chrome's type-to-find) while it is the page's.
+// chords are text.ts's (the clipboard) or the browser's (as `keyName` decides), and a keydown inside a composition is the
+// IME's, not a character. A character and a selection chord are `preventDefault`ed, as the shell's consumed keys are: the
+// canvas is the focused element, and a typed character must not reach a browser accelerator (Chrome's type-to-find) while
+// it is the page's.
 canvas.addEventListener("keydown", (event) => {
+  if (text.composing()) return;
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   const chord = selectionChord(event);
   if (chord !== undefined) {

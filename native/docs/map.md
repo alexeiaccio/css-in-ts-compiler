@@ -819,9 +819,23 @@ Each step ends in a check that fails when it breaks.
    a character sent as a key instead of `textInput` — the value is "" and the caret stays at 52 (the run's ink 18 px
    against the desktop's 170). Cost: `list.js` 197,252 B (49,199 B gzip) and 0.17 ms a frame, `field.js` 236,785 B
    (55,208 B gzip) and 0.14 ms on the same `ui.wasm` (141,104 B, 52,269 B gzip).
-   Limits: no IME (no composition event on a canvas; an `EditContext` would be the way), no clipboard, no pointer drag
-   of the List's rows or thumb in the browser (the desktop's `list.test.ts` has it), no touch; five of the shell's
-   pages are real now (Sensors, Widgets, List, Text field, Dialog) and the Sky has its own loop.
+   **Done: the input method and the clipboard** (2026-10-30). `browser/solid/text.ts` gives the field the two things a
+   canvas cannot do for itself: the text above it, and the clipboard's chords. Chromium's `EditContext` is on the canvas
+   (`compositionstart`/`textupdate`/`compositionend`); a browser without one — WebKit — gets a hidden textarea with the
+   same composition events, its keys cloned onto the canvas (`?ime=input` forces that path, which is how one browser's
+   check drives both). The clipboard is Cmd/Ctrl+C/X/V/A over `navigator.clipboard` and the page's own model
+   (`Input.clipboard`, `Input.textInput`, Home + Shift+End for select-all, so there is no second selection model). A
+   composition's draft never reaches the page — the desktop has no composition, so neither does this: `compositionend`'s
+   string is inserted once through `Input.textInput` and drawn by one frame. Measured: the draft "Ada" leaves the value
+   `""` and the frame's 20 commands as they were, `compositionend` gives `Value: "Ada" (3)`, the caret at **80.16** and
+   **192 px** of ink in 52..80 × 212..229 (the typed run's, `input-check.mjs`'s); Shift+Home + Ctrl+C is "Ada" in the
+   clipboard, Ctrl+V brings it back (the caret at 80.16, 192 px), Ctrl+X empties the field and keeps it, Ctrl+A selects
+   28.16 px and a key replaces the whole value. Check: `browser/ime-check.mjs`, in `solid/test.sh`, both paths in one
+   browser. Cost: `field.js` 248,670 B (57,075 B gzip), 3,386 B over the page without it, 0.12-0.19 ms a frame with a
+   composition open (0.14-0.27 at rest: the noise, nothing per frame). Mutations it catches: the committed string not
+   going through `Input.textInput` — "the value is "", want "Ada"" and "the composed run is 18 px in [52,52,212,229],
+   the typed one 192 px"; a paste not awaited — "the field is "" with the caret at 52 and 18 px of ink, want "Ada", the
+   caret at 80.1640625 and 192 px".
    **Done: the Dev page and the Sheet** (2026-10-30), the last two, so all eight of the desktop's pages are real in a
    browser. `browser/solid/dev.ts` + `dev.html` run `solid/app/Dev.tsx` unmodified (660x760: the Widgets page in its
    360px column, a 300px panel that prints the page's a11y tree, the box under the pointer, the live values and the
@@ -845,9 +859,13 @@ Each step ends in a check that fails when it breaks.
    160,731 B (39,926 B gzip) and 0.13-0.18 ms, on `ui.wasm` 141,171 B (52,235 B gzip). Mutations it catches: the pointer
    not reaching `ui_begin` — "the panel has 0 lines naming the button"; `stats` not handed to the frame — no
    `draws N presents M` line at all; a panel that reprints every frame — "30 frames at rest: draws 50 -> 80".
-   Limits: as the paragraph above, and one more: the panel's live values edit through `ui.value` (unchanged since the
-   Dialog), but its `s` and the host's `--tune` are file paths and Bun's browser bundle stubs `node:fs`, so both are
-   no-ops in the page. No IME, no clipboard, no touch, no pointer drag but the Widgets slider, no HMR.
+   Limits: a real IME was not driven (Playwright cannot: the composition's events are dispatched, so no candidate
+   window, no dead key, none of an IME's own keydowns, no several-clause `textformatupdate`), the EditContext carries no
+   mirror of the field's text (`updateText` is not called, so an IME sees an empty context), the clipboard's read is the
+   page's permission (the check grants `clipboard-read`/`clipboard-write`; an insecure context has no `navigator.clipboard`),
+   no touch and no pointer drag but the Widgets slider (the desktop's `list.test.ts` has it), no HMR; and the panel's live
+   values edit through `ui.value`, but its `s` and the host's `--tune` are file paths and Bun's browser bundle stubs
+   `node:fs`, so both are no-ops in the page.
 
 
 ## What Rune's research gives us (2026-10-23)
