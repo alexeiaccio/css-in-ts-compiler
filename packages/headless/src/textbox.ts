@@ -20,7 +20,7 @@ export type AutoCompleteToken =
   | "nickname";
 
 export interface TextInputOptions extends FieldOptions {
-  readonly type?: "text" | "email" | "tel" | "url" | "search" | "password";
+  readonly type?: "text" | "email" | "tel" | "url" | "search" | "password" | undefined;
   /** The HTML token list: the browser's own autofill is the accessible path. */
   readonly autoComplete?: AutoCompleteToken | undefined;
   readonly spellCheck?: boolean | undefined;
