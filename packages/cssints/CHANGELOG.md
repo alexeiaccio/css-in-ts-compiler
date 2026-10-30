@@ -1,5 +1,11 @@
 # cssints
 
+## 0.15.0
+
+### Patch Changes
+
+- @cssints/css-grammar@0.15.0
+
 ## 0.14.0
 
 ### Patch Changes
