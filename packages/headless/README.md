@@ -65,7 +65,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, scrollspy, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -415,6 +415,40 @@ onSettled(() => {
 - **`preventDefault` is on** for a binding that fires (Cmd/Ctrl+S and Cmd/Ctrl+K would otherwise reach the browser); pass `false` to let the platform act too.
 
 Collisions with the browser's own chords: `preventDefault` reaches the page's default action, not the browser's. Cmd/Ctrl+S (Save Page), Cmd/Ctrl+K (the browser's search, in Chrome and Firefox), Cmd/Ctrl+P and `/` (Firefox's quick find) can be cancelled by a page, and a host that binds one is choosing to take it from the browser; Cmd/Ctrl+T, Cmd/Ctrl+W, Cmd/Ctrl+N, Cmd/Ctrl+L and F11 are reserved and cannot be intercepted, so a chord built on them never fires. `keys` takes any of them the same and says nothing.
+
+## Scrollspy
+
+`createScrollspy` is a table of contents whose current entry is the last heading to reach the top of the scrollport. **No APG pattern exists for a scrollspy** (the APG has no table-of-contents pattern), so there is no Quint spec and no ported scenarios: the contract is WAI-ARIA — `aria-current="location"` on the current link, exactly one link at a time, `role="list"` / `role="listitem"` for the list, and a named navigation landmark — plus HTML (`#id` targets). `test/scrollspy.browser.test.tsx` is its oracle.
+
+```tsx
+const toc = createScrollspy({
+  entries, // { id, label } in document order: the ids are the headings'
+  offset: 96, // a sticky header's height
+  onChange: (id) => track(id),
+});
+
+onSettled(() => toc.attach()); // returns the teardown
+
+<nav {...toc.navProps}>
+  <ul {...toc.listProps}>
+    <For each={entries}>
+      {(entry) => (
+        <li {...toc.itemProps(entry.id)}>
+          <a {...toc.linkProps(entry.id)}>{entry.label}</a>
+        </li>
+      )}
+    </For>
+  </ul>
+</nav>;
+```
+
+- **A scroll listener, not an `IntersectionObserver`.** "The last heading at or above the offset" is a total order over every heading, and an observer only reports what crossed its band: a band observer has to rebuild the order from its enter/leave state and misreports after a jump (an anchor click, a restored scroll position). The listener is passive, the measurements are reads only (no writes, so no layout thrash), and a docs page has a dozen headings — the same cost as the listener the page already keeps.
+- **`attach()`** adds that one listener to `root()` (the document by default; read once, so attach again after swapping containers), calls it once to sync a page opened mid-scroll, and returns the teardown. Headings are looked up by id on every scroll, so they may render after `attach`; an id with no element is skipped.
+- **`offset`** is px below the scrollport's top edge, not the viewport's, so an inner container plus a sticky header works: `offset` is the header's height inside that container.
+- **Before any scroll the first entry is current**, and it stays current while nothing has passed the line. `active()` is `undefined` only when there are no entries.
+- **Exactly one `aria-current="location"`**, on the link, never on the heading: the heading's own `id` is the target. Skin it with `a[aria-current="location"]`.
+- **Smooth scrolling is the host's.** The links are plain `#id` targets, the primitive never moves the scrollport, so `scroll-behavior: smooth` (and any `prefers-reduced-motion` override) belongs to the page's CSS; there is no scroll helper to reduce.
+- **"On this page" is English.** Spread `navProps` first and override it after: `<nav {...toc.navProps} aria-label={t("onThisPage")}>`.
 
 ## Commands
 
