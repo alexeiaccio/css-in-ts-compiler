@@ -2138,5 +2138,26 @@ What is left is the half that runs anywhere, and it is the half that rots silent
 compiled and run against `clay.h` (now `native/check.sh`, one source for `test.sh` and CI), the focus manager's Tab order and
 walk, and the headless widgets against the ported Quint scenarios (1084 tests). `.github/workflows/native.yml` runs
 `native/ci.sh` on every push and pull request that touches `native/`, `packages/cssints/src`, `packages/headless` or
-`packages/apg-specs`. **Left**: the frames and the generated C keep their Mac-only check, so a rendering regression on another
-platform is still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
+`packages/apg-specs`. **Left**: the frames keep their Mac-only check, so a rendering regression on another platform is
+still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
+
+## The generator opens `libui` at its first call, so CI checks the committed C (2026-10-30)
+
+`native/generator/page-to-c.ts` is a Solid page rendered at build time, and the page imports `solid/src/entry.ts`, which
+imported `solid/src/ffi.ts`, which called `dlopen` on `build/solid/libui.dylib` **at module load**: the dylib is built by
+`solid/native/build.sh` from SDL3 and ThorVG (brew, macOS only), so on a machine without that build the generator died
+before it generated anything — `error: Failed to open library ".../native/build/solid/libui.dylib": dlopen(...): no such
+file ... at native/solid/src/ffi.ts:5:24`. That is why `native/check.sh` covered only the Clay headers, and the step that
+catches a stale golden — regenerate the Sensors page's five files, `cmp` them with `examples/sensors/*.c`, compile and run
+`gen.c` against the hand-written `page.c`, compile `InlineDemo.tsx`, grep the `--text` hook — ran on a Mac only. The fix is
+in `ffi.ts`, which every page module passes through: `dlopen`'s table moved into `open()`, and the exported `ui` wrappers
+go through `lib()`, a memoised open, so the library loads at the first call that needs it and never at import; the six
+members that were the symbol itself (`begin`, `wheel`, `close`, `end`, `draw`, `windowPresent`) are one-line forwarders,
+because a stored function reference would have opened it while the `ui` object was built. A missing library is still
+fatal where it is used: dlopen's own error, naming the path, on the first native call, so nothing degrades silently. The
+cost is one nullish check per FFI call and one memo slot; the wrappers are the same closures as before. Chosen over
+installing SDL3 and ThorVG on Linux, which would make a graphics stack a build dependency of a text generator and would
+still leave the frames a Mac rasteriser's: nothing the generator does needs the dylib, so the load was in the wrong
+place. `native/check.sh` now holds the page-to-C steps (moved out of `native/test.sh`, which calls the shared script and
+keeps the frames), `native/ci.sh` runs it unchanged, and the workflow's header says so. **Left**: the frames still need
+SDL3 and ThorVG on a Mac; a `libui` that builds on Linux would move those too.
