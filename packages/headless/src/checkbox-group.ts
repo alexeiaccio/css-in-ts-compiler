@@ -1,5 +1,6 @@
 import { type Accessor, createSignal } from "solid-js";
 import { createControllable } from "./controllable";
+import { createField, type FieldErrorProps } from "./field";
 
 export type CheckboxGroupFocus = "none" | "parent" | "c0" | "c1" | "c2";
 export type ParentChecked = "true" | "false" | "mixed";
@@ -15,6 +16,22 @@ export interface CheckboxGroupOptions<T = unknown> {
   readonly parent?: boolean;
   /** Remember the last mixed combination for the controller's third activation. */
   readonly remember?: boolean;
+  /** Base of the group's ids (`<id>-control`, `-error`); a unique one when absent. */
+  readonly id?: string;
+  /** The group's name, as `aria-label`: a `role="group"` needs one. */
+  readonly label?: string | undefined;
+  /** The id of the element that names the group (`aria-labelledby`); wins over `label`. */
+  readonly labelledby?: string | undefined;
+  /** Ids of elements the host owns that describe the group, after the group's own error id. */
+  readonly describedby?: string | undefined;
+  /**
+   * `true` marks the group invalid; a string does too and is the error message
+   * (unless `error` is set). `false` forces valid. Left out, the group is invalid
+   * exactly when it has an error message. Same contract as `createField`.
+   */
+  readonly invalid?: boolean | string | undefined;
+  /** The error message; absent (or empty) means no error element. */
+  readonly error?: string | undefined;
   /**
    * A request to change the checked subset, called when the intent differs from
    * the current value. Uncontrolled it is accepted; controlled the host may
@@ -45,9 +62,19 @@ export interface CheckboxGroupChildProps {
 }
 
 export interface CheckboxGroupProps {
+  /** The group element: a host's label can name it, and a controller can `aria-controls` it. */
+  readonly id: string;
   readonly role: "group";
+  readonly "aria-label": string | undefined;
+  readonly "aria-labelledby": string | undefined;
+  /** The error id while one is shown, then the host's `describedby`. */
+  readonly "aria-describedby": string | undefined;
+  readonly "aria-invalid": "true" | undefined;
   readonly onKeyDown: (event: KeyboardEvent) => void;
 }
+
+/** The error element: render it always, it is `hidden` while there is no error. */
+export type CheckboxGroupErrorProps = FieldErrorProps;
 
 export interface CheckboxGroup<T = unknown> {
   readonly children: Accessor<ReadonlyArray<boolean>>;
@@ -56,6 +83,14 @@ export interface CheckboxGroup<T = unknown> {
   readonly focused: Accessor<CheckboxGroupFocus>;
   readonly parentChecked: Accessor<ParentChecked>;
   readonly checkedValues: () => ReadonlyArray<T>;
+  /** The error shown: `undefined` unless the group is invalid and has a message. */
+  readonly error: () => string | undefined;
+  readonly invalid: () => boolean;
+  /**
+   * The ids `aria-describedby` lists now: the error (never while it is hidden),
+   * then the host's `describedby`.
+   */
+  readonly describedIds: () => readonly string[];
   readonly click: (target: CheckboxGroupFocus) => void;
   readonly keySpace: () => void;
   readonly keyTab: () => void;
@@ -64,6 +99,7 @@ export interface CheckboxGroup<T = unknown> {
   readonly setRemember: (value: boolean) => void;
   readonly setChildren: (children: ReadonlyArray<boolean>) => void;
   readonly groupProps: CheckboxGroupProps;
+  readonly errorProps: CheckboxGroupErrorProps;
   readonly parentProps: CheckboxGroupParentProps;
   readonly childProps: (index: 0 | 1 | 2) => CheckboxGroupChildProps;
 }
@@ -113,7 +149,17 @@ const nextFocus = (focus: CheckboxGroupFocus): CheckboxGroupFocus => {
  * pass `value` + `onValueChange` to own the checked subset. The checked set is
  * packed internally so it rides the scalar `createControllable`.
  *
- * Behaviour is checked against `specs/apg/checkbox-group.qnt` by the bridge.
+ * The name, the description and the error are `createField`'s contract on the
+ * `role="group"` element (`aria-label` / `aria-labelledby`, `aria-describedby`,
+ * `aria-invalid`, an error element that is `role="alert"` while it is shown), so
+ * a group reads like the fields around it. The group is not a `<label for>`
+ * target: a host names a visible label element's id with `labelledby`, or passes
+ * `label` without one.
+ *
+ * Behaviour is checked against `specs/apg/checkbox-group.qnt` by the bridge. That
+ * model leaves labelling out on purpose ("shift+Tab, accessible names,
+ * fieldset/legend or role=group labelling" in its header), so the field contract
+ * is checked by plain assertions in `test/checkbox-group.browser.test.tsx`.
  */
 export const createCheckboxGroup = <T = unknown>(
   options: CheckboxGroupOptions<T>,
@@ -128,6 +174,18 @@ export const createCheckboxGroup = <T = unknown>(
     value: () => (options.value === undefined ? undefined : packedOf(options.value)),
     initial: packedOf(options.defaultValue ?? []),
     onChange: () => (next: number) => options.onValueChange?.(labelsOf(next)),
+  });
+  const field = createField({
+    id: options.id,
+    get invalid() {
+      return options.invalid;
+    },
+    get error() {
+      return options.error;
+    },
+    get describedby() {
+      return options.describedby;
+    },
   });
   const [memory, setMemory] = createSignal<ReadonlyArray<boolean>>(normalizeChildren([]));
   const [remember, setRememberSignal] = createSignal(options.remember === true);
@@ -205,6 +263,9 @@ export const createCheckboxGroup = <T = unknown>(
     focused,
     parentChecked,
     checkedValues: () => selectedValues(children()),
+    error: field.error,
+    invalid: field.invalid,
+    describedIds: field.describedIds,
     click: (target) => {
       activate(target);
     },
@@ -227,7 +288,20 @@ export const createCheckboxGroup = <T = unknown>(
       requestPacked(packed(normalizeChildren(next)));
     },
     groupProps: {
+      id: field.controlProps.id,
       role: "group",
+      get "aria-label"() {
+        return options.label;
+      },
+      get "aria-labelledby"() {
+        return options.labelledby;
+      },
+      get "aria-describedby"() {
+        return field.controlProps["aria-describedby"];
+      },
+      get "aria-invalid"() {
+        return field.controlProps["aria-invalid"];
+      },
       onKeyDown: (event) => {
         if (event.key === "Tab") {
           event.preventDefault();
@@ -238,6 +312,7 @@ export const createCheckboxGroup = <T = unknown>(
         }
       },
     },
+    errorProps: field.errorProps,
     parentProps: {
       role: "checkbox",
       get "aria-checked"() {

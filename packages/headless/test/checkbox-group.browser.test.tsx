@@ -14,6 +14,7 @@ import {
 } from "@cssints/apg-specs/apg/checkbox-group.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
+import { createCheckboxGroup } from "../src/checkbox-group";
 import ariakit from "@cssints/apg-specs/scenarios/apg/checkbox.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/checkbox.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/checkbox-group.model.json";
@@ -57,6 +58,61 @@ describe("createCheckboxGroup x ported scenarios (real DOM)", () => {
       }
     });
   }
+});
+
+describe("createCheckboxGroup x the field contract", () => {
+  const values = ["email", "push", "sms"];
+
+  it("announces its name, the description the host owns, and its error", () => {
+    const group = createCheckboxGroup({
+      values,
+      label: "Notifications",
+      describedby: "form-hint",
+      invalid: "Pick a channel",
+      error: "Pick at least one channel",
+    });
+    expect(group.groupProps.role).toBe("group");
+    expect(group.groupProps.id).not.toBe("");
+    expect(group.groupProps["aria-label"]).toBe("Notifications");
+    expect(group.groupProps["aria-labelledby"]).toBeUndefined();
+    // the error wins over the string `invalid`, and the error id comes first
+    expect(group.invalid()).toBe(true);
+    expect(group.error()).toBe("Pick at least one channel");
+    expect(group.groupProps["aria-invalid"]).toBe("true");
+    expect(group.groupProps["aria-describedby"]).toBe(`${group.errorProps.id} form-hint`);
+    expect(group.describedIds()).toEqual([group.errorProps.id, "form-hint"]);
+    // the error announces itself while it is shown
+    expect(group.errorProps.hidden).toBe(false);
+    expect(group.errorProps.role).toBe("alert");
+  });
+
+  it("names the group from a host element, and stays quiet while it is valid", () => {
+    const group = createCheckboxGroup({
+      values,
+      labelledby: "channels-title",
+      // `invalid: false` wins over a message: the host keeps the text ready
+      invalid: false,
+      error: "Pick at least one channel",
+    });
+    expect(group.groupProps["aria-labelledby"]).toBe("channels-title");
+    expect(group.groupProps["aria-label"]).toBeUndefined();
+    expect(group.invalid()).toBe(false);
+    expect(group.error()).toBeUndefined();
+    expect(group.groupProps["aria-invalid"]).toBeUndefined();
+    expect(group.groupProps["aria-describedby"]).toBeUndefined();
+    expect(group.errorProps.hidden).toBe(true);
+    expect(group.errorProps.role).toBeUndefined();
+  });
+
+  it("keeps the announced attributes on the group, not on the boxes", () => {
+    const group = createCheckboxGroup({ values, label: "Notifications", invalid: true });
+    expect(group.groupProps["aria-invalid"]).toBe("true");
+    // no error message: the group is marked, and nothing is described
+    expect(group.groupProps["aria-describedby"]).toBeUndefined();
+    expect(group.errorProps.hidden).toBe(true);
+    expect(Object.keys(group.childProps(0))).not.toContain("aria-invalid");
+    expect(Object.keys(group.parentProps)).not.toContain("aria-invalid");
+  });
 });
 
 describe("createCheckboxGroup x spec (differential walk)", () => {
