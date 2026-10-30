@@ -2094,3 +2094,33 @@ makes the buttons it holds compact without a prop on each (`combos.browser.test.
 contexts do not carry: `frame()` passes a radius down the tree, not sideways, and a user class has no `:first-child` (`nest()`
 is kernel-only). The two ways are parts (`ButtonGroup.Item`, the container knows the index) or a small `@cssints/group` member
 whose kernel uses `nest("& > * + *")`; not chosen yet.
+
+## Sibling geometry is the child's, read off an ancestor's marker (`ButtonGroup`, 2026-10-30)
+
+The two ways considered for a button group were parts (`ButtonGroup.Item`, the container knows the index) and a small
+`@cssints/group` member with `nest("& > * + *")`. Both are wrong here, and the reason is the layer model. A kernel's rules
+live in `_.k`, below every class layer, so `nest("& > *")` in a kernel **cannot** square a corner or collapse a border the
+child's own class sets — the child always wins. And a container cannot count or clone its children either (Solid creates
+them after the container's function runs; JSX is already a node).
+
+What works is the third thing: the **child** carries the sibling rules, and an **ancestor marker** gates them. `ButtonGroup`
+marks itself `group("row")` or `group("column")`, and `Button` has
+
+```
+within(attr("data-part", "button-group"), "row")(…, firstChild(…), lastChild(…))
+```
+
+which compiles to `:where(._g-row[data-part="button-group"]) ._b:first-child` — a condition on the button's own class, in a
+later layer than its base, so the corners it shares with a neighbour are the group's. `data-part` is what keeps any other
+`_g` ancestor (a toolbar, a disclosure) out of it. The container draws nothing at all: no frame, no background, so a `quiet`
+tone keeps its look and the focus ring is not clipped (which is why `overflow: clip` on the container was rejected).
+
+Two rules the button gives up inside a group: every corner is square first, then `:first-child` brings back the two on the
+start side and `:last-child` the two on the end side (one child is both, so a lone button in a group keeps its radius); and
+every button after the first slides 1px into its neighbour (`margin-inline-start: -1px`), so the two 1px borders between two
+buttons become one line. **Left**: the first button slides 1px too, so the row sits 1px left of the group's box (invisible,
+but it is 1px); a nested `ButtonGroup` inside a group is read as the same group, since the marker inherits down the tree.
+
+The same shape is what the kit's other containers already use (`Toolbar`'s `data-size` via `within()`), so the kit has no
+container that selects a child: it has classes that read the container. `ButtonGroup`'s size cascade works the same way, and
+it needs both markers (`group()` for `data-size`, `group("row")` for the geometry).

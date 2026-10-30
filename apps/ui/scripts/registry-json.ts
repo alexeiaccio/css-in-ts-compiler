@@ -73,6 +73,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["render.tsx", "theme.ts", "tokens.ts"],
   },
   {
+    name: "button-group",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Button group",
+    description:
+      "Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's",
+    also: ["@cssints/button"],
+  },
+  {
     name: "switch",
     tested: true,
     with: ["theme.ts", "tokens.ts"],
