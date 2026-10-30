@@ -7,6 +7,7 @@ import {
   specDriver,
 } from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
+import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 import {
   menuButtonBridge,
@@ -33,12 +34,6 @@ const menuButtonDom = (config: ScenarioConfig) =>
 // primitive implements the APG/Quint contract on the menu-button.qnt fixture.
 // Each entry must still fail (so closing the gap forces removing it) and says
 // why.
-//
-// The spec's controlled open axis is not wired to `createMenu` (its `value` is
-// the packed checked state, a different axis), so the differential walk above
-// stays uncontrolled and `setValue` / `hostToggle` are inert on both sides. The
-// controlled vocabulary is still accepted by `menuButtonConfig` so a scenario
-// carrying it is modelled rather than silently dropped.
 const MENU_POPUP_FOCUS =
   "ariakit moves focus to the popup container on pointer open; the primitive focuses the first menu item (APG)";
 const MENU_OUTSIDE_SENTINEL =
@@ -70,20 +65,31 @@ describe("createMenu (plain) x menu-button.qnt (differential walk)", () => {
     items: ["alpha", "bravo", "charlie", "delta"],
     disabled: [2],
   };
-  it("matches the generated model", async () => {
-    await differentialWalk({
-      alphabet: menuButtonSteps,
-      probe: menuButtonProbe,
-      makePair: () =>
-        Promise.resolve([
-          specDriver(menuButtonModel, menuButtonBridge, config),
-          menuButtonDom(config),
-        ]),
-      runs: 15,
-      steps: 25,
-      seed: 13,
+  // The spec's `menuOpen` axis is its own controlled contract (`controlled` /
+  // `accepts` / `value`) and `createMenu`'s `open` pair is that axis: a holding
+  // host must revert the whole transition (focus included), an accepting one
+  // commits it, and a host write moves no focus.
+  for (const variant of [
+    config,
+    { ...config, controlled: true, accepts: true },
+    { ...config, controlled: true, accepts: false },
+    { ...config, controlled: true, accepts: true, value: true },
+  ]) {
+    it(`matches the generated model for ${JSON.stringify(variant)}`, async () => {
+      await differentialWalk({
+        alphabet: menuButtonSteps,
+        probe: menuButtonProbe,
+        makePair: () =>
+          Promise.resolve([
+            specDriver(menuButtonModel, menuButtonBridge, variant),
+            menuButtonDom(variant),
+          ]),
+        runs: 15,
+        steps: 25,
+        seed: 13,
+      });
     });
-  });
+  }
 });
 
 describe("createMenu (plain) x ported menu-button scenarios (real DOM)", () => {
@@ -110,4 +116,79 @@ describe("createMenu (plain) x ported menu-button scenarios (real DOM)", () => {
       }
     });
   }
+});
+
+describe("createMenu (plain) x a host that owns the open state", () => {
+  const mount = (accepts: boolean, value: boolean) =>
+    mountMenuButton({
+      items: ["alpha", "bravo", "charlie"],
+      disabled: [],
+      controlled: true,
+      accepts,
+      value,
+    });
+
+  const triggerOf = (root: HTMLElement): HTMLElement =>
+    root.querySelector<HTMLElement>('[data-part="trigger"]') as HTMLElement;
+  const menuOf = (root: HTMLElement): HTMLElement =>
+    root.querySelector<HTMLElement>('[data-part="menu"]') as HTMLElement;
+  const itemsOf = (root: HTMLElement): HTMLElement[] => [
+    ...root.querySelectorAll<HTMLElement>('[data-part="menuitem"]'),
+  ];
+
+  it("keeps the menu open and the focus on its item when the host ignores a close", () => {
+    const mounted = mount(false, true);
+    const menu = menuOf(mounted.root);
+    const trigger = triggerOf(mounted.root);
+    expect(menu.hidden).toBe(false);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    // the host opened it: the focus is on the first item, as the model has it
+    expect(mounted.focus?.()).toBe("menuitem:0");
+    const items = itemsOf(mounted.root);
+    items[1]?.focus();
+    flush();
+    expect(mounted.focus?.()).toBe("menuitem:1");
+    // Escape is a close request: it reaches the host, the host holds, so the
+    // menu stays open and the focus stays where it was (menu-button.qnt reverts
+    // the whole transition)
+    items[1]?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(mounted.events.get("onOpenChange")).toEqual([[false]]);
+    expect(menu.hidden).toBe(false);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(mounted.focus?.()).toBe("menuitem:1");
+    // activating an item closes it too, and is ignored the same way (the
+    // primitive activates its own focused item)
+    items[1]?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    flush();
+    expect(menu.hidden).toBe(false);
+    expect(mounted.focus?.()).toBe("menuitem:1");
+    // the trigger's own click toggles through the request as well
+    trigger.click();
+    flush();
+    expect(menu.hidden).toBe(false);
+    mounted.dispose();
+  });
+
+  it("moves the focus with the state when the host accepts every request", () => {
+    const mounted = mount(true, false);
+    const menu = menuOf(mounted.root);
+    const trigger = triggerOf(mounted.root);
+    expect(menu.hidden).toBe(true);
+    trigger.click();
+    flush();
+    expect(mounted.events.get("onOpenChange")).toEqual([[true]]);
+    expect(menu.hidden).toBe(false);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    // the accepted request moves the focus to the first item
+    expect(mounted.focus?.()).toBe("menuitem:0");
+    itemsOf(mounted.root)[0]?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    flush();
+    expect(mounted.events.get("onOpenChange")).toEqual([[true], [false]]);
+    expect(menu.hidden).toBe(true);
+    expect(mounted.focus?.()).toBe("trigger");
+    mounted.dispose();
+  });
 });

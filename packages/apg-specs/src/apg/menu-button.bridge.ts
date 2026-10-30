@@ -22,11 +22,9 @@ const specEvent = (
  * cannot model a menu longer than four); the labels never reach the model.
  *
  * The spec's `menuOpen` axis is its own controlled contract (`controlled` /
- * `accepts` / `value`), separate from `createMenu`'s packed checked `value`.
- * `createMenu`'s open state is still uncontrolled, so the differential walk
- * stays uncontrolled and `setValue` / `hostToggle` are inert on both sides; the
- * controlled vocabulary is accepted here only so a scenario carrying it is
- * modelled instead of silently dropped (see the menu-button DIVERGENCES).
+ * `accepts` / `value`), and `createMenu`'s `open` pair implements it: the walk
+ * runs it uncontrolled, accepting, holding and controlled-open, and `setValue` /
+ * `hostToggle` are the host writing its own copy.
  */
 export interface MenuButtonConfig {
   readonly items: ReadonlyArray<string>;

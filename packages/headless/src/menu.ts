@@ -1,4 +1,5 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
+import { createControllable } from "./controllable";
 import { type Prefs, withPrefs } from "./prefs";
 
 /**
@@ -15,8 +16,12 @@ import { type Prefs, withPrefs } from "./prefs";
  * dismiss and Esc; `focusgroup` gives the menubar's roving tabindex. The
  * library owns the menu keys, typeahead, submenus and checkable state.
  *
- * ponytail: uncontrolled; add a `value`/`onValueChange` host pair when a
- * consumer owns open/checked state.
+ * Request/commit (map ticket `rt1p`): the open state, and the checked items of
+ * the checkable variants, are controllable. Uncontrolled by default
+ * (`defaultOpen` / `defaultValue`); pass `open` / `value` (+ `onOpenChange` /
+ * `onCheckedValueChange`) to own them. Every opening and closing intent — the
+ * trigger's click and keys, Escape, an item's activation, Tab, and the
+ * programmatic `openMenu` / `closeMenu` — is a request the host may ignore.
  */
 
 // ---------------------------------------------------------------------------
@@ -37,6 +42,9 @@ export type MenuVariant = "plain" | "checkbox-items" | "radio-items" | "mixed";
 export interface MenuOptions {
   readonly items: ReadonlyArray<string | MenuItemInput>;
   readonly variant?: MenuVariant;
+  /** Controlled: the host owns the open state and this is the only thing that opens or closes it. */
+  readonly open?: boolean | undefined;
+  /** Uncontrolled starting state; ignored while `open` is set. */
   readonly defaultOpen?: boolean;
   /**
    * `outside` (menu button): focus can sit outside the widget, so keys are
@@ -52,7 +60,7 @@ export interface MenuOptions {
    * Controlled: the host owns the checked items. Packed as
    * `checkboxItem0 * 5 + radioChoice` (1-based), matching `menu-checkable.qnt`'s
    * `checked(wrap, choice)`; pass `undefined` for uncontrolled. The open state
-   * stays uncontrolled.
+   * has its own `open` pair.
    */
   readonly value?: number | undefined;
   /** The uncontrolled packed checked state at mount. */
@@ -62,6 +70,10 @@ export interface MenuOptions {
   /** Item indices disabled (focusable, not activatable). */
   readonly disabled?: ReadonlyArray<number>;
   readonly id?: string;
+  /**
+   * A request to change the open state, called when the intent differs from the
+   * current one. Uncontrolled it is accepted; controlled the host may ignore it.
+   */
   readonly onOpenChange?: (open: boolean) => void;
   readonly onItemClick?: (index: number) => void;
   readonly onCheckedChange?: (checked: boolean, index: number) => void;
@@ -183,9 +195,13 @@ export const createMenu = (options: MenuOptions): Menu => {
   // Local state + a version signal: Solid 2 setters apply on the microtask
   // flush, so a signal would lag behind a transition performed in one tick.
   const held = (options.triggerMode ?? "outside") === "held";
-  let level: 0 | 1 | 2 = 0;
-  let index = -1;
-  let open = options.defaultOpen ?? false;
+  // The open state is a request/commit pair: uncontrolled it commits here,
+  // controlled the host's `open` prop is the only thing that changes it.
+  const [isOpen, requestOpen] = createControllable<boolean>({
+    value: () => options.open,
+    initial: options.defaultOpen === true,
+    onChange: () => options.onOpenChange,
+  });
   let checked = new Set<number>(options.defaultChecked ?? []);
   const variantChoice = (): number => {
     if (options.variant === "mixed") return 1;
@@ -236,56 +252,91 @@ export const createMenu = (options: MenuOptions): Menu => {
       return read();
     };
 
-  if (open) {
-    level = 2;
-    index = 0;
-  } else if (held) {
-    level = 1;
-  }
+  // The focus follows the open state (`menu-button.qnt`'s
+  // `ExpandedIffFocusInMenu`): level 2 exactly while the menu is open, and
+  // `closed` (0 outside, 1 on the trigger) while it is not; `index` is the
+  // focused item while it is open. A request that opens or closes moves them
+  // with the state, and only when the state lands where it was asked, so a
+  // rejected request leaves the focus as it found it. The host's `open` prop
+  // lands on Solid's microtask flush, so the answer is read there. A host write
+  // is not a request: it moves the focus to the default (the first item when it
+  // opens, the trigger when it closes), which `sync` applies when the state is
+  // next read.
+  let closed: 0 | 1 = held ? 1 : 0;
+  let index = 0;
+  let seenOpen = isOpen();
 
   const isDisabled = (i: number): boolean => disabled.has(i);
 
-  const setFocus = (nextLevel: 0 | 1 | 2, nextIndex: number): void => {
-    level = nextLevel;
-    index = nextIndex;
+  const sync = (): void => {
+    const now = isOpen();
+    if (now === seenOpen) {
+      return;
+    }
+    seenOpen = now;
+    index = now ? 0 : -1;
+    closed = now ? closed : 1;
+  };
+
+  const level = (): 0 | 1 | 2 => {
+    sync();
+    return isOpen() ? 2 : closed;
+  };
+
+  const focusedIndex = (): number => {
+    sync();
+    return index;
+  };
+
+  const focusItem = (next: number): void => {
+    index = next;
     bump();
+  };
+
+  const move = (want: boolean, nextIndex: number, nextClosed: 0 | 1): void => {
+    const apply = (): void => {
+      seenOpen = isOpen();
+      index = want ? nextIndex : -1;
+      closed = nextClosed;
+      bump();
+    };
+    if (isOpen() === want) {
+      apply();
+      return;
+    }
+    requestOpen(want);
+    if (options.open === undefined) {
+      apply();
+      return;
+    }
+    queueMicrotask(() => {
+      if (isOpen() === want) {
+        apply();
+      }
+    });
   };
 
   const openOn = (target: number): void => {
-    level = 2;
-    index = target;
-    open = true;
-    bump();
-    options.onOpenChange?.(true);
+    move(true, target, 1);
   };
 
   const closeToTrigger = (): void => {
-    level = 1;
-    index = -1;
-    open = false;
-    bump();
-    options.onOpenChange?.(false);
+    move(false, -1, 1);
   };
 
   const focusTrigger = (): void => {
-    if (level === 0) {
-      setFocus(1, -1);
+    if (level() === 0) {
+      closed = 1;
+      bump();
     }
   };
 
   const leave = (): void => {
-    const wasOpen = open;
-    level = held ? 1 : 0;
-    index = -1;
-    open = false;
-    bump();
-    if (wasOpen) {
-      options.onOpenChange?.(false);
-    }
+    move(false, -1, held ? 1 : 0);
   };
 
   const clickTrigger = (): void => {
-    if (open) {
+    if (isOpen()) {
       closeToTrigger();
     } else {
       openOn(0);
@@ -293,23 +344,23 @@ export const createMenu = (options: MenuOptions): Menu => {
   };
 
   const openMenu = (): void => {
-    if (!open) {
+    if (!isOpen()) {
       openOn(0);
     }
   };
 
   const closeMenu = (): void => {
-    if (open) {
+    if (isOpen()) {
       closeToTrigger();
     }
   };
 
   const activate = (close: boolean): void => {
-    if (level === 1) {
+    if (level() === 1) {
       openOn(0);
       return;
     }
-    if (level !== 2 || index < 0 || isDisabled(index)) {
+    if (level() !== 2 || index < 0 || isDisabled(index)) {
       return;
     }
     const item = items[index];
@@ -367,36 +418,36 @@ export const createMenu = (options: MenuOptions): Menu => {
         activate(false);
         break;
       case "ArrowDown":
-        if (level === 1) {
+        if (level() === 1) {
           openOn(0);
-        } else if (level === 2) {
-          setFocus(2, wrapNext(index));
+        } else if (level() === 2) {
+          focusItem(wrapNext(focusedIndex()));
         }
         break;
       case "ArrowUp":
-        if (level === 1) {
+        if (level() === 1) {
           openOn(count - 1);
-        } else if (level === 2) {
-          setFocus(2, wrapPrev(index));
+        } else if (level() === 2) {
+          focusItem(wrapPrev(focusedIndex()));
         }
         break;
       case "Home":
-        if (level === 2) {
-          setFocus(2, 0);
+        if (level() === 2) {
+          focusItem(0);
         }
         break;
       case "End":
-        if (level === 2) {
-          setFocus(2, count - 1);
+        if (level() === 2) {
+          focusItem(count - 1);
         }
         break;
       case "Escape":
-        if (level === 2) {
+        if (level() === 2) {
           closeToTrigger();
         }
         break;
       case "Tab":
-        if (level !== 0) {
+        if (level() !== 0) {
           leave();
         }
         break;
@@ -417,7 +468,7 @@ export const createMenu = (options: MenuOptions): Menu => {
   };
 
   const type = (text: string): void => {
-    if (!open || text.length === 0) {
+    if (!isOpen() || text.length === 0) {
       return;
     }
     buffer += text;
@@ -427,10 +478,10 @@ export const createMenu = (options: MenuOptions): Menu => {
     bufferTimer = setTimeout(() => {
       buffer = "";
     }, prefs.typeaheadDelayMs);
-    const from = index >= 0 ? index : 0;
+    const from = focusedIndex() >= 0 ? focusedIndex() : 0;
     const match = search(from, buffer);
     if (match !== undefined) {
-      setFocus(2, match);
+      focusItem(match);
     }
   };
 
@@ -439,14 +490,14 @@ export const createMenu = (options: MenuOptions): Menu => {
   const codeOf = (i: number): number => (i % 2 === 0 ? 1 : 2);
 
   const typeaheadCode = (code: number): void => {
-    if (!open) {
+    if (!isOpen()) {
       return;
     }
-    const from = index >= 0 ? index : 0;
+    const from = focusedIndex() >= 0 ? focusedIndex() : 0;
     for (let offset = 1; offset < count; offset += 1) {
       const candidate = (from + offset) % count;
       if (codeOf(candidate) === code) {
-        setFocus(2, candidate);
+        focusItem(candidate);
         return;
       }
     }
@@ -456,14 +507,13 @@ export const createMenu = (options: MenuOptions): Menu => {
     if (i < 0 || i >= count) {
       return;
     }
-    open = true;
-    setFocus(2, i);
+    move(true, i, 1);
   };
 
   return {
-    open: track(() => open),
-    focusLevel: track(() => level),
-    focusIndex: track(() => index),
+    open: track(isOpen),
+    focusLevel: track(level),
+    focusIndex: track(focusedIndex),
     items,
     checked: track(() => [...currentChecked()].sort((a, b) => a - b)),
     choice: track(() => currentChoice()),
@@ -482,7 +532,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       "aria-haspopup": "menu",
       get "aria-expanded"() {
         version();
-        return open ? "true" : "false";
+        return isOpen() ? "true" : "false";
       },
       "aria-controls": menuId,
       get disabled() {
@@ -512,7 +562,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       role: "menu",
       get hidden() {
         version();
-        return !open;
+        return !isOpen();
       },
       onKeyDown: (event) => {
         if (
@@ -551,7 +601,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       },
       get tabindex() {
         version();
-        return level === 2 && index === i ? 0 : -1;
+        return level() === 2 && index === i ? 0 : -1;
       },
       onClick: () => {
         if (isDisabled(i)) {

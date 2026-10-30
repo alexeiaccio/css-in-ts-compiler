@@ -2,7 +2,7 @@ import { type Menu, createMenu } from "../src/menu";
 import type { Json } from "@cssints/apg-specs/scenario";
 import type { MenuButtonConfig } from "@cssints/apg-specs/apg/menu-button.bridge";
 import type { Mounted } from "./dom-driver";
-import { createEffect } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 
 const asRecord = (value: Json | undefined): Record<string, Json> => {
@@ -20,15 +20,17 @@ const asRecord = (value: Json | undefined): Record<string, Json> => {
  * primitive's focused part (`trigger` / `menuitem:N`), and the menu is a
  * `data-part="menu"` sibling of `data-part="trigger"`.
  *
- * The primitive's open state is uncontrolled, so `setValue` / `hostToggle`
- * (the spec's controlled-open writes) are inert here, matching the uncontrolled
- * spec model. The events map records `onOpenChange` / `onItemClick` for the
- * ported scenarios.
+ * Controlled, the fixture is the host: it keeps the open state in a signal,
+ * passes it as `open`, and either writes every request back (`accepts`) or
+ * ignores it. `setValue` / `hostToggle` (the spec's host writes) write that
+ * signal. The events map records `onOpenChange` / `onItemClick` for the ported
+ * scenarios.
  */
 export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const events = new Map<string, Json[]>();
+  const [host, setHost] = createSignal(config.value === true);
   let api: Menu | undefined;
   // True while the fixture applies focus itself: the primitive's onFocus must not
   // write that programmatic focus back into its own state (bean 209r).
@@ -44,9 +46,15 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
       variant: "plain",
       triggerMode: "outside",
       disabled: config.disabled,
+      get open() {
+        return config.controlled ? host() : undefined;
+      },
       suppressFocusWrite: () => suppressing,
       onOpenChange: (open) => {
         events.set("onOpenChange", [...(events.get("onOpenChange") ?? []), [open]]);
+        if (config.controlled && config.accepts) {
+          setHost(open);
+        }
       },
       onItemClick: (index) => {
         events.set("onItemClick", [...(events.get("onItemClick") ?? []), [`menuitem:${index}`]]);
@@ -127,8 +135,13 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
           api?.type(String(value));
           break;
         case "setValue":
+          if (typeof value !== "boolean") {
+            throw new Error(`setValue needs a boolean, got ${JSON.stringify(value)}`);
+          }
+          setHost(value);
+          break;
         case "hostToggle":
-          // uncontrolled open: the spec's host writes are no-ops (see above)
+          setHost((open) => !open);
           break;
         default:
           throw new Error(`fixture has no prop ${name}`);
