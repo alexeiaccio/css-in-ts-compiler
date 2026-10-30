@@ -45,10 +45,15 @@
 //     press always land on the grid.
 //   - Dragging (pointer capture, move events): only a discrete pointer
 //     "press at value" is modelled, snapped to the step grid and clamped.
-//   - Disabled / read-only, touch assistive-technology key synthesis, and
-//     aria-valuetext formatting (units, locale): a real widget formats the text
-//     from its own value; the spec only fixes WHEN the text is derived (always,
-//     from valuenow).
+//   - Disabled / read-only: the primitive's widget-level `disabled` is a
+//     deliberate extension of the pattern, and the machine has no `disabled`
+//     var. So the model carries no invariant for it ("a disabled thumb drops
+//     every key and rail press and announces aria-disabled"); its oracle is the
+//     DOM test in `packages/headless/test/slider.browser.test.tsx`. Read-only is
+//     not offered at all.
+//   - Touch assistive-technology key synthesis, and aria-valuetext formatting
+//     (units, locale): a real widget formats the text from its own value; the
+//     spec only fixes WHEN the text is derived (always, from valuenow).
 //   - The range (0..10) is fixed; `configure` varies step, large step and the
 //     starting value. The bridge rejects a config outside the variant table.
 module apg_slider {

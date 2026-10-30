@@ -49,6 +49,12 @@
 //     is replaced wholesale by a sample text.
 //   - the commit/revert policy (Enter/Escape/blur) is a widely used
 //     convention, not APG text; so is the buttons' aria-disabled-at-bound.
+//   - a widget-level `disabled`: a deliberate extension of the pattern, not
+//     modelled. The machine's only disabled state is the steppers' at-bound
+//     one (`DisabledOnlyAtBound`); it has no `disabled` var, so it cannot say
+//     "while disabled, keys, typing and both steppers change nothing and both
+//     steppers announce aria-disabled". The DOM test in
+//     `packages/headless/test/spinbutton.browser.test.tsx` is its oracle.
 //   - press-and-hold auto-repeat on the buttons, mouse wheel.
 //
 // Generator notes: no action preconditions (guards live in the assignment

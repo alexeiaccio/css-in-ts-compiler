@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/spinbutton.qnt
-// Spec hash (sha256): 19c6cf077a7017c6cb2df08b2ff6749bed9f75056e77a5f7084b393967cca18f
+// Spec hash (sha256): 2cec7069c44874e465cbdf1a751fa272ff8272be19d3bc84ab2edc5574673e3a
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
