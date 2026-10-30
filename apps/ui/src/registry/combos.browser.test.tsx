@@ -7,7 +7,16 @@ import type { JSX } from "@solidjs/web";
 import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 
-import { Fields, Groups, Mode, Nesting, Renders, Sizes, Toolbars } from "./combos.fixture.tsx";
+import {
+  Dialogs,
+  Fields,
+  Groups,
+  Mode,
+  Nesting,
+  Renders,
+  Sizes,
+  Toolbars,
+} from "./combos.fixture.tsx";
 
 const mount = (view: () => JSX.Element): HTMLElement => {
   const root = document.createElement("div");
@@ -83,6 +92,46 @@ describe("the kit composes", () => {
     expect(style(buttons[3]!).borderEndStartRadius).toBe("0px");
     expect(style(buttons[4]!).borderEndEndRadius).toBe("8px");
     expect(style(buttons[4]!).paddingTop).toBe("4px");
+  });
+
+  it("puts a modal above the page, names it, keeps focus and gives it back", () => {
+    const root = mount(() => <Dialogs />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
+    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
+    // a real pointer click focuses the button first; `click()` does not, and the dialog gives focus back to what had it
+    trigger.focus();
+    trigger.click();
+    flush();
+    const panel = root.querySelector<HTMLElement>('[data-part="dialog"]')!;
+    const backdrop = root.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!;
+    // the panel is the dialog: a role and a name from the prop, the description it renders, and the modal state
+    expect(panel.getAttribute("role")).toBe("dialog");
+    expect(panel.getAttribute("aria-label")).toBe("Rename file");
+    expect(panel.getAttribute("aria-modal")).toBe("true");
+    const described = panel.getAttribute("aria-describedby")!;
+    expect(document.getElementById(described)?.getAttribute("data-part")).toBe(
+      "dialog-description",
+    );
+    // above the page, behind a wash, and the page does not scroll under it
+    expect(style(root.querySelector<HTMLElement>('[data-part="dialog-layer"]')!).zIndex).toBe("20");
+    expect(style(panel).position).toBe("relative");
+    expect(style(backdrop).position).toBe("absolute");
+    expect(style(backdrop).backgroundColor).not.toBe(style(panel).backgroundColor);
+    expect(document.body.style.overflow).toBe("hidden");
+    // focus went into the panel: a screen reader's reader starts where the message is
+    expect(document.activeElement).toBe(panel);
+    panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(root.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(document.body.style.overflow).toBe("");
+    // and the backdrop is a way out too
+    trigger.click();
+    flush();
+    root.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!.click();
+    flush();
+    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
   });
 
   it("lets render replace a part and keeps the props and the state live", () => {

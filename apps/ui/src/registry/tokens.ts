@@ -104,7 +104,12 @@ export const lightTokens = {
     buttonBackgroundPressed: { $value: "{color.tint.200}" },
     overlayBackground: { $value: "{color.surface}" },
     overlayBorder: { $value: "rgb(0 0 0 / 0.06)" },
+    // The wash under a modal: the page stays visible, and no text of the page can be read through it.
+    scrim: { $value: "oklch(0 0 0 / 0.35)" },
   },
+
+  // The one thing the kit puts above the page: a modal dialog. A popover over a dialog is the next value, when there is one.
+  z: { $type: "number", dialog: { $value: "20" } },
 
   // One shadow, because a popover is the only thing that floats above the page in the starters. Its blur and offsets are the
   // reference's; only its colour changes with the mode.

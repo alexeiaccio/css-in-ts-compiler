@@ -2180,3 +2180,32 @@ it). Cost: every registry item now depends on `@cssints/mise-en-mode` (`apps/ui/
 `scripts/registry-json.ts`), the dark scope prints three theme rules instead of one, and the sheet gains the `@layer app,
 author, viewer;` statement. `combos.browser.test.tsx` ("follows the mode the card sits in") and the contrast checks are
 unchanged and green.
+
+## The kit's first overlay: a layer, a wash and a panel (apps/ui, 2026-10-30)
+
+The kit had no element above the page — no `z-index`, no `position: fixed`, nothing to open over a card — so `Dialog`, the
+first APG pattern of `@cssints/headless` that needs one, is also the kit's overlay decision. Three boxes, not one: a layer
+(`position: fixed; inset: 0; z-index: var(--z-dialog); display: grid; place-items: center; padding; overflow: auto`) holds
+the page still and centres; the **backdrop** sits in it as an absolutely positioned box with the wash, and takes
+`createDialogModal`'s `backdropProps` — a click on it is a dismiss, and it must not be an ancestor of the panel, because the
+headless closes on any click it sees; the **panel** is `position: relative` (a positioned box paints over a plain one) and is
+a `surface()` and a `frame()` like a card. The panel scrolls inside itself (`max-height: calc(100dvh - 2 * 16px)`), so a long
+dialog never grows past the viewport.
+
+The wash is a token (`color.scrim`, `oklch(0 0 0 / 0.35)`), and so is the stacking (`z.dialog: 20`); both are in
+`theme.css` — the plain file's dark block stays as it was, because its overrides are the scales, and the flat `page` value
+already did not follow the mode there (a pre-existing gap of the plain artifact, unchanged). `z-index` takes an
+`<integer>` and a `number` token is not one (`TS2345` from the engine: `grammar auto | <integer>`), so the class reads
+`var(--z-dialog)` by hand rather than the token value: the knob is still the theme's, the type is not.
+
+Three smaller decisions, each measured against the kit's own shape. The panel names itself with `aria-label` from the
+required `label` prop and **not** with `labelledby`: a look-up of a title id would dangle whenever the host renders its own
+heading, while a prop cannot. The description is a prop, not a part (like `Field`'s `hint`), always rendered with the id
+passed as `describedby` and `hidden` when absent: an `alert` (role `alertdialog`) needs a description in APG, and a reference
+to a missing id is worse than an empty one. `Dialog.Trigger` and `Dialog.Close` render a `Button` by default, as `Field`'s
+control renders an `Input`, so the button keeps `data-part="button"` and the trigger is found by `aria-haspopup="dialog"`.
+Focus goes into the panel on open (it is `tabindex="-1"` and has no ring of its own) and back to what had it on close, with
+the page's scroll locked meanwhile — `combos.browser.test.tsx` covers the name, the description, the stacking, the scroll
+lock, Escape, the backdrop click and the focus. **Left**: no portal — a dialog rendered inside a transformed ancestor is
+trapped by it, which is a host's corner and not yet a case; no nested-layer handle: a popover over a dialog wants the next `z`
+value.

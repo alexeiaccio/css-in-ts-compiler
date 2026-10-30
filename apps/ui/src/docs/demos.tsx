@@ -3,6 +3,13 @@
 import { Accordion } from "../registry/accordion/accordion.tsx";
 import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.tsx";
 import { Button } from "../registry/button/button.tsx";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "../registry/dialog/dialog.tsx";
 import { ButtonGroup } from "../registry/button-group/button-group.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
@@ -117,6 +124,30 @@ const ButtonGroupDemo = (): JSX.Element => (
   </div>
 );
 
+const DialogDemo = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <Dialog
+      label="Rename file"
+      description="The new name shows up in the list and in every link to it."
+      open={open()}
+      onOpenChange={setOpen}
+    >
+      <DialogTrigger>Rename</DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Rename</DialogTitle>
+        <Input value="Report Q3" />
+        <div class="demo-row">
+          <DialogClose>Cancel</DialogClose>
+          <Button tone="accent" onClick={() => setOpen(false)}>
+            Save
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const InputDemo = (): JSX.Element => (
   <div class="demo-column">
     <Input placeholder="A plain input" />
@@ -200,6 +231,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   card: CardDemo,
   field: FieldDemo,
   input: InputDemo,
+  dialog: DialogDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,

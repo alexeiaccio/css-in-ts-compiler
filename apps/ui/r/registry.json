@@ -88,6 +88,38 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "dialog",
+      "type": "registry:ui",
+      "title": "Dialog",
+      "description": "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
+      "dependencies": ["@cssints/headless", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme", "@cssints/button"],
+      "files": [
+        {
+          "path": "dialog.tsx",
+          "target": "src/components/ui/dialog.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "input",
       "type": "registry:ui",
       "title": "Input",

@@ -6,6 +6,13 @@ import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import { Button } from "./button/button.tsx";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog/dialog.tsx";
 import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
@@ -91,6 +98,25 @@ export const Groups = (): JSX.Element => (
     </ButtonGroup>
   </>
 );
+
+export const Dialogs = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <Dialog
+      label="Rename file"
+      description="The new name shows up in the list."
+      open={open()}
+      onOpenChange={setOpen}
+    >
+      <DialogTrigger>Rename</DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Rename</DialogTitle>
+        <Input value="Report" />
+        <DialogClose>Cancel</DialogClose>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export const Fields = (): JSX.Element => (
   <>

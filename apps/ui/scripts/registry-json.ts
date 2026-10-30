@@ -58,6 +58,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/input"],
   },
   {
+    name: "dialog",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Dialog",
+    description:
+      "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
+    also: ["@cssints/button"],
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
