@@ -296,6 +296,28 @@ onMount(() => {
 - **Not a menu.** No roving focus, no arrow keys between items: it is the base for `createMenu` in a popover, and for the filterable menu, which own their own item focus.
 - Absent on purpose: hover open (that is `createTooltipGroup`), submenus and item navigation (the menu), a scroll lock and `inert` (the modal dialog), and a vertical shift when neither side fits (the caller sees the requested placement).
 
+## Drawer
+
+`createDrawer` is the drawer / sheet shell: an edge-anchored panel over the Dialog (Modal) semantics, with the same focus, Escape, scroll-lock and backdrop behaviour as `createConfirm`. **No APG pattern exists for a drawer or a bottom sheet**, and [docs/bottom-sheet.md](docs/bottom-sheet.md) settled that the library composes rather than adding a sheet primitive: the semantics are Dialog (Modal), the position, the slide and the snap points are the host's native CSS, and this is the panel both were missing. `test/drawer.browser.test.tsx` is the oracle.
+
+```tsx
+const drawer = createDrawer({ side: "right", labelledby: "nav-title" });
+
+<button {...drawer.triggerProps}>Menu</button>;
+<div {...drawer.backdropProps} />;
+<div {...drawer.contentProps}>
+  <h2 id="nav-title">Site</h2>
+  <nav>{/* links */}</nav>
+</div>;
+```
+
+- **`side` is presentation only**, `"right"` (the default), `"left"` or `"bottom"`: a sheet is `{ side: "bottom" }`, a side rail is `{ side: "left" }`, and it is one API either way. The primitive lays out nothing; the host's CSS anchors the panel, and `handleProps` is the grab handle of a sheet.
+- **`modal` is the breakpoint switch.** It is read on every attribute read, so a host may flip it while the drawer is open (crossing the breakpoint) and `aria-modal`, the backdrop and the lock follow. `breakpoint` is a px number the primitive **does not read**: it has no viewport, so the host watches `matchMedia` and passes `side` and `modal`. A sheet below a breakpoint is modal; a side rail above it may not be.
+- **Modal** (the default): `aria-modal="true"`, a backdrop, focus into the panel's first focusable on open (else the panel, which is `tabindex="-1"`) and back to the trigger on close, Tab and Shift+Tab cycling inside, `overflow: hidden` on `document.documentElement` counted (as in `createConfirm`, and shared with it: a confirm over a drawer nests), and Escape read from the document in the capture phase, so it closes wherever the focus is. **Non-modal**: no `aria-modal`, no backdrop, no lock and no Tab trap, so the page keeps its scroll and its clicks; an outside `pointerdown` still dismisses it when `dismissable`, and Escape still closes it.
+- **The trigger toggles** (a hamburger), and Enter / Space open it. `dismissable: false` keeps the backdrop and an outside `pointerdown` from closing the drawer; Escape still closes it, because there is no way out otherwise.
+- **No drag-to-dismiss.** A drag is not a dialog interaction: it is a scroll snap the platform runs off the main thread, and it is the host's CSS (`scroll-snap-type: y mandatory`, snap markers, `scrollsnapchange`; see [docs/bottom-sheet.md](docs/bottom-sheet.md)). Re-implementing a native snap in pointer events would be the gesture duplication that research forbids, and the handle would drag on top of the snap that already moved the panel. So `handleProps` is decoration (`aria-hidden`, no pointer handlers) and the ways out are the backdrop, Escape, a close control the host puts in the panel, and the trigger. Swipe-to-dismiss, if it is ever wanted, is a separate decision with its own oracle.
+- **No `attach`.** The panel is edge-anchored: nothing is measured and no placement is computed, so focus and the Tab cycle find the panel through `contentProps.id` and the host only spreads attributes onto its own elements. Give the panel a name: pass `labelledby`, or set `aria-labelledby` / `aria-label` after the spread.
+
 ## Commands
 
 ```sh
