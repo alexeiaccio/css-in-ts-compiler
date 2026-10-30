@@ -1656,6 +1656,54 @@ createSpinbutton(options?: {
 - a disabled spinbutton's field announces `aria-disabled` **and carries the native `disabled`** (the field is an `<input>`, so the platform's own form-control rule applies); the spin keys, the typed draft (Enter and blur included) and both steppers change nothing, and **both** steppers announce `aria-disabled="true"` — the at-bound rule of the spec stays, and a disabled widget adds the other side;
 - both read the option on every attribute read, so a host may flip `disabled` on a mounted widget and the attributes and the guards follow in the same tick.
 
+### Headless: `createDropZone` (`@cssints/headless`)
+
+A file drop target. **There is no APG pattern and no Quint spec for a drop zone** — the contract is HTML's file input plus WAI-ARIA's live region — so `packages/headless/test/dropzone.browser.test.tsx` (real Chromium) is its oracle. It is the replacement for the bare `<input type="file">` fields of cms-admin's image field and kocharin's dashboard upload.
+
+```ts skip
+createDropZone(options: {
+  accept?: string | undefined; // the HTML accept grammar: ".png", "image/png", "image/*"
+  multiple?: boolean | undefined; // the input's multiple, and an accept of several files per drop
+  maxSize?: number | undefined; // bytes; a larger file is rejected with "size"
+  disabled?: boolean | undefined; // zone aria-disabled, native disabled input and button, drops ignored
+  onFiles(files: File[]): void; // the accepted files of one batch; not called when none passed
+  onReject?({ file, reason }: { file: File; reason: "type" | "size" }): void; // once per refused file
+  labels?: { zone?: string | undefined; browse?: string | undefined };
+}): {
+  dragging(): boolean; // a drag is over the zone; a child's dragleave does not clear it
+  message(): string | undefined; // "2 files, 1 rejected: too large"; undefined before the first batch
+  inputProps: {
+    id; // the id the browse button clicks
+    type: "file";
+    accept: string | undefined;
+    multiple: true | undefined;
+    disabled: true | undefined;
+    hidden: true;
+    onChange;
+  };
+  zoneProps: {
+    role: "group";
+    "aria-label": string | undefined;
+    "aria-disabled": "true" | undefined;
+    onDragEnter;
+    onDragOver;
+    onDragLeave;
+    onDrop;
+  };
+  browseProps: { type: "button"; disabled: true | undefined; "aria-disabled"; "aria-label"; onClick };
+  statusProps: { role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
+};
+```
+
+Principles:
+
+- **The zone is never drag-only.** `browseProps` spreads onto a real `<button type="button">` that clicks the hidden input, so the picker is the keyboard path (Enter and Space are the platform's) and a pointer user can click too. The drop handlers add nothing the button cannot do.
+- **Validation happens once per file**, in the order type then size, with a reason the host can show: `onReject` gets the file and `"type" | "size"`, and `onFiles` gets the rest in one batch. A batch with nothing accepted calls `onFiles` not at all — not with an empty array.
+- **A folder or an empty `DataTransfer` is a no-op** (Chromium marks a dropped directory as a `file` item whose `webkitGetAsEntry().isDirectory` is true): no callback, no rejection, and `message()` keeps the previous sentence.
+- **`dragleave` counts.** A child's `dragleave` bubbles to the zone, so `dragging()` is a depth counter: it clears when the drag leaves the zone, or on a drop. It is the styling hook; the primitive writes no `data-dragging`.
+- **`message()` is a default sentence for the host's status region** ("2 files, 1 rejected: too large", `undefined` before the first batch): the primitive tracks the counts of the last batch, the host decides the words. Render `statusProps` once and keep it mounted, or a change of its text is not announced.
+- Picking through the input is the same path as a drop and clears `input.value` afterwards, so choosing the same file twice fires `change` again.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.

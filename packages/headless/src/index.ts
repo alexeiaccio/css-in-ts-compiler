@@ -62,6 +62,7 @@ export * from "./combobox";
 export * from "./confirm";
 export * from "./dialog-modal";
 export * from "./drawer";
+export * from "./dropzone";
 export * from "./feed";
 export * from "./field";
 export * from "./pagination";
