@@ -66,6 +66,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
 Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, scrollspy, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, panzoom, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -88,6 +89,41 @@ Membership, sizes and z-order are **not modelled** in `pointer.qnt` (its node se
 **Editing is split.** The host renders its editor inside the node (`tabindex="-1"`, `user-select: text`) and focuses it when `state().editing` is that node. The primitive owns the rest: it ignores a composing keydown, ends editing when focus leaves the node (so native Tab continues in spatial order), sets `user-select: none` on the layer, and puts focus back on the node on Escape / F2.
 
 **Nested canvases** are two instances the host composes: a `#canvas` node holds a second `createCanvas`, and the inner viewport stops propagation of its own pointer, wheel and key events. The innermost canvas under the pointer owns the event, so a press or zoom inside it never starts an outer gesture or moves the outer camera. A nested canvas is a single tab stop in its parent.
+
+## Pan and zoom
+
+`createPanZoom` is one image fitted to a viewport: the scale, the offset and the prop objects for the viewport, the image and a live value. **There is no APG pattern for pan-zoom**, so there is no Quint spec and no ported scenarios: the contract is this module's own and `test/panzoom.browser.test.tsx` is its oracle. The case it replaces (kocharin-art-3's `Zoomable`: ~110 lines of pointer maths) had no keyboard path and no ARIA at all.
+
+**The accessible contract is three parts, and the pointer is a bonus:** a viewport that takes focus (`role=group`, `tabindex=0`, `aria-roledescription="zoomable image"`, `aria-describedby` the value), keyboard operations that stand in for every gesture (`+` / `=` / `-` zoom by `step`, arrows pan by 24 px, Shift ×4, `0` resets), and a polite live region (`role=status`, `aria-live=polite`, the current `"150%"`). `valueProps` deliberately carries no `hidden`: a `hidden` live region is not announced, so the host hides it visually.
+
+**Not `createCanvas`.** The canvas is a camera over an infinite world with nodes, culling, snap and a z-order; a picture is one image in a box. There is no world, no node set and no reason to carry the camera machine.
+
+```tsx
+const panzoom = createPanZoom({ min: 1, max: 4, step: 0.25 });
+
+<div {...panzoom.viewportProps} class="viewport">
+  <img {...panzoom.imageProps} src={src} alt={alt} />
+  <span {...panzoom.valueProps} class="visually-hidden">
+    {panzoom.value()}
+  </span>
+</div>;
+```
+
+**Gestures.** A drag pans, a second pointer pinches about its midpoint, a double click resets. Pinch is two pointers and the distance between them, not a platform gesture, so it works where `PointerEvent` does. **Wheel is zoom only with `ctrl` / `meta`** — the browser's own pinch arrives as `ctrl+wheel` — and a bare wheel is never `preventDefault`ed, so the page keeps scrolling; a swallowed wheel is the one thing that is never acceptable on a trackpad.
+
+**`bounds: "clamp"`** (the default) bounds the offset by half the viewport's scaled overflow, so the image is expected to fill the viewport at `min` (`width: 100%; height: 100%` / `object-fit: cover`). A letterboxed image smaller than its viewport cannot be held gap-free: give it a viewport of its own or `bounds: "free"`.
+
+Left to the host: the box (the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan), the look (a transition on the transform, `transform-origin: 50% 50%` — the default this maths assumes), and the image itself. Not modelled: inertia, rotation, and a keyboard pan at scale `min` (the clamp means there is nothing to pan, so the arrows are inert).
+
+```tsx
+const panzoom = createPanZoom({
+  scale, // controlled: the host owns the scale
+  onScaleChange: setScale,
+  onPanChange: (offset) => save({ x: offset.x, y: offset.y }),
+});
+```
+
+Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused.
 
 ## Resizable panels
 

@@ -1511,6 +1511,54 @@ createScrollspy(options: {
 
 `attach()` adds **one passive `scroll` listener** to `root()`, which measures each heading's `getBoundingClientRect`, syncs once (a page opened mid-scroll starts correct), and returns the teardown. Not an `IntersectionObserver`: "the last heading at or above the offset" is a total order over all headings, while an observer reports only what crossed a band, so it has to rebuild that order from enter/leave state and misreports after a jump. Smooth scrolling is the host's (`scroll-behavior: smooth`, and any `prefers-reduced-motion` override): the links are plain `#id` targets and the primitive never moves the scrollport. The first entry is current before any scroll and while nothing has passed the line.
 
+f812d87e (headless: a data table with sortable headers and row selection)
+
+### Headless: `createPanZoom` (`@cssints/headless`)
+
+**No APG pattern exists for pan-zoom**, so there is no Quint spec and no ported scenarios: `packages/headless/test/panzoom.browser.test.tsx`, a real Chromium viewport, is its oracle. The accessible contract is the three parts it returns: a focusable viewport (`role=group`, `tabindex=0`, `aria-roledescription="zoomable image"`, `aria-describedby` the value), keyboard operations that stand in for every gesture, and a polite live value. The pointer — drag to pan, two pointers to pinch, a double click to reset — is an addition, never the only way in. It is not `createCanvas`: that is a camera over an infinite world, this is one image fitted to a box.
+
+```ts skip
+createPanZoom(options?: {
+  min?: number | undefined; // 1, and where reset returns
+  max?: number | undefined; // 4
+  step?: number | undefined; // the + / - increment, 0.25
+  defaultScale?: number | undefined;
+  scale?: number | undefined; // controlled: the host owns the scale
+  onScaleChange?(scale: number): void;
+  onPanChange?(offset: { x: number; y: number }): void;
+  bounds?: "clamp" | "free" | undefined; // "clamp": the image never leaves a gap
+  labels?: { viewport?: string | undefined } | undefined; // the viewport's name, "Image"
+}): {
+  scale(): number;
+  offset(): { x: number; y: number };
+  reset(): void; // back to min and centred
+  zoomIn(): void;
+  zoomOut(): void;
+  setScale(scale: number, origin?: { x: number; y: number }): void; // origin in the viewport's own space, its centre by default
+  viewportProps: {
+    tabindex: 0;
+    role: "group";
+    "aria-roledescription": "zoomable image";
+    "aria-label";
+    "aria-describedby";
+    onKeyDown; // + / = / - zoom, arrows pan by 24 px (Shift x4), 0 resets
+    onWheel; // ctrl / meta only: the browser's pinch, zoomed about the cursor
+    onPointerDown;
+    onPointerMove;
+    onPointerUp;
+    onPointerCancel;
+    onDblClick;
+  };
+  imageProps: { draggable: false; style: { transform: string } }; // translate(..) scale(..)
+  valueProps: { id; role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
+  value(): string; // "150%"
+};
+```
+
+Wheel zooms **only with `ctrl` / `meta`** held: the browser's pinch gesture arrives that way, and a bare wheel is left to the page so trackpad scrolling still works — a swallowed wheel is never acceptable. Arrows pan the image with the arrow (like a drag), and with `bounds: "clamp"` they are inert at `min`, where there is nothing to reveal. The clamp bounds the offset by half the viewport's scaled overflow, so the image is expected to fill the viewport at `min` (`width: 100%; height: 100%` / `object-fit: cover`); a letterboxed image cannot be held gap-free, and `bounds: "free"` lets it be dragged out of view instead. `valueProps` carries no `hidden` — a `hidden` live region is not announced — so the host hides it visually.
+
+The host owns the box and the look: the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan, `transform-origin: 50% 50%` (the default this maths assumes), and any transition on the transform. Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused. Not modelled: inertia, rotation, and pinching on platforms without `PointerEvent` (the browser's own pinch is the `ctrl+wheel` path).
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
