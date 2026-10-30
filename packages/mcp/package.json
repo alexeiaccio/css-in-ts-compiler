@@ -1,6 +1,6 @@
 {
   "name": "@cssints/mcp",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "An MCP server for cssints: check a declaration, browser support, contrast, compile a module, search the docs",
   "license": "MIT",
   "repository": {
