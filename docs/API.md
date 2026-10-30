@@ -1465,7 +1465,6 @@ createTable(options: {
 
 Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
-
 ### Headless: `createHotkeys` (`@cssints/headless`)
 
 One registry for the chords every app hand-rolls (`/` focuses search, Cmd/Ctrl+K opens it, Cmd/Ctrl+S saves). **A platform utility rather than a widget**: no APG pattern exists for a keyboard registry, so it has no role, no element, no styling, no Quint spec and no ported scenarios; `packages/headless/test/hotkeys.browser.test.tsx` is its oracle.
@@ -1487,7 +1486,6 @@ hotkeys.dispose(); // unbinds all and removes the document listener; a later bin
 `keys` is a chord string: optional modifiers `mod`, `ctrl`, `alt`, `shift`, `meta`, then exactly one key (`k`, `/`, `?`, `escape`, `enter`, `arrowup`), joined with `+`. `mod` is resolved at `createHotkeys` time, once. A shifted character implies Shift (`"?"` fires from Shift+/, `"/"` does not), and the other modifiers must match the event exactly, so a chord without `shift` does not fire while Shift is held.
 
 There is one `keydown` listener on the document in the capture phase, added when the first binding is bound and removed when the last is unbound or on `dispose`. The most recently bound match is the only one that fires, so a modal's `/` shadows the page's and unbinding it brings the page's back; a binding whose `when` returns false falls through to the next match instead of blocking it. By default a binding does not fire while the focus is in an `input`, a `textarea` or a `contenteditable` (an inherited one included) unless it sets `allowInEditable`. An unknown modifier or a chord with no key throws a `TypeError` at `bind`.
-
 
 ### Headless: `createScrollspy` (`@cssints/headless`)
 
@@ -1558,6 +1556,105 @@ createPanZoom(options?: {
 Wheel zooms **only with `ctrl` / `meta`** held: the browser's pinch gesture arrives that way, and a bare wheel is left to the page so trackpad scrolling still works — a swallowed wheel is never acceptable. Arrows pan the image with the arrow (like a drag), and with `bounds: "clamp"` they are inert at `min`, where there is nothing to reveal. The clamp bounds the offset by half the viewport's scaled overflow, so the image is expected to fill the viewport at `min` (`width: 100%; height: 100%` / `object-fit: cover`); a letterboxed image cannot be held gap-free, and `bounds: "free"` lets it be dragged out of view instead. `valueProps` carries no `hidden` — a `hidden` live region is not announced — so the host hides it visually.
 
 The host owns the box and the look: the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan, `transform-origin: 50% 50%` (the default this maths assumes), and any transition on the transform. Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused. Not modelled: inertia, rotation, and pinching on platforms without `PointerEvent` (the browser's own pinch is the `ctrl+wheel` path).
+
+### Headless: `createSlider` and `createSpinbutton` (`@cssints/headless`)
+
+The two number controls. Their behaviour is `packages/apg-specs/specs/apg/slider.qnt` and `spinbutton.qnt`, checked against the real DOM by the differential walk in `packages/headless/test/slider.browser.test.tsx` and `spinbutton.browser.test.tsx`. Options are plain and read lazily (a getter is fine); `value` + `onValueChange` make the widget controlled, `defaultValue` is the uncontrolled start.
+
+```ts skip
+createSlider(options?: {
+  min?: number; // 0
+  max?: number; // 10
+  step?: number; // 1
+  largeStep?: number; // 3: the jump of PageUp / PageDown
+  value?: number | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: number; // 5, clamped into the range
+  orientation?: "horizontal" | "vertical"; // "horizontal"
+  direction?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows flip
+  disabled?: boolean; // aria-disabled on the thumb; a key or rail press changes nothing
+  id?: string; // base of the thumb id
+  onValueChange?(value: number): void; // a request the host may ignore
+}): {
+  value(): number;
+  focused(): boolean;
+  setValue(value: number): void;
+  focus(): void;
+  blur(): void;
+  keyDown(key: string): boolean; // true when the key was consumed (preventDefault it)
+  pointerDown(position: number): void; // a rail press at a 0..1 fraction of the track
+  thumbProps: {
+    id;
+    role: "slider";
+    "aria-valuenow";
+    "aria-valuemin";
+    "aria-valuemax";
+    "aria-valuetext";
+    "aria-orientation";
+    "aria-disabled": "true" | undefined;
+    tabindex: 0;
+    onFocus;
+    onBlur;
+    onKeyDown;
+  };
+  trackProps: { onPointerDown };
+};
+```
+
+```ts skip
+createSpinbutton(options?: {
+  min?: number; // 1
+  max?: number; // 12
+  step?: number; // 1: the arrows and the buttons
+  largeStep?: number; // 3: PageUp / PageDown
+  value?: number | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: number; // 5, clamped into the range
+  wrap?: boolean; // false: clamp at the bounds (true wraps)
+  disabled?: boolean; // aria-disabled and the native disabled; keys, typing and both steppers change nothing
+  id?: string; // base of the input and button ids
+  onValueChange?(value: number): void; // a request the host may ignore
+}): {
+  value(): number;
+  focused(): boolean;
+  editing(): boolean;
+  draft(): string;
+  displayed(): string; // the draft while editing, else the value
+  setValue(value: number): void;
+  focus(): void;
+  blur(): void; // commits a valid draft
+  keyDown(key: string): boolean;
+  typeInput(text: string): void; // replaces the draft; needs focus
+  commit(): void;
+  revert(): void;
+  increment(): void;
+  decrement(): void;
+  setWrap(wrap: boolean): void;
+  inputProps: {
+    id;
+    role: "spinbutton";
+    "aria-valuenow";
+    "aria-valuemin";
+    "aria-valuemax";
+    "aria-valuetext";
+    "aria-invalid": "true" | undefined;
+    "aria-disabled": "true" | undefined;
+    disabled: boolean; // this is an <input>: the native attribute is a form control's disabled
+    tabindex: 0;
+    value;
+    onFocus;
+    onBlur;
+    onKeyDown;
+    onInput;
+  };
+  incrementProps: { role: "button"; tabindex: -1; "aria-label"; "aria-disabled"; onMouseDown; onClick };
+  decrementProps: { role: "button"; tabindex: -1; "aria-label"; "aria-disabled"; onMouseDown; onClick };
+};
+```
+
+`disabled` is **a widget-level extension of the APG patterns**, and the specs say so: `slider.qnt` lists it under its deliberate omissions, and `spinbutton.qnt` models the steppers' at-bound state only (`DisabledOnlyAtBound`). Neither machine has a `disabled` var, so the DOM tests, not the model, hold the primitive to these rules:
+
+- a disabled slider **keeps the thumb as its tab stop** (`tabindex="0"`, the same choice `createButton` makes with `aria-disabled`) and announces `aria-disabled="true"` on the thumb; every key and every rail press is dropped before it becomes a request, so `onValueChange` never fires and `keyDown` returns `false` (nothing to preventDefault);
+- a disabled spinbutton's field announces `aria-disabled` **and carries the native `disabled`** (the field is an `<input>`, so the platform's own form-control rule applies); the spin keys, the typed draft (Enter and blur included) and both steppers change nothing, and **both** steppers announce `aria-disabled="true"` — the at-bound rule of the spec stays, and a disabled widget adds the other side;
+- both read the option on every attribute read, so a host may flip `disabled` on a mounted widget and the attributes and the guards follow in the same tick.
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 

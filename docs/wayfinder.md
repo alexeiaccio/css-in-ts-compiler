@@ -2426,3 +2426,40 @@ DOM host.
 elsewhere (its label is on the trigger); no controlled open; Tab follows the primitive, which commits, closes and
 prevents the browser's own tab move, so the focus lands on the body rather than the next control — a real fix belongs in
 the primitive.
+
+## Slider and spinbutton: `disabled` in the primitives (apps/ui, 2026-10-30)
+
+The three form controls above exposed the gap: the kit's `Slider` announced `aria-disabled` on the rail and the thumb and
+dropped the key and rail handlers one at a time, and the `Spinbutton` item said a host disables the control by not
+rendering it. Both primitives now take `disabled`.
+
+It is a plain option, not a controlled one: a host toggles its own signal and the primitive reads it on every attribute
+read and every event, so `aria-disabled` and the guards move together in the same tick; there is no `setDisabled`.
+
+The slider's thumb announces `aria-disabled="true"` and keeps `tabindex="0"`, because the APG slider's tab stop is the
+thumb and `createButton` already answers "disabled" the same way (focusable, inert). Every key and every rail press is
+dropped before it becomes a request, so `onValueChange` never fires and `keyDown` returns `false`, which leaves nothing
+for the host to `preventDefault`.
+
+The spinbutton's field announces `aria-disabled` **and carries the native `disabled`**: its documented element is an
+`<input>`, so the platform's form-control rule applies (not focusable, not submitted) and the primitive still guards
+typing, spin keys, the Enter/blur commit and both steppers for a host that renders a non-native `role=spinbutton` element.
+Both steppers announce `aria-disabled` whenever the widget is disabled, on top of the spec's at-bound rule.
+
+The kit dropped its shims: `Slider` no longer wraps `onKeyDown` / `onPointerDown` and no longer writes `aria-disabled`
+itself — the rail copies the announced value off the thumb, the same way it already copied `aria-orientation` (a box
+cannot read an attribute of its child) — and `Spinbutton` passes `disabled` through and paints the field and the
+steppers from the announced attribute.
+
+**What the specs cannot carry.** `specs/apg/slider.qnt` lists disabled under its deliberate omissions, and
+`spinbutton.qnt` models the steppers' at-bound state only (`DisabledOnlyAtBound`). Neither machine has a `disabled` var,
+so neither carries the invariant this adds: **while disabled, no key, typed draft or click changes the value, and both
+steppers announce `aria-disabled`**. Expressing it means a `disabled` var in every action of both machines (every action
+assigns every var), a `setDisabled` configuration event and a bridge step; the smaller honest thing is the DOM test,
+`packages/headless/test/slider.browser.test.tsx` and `spinbutton.browser.test.tsx`, which hold the primitive to it (an
+arrow key, a rail press, a typed draft, both steppers, and `aria-disabled` on the announced props). `DisabledOnlyAtBound`
+stays true of the widget, because a disabled widget has no value at a bound that changes it: the model does not
+contradict the extension, it just does not see it.
+
+**Left**: `disabled` is not a scenario config, so the differential walk always runs enabled (the bridges throw
+`Unsupported` for it), and a disabled slider still cannot be dragged, because dragging is not modelled or shipped.
