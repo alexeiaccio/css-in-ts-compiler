@@ -39,6 +39,8 @@ interface Exports {
   ui_hash(): bigint;
   ui_draw(): void;
   ui_draws(): number;
+  ui_present(): void;
+  ui_presents(): number;
   dump(): number;
   dump_ptr(): Ptr;
   cmd_count(): number;
@@ -196,7 +198,9 @@ export const ui = {
   /** No file system: the dump goes to the page (`page.ts` reads it out of the memory), not to a path. */
   dumpJson: (_path: string) => -1,
   draws: () => wasm.ui_draws(),
-  presents: () => 0,
+  /** The frames the shell put on the canvas: browser/draw.js's paint, the desktop's window present. */
+  present: () => wasm.ui_present(),
+  presents: () => wasm.ui_presents(),
   /** The raster is the page's (draw.js, called by its loop when the hash moved): this is the count it draws. */
   draw: () => wasm.ui_draw(),
   textWeight: (_px: number) => {},
