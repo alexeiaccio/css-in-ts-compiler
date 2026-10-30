@@ -59,6 +59,7 @@ export * from "./carousel";
 export * from "./checkbox";
 export * from "./checkbox-group";
 export * from "./combobox";
+export * from "./command-palette";
 export * from "./confirm";
 export * from "./dialog-modal";
 export * from "./drawer";

@@ -1548,6 +1548,48 @@ createScrollspy(options: {
 
 f812d87e (headless: a data table with sortable headers and row selection)
 
+### Headless: `createCommandPalette` (`@cssints/headless`)
+
+The first **composition**, not a new primitive and not a new spec: `createDialogModal` + `createTextInput` + `createStatus` wired into a palette. Its oracle is `packages/headless/test/command-palette.browser.test.tsx`. A palette is a dialog, **not a combobox**: choosing a row runs a command, so the field is `input[type=text][role=searchbox]` (no `aria-autocomplete`, no `aria-haspopup`), the container is `role=dialog` and the list is a `role=listbox`.
+
+```ts skip
+createCommandPalette(options: {
+  commands: ReadonlyArray<{
+    id: string;
+    label: string;
+    group?: string | undefined; // the heading the host renders
+    keywords?: ReadonlyArray<string> | undefined; // also matched
+    run(): void | Promise<void>;
+  }>;
+  open?: boolean | undefined; // controlled: the host owns the open state
+  onOpenChange?(open: boolean): void;
+  hotkey?: string | undefined; // the chord attach() binds; "mod+k"
+  labels?: Partial<{
+    title: string; // "Command palette"
+    placeholder: string; // "Type a command"
+    empty: string; // "No commands found"
+    results(count: number): string; // "4 commands"
+  }> | undefined;
+}): {
+  open(): boolean;
+  openPalette(): void;
+  closePalette(): void;
+  query(): string;
+  setQuery(text: string): void;
+  active(): number; // index into results(); -1 = the field holds the highlight
+  setActive(index: number): void;
+  results(): ReadonlyArray<{ id: string; label: string; group: string | undefined }>;
+  labels: { title: string; placeholder: string; empty: string; results(count: number): string };
+  status(): string | undefined; // the count, in the polite region
+  // inputProps, listProps, optionProps(id), emptyProps, statusProps,
+  // dialogProps, backdropProps and titleProps: the attribute objects.
+  runActive(): void | Promise<void>;
+  attach(): () => void; // binds the hotkey on the document; returns the teardown
+};
+```
+
+Focus stays in the field and `aria-activedescendant` names the highlighted option: ↓ on the last and ↑ on the first return the highlight to the field, and ↓/↑ from there re-enter at the first/last row. Home/End move the caret while the field has text and are list keys only while it is empty. Enter runs the highlight, Escape closes through the dialog, Tab is not intercepted. Filtering is a plain case-insensitive substring match over `label` and `keywords` — no fuzzy scoring, because a palette is short and ranking (recents, scopes) is the host's policy. `results()` keeps host order; `group` is what the host groups by; `emptyProps.hidden` and `labels.empty` are the empty state; the count is written to `statusProps` once per query, not on every arrow. The query and highlight reset on close, focus returns to the element that had it, and `runActive()` closes before `run()` so a command may open its own UI. Host's: rendering, grouping and CSS; async commands and their errors; every visible string via `labels`; any close other than Escape or a command. The filterable menu and the date picker are later compositions on the same research.
+
 ### Headless: `createPanZoom` (`@cssints/headless`)
 
 **No APG pattern exists for pan-zoom**, so there is no Quint spec and no ported scenarios: `packages/headless/test/panzoom.browser.test.tsx`, a real Chromium viewport, is its oracle. The accessible contract is the three parts it returns: a focusable viewport (`role=group`, `tabindex=0`, `aria-roledescription="zoomable image"`, `aria-describedby` the value), keyboard operations that stand in for every gesture, and a polite live value. The pointer — drag to pan, two pointers to pinch, a double click to reset — is an addition, never the only way in. It is not `createCanvas`: that is a camera over an infinite world, this is one image fitted to a box.
