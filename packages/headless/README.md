@@ -154,6 +154,41 @@ const field = createField({
 - **One refusal that belongs to two controls.** `describedby` is an id, or a list of ids, of an element the host owns, appended to `aria-describedby` after the field's own hint and error ids (`password-hint password-error form-error`) and dropped when empty. Give a form-level error ("The passwords do not match") one element with its own id and `role`, and pass that id to both fields: each control then names the same message, and it is announced once, not once per field. The field cannot see whether that element is shown, so pass the id only while it is (a getter: `get describedby() { return mismatch() ? "form-error" : undefined; }`); `describedIds()` includes it.
 - **Getters that return `undefined` typecheck.** `id`, `required`, `invalid`, `hint`, `error` and `describedby` are all `T | undefined`, so a getter over an optional prop (`get required() { return props.required; }`) compiles under `exactOptionalPropertyTypes`.
 
+## Text input and textarea
+
+`createTextInput` and `createTextArea` are `createField` plus the props a host forgets. **There is no APG pattern for text editing** — an `<input>` already is the pattern — so there is no Quint spec: `test/textbox.browser.test.tsx` asserts the attribute objects and the element behaviour.
+
+```tsx
+const email = createTextInput({ type: "email", autoComplete: "email", inputMode: "email", required: true });
+<label {...email.labelProps}>Email</label>
+<input {...email.controlProps} />
+```
+
+- Everything the field documents holds: ids, hint then error in `aria-describedby`, `aria-invalid` only when invalid, `role="alert"` on a shown error.
+- The extra props: `type`, `autoComplete` (the HTML token list — the browser's autofill is the accessible path), `spellCheck`, `autoCapitalize`, `inputMode`, `maxLength`, `readOnly`, `disabled`, `required`, `name`, `dir`, `placeholder`, `onValueChange` (one callback for `input`).
+- **`maxLength` is the browser's.** The primitive emits the attribute and reports the value it is given; it does not truncate in JS, because that breaks paste and IME.
+- **`disabled` vs `readOnly`.** Disabled is out of the tab order and not submitted; readOnly is focusable, selectable and submitted. A field the user must read before signing is readOnly, not disabled.
+- `createTextArea` adds `rows`, `wrap` and `resize` (`resize` is a style, since CSS has no attribute for it; `none` is what a layout that owns its own height wants).
+
+## Pagination
+
+`createPagination` is a navigation landmark over a page list. **No APG pattern exists**; the requirements are TetraLogical's (accessible-components-library v1.0.0), and `test/pagination.browser.test.tsx` is the oracle.
+
+```tsx
+const pages = createPagination({ page: 3, pageCount: 12, hrefFor: (page) => `/issues?page=${page}` });
+<nav {...pages.navProps}>
+  <ul {...pages.listProps}>{/* items() with gaps, linkProps(page) */}</ul>
+</nav>
+<p {...pages.statusProps}>{pages.status()}</p>;
+```
+
+- **One current page**, marked `aria-current="page"` on the item and its link; the current page is not a link target.
+- **The ends stay in place** and carry `aria-disabled` at the boundary instead of disappearing: a control that vanishes moves every other control under the pointer.
+- **One gap per elided run**, `siblings` (default 1) either side of the current page and `boundaries` (default 1) at each end.
+- **The count is announced once**, in a `role="status"` line ("Page 3 of 12"), not in every link. Pass `labels.status` to translate it.
+- **`hrefFor` is what makes it work without JS**: with it every page is a real link; without it they are buttons and the host owns navigation.
+- **Target size is the skin's job**: 24x24 CSS px at AA, 44x44 at AAA.
+
 ## Confirm
 
 `createConfirm` is a promise-based confirmation over `createDialogModal({ role: "alertdialog" })`. Like the field it is not checked against a spec (the dialog is; `test/confirm.browser.test.tsx` covers the promise around it, in Chromium).
