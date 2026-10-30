@@ -1465,7 +1465,30 @@ createTable(options: {
 
 Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
- f812d87e (headless: a data table with sortable headers and row selection)
+f812d87e (headless: a data table with sortable headers and row selection)
+
+### Headless: `createHotkeys` (`@cssints/headless`)
+
+One registry for the chords every app hand-rolls (`/` focuses search, Cmd/Ctrl+K opens it, Cmd/Ctrl+S saves). **A platform utility rather than a widget**: no APG pattern exists for a keyboard registry, so it has no role, no element, no styling, no Quint spec and no ported scenarios; `packages/headless/test/hotkeys.browser.test.tsx` is its oracle.
+
+```ts skip
+const hotkeys = createHotkeys({ isApple: false }); // isApple is injectable; default reads the platform
+const unbind = hotkeys.bind({
+  keys: "mod+k", // mod = Cmd on macOS, Ctrl elsewhere; then ctrl / alt / shift / meta, then one key
+  onTrigger: (event) => search.focus(),
+  when: () => dialog.open === false, // gates it: false makes the next matching binding fire
+  preventDefault: true, // default; false lets the browser act too
+  allowInEditable: false, // default; true fires with the focus in an input / textarea / contenteditable
+  scope: panel, // only events from inside this element; it adds no listener
+});
+unbind(); // idempotent
+hotkeys.dispose(); // unbinds all and removes the document listener; a later bind is a no-op
+```
+
+`keys` is a chord string: optional modifiers `mod`, `ctrl`, `alt`, `shift`, `meta`, then exactly one key (`k`, `/`, `?`, `escape`, `enter`, `arrowup`), joined with `+`. `mod` is resolved at `createHotkeys` time, once. A shifted character implies Shift (`"?"` fires from Shift+/, `"/"` does not), and the other modifiers must match the event exactly, so a chord without `shift` does not fire while Shift is held.
+
+There is one `keydown` listener on the document in the capture phase, added when the first binding is bound and removed when the last is unbound or on `dispose`. The most recently bound match is the only one that fires, so a modal's `/` shadows the page's and unbinding it brings the page's back; a binding whose `when` returns false falls through to the next match instead of blocking it. By default a binding does not fire while the focus is in an `input`, a `textarea` or a `contenteditable` (an inherited one included) unless it sets `allowInEditable`. An unknown modifier or a chord with no key throws a `TypeError` at `bind`.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
