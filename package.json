@@ -15,7 +15,7 @@
     "changeset": "changeset",
     "version-packages": "node scripts/changelog.mjs && bun install --lockfile-only",
     "release:check": "bun run build:packages && node scripts/release.mjs",
-    "release:publish": "changeset publish",
+    "release:publish": "node scripts/publish.mjs",
     "release": "bun run release:check && bun run release:publish",
     "dev": "vp run -r --parallel dev",
     "test": "vp run -r --cache test",

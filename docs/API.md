@@ -1291,6 +1291,181 @@ createConfirm(options?: { id?: string | undefined; onOpenChange?(open: boolean):
 
 `confirm()` resolves `true` on confirm and `false` on cancel, Escape and a backdrop click. A second request while one is pending rejects with `ConfirmPendingError` (it is not queued). Focus goes to the cancel button on open and back to the element that had it when `confirm()` was called. While it is open the dialog has a shell: Tab and Shift+Tab cycle inside it, `overflow: hidden` is set on `document.documentElement` (restored on close; counted, so nested confirms restore it once), and Escape is read from the document in the capture phase, so it works with the focus outside the dialog. Confirms from different `createConfirm` calls may be open together: the last opened gets Escape and Tab. The default labels stay English; a translating host passes `confirmLabel` and `cancelLabel` with each request.
 
+### Headless: `createToast` and `createStatus` (`@cssints/headless`)
+
+Two live regions with no APG pattern and no Quint spec: `createStatus` is one polite message whose text is replaced, `createToast` queues toasts whose countdown pauses. Their oracle is `packages/headless/test/toast.browser.test.tsx`.
+
+```ts skip
+createStatus(options?: { id?: string | undefined }): {
+  message(): string | undefined;
+  show(text: string): void; // replaces the text; nothing is queued
+  clear(): void;
+  statusProps: { id; role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
+};
+
+createToast(options?: {
+  timeout?: number | undefined; // ms, 5000; 0 dismisses on the next tick
+  max?: number | undefined; // visible toasts, 3; a new one past it drops the oldest
+  pauseOnHover?: boolean | undefined; // true; focus always pauses
+  labels?: { region?: string | undefined } | undefined; // "Notifications"
+  onDismiss?(id: string): void; // every departure: timeout, dismiss, dismissAll, ceiling
+}): {
+  toasts(): readonly ToastItem[]; // oldest first
+  show(input: {
+    title: string;
+    description?: string | undefined;
+    tone?: "info" | "success" | "error" | undefined; // "info"
+  }): string; // the id
+  dismiss(id: string): void;
+  dismissAll(): void;
+  regionProps: { role: "region"; "aria-label": string }; // the F6 target
+  toastProps(id: string): {
+    role: "alert" | "status"; // "alert" for tone "error", "status" otherwise
+    "aria-atomic": "true";
+    onMouseEnter(): void;
+    onMouseLeave(): void;
+    onFocusIn(): void;
+    onFocusOut(): void;
+  };
+};
+```
+
+`createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast.
+
+A toast is its own live region inside the `role=region` landmark: `role=alert` for `tone: "error"` (assertive) and `role=status` otherwise (polite). The host renders the `title` and `description` handed to `show` inside that element, so the toast's own text is the announcement — `aria-atomic` reads all of it, a close button's label included, so keep a toast to its title and description and give a close button no more than an icon with a label. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host. One timer per toast honours `timeout`; hover pauses it when `pauseOnHover` is true and focus always pauses, and both resume with the time that was left rather than restarting the deadline. `max` drops the oldest toast past the ceiling, and `onDismiss` fires for every toast that leaves. F6 into the region is the host's handler (hotkeys are a separate bean, cssints-h0d5): give `regionProps` an element with `tabindex="-1"` and focus it, remembering where focus was.
+
+### Headless: `createPopover` (`@cssints/headless`)
+
+**No APG pattern exists** for a popover (APG has Dialog, which is modal), so it has no Quint spec and no ported scenarios: `packages/headless/test/popover.browser.test.tsx` is its oracle. The behaviour is copied from Base UI's Popover (a trigger click toggles, Enter / Space / ArrowDown open, an outside `pointerdown` light-dismisses without stealing focus) and React Aria's `usePopover` (focus into the content on open and back to the trigger on close, `role="dialog"` without `aria-modal`, a placement that flips at the viewport edge).
+
+```ts skip
+createPopover(options?: {
+  id?: string | undefined;
+  open?: boolean | undefined; // controlled: the host owns the state
+  defaultOpen?: boolean | undefined;
+  placement?: "bottom-start" | "bottom" | "bottom-end" | "top-start" | "top" | "top-end" | undefined; // "bottom"
+  offset?: number | undefined; // the gap to the trigger, 4
+  modal?: false; // a popover is never modal: inert, the scroll lock and the Tab trap are createDialogModal's
+  onOpenChange?(open: boolean): void;
+}): {
+  open(): boolean;
+  triggerProps: {
+    id;
+    "aria-haspopup": "dialog";
+    "aria-expanded": "true" | "false";
+    "aria-controls": string;
+    onClick(): void;
+    onKeyDown(event: KeyboardEvent): void; // Enter / Space / ArrowDown open
+  };
+  contentProps: {
+    id;
+    role: "dialog";
+    "aria-modal": undefined; // always: not modal
+    tabindex: -1;
+    hidden: boolean;
+    onKeyDown(event: KeyboardEvent): void; // Escape closes, and focus goes back to the trigger
+  };
+  contentStyle(): { position: "absolute"; top: string; left: string }; // the last measure
+  position(
+    triggerRect: { top; left; width; height },
+    contentRect: { top; left; width; height },
+    viewport: { width; height },
+  ): { top: number; left: number; placement: PopoverPlacement }; // pure; flips at the viewport edge
+  attach(trigger: HTMLElement, content: HTMLElement): () => void; // call from a ref; returns the teardown
+};
+```
+
+`attach` is the DOM contract: on open it measures and places the content (and again on resize, scroll and a `ResizeObserver`), focuses the content's first focusable element (else the content, which is `tabindex="-1"`), and on close returns the focus to the trigger unless the close came from an outside `pointerdown` — that one leaves the focus where the page put it. The page behind stays interactive: there is no `inert`, no scroll lock and no Tab cycle, and the content is not a menu (no roving focus: `createMenu` in a popover owns its items). The rects and the viewport passed to `position` must share a space; `attach` measures in client space and writes page space for `position: absolute`.
+
+### Headless: `createDrawer` (`@cssints/headless`)
+
+The drawer / sheet shell: an edge-anchored panel over Dialog (Modal), with the focus, Escape, scroll-lock and backdrop behaviour of `createConfirm`. **No APG pattern exists for a drawer or a bottom sheet**; [packages/headless/docs/bottom-sheet.md](../packages/headless/docs/bottom-sheet.md) settles that the library composes instead of adding a sheet primitive (the semantics are Dialog, the position and the snap points are native CSS), and this is the shell that decision left to exist. Its oracle is `packages/headless/test/drawer.browser.test.tsx`.
+
+```ts skip
+createDrawer(options?: {
+  id?: string | undefined;
+  open?: boolean | undefined; // controlled: the host owns the state
+  defaultOpen?: boolean | undefined;
+  side?: "left" | "right" | "bottom" | undefined; // "right"; presentation only
+  modal?: boolean | undefined; // true; read at every attribute read (the breakpoint switch)
+  breakpoint?: number | undefined; // px; documented only: the host watches it and passes side / modal
+  dismissable?: boolean | undefined; // true; a backdrop click or an outside pointerdown
+  labelledby?: string | undefined; // the panel needs a name
+  onOpenChange?(open: boolean): void;
+}): {
+  open(): boolean;
+  side(): "left" | "right" | "bottom";
+  triggerProps: {
+    id;
+    "aria-haspopup": "dialog";
+    "aria-expanded": "true" | "false";
+    "aria-controls": string;
+    onClick(): void; // toggles
+    onKeyDown(event: KeyboardEvent): void; // Enter / Space open
+  };
+  backdropProps: { id; hidden: boolean; onClick(): void }; // always hidden when closed or not modal
+  contentProps: {
+    id;
+    role: "dialog";
+    "aria-modal": "true" | undefined; // by modal, and undefined while closed
+    "aria-labelledby": string | undefined;
+    tabindex: -1;
+    hidden: boolean;
+    onKeyDown(event: KeyboardEvent): void; // Escape closes
+  };
+  handleProps: { "aria-hidden": "true" }; // a bottom sheet's grab handle; decorative
+};
+```
+
+`side` and `modal` are the whole presentation API: a sheet is `{ side: "bottom", modal: true }`, a side rail is `{ side: "right" }`, and a non-modal rail is `{ side: "right", modal: false }`. `modal` is read at attribute-read time, so a host that watches the breakpoint may flip it while the drawer is open and the backdrop, `aria-modal` and the lock follow; `breakpoint` itself is not read, because the primitive has no viewport and the host owns the `matchMedia`.
+
+A modal drawer is `aria-modal="true"` with a backdrop, focus moves to the panel's first focusable on open (else the panel, `tabindex="-1"`) and back to the trigger on close, Tab and Shift+Tab cycle inside it, `overflow: hidden` is set on `document.documentElement` (counted, and shared with `createConfirm`, so a confirm over a drawer nests), and Escape is read from the document in the capture phase, so it closes wherever the focus is. A non-modal drawer keeps the page's scroll, focus and clicks: no `aria-modal`, no backdrop, no lock, no Tab trap; an outside `pointerdown` still dismisses it when `dismissable`, and Escape still closes it. `dismissable: false` pins the drawer against the backdrop and the outside pointerdown only.
+
+**No drag-to-dismiss and no `attach`.** A drag would be a JS re-implementation of the native scroll snap the host writes (see bottom-sheet.md), so `handleProps` is decoration with no pointer handlers, and the ways out are the backdrop, Escape, a close control in the panel and the trigger. The panel is edge-anchored, so nothing is measured: focus and the Tab cycle find it through `contentProps.id`.
+
+### Headless: `createTable` (`@cssints/headless`)
+
+A data table on a **native `<table>`**: sortable column headers and row selection, as state and attribute objects. It has no spec of its own; it composes the two state models the package already has (`grid-sort.qnt`, `grid-selection.qnt`) without the grid's navigation, so `packages/headless/test/table.browser.test.tsx` is its oracle. The host renders `<table>`, `<caption>`, `<thead>`, `<tbody>`, `<th scope="col">` and `<td>`: the primitive adds no `role`, only what the elements cannot say themselves.
+
+```ts skip
+createTable(options: {
+  columns: ReadonlyArray<{ key: string; sortable?: boolean; numeric?: boolean; abbr?: string | undefined }>; // sortable defaults true
+  rows: ReadonlyArray<string>; // row ids in render order; the host sorts its own data
+  selection?: "none" | "single" | "multiple" | undefined; // "none"
+  sortCycle?: "tri-state" | "toggle" | undefined; // "tri-state": ascending -> descending -> unsorted
+  sort?: TableSort | null | undefined; // controlled; null = unsorted, undefined = uncontrolled
+  defaultSort?: TableSort | undefined;
+  onSortChange?(sort: TableSort | undefined): void;
+  selected?: ReadonlyArray<string> | undefined; // controlled
+  defaultSelected?: ReadonlyArray<string> | undefined;
+  onSelectionChange?(selected: ReadonlyArray<string>): void;
+  rowCount?: number | undefined; // only when the host windows its rows
+  columnCount?: number | undefined; // only when it windows its columns
+  labels?: { table?: string | undefined; selectAll?: string | undefined; selectRow?: ((id: string) => string) | undefined } | undefined;
+  id?: string | undefined;
+}): {
+  selectionMode(): "none" | "single" | "multiple";
+  sort(): TableSort | undefined;
+  selected(): ReadonlyArray<string>;
+  isSelected(id: string): boolean;
+  tableProps: { "aria-label"; "aria-rowcount"; "aria-colcount" }; // the counts only while windowed
+  captionProps: { id };
+  headerCellProps(key: string): { scope: "col"; "aria-sort": "ascending" | "descending" | undefined; abbr };
+  headerButtonProps(key: string): { type: "button"; onClick } | undefined; // undefined when not sortable
+  rowProps(id: string): { "aria-selected"; onClick };
+  cellProps(rowId: string, key: string): { "aria-colindex" }; // only while windowed
+  selectAllProps: { role: "checkbox"; "aria-checked": "true" | "false" | "mixed"; "aria-label"; tabindex: 0; onClick; onKeyDown } | undefined;
+  rowCheckboxProps(id: string): { role: "checkbox"; "aria-checked"; "aria-label"; tabindex: 0; onClick; onKeyDown } | undefined;
+  toggleAll(): void;
+  toggleRow(id: string): void;
+};
+```
+
+`aria-sort` is carried by the sorted column only; a sortable header that is not sorted has none (ARIA's "not sorted" default), and a `sortable: false` column gets no button from `headerButtonProps` at all, so it is not a tab stop. The header button cycles `ascending` -> `descending` -> unsorted by default (so the table can be put back in its own order) and `ascending` <-> `descending` with `sortCycle: "toggle"` (what the APG grid example does); a new column always starts `ascending`, and only one is sorted. Sorting is the host's data: the primitive carries the descriptor and announces it, it never reorders a row.
+
+Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
+
+ f812d87e (headless: a data table with sortable headers and row selection)
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.

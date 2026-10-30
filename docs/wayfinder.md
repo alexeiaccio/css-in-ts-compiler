@@ -2043,6 +2043,7 @@ colour), the size cascade (`data-size="sm"` on a `group()` ancestor), `render` (
 `aria-invalid` on an `Input` and on a `textarea`; `packages/cssints`' own suite and `apps/lab` stay green. **Left**: the copied
 item's `vitest.browser.config.ts` does not carry `evaluation.inline` yet (the registry ships the old config to the compiled
 starters), and nothing reminds a project to import the sheet in a test — a copied styled item would need both.
+
 ## `appear()`: scroll-triggered presets beside `reveal()` (cssints-wyoy, 2026-10-29)
 
 Found by `@cssints/reveal`, after [utilitybend's article on CSS animation triggers](https://utilitybend.com/blog/scroll-triggered-animation-as-the-missing-piece-for-scrollytelling-on-the-web): `reveal()` scrubs an entrance with the scroll (`animation-timeline: view()`), so a slow scroll makes the entrance slow too — it oozes. A scroll-_triggered_ animation is the missing piece: the scroll only decides _when_ a normal time-based animation plays, with its own duration and easing. `appear()` is a second chain member of the same scope, not a new package: the presets, the keyframes, the runtime entry and the IntersectionObserver fallback are `reveal()`'s, and a package for one more member would duplicate all of them. It takes the same `preset()`, `range()`, `duration()` and `easing()`, and adds `inOut()`: `play-forwards play-backwards`, so an entrance can play back out; the default is `play-once none`, which is what an entrance wants and exactly what the fallback does.
@@ -2221,3 +2222,170 @@ injects, so both are the repo's versions now (1.4.0, 5.0.5) and that subpath is 
 **Left**: the live registry still serves the pre-2026-10-29 items until the deploy runs (the live add writes the old
 `switch.css`), so that last step proves the CDN and the published JSON, not the current components; the template's test run
 still prints "multiple instances of Solid" while every test passes, which is the runner's warning rather than a failure.
+
+## Seven small kits items: a rule, a label, a placeholder, an alert, a meter, a breadcrumb, a tree (apps/ui, 2026-10-30)
+
+The kit had the form controls and three containers, and nothing for the small things a page is made of. Seven items now:
+`Separator` (`role=separator` with `aria-orientation`, or a decorative `role=none`), `Badge` (three tones), `Skeleton`,
+`Alert` (`createAlert`), `Meter` (`createMeter`), `Breadcrumb` (`createBreadcrumb`) and `Treeview` (`createTreeview`). All
+styles are `cn()`/`cv()` over `t`; every state a widget has is read from the ARIA it announces, and no token was added.
+
+Four decisions. **The pill is `999px` in `Badge` and in the meter's track**: `t.radius` stops at 16px, and a pill must be
+rounder than half of its own height whatever that height is, so it is a value by hand rather than a step that would be wrong
+at a larger size. **The meter has no thresholds**: `createMeter` does not take `low`/`high`/`optimum`, so there is no state to
+paint beside the value, and the fill's width is an inline percentage from the primitive's `percent()` because CSS cannot do
+arithmetic on `aria-valuenow` — the attribute and the fill are two reads of one number, and `combos.browser.test.tsx` drives
+both at once. **The alert's message is read at mount**: `createAlert` takes its first message as an initial value and `show()`
+for a later one, so the item documents a mount as the announcement and hands the controller to `onReady`; parts are
+`AlertTitle`/`AlertBody`, and `tone="invalid"` paints the rule and the title with `t.color.invalid` through the root's group
+marker. **A decorative separator is styled from `data-orientation`**, not from `aria-orientation`: `role="none"` may not carry
+it (ARIA on a presentation role is ignored), so the ARIA is only on the real separator and the look reads the prop on both.
+
+The tree stayed in the batch: the primitive owns the roving tabindex, the expanded and selected flags and the levels, so the
+port is a flat list of `treeitem`s painted from `aria-level`, `aria-expanded` and `aria-selected`, plus the focus sync the
+headless fixture also needs (the primitive moves its roving node; the host moves the DOM focus). **Left**: a row deeper than
+the third level keeps the third level's indent; the alert has no dismiss button (the primitive's `dismissProps` waits for a
+page that wants one); the skeleton's pulse is the only motion in the kit, and the item reads `prefers-reduced-motion` once.
+
+## The plain `theme.css` carries the whole theme again (apps/ui, 2026-10-30)
+
+`scripts/theme-css.ts` walks the token data and writes a custom property per leaf, but it only took leaves spelled
+`{ $value }`. A theme override is a plain value (`darkTheme.color.page = "#1b1b1b"`, and every entry of
+`forcedColorsTheme`), so `theme.css`'s dark block carried the scales only — `--color-page` and `--color-surface` stayed
+light on a dark page — and the forced-colors block was empty. The generator now writes a string leaf too, so the file a
+no-plugin project reads is the whole theme: 194 lines instead of 148, with `--color-page: #1b1b1b` in the dark block and
+`--color-page: Canvas` under `forced-colors`. Found while the guide pages documented the limit as a fact
+(`#theming`, "theme.css, the plain twin"); the paragraph now says what is genuinely missing, the layer model, which a flat
+file cannot express. `theme:check` compares bytes, so the regenerated file is the one CI sees.
+
+## A red release that had already published (2026-10-30)
+
+`0.14.0` went out complete — 27 packages on npm, each with a provenance attestation, 27 tags pushed — and the next two release
+runs still failed, on 4 packages at a time: `E409: Cannot publish over previously staged version "0.14.0"`. The cause is two
+pushes in a row. Each runs the workflow (`concurrency: release`, not cancelled), and the second one reads the registry ~50 s
+after the first published: `changeset publish` decides those versions are still unpublished (the stage entry still exists) and
+publishes again, which npm refuses. A release that is on the registry is not a failure, so `release:publish` is now
+`scripts/publish.mjs`: it asks the registry for every package's exact version first (all there: print, push tags, exit 0), runs
+`changeset publish` otherwise, and after a failure asks again — only a version that is genuinely missing makes the job red. The
+probe is 27 `HEAD` requests, about a second. **Left**: the underlying npm behaviour is staged publishing, which is why a publish
+can be "staged but not yet on the registry" at all; a trusted publisher allowed to `npm publish` directly (the "Allowed actions"
+box, unset on connections created after 2026-09-03) would remove the race instead of tolerating it.
+
+## Menus and tooltips float from an anchor, not from a measured rect (apps/ui, 2026-10-30)
+
+`Menu` and `Tooltip` are the kit's first elements that must sit next to their trigger rather than in the flow, and the kit
+still has no portal (the Dialog entry's "left"). The two honest ways to place one were weighed. Measuring
+`getBoundingClientRect()` and writing `position: fixed` needs a read on every open plus a listener on scroll and resize (a
+scroll with the menu open would leave it behind), and it still loses inside a transformed ancestor; it also needs an effect
+that writes styles before the first paint, or the menu flashes in the corner. The anchor wrapper needs none of that: one
+`<div data-part="menu-anchor">` (or `tooltip-anchor`) around the trigger and the content, `position: relative;
+display: inline-flex`, and the content is `position: absolute` at `inset-block-start: 100%` with one `space-1` of margin. No
+JavaScript reads a rect, there is no listener, and the content follows the trigger through any scroll or layout change for
+free — which is what a copy-paste component should do.
+
+**Cost**: the caller gets a box the layout did not have (a wrapping element around the trigger, in the flow), and an
+ancestor with `overflow: hidden` clips the content — in this kit that is the Dialog panel, which scrolls
+(`overflow: auto`), so a menu opened near the panel's edge is cut off rather than repositioned. The content also cannot flip
+above the trigger when the viewport ends.
+
+Stacking is a token, next to `z.dialog`: `z.popover: 10` under `z.dialog: 20`, and `theme.css` carries both. A tooltip over
+a dialog or a menu inside one still paints over the page, because the dialog's layer (`z-index: 20`) is the stacking context
+and everything in it paints above the page. `z-index` takes an `<integer>` and a `number` token is not one, so the two
+classes read `var(--z-popover)` by hand, as Dialog does for `var(--z-dialog)`.
+
+**Left**: a real floating layer — collision handling (flip, shift), viewport clamping, a portal — and the max height a long
+menu would need to scroll inside itself instead of running past the viewport.
+
+## Menu and Tooltip: the primitive owns the state, the kit owns the DOM (apps/ui, 2026-10-30)
+
+`createMenu` declares its items up front (`items: string | MenuItemInput[]`, because typeahead searches their labels) and
+announces one roving tab stop, `tabindex="0"` on the highlighted row. So `Menu` takes the items once and a row names its item
+by `index` (`<MenuItem index={0} />`), its content defaulting to the declared label: the label is written once, and the row
+is still a part with `render` and `data-part="menu-item"`. The highlight is that tab stop — `attr("tabindex", "0")` — not a
+`data-highlighted` of the kit's own, so a pointer hover and an arrow key move the same thing. `<MenuContent />` with no
+children renders one row per declared item; children are the custom list. As in Tabs, the kit moves the DOM focus to
+whatever the primitive reports as focused (`focusLevel`/`focusIndex`), and Escape then lands on the trigger because the
+primitive goes back to level 1. The dismiss the primitive does not own is one `pointerdown` listener on the document,
+ignoring anything inside the anchor. `createTooltipGroup` takes the trigger elements and returns props, so `Tooltip` is one
+group of one trigger.
+
+Two decisions inside the tooltip. The bubble is `t.color.text` on `t.color.page` — the inverse of the page in both modes,
+already gated at 7:1 — rather than two new colour tokens. And the hide is delayed by the primitive's own `hideDelayMs` (300
+ms), scheduled by the host: the bubble sits one `space-1` under the trigger, so a pointer crossing that gap leaves the
+trigger and the primitive's built-in `hideTimer` would drop the bubble before the pointer reached it, which fails WCAG
+1.4.13 (hoverable). `Tooltip.Content`'s own `pointerenter` cancels the timer and keeps it up.
+
+**Left**: no controlled open for the menu (`createMenu`'s `value` is the packed checked state, a different axis, and the open
+state is uncontrolled), so there is no `open` prop to offer; no submenus, no checkbox or radio items, no separators (the
+primitive has none of those in the plain menu); no show delay (both open immediately on focus and hover; `showDelayMs` and
+`showTimer` are exposed for a page that wants the 600 ms default). Typeahead is not an addition here: it is the primitive's
+own buffer, fed by a letter key in the content's handler.
+
+## The select reuses the menu's anchor, the textarea is the input on many lines (apps/ui, 2026-10-30)
+
+`Select` is the kit's third floating element, so it takes the anchor decision of the first two rather than a second
+mechanism: one box around the trigger and the list (`position: relative`), the list `position: absolute` under it, and the
+`z.popover` token. Nothing measures a rect, there is no scroll or resize listener, and the list moves with its trigger. It
+inherits the cost the Menu entry states: the wrapper is a box the caller's layout did not have, and an `overflow: hidden`
+ancestor clips the list. The list comes from `items`, as on `Menu`, not from a children-based `SelectOption`: `createListbox`
+needs every label and id up front (typeahead searches the labels, the option ids come from the base id), and the trigger needs
+the label of the chosen index to show it. A row is still a part — `<SelectOption index={0} />`, with `render`, its
+`data-part`, and the declared label unless `children` says otherwise — so a custom row is a custom row and not a second list.
+
+`createListbox` is a listbox, not a combobox: it owns the selection, the one roving tab stop, the arrows, Home and End, Enter
+and typeahead, but it has no open state and no Escape. `Select` therefore owns the open signal, Escape (which closes and hands
+the focus back to the trigger), Tab (which closes without moving the focus) and the `pointerdown` outside the anchor (which
+closes without stealing the focus from what was clicked), the same split as `Menu` for its dismiss. The content moves the DOM
+focus to the row that holds the tab stop, and a chosen row closes the list and returns the focus to the trigger. The
+highlight is read off the roving tab stop (`attr("tabindex", "0")`), the choice off `aria-selected` and the disabled row off
+`aria-disabled`: the kit keeps no copy of the active index.
+
+`Textarea` is small on purpose: the same skin as `Input` — border, padding, radius, focus ring, `aria-invalid` border — plus
+`resize: vertical` and a minimum height, in its own file. Importing `Input`'s class would have made a registry copy pull
+`input/input.tsx` in for a few declarations, and the registry flattens a kit import into the copy. The duplicate is the cost:
+a change to the field skin is two edits. `Field.Control render={(props) => <Textarea {...props} />}` hands it the id, the
+described-by ids and `aria-invalid`, and the component paints the invalid state from that attribute.
+
+**Left**: no controlled open for the select (`Menu` has none either; `defaultOpen` and `onOpenChange` can come with a page that
+needs them); no max height or scrolling inside a long list, no portal and no flip above the trigger (the same "left" as the
+menu); the placeholder has no colour of its own; a space typed into a typeahead buffer still closes the list as a choice; the
+textarea does not grow with its content (no `field-sizing`).
+
+## Three form controls: slider, spinbutton and a checkbox group (apps/ui, 2026-10-30)
+
+The kit had `Checkbox`, `Switch` and `RadioGroup` but no control that holds a number, so three registry items now sit on the
+headless primitives: `Slider`, `Spinbutton` and `CheckboxGroup`, each one `.tsx` with `render` on its parts, `data-part` on
+every box and the states read off the ARIA the widget announces.
+
+The slider. The rail is the `data-part="slider"` box and takes `createSlider`'s `trackProps`; the fill and the thumb are
+decoration over it, the thumb being the announced `role="slider"`. CSS cannot compute a share of the rail from
+`aria-valuenow` (an arithmetic turn of `attr()` inside `calc()` is not shipped), so the fill's width — a height when
+vertical — is an inline percentage of the same `aria-valuenow`/`aria-valuemin`/`aria-valuemax` the thumb announces, as
+`Meter` does with the primitive's `percent()`. A box cannot read an attribute of its child either, so the rail copies the
+announced `aria-orientation` to `data-orientation`: the fill's vertical geometry reads it through `within()`, and the thumb
+paints its own from `aria-orientation`. The primitive has no disabled state: the kit adds `disabled`, announces it as
+`aria-disabled` on the rail and the thumb, and drops the key and rail presses.
+Multi-thumb (`slider-multithumb.ts`) is left out on purpose: the primitive has no `trackProps` — a rail press names the
+thumb — so the port is not the same component, and a two-thumb range waits for that.
+
+Spinbutton. The primitive owns the text draft (Enter commits, Escape reverts, blur commits), the stepped keys and the
+steppers' labels; at a bound it announces `aria-disabled` on the stepper, and only that announced state sets the native
+`disabled` and paints it. Composition with `Field` needed one thing: `Field.Control` hands its id (`<base>-control`) to the
+control, and `createSpinbutton` makes `<base>-input`, so the kit lets the caller's `id` win on the input — the label's `for`
+resolves without a second prop. The field's `aria-invalid` is OR-ed with the primitive's draft-invalid rather than
+replacing it, and `aria-describedby`/`required` cross unchanged. There is no `disabled` in the primitive here either, and
+the item does not invent one.
+
+CheckboxGroup. `createCheckboxGroup` is the APG tri-state controller: exactly three child values, the derived
+all/none/mixed parent, and the "remember the last mixed combination" cycle. Its `childProps` are a `role="checkbox"` with a
+focus model of its own, so the kit uses the primitive's state (the checked subset, `parentChecked`, `click`) with the
+kit's existing `Checkbox` per value instead: the `aria-checked` of each box is the primitive's bit (the item lists
+`@cssints/checkbox` in `also`). The primitive has no label and no error state: `label` names the group with `aria-label`,
+as `ButtonGroup` and `Toolbar` do, and a form-level error stays the host's element. The primitive's wrapping Tab is not
+wired — the kit `Checkbox` owns focus and the boxes keep the browser's tab order.
+
+`combos.browser.test.tsx` proves the three compositions: an arrow key on a focused thumb moves `aria-valuenow` and the fill
+together, the spinbutton stops at its maximum with the stepper disabled there and takes `Field`'s id, and a box toggles in
+the named group without the others. **Left**: no drag on the slider (the primitive models a rail press only), a vertical
+rail has a fixed `space.10` height a page overrides with its own class, and the spinbutton's steppers are not tab stops
+(the primitive's `tabindex="-1"`).

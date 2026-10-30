@@ -4,6 +4,7 @@
 import { componentFile, items, type CatalogItem } from "./catalog.ts";
 import { For, Show, createEffect, createSignal, onCleanup } from "solid-js";
 import { demos } from "./demos.tsx";
+import { GUIDES, type Guide } from "./guides.tsx";
 import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
@@ -42,6 +43,16 @@ export const Docs = (): JSX.Element => {
   const [tint, setTint] = createSignal(TINTS[0] ?? { name: "neutral", hue: "0", chroma: "0" });
   const [copied, setCopied] = createSignal("");
 
+  // The tint is two custom properties every scale token is computed from at `:root`, so it is set there: on the preview
+  // section alone the declarations would already be resolved and nothing would move.
+  createEffect(
+    () => tint(),
+    (preset) => {
+      document.documentElement.style.setProperty("--hue-tint", preset.hue);
+      document.documentElement.style.setProperty("--chroma-tint", preset.chroma);
+    },
+  );
+
   const follow = (): void => {
     setName(selected());
   };
@@ -52,6 +63,8 @@ export const Docs = (): JSX.Element => {
   });
 
   const item = (): CatalogItem | undefined => items.find((entry) => entry.name === name());
+  // a guide is a page of its own: a hash that names one renders it instead of a widget
+  const guide = (): Guide | undefined => GUIDES.find((entry) => entry.name === name());
 
   // Solid 2 has no `createResource`: the current item's result is a plain fetch into a signal. An
   // item published before the preflight existed has no file, and the section stays hidden.
@@ -64,6 +77,10 @@ export const Docs = (): JSX.Element => {
     }
     requested = target;
     setPreflight(undefined);
+    // a guide has no published item to ask about; only a widget page has a preflight result
+    if (GUIDES.some((entry) => entry.name === target)) {
+      return;
+    }
     const response = await fetch(`${HOST}/r/${target}.result.json`).catch(() => undefined);
     const body: unknown =
       response?.ok === true ? await response.json().catch(() => undefined) : undefined;
@@ -101,12 +118,28 @@ export const Docs = (): JSX.Element => {
           Styled APG widgets for Solid 2. The behaviour is <code>@cssints/headless</code> from npm;
           what you copy is the skin and the test.
         </p>
-        <nav>
+        <nav aria-label="Guides">
+          <p class="docs__label">Guides</p>
+          <For each={GUIDES}>
+            {(entry) => (
+              <a
+                class={`docs__link${entry.name === name() ? " docs__link--active" : ""}`}
+                href={`#${entry.name}`}
+                aria-current={entry.name === name() ? "page" : undefined}
+              >
+                {entry.title}
+              </a>
+            )}
+          </For>
+        </nav>
+        <nav aria-label="Components">
+          <p class="docs__label">Components</p>
           <For each={items}>
             {(entry) => (
               <a
                 class={`docs__link${entry.name === name() ? " docs__link--active" : ""}`}
                 href={`#${entry.name}`}
+                aria-current={entry.name === name() ? "page" : undefined}
               >
                 {entry.title}
               </a>
@@ -131,68 +164,27 @@ export const Docs = (): JSX.Element => {
       </aside>
 
       <main class="docs__main">
-        <Show when={item()} fallback={<p>Pick a widget.</p>}>
+        <Show when={guide()} keyed>
+          {(entry) => <entry.Page />}
+        </Show>
+        <Show
+          when={item()}
+          fallback={
+            <Show when={!guide()}>
+              <p>Pick a widget.</p>
+            </Show>
+          }
+        >
           {(entry) => (
             <>
               <h1 class="docs__title">{entry().title}</h1>
               <p class="docs__description">{entry().description}</p>
 
-              <section
-                class="docs__preview"
-                style={`--hue-tint: ${tint().hue}; --chroma-tint: ${tint().chroma}`}
-              >
+              <section class="docs__preview">
                 {/* keyed: a different widget is a different component, not the same one with a new name */}
                 <Show when={demos[entry().name]} keyed fallback={<p>No demo yet.</p>}>
                   {(Example) => <Example />}
                 </Show>
-              </section>
-
-              <section class="docs__section">
-                <h2 class="docs__heading">Add it</h2>
-                <div class="docs__command">
-                  <code>{command(entry().name)}</code>
-                  <button class="docs__chip" onClick={() => void copy(command(entry().name))}>
-                    {copied() === command(entry().name) ? "copied" : "copy"}
-                  </button>
-                </div>
-                <p class="docs__note">
-                  Solid 2 (<code>2.0.0-rc.13</code>) and Vite+ are required; see the starter
-                  template in the repository. The theme arrives with the first starter.
-                </p>
-              </section>
-
-              <Show when={preflight()}>
-                {(result) => (
-                  <section class="docs__section">
-                    <h2 class="docs__heading">Conformance</h2>
-                    <p class="docs__note">
-                      Published as <code>{result().version}</code>: the copied test passed before
-                      the release was written ({result().files} files,{" "}
-                      {result().passedAt.slice(0, 10)}).
-                    </p>
-                  </section>
-                )}
-              </Show>
-
-              <section class="docs__section">
-                <h2 class="docs__heading">How the component is written</h2>
-                <p class="docs__note">
-                  Styles live in <code>{`src/registry/${entry().name}/${entry().name}.tsx`}</code>:{" "}
-                  <code>cn()</code> and <code>cv()</code> with the theme's tokens, states read off
-                  the attributes the widget announces (<code>css.attr()</code>,{" "}
-                  <code>css.within()</code>), and <code>render</code> replacing a part with another
-                  component or tag. The declarations are checked against the CSS grammar and the
-                  theme against <code>check.contrast</code> at build time.
-                </p>
-                <p class="docs__note">
-                  A copy ships that source, so <strong>your project needs cssints</strong> in its
-                  Vite config; <code>theme.ts</code> with <code>tokens.ts</code> arrives with the
-                  item, and <code>theme.css</code> is the same theme compiled for a project without
-                  the plugin. The look is composed beside other components: <code>Card</code> hands
-                  its inner radius down through <code>frame()</code>, a <code>data-mode</code> scope
-                  moves every token of the subtree, and a <code>Toolbar</code>'s size reaches the
-                  buttons it holds.
-                </p>
               </section>
 
               <section class="docs__section">

@@ -182,21 +182,41 @@ try {
   const read = (fn, arg) => night.evaluate(fn, arg);
   const style = (sel, prop) =>
     read(([s, p]) => getComputedStyle(document.querySelector(s))[p], [sel, prop]);
-  const setting = (name, value) => night.check(`#settings input[name=${name}][value=${value}]`);
-  assert.equal(await night.locator("#settings").isVisible(), false, "the panel starts closed");
+  const setting = (name, value) =>
+    night.check(`#settings-content input[name=${name}][value=${value}]`);
+  assert.equal(
+    await night.locator("#settings-content").isVisible(),
+    false,
+    "the panel starts closed",
+  );
   await night.focus(gear);
   await night.keyboard.press("Enter");
-  await night.locator("#settings").waitFor({ state: "visible" });
+  await night.locator("#settings-content").waitFor({ state: "visible" });
+  // the trigger says it is open, and the panel is measured under it (bottom-end): 4 px below, right edges flush
+  assert.equal(await night.getAttribute(gear, "aria-expanded"), "true");
+  const [triggerBox, panelBox] = await read(() => {
+    const rect = (el) => el.getBoundingClientRect().toJSON();
+    return [
+      rect(document.querySelector("button[aria-label='Display settings']")),
+      rect(document.querySelector("#settings-content")),
+    ];
+  });
+  assert.ok(
+    Math.abs(panelBox.top - (triggerBox.bottom + 4)) < 1,
+    "the panel sits under its trigger",
+  );
+  assert.ok(Math.abs(panelBox.right - triggerBox.right) < 1, "its right edge is the trigger's");
   await night.keyboard.press("Tab");
   assert.ok(
-    await read(() => document.activeElement.closest("#settings") !== null),
+    await read(() => document.activeElement.closest("#settings-content") !== null),
     "Tab goes into the panel",
   );
   await night.keyboard.press("Escape");
-  await night.locator("#settings").waitFor({ state: "hidden" });
+  await night.locator("#settings-content").waitFor({ state: "hidden" });
+  assert.equal(await night.getAttribute(gear, "aria-expanded"), "false");
   assert.equal(await read(() => document.activeElement.ariaLabel), "Display settings");
   await night.click(gear);
-  await night.locator("#settings").waitFor({ state: "visible" });
+  await night.locator("#settings-content").waitFor({ state: "visible" });
   await night.screenshot({ path: join(out, "settings-dark.png") });
 
   // the mode: a page that asks for light is light on a dark system; dim is dark with a lifted background
@@ -255,7 +275,7 @@ try {
 
   // the hue by keyboard: a step of the wheel, and the accent of that step in the cube (build time, palettes.ts)
   const swatch = () => style("[data-testid=swatch-accent]", "backgroundColor");
-  const slider = "#settings input[type=range]";
+  const slider = "#settings-content input[type=range]";
   assert.equal(await swatch(), rgb(start.dark.accent), "the logo's accent");
   assert.equal(await night.locator(slider).isDisabled(), true, "the logo palette has one accent");
   await setting("palette", "itten");
@@ -299,9 +319,9 @@ try {
   await setting("palette", "albers");
   assert.equal(await night.locator(slider).isDisabled(), false, "a cube has the wheel");
   assert.equal(await swatch(), rgb(palettes.albers(8).light.accent), "the hue was kept");
-  assert.match(await night.textContent("#settings"), /RYBitten/, "the cubes are credited");
+  assert.match(await night.textContent("#settings-content"), /RYBitten/, "the cubes are credited");
   assert.equal(
-    await night.getAttribute("#settings a[href='https://rybitten.space/']", "href"),
+    await night.getAttribute("#settings-content a[href='https://rybitten.space/']", "href"),
     "https://rybitten.space/",
   );
   await night.screenshot({ path: join(out, "settings-albers.png") });
@@ -323,29 +343,29 @@ try {
   assert.match(await style("body", "fontFamily"), /^Georgia/);
   await setting("font", "mono");
   assert.match(await style("body", "fontFamily"), /Menlo/);
-  assert.equal(await style("#settings", "borderRadius"), "10px");
+  assert.equal(await style("#settings-content", "borderRadius"), "10px");
   await setting("radius", "sharp");
-  assert.equal(await style("#settings", "borderRadius"), "0px");
+  assert.equal(await style("#settings-content", "borderRadius"), "0px");
   await setting("radius", "round");
-  assert.equal(await style("#settings", "borderRadius"), "20px");
+  assert.equal(await style("#settings-content", "borderRadius"), "20px");
   await night.screenshot({ path: join(out, "settings-all.png") });
 
   // kept across a reload, before the app runs again (the panel reads the stored values back)
   await night.reload();
   await night.locator("main h1").waitFor({ state: "visible" });
   assert.equal(await style(".prose", "fontSize"), "18px");
-  assert.equal(await style("#settings", "borderRadius"), "20px");
+  assert.equal(await style("#settings-content", "borderRadius"), "20px");
   assert.equal(await read(() => document.documentElement.dataset.font), "mono");
   await night.click(gear);
-  assert.ok(await night.isChecked("#settings input[name=density][value=comfortable]"));
+  assert.ok(await night.isChecked("#settings-content input[name=density][value=comfortable]"));
   assert.equal(await night.inputValue(slider), "8");
   assert.equal(await read(() => document.documentElement.dataset.palette), "albers");
-  assert.ok(await night.isChecked("#settings input[name=palette][value=albers]"));
+  assert.ok(await night.isChecked("#settings-content input[name=palette][value=albers]"));
   assert.equal(await read(() => document.documentElement.className), "light");
   assert.equal(await swatch(), rgb(palettes.albers(8).light.accent));
 
   // Reset: every setting back to its default, the system's dark again
-  await night.click("#settings button");
+  await night.click("#settings-content button");
   assert.equal(await bg(night), rgb(start.dark.bg));
   assert.equal(await style(".prose", "fontSize"), "16px");
   assert.equal(await gap(), "16px");

@@ -6,6 +6,7 @@ import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import { Button } from "./button/button.tsx";
+import { CheckboxGroup } from "./checkbox-group/checkbox-group.tsx";
 import {
   Dialog,
   DialogClose,
@@ -13,11 +14,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./dialog/dialog.tsx";
+import { Alert, AlertBody, AlertTitle } from "./alert/alert.tsx";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "./breadcrumb/breadcrumb.tsx";
+import { Meter } from "./meter/meter.tsx";
 import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
+import { Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
+import { Select, SelectContent, SelectTrigger } from "./select/select.tsx";
+import { Textarea } from "./textarea/textarea.tsx";
+import { Slider } from "./slider/slider.tsx";
+import { Spinbutton } from "./spinbutton/spinbutton.tsx";
 import { Toolbar } from "./toolbar/toolbar.tsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip/tooltip.tsx";
 
 export const Nesting = (): JSX.Element => (
   <Card>
@@ -134,4 +149,116 @@ export const Fields = (): JSX.Element => (
       <FieldControl render={(props) => <textarea {...props} data-part="textarea" />} />
     </Field>
   </>
+);
+
+export const Alerts = (): JSX.Element => (
+  <>
+    <Alert message="Your draft is saved.">
+      <AlertTitle>Draft saved</AlertTitle>
+      <AlertBody>Every change is kept until you publish.</AlertBody>
+    </Alert>
+    <Alert tone="invalid" message="The address is not valid.">
+      <AlertTitle>Could not save</AlertTitle>
+      <AlertBody>Enter an address in the form of name@example.com.</AlertBody>
+    </Alert>
+  </>
+);
+
+export const Meters = (): JSX.Element => {
+  const [value, setValue] = createSignal(25);
+  return (
+    <>
+      <Meter label="Storage" value={value()} />
+      <button data-part="advance" onClick={() => setValue(75)}>
+        More
+      </button>
+    </>
+  );
+};
+
+const CRUMB_ITEMS = [
+  { label: "Home", href: "#home" },
+  { label: "Projects", href: "#projects" },
+  { label: "Q3 report", href: "#report" },
+];
+
+export const Crumbs = (): JSX.Element => (
+  <div data-tint="indigo">
+    <Breadcrumb items={CRUMB_ITEMS} currentIndex={3}>
+      <BreadcrumbList>
+        {CRUMB_ITEMS.map((item, index) => (
+          <BreadcrumbItem index={index}>
+            <BreadcrumbLink index={index}>{item.label}</BreadcrumbLink>
+          </BreadcrumbItem>
+        ))}
+      </BreadcrumbList>
+    </Breadcrumb>
+  </div>
+);
+
+export const Menus = (): JSX.Element => (
+  <Menu
+    items={["Rename", "Duplicate", { label: "Delete", disabled: true }]}
+    onItemClick={() => undefined}
+  >
+    <MenuTrigger>Actions</MenuTrigger>
+    {/* no children: the declared items are the rows */}
+    <MenuContent />
+  </Menu>
+);
+
+export const Tooltips = (): JSX.Element => (
+  <Tooltip>
+    <TooltipTrigger>Delete</TooltipTrigger>
+    <TooltipContent>Deletes the file</TooltipContent>
+  </Tooltip>
+);
+
+const FRUIT = ["Apple", "Banana", { label: "Cherry", disabled: true }, "Date"];
+
+export const Selects = (): JSX.Element => {
+  const [value, setValue] = createSignal(0);
+  return (
+    <Select items={FRUIT} value={value()} onValueChange={setValue} label="Fruit">
+      <SelectTrigger />
+      <SelectContent />
+    </Select>
+  );
+};
+
+export const Textareas = (): JSX.Element => (
+  <>
+    <Field id="notes" invalid="Say a little more">
+      <FieldLabel>Notes</FieldLabel>
+      <FieldControl render={(props) => <Textarea {...props} />} />
+      <FieldMessage />
+    </Field>
+    <Field id="summary">
+      <FieldLabel>Summary</FieldLabel>
+      <FieldControl render={(props) => <Textarea {...props} />} />
+    </Field>
+  </>
+);
+export const Sliders = (): JSX.Element => (
+  <>
+    <Slider label="Volume" min={0} max={10} defaultValue={5} />
+    <Slider label="Zoom" min={1} max={4} defaultValue={2} orientation="vertical" />
+  </>
+);
+
+export const Spinbuttons = (): JSX.Element => (
+  <>
+    <Spinbutton aria-label="Copies" min={1} max={2} defaultValue={1} />
+    <Field id="qty" hint="Up to 12">
+      <FieldLabel>Quantity</FieldLabel>
+      <FieldControl render={(props) => <Spinbutton {...props} min={1} max={12} />} />
+      <FieldMessage />
+    </Field>
+  </>
+);
+
+export const CheckboxGroups = (): JSX.Element => (
+  <CheckboxGroup label="Notifications" values={["email", "push", "sms"]} defaultValue={["email"]}>
+    {(channel) => channel}
+  </CheckboxGroup>
 );

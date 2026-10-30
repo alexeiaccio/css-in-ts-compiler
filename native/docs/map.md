@@ -637,9 +637,31 @@ Each step ends in a check that fails when it breaks.
    reported, not drawn), quote boxes, a body that wraps (one clipped row), the system theme of `src/system.ts` (the
    static dark/light ones are ported), the wheel and dragging, wide glyphs and emoji (a code point is one cell),
    floating overlays (untried), sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius
-   is a square corner), scrollback, and Solid on the terminal (the pages are C, as step 5's). The
-   cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25 columns, so a page's pixel lengths
-   have to be re-cut to land on cell boundaries, and text smaller or larger than a cell is the same cell.
+   is a square corner) and scrollback. The cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25
+   columns, so a page's pixel lengths have to be re-cut to land on cell boundaries, and text smaller or larger than a
+   cell is the same cell.
+   **Done: one page runs as Solid; the rest are C.** `solid/native/term.c` (built as `build/solid/libterm.dylib`
+   beside `libui.dylib`) is Clay over the terminal's own cells — `terminal/cells.c`, `render.c`, `measure.c` and
+   `tb2.c`, no SDL3, no ThorVG, no window — behind the declaration surface `solid/native/ui.c` has: a packed 45-float
+   box style, a 10-float text and the value channel, so a page's `styles.ts` and `solid/src/pack.ts` are one module on
+   both targets. `terminal/solid.ts` is `solid/main.ts`'s loop shape over it, and the page is
+   `solid/app/Sensors.tsx` **unmodified**: the host re-cuts page.c's two lengths for cells through the value channel
+   (the root's padding and gap, the pill's 3-cell height) and draws the pill's ring from its own focus, as
+   `pill_style(focused)` does. One caveat of the slice: `solid/src/frame.ts` imports the desktop's `ffi.ts` and draws
+   through `ui_draw`, so the host walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to
+   the terminal's binding, which is how the page's own `pageEntry` motion lands in libterm and why its group fields
+   (opacity, translate) are dropped by a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh`
+   runs it), 9 `identical` lines — at the page's own height of 11 cells (the C page's list starts on row 12) the Solid
+   frame is the C frame's bytes as a dump, dark and light and after `Tab,ArrowDown`, and as ANSI; the page's 11 rows at
+   the suite's 20 rows are `expected-dark.txt`'s and, after the keys, `expected-focus.txt`'s, and the run says which rows
+   are not (rows 12-19 are the C page's list and the footer); a click on the pill flips Units through the page's own
+   `onClick`; termbox2 draws the frame under a pty. Cost: 0.38 ms a frame headless (declare + Solid's flush + Clay + the
+   commands into cells) and 0.46 ms more for the same cells as ANSI (file write included), against the C page's ~0.08 ms
+   a frame, measured as the delta of `demo --frames 1` and `--frames 201` under a pty with the present included
+   (`main.c` prints no number); the dylib is 236 KB. What the Solid page cannot do in cells is the cell's limit as the
+   C pages' is: an image is a box with no glyph, a float has no cells to sit over, text is one row, there is no shadow,
+   backdrop, gradient, group opacity or scale, and a hover exists only where the last press was (termbox2 reports no
+   motion). The other four screens — the feed, the thread, the profile and the notifications — are still C.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors
