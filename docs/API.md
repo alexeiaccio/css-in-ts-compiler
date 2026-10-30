@@ -1465,7 +1465,6 @@ createTable(options: {
 
 Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
-f812d87e (headless: a data table with sortable headers and row selection)
 
 ### Headless: `createHotkeys` (`@cssints/headless`)
 
@@ -1488,6 +1487,29 @@ hotkeys.dispose(); // unbinds all and removes the document listener; a later bin
 `keys` is a chord string: optional modifiers `mod`, `ctrl`, `alt`, `shift`, `meta`, then exactly one key (`k`, `/`, `?`, `escape`, `enter`, `arrowup`), joined with `+`. `mod` is resolved at `createHotkeys` time, once. A shifted character implies Shift (`"?"` fires from Shift+/, `"/"` does not), and the other modifiers must match the event exactly, so a chord without `shift` does not fire while Shift is held.
 
 There is one `keydown` listener on the document in the capture phase, added when the first binding is bound and removed when the last is unbound or on `dispose`. The most recently bound match is the only one that fires, so a modal's `/` shadows the page's and unbinding it brings the page's back; a binding whose `when` returns false falls through to the next match instead of blocking it. By default a binding does not fire while the focus is in an `input`, a `textarea` or a `contenteditable` (an inherited one included) unless it sets `allowInEditable`. An unknown modifier or a chord with no key throws a `TypeError` at `bind`.
+
+
+### Headless: `createScrollspy` (`@cssints/headless`)
+
+A table of contents whose current entry is the last heading to reach the top of the scrollport, marked `aria-current="location"` on the link. **No APG pattern exists for a scrollspy**, so it has no Quint spec and no ported scenarios: the contract is WAI-ARIA (the `aria-current` value, `role="list"` / `role="listitem"`, a named navigation landmark) and HTML, and `packages/headless/test/scrollspy.browser.test.tsx` is its oracle.
+
+```ts skip
+createScrollspy(options: {
+  entries: ReadonlyArray<{ id: string; label: string }>; // document order; the ids are the headings'
+  offset?: number | undefined; // px below the scrollport's top edge where a heading counts as current; 0
+  root?: (() => HTMLElement | undefined) | undefined; // the scroll container; the document by default
+  onChange?(id: string | undefined): void;
+}): {
+  active(): string | undefined; // the last heading at or above the offset, else the first entry
+  navProps: { "aria-label": string }; // "On this page"; override after the spread to translate
+  listProps: { role: "list" };
+  itemProps(id: string): { role: "listitem" };
+  linkProps(id: string): { href: string; "aria-current": "location" | undefined }; // exactly one link is current
+  attach(): () => void; // one passive scroll listener; returns the teardown
+};
+```
+
+`attach()` adds **one passive `scroll` listener** to `root()`, which measures each heading's `getBoundingClientRect`, syncs once (a page opened mid-scroll starts correct), and returns the teardown. Not an `IntersectionObserver`: "the last heading at or above the offset" is a total order over all headings, while an observer reports only what crossed a band, so it has to rebuild that order from enter/leave state and misreports after a jump. Smooth scrolling is the host's (`scroll-behavior: smooth`, and any `prefers-reduced-motion` override): the links are plain `#id` targets and the primitive never moves the scrollport. The first entry is current before any scroll and while nothing has passed the line.
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
