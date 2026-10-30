@@ -67,6 +67,7 @@ export * from "./field";
 export * from "./pagination";
 export * from "./popover";
 export * from "./grid";
+export * from "./hotkeys";
 export * from "./link";
 export * from "./listbox";
 export * from "./menu";

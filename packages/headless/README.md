@@ -382,6 +382,40 @@ const drawer = createDrawer({ side: "right", labelledby: "nav-title" });
 - **No drag-to-dismiss.** A drag is not a dialog interaction: it is a scroll snap the platform runs off the main thread, and it is the host's CSS (`scroll-snap-type: y mandatory`, snap markers, `scrollsnapchange`; see [docs/bottom-sheet.md](docs/bottom-sheet.md)). Re-implementing a native snap in pointer events would be the gesture duplication that research forbids, and the handle would drag on top of the snap that already moved the panel. So `handleProps` is decoration (`aria-hidden`, no pointer handlers) and the ways out are the backdrop, Escape, a close control the host puts in the panel, and the trigger. Swipe-to-dismiss, if it is ever wanted, is a separate decision with its own oracle.
 - **No `attach`.** The panel is edge-anchored: nothing is measured and no placement is computed, so focus and the Tab cycle find the panel through `contentProps.id` and the host only spreads attributes onto its own elements. Give the panel a name: pass `labelledby`, or set `aria-labelledby` / `aria-label` after the spread.
 
+## Hotkeys
+
+`createHotkeys` is a **platform utility, not a widget**: one registry for the chords every app hand-rolls (the docs app's `/` and Cmd/Ctrl+K, the CMS's Cmd/Ctrl+S). **No APG pattern exists for a keyboard registry**, so there is no role, no element, no styling and no Quint spec; `test/hotkeys.browser.test.tsx` is the oracle.
+
+```tsx
+const hotkeys = createHotkeys();
+
+onSettled(() => {
+  hotkeys.bind({
+    keys: "mod+k",
+    onTrigger: () => searchEl.focus(),
+  });
+  hotkeys.bind({
+    keys: "/",
+    when: () => !dialog().open,
+    onTrigger: () => searchEl.focus(),
+  });
+  hotkeys.bind({
+    keys: "mod+s",
+    scope: editorEl,
+    onTrigger: () => save(),
+  });
+  return () => hotkeys.dispose();
+});
+```
+
+- **One listener.** `bind` adds a chord to one `keydown` listener on the document in the capture phase (a `scope` only filters the event's target, it does not add a listener), and the last binding to go is the one that removes it; `dispose` unbinds everything and a later `bind` is a no-op. The unbind `bind` returns is idempotent.
+- **Modifiers match exactly.** `mod` is Cmd on macOS and Ctrl elsewhere (`isApple` injects the answer, so a test does not read the runner's OS); `ctrl`, `alt`, `shift` and `meta` are as written. A chord that does not declare Shift does not fire with Shift held. A shifted character implies Shift: `"?"` fires from Shift+/ even without `"shift+?"`, and `"/"` does not fire from it.
+- **A text field keeps its keys.** A binding does not fire while the focus is in an `input`, a `textarea` or a `contenteditable` (an inherited one included) unless it sets `allowInEditable`, which is what Escape wants: it closes a dialog wherever the focus is.
+- **Last bound wins.** Only the most recently bound match fires, so a modal's `"/"` shadows the page's and unbinding it brings the page's back; a `when` that is false makes the next match fire instead, so the gate can close without unbinding.
+- **`preventDefault` is on** for a binding that fires (Cmd/Ctrl+S and Cmd/Ctrl+K would otherwise reach the browser); pass `false` to let the platform act too.
+
+Collisions with the browser's own chords: `preventDefault` reaches the page's default action, not the browser's. Cmd/Ctrl+S (Save Page), Cmd/Ctrl+K (the browser's search, in Chrome and Firefox), Cmd/Ctrl+P and `/` (Firefox's quick find) can be cancelled by a page, and a host that binds one is choosing to take it from the browser; Cmd/Ctrl+T, Cmd/Ctrl+W, Cmd/Ctrl+N, Cmd/Ctrl+L and F11 are reserved and cannot be intercepted, so a chord built on them never fires. `keys` takes any of them the same and says nothing.
+
 ## Commands
 
 ```sh
