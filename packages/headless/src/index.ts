@@ -70,6 +70,7 @@ export * from "./panzoom";
 export * from "./popover";
 export * from "./grid";
 export * from "./hotkeys";
+export * from "./knob";
 export * from "./link";
 export * from "./listbox";
 export * from "./menu";

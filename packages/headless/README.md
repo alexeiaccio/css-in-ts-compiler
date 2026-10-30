@@ -125,6 +125,30 @@ const panzoom = createPanZoom({
 
 Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused.
 
+## Knob
+
+`createKnob` is a virtual knob after GarageBand's ([How Apple Designs a Virtual Knob](https://jherrm.github.io/knobs/)): one focusable control you spin around its centre or slide vertically / horizontally, with **one gesture locked per drag**. **There is no APG pattern and no ARIA role for a dial**, so it is a `role=slider` with `aria-valuenow` / `aria-valuetext`, and `test/knob.browser.test.tsx` (real Chromium) is its oracle — there is no Quint spec.
+
+```tsx
+const knob = createKnob({ labels: { knob: "Volume" }, format: (value) => `${value}%` });
+const turn = () => knob.percentOf(knob.value());
+
+<div {...knob.knobProps} class="knob">
+  <span class="indicator" style={{ transform: `rotate(${turn() * 360}deg)` }} />
+</div>
+<span {...knob.valueProps} class="visually-hidden">
+  {knob.value()}
+</span>;
+```
+
+`percentOf` is the fraction of a full turn the skin rotates by; the look is the host's. `valueProps` must be rendered (hide it visually, never with `hidden`): it is the live announcement.
+
+**A dial is never the only control.** The keyboard contract stands in for every gesture — arrows step, PageUp/PageDown by ten steps, Home/End to the bounds — but a numeric field (`createSpinbutton`) still belongs next to it: a slider role is operable but does not make a range easy to discover or type.
+
+**Gestures** (`gesture`, default `"both"`). A pointerdown records the centre, the start angle and the side. On the first movement past 6 px the drag picks a mode once and keeps it for the rest of the drag: movement that stays on one axis (the other under 35% of it) is a slide, anything else is a turn around the centre. The reference's direction rule holds: down on the right half turns clockwise (up in value), down on the left half counter-clockwise, and a horizontal slide uses the same left/right side. A spin's value per degree shrinks as the pointer moves away from the centre — the same angle is a longer arc, so farther is finer. `gesture: "spin"` / `"slide"` disables the other. The wheel steps once per event and `preventDefault`s, so hovering the dial stops the page from scrolling.
+
+**`wrap`** makes the dial continuous: past `max` comes back at `min`, so a full turn is a full cycle instead of the clamped end of the range. `setValue` / `stepBy` are requests like a key, so a controlled `value` still owns the result.
+
 ## Resizable panels
 
 `createResizablePanels` is a group of N panes and N-1 separators: react-resizable-panels' layout on the APG window splitter's keyboard. Its behaviour is `packages/apg-specs/specs/patterns/resizable-panels.qnt` — not an APG pattern, so it lives under `patterns/` — and the DOM is checked against it by the differential walk. The spec is the three-pane instance (10/80 bounds, 10% steps, pane 0 collapsible at 0); the primitive takes N panes and any bounds.
