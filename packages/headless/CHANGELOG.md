@@ -1,5 +1,13 @@
 # @cssints/headless
 
+## 0.20.0
+
+### Minor Changes
+
+- f166890: `@cssints/headless`: the first composition, a command palette. `createCommandPalette` is `createDialogModal` + `createTextInput` + `createStatus`, not a new primitive: the container is a modal dialog (announced as one), the field is `input[type=text][role=searchbox]` rather than a combobox because choosing a row runs a command instead of completing the field, and the list is a `listbox` filtered by a plain case-insensitive match on `label` and `keywords`. Focus stays in the field with `aria-activedescendant` on the highlight; ↓ on the last option and ↑ on the first return the highlight to the field; Home/End move the caret while there is text and are list keys while the field is empty; Enter closes and runs the command, Escape closes through the dialog. Groups, an empty state and one polite result count are part of the API, the query resets on close, and `attach()` binds the hotkey through `createHotkeys`. Rendering, grouping CSS, async command handling and the strings are the host's; the filterable menu and the date picker follow in later changes.
+- b81b4b1: `@cssints/headless`: two ARIA gaps the styled kit hit. `createMenu` takes a controlled open state — `open`, `defaultOpen` and `onOpenChange` on top of `createControllable` — and every intent that opens or closes (the trigger's click and keys, Escape, an item's activation, Tab, `openMenu` / `closeMenu`) is a request the host may ignore; a rejected request leaves the focus where it was, as `menu-button.qnt` models it. `createCheckboxGroup` takes the name, the description and the error `createField` gives a control: `label` (`aria-label`) or `labelledby`, `describedby`, `invalid` / `error` (`aria-invalid`, the error id in `aria-describedby`, and an `errorProps` element that is `role="alert"` while it is shown), plus the group element's `id`. `menu-button.qnt` changed minimally: a host write of the open value it already has moves no focus, because no widget can observe it; regenerated, nothing else moved.
+- 702a52b: `@cssints/headless`: `createKnob`, a virtual knob after GarageBand's (spin around the centre, vertical or horizontal slide, one gesture locked per drag). It is a `role=slider` (no ARIA role exists for a dial) with `aria-valuenow` / `aria-valuetext`, keyboard steps, PageUp/PageDown, Home/End and a wheel, plus `percentOf` for the skin's rotation and a continuous `wrap` mode. There is no APG pattern, so no Quint spec: the contract is documented in the package README and `test/knob.browser.test.tsx` is its oracle.
+
 ## 0.19.0
 
 ### Minor Changes
