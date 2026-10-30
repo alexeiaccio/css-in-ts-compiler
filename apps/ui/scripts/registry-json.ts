@@ -154,6 +154,58 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Accordion",
     description: "APG accordion: multiple or single expansion, headed triggers, collapsible",
   },
+  {
+    name: "separator",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Separator",
+    description:
+      "A rule between two groups: `role=separator` with its orientation, or a decorative `role=none`",
+  },
+  {
+    name: "badge",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Badge",
+    description:
+      "A small label in three tones, a pill at 999px because the theme's steps stop at 16px",
+  },
+  {
+    name: "skeleton",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Skeleton",
+    description: "A placeholder box that pulses only when the reader has not asked for less motion",
+  },
+  {
+    name: "alert",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Alert",
+    description: "APG alert: a title and a body in a live region, with an `invalid` tone",
+  },
+  {
+    name: "meter",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Meter",
+    description: "APG meter: a track and the fill of the value, on `createMeter`",
+  },
+  {
+    name: "breadcrumb",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Breadcrumb",
+    description:
+      "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
+  },
+  {
+    name: "treeview",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Tree view",
+    description: "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files

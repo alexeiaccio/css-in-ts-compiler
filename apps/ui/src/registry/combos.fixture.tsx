@@ -13,6 +13,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./dialog/dialog.tsx";
+import { Alert, AlertBody, AlertTitle } from "./alert/alert.tsx";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "./breadcrumb/breadcrumb.tsx";
+import { Meter } from "./meter/meter.tsx";
 import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
@@ -134,4 +142,49 @@ export const Fields = (): JSX.Element => (
       <FieldControl render={(props) => <textarea {...props} data-part="textarea" />} />
     </Field>
   </>
+);
+
+export const Alerts = (): JSX.Element => (
+  <>
+    <Alert message="Your draft is saved.">
+      <AlertTitle>Draft saved</AlertTitle>
+      <AlertBody>Every change is kept until you publish.</AlertBody>
+    </Alert>
+    <Alert tone="invalid" message="The address is not valid.">
+      <AlertTitle>Could not save</AlertTitle>
+      <AlertBody>Enter an address in the form of name@example.com.</AlertBody>
+    </Alert>
+  </>
+);
+
+export const Meters = (): JSX.Element => {
+  const [value, setValue] = createSignal(25);
+  return (
+    <>
+      <Meter label="Storage" value={value()} />
+      <button data-part="advance" onClick={() => setValue(75)}>
+        More
+      </button>
+    </>
+  );
+};
+
+const CRUMB_ITEMS = [
+  { label: "Home", href: "#home" },
+  { label: "Projects", href: "#projects" },
+  { label: "Q3 report", href: "#report" },
+];
+
+export const Crumbs = (): JSX.Element => (
+  <div data-tint="indigo">
+    <Breadcrumb items={CRUMB_ITEMS} currentIndex={3}>
+      <BreadcrumbList>
+        {CRUMB_ITEMS.map((item, index) => (
+          <BreadcrumbItem index={index}>
+            <BreadcrumbLink index={index}>{item.label}</BreadcrumbLink>
+          </BreadcrumbItem>
+        ))}
+      </BreadcrumbList>
+    </Breadcrumb>
+  </div>
 );

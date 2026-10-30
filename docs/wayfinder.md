@@ -2043,6 +2043,7 @@ colour), the size cascade (`data-size="sm"` on a `group()` ancestor), `render` (
 `aria-invalid` on an `Input` and on a `textarea`; `packages/cssints`' own suite and `apps/lab` stay green. **Left**: the copied
 item's `vitest.browser.config.ts` does not carry `evaluation.inline` yet (the registry ships the old config to the compiled
 starters), and nothing reminds a project to import the sheet in a test — a copied styled item would need both.
+
 ## `appear()`: scroll-triggered presets beside `reveal()` (cssints-wyoy, 2026-10-29)
 
 Found by `@cssints/reveal`, after [utilitybend's article on CSS animation triggers](https://utilitybend.com/blog/scroll-triggered-animation-as-the-missing-piece-for-scrollytelling-on-the-web): `reveal()` scrubs an entrance with the scroll (`animation-timeline: view()`), so a slow scroll makes the entrance slow too — it oozes. A scroll-_triggered_ animation is the missing piece: the scroll only decides _when_ a normal time-based animation plays, with its own duration and easing. `appear()` is a second chain member of the same scope, not a new package: the presets, the keyframes, the runtime entry and the IntersectionObserver fallback are `reveal()`'s, and a package for one more member would duplicate all of them. It takes the same `preset()`, `range()`, `duration()` and `easing()`, and adds `inOut()`: `play-forwards play-backwards`, so an entrance can play back out; the default is `play-once none`, which is what an entrance wants and exactly what the fallback does.
@@ -2221,3 +2222,27 @@ injects, so both are the repo's versions now (1.4.0, 5.0.5) and that subpath is 
 **Left**: the live registry still serves the pre-2026-10-29 items until the deploy runs (the live add writes the old
 `switch.css`), so that last step proves the CDN and the published JSON, not the current components; the template's test run
 still prints "multiple instances of Solid" while every test passes, which is the runner's warning rather than a failure.
+
+## Seven small kits items: a rule, a label, a placeholder, an alert, a meter, a breadcrumb, a tree (apps/ui, 2026-10-30)
+
+The kit had the form controls and three containers, and nothing for the small things a page is made of. Seven items now:
+`Separator` (`role=separator` with `aria-orientation`, or a decorative `role=none`), `Badge` (three tones), `Skeleton`,
+`Alert` (`createAlert`), `Meter` (`createMeter`), `Breadcrumb` (`createBreadcrumb`) and `Treeview` (`createTreeview`). All
+styles are `cn()`/`cv()` over `t`; every state a widget has is read from the ARIA it announces, and no token was added.
+
+Four decisions. **The pill is `999px` in `Badge` and in the meter's track**: `t.radius` stops at 16px, and a pill must be
+rounder than half of its own height whatever that height is, so it is a value by hand rather than a step that would be wrong
+at a larger size. **The meter has no thresholds**: `createMeter` does not take `low`/`high`/`optimum`, so there is no state to
+paint beside the value, and the fill's width is an inline percentage from the primitive's `percent()` because CSS cannot do
+arithmetic on `aria-valuenow` — the attribute and the fill are two reads of one number, and `combos.browser.test.tsx` drives
+both at once. **The alert's message is read at mount**: `createAlert` takes its first message as an initial value and `show()`
+for a later one, so the item documents a mount as the announcement and hands the controller to `onReady`; parts are
+`AlertTitle`/`AlertBody`, and `tone="invalid"` paints the rule and the title with `t.color.invalid` through the root's group
+marker. **A decorative separator is styled from `data-orientation`**, not from `aria-orientation`: `role="none"` may not carry
+it (ARIA on a presentation role is ignored), so the ARIA is only on the real separator and the look reads the prop on both.
+
+The tree stayed in the batch: the primitive owns the roving tabindex, the expanded and selected flags and the levels, so the
+port is a flat list of `treeitem`s painted from `aria-level`, `aria-expanded` and `aria-selected`, plus the focus sync the
+headless fixture also needs (the primitive moves its roving node; the host moves the DOM focus). **Left**: a row deeper than
+the third level keeps the third level's indent; the alert has no dismiss button (the primitive's `dismissProps` waits for a
+page that wants one); the skeleton's pulse is the only motion in the kit, and the item reads `prefers-reduced-motion` once.

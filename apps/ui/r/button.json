@@ -4,15 +4,9 @@
   "type": "registry:ui",
   "title": "Button",
   "description": "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
-  "dependencies": [
-    "@cssints/headless",
-    "@cssints/mise-en-mode",
-    "cssints"
-  ],
+  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   "devDependencies": [],
-  "registryDependencies": [
-    "@cssints/theme"
-  ],
+  "registryDependencies": ["@cssints/theme"],
   "files": [
     {
       "path": "button.tsx",

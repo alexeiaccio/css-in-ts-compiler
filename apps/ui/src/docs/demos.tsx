@@ -1,6 +1,14 @@
 // One live example per starter. Each is the component in its ordinary use, driven by a signal the
 // way a page would drive it: what a reader copies is what they see here.
 import { Accordion } from "../registry/accordion/accordion.tsx";
+import { Alert, AlertBody, AlertTitle } from "../registry/alert/alert.tsx";
+import { Badge } from "../registry/badge/badge.tsx";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "../registry/breadcrumb/breadcrumb.tsx";
 import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.tsx";
 import { Button } from "../registry/button/button.tsx";
 import {
@@ -13,7 +21,11 @@ import {
 import { ButtonGroup } from "../registry/button-group/button-group.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
+import { Meter } from "../registry/meter/meter.tsx";
+import { Separator } from "../registry/separator/separator.tsx";
+import { Skeleton } from "../registry/skeleton/skeleton.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
+import { Treeview } from "../registry/treeview/treeview.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
@@ -225,6 +237,84 @@ const AccordionDemo = (): JSX.Element => (
   />
 );
 
+const SeparatorDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <div class="demo-row">
+      <span>Files</span>
+      <Separator orientation="vertical" decorative />
+      <span>Shared</span>
+    </div>
+    <Separator />
+  </div>
+);
+
+const BadgeDemo = (): JSX.Element => (
+  <div class="demo-row">
+    <Badge>Neutral</Badge>
+    <Badge tone="accent">Accent</Badge>
+    <Badge tone="quiet">Quiet</Badge>
+  </div>
+);
+
+const SkeletonDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Skeleton height="2.5rem" />
+    <Skeleton width="60%" />
+    <Skeleton width="40%" height="0.75rem" />
+  </div>
+);
+
+const AlertDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Alert message="Your draft is saved.">
+      <AlertTitle>Draft saved</AlertTitle>
+      <AlertBody>Every change is kept until you publish.</AlertBody>
+    </Alert>
+    <Alert tone="invalid" message="The address is not valid.">
+      <AlertTitle>Could not save</AlertTitle>
+      <AlertBody>Enter an address in the form of name@example.com.</AlertBody>
+    </Alert>
+  </div>
+);
+
+const MeterDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Meter label="Storage" value={64} />
+    <Meter label="Upload" value={92} valueText="92% of the file sent" />
+  </div>
+);
+
+const BREADCRUMB_ITEMS = [
+  { label: "Home", href: "#home" },
+  { label: "Projects", href: "#projects" },
+  { label: "Q3 report", href: "#report" },
+];
+
+const BreadcrumbDemo = (): JSX.Element => (
+  <Breadcrumb items={BREADCRUMB_ITEMS} currentIndex={3}>
+    <BreadcrumbList>
+      {BREADCRUMB_ITEMS.map((item, index) => (
+        <BreadcrumbItem index={index}>
+          <BreadcrumbLink index={index}>{item.label}</BreadcrumbLink>
+        </BreadcrumbItem>
+      ))}
+    </BreadcrumbList>
+  </Breadcrumb>
+);
+
+const TREEVIEW_NODES = [
+  { id: 1, parent: 0, label: "Projects" },
+  { id: 2, parent: 1, label: "Reports" },
+  { id: 3, parent: 2, label: "Roadmap" },
+  { id: 4, parent: 2, label: "Summary" },
+  { id: 5, parent: 1, label: "Notes" },
+  { id: 6, parent: 0, label: "Photos" },
+];
+
+const TreeviewDemo = (): JSX.Element => (
+  <Treeview nodes={TREEVIEW_NODES} defaultValue={[2]} defaultExpanded={[1, 2]} label="Files" />
+);
+
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -240,4 +330,11 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   radio: RadioDemo,
   tabs: TabsDemo,
   accordion: AccordionDemo,
+  separator: SeparatorDemo,
+  badge: BadgeDemo,
+  skeleton: SkeletonDemo,
+  alert: AlertDemo,
+  meter: MeterDemo,
+  breadcrumb: BreadcrumbDemo,
+  treeview: TreeviewDemo,
 };

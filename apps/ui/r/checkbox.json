@@ -4,18 +4,9 @@
   "type": "registry:ui",
   "title": "Checkbox",
   "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
-  "dependencies": [
-    "@cssints/headless",
-    "@cssints/mise-en-mode",
-    "cssints"
-  ],
-  "devDependencies": [
-    "@cssints/apg-specs@^0.12.1",
-    "@quint-machine/core@0.1.0"
-  ],
-  "registryDependencies": [
-    "@cssints/theme"
-  ],
+  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "registryDependencies": ["@cssints/theme"],
   "files": [
     {
       "path": "checkbox.tsx",

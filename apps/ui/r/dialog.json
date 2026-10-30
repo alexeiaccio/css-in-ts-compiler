@@ -4,16 +4,9 @@
   "type": "registry:ui",
   "title": "Dialog",
   "description": "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
-  "dependencies": [
-    "@cssints/headless",
-    "@cssints/mise-en-mode",
-    "cssints"
-  ],
+  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   "devDependencies": [],
-  "registryDependencies": [
-    "@cssints/theme",
-    "@cssints/button"
-  ],
+  "registryDependencies": ["@cssints/theme", "@cssints/button"],
   "files": [
     {
       "path": "dialog.tsx",

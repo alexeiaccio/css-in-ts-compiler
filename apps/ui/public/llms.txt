@@ -26,6 +26,13 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - radio: APG radio group with roving tabindex or aria-activedescendant focus. `add @cssints/radio`
 - tabs: APG tabs: roving tabindex, automatic or manual activation, wrapped arrows. `add @cssints/tabs`
 - accordion: APG accordion: multiple or single expansion, headed triggers, collapsible. `add @cssints/accordion`
+- separator: A rule between two groups: `role=separator` with its orientation, or a decorative `role=none`. `add @cssints/separator`
+- badge: A small label in three tones, a pill at 999px because the theme's steps stop at 16px. `add @cssints/badge`
+- skeleton: A placeholder box that pulses only when the reader has not asked for less motion. `add @cssints/skeleton`
+- alert: APG alert: a title and a body in a live region, with an `invalid` tone. `add @cssints/alert`
+- meter: APG meter: a track and the fill of the value, on `createMeter`. `add @cssints/meter`
+- breadcrumb: APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it. `add @cssints/breadcrumb`
+- treeview: APG tree view: roving focus, expanded rows and levels on `createTreeview`. `add @cssints/treeview`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written

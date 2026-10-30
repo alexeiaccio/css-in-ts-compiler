@@ -23,15 +23,9 @@
       "type": "registry:ui",
       "title": "Card",
       "description": "A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "card.tsx",
@@ -61,16 +55,9 @@
       "type": "registry:ui",
       "title": "Field",
       "description": "A label, a control, a hint and an error: the ids and the ARIA are `createField`'s",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme",
-        "@cssints/input"
-      ],
+      "registryDependencies": ["@cssints/theme", "@cssints/input"],
       "files": [
         {
           "path": "field.tsx",
@@ -105,16 +92,9 @@
       "type": "registry:ui",
       "title": "Dialog",
       "description": "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme",
-        "@cssints/button"
-      ],
+      "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
           "path": "dialog.tsx",
@@ -144,15 +124,9 @@
       "type": "registry:ui",
       "title": "Input",
       "description": "A text field on the neutral theme, and the control `Field` puts in by default",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "input.tsx",
@@ -182,15 +156,9 @@
       "type": "registry:ui",
       "title": "Toolbar",
       "description": "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "toolbar.tsx",
@@ -220,16 +188,9 @@
       "type": "registry:ui",
       "title": "Button group",
       "description": "Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme",
-        "@cssints/button"
-      ],
+      "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
           "path": "button-group.tsx",
@@ -259,18 +220,9 @@
       "type": "registry:ui",
       "title": "Switch",
       "description": "APG switch on @cssints/headless, on the neutral theme, with its scenario test",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
-      "devDependencies": [
-        "@cssints/apg-specs@^0.12.1",
-        "@quint-machine/core@0.1.0"
-      ],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "switch.tsx",
@@ -320,18 +272,9 @@
       "type": "registry:ui",
       "title": "Disclosure",
       "description": "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
-      "devDependencies": [
-        "@cssints/apg-specs@^0.12.1",
-        "@quint-machine/core@0.1.0"
-      ],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "disclosure.tsx",
@@ -381,15 +324,9 @@
       "type": "registry:ui",
       "title": "Button",
       "description": "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "button.tsx",
@@ -419,18 +356,9 @@
       "type": "registry:ui",
       "title": "Checkbox",
       "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
-      "devDependencies": [
-        "@cssints/apg-specs@^0.12.1",
-        "@quint-machine/core@0.1.0"
-      ],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "checkbox.tsx",
@@ -480,18 +408,9 @@
       "type": "registry:ui",
       "title": "Radio group",
       "description": "APG radio group with roving tabindex or aria-activedescendant focus",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
-      "devDependencies": [
-        "@cssints/apg-specs@^0.12.1",
-        "@quint-machine/core@0.1.0"
-      ],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "radio.tsx",
@@ -541,18 +460,9 @@
       "type": "registry:ui",
       "title": "Tabs",
       "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
-      "devDependencies": [
-        "@cssints/apg-specs@^0.12.1",
-        "@quint-machine/core@0.1.0"
-      ],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "tabs.tsx",
@@ -602,18 +512,9 @@
       "type": "registry:ui",
       "title": "Accordion",
       "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
-      "dependencies": [
-        "@cssints/headless",
-        "@cssints/mise-en-mode",
-        "cssints"
-      ],
-      "devDependencies": [
-        "@cssints/apg-specs@^0.12.1",
-        "@quint-machine/core@0.1.0"
-      ],
-      "registryDependencies": [
-        "@cssints/theme"
-      ],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
       "files": [
         {
           "path": "accordion.tsx",
@@ -653,6 +554,230 @@
         {
           "path": "src/sheet.ts",
           "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "separator",
+      "type": "registry:ui",
+      "title": "Separator",
+      "description": "A rule between two groups: `role=separator` with its orientation, or a decorative `role=none`",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "separator.tsx",
+          "target": "src/components/ui/separator.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "badge",
+      "type": "registry:ui",
+      "title": "Badge",
+      "description": "A small label in three tones, a pill at 999px because the theme's steps stop at 16px",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "badge.tsx",
+          "target": "src/components/ui/badge.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "skeleton",
+      "type": "registry:ui",
+      "title": "Skeleton",
+      "description": "A placeholder box that pulses only when the reader has not asked for less motion",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "skeleton.tsx",
+          "target": "src/components/ui/skeleton.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "alert",
+      "type": "registry:ui",
+      "title": "Alert",
+      "description": "APG alert: a title and a body in a live region, with an `invalid` tone",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "alert.tsx",
+          "target": "src/components/ui/alert.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "meter",
+      "type": "registry:ui",
+      "title": "Meter",
+      "description": "APG meter: a track and the fill of the value, on `createMeter`",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "meter.tsx",
+          "target": "src/components/ui/meter.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "breadcrumb",
+      "type": "registry:ui",
+      "title": "Breadcrumb",
+      "description": "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "breadcrumb.tsx",
+          "target": "src/components/ui/breadcrumb.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "treeview",
+      "type": "registry:ui",
+      "title": "Tree view",
+      "description": "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "treeview.tsx",
+          "target": "src/components/ui/treeview.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
         }
       ]

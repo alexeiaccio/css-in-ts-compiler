@@ -4,16 +4,9 @@
   "type": "registry:ui",
   "title": "Field",
   "description": "A label, a control, a hint and an error: the ids and the ARIA are `createField`'s",
-  "dependencies": [
-    "@cssints/headless",
-    "@cssints/mise-en-mode",
-    "cssints"
-  ],
+  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   "devDependencies": [],
-  "registryDependencies": [
-    "@cssints/theme",
-    "@cssints/input"
-  ],
+  "registryDependencies": ["@cssints/theme", "@cssints/input"],
   "files": [
     {
       "path": "field.tsx",

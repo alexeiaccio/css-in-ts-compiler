@@ -8,9 +8,12 @@ import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  Alerts,
+  Crumbs,
   Dialogs,
   Fields,
   Groups,
+  Meters,
   Mode,
   Nesting,
   Renders,
@@ -167,5 +170,51 @@ describe("the kit composes", () => {
     const pick = root.querySelector<HTMLElement>('[id="pick-control"]')!;
     expect(pick.getAttribute("data-part")).toBe("textarea");
     expect(pick.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("announces an alert in a live region and paints its tone", () => {
+    const root = mount(() => <Alerts />);
+    const alerts = root.querySelectorAll<HTMLElement>('[data-part="alert"]');
+    // the region is live and atomic, and it is in the page: a mount with a message is the announcement
+    expect(alerts[0]!.getAttribute("role")).toBe("alert");
+    expect(alerts[0]!.getAttribute("aria-atomic")).toBe("true");
+    expect(alerts[0]!.hasAttribute("hidden")).toBe(false);
+    expect(alerts[1]!.getAttribute("role")).toBe("alert");
+    // the tone is the rule on the left and the title it runs beside, not a class of the caller's
+    expect(style(alerts[0]!).borderInlineStartColor).not.toBe(
+      style(alerts[1]!).borderInlineStartColor,
+    );
+    const titles = root.querySelectorAll<HTMLElement>('[data-part="alert-title"]');
+    expect(titles[1]!.textContent).toBe("Could not save");
+    expect(style(titles[1]!).color).toBe(style(alerts[1]!).borderInlineStartColor);
+  });
+
+  it("fills the meter the value it announces", () => {
+    const root = mount(() => <Meters />);
+    const meter = part(root, "meter");
+    const fill = part(root, "meter-fill");
+    expect(meter.getAttribute("role")).toBe("meter");
+    expect(meter.getAttribute("aria-valuenow")).toBe("25");
+    expect(meter.getAttribute("aria-label")).toBe("Storage");
+    expect(fill.style.width).toBe("25%");
+    // the attribute and the fill move together, because both are made from the primitive's one value
+    root.querySelector<HTMLElement>('[data-part="advance"]')!.click();
+    flush();
+    expect(meter.getAttribute("aria-valuenow")).toBe("75");
+    expect(fill.style.width).toBe("75%");
+  });
+
+  it("marks the current page of a breadcrumb and paints it from aria-current", () => {
+    const root = mount(() => <Crumbs />);
+    expect(part(root, "breadcrumb").getAttribute("aria-label")).toBe("Breadcrumbs");
+    const links = root.querySelectorAll<HTMLElement>('[data-part="breadcrumb-link"]');
+    const items = root.querySelectorAll<HTMLElement>('[data-part="breadcrumb-item"]');
+    expect(items[2]!.getAttribute("aria-current")).toBe("page");
+    expect(links[2]!.getAttribute("aria-current")).toBe("page");
+    expect(links[0]!.getAttribute("aria-current")).toBeNull();
+    // an ancestor is a tinted link, the page it leads to is text: the tint preset is what makes the two different
+    expect(style(links[2]!).color).not.toBe(style(links[0]!).color);
+    expect(style(links[2]!).fontWeight).toBe("500");
+    expect(links[2]!.getAttribute("href")).toBe("#report");
   });
 });

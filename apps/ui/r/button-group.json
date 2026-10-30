@@ -4,16 +4,9 @@
   "type": "registry:ui",
   "title": "Button group",
   "description": "Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's",
-  "dependencies": [
-    "@cssints/headless",
-    "@cssints/mise-en-mode",
-    "cssints"
-  ],
+  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   "devDependencies": [],
-  "registryDependencies": [
-    "@cssints/theme",
-    "@cssints/button"
-  ],
+  "registryDependencies": ["@cssints/theme", "@cssints/button"],
   "files": [
     {
       "path": "button-group.tsx",
