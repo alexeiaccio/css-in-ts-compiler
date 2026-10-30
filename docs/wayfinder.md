@@ -2270,3 +2270,53 @@ publishes again, which npm refuses. A release that is on the registry is not a f
 probe is 27 `HEAD` requests, about a second. **Left**: the underlying npm behaviour is staged publishing, which is why a publish
 can be "staged but not yet on the registry" at all; a trusted publisher allowed to `npm publish` directly (the "Allowed actions"
 box, unset on connections created after 2026-09-03) would remove the race instead of tolerating it.
+
+## Menus and tooltips float from an anchor, not from a measured rect (apps/ui, 2026-10-30)
+
+`Menu` and `Tooltip` are the kit's first elements that must sit next to their trigger rather than in the flow, and the kit
+still has no portal (the Dialog entry's "left"). The two honest ways to place one were weighed. Measuring
+`getBoundingClientRect()` and writing `position: fixed` needs a read on every open plus a listener on scroll and resize (a
+scroll with the menu open would leave it behind), and it still loses inside a transformed ancestor; it also needs an effect
+that writes styles before the first paint, or the menu flashes in the corner. The anchor wrapper needs none of that: one
+`<div data-part="menu-anchor">` (or `tooltip-anchor`) around the trigger and the content, `position: relative;
+display: inline-flex`, and the content is `position: absolute` at `inset-block-start: 100%` with one `space-1` of margin. No
+JavaScript reads a rect, there is no listener, and the content follows the trigger through any scroll or layout change for
+free — which is what a copy-paste component should do.
+
+**Cost**: the caller gets a box the layout did not have (a wrapping element around the trigger, in the flow), and an
+ancestor with `overflow: hidden` clips the content — in this kit that is the Dialog panel, which scrolls
+(`overflow: auto`), so a menu opened near the panel's edge is cut off rather than repositioned. The content also cannot flip
+above the trigger when the viewport ends.
+
+Stacking is a token, next to `z.dialog`: `z.popover: 10` under `z.dialog: 20`, and `theme.css` carries both. A tooltip over
+a dialog or a menu inside one still paints over the page, because the dialog's layer (`z-index: 20`) is the stacking context
+and everything in it paints above the page. `z-index` takes an `<integer>` and a `number` token is not one, so the two
+classes read `var(--z-popover)` by hand, as Dialog does for `var(--z-dialog)`.
+
+**Left**: a real floating layer — collision handling (flip, shift), viewport clamping, a portal — and the max height a long
+menu would need to scroll inside itself instead of running past the viewport.
+
+## Menu and Tooltip: the primitive owns the state, the kit owns the DOM (apps/ui, 2026-10-30)
+
+`createMenu` declares its items up front (`items: string | MenuItemInput[]`, because typeahead searches their labels) and
+announces one roving tab stop, `tabindex="0"` on the highlighted row. So `Menu` takes the items once and a row names its item
+by `index` (`<MenuItem index={0} />`), its content defaulting to the declared label: the label is written once, and the row
+is still a part with `render` and `data-part="menu-item"`. The highlight is that tab stop — `attr("tabindex", "0")` — not a
+`data-highlighted` of the kit's own, so a pointer hover and an arrow key move the same thing. `<MenuContent />` with no
+children renders one row per declared item; children are the custom list. As in Tabs, the kit moves the DOM focus to
+whatever the primitive reports as focused (`focusLevel`/`focusIndex`), and Escape then lands on the trigger because the
+primitive goes back to level 1. The dismiss the primitive does not own is one `pointerdown` listener on the document,
+ignoring anything inside the anchor. `createTooltipGroup` takes the trigger elements and returns props, so `Tooltip` is one
+group of one trigger.
+
+Two decisions inside the tooltip. The bubble is `t.color.text` on `t.color.page` — the inverse of the page in both modes,
+already gated at 7:1 — rather than two new colour tokens. And the hide is delayed by the primitive's own `hideDelayMs` (300
+ms), scheduled by the host: the bubble sits one `space-1` under the trigger, so a pointer crossing that gap leaves the
+trigger and the primitive's built-in `hideTimer` would drop the bubble before the pointer reached it, which fails WCAG
+1.4.13 (hoverable). `Tooltip.Content`'s own `pointerenter` cancels the timer and keeps it up.
+
+**Left**: no controlled open for the menu (`createMenu`'s `value` is the packed checked state, a different axis, and the open
+state is uncontrolled), so there is no `open` prop to offer; no submenus, no checkbox or radio items, no separators (the
+primitive has none of those in the plain menu); no show delay (both open immediately on focus and hover; `showDelayMs` and
+`showTimer` are exposed for a page that wants the 600 ms default). Typeahead is not an addition here: it is the primitive's
+own buffer, fed by a letter key in the content's handler.
