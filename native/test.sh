@@ -58,6 +58,27 @@ esac
 
 # Solid 2 on the desktop: the Sensors page as JSX, its frames against the same stored ThorVG frames
 sh solid/test.sh
+# The Dialog page's two overlays as generated C — the modal's backdrop and panel (both Clay root floats) and the menu
+# floated off zoom-trigger: examples/dialog/gen.c dumps the three static frames through desktop/clay_dump.c, measured
+# with ThorVG as the Solid host measures (so a box is its exact number, no tolerance), and each is compared field by
+# field with the Solid page's own frame at the same state (examples/dialog/solid-dump.ts: solid/dump.ts's capture,
+# ui_dump_json, the emitter solid/goldens is stored with). The closed frame is compared whole (its frame has no effect
+# table); the two overlays' commands only, because a float's shadow, a menu's backdrop and its group are the renderer's
+# tables, no Clay field. The stored dialog golden is the menu *two frames into its slide* (the value channel's offset
+# y), which no static frame is; solid/dump.test.ts holds it to the page.
+mkdir -p "$OUT/dialog"
+BREW="$(brew --prefix)"
+cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable \
+  -I vendor/clay -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+  -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+  examples/dialog/gen.c examples/dialog/page_generated.c examples/dialog/page_generated_menu.c \
+  examples/dialog/page_generated_dialog.c -L "$BREW/lib" -lthorvg-1 -lm -o "$OUT/dialog/gen"
+"$OUT/dialog/gen" "$OUT/dialog"
+bun examples/dialog/solid-dump.ts "$OUT/dialog"
+node dump-check.ts "$OUT/dialog/solid-closed.json" "$OUT/dialog/closed.json" --name dialog-closed
+for state in menu dialog; do
+  node dump-check.ts "$OUT/dialog/solid-$state.json" "$OUT/dialog/$state.json" --name "dialog-$state" --commands
+done
 # the focus manager (no DOM): Tab order, roving focus, restore, and a seeded random walk
 node focus/test/focus.test.ts
 

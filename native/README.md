@@ -1979,10 +1979,98 @@ one byte of the path fails `FAIL dark, image: command 2 (image) differs at rende
 style at all (`{}`) fails `FAIL dark, image: 10 generated commands, 11 hand-written` (an element with no box emits no
 command).
 
-What a generated page still does not carry: a clip's `childOffset` (the scroll is the host's, as on the List), a float
-(`Clay_ElementDeclaration.floating` would print, but the pointer capture and the tree above it are the page's), and
+What a generated page still does not carry: a clip's `childOffset` (the scroll is the host's, as on the List), and
 `:focus` (a prop of an *element*, not a page, and `--prop` sets only the page's). The image variant is a file of its own
-and not a state of `--events` for the same reason: a prop is not a signal the table can dispatch.
+and not a state of `--events` for the same reason: a prop is not a signal the table can dispatch. A float is a
+declaration and the generator prints it (below).
+
+## The floats in a generated page
+
+A style that floats is Clay's `Clay_FloatingElementConfig` on the declaration. `header()` printed it before any page
+used it: `clay.ts`'s `floatingOf` turns `css.float()`'s options into the struct's fields and prints it in the struct's
+own order,
+
+```c
+static const Clay_ElementDeclaration menu = { .layout = { … 150 wide … }, .backgroundColor = { .r = 23, .g = 27, .b = 32, .a = 184 },
+  .floating = { .offset = { .x = 0, .y = -20 }, .parentId = 2339896710u, .zIndex = 10,
+                .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
+                .attachTo = CLAY_ATTACH_TO_ELEMENT_WITH_ID } };
+static const Clay_ElementDeclaration backdrop = { … .floating = { .zIndex = 1,
+  .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_TOP },
+  .pointerCaptureMode = CLAY_POINTER_CAPTURE_MODE_CAPTURE, .attachTo = CLAY_ATTACH_TO_ROOT } };
+```
+
+— the thirteen numbers the Solid path packs into `pack.ts`'s slots 32–44 (the float flag, `attachTo`, the parent's hash in
+two halves, the element and parent attach points, the offset, the expand, the z-index, the capture and the clip), and
+`parentId` as the hash `CLAY_ID("zoom-trigger").id` would be, with its `u`. The printer needed nothing: the gap was a
+page that proves the commands Clay makes of it.
+
+That page is `solid/app/Dialog.tsx`, whose overlays are the modal's backdrop and panel (both root floats) and the menu
+floated off `zoom-trigger` ("left top" on "left bottom", 20px up, z 10, no capture: the backdrop and the panel capture
+the pointer, the menu's items take it). Its state is a **click**, not a prop, so `examples/dialog/states.json` names one
+state per overlay and the generator replays the page's own `onClick`:
+
+```json
+{ "menu": [{ "click": "zoom-trigger" }], "dialog": [{ "click": "settings-trigger" }] }
+```
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/Dialog.tsx \
+  --states examples/dialog/states.json --out examples/dialog/page_generated.c
+bun --conditions=development generator/page-to-c.ts solid/app/Dialog.tsx \
+  --states examples/dialog/states.json --state menu --name app_frame_menu --out examples/dialog/page_generated_menu.c
+bun --conditions=development generator/page-to-c.ts solid/app/Dialog.tsx \
+  --states examples/dialog/states.json --state dialog --name app_frame_dialog --out examples/dialog/page_generated_dialog.c
+```
+
+Three files, two frame functions (dark and light) each: `page_generated.c` is the page with both overlays closed (14
+commands), `page_generated_menu.c` the menu open (22), `page_generated_dialog.c` the panel and its backdrop (26). The
+styles are in the .tsx, so every declaration is one of `header()`'s literals (`style_9`, `style_10`, …) — the literal
+path holds the floats too. The click also moves the focus, as the page's parts do: the menu opens on its first item
+(`style_10_focus`), the dialog on Cancel (`style_3_focus`), so the generated frame carries a state, not just a signal.
+
+**The check** (`examples/dialog/gen.c`) compiles the three files with Clay and `desktop/clay_dump.c`, measures text with
+ThorVG as the Solid host does (`solid/native/ui.c`'s measure; the sums are the same, so a box is exact, no tolerance) and
+writes each frame as JSON at 360x480. The reference is the Solid page's own frame at the same state
+(`examples/dialog/solid-dump.ts`: `solid/dump.ts`'s `capture` — `ui_dump_json`, the emitter `solid/goldens` is stored
+with), and `dump-check.ts` compares them field by field:
+
+```
+closed: 14 commands
+menu: 22 commands
+dialog: 26 commands
+dialog-closed: 14 commands, identical
+dialog-menu: 22 commands, identical
+dialog-dialog: 26 commands, identical
+```
+
+The closed frame is compared whole; the two overlays' commands only (`dump-check.ts --commands`), because a float's
+shadow, the menu's backdrop and the mid-slide group are the renderer's tables and no Clay field: a C host has none.
+`sh check.sh` regenerates the three files and `cmp`s them, greps the two things a command array cannot show (the dialog's
+floats' `pointerCaptureMode`, the menu's `parentId` and attach points) and compiles them; `test.sh` builds `gen` and runs
+the comparison, so the page cannot rot.
+
+The stored dialog golden is **not** the comparison's target, and cannot be: `solid/goldens/dialog.json` is the menu
+*two frames into its slide* (`dump.ts`'s `PAGES.dialog`: `Tab,Tab,Enter` and two settles), so its float offset y is the
+value channel's animated -12.5813, not the style's -20, and its frame carries the group (alpha 233, scale 0.9703,
+rotate -1.484°), the shadow's blur (3.45) and the backdrop. A static generated frame is the page at rest. Compared with
+it, the generated menu frame differs in exactly the slide and nothing else — the differ names the menu's eight commands
+and their y, by 7.418686 px (the value channel's field 39; the first line is `command 14 (rectangle) box
+40/221.574936/150/133 -> 40/214.15625/150/133`), with every colour, radius, border, z, text and the draw order equal.
+`solid/dump.test.ts` holds the golden to the page; the generated page is held to the page at rest.
+
+Mutations, each reverted: the menu's parent attach point `LEFT_BOTTOM` → `LEFT_TOP` moves it up by the trigger's height
+and the differ names `command 14 (rectangle) box … -> …` (the declaration's own field is pinned by the grep, which names
+`floating.attachPoints`); `.zIndex = 10` → `-1` sorts the menu's root before the page's and the differ says
+`command 0 (rectangle) element "Root" -> "zoom-menu" … (that is command 14 in the golden: the order moved)`; dropping
+`.floating` from the menu's declaration lays it out in the page's column and the differ names its `box` and `z` (`10 ->
+0`); dropping `.pointerCaptureMode` changes no command and the grep fails naming `floating.pointerCaptureMode`.
+
+Still not emitted: a clip's `childOffset` and the List's scroll offset (Clay asks the host, `Clay_GetScrollOffset()`, not
+a declaration), the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a static
+frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now proves,
+but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never from a
+signal of the page.
 
 ## The generated page's events: a state machine
 

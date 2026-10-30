@@ -78,19 +78,26 @@ let started = false;
 
 type Hooks = { input: Input; motion: Motion; drag: Drag; theme?: string };
 
+/** A run other than a page's stored one: the same page taken to rest somewhere else (the state a static C page is). */
+export interface Rest {
+  readonly warm?: number;
+  readonly keys?: readonly string[];
+  readonly settle?: number;
+}
+
 /**
  * Renders one page headless and returns its last frame as data. The page is the same component, size and state as its
  * stored pixel frame; only the raster is skipped (`main.ts` draws when the hash moves, this never draws), which changes
  * no command, no table and no box.
  */
-export async function capture(name: PageName, theme?: string): Promise<PageDump> {
+export async function capture(name: PageName, theme?: string, rest: Rest = {}): Promise<PageDump> {
   const component = await app(name);
   const { ui } = await import("./src/ffi.ts");
   const { createFrame } = await import("./src/frame.ts");
   const { createInput } = await import("./src/input.ts");
   const { El, render } = await import("./src/renderer.ts");
   const { dumpPage } = await import("./src/dump.ts");
-  const { width, height, warm, keys, settle = 0 } = PAGES[name];
+  const { width, height, warm, keys, settle = 0 } = { ...PAGES[name], ...rest };
   if (!started) {
     const font = new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname;
     if (ui.init(width, height) || ui.font(font) < 0) throw new Error("ui_init or ui_font failed (thorvg? build/solid)");
