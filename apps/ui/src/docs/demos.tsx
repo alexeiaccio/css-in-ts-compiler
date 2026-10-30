@@ -1,6 +1,14 @@
 // One live example per starter. Each is the component in its ordinary use, driven by a signal the
 // way a page would drive it: what a reader copies is what they see here.
 import { Accordion } from "../registry/accordion/accordion.tsx";
+import { Alert, AlertBody, AlertTitle } from "../registry/alert/alert.tsx";
+import { Badge } from "../registry/badge/badge.tsx";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "../registry/breadcrumb/breadcrumb.tsx";
 import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.tsx";
 import { Button } from "../registry/button/button.tsx";
 import {
@@ -13,10 +21,21 @@ import {
 import { ButtonGroup } from "../registry/button-group/button-group.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
+import { Meter } from "../registry/meter/meter.tsx";
+import { Separator } from "../registry/separator/separator.tsx";
+import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
+import { Skeleton } from "../registry/skeleton/skeleton.tsx";
+import { Textarea } from "../registry/textarea/textarea.tsx";
+import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
+import { Treeview } from "../registry/treeview/treeview.tsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
+import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
+import { Slider } from "../registry/slider/slider.tsx";
+import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { createSignal } from "solid-js";
@@ -148,6 +167,35 @@ const DialogDemo = (): JSX.Element => {
   );
 };
 
+// The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
+// or Escape closes it, and a pointer outside the anchor is the third way out.
+const MenuDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Menu items={["Rename", "Duplicate", { label: "Delete", disabled: true }]}>
+      <MenuTrigger>Actions</MenuTrigger>
+      <MenuContent />
+    </Menu>
+    <Menu items={["Cut", "Copy", "Paste"]}>
+      <MenuTrigger>Edit</MenuTrigger>
+      <MenuContent />
+    </Menu>
+  </div>
+);
+
+const TooltipDemo = (): JSX.Element => (
+  <div class="demo-row">
+    <Tooltip>
+      <TooltipTrigger>Delete</TooltipTrigger>
+      <TooltipContent>Deletes the file. There is no undo.</TooltipContent>
+    </Tooltip>
+    {/* render puts the trigger's props on the caller's element: anything focusable can be described */}
+    <Tooltip>
+      <TooltipTrigger render={(props) => <a {...props} href="#share" />}>Share</TooltipTrigger>
+      <TooltipContent>Copies a link to this file</TooltipContent>
+    </Tooltip>
+  </div>
+);
+
 const InputDemo = (): JSX.Element => (
   <div class="demo-column">
     <Input placeholder="A plain input" />
@@ -166,6 +214,39 @@ const FieldDemo = (): JSX.Element => (
     <Field id="demo-name" error="A name is required" required>
       <FieldLabel>Name</FieldLabel>
       <FieldControl />
+      <FieldMessage />
+    </Field>
+  </div>
+);
+
+const SelectDemo = (): JSX.Element => {
+  const [value, setValue] = createSignal(1);
+  return (
+    <div class="demo-column">
+      <Select
+        items={["Apple", "Banana", "Cherry", { label: "Durian", disabled: true }]}
+        value={value()}
+        onValueChange={setValue}
+        label="Fruit"
+      >
+        <SelectTrigger />
+        <SelectContent />
+      </Select>
+      {/* nothing chosen: the trigger shows the placeholder, and the first arrow picks the first option */}
+      <Select items={["Small", "Medium", "Large"]} label="Size" placeholder="Pick a size">
+        <SelectTrigger />
+        <SelectContent />
+      </Select>
+    </div>
+  );
+};
+
+const TextareaDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Textarea placeholder="A plain textarea" />
+    <Field id="demo-notes" hint="Markdown is fine">
+      <FieldLabel>Notes</FieldLabel>
+      <FieldControl render={(props) => <Textarea {...props} rows={4} />} />
       <FieldMessage />
     </Field>
   </div>
@@ -225,6 +306,137 @@ const AccordionDemo = (): JSX.Element => (
   />
 );
 
+const SeparatorDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <div class="demo-row">
+      <span>Files</span>
+      <Separator orientation="vertical" decorative />
+      <span>Shared</span>
+    </div>
+    <Separator />
+  </div>
+);
+
+const BadgeDemo = (): JSX.Element => (
+  <div class="demo-row">
+    <Badge>Neutral</Badge>
+    <Badge tone="accent">Accent</Badge>
+    <Badge tone="quiet">Quiet</Badge>
+  </div>
+);
+
+const SkeletonDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Skeleton height="2.5rem" />
+    <Skeleton width="60%" />
+    <Skeleton width="40%" height="0.75rem" />
+  </div>
+);
+
+const AlertDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Alert message="Your draft is saved.">
+      <AlertTitle>Draft saved</AlertTitle>
+      <AlertBody>Every change is kept until you publish.</AlertBody>
+    </Alert>
+    <Alert tone="invalid" message="The address is not valid.">
+      <AlertTitle>Could not save</AlertTitle>
+      <AlertBody>Enter an address in the form of name@example.com.</AlertBody>
+    </Alert>
+  </div>
+);
+
+const MeterDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Meter label="Storage" value={64} />
+    <Meter label="Upload" value={92} valueText="92% of the file sent" />
+  </div>
+);
+
+const BREADCRUMB_ITEMS = [
+  { label: "Home", href: "#home" },
+  { label: "Projects", href: "#projects" },
+  { label: "Q3 report", href: "#report" },
+];
+
+const BreadcrumbDemo = (): JSX.Element => (
+  <Breadcrumb items={BREADCRUMB_ITEMS} currentIndex={3}>
+    <BreadcrumbList>
+      {BREADCRUMB_ITEMS.map((item, index) => (
+        <BreadcrumbItem index={index}>
+          <BreadcrumbLink index={index}>{item.label}</BreadcrumbLink>
+        </BreadcrumbItem>
+      ))}
+    </BreadcrumbList>
+  </Breadcrumb>
+);
+
+const TREEVIEW_NODES = [
+  { id: 1, parent: 0, label: "Projects" },
+  { id: 2, parent: 1, label: "Reports" },
+  { id: 3, parent: 2, label: "Roadmap" },
+  { id: 4, parent: 2, label: "Summary" },
+  { id: 5, parent: 1, label: "Notes" },
+  { id: 6, parent: 0, label: "Photos" },
+];
+
+const TreeviewDemo = (): JSX.Element => (
+  <Treeview nodes={TREEVIEW_NODES} defaultValue={[2]} defaultExpanded={[1, 2]} label="Files" />
+);
+const SliderDemo = (): JSX.Element => {
+  const [volume, setVolume] = createSignal(4);
+  return (
+    <div class="demo-column">
+      <Slider label="Volume" value={volume()} onValueChange={setVolume} />
+      <div class="demo-row">
+        {/* vertical: the rail is as tall as the theme's space.10, and a page sets its own height */}
+        <Slider label="Zoom" min={1} max={4} defaultValue={2} orientation="vertical" />
+      </div>
+    </div>
+  );
+};
+
+const SpinbuttonDemo = (): JSX.Element => {
+  const [quantity, setQuantity] = createSignal(3);
+  return (
+    <div class="demo-column">
+      {/* Field names the control: the spinbutton takes the field's id as its input's, so the label points at it */}
+      <Field id="demo-quantity" hint="Up to 12">
+        <FieldLabel>Quantity</FieldLabel>
+        <FieldControl
+          render={(props) => (
+            <Spinbutton
+              {...props}
+              min={1}
+              max={12}
+              value={quantity()}
+              onValueChange={setQuantity}
+            />
+          )}
+        />
+        <FieldMessage />
+      </Field>
+      {/* at the bound the primitive announces the stepper as disabled and the kit paints and disables it */}
+      <Spinbutton aria-label="Copies" min={1} max={5} defaultValue={5} />
+    </div>
+  );
+};
+
+const CheckboxGroupDemo = (): JSX.Element => {
+  const [channels, setChannels] = createSignal<ReadonlyArray<string>>(["email"]);
+  return (
+    <CheckboxGroup
+      label="Notifications"
+      values={["email", "push", "sms"]}
+      value={channels()}
+      onValueChange={setChannels}
+      parent
+      parentLabel="All channels"
+    >
+      {(channel) => channel}
+    </CheckboxGroup>
+  );
+};
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -240,4 +452,18 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   radio: RadioDemo,
   tabs: TabsDemo,
   accordion: AccordionDemo,
+  separator: SeparatorDemo,
+  badge: BadgeDemo,
+  skeleton: SkeletonDemo,
+  alert: AlertDemo,
+  meter: MeterDemo,
+  breadcrumb: BreadcrumbDemo,
+  treeview: TreeviewDemo,
+  menu: MenuDemo,
+  tooltip: TooltipDemo,
+  select: SelectDemo,
+  textarea: TextareaDemo,
+  slider: SliderDemo,
+  spinbutton: SpinbuttonDemo,
+  "checkbox-group": CheckboxGroupDemo,
 };

@@ -108,8 +108,9 @@ export const lightTokens = {
     scrim: { $value: "oklch(0 0 0 / 0.35)" },
   },
 
-  // The one thing the kit puts above the page: a modal dialog. A popover over a dialog is the next value, when there is one.
-  z: { $type: "number", dialog: { $value: "20" } },
+  // What floats over the page, innermost last: a popover (a menu, a tooltip) is under a modal dialog, and a popover
+  // inside a dialog still paints over the page because the dialog's layer is the stacking context's parent.
+  z: { $type: "number", popover: { $value: "10" }, dialog: { $value: "20" } },
 
   // One shadow, because a popover is the only thing that floats above the page in the starters. Its blur and offsets are the
   // reference's; only its colour changes with the mode.

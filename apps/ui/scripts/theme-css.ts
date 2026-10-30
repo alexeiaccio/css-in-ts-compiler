@@ -60,6 +60,11 @@ const flatten = (
       });
     } else if (typeof value === "object" && value !== null) {
       out.push(...flatten(value as Record<string, unknown>, [...path, key]));
+    } else if (typeof value === "string") {
+      // A theme override is a plain value, not a `{ $value }` leaf: `darkTheme.color.page` and every entry of the forced
+      // colours theme are written that way, and skipping them left the dark block with the scales only and the forced
+      // colours block empty.
+      out.push({ path: [...path, key], value: toCss(value) });
     }
   }
   return out;

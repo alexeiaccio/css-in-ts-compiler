@@ -8,14 +8,24 @@ import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  Alerts,
+  Crumbs,
+  CheckboxGroups,
   Dialogs,
   Fields,
   Groups,
+  Meters,
+  Menus,
   Mode,
   Nesting,
   Renders,
+  Selects,
   Sizes,
+  Textareas,
+  Sliders,
+  Spinbuttons,
   Toolbars,
+  Tooltips,
 } from "./combos.fixture.tsx";
 
 const mount = (view: () => JSX.Element): HTMLElement => {
@@ -167,5 +177,290 @@ describe("the kit composes", () => {
     const pick = root.querySelector<HTMLElement>('[id="pick-control"]')!;
     expect(pick.getAttribute("data-part")).toBe("textarea");
     expect(pick.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("announces an alert in a live region and paints its tone", () => {
+    const root = mount(() => <Alerts />);
+    const alerts = root.querySelectorAll<HTMLElement>('[data-part="alert"]');
+    // the region is live and atomic, and it is in the page: a mount with a message is the announcement
+    expect(alerts[0]!.getAttribute("role")).toBe("alert");
+    expect(alerts[0]!.getAttribute("aria-atomic")).toBe("true");
+    expect(alerts[0]!.hasAttribute("hidden")).toBe(false);
+    expect(alerts[1]!.getAttribute("role")).toBe("alert");
+    // the tone is the rule on the left and the title it runs beside, not a class of the caller's
+    expect(style(alerts[0]!).borderInlineStartColor).not.toBe(
+      style(alerts[1]!).borderInlineStartColor,
+    );
+    const titles = root.querySelectorAll<HTMLElement>('[data-part="alert-title"]');
+    expect(titles[1]!.textContent).toBe("Could not save");
+    expect(style(titles[1]!).color).toBe(style(alerts[1]!).borderInlineStartColor);
+  });
+
+  it("fills the meter the value it announces", () => {
+    const root = mount(() => <Meters />);
+    const meter = part(root, "meter");
+    const fill = part(root, "meter-fill");
+    expect(meter.getAttribute("role")).toBe("meter");
+    expect(meter.getAttribute("aria-valuenow")).toBe("25");
+    expect(meter.getAttribute("aria-label")).toBe("Storage");
+    expect(fill.style.width).toBe("25%");
+    // the attribute and the fill move together, because both are made from the primitive's one value
+    root.querySelector<HTMLElement>('[data-part="advance"]')!.click();
+    flush();
+    expect(meter.getAttribute("aria-valuenow")).toBe("75");
+    expect(fill.style.width).toBe("75%");
+  });
+
+  it("marks the current page of a breadcrumb and paints it from aria-current", () => {
+    const root = mount(() => <Crumbs />);
+    expect(part(root, "breadcrumb").getAttribute("aria-label")).toBe("Breadcrumbs");
+    const links = root.querySelectorAll<HTMLElement>('[data-part="breadcrumb-link"]');
+    const items = root.querySelectorAll<HTMLElement>('[data-part="breadcrumb-item"]');
+    expect(items[2]!.getAttribute("aria-current")).toBe("page");
+    expect(links[2]!.getAttribute("aria-current")).toBe("page");
+    expect(links[0]!.getAttribute("aria-current")).toBeNull();
+    // an ancestor is a tinted link, the page it leads to is text: the tint preset is what makes the two different
+    expect(style(links[2]!).color).not.toBe(style(links[0]!).color);
+    expect(style(links[2]!).fontWeight).toBe("500");
+    expect(links[2]!.getAttribute("href")).toBe("#report");
+  });
+
+  it("opens the menu from its trigger, moves the highlight with a key, and gives focus back", () => {
+    const root = mount(() => <Menus />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    const menu = root.querySelector<HTMLElement>('[data-part="menu"]')!;
+    expect(menu.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    // hidden has to mean hidden: no display in the content's class may override the UA's `[hidden] { display: none }`
+    expect(style(menu).display).toBe("none");
+    trigger.focus();
+    trigger.click();
+    flush();
+    // the trigger names the menu it controls, and the menu is the popup the primitive says it is
+    expect(menu.hidden).toBe(false);
+    expect(style(menu).display).not.toBe("none");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(menu.getAttribute("role")).toBe("menu");
+    expect(trigger.getAttribute("aria-controls")).toBe(menu.id);
+    // the highlight is the roving tab stop the widget announces, and the DOM focus is on that row
+    const items = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+    expect(items.map((item) => item.getAttribute("role"))).toEqual([
+      "menuitem",
+      "menuitem",
+      "menuitem",
+    ]);
+    expect(items[0]!.tabIndex).toBe(0);
+    expect(items[1]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(items[0]);
+    expect(style(items[0]!).backgroundColor).not.toBe(style(items[1]!).backgroundColor);
+    // an arrow key moves the highlight: the tab stop and the styled row follow it
+    items[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    expect(items[1]!.tabIndex).toBe(0);
+    expect(items[0]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(items[1]);
+    expect(style(items[1]!).backgroundColor).not.toBe(style(items[2]!).backgroundColor);
+    // a disabled item stays focusable and says so (APG note 1)
+    expect(items[2]!.getAttribute("aria-disabled")).toBe("true");
+    expect(style(items[2]!).cursor).toBe("not-allowed");
+    // Escape closes it and the focus goes back to what opened it
+    items[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(menu.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    // a pointer outside the anchor is the other way out
+    trigger.click();
+    flush();
+    expect(menu.hidden).toBe(false);
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    flush();
+    expect(menu.hidden).toBe(true);
+  });
+
+  it("describes the trigger with the tooltip's id while the tooltip is shown", () => {
+    const root = mount(() => <Tooltips />);
+    const trigger = root.querySelector<HTMLElement>('[data-part="button"]')!;
+    const tooltip = root.querySelector<HTMLElement>('[role="tooltip"]')!;
+    // the bubble is in the DOM while it is off, because `aria-describedby` names it
+    expect(tooltip.id).not.toBe("");
+    expect(tooltip.hidden).toBe(true);
+    // no display in the bubble's class: the UA's `[hidden] { display: none }` is what hides it
+    expect(style(tooltip).display).toBe("none");
+    expect(trigger.getAttribute("aria-describedby")).toBeNull();
+    // focus is enough: the tooltip appears with the focus and goes with it
+    trigger.focus();
+    flush();
+    expect(tooltip.hidden).toBe(false);
+    expect(style(tooltip).display).not.toBe("none");
+    expect(trigger.getAttribute("aria-describedby")).toBe(tooltip.id);
+    expect(tooltip.textContent).toBe("Deletes the file");
+    // it floats in the anchor, under a dialog's layer, and is absolute there
+    const anchor = root.querySelector<HTMLElement>('[data-part="tooltip-anchor"]')!;
+    expect(style(anchor).position).toBe("relative");
+    expect(style(tooltip).position).toBe("absolute");
+    expect(style(tooltip).zIndex).toBe("10");
+    trigger.blur();
+    flush();
+    expect(tooltip.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("opens the select from its trigger, moves the highlight, chooses and gives focus back", () => {
+    const root = mount(() => <Selects />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="listbox"]')!;
+    const listbox = root.querySelector<HTMLElement>('[data-part="select-listbox"]')!;
+    expect(trigger.getAttribute("aria-label")).toBe("Fruit");
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    // hidden has to mean hidden: no display in the list's class may override the UA's `[hidden] { display: none }`
+    expect(style(listbox).display).toBe("none");
+    trigger.focus();
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(false);
+    expect(style(listbox).display).not.toBe("none");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(trigger.getAttribute("aria-controls")).toBe(listbox.id);
+    expect(listbox.getAttribute("role")).toBe("listbox");
+    expect(trigger.textContent).toBe("Apple");
+    const options = [...root.querySelectorAll<HTMLElement>('[data-part="select-option"]')];
+    expect(options.map((option) => option.getAttribute("role"))).toEqual([
+      "option",
+      "option",
+      "option",
+      "option",
+    ]);
+    expect(options.map((option) => option.getAttribute("aria-selected"))).toEqual([
+      "true",
+      "false",
+      "false",
+      "false",
+    ]);
+    // the highlight is the roving tab stop the widget announces, and the DOM focus is on that row
+    expect(options[0]!.tabIndex).toBe(0);
+    expect(options[1]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(options[0]);
+    // an arrow key moves the highlight: the tab stop and the styled row follow it
+    options[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    expect(options[1]!.tabIndex).toBe(0);
+    expect(options[0]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(options[1]);
+    expect(style(options[1]!).backgroundColor).not.toBe(style(options[0]!).backgroundColor);
+    // a disabled option says so and an arrow steps over it
+    expect(options[2]!.getAttribute("aria-disabled")).toBe("true");
+    expect(style(options[2]!).cursor).toBe("not-allowed");
+    options[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    expect(document.activeElement).toBe(options[3]);
+    options[3]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    flush();
+    expect(document.activeElement).toBe(options[1]);
+    // Enter chooses the highlighted row, closes the list and the trigger shows the label
+    options[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(trigger.textContent).toBe("Banana");
+    expect(options[1]!.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(trigger);
+    // Escape closes it too and the focus goes back to what opened it
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(false);
+    expect(document.activeElement).toBe(options[1]);
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    // a pointer outside the anchor is the other way out
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(false);
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    flush();
+    expect(listbox.hidden).toBe(true);
+  });
+
+  it("gives a textarea the field's id and invalid state", () => {
+    const root = mount(() => <Textareas />);
+    const invalid = root.querySelector<HTMLTextAreaElement>('[id="notes-control"]')!;
+    expect(invalid.tagName).toBe("TEXTAREA");
+    expect(invalid.getAttribute("data-part")).toBe("textarea");
+    expect(invalid.getAttribute("aria-invalid")).toBe("true");
+    expect(invalid.getAttribute("aria-describedby")).toBe("notes-error");
+    // the field's invalid border is the theme's, and not the resting one the second textarea has
+    const resting = root.querySelector<HTMLTextAreaElement>('[id="summary-control"]')!;
+    expect(resting.getAttribute("aria-invalid")).toBeNull();
+    expect(style(invalid).borderTopColor).not.toBe(style(resting).borderTopColor);
+    // it is a textarea, not a one-line control: it takes a height and grows down
+    expect(style(resting).resize).toBe("vertical");
+  });
+  it("moves a slider's thumb, its value and the fill with an arrow key", () => {
+    const root = mount(() => <Sliders />);
+    const rails = root.querySelectorAll<HTMLElement>('[data-part="slider"]');
+    const fills = root.querySelectorAll<HTMLElement>('[data-part="slider-fill"]');
+    const thumbs = root.querySelectorAll<HTMLElement>('[data-part="slider-thumb"]');
+    const horizontal = thumbs[0]!;
+    expect(rails[0]!.getAttribute("data-orientation")).toBe("horizontal");
+    expect(horizontal.getAttribute("aria-valuenow")).toBe("5");
+    expect(fills[0]!.style.width).toBe("50%");
+    horizontal.focus();
+    // Solid 2 applies the focus signal on the flush, and the primitive's keys need it before they move anything
+    flush();
+    horizontal.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    flush();
+    // the thumb announces the new value and the fill is the same share of the rail: one number, not two
+    expect(horizontal.getAttribute("aria-valuenow")).toBe("6");
+    expect(fills[0]!.style.width).toBe("60%");
+    expect(horizontal.style.getPropertyValue("inset-inline-start")).toBe("60%");
+    // the vertical rail is the primitive's announcement too, and there the fill grows upwards
+    expect(rails[1]!.getAttribute("data-orientation")).toBe("vertical");
+    expect(thumbs[1]!.getAttribute("aria-orientation")).toBe("vertical");
+    expect(fills[1]!.style.height.startsWith("33.33")).toBe(true);
+    expect(fills[1]!.style.width).toBe("");
+  });
+
+  it("stops a spinbutton at its maximum, disables the stepper there and takes a Field's name", () => {
+    const root = mount(() => <Spinbuttons />);
+    const input = root.querySelector<HTMLInputElement>('[data-part="spinbutton-input"]')!;
+    const increment = root.querySelector<HTMLButtonElement>('[data-part="spinbutton-increment"]')!;
+    expect(input.getAttribute("role")).toBe("spinbutton");
+    expect(input.getAttribute("aria-valuemax")).toBe("2");
+    increment.click();
+    flush();
+    expect(input.getAttribute("aria-valuenow")).toBe("2");
+    expect(input.value).toBe("2");
+    // the primitive announces the bound; the kit paints it and sets the native `disabled` from it
+    expect(increment.getAttribute("aria-disabled")).toBe("true");
+    expect(increment.disabled).toBe(true);
+    increment.click();
+    flush();
+    expect(input.getAttribute("aria-valuenow")).toBe("2");
+    // the field's id is the input's, so its label names the spinbutton rather than a generated id
+    const quantity = root.querySelector<HTMLInputElement>('[id="qty-control"]')!;
+    expect(root.querySelector('label[for="qty-control"]')).not.toBeNull();
+    expect(quantity.getAttribute("role")).toBe("spinbutton");
+    expect(quantity.getAttribute("aria-describedby")).toBe("qty-hint");
+  });
+
+  it("names a checkbox group and toggles one box without the others", () => {
+    const root = mount(() => <CheckboxGroups />);
+    const group = part(root, "checkbox-group");
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.getAttribute("aria-label")).toBe("Notifications");
+    const boxes = [...root.querySelectorAll<HTMLElement>('[data-part="checkbox"]')];
+    expect(boxes.map((box) => box.getAttribute("aria-checked"))).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
+    boxes[1]!.click();
+    flush();
+    expect(boxes.map((box) => box.getAttribute("aria-checked"))).toEqual(["true", "true", "false"]);
   });
 });

@@ -73,7 +73,6 @@ const menuButton = css.cn(gtSidebar(css.display("none")));
 const icon = css.cn(css.width("20px"), css.height("20px"));
 const menuIcon = { list: css.cn(ph("list"), icon), x: css.cn(ph("x"), icon) };
 const playIcon = css.cn(ph("play-circle"), icon);
-const settingsIcon = css.cn(ph("sliders-horizontal"), icon);
 
 // The sidebar is a drawer under the header (hidden from tab order while closed) until 900 px, then a sticky column.
 const side = css.cv({
@@ -243,16 +242,8 @@ export function Shell(props: { children?: JSX.Element }) {
         <a href={url("playground")} class={iconButton} aria-label="Playground" title="Playground">
           <span class={playIcon} />
         </a>
-        <button
-          type="button"
-          class={iconButton}
-          popovertarget="settings"
-          aria-label="Display settings"
-          title="Display settings"
-        >
-          <span class={settingsIcon} />
-        </button>
-        <SettingsPanel />
+        {/* the settings trigger and its panel: one component, the panel in a portal (SettingsPanel.tsx) */}
+        <SettingsPanel triggerClass={iconButton} />
       </header>
       <div class={home() ? undefined : body}>
         <nav id="sidebar" class={side({ open: open() })} aria-label="Pages" hidden={home()}>

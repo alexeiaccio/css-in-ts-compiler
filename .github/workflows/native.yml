@@ -10,17 +10,25 @@ on:
     paths:
       - native/**
       - packages/cssints/src/**
-      - packages/cssints/package.json
-      - packages/headless/**
-      - packages/apg-specs/**
+      - packages/headless/src/**
+      - packages/headless/test/**
+      - packages/headless/vite.config.ts
+      - packages/apg-specs/src/**
+      - packages/apg-specs/specs/**
+      - packages/apg-specs/scenarios/**
+      - packages/apg-specs/scripts/**
       - .github/workflows/native.yml
   pull_request:
     paths:
       - native/**
       - packages/cssints/src/**
-      - packages/cssints/package.json
-      - packages/headless/**
-      - packages/apg-specs/**
+      - packages/headless/src/**
+      - packages/headless/test/**
+      - packages/headless/vite.config.ts
+      - packages/apg-specs/src/**
+      - packages/apg-specs/specs/**
+      - packages/apg-specs/scenarios/**
+      - packages/apg-specs/scripts/**
       - .github/workflows/native.yml
   workflow_dispatch:
 

@@ -65,7 +65,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -189,6 +189,70 @@ const pages = createPagination({ page: 3, pageCount: 12, hrefFor: (page) => `/is
 - **`hrefFor` is what makes it work without JS**: with it every page is a real link; without it they are buttons and the host owns navigation.
 - **Target size is the skin's job**: 24x24 CSS px at AA, 44x44 at AAA.
 
+## Table
+
+`createTable` is sortable column headers and row selection on a **native `<table>`**: a `<caption>`, `<thead>`, `<tbody>`, `<th scope="col">` and `<td>` carry the semantics, so the primitive adds no `role` and no `aria-rowindex`, only what the elements cannot say themselves (`aria-sort` on the sorted column, `aria-selected` on a row, the mixed select-all state, and the totals a windowed table hides). It is a grid with a header row but **without the grid's navigation**: the cells keep their own focus, and `createGrid` stays the widget for roving cell focus. There is no spec of its own — it composes the two state models the package already has, `grid-sort.qnt` and `grid-selection.qnt` — so `test/table.browser.test.tsx` is its oracle.
+
+```tsx
+const table = createTable({
+  columns: [
+    { key: "title", abbr: "Title" },
+    { key: "status", sortable: false },
+    { key: "count", numeric: true },
+  ],
+  rows, // the host's ids, in the host's order: it sorts its data from the descriptor
+  selection: "multiple",
+  defaultSort: { key: "title", direction: "ascending" },
+  labels: { table: "Open issues", selectRow: (id) => `Select ${nameOf(id)}` },
+  onSortChange: (sort) => setSort(sort), // the host re-sorts its data and passes `rows` again
+});
+
+<table {...table.tableProps}>
+  <caption {...table.captionProps}>Open issues</caption>
+  <thead>
+    <tr>
+      {table.selectAllProps && (
+        <th>
+          <span {...table.selectAllProps} />
+        </th>
+      )}
+      {columns.map((column) => {
+        const sortButton = table.headerButtonProps(column.key); // undefined when not sortable
+        return (
+          <th {...table.headerCellProps(column.key)}>
+            {sortButton ? <button {...sortButton}>{column.key}</button> : column.key}
+          </th>
+        );
+      })}
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map((id) => (
+      <tr {...table.rowProps(id)}>
+        {table.selectAllProps && (
+          <td>
+            <span {...table.rowCheckboxProps(id)} />
+          </td>
+        )}
+        {columns.map((column) => (
+          <td {...table.cellProps(id, column.key)}>{cellOf(id, column.key)}</td>
+        ))}
+      </tr>
+    ))}
+  </tbody>
+</table>;
+```
+
+- **Sorting is the host's data.** The primitive carries the descriptor (`sort()`) and announces it; it never reorders anything. The host maps the descriptor onto its own array and renders `rows` again.
+- **`aria-sort` is on the sorted column only.** A sortable header that is not sorted carries nothing (ARIA's default is "not sorted"), and a `sortable: false` column is fully inert: no `aria-sort`, and `headerButtonProps` is `undefined`, so the host renders no button and it is not a tab stop.
+- **The cycle is tri-state by default** (`ascending` -> `descending` -> unsorted), so a table can be put back in its own order; `sortCycle: "toggle"` gives `ascending` <-> `descending` and never returns to unsorted, which is what the APG grid example does. A new column always starts `ascending`, and only one column is ever sorted.
+- **Rows are ids, not a count.** The host sorts its data, so an id keeps naming the same row across a re-sort while an index would not; the primitive never learns the row's content.
+- **Selection** is `"none"` (the default), `"single"` or `"multiple"`, over ids: `selected()` is the list, `rowProps(id)` carries `aria-selected` and a click that selects, and `toggleRow` / `toggleAll` are the programmatic path. The row's checkbox stops its own click from reaching the row, so the two controls never toggle the same row twice.
+- **Select-all exists only for `"multiple"`** (`selectAllProps` and `rowCheckboxProps` are `undefined` otherwise: one control over one selection is meaningless). It is a `role="checkbox"`, not a native `input`: the mixed state of a native checkbox is a DOM property (`indeterminate`), and what a screen reader must hear is `aria-checked="mixed"`. It toggles the rows the table renders — a windowed table therefore toggles its window and keeps the rest of the selection.
+- **Windowed rows or columns** pass `rowCount` / `columnCount`: then `aria-rowcount` and `aria-colcount` are carried, and every cell gets its `aria-colindex`. A table that renders all of them carries neither (it would only repeat what the markup says).
+- **`numeric` is a layout hint** for the host's skin (right alignment, tabular figures): HTML has no attribute for it, so the primitive carries nothing.
+- Solid 2 arrives through delegated events; a host that reads the DOM right after a click waits a tick.
+
 ## Confirm
 
 `createConfirm` is a promise-based confirmation over `createDialogModal({ role: "alertdialog" })`. Like the field it is not checked against a spec (the dialog is; `test/confirm.browser.test.tsx` covers the promise around it, in Chromium).
@@ -219,6 +283,104 @@ const remove = async () => {
 - **Nesting.** Confirms from different `createConfirm` calls may be open together (a "discard changes?" over a "delete?" that opened it): the one opened last gets Escape and Tab, the one under it waits, and the scroll lock is counted, so the first takes it and the last to close restores it. One `createConfirm` is still one request at a time. A `createDialogModal` that is open under a confirm knows nothing of this stack.
 - **Labels are the host's.** The defaults, `"Confirm"` and `"Cancel"`, stay English. An app that translates passes `confirmLabel` and `cancelLabel` (and the `title`) with each request, `confirm({ title: t("unsaved"), confirmLabel: t("discard"), cancelLabel: t("keep") })`; a label left out, or `undefined`, falls back to the English default. Nothing in the options needed to change for this: `ConfirmRequest` already carried both labels.
 - `aria-labelledby` is the title and `aria-describedby` **always** the description (an alertdialog needs one), so render `descriptionProps` always: it is `hidden` when the request has no description. `triggerProps` are dialog-modal's trigger attributes without the handlers; the click that calls `confirm()` is the host's. `request()` keeps the last request after it settles, so a closing animation does not flash empty.
+
+## Toast and status
+
+Two live regions for the two sizes of feedback: `createStatus` is one `role=status` message whose text the host replaces ("Link copied", "Saved"); `createToast` is a queue of toasts, each with its own live region, a timeout, a ceiling and a countdown that pauses. Neither touches the DOM: like every primitive here they return state and attribute objects. **There is no APG pattern for either** (APG's Alert, `createAlert`, is imperative and assertive), so there is no Quint spec and `test/toast.browser.test.tsx` is the oracle. The behaviour is copied from Base UI's Toast and React Aria's Toast (a landmark, F6 into it, at least 5 s, timers paused on hover or focus, the announced text handed in rather than read from the DOM).
+
+```tsx
+const toast = createToast();
+const status = createStatus();
+
+const copy = async () => {
+  await navigator.clipboard.writeText(url);
+  status.show("Link copied");
+};
+
+const upload = async () => {
+  try {
+    await send(file);
+    toast.show({ title: "Uploaded", description: file.name, tone: "success" });
+  } catch {
+    toast.show({
+      title: "Upload failed",
+      description: "Try again from the file row",
+      tone: "error",
+    });
+  }
+};
+
+<p {...status.statusProps}>{status.message()}</p>;
+
+<div {...toast.regionProps} tabindex={-1}>
+  <For each={toast.toasts()}>
+    {(item) => (
+      <div {...toast.toastProps(item.id)}>
+        <p>{item.title}</p>
+        <p>{item.description}</p>
+        <button type="button" onClick={() => toast.dismiss(item.id)}>
+          Dismiss
+        </button>
+      </div>
+    )}
+  </For>
+</div>;
+```
+
+- **A status replaces, it does not stack.** `show(text)` writes the one region and `clear()` empties it; a second message before the first is read replaces it. A status is never for errors: an error is `createAlert` (`role=alert`, assertive), and a titled message with a timeout is a toast.
+- **Toast roles.** `toastProps(id).role` is `"alert"` for `tone: "error"` and `"status"` otherwise, so an error interrupts and the rest wait. The container is `role="region"` with `aria-label` ("Notifications" unless `labels.region`), and each toast is `aria-atomic`, so its title and description are announced as one — the toast's own text is the announcement, a close button's label included, so keep a toast to its title and description. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host.
+- **Timers.** `timeout` defaults to 5000 ms, the five seconds Base UI and React Aria call the minimum for reading a message; shorter values are for tests. One timer per toast, cleared by `dismiss`/`dismissAll` and all of them on dispose.
+- **Pause.** Hovering a toast pauses its countdown and leaving resumes it with the time it had left (the deadline is kept, not restarted); focus always pauses, because a reader who tabbed into the toast must not lose it. `pauseOnHover: false` leaves focus as the only pause.
+- **The ceiling.** `max` (default 3) keeps the newest: a `show` past it drops the oldest. `onDismiss(id)` fires for every toast that leaves, whichever way — a timeout, a dismiss, `dismissAll` or the ceiling.
+- **F6.** Base UI and React Aria enter the toast region with F6 and return with F6: the region is the target, so give it `tabindex="-1"` and focus it from the host's F6 handler, remembering the element to restore. The primitive binds no keys: global hotkeys are a separate piece (bean cssints-h0d5).
+
+## Popover
+
+`createPopover` is the non-modal overlay: an anchored surface a trigger opens, dismissed by a click on the trigger, an outside `pointerdown` or Escape, with focus moving into it and back to the trigger. **There is no APG pattern for a popover** (APG has Dialog, which is modal), so there is no Quint spec and `test/popover.browser.test.tsx` is the oracle. It is copied from Base UI's Popover (the trigger click toggle, Enter / Space / ArrowDown, light dismiss on an outside `pointerdown` that does not steal focus) and React Aria's `usePopover` (focus in on open, back on close, `role="dialog"` without `aria-modal`, a placement that flips at the viewport edge).
+
+```tsx
+const popover = createPopover({ placement: "bottom-start" });
+let trigger!: HTMLButtonElement;
+let content!: HTMLDivElement;
+
+onMount(() => {
+  const teardown = popover.attach(trigger, content);
+  onCleanup(teardown);
+});
+
+<button {...popover.triggerProps} ref={(element) => (trigger = element)}>Filters</button>
+<div {...popover.contentProps} style={popover.contentStyle()} ref={(element) => (content = element)}>
+  …
+</div>;
+```
+
+- **`attach(trigger, content)`** is the whole DOM contract and returns its teardown: it measures and places on open (and on resize, scroll and a `ResizeObserver`), focuses the first focusable element in the content (else the content itself, which is `tabindex="-1"`), returns focus to the trigger on a close it caused, and closes on a `pointerdown` outside both elements. Call it from a `ref`; it creates an effect.
+- **`position(triggerRect, contentRect, viewport)`** is pure: it returns `{ top, left, placement }` for the requested placement, flipped to the other side when the room is not there, and shifted (not flipped) into the viewport horizontally. The rects and the viewport must share a space; `attach` measures in client space and writes page space for `position: absolute`.
+- **Non-modal, deliberately.** The page behind keeps its focus, its clicks and its scroll: no `inert`, no scroll lock, no Tab cycle, no `aria-modal`. That is `createDialogModal`, and `modal` is typed `false` for that reason.
+- **Not a menu.** No roving focus, no arrow keys between items: it is the base for `createMenu` in a popover, and for the filterable menu, which own their own item focus.
+- Absent on purpose: hover open (that is `createTooltipGroup`), submenus and item navigation (the menu), a scroll lock and `inert` (the modal dialog), and a vertical shift when neither side fits (the caller sees the requested placement).
+
+## Drawer
+
+`createDrawer` is the drawer / sheet shell: an edge-anchored panel over the Dialog (Modal) semantics, with the same focus, Escape, scroll-lock and backdrop behaviour as `createConfirm`. **No APG pattern exists for a drawer or a bottom sheet**, and [docs/bottom-sheet.md](docs/bottom-sheet.md) settled that the library composes rather than adding a sheet primitive: the semantics are Dialog (Modal), the position, the slide and the snap points are the host's native CSS, and this is the panel both were missing. `test/drawer.browser.test.tsx` is the oracle.
+
+```tsx
+const drawer = createDrawer({ side: "right", labelledby: "nav-title" });
+
+<button {...drawer.triggerProps}>Menu</button>;
+<div {...drawer.backdropProps} />;
+<div {...drawer.contentProps}>
+  <h2 id="nav-title">Site</h2>
+  <nav>{/* links */}</nav>
+</div>;
+```
+
+- **`side` is presentation only**, `"right"` (the default), `"left"` or `"bottom"`: a sheet is `{ side: "bottom" }`, a side rail is `{ side: "left" }`, and it is one API either way. The primitive lays out nothing; the host's CSS anchors the panel, and `handleProps` is the grab handle of a sheet.
+- **`modal` is the breakpoint switch.** It is read on every attribute read, so a host may flip it while the drawer is open (crossing the breakpoint) and `aria-modal`, the backdrop and the lock follow. `breakpoint` is a px number the primitive **does not read**: it has no viewport, so the host watches `matchMedia` and passes `side` and `modal`. A sheet below a breakpoint is modal; a side rail above it may not be.
+- **Modal** (the default): `aria-modal="true"`, a backdrop, focus into the panel's first focusable on open (else the panel, which is `tabindex="-1"`) and back to the trigger on close, Tab and Shift+Tab cycling inside, `overflow: hidden` on `document.documentElement` counted (as in `createConfirm`, and shared with it: a confirm over a drawer nests), and Escape read from the document in the capture phase, so it closes wherever the focus is. **Non-modal**: no `aria-modal`, no backdrop, no lock and no Tab trap, so the page keeps its scroll and its clicks; an outside `pointerdown` still dismisses it when `dismissable`, and Escape still closes it.
+- **The trigger toggles** (a hamburger), and Enter / Space open it. `dismissable: false` keeps the backdrop and an outside `pointerdown` from closing the drawer; Escape still closes it, because there is no way out otherwise.
+- **No drag-to-dismiss.** A drag is not a dialog interaction: it is a scroll snap the platform runs off the main thread, and it is the host's CSS (`scroll-snap-type: y mandatory`, snap markers, `scrollsnapchange`; see [docs/bottom-sheet.md](docs/bottom-sheet.md)). Re-implementing a native snap in pointer events would be the gesture duplication that research forbids, and the handle would drag on top of the snap that already moved the panel. So `handleProps` is decoration (`aria-hidden`, no pointer handlers) and the ways out are the backdrop, Escape, a close control the host puts in the panel, and the trigger. Swipe-to-dismiss, if it is ever wanted, is a separate decision with its own oracle.
+- **No `attach`.** The panel is edge-anchored: nothing is measured and no placement is computed, so focus and the Tab cycle find the panel through `contentProps.id` and the host only spreads attributes onto its own elements. Give the panel a name: pass `labelledby`, or set `aria-labelledby` / `aria-label` after the spread.
 
 ## Commands
 

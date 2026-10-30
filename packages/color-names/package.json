@@ -1,6 +1,6 @@
 {
   "name": "@cssints/color-names",
-  "version": "0.13.1",
+  "version": "0.17.0",
   "description": "The Color Name List for cssints: named(\"tangerine\") as a hex colour, in hue sectors so completion stays short",
   "license": "MIT",
   "repository": {
@@ -65,7 +65,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.13.0"
+    "cssints": "^0.17.0"
   },
   "engines": {
     "node": ">=22"

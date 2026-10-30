@@ -1180,6 +1180,14 @@ click, to `browser/expected.png`, and to `frames/sky.png`. The two globals these
 What the browser surface drops from `solid/native/ui.c` (the window, key and text queues, the clipboard, PNG I/O,
 `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the pages it carries, and
 their cost, are in `native/README.md`'s browser chapter.
+The dev loop is `bun browser/serve.ts` (from `native/`, not from here): it builds `ui.wasm` and the bundles into a temp
+directory, serves `browser/` and them at one origin (`http://127.0.0.1:4173/browser/solid/index.html`; `--port`,
+`--open`, `--root`), and rebuilds on save — a `.ts`/`.tsx` save the bundles, a `.c`/`.h` save the wasm, a
+`packages/cssints/dist` change both, a `.js`/`.html` nothing but a reload — then reloads the open pages over a
+`text/event-stream` with `location.reload()`, so a page's Solid state is lost. A broken save keeps the last good
+artefact, the page keeps running, and the compiler's error shows in a bar at its bottom. `browser/serve-check.mjs` (in
+`solid/test.sh`) drives it on a temp copy of the tree; the measured ms and what HMR would need are in
+`native/README.md`'s browser chapter.
 `browser/solid/keys.ts` is this host's other half of `src/input.ts`. The desktop pops SDL's queue and calls `keyName`
 (`main.ts`); the page gets a DOM `keydown`/`keyup` on its canvas and names it with the same answers — `Tab` and
 `Shift+Tab`, `" "` for Space (the parts take `Space` too), `Enter`, `Escape`, `Backspace`, `Delete`, the arrows,
@@ -1229,3 +1237,29 @@ positive down). `browser/touch-check.mjs` holds it — Chromium's own touch thro
 `Input.dispatchTouchEvent`, the List's 40px row drag and its thumb's 20px, the Sky's 120px drag into the rubber band and a
 throw resting on the decay's projection, a tap that selects and opens — with the measured numbers in `native/README.md`'s
 browser chapter.
+
+## On the terminal
+
+The third target, beside the desktop's raster and the browser's canvas: Clay over `native/terminal/`'s cell grid
+(`cells.c`, `render.c`, `measure.c`, termbox2), no SDL3, no ThorVG, no window. The declaration surface is this host's,
+field for field — `packBox`'s 45 floats, `packText`'s 10, and the value channel's `FIELDS` — so `src/renderer.ts`,
+`src/pack.ts`, a page's `styles.ts` and the page itself are one module on all three targets.
+
+```
+native/solid/native/term.c  Clay + the cells + termbox2 behind flat term_* functions (libterm.dylib): this
+                            directory's ui_open/ui_text/ui_value, on cells
+native/terminal/term.ts     bun:ffi over it, and the `ui` a page's own module finds (src/entry.ts's motion: the
+                            value channel; a cell grid drops the group fields rather than declining the page)
+native/terminal/solid.ts    the host: main.ts's loop shape, the tree walked in order, the page's Motion,
+                            --dump/--ansi/--keys/--click/--bench and the live termbox2 loop
+native/terminal/test.sh     the comparisons against the C page's own frames (native/test.sh runs it)
+```
+
+`app/Sensors.tsx` is unmodified, and the host re-cuts only what page.c re-cuts for cells: the root's padding and gap,
+the pill's height (3 cells), through the value channel. The pill's ring is the host's, because the page has no focus
+prop: `page.c`'s `pill_style(focused)` draws `magnitude`'s colour as a border, and the terminal host does the same from
+its own focus. `src/frame.ts` is not reused — it imports `./ffi.ts` (the desktop's) and draws through `ui_draw` — so the
+host walks the same tree (~40 lines) with the terminal's calls; that is also why it aliases `./ffi.ts` to
+`terminal/term.ts`, so a page's own `pageEntry` motion lands in libterm and is dropped by a cell instead of moving it.
+The proof and the cost are in `native/README.md` (`## Solid on the terminal`); what a cell cannot carry is
+`native/docs/map.md` step 6's list, and the four sky screens are still C.

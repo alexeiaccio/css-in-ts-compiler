@@ -1312,6 +1312,7 @@ page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; 
 frame carries its `:hover` (48,53,68), and with the pointer off it the use_g frame is the no-JS page's `frame(1)` field
 for field and box for box, 0 px. A second click returns to the base frame, again identical. (c) the canvas against
 `browser/expected.png`: 0.00% of pixels differ, worst 8x8 block 0.0/255.
+
 (a) each base frame, dumped through the same emitter, against its golden: Sensors 10 commands, every field and every box
 — the worst box 3.38 px, the Units pill sitting that much lower because the measure callback rounds every line height up
 (37.5 -> 38 at 32px, 16.4 -> 17 at 14px, `draw.js`, as the no-JS page's does) while ThorVG's is exact; the no-JS page's own
@@ -1331,6 +1332,42 @@ ink box is within 3 px, the frame's mean colour within 1.41/255 — `check.mjs`'
 Tab twice puts the `Wi-Fi` switch's node in the a11y tree at `focused: true` and draws the 2 px ring at its edge
 (90,170,255 one px in), Space sets `checked: true` and turns the track's fill from #3c404e to #f08c32 (the accent at a
 pixel of it), ten more Tabs reach the settings tree (the `Network` item) and ArrowDown moves the roving node to `Wi-Fi`.
+
+### The dev server: a save builds, and the page reloads
+
+`bun browser/serve.ts`, from `native/`, is the whole loop: it builds both artefacts with the scripts above into a temp
+directory (`browser/build.sh` for `page.wasm` and `ui.wasm`, `browser/solid/build.ts` for the bundles), serves
+`browser/` and them at one origin, and watches the builds' inputs — `browser/`, `solid/`, `desktop/clay_dump.c`,
+`vendor/clay/`, `generator/`, `examples/sensors/`, `apps/` (the Sky page imports apps/csssky's api and models) and
+`packages/cssints/dist`. A save's extension picks the build: `.c`/`.h`/`.sh` is the wasm, `.ts`/`.tsx`/`.jsx` is the
+bundles, a change under `packages/cssints/dist` is both, and a `.js`/`.html` is no build at all, only a reload. Each
+build writes into a staging directory and is copied over the served one — renamed into place, so a fetch never sees half
+a file — only when the child exits 0, and the open pages reload over a `text/event-stream` at `/__events`; the client is
+a script the server injects into every `text/html`, so the htmls are untouched.
+
+```sh
+bun browser/serve.ts                  # http://127.0.0.1:4173/browser/solid/index.html (Sensors)
+bun browser/serve.ts --port 0 --open  # a free port, and the browser opened on the page
+```
+
+The reload is `location.reload()`: a page's Solid state, its scroll and a thread it opened are lost — an honest "reload
+on save", not a hot swap. HMR needs the module graph, i.e. the cssints plugin and Vite's client in this path (`apps/docs`
+has them: the engine's own `cssints/vite`), and a way to re-mount a page's tree over the new modules; a `.c` save is a
+new `ui.wasm` whatever else is hot, because the page holds one `WebAssembly.Instance` (`browser/solid/ffi-browser.ts`).
+The desktop has none of this: `bun solid/main.ts` reads its modules once and a save is a restart by hand, and this server
+cannot help it — the window is another process over `libui.dylib`, with no page and no origin.
+
+A failed build keeps the last good artefact: the page is not reloaded, it keeps running, and the compiler's own text
+goes out as an `error` event — a dark red bar at the bottom of the page and a `console.error` — until a save builds.
+Cost, `browser/serve-check.mjs` on an M2, three runs: two ran under a load average of 70-170 (other work on the same
+machine) and one on a quiet minute, so the median of the three is a loaded one — the first build **101.3 s** (wasm
+58.1 s, bundles 43.1 s), a `.ts` save **38.0 s** to the bundles and **38.2 s** to the page's first frame, a `.c` save
+**21.4 s** to the wasm and **21.6 s** to its first frame. On the quiet run: the first build **25.5 s** (wasm 15.0 s,
+bundles 10.5 s), a `.ts` save **11.4 s** / **11.7 s**, a `.c` save **2.5 s** / **2.6 s** — the loop's own cost; the
+loaded numbers are what a busy machine makes of it. The bundle build is the cost: `Bun.build` over eight entry points,
+each page's `.tsx` through Solid's compiler and cssints in a Node child, so any `.ts` save rebuilds all eight
+(`src/frame.ts` and `src/renderer.ts` are shared by all of them). `--root` builds and serves another tree, which is how
+the check runs on a temp copy.
 
 ### The renderer's effects, on a command array
 
@@ -1695,6 +1732,91 @@ here: **pinch** and any two-finger gesture (a page has one pointer; the desktop 
 touchscreen** (this machine
 has none: what is tested is Chromium's own touch pipeline into the shell, not a panel's), and HMR. `native/docs/map.md`'s
 step 8 keeps the list.
+
+## Solid on the terminal
+
+Step 6's Solid half: one page runs as Solid over the terminal's cells. `solid/native/term.c` is Clay over
+`terminal/cells.c`, `render.c`, `measure.c` and `tb2.c` — no SDL3, no ThorVG, no window — built as
+`build/solid/libterm.dylib` beside `libui.dylib`, and it takes the same declaration surface the desktop's `ui.c` takes:
+a packed 45-float box style, a 10-float text style and the value channel (`solid/src/pack.ts`'s `FIELDS`). So a page's
+`styles.ts` is one module on both targets, and `solid/app/Sensors.tsx` is the page, **unmodified**.
+
+```sh
+sh solid/native/build.sh                          # libui.dylib and libterm.dylib
+bun terminal/solid.ts                             # live: the page in termbox2; q/Ctrl+C/Escape quits
+bun terminal/solid.ts --dump out.txt              # one frame headless, plain text ('.' is a fill); no file: stdout
+bun terminal/solid.ts --ansi out.ansi             # the same cells as truecolour ANSI (SGR runs merged)
+bun terminal/solid.ts --keys Tab,ArrowDown --dump out.txt     # the frame after each key, as main.c
+bun terminal/solid.ts --click 40,9 --dump out.txt # a press and a release on the Units pill (the page's own onClick)
+bun terminal/solid.ts --theme light --dump out.txt            # the light theme (also THEME=light)
+bun terminal/solid.ts --cols 80 --rows 11 --bench 20          # the frame's ms, and the same cells as ANSI
+sh terminal/test.sh                               # the comparisons below (native/test.sh runs it)
+```
+
+**The binding.** `term_open(cols, rows)` starts Clay and the grid — cols and rows headless, `0, 0` for termbox2's own
+size — `term_begin(px, py, down, dt)` opens a frame with the pointer in cells (Clay's pixels are a cell's, 8x16),
+`term_open_element`/`term_text`/`term_close_element` are the tree, `term_value` is the value channel, `term_end(dt)` lays
+out and runs the commands into the grid (`terminal/render.c`: a fill is its cells' background, a border is `─│┌┐└┘`,
+text at `x / CELL_W` one row, a scissor stack; `terminal/measure.c`: a code point a cell, a line a cell), and
+`term_present`/`term_dump`/`term_ansi` are the three ways out. `term_poll(key, out)` is termbox2's next event within
+16ms (0 none, 1 an event, 2 a resize, 3 quit; `out` is the pointer's cell and the button). `terminal/tb2.c` gained
+`term_tb2_poll_ms` for that wait: the C host keeps blocking in `term_tb2_poll`, which is the same call with no timeout,
+so the C pages' frames are untouched. The parts of a style a cell cannot show are not declared: a float (counted as an
+error), an image, a shadow, a backdrop, a gradient, and the group fields of the value channel (46–49, 55), which arrive
+and are dropped — the page's entry animation is a no-op in cells rather than a different frame.
+
+**A page's frame.** `terminal/solid.ts` is the desktop loop's shape: `createInput()` (the keys named as `src/input.ts`
+names them, Space as `" "`), the page's `Motion` hook, `flush()` for Solid, the tree walked in order, `term_value` for
+the cell re-cut, Clay's layout and the cells. It is not `solid/src/frame.ts`, and honestly: that module imports the
+desktop's `src/ffi.ts` and draws through `ui_draw`, so the host walks the same tree itself (~40 lines, without the
+effects a cell has no command for) and aliases `solid/src/ffi.ts` to `terminal/term.ts` — the page's own
+`pageEntry` therefore writes its motion into libterm. The two lengths page.c re-cuts, it re-cuts the same way, through
+the value channel, not by editing the page: the root's padding (2 cells) and gap (0), and the pill's height (3 cells,
+so a border, a line of text and a border are three rows). The pill's ring is the host's: page.c's `pill_style(focused)`
+asks the page's focus, and `Sensors.tsx` has no focus prop, so the host draws the same accent border
+(`styles.magnitude`'s colour in the theme that is on) while its own focus is on the pill. Tab moves it off the pill,
+which is where the C page's list would take it; there is no list in `Sensors.tsx`, so the ring simply goes.
+
+**The proof.** The C page is the oracle, and at the page's own height the Solid frame is the C frame byte for byte —
+the same cells, the same palette in the same first-use order, the same ANSI runs:
+
+```
+solid, terminal: the page's frame, dark, is the C page's own (80x11 cells) -> identical
+solid, terminal: after Tab and ArrowDown (the ring off the pill, nowhere to go) the frame is the C page's own -> identical
+solid, terminal: and the page's rows are expected-focus.txt's own (the C page's ring is the list's, on row 12) -> identical
+solid, terminal: its ANSI is the C page's own (truecolour, SGR runs merged) -> identical
+solid, terminal: the pill's fill is 3 SGR runs (one a row, not one a cell) and the title is 38;2;230;60;60 -> identical
+solid, terminal: the same in the light theme (the theme variant, folded by the same styles.ts) -> identical
+solid, terminal: at 80x20 the page's 11 rows are expected-dark.txt's own (rows 12-19 are the C page's list, not the page's) -> identical
+solid, terminal: a click on the pill flips Units through the page's own onClick (hover fill 48,53,68, as a mouse leaves it) -> identical
+solid, terminal: termbox2 drew the Solid page's screen (80x24, truecolour) under a pty -> identical
+```
+
+11 cells is the page's own height: the C page's list starts on row 12, so `demo --cols 80 --rows 11` draws exactly the
+page and nothing of the list or the footer. At the suite's 20 rows the page's first 11 rows are `expected-dark.txt`'s
+own and rows 12-19 are the C page's list and footer — 9 of 20 rows, 720 cells — which `Sensors.tsx` does not have. That
+is the slice's one real gap, counted by `terminal/test.sh` rather than hidden; the two pages are not the same page yet,
+they are the same *page part* drawn by two different programs.
+
+**The cost**, on this Mac (`--bench 20`, headless, the 80x11 frame): **0.384 ms a frame** (begin, the tree declared
+through Bun's FFI, Solid's flush, Clay's layout, and the commands turned into 880 cells) and **0.463 ms** more for the
+same cells as ANSI (3018 bytes, the file write included). The C page's own frame is ~0.08 ms measured as the delta of
+`demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints no frame time, so that
+delta is the number; it is 5x less than Solid's). The binding is 236 KB of `libterm.dylib` (Clay's implementation,
+cells.c, render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one declaration per
+element and one per text through `bun:ffi`, where the C page calls Clay directly.
+
+**What it cannot do in cells.** Text is one row, so a body does not wrap (a clipped row is all a cell page gives it); an
+image is a box with no glyph; a float has no cells to sit over; there is no shadow, backdrop, gradient, group opacity,
+scale or rotation; termbox2 reports no motion events, so a hover is only where the last press was (a click leaves the
+pointer on the pill, which is why the click's frame is the hovered one); a 1px and a 4px border are one cell; a corner
+radius is a square corner; a wide glyph (CJK, most emoji) is one cell and breaks the row by one; and the cell size makes
+a page's pixel lengths land between cells — 38px is 2.4 rows and 200px is 25 columns — so a terminal page re-cuts them
+(here through the value channel, in C by hand). The other four screens of step 6 — the feed, the thread, the profile and
+the notifications — are still C: `terminal/sky.c`, `thread.c`, `profile.c`, `notify.c`, with `focus.c` for their focus.
+Moving one of them over is the next slice; the shape is there (a page declares, Clay lays out in cells, termbox2 draws)
+and what it needs is what `Sensors.tsx` lacked here: the page's own list and focus, and a `src/frame.ts` that takes the
+binding instead of importing one.
 
 ## The sky screens in a terminal
 

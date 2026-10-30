@@ -1,7 +1,10 @@
+import { createPopover } from "@cssints/headless";
 import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
-import { createSignal } from "solid-js";
+import { Portal } from "@solidjs/web";
+import { createSignal, onCleanup } from "solid-js";
 
+import { ph } from "./icons.ts" with { type: "cssints" };
 import {
   apply,
   defaults,
@@ -15,14 +18,13 @@ import {
 } from "./settings.ts";
 import { t } from "./theme.ts" with { type: "cssints" };
 
-// A popover under the header: the browser opens it from the button (popovertarget), closes it on Escape or a click outside,
-// and gives the focus back to the button; the panel follows the button in the document, so Tab goes into it.
+const settingsIcon = css.cn(ph("sliders-horizontal"), css.width("20px"), css.height("20px"));
+
+// A popover under its button: createPopover (@cssints/headless) opens it, closes it on Escape or an outside pointerdown, and
+// gives the focus back to the button. It is not native `popover` any more, so it is not in the top layer: it renders in a portal
+// on <body> at a page position measured from the button, and its z-index has to clear the header's (30).
 const panel: Style = css.cn(
-  css.position("fixed"),
-  css.top(t.layout.headerHeight),
-  css.right(t.space.lg),
-  css.bottom("auto"),
-  css.left("auto"),
+  css.zIndex(40),
   css.margin("0"),
   css.width("min(360px, calc(100vw - 32px))"),
   css.maxHeight("calc(100dvh - 72px)"),
@@ -101,7 +103,39 @@ const credits = css.cn(
 );
 const link = css.cn(css.color(t.color.link));
 
-export function SettingsPanel() {
+export function SettingsPanel(props: { triggerClass?: string | undefined }) {
+  // Controlled, so Escape can close it from anywhere on the page (see the keydown listener below).
+  const [open, setOpen] = createSignal(false);
+  const popover = createPopover({
+    id: "settings",
+    placement: "bottom-end",
+    get open() {
+      return open();
+    },
+    onOpenChange: setOpen,
+  });
+  let trigger: HTMLButtonElement | undefined;
+  let content: HTMLDivElement | undefined;
+  let teardown: (() => void) | undefined;
+  // attach is the whole DOM contract of the popover: measure and place, focus in and back, light dismiss. It creates an
+  // effect, so it goes in a ref (not onSettled, where Solid 2 forbids reactive primitives) once both elements exist.
+  const attach = () => {
+    if (trigger !== undefined && content !== undefined && teardown === undefined) {
+      teardown = popover.attach(trigger, content);
+    }
+  };
+  onCleanup(() => teardown?.());
+  // Escape closes from anywhere on the page, as the native popover did: the primitive reads it from the content, which has the
+  // focus while the panel is open, but not after Tab has left it.
+  if (typeof document !== "undefined") {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && open()) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", escape, true);
+    onCleanup(() => document.removeEventListener("keydown", escape, true));
+  }
   // Solid 2 reads the committed value until the next flush, so two changes in one task would build on a stale s(): keep the
   // latest here.
   let current = load();
@@ -133,42 +167,68 @@ export function SettingsPanel() {
     </fieldset>
   );
   return (
-    <div id="settings" popover role="dialog" aria-label="Display settings" class={panel}>
-      {choice("palette")}
-      <p class={credits}>
-        Itten, Munsell and Albers are cubes of{" "}
-        <a class={link} href="https://rybitten.space/">
-          RYBitten
-        </a>{" "}
-        by meodai, read at build time by @cssints/rybitten. Radix, Flexoki, Open Props and
-        Reasonable Colors come from @cssints/tokens.
-      </p>
-      <fieldset class={group}>
-        <legend class={legend}>Accent hue</legend>
-        <div class={row}>
-          <input
-            type="range"
-            class={slider}
-            min="0"
-            max={HUES - 1}
-            step="1"
-            aria-label="Accent hue"
-            disabled={!WHEEL.includes(s().palette)}
-            value={s().hue}
-            onInput={(e) => set({ hue: e.currentTarget.valueAsNumber })}
-          />
-          <output data-testid="hue">{s().hue}</output>
-        </div>
-        <div class={row}>
-          {swatches.map(([name, cls]) => (
-            <span class={cls} title={name} data-testid={`swatch-${name}`} />
-          ))}
-        </div>
-      </fieldset>
-      {(Object.keys(OPTIONS) as Choice[]).filter((k) => k !== "palette").map(choice)}
-      <button type="button" class={reset} onClick={() => set(defaults)}>
-        Reset
+    <>
+      <button
+        {...popover.triggerProps}
+        ref={(element) => {
+          trigger = element;
+          attach();
+        }}
+        type="button"
+        class={props.triggerClass}
+        aria-label="Display settings"
+        title="Display settings"
+      >
+        <span class={settingsIcon} />
       </button>
-    </div>
+      <Portal>
+        <div
+          {...popover.contentProps}
+          ref={(element) => {
+            content = element;
+            attach();
+          }}
+          style={popover.contentStyle()}
+          class={panel}
+          aria-label="Display settings"
+        >
+          {choice("palette")}
+          <p class={credits}>
+            Itten, Munsell and Albers are cubes of{" "}
+            <a class={link} href="https://rybitten.space/">
+              RYBitten
+            </a>{" "}
+            by meodai, read at build time by @cssints/rybitten. Radix, Flexoki, Open Props and
+            Reasonable Colors come from @cssints/tokens.
+          </p>
+          <fieldset class={group}>
+            <legend class={legend}>Accent hue</legend>
+            <div class={row}>
+              <input
+                type="range"
+                class={slider}
+                min="0"
+                max={HUES - 1}
+                step="1"
+                aria-label="Accent hue"
+                disabled={!WHEEL.includes(s().palette)}
+                value={s().hue}
+                onInput={(e) => set({ hue: e.currentTarget.valueAsNumber })}
+              />
+              <output data-testid="hue">{s().hue}</output>
+            </div>
+            <div class={row}>
+              {swatches.map(([name, cls]) => (
+                <span class={cls} title={name} data-testid={`swatch-${name}`} />
+              ))}
+            </div>
+          </fieldset>
+          {(Object.keys(OPTIONS) as Choice[]).filter((k) => k !== "palette").map(choice)}
+          <button type="button" class={reset} onClick={() => set(defaults)}>
+            Reset
+          </button>
+        </div>
+      </Portal>
+    </>
   );
 }

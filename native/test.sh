@@ -291,6 +291,9 @@ if command -v script >/dev/null 2>&1; then
 else
   echo "terminal: no script(1), termbox2's pty checks skipped"
 fi
+# ... and one page as Solid over the same cells (solid/native/term.c -> build/solid/libterm.dylib, terminal/solid.ts):
+# Sensors.tsx unmodified, its frames against the C page's own. terminal/test.sh prints its comparisons.
+NATIVE_OUT="$OUT" sh terminal/test.sh
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no
 # emscripten), drawn on a canvas by browser/render.js. The check builds it, opens browser/index.html in Chromium
@@ -306,8 +309,8 @@ if command -v zig >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
   # ... and the Solid pages in the same browser, on the desktop's own modules (browser/solid/): Sensors and Widgets (the
   # second driven by the keyboard), the Sky (browser/sky-check.mjs), the Dialog (browser/dialog-check.mjs: its floats
   # and the menu's backdrop), the List and the Text field (browser/input-check.mjs) and the Dev page with the Text sheet
-  # (browser/dev-check.mjs: the panel's own readout). Their checks are in solid/test.sh, which has just run above with
-  # the same guard
+  # (browser/dev-check.mjs: the panel's own readout); the dev server's reload loop (browser/serve-check.mjs) runs there
+  # too. Their checks are in solid/test.sh, which has just run above with the same guard
 else
   echo "browser: no zig, node or Playwright chromium, skipped (sh browser/build.sh && node browser/check.mjs)"
 fi

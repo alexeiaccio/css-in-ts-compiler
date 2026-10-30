@@ -1,5 +1,21 @@
 # @cssints/apg-specs
 
+## 0.17.0
+
+No changes in this release.
+
+## 0.16.0
+
+No changes in this release.
+
+## 0.15.0
+
+No changes in this release.
+
+## 0.14.0
+
+No changes in this release.
+
 ## 0.13.1
 
 No changes in this release.

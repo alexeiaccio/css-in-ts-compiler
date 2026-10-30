@@ -156,7 +156,7 @@ try {
   const bg = async () => (await cell(page, 0, 3)).bg;
   const setting = async (name, value) => {
     await page.click("button[aria-label='Display settings']");
-    await page.check(`#settings input[name=${name}][value=${value}]`);
+    await page.check(`#settings-content input[name=${name}][value=${value}]`);
     await page.keyboard.press("Escape");
   };
   const light0 = await bg();

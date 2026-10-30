@@ -155,7 +155,9 @@ Each step ends in a check that fails when it breaks.
    plugin, theme and `:active` picked at run time. Check: `solid/test.sh` renders the Solid page headless and compares
    it with the C page's three ThorVG frames, pixel for pixel (identical), plus the pressed look and click rules. Cost:
    about 0.4 ms a frame on an Apple-silicon Mac, 0.006 ms of it the JS walk and FFI, the rest ThorVG's raster. Left: reload on save,
-   JSX types, the window checked by eye.
+   JSX types, the window checked by eye. (2026-10-30: still none here — `bun solid/main.ts` loads its modules once and a
+   save is Ctrl-C and a restart. The browser target's dev server, step 8, rebuilds and reloads a *page*; it cannot help
+   this process, which is a window over `libui.dylib` with no origin and no module graph to swap.)
    **Headless widgets** (`headless/`, between Solid and JSX to C). The first widgets of effects-of-atmosphere's
    `@eoa/headless` (button, switch, checkbox, disclosure, radio, tabs, toolbar, slider, tree) with no DOM: Solid 2 signals for state and, instead of aria-*
    attributes, parts of plain fields (`id`, `role`, `checked`, `selected`, `expanded`, `controls`, `tabIndex`, `hidden`, `disabled`, `focused`, `valueNow`, `level`, `posInSet`, `setSize`)
@@ -654,9 +656,31 @@ Each step ends in a check that fails when it breaks.
    reported, not drawn), quote boxes, a body that wraps (one clipped row), the system theme of `src/system.ts` (the
    static dark/light ones are ported), the wheel and dragging, wide glyphs and emoji (a code point is one cell),
    floating overlays (untried), sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius
-   is a square corner), scrollback, and Solid on the terminal (the pages are C, as step 5's). The
-   cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25 columns, so a page's pixel lengths
-   have to be re-cut to land on cell boundaries, and text smaller or larger than a cell is the same cell.
+   is a square corner) and scrollback. The cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25
+   columns, so a page's pixel lengths have to be re-cut to land on cell boundaries, and text smaller or larger than a
+   cell is the same cell.
+   **Done: one page runs as Solid; the rest are C.** `solid/native/term.c` (built as `build/solid/libterm.dylib`
+   beside `libui.dylib`) is Clay over the terminal's own cells — `terminal/cells.c`, `render.c`, `measure.c` and
+   `tb2.c`, no SDL3, no ThorVG, no window — behind the declaration surface `solid/native/ui.c` has: a packed 45-float
+   box style, a 10-float text and the value channel, so a page's `styles.ts` and `solid/src/pack.ts` are one module on
+   both targets. `terminal/solid.ts` is `solid/main.ts`'s loop shape over it, and the page is
+   `solid/app/Sensors.tsx` **unmodified**: the host re-cuts page.c's two lengths for cells through the value channel
+   (the root's padding and gap, the pill's 3-cell height) and draws the pill's ring from its own focus, as
+   `pill_style(focused)` does. One caveat of the slice: `solid/src/frame.ts` imports the desktop's `ffi.ts` and draws
+   through `ui_draw`, so the host walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to
+   the terminal's binding, which is how the page's own `pageEntry` motion lands in libterm and why its group fields
+   (opacity, translate) are dropped by a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh`
+   runs it), 9 `identical` lines — at the page's own height of 11 cells (the C page's list starts on row 12) the Solid
+   frame is the C frame's bytes as a dump, dark and light and after `Tab,ArrowDown`, and as ANSI; the page's 11 rows at
+   the suite's 20 rows are `expected-dark.txt`'s and, after the keys, `expected-focus.txt`'s, and the run says which rows
+   are not (rows 12-19 are the C page's list and the footer); a click on the pill flips Units through the page's own
+   `onClick`; termbox2 draws the frame under a pty. Cost: 0.38 ms a frame headless (declare + Solid's flush + Clay + the
+   commands into cells) and 0.46 ms more for the same cells as ANSI (file write included), against the C page's ~0.08 ms
+   a frame, measured as the delta of `demo --frames 1` and `--frames 201` under a pty with the present included
+   (`main.c` prints no number); the dylib is 236 KB. What the Solid page cannot do in cells is the cell's limit as the
+   C pages' is: an image is a box with no glyph, a float has no cells to sit over, text is one row, there is no shadow,
+   backdrop, gradient, group opacity or scale, and a hover exists only where the last press was (termbox2 reports no
+   motion). The other four screens — the feed, the thread, the profile and the notifications — are still C.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors
@@ -924,7 +948,34 @@ Each step ends in a check that fails when it breaks.
    with a drag in flight is **0.20 ms** on the List and **0.82 ms** on the Sky. Check: `browser/touch-check.mjs` (31
    comparisons) in `solid/test.sh` with the other four. Limits: pinch and any two-finger gesture, long-press, a
    touchscreen (this machine has none), the Widgets page's slider under a finger (`Widgets.tsx`'s drag is the same
-   `drag.onPointer`, untested), and HMR.
+   `drag.onPointer`, untested), and no HMR (a save is a build and a full reload, below).
+   **Done: the dev server, and reload on save** (2026-10-30). The browser target had no loop: a style change was
+   `sh browser/build.sh` and `bun browser/solid/build.ts` again and a person's reload, and `check.mjs --serve` was a
+   static server that built nothing. `browser/serve.ts` (Bun, `bun browser/serve.ts`) is the loop: it builds both
+   artefacts into a temp directory, serves `browser/` and them at one origin
+   (`http://127.0.0.1:4173/browser/solid/index.html`; `--port`, `--open`, `--root`), watches the builds' inputs
+   (`browser/`, `solid/`, `desktop/clay_dump.c`, `vendor/clay/`, `generator/`, `examples/sensors/`, `apps/`,
+   `packages/cssints/dist`), debounces 80 ms and picks the build by extension: `.c`/`.h`/`.sh` the wasm,
+   `.ts`/`.tsx`/`.jsx` the bundles, cssints' `dist` both, `.js`/`.html` no build at all, only a reload. A build writes
+   into a staging directory and is renamed over the served copy only when the child exits 0, so a broken save keeps the
+   last good artefact: the page is not reloaded, it keeps running, and the compiler's text arrives as an `error` event —
+   a dark red bar at the bottom of the page (a script the server injects into every `text/html`, so the htmls are
+   untouched) and a `console.error`. A good build pushes `reload` over the same `text/event-stream` and the page does
+   `location.reload()`: a full reload, so its Solid state and its scroll are lost. Measured by `browser/serve-check.mjs`
+   (three runs on an M2: two under a load average of 70-170 and one quiet, so the median is a loaded one): the first
+   build **101.3 s** (wasm 58.1 s, bundles 43.1 s); a `.ts` save **38.0 s** to the bundles and **38.2 s** to the page's
+   first frame; a `.c` save **21.4 s** to the wasm and **21.6 s** to the first frame. The quiet run: **25.5 s** first
+   build (wasm 15.0, bundles 10.5), a `.ts` save **11.4 s** / **11.7 s**, a `.c` save **2.5 s** / **2.6 s**. The bundles
+   are the cost — `Bun.build` over eight entry points, each page's `.tsx` through Solid's compiler and cssints in a Node
+   child — so any `.ts` save rebuilds all eight. The check (in `solid/test.sh`'s browser block) runs on a temp copy of
+   the repo as `--root` (it writes no tracked file): a `.ts` save rebuilds the bundles and not the wasm (the live
+   `ui.wasm`'s mtime does not move, `page.js`'s does), and the page's `timeOrigin` changes; a `#error` in `ui.c` fails
+   the wasm build, the page's bar
+   names it (`serve-check-typo`), the page is *not* reloaded, and a manual reload still serves the last good `ui.wasm`;
+   the fixed save rebuilds the wasm and reloads, and the frame is the one from before the break (the same hash). HMR is
+   still absent: it needs the module graph — the engine's own `cssints/vite` plugin and Vite's client, as `apps/docs`
+   runs them — in this path, a page that re-mounts its tree over the new modules, and a `.c` save would still be a
+   reload, because the page holds one `WebAssembly.Instance`.
 
 
 ## What Rune's research gives us (2026-10-23)

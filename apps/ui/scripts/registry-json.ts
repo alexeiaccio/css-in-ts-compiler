@@ -154,6 +154,118 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Accordion",
     description: "APG accordion: multiple or single expansion, headed triggers, collapsible",
   },
+  {
+    name: "separator",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Separator",
+    description:
+      "A rule between two groups: `role=separator` with its orientation, or a decorative `role=none`",
+  },
+  {
+    name: "badge",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Badge",
+    description:
+      "A small label in three tones, a pill at 999px because the theme's steps stop at 16px",
+  },
+  {
+    name: "skeleton",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Skeleton",
+    description: "A placeholder box that pulses only when the reader has not asked for less motion",
+  },
+  {
+    name: "alert",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Alert",
+    description: "APG alert: a title and a body in a live region, with an `invalid` tone",
+  },
+  {
+    name: "meter",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Meter",
+    description: "APG meter: a track and the fill of the value, on `createMeter`",
+  },
+  {
+    name: "breadcrumb",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Breadcrumb",
+    description:
+      "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
+  },
+  {
+    name: "treeview",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Tree view",
+    description: "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
+  },
+  {
+    name: "menu",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Menu",
+    description:
+      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "tooltip",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Tooltip",
+    description:
+      "APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "select",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Select",
+    description:
+      "APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "textarea",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Textarea",
+    description:
+      "A multi-line field styled like `Input`, and the control `Field` puts in with `render`",
+  },
+  {
+    name: "slider",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Slider",
+    description:
+      "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
+  },
+  {
+    name: "spinbutton",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Spinbutton",
+    description:
+      "APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by",
+  },
+  {
+    name: "checkbox-group",
+    tested: false,
+    with: ["checkbox/checkbox.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Checkbox group",
+    description:
+      "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
+    also: ["@cssints/checkbox"],
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
