@@ -1,10 +1,11 @@
 ---
 # cssints-e0li
 title: 'Text input and textarea: the skin over createField'
-status: todo
+status: completed
 type: task
+priority: normal
 created_at: 2026-10-30T10:51:10Z
-updated_at: 2026-10-30T10:51:10Z
+updated_at: 2026-10-30T11:25:01Z
 parent: cssints-65eb
 ---
 
@@ -15,3 +16,7 @@ TetraLogical ships both as components with documented requirements; we only have
 - [ ] no-JS: both must work without it (native elements, no JS-only affordance)
 - [ ] docs page per component, requirements table per the catalogue (see the requirement template bean)
 - [ ] adopt in cms-admin and issues (they hand-roll TextField today)
+
+## Summary of Changes
+
+Shipped in @cssints/headless 0.13.0 (PR #63): src/textbox.ts, README section, browser tests (6 each), changeset. No APG pattern exists for either, so the browser tests are the oracle.
