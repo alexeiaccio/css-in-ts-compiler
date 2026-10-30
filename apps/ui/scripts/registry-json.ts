@@ -11,6 +11,8 @@ import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
 const read = (path: string): string => readFileSync(join(root, path), "utf8");
+const templateRoot = join(root, "..", "..", "templates", "solid-vite");
+const readTemplate = (path: string): string => readFileSync(join(templateRoot, path), "utf8");
 
 const target = (name: string): string => `src/components/ui/${name}`;
 
@@ -21,12 +23,24 @@ interface ItemFile {
   readonly content: string;
 }
 
-const file = (targetPath: string, type: ItemFile["type"], source: string): ItemFile => ({
+const content = (targetPath: string, type: ItemFile["type"], text: string): ItemFile => ({
   path: targetPath.replace("src/components/ui/", ""),
   target: targetPath,
   type,
-  content: read(source),
+  content: text,
 });
+
+// A copy lands flat in `src/components/ui/`, while a component is authored one directory deeper
+// (`src/registry/<name>/`): an import of a kit file loses its `../` and keeps the name it has in
+// the copy (`../theme.ts` is `./theme.ts` there, `../input/input.tsx` is `./input.tsx`).
+const flatten = (text: string): string =>
+  text
+    .replaceAll('"../theme.ts"', '"./theme.ts"')
+    .replaceAll('"../render.tsx"', '"./render.tsx"')
+    .replaceAll('"../input/input.tsx"', '"./input.tsx"');
+
+const file = (targetPath: string, type: ItemFile["type"], source: string): ItemFile =>
+  content(targetPath, type, flatten(read(source)));
 
 interface Starter {
   readonly name: string;
@@ -163,7 +177,14 @@ const kitFiles = (item: Starter) => [
           "registry:file",
           `src/registry/${item.name}/${item.name}.browser.test.tsx`,
         ),
-        file("src/vitest.browser.config.ts", "registry:file", "vitest.browser.config.ts"),
+        // The copy's own config and the sheet its test loads: the template's, so a project that
+        // does not start from the template gets the same setup `npm test` runs.
+        content(
+          "src/vitest.browser.config.ts",
+          "registry:file",
+          readTemplate("vitest.browser.config.ts"),
+        ),
+        content("src/sheet.ts", "registry:file", readTemplate("src/sheet.ts")),
       ]
     : []),
 ];
@@ -178,7 +199,7 @@ const starter = (item: Starter) => ({
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
   // `solid-js` rc, which this item cannot know.
-  devDependencies: item.tested ? ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"] : [],
+  devDependencies: item.tested ? ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"] : [],
   registryDependencies: ["@cssints/theme", ...(item.also ?? [])],
   files: kitFiles(item),
 });
