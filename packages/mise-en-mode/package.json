@@ -1,6 +1,6 @@
 {
   "name": "@cssints/mise-en-mode",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Mise en Mode for cssints: looks are themes in the layers app < author < viewer, set on data-mode scopes",
   "license": "MIT",
   "repository": {
@@ -47,7 +47,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.17.0"
+    "cssints": "^0.18.0"
   },
   "engines": {
     "node": ">=22"
