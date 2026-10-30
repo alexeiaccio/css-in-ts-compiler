@@ -1,6 +1,6 @@
 {
   "name": "@cssints/reveal",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Scroll-driven and scroll-triggered entrance animations for cssints: motion's presets on animation-timeline: view() (reveal) or on CSS animation triggers (appear), with a tiny IntersectionObserver fallback",
   "license": "MIT",
   "repository": {

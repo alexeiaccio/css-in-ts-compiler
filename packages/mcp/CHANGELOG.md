@@ -1,5 +1,13 @@
 # @cssints/mcp
 
+## 0.13.1
+
+### Patch Changes
+
+- @cssints/css-grammar@0.13.1
+  - cssints@0.13.1
+  - @cssints/devtools@0.13.1
+
 ## 0.13.0
 
 ### Patch Changes
