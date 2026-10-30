@@ -279,6 +279,9 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
   node browser/ime-check.mjs
   node browser/dev-check.mjs
   node browser/touch-check.mjs
+  # the dev server (browser/serve.ts): a .ts save rebuilds the bundles and reloads the page, a .c save rebuilds the wasm,
+  # a broken .c keeps the last good artefact and says why; on a temp copy of the tree (browser/serve-check.mjs)
+  node browser/serve-check.mjs
 else
   echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/dialog-check.mjs && node browser/dev-check.mjs && node browser/ime-check.mjs && node browser/touch-check.mjs)"
   echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/input-check.mjs && node browser/dev-check.mjs && node browser/ime-check.mjs && node browser/touch-check.mjs)"
