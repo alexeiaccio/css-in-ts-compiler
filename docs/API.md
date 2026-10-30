@@ -1377,6 +1377,52 @@ createPopover(options?: {
 
 `attach` is the DOM contract: on open it measures and places the content (and again on resize, scroll and a `ResizeObserver`), focuses the content's first focusable element (else the content, which is `tabindex="-1"`), and on close returns the focus to the trigger unless the close came from an outside `pointerdown` — that one leaves the focus where the page put it. The page behind stays interactive: there is no `inert`, no scroll lock and no Tab cycle, and the content is not a menu (no roving focus: `createMenu` in a popover owns its items). The rects and the viewport passed to `position` must share a space; `attach` measures in client space and writes page space for `position: absolute`.
 
+### Headless: `createDrawer` (`@cssints/headless`)
+
+The drawer / sheet shell: an edge-anchored panel over Dialog (Modal), with the focus, Escape, scroll-lock and backdrop behaviour of `createConfirm`. **No APG pattern exists for a drawer or a bottom sheet**; [packages/headless/docs/bottom-sheet.md](../packages/headless/docs/bottom-sheet.md) settles that the library composes instead of adding a sheet primitive (the semantics are Dialog, the position and the snap points are native CSS), and this is the shell that decision left to exist. Its oracle is `packages/headless/test/drawer.browser.test.tsx`.
+
+```ts skip
+createDrawer(options?: {
+  id?: string | undefined;
+  open?: boolean | undefined; // controlled: the host owns the state
+  defaultOpen?: boolean | undefined;
+  side?: "left" | "right" | "bottom" | undefined; // "right"; presentation only
+  modal?: boolean | undefined; // true; read at every attribute read (the breakpoint switch)
+  breakpoint?: number | undefined; // px; documented only: the host watches it and passes side / modal
+  dismissable?: boolean | undefined; // true; a backdrop click or an outside pointerdown
+  labelledby?: string | undefined; // the panel needs a name
+  onOpenChange?(open: boolean): void;
+}): {
+  open(): boolean;
+  side(): "left" | "right" | "bottom";
+  triggerProps: {
+    id;
+    "aria-haspopup": "dialog";
+    "aria-expanded": "true" | "false";
+    "aria-controls": string;
+    onClick(): void; // toggles
+    onKeyDown(event: KeyboardEvent): void; // Enter / Space open
+  };
+  backdropProps: { id; hidden: boolean; onClick(): void }; // always hidden when closed or not modal
+  contentProps: {
+    id;
+    role: "dialog";
+    "aria-modal": "true" | undefined; // by modal, and undefined while closed
+    "aria-labelledby": string | undefined;
+    tabindex: -1;
+    hidden: boolean;
+    onKeyDown(event: KeyboardEvent): void; // Escape closes
+  };
+  handleProps: { "aria-hidden": "true" }; // a bottom sheet's grab handle; decorative
+};
+```
+
+`side` and `modal` are the whole presentation API: a sheet is `{ side: "bottom", modal: true }`, a side rail is `{ side: "right" }`, and a non-modal rail is `{ side: "right", modal: false }`. `modal` is read at attribute-read time, so a host that watches the breakpoint may flip it while the drawer is open and the backdrop, `aria-modal` and the lock follow; `breakpoint` itself is not read, because the primitive has no viewport and the host owns the `matchMedia`.
+
+A modal drawer is `aria-modal="true"` with a backdrop, focus moves to the panel's first focusable on open (else the panel, `tabindex="-1"`) and back to the trigger on close, Tab and Shift+Tab cycle inside it, `overflow: hidden` is set on `document.documentElement` (counted, and shared with `createConfirm`, so a confirm over a drawer nests), and Escape is read from the document in the capture phase, so it closes wherever the focus is. A non-modal drawer keeps the page's scroll, focus and clicks: no `aria-modal`, no backdrop, no lock, no Tab trap; an outside `pointerdown` still dismisses it when `dismissable`, and Escape still closes it. `dismissable: false` pins the drawer against the backdrop and the outside pointerdown only.
+
+**No drag-to-dismiss and no `attach`.** A drag would be a JS re-implementation of the native scroll snap the host writes (see bottom-sheet.md), so `handleProps` is decoration with no pointer handlers, and the ways out are the backdrop, Escape, a close control in the panel and the trigger. The panel is edge-anchored, so nothing is measured: focus and the Tab cycle find it through `contentProps.id`.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
