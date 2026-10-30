@@ -2503,3 +2503,47 @@ editing, and the plain tablist still walking and ignoring Delete.
 
 **Left**: no `deletable` scenario file (the model can carry it, the ported scenarios do not), no controlled close, and
 add-a-tab stays the host's (append, then `focusTab` + `begin`); nothing about the model or a `setItems` was needed.
+
+## The two ARIA gaps the form-controls kit hit: a menu's open state and a group's name (packages/headless, 2026-10-30)
+
+The kit shipped `Menu` and `CheckboxGroup` with host-side workarounds: a menu that could not be controlled, and a group
+whose `label` the kit applied as `aria-label` itself because the primitive had no name and no error state. Both are ARIA
+plumbing, not new behaviour, and both are now in the primitives.
+
+**`createMenu` takes the open state as a request/commit pair.** `open` (+ `onOpenChange`) for a host that owns it,
+`defaultOpen` for the one that does not, built on `src/controllable.ts` as `createCombobox`, `createDialogModal` and
+`createListbox` do. Every intent that opens or closes is a request: the trigger's click, Enter / Space / ArrowDown /
+ArrowUp, Escape, an item's activation, Tab, and the programmatic `openMenu` / `closeMenu`. `menu-button.qnt` already
+models exactly this axis (`controlled`, `accepting`, `valueProp`, `requested`, `outcome`, `requests`, and
+`ControlledFollowsProp` / `RejectedRequestUntouched` / `AcceptedRequestCommits`), so **no spec change was needed to add
+it** — the walk was simply not wired to it, and the fixture's `setValue` / `hostToggle` were inert. Both are wired now:
+`menu-button.browser.test.tsx` runs the differential walk uncontrolled, accepting, holding, and controlled-open, plus two
+plain cases (a holding host ignores a close and Escape / an activation, an accepting one moves the focus with the state).
+
+The spec's invariant `ExpandedIffFocusInMenu` decided the implementation: the focus level is derived from the open state
+(2 exactly while open), so there is one state to request and one place to move the focus. A rejected request reverts the
+whole transition, focus included, which the walk checks; a request is a no-op when the intent equals the state, so
+`onOpenChange` fires only for a real change (the spec's `moves`). One spec change _was_ needed, and is minimal: the model's
+`setValue` moved the focus to the first item / the trigger even when the host wrote the value it already had, and no widget
+can observe that write — a signal set to its current value notifies nothing. The focus assignment is now guarded by
+`v != menuOpen`, which keeps every invariant; regenerated with `generate:all`, and only `menu-button.{qnt,model,scaffolding}`
+moved.
+
+**`createCheckboxGroup` gets `createField`'s contract for its name, its description and its error.** `label` is
+`aria-label`, `labelledby` names the host's own label element (a `role="group"` is not a `<label for>` target, so the
+field's `labelProps.for` is not reused), `describedby` is appended after the error id, and `invalid` / `error` are the
+field's: an error implies invalid, a string `invalid` is the flag and the message, `invalid: false` wins over a message,
+`aria-invalid` only while invalid, the error id in `aria-describedby` only while it is shown, and an `errorProps` element
+that is `role="alert"` while shown. The group element gets an `id` (`<base>-control`) so a controller can name it with
+`aria-controls`. The checked set, the tri-state derivation and the mixed memory are untouched. `checkbox-group.qnt`
+deliberately omits labelling ("shift+Tab, accessible names, fieldset/legend or role=group labelling" in its header), so
+nothing there changed; the field contract is checked by plain assertions in `checkbox-group.browser.test.tsx`.
+
+The kit keeps its shapes: `CheckboxGroup` still takes `label` (now optional and passed through), and gains `labelledby`,
+`describedby`, `invalid` and `error`, spreading the primitive's group ARIA and always rendering the error element the
+primitive names; `Menu` gains `open` / `defaultOpen` / `onOpenChange` and its outside-click dismiss (`menu.leave`) is a
+request too, so a host that holds `open` keeps the menu. **Left**: the checkable menu's `value` and the open state are two
+independent request pairs with one `onOpenChange` each, so a host that controls both passes both (the kit's `Menu` does not
+expose the checkable variants); the group's children keep their bare `"0"`/`"1"`/`"2"` ids, so two groups on one page
+collide until that becomes a bug worth the fixture churn; and the parent controller still has no `aria-controls` on its
+children, which the spec's header names but does not model.

@@ -1592,6 +1592,67 @@ Wheel zooms **only with `ctrl` / `meta`** held: the browser's pinch gesture arri
 
 The host owns the box and the look: the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan, `transform-origin: 50% 50%` (the default this maths assumes), and any transition on the transform. Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused. Not modelled: inertia, rotation, and pinching on platforms without `PointerEvent` (the browser's own pinch is the `ctrl+wheel` path).
 
+### Headless: `createMenu` (`@cssints/headless`)
+
+The APG menu family (`createMenu` for the menu button and the checkable menus, `createMenubar` for the roving bar) as state and attribute objects. Its behaviour is `specs/apg/menu-button.qnt` and `menu-checkable.qnt`, and `packages/headless/test/menu-button.browser.test.tsx` replays the generated models, ported scenarios and seeded differential walks against it.
+
+```ts skip
+createMenu(options: {
+  items: ReadonlyArray<string | { label: string; kind?: "item" | "checkbox" | "radio"; checked?: boolean; disabled?: boolean }>;
+  variant?: "plain" | "checkbox-items" | "radio-items" | "mixed" | undefined; // "plain"
+  open?: boolean | undefined; // controlled: the host owns the open state
+  defaultOpen?: boolean; // uncontrolled starting state
+  onOpenChange?(open: boolean): void; // a request the host may ignore
+  value?: number | undefined; // controlled checked items, packed (checkboxItem0 * 5 + radioChoice, 1-based)
+  defaultValue?: number;
+  onCheckedValueChange?(value: number): void;
+  triggerMode?: "outside" | "held" | undefined; // where the focus sits while the menu is closed
+  disabled?: ReadonlyArray<number>; // focusable, never activated
+  id?: string | undefined;
+  onItemClick?(index: number): void;
+}): {
+  open(): boolean;
+  focusLevel(): 0 | 1 | 2; // 0 outside, 1 on the trigger, 2 on an item
+  focusIndex(): number;
+  openMenu(): void; // a request, like every intent
+  closeMenu(): void;
+  keyDown(key: string): void;
+  // …items, triggerProps, menuProps, itemProps(index), type(), setFocusItem()
+};
+```
+
+**The open state is a request/commit pair**, like every other controlled primitive: `open` (+ `onOpenChange`) makes the host own it, `defaultOpen` starts it. Every intent that opens or closes — the trigger's click and its keys, Escape, an item's activation, Tab, an outside click in a kit, the programmatic `openMenu` / `closeMenu` — is a request, so a host that holds `open` keeps the menu open and the focus where it was; `menu-button.qnt` reverts the whole transition of a rejected request, focus included. A write the host makes on its own is not a request: it takes the focus to the first item when it opens and to the trigger when it closes, and a write of the value it already has moves nothing (no widget can observe it).
+
+### Headless: `createCheckboxGroup` (`@cssints/headless`)
+
+The APG Checkbox pattern's tri-state group controller: exactly three child values, a controller whose `aria-checked` is derived from them (all / none / mixed) with the optional "remember the last mixed combination" cycle, checked against `specs/apg/checkbox-group.qnt`. Its name, description and error are `createField`'s contract on the `role="group"` element, which the model leaves out on purpose (its header omits labelling), so `packages/headless/test/checkbox-group.browser.test.tsx` is their oracle.
+
+```ts skip
+createCheckboxGroup(options: {
+  values: ReadonlyArray<T>; // exactly three
+  value?: ReadonlyArray<T> | undefined; // controlled checked subset
+  defaultValue?: ReadonlyArray<T>;
+  parent?: boolean; // the "all" controller is a focus stop
+  remember?: boolean; // the third activation restores the last mixed combination
+  id?: string | undefined; // base of `<id>-control` (the group element) and `<id>-error`
+  label?: string | undefined; // the group's name, as aria-label
+  labelledby?: string | undefined; // the id of the host's own label element; wins over `label`
+  describedby?: string | undefined; // host-owned description ids, after the error
+  invalid?: boolean | string | undefined; // like createField: a string is the flag and the message
+  error?: string | undefined; // the error shown; implies invalid, `invalid: false` silences it
+  onValueChange?(checked: ReadonlyArray<T>): void;
+}): {
+  invalid(): boolean;
+  error(): string | undefined; // only while invalid
+  describedIds(): readonly string[]; // the error id while shown, then describedby
+  groupProps: { id; role: "group"; "aria-label"; "aria-labelledby"; "aria-describedby"; "aria-invalid"; onKeyDown };
+  errorProps: { id; hidden; role }; // role "alert" while shown; render it always
+  // …children, parentChecked, checkedValues(), click(target), keySpace(), groupProps' onKeyDown
+};
+```
+
+The group is not a `<label for>` target: pass `labelledby` naming the host's own label element, or `label` without one. The error id is in `aria-describedby` only while the error is shown, `aria-invalid` only while the group is invalid, and the group element's own id is there for a controller that names it with `aria-controls`. The checked set is unchanged by all of this: the request/commit split and the spec stay as they were.
+
 ### Headless: `createSlider` and `createSpinbutton` (`@cssints/headless`)
 
 The two number controls. Their behaviour is `packages/apg-specs/specs/apg/slider.qnt` and `spinbutton.qnt`, checked against the real DOM by the differential walk in `packages/headless/test/slider.browser.test.tsx` and `spinbutton.browser.test.tsx`. Options are plain and read lazily (a getter is fine); `value` + `onValueChange` make the widget controlled, `defaultValue` is the uncontrolled start.
