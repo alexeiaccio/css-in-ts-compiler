@@ -106,6 +106,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --lightness-100: 0.296725;
+    --lightness-200: 0.353616;
+    --lightness-300: 0.410821;
+    --lightness-400: 0.469058;
+    --lightness-500: 0.519076;
+    --lightness-600: 0.579699;
+    --lightness-700: 0.561347;
+    --lightness-800: 0.592866;
+    --lightness-900: 0.623039;
+    --lightness-1000: 0.670121;
+    --lightness-1100: 0.723297;
+    --lightness-1200: 0.791773;
+    --lightness-1300: 0.851751;
+    --lightness-1400: 0.911434;
+    --lightness-1500: 0.952045;
+    --lightness-1600: 1;
     --color-gray-100: oklch(0.296725 0 0);
     --color-gray-200: oklch(0.353616 0 0);
     --color-gray-300: oklch(0.410821 0 0);
@@ -138,11 +154,41 @@
     --color-tint-1400: oklch(0.911434 var(--chroma-tint) var(--hue-tint));
     --color-tint-1500: oklch(0.952045 var(--chroma-tint) var(--hue-tint));
     --color-tint-1600: oklch(1 var(--chroma-tint) var(--hue-tint));
+    --color-page: #1b1b1b;
+    --color-surface: oklch(22% 0 0);
+    --color-overlay-border: rgb(255 255 255 / 0.2);
+    --shadow-popover-color: rgb(0 0 0 / 0.5);
+    --shadow-popover-offset-x: 0;
+    --shadow-popover-offset-y: 8px;
+    --shadow-popover-blur: 20px;
+    --shadow-popover-spread: 0;
   }
 }
 
 @media (forced-colors: active) {
   :root {
-
+    --color-page: Canvas;
+    --color-surface: Canvas;
+    --color-text: ButtonText;
+    --color-text-hover: ButtonText;
+    --color-muted: ButtonText;
+    --color-placeholder: ButtonText;
+    --color-text-disabled: GrayText;
+    --color-link: LinkText;
+    --color-link-pressed: LinkText;
+    --color-border: ButtonBorder;
+    --color-border-hover: ButtonBorder;
+    --color-border-disabled: GrayText;
+    --color-field-text: FieldText;
+    --color-focus-ring: Highlight;
+    --color-highlight: Highlight;
+    --color-highlight-pressed: Highlight;
+    --color-on-highlight: HighlightText;
+    --color-invalid: LinkText;
+    --color-highlight-invalid: LinkText;
+    --color-button-background: ButtonFace;
+    --color-button-background-pressed: ButtonFace;
+    --color-overlay-background: Canvas;
+    --color-overlay-border: ButtonBorder;
   }
 }

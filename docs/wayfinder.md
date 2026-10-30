@@ -2246,3 +2246,14 @@ port is a flat list of `treeitem`s painted from `aria-level`, `aria-expanded` an
 headless fixture also needs (the primitive moves its roving node; the host moves the DOM focus). **Left**: a row deeper than
 the third level keeps the third level's indent; the alert has no dismiss button (the primitive's `dismissProps` waits for a
 page that wants one); the skeleton's pulse is the only motion in the kit, and the item reads `prefers-reduced-motion` once.
+
+## The plain `theme.css` carries the whole theme again (apps/ui, 2026-10-30)
+
+`scripts/theme-css.ts` walks the token data and writes a custom property per leaf, but it only took leaves spelled
+`{ $value }`. A theme override is a plain value (`darkTheme.color.page = "#1b1b1b"`, and every entry of
+`forcedColorsTheme`), so `theme.css`'s dark block carried the scales only — `--color-page` and `--color-surface` stayed
+light on a dark page — and the forced-colors block was empty. The generator now writes a string leaf too, so the file a
+no-plugin project reads is the whole theme: 194 lines instead of 148, with `--color-page: #1b1b1b` in the dark block and
+`--color-page: Canvas` under `forced-colors`. Found while the guide pages documented the limit as a fact
+(`#theming`, "theme.css, the plain twin"); the paragraph now says what is genuinely missing, the layer model, which a flat
+file cannot express. `theme:check` compares bytes, so the regenerated file is the one CI sees.

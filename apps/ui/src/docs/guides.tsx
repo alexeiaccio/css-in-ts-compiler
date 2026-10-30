@@ -401,11 +401,11 @@ const ThemingPage = (): JSX.Element => (
       </p>
       <Code code={THEME_CSS} />
       <p class="docs__note">
-        Its honest limit: the generator writes the leaves spelled <code>{"{ $value }"}</code>, so
-        the dark block carries the scales (the gray and tint steps) and the flat values stay on{" "}
-        <code>:root</code> — <code>--color-page</code>, <code>--color-surface</code> and the popover
-        shadow do not follow the mode there, and the forced-colors block is empty for the same
-        reason. The plugin's <code>theme.ts</code> writes all of them.
+        The dark and forced-colors blocks carry the whole theme, the scales and the flat values
+        alike: a theme override is written as a plain value there (<code>page: "#1b1b1b"</code>),
+        and the generator writes both spellings. What it cannot express is the layering: the file is
+        flat, so a host's <code>look()</code> in the <code>author</code> or <code>viewer</code>{" "}
+        layer needs the plugin, and a plain-CSS project replaces the tokens it wants instead.
       </p>
     </Section>
 
