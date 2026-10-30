@@ -24,8 +24,10 @@ import { Input } from "../registry/input/input.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
+import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
@@ -159,6 +161,35 @@ const DialogDemo = (): JSX.Element => {
     </Dialog>
   );
 };
+
+// The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
+// or Escape closes it, and a pointer outside the anchor is the third way out.
+const MenuDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Menu items={["Rename", "Duplicate", { label: "Delete", disabled: true }]}>
+      <MenuTrigger>Actions</MenuTrigger>
+      <MenuContent />
+    </Menu>
+    <Menu items={["Cut", "Copy", "Paste"]}>
+      <MenuTrigger>Edit</MenuTrigger>
+      <MenuContent />
+    </Menu>
+  </div>
+);
+
+const TooltipDemo = (): JSX.Element => (
+  <div class="demo-row">
+    <Tooltip>
+      <TooltipTrigger>Delete</TooltipTrigger>
+      <TooltipContent>Deletes the file. There is no undo.</TooltipContent>
+    </Tooltip>
+    {/* render puts the trigger's props on the caller's element: anything focusable can be described */}
+    <Tooltip>
+      <TooltipTrigger render={(props) => <a {...props} href="#share" />}>Share</TooltipTrigger>
+      <TooltipContent>Copies a link to this file</TooltipContent>
+    </Tooltip>
+  </div>
+);
 
 const InputDemo = (): JSX.Element => (
   <div class="demo-column">
@@ -337,4 +368,6 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   meter: MeterDemo,
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
+  menu: MenuDemo,
+  tooltip: TooltipDemo,
 };

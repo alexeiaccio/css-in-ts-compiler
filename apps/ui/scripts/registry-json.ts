@@ -206,6 +206,24 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Tree view",
     description: "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
   },
+  {
+    name: "menu",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Menu",
+    description:
+      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "tooltip",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Tooltip",
+    description:
+      "APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`",
+    also: ["@cssints/button"],
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
