@@ -9,17 +9,17 @@
     "test": "vp test run --config vitest.browser.config.ts"
   },
   "dependencies": {
-    "@cssints/headless": "^0.6.0",
+    "@cssints/headless": "^0.12.1",
     "@solidjs/web": "2.0.0-rc.13",
     "solid-js": "2.0.0-rc.13"
   },
   "devDependencies": {
-    "@cssints/apg-specs": "^0.6.0",
+    "@cssints/apg-specs": "^0.12.1",
     "@quint-machine/core": "0.1.0",
     "@solidjs/vite-plugin": "3.0.0-next.47",
-    "@vitest/browser-playwright": "5.0.1",
-    "cssints": "^0.6.0",
+    "@vitest/browser-playwright": "5.0.5",
+    "cssints": "^0.12.1",
     "playwright": "1.64.1",
-    "vite-plus": "1.0.0"
+    "vite-plus": "1.4.0"
   }
 }
