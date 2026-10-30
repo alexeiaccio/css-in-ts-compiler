@@ -1,6 +1,6 @@
 {
   "generatedFrom": "../../specs/apg/menu-button.qnt",
-  "specHash": "f7bae37e4eea0a7fed07c26085f022035ad1d13c0802bfa3f43dc734251bc3cf",
+  "specHash": "8636cd7e8489abe537f78fcdfd70fef48666a438e85da14e781d9e13aec55014",
   "module": "apg_menu_button",
   "vars": [
     {
@@ -5159,8 +5159,28 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "controlled"
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "v"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "menuOpen"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "kind": "app",
@@ -5194,8 +5214,28 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "controlled"
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "v"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "menuOpen"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "kind": "app",

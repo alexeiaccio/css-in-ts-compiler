@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/menu-button.qnt
-// Spec hash (sha256): f7bae37e4eea0a7fed07c26085f022035ad1d13c0802bfa3f43dc734251bc3cf
+// Spec hash (sha256): 8636cd7e8489abe537f78fcdfd70fef48666a438e85da14e781d9e13aec55014
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";

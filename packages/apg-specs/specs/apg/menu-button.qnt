@@ -24,7 +24,9 @@
 //   controlled, accepts the host answers with the same value (`accepting`): the
 //                       transition commits through the controlled value
 // `valueProp` is the only thing that changes `menuOpen` while `controlled`;
-// `setValue` / `hostToggle` are the host writing it. `control` / `acceptRequests`
+// `setValue` / `hostToggle` are the host writing it, and a write that changes it
+// takes the focus with it (a write of the value it already has is unobservable
+// and moves no focus). `control` / `acceptRequests`
 // are configuration events (init is literal-only). A rejected request reverts
 // the *whole* transition (focus included), so the ARIA invariants still hold.
 //
@@ -272,12 +274,15 @@ module apg_menu_button {
     }
   }
 
-  // commit: the host writes the controlled open state (a no-op while uncontrolled)
+  // commit: the host writes the controlled open state (a no-op while uncontrolled).
+  // A controlled host writing the value it already has is unobservable to the
+  // widget (nothing changes, so nothing notifies), so it moves no focus: only a
+  // write that changes the open state takes the focus with it.
   action setValue = {
     nondet v = Set(true, false).oneOf()
     all {
-      focusLevel' = if (controlled) (if (v) 2 else 1) else focusLevel,
-      focusIdx' = if (controlled) (if (v) 1 else 0) else focusIdx,
+      focusLevel' = if (and(controlled, v != menuOpen)) (if (v) 2 else 1) else focusLevel,
+      focusIdx' = if (and(controlled, v != menuOpen)) (if (v) 1 else 0) else focusIdx,
       menuOpen' = if (controlled) v else menuOpen,
       lastActivated' = lastActivated,
       controlled' = controlled,
