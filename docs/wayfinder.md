@@ -2189,3 +2189,35 @@ the page's scroll locked meanwhile — `combos.browser.test.tsx` covers the name
 lock, Escape, the backdrop click and the focus. **Left**: no portal — a dialog rendered inside a transformed ancestor is
 trapped by it, which is a host's corner and not yet a case; no nested-layer handle: a popover over a dialog wants the next `z`
 value.
+
+`packages/apg-specs`. **Left**: the frames and the generated C keep their Mac-only check, so a rendering regression on another
+platform is still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
+
+## The starter smoke checks every item of the repo's registry (2026-10-30)
+
+The starter smoke (`scripts/starter-smoke.mjs`, the `ui` workflow's last check) added `@cssints/switch` from the live registry
+and ran its copied test, so one item stood for thirteen, and an item added in the same commit could not be checked there at
+all: `packages.cssints.dev` is deployed from master a few minutes after the run. It now serves `apps/ui/r` from a `node:http`
+static server on an ephemeral port, points the copy's `components.json` at that server and adds every item of `r/registry.json`
+by its `@cssints/<name>` address (the namespaced form, so `components.json` is part of what is checked). One `npm install`, one
+`npm test` for every copied `*.browser.test.tsx`, one `npx tsc --noEmit` over the copy; the live `@cssints/switch` is added
+last, so the published JSON and the CDN are still exercised. `tested` is read off the item's files, so a new item is covered
+without editing the script. About 1.5 to 2 minutes locally, one browser run.
+
+The first run found the chain broken in five places, none visible with the old live switch (an item from before the starters
+were rewritten): every item imported its kit files one level up (`../theme.ts`, `../render.tsx`, `../input/input.tsx`) — true in
+`src/registry/<name>/`, wrong in the flat `src/components/ui/` copy, where the plugin could not load `../theme.ts`, so
+`registry-json.ts` rewrites those three specifiers when it flattens; the template pinned `@cssints/headless`, `cssints` and
+`@cssints/apg-specs` at `^0.6.0`, and npm's caret stops at 0.6.1, which has no `createTokens`, `check` or `media` (the eval
+failed with `Cannot destructure property 'check' of … as it is undefined`), so they are `^0.12.1` now, the items'
+`@cssints/apg-specs` devDependency with them; the template's `vitest.browser.config.ts` was the pre-skins one, without
+`evaluation: { inline }`, `test.css` or the sheet, so the radio's ariakit clicks and the switch's clicks read a state the
+page never changed (194 tests pass with the working config, 17 switch
+tests fail without the sheet); the tested item shipped apps/ui's own config, whose `setupFiles` names `src/registry/sheet.ts`,
+a path a copy does not have — it ships the template's config and `src/sheet.ts` now; and the runner was vite-plus 1.0.0 with
+`@vitest/browser-playwright` 5.0.1, which reloaded the page mid-test when it first discovered the `cssints/derived` the plugin
+injects, so both are the repo's versions now (1.4.0, 5.0.5) and that subpath is in `optimizeDeps.include`.
+
+**Left**: the live registry still serves the pre-2026-10-29 items until the deploy runs (the live add writes the old
+`switch.css`), so that last step proves the CDN and the published JSON, not the current components; the template's test run
+still prints "multiple instances of Solid" while every test passes, which is the runner's warning rather than a failure.
