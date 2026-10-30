@@ -1,5 +1,26 @@
 # @cssints/headless
 
+## 0.19.0
+
+### Minor Changes
+
+- ce545d1: `createDropZone`: a file drop target on a hidden native `<input type="file">`, with a browse button as the accessible path
+  (the zone is never drag-only), `accept` / `multiple` / `maxSize` validated once per file into `onFiles` and
+  `onReject({ file, reason })`, a depth-counted `dragging()` that a child's `dragleave` does not clear, and a
+  `role="status"` line the host fills with `message()` ("2 files, 1 rejected: too large"). A dropped folder or an empty
+  `DataTransfer` is a no-op. No APG pattern and no Quint spec: `test/dropzone.browser.test.tsx` is its oracle.
+- 2022f38: `createSlider` and `createSpinbutton` take `disabled`: a disabled slider announces `aria-disabled` on its thumb, keeps
+  the thumb as its tab stop and drops every key and rail press; a disabled spinbutton's field announces `aria-disabled`
+  and carries the native `disabled`, takes no typing or spin key, and offers neither stepper. The APG specs record it as a
+  deliberate extension of the patterns (no model var), so the browser tests are its oracle.
+- 77a2c2c: `createTabs` takes `closable` and `renamable` (both off by default, so the plain tablist is unchanged), `label`, and
+  the requests `onClose` / `onRename`; it gains `closeProps`, `renameProps`, `editing`, and `focusAfterClose`. A close
+  button stays out of the tablist's tab order (`tabindex=-1`) and Delete closes the focused tab; focus lands on the tab
+  that slid into its place, or the previous one when the last tab closed, and the last remaining tab is never asked to
+  close. A double click starts an inline rename: Enter commits, Escape reverts, blur commits, and the arrows are the
+  input's while it runs. The primitive owns no list: it asks, the host removes or renames.
+- 6d09aa0: `createTimeline` takes real span data: `createTimeline({ rows, axis, selected, onSelect })` lays a trace waterfall out over the rows' own extent (`extent`, `barProps` with `left`/`width` percentages and a `--depth` custom property, `labelProps`, `depthOf`, derived ruler `ticks`), with click, Enter and Space selection and a roving tab stop. The rows are `role="list"` / `role="listitem"` with `aria-level` and `aria-current` (no APG pattern exists for a waterfall), and a zero-length span keeps a 0.5% width floor so it stays visible. `createTimeline()` with no `rows` keeps the demo tree and its API.
+
 ## 0.18.0
 
 ### Minor Changes
