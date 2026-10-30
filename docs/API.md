@@ -1291,6 +1291,49 @@ createConfirm(options?: { id?: string | undefined; onOpenChange?(open: boolean):
 
 `confirm()` resolves `true` on confirm and `false` on cancel, Escape and a backdrop click. A second request while one is pending rejects with `ConfirmPendingError` (it is not queued). Focus goes to the cancel button on open and back to the element that had it when `confirm()` was called. While it is open the dialog has a shell: Tab and Shift+Tab cycle inside it, `overflow: hidden` is set on `document.documentElement` (restored on close; counted, so nested confirms restore it once), and Escape is read from the document in the capture phase, so it works with the focus outside the dialog. Confirms from different `createConfirm` calls may be open together: the last opened gets Escape and Tab. The default labels stay English; a translating host passes `confirmLabel` and `cancelLabel` with each request.
 
+### Headless: `createPopover` (`@cssints/headless`)
+
+**No APG pattern exists** for a popover (APG has Dialog, which is modal), so it has no Quint spec and no ported scenarios: `packages/headless/test/popover.browser.test.tsx` is its oracle. The behaviour is copied from Base UI's Popover (a trigger click toggles, Enter / Space / ArrowDown open, an outside `pointerdown` light-dismisses without stealing focus) and React Aria's `usePopover` (focus into the content on open and back to the trigger on close, `role="dialog"` without `aria-modal`, a placement that flips at the viewport edge).
+
+```ts skip
+createPopover(options?: {
+  id?: string | undefined;
+  open?: boolean | undefined; // controlled: the host owns the state
+  defaultOpen?: boolean | undefined;
+  placement?: "bottom-start" | "bottom" | "bottom-end" | "top-start" | "top" | "top-end" | undefined; // "bottom"
+  offset?: number | undefined; // the gap to the trigger, 4
+  modal?: false; // a popover is never modal: inert, the scroll lock and the Tab trap are createDialogModal's
+  onOpenChange?(open: boolean): void;
+}): {
+  open(): boolean;
+  triggerProps: {
+    id;
+    "aria-haspopup": "dialog";
+    "aria-expanded": "true" | "false";
+    "aria-controls": string;
+    onClick(): void;
+    onKeyDown(event: KeyboardEvent): void; // Enter / Space / ArrowDown open
+  };
+  contentProps: {
+    id;
+    role: "dialog";
+    "aria-modal": undefined; // always: not modal
+    tabindex: -1;
+    hidden: boolean;
+    onKeyDown(event: KeyboardEvent): void; // Escape closes, and focus goes back to the trigger
+  };
+  contentStyle(): { position: "absolute"; top: string; left: string }; // the last measure
+  position(
+    triggerRect: { top; left; width; height },
+    contentRect: { top; left; width; height },
+    viewport: { width; height },
+  ): { top: number; left: number; placement: PopoverPlacement }; // pure; flips at the viewport edge
+  attach(trigger: HTMLElement, content: HTMLElement): () => void; // call from a ref; returns the teardown
+};
+```
+
+`attach` is the DOM contract: on open it measures and places the content (and again on resize, scroll and a `ResizeObserver`), focuses the content's first focusable element (else the content, which is `tabindex="-1"`), and on close returns the focus to the trigger unless the close came from an outside `pointerdown` — that one leaves the focus where the page put it. The page behind stays interactive: there is no `inert`, no scroll lock and no Tab cycle, and the content is not a menu (no roving focus: `createMenu` in a popover owns its items). The rects and the viewport passed to `position` must share a space; `attach` measures in client space and writes page space for `position: absolute`.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.

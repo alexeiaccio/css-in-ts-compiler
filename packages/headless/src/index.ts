@@ -64,6 +64,7 @@ export * from "./dialog-modal";
 export * from "./feed";
 export * from "./field";
 export * from "./pagination";
+export * from "./popover";
 export * from "./grid";
 export * from "./link";
 export * from "./listbox";
