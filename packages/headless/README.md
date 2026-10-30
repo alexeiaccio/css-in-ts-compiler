@@ -359,6 +359,8 @@ const timeline = createTimeline({
 
 `createTabs` is the APG tablist: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). The plain widget is checked against `specs/apg/tabs.qnt` by the scenario bridge and the differential walk in `test/tabs.browser.test.tsx`.
 
+Its accessibility requirements — one row per requirement, each naming the Quint invariant, browser test or manual AT row that holds it, and the gaps still open — are `docs/requirements/tabs.md`, written on the model in `docs/requirements/README.md`: a behaviour goes to the spec and its walk, a DOM attribute or a layout value to a browser test, and what a screen reader says to the assistive-technology table.
+
 The docs playground's file tabs add and close files and rename them, so `createTabs` also takes `closable` and `renamable` — both off by default, so the plain widget is unchanged. **The primitive never takes the list:** it asks (`onClose`, `onRename`), the host removes or renames. `label(index)` is the tab's name: it names the close and rename buttons and seeds the rename draft, and it is read lazily.
 
 ```tsx
