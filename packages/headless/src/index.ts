@@ -65,6 +65,7 @@ export * from "./drawer";
 export * from "./feed";
 export * from "./field";
 export * from "./pagination";
+export * from "./panzoom";
 export * from "./popover";
 export * from "./grid";
 export * from "./hotkeys";
