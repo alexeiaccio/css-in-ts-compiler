@@ -220,6 +220,56 @@ const remove = async () => {
 - **Labels are the host's.** The defaults, `"Confirm"` and `"Cancel"`, stay English. An app that translates passes `confirmLabel` and `cancelLabel` (and the `title`) with each request, `confirm({ title: t("unsaved"), confirmLabel: t("discard"), cancelLabel: t("keep") })`; a label left out, or `undefined`, falls back to the English default. Nothing in the options needed to change for this: `ConfirmRequest` already carried both labels.
 - `aria-labelledby` is the title and `aria-describedby` **always** the description (an alertdialog needs one), so render `descriptionProps` always: it is `hidden` when the request has no description. `triggerProps` are dialog-modal's trigger attributes without the handlers; the click that calls `confirm()` is the host's. `request()` keeps the last request after it settles, so a closing animation does not flash empty.
 
+## Toast and status
+
+Two live regions for the two sizes of feedback: `createStatus` is one `role=status` message whose text the host replaces ("Link copied", "Saved"); `createToast` is a queue of toasts, each with its own live region, a timeout, a ceiling and a countdown that pauses. Neither touches the DOM: like every primitive here they return state and attribute objects. **There is no APG pattern for either** (APG's Alert, `createAlert`, is imperative and assertive), so there is no Quint spec and `test/toast.browser.test.tsx` is the oracle. The behaviour is copied from Base UI's Toast and React Aria's Toast (a landmark, F6 into it, at least 5 s, timers paused on hover or focus, the announced text handed in rather than read from the DOM).
+
+```tsx
+const toast = createToast();
+const status = createStatus();
+
+const copy = async () => {
+  await navigator.clipboard.writeText(url);
+  status.show("Link copied");
+};
+
+const upload = async () => {
+  try {
+    await send(file);
+    toast.show({ title: "Uploaded", description: file.name, tone: "success" });
+  } catch {
+    toast.show({
+      title: "Upload failed",
+      description: "Try again from the file row",
+      tone: "error",
+    });
+  }
+};
+
+<p {...status.statusProps}>{status.message()}</p>;
+
+<div {...toast.regionProps} tabindex={-1}>
+  <For each={toast.toasts()}>
+    {(item) => (
+      <div {...toast.toastProps(item.id)}>
+        <p>{item.title}</p>
+        <p>{item.description}</p>
+        <button type="button" onClick={() => toast.dismiss(item.id)}>
+          Dismiss
+        </button>
+      </div>
+    )}
+  </For>
+</div>;
+```
+
+- **A status replaces, it does not stack.** `show(text)` writes the one region and `clear()` empties it; a second message before the first is read replaces it. A status is never for errors: an error is `createAlert` (`role=alert`, assertive), and a titled message with a timeout is a toast.
+- **Toast roles.** `toastProps(id).role` is `"alert"` for `tone: "error"` and `"status"` otherwise, so an error interrupts and the rest wait. The container is `role="region"` with `aria-label` ("Notifications" unless `labels.region`), and each toast is `aria-atomic`, so its title and description are announced as one — the toast's own text is the announcement, a close button's label included, so keep a toast to its title and description. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host.
+- **Timers.** `timeout` defaults to 5000 ms, the five seconds Base UI and React Aria call the minimum for reading a message; shorter values are for tests. One timer per toast, cleared by `dismiss`/`dismissAll` and all of them on dispose.
+- **Pause.** Hovering a toast pauses its countdown and leaving resumes it with the time it had left (the deadline is kept, not restarted); focus always pauses, because a reader who tabbed into the toast must not lose it. `pauseOnHover: false` leaves focus as the only pause.
+- **The ceiling.** `max` (default 3) keeps the newest: a `show` past it drops the oldest. `onDismiss(id)` fires for every toast that leaves, whichever way — a timeout, a dismiss, `dismissAll` or the ceiling.
+- **F6.** Base UI and React Aria enter the toast region with F6 and return with F6: the region is the target, so give it `tabindex="-1"` and focus it from the host's F6 handler, remembering the element to restore. The primitive binds no keys: global hotkeys are a separate piece (bean cssints-h0d5).
+
 ## Popover
 
 `createPopover` is the non-modal overlay: an anchored surface a trigger opens, dismissed by a click on the trigger, an outside `pointerdown` or Escape, with focus moving into it and back to the trigger. **There is no APG pattern for a popover** (APG has Dialog, which is modal), so there is no Quint spec and `test/popover.browser.test.tsx` is the oracle. It is copied from Base UI's Popover (the trigger click toggle, Enter / Space / ArrowDown, light dismiss on an outside `pointerdown` that does not steal focus) and React Aria's `usePopover` (focus in on open, back on close, `role="dialog"` without `aria-modal`, a placement that flips at the viewport edge).
