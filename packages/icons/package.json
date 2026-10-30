@@ -1,6 +1,6 @@
 {
   "name": "@cssints/icons",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Icons for cssints: iconify JSON collections and SVG folders as a mask style, no runtime",
   "license": "MIT",
   "repository": {
@@ -51,7 +51,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.14.0"
+    "cssints": "^0.15.0"
   },
   "engines": {
     "node": ">=22"
