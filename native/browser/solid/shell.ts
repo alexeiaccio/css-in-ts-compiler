@@ -42,6 +42,14 @@ interface Page {
   a11y(): unknown;
   /** An element's box from the last frame's layout (`ui.bounds`): the List's rows and thumb, the field's caret. */
   bounds(id: string): number[] | undefined;
+  /** A clip element's scroll offset, positive down (`ui.scrollOffset`; Clay's is negative down): the List's viewport's. */
+  offset(id: string): number;
+  /** Whether the last frame's pointer was a finger's (`src/frame.ts`'s `touch`): true after a touch, false after the
+   *  mouse. */
+  touch(): boolean;
+  /** The finger's events the canvas has taken (`pointerdown`/`move`/`up`/`cancel` with `pointerType: "touch"`): a check
+   *  waits on it, so it knows the renderer dispatched the event it sent. */
+  touches(): number;
   /** The frames the drawer drew and the shell painted (`ui.draws`, `ui.presents`): the dev panel's counters. */
   draws(): number;
   presents(): number;
@@ -96,10 +104,12 @@ export async function mountPage(options: Options): Promise<void> {
   const setup: Setup = { root, motion, drag, immediate: () => immediate() };
   render(options.tree(setup), root);
   const frame = createFrame(root, {
-    // the pointer goes to both hooks: the Widgets slider's drag and the page's own (the List's viewport)
-    onPointer: (x, y, down, touch) => {
+    // the pointer goes to both hooks: the Widgets slider's drag and the page's own (the List's viewport), with the
+    // finger's flag, which the shell keeps for `window.__page.touch`
+    onPointer: (x, y, down, finger) => {
+      touch = finger;
       drag.onPointer?.(x, y, down);
-      motion.onPointer?.(x, y, down, touch);
+      motion.onPointer?.(x, y, down, finger);
     },
     // a press that no element with `onPress` was under: a click on empty space blurs, as a browser's does
     onPressMiss: () => options.input?.pressMiss(),
@@ -113,6 +123,12 @@ export async function mountPage(options: Options): Promise<void> {
   let px = -1;
   let py = -1;
   let down = false;
+  // the flag the frame's pointer carries (src/frame.ts's `touch`): the mouse's events clear it, a touch's set it, and
+  // `window.__page.touch` reports what the last frame got
+  let touch = false;
+  // how many of a finger's events the canvas has taken, `window.__page.touches`: a check waits for the renderer to have
+  // dispatched the one it sent, instead of guessing a time
+  let touches = 0;
   const at = (event: MouseEvent): [number, number] => {
     const box = canvas.getBoundingClientRect();
     return [((event.clientX - box.left) * width) / box.width, ((event.clientY - box.top) * height) / box.height];
@@ -124,17 +140,58 @@ export async function mountPage(options: Options): Promise<void> {
   canvas.addEventListener("mousedown", (event) => {
     [px, py] = at(event);
     down = true;
+    touch = false;
     canvas.focus();
     immediate();
   });
   canvas.addEventListener("mouseup", (event) => {
     [px, py] = at(event);
     down = false;
+    touch = false;
     immediate();
   });
   canvas.addEventListener("mouseleave", () => {
     px = py = -1;
     down = false;
+    touch = false;
+  });
+  // A finger is the same pointer with the frame's `touch` flag: the pointer events a touchscreen sends, at the same
+  // mapping, down while the finger is on the canvas and up where it lifts. The flag is what a page's machine reads to
+  // start a drag with no click threshold (src/vscroll.ts); the mouse's path above is its own and stays `touch = false`.
+  // `touch-action: none` takes the browser's pan and zoom off the canvas — with it a finger's drag is the page's, without
+  // it the browser scrolls the document and sends a pointercancel — and the compatibility mouse events a tap would also
+  // send are cancelled here, so one tap is one press and one release. The pointer is captured on a press, so a finger
+  // that leaves the canvas mid-drag still lifts on it.
+  canvas.style.touchAction = "none";
+  canvas.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "touch") return;
+    event.preventDefault();
+    [px, py] = at(event);
+    down = true;
+    touch = true;
+    touches++;
+    canvas.setPointerCapture(event.pointerId);
+    canvas.focus();
+    immediate();
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") [px, py] = at(event), (touch = true), touches++;
+  });
+  canvas.addEventListener("pointerup", (event) => {
+    if (event.pointerType !== "touch") return;
+    [px, py] = at(event);
+    down = false;
+    touch = true;
+    touches++;
+    immediate();
+  });
+  // the browser took the gesture back (a system edge swipe): it ends where the finger last was, as a release
+  canvas.addEventListener("pointercancel", (event) => {
+    if (event.pointerType !== "touch") return;
+    down = false;
+    touch = true;
+    touches++;
+    immediate();
   });
   // SDL's wheel y is positive away from the user, and a browser's deltaY is positive scrolling down the page: the same
   // sign. `ui.wheel` feeds Clay's containers and the page's own channel; the loop drains it before the frame, as the
@@ -176,7 +233,7 @@ export async function mountPage(options: Options): Promise<void> {
   /** One iteration of the desktop's window loop: the wheel, then the frame; the canvas is drawn when the drawer drew. */
   function step(dt: number, discrete = false): boolean {
     pumpWheel();
-    const painted = draw(px, py, down, dt, discrete);
+    const painted = draw(px, py, down, dt, discrete, touch);
     if (painted) paint();
     return painted;
   }
@@ -210,6 +267,12 @@ export async function mountPage(options: Options): Promise<void> {
     pointer(x: number, y: number, isDown: boolean) {
       px = x, py = y, down = isDown;
     },
+    /** The last frame's pointer was a finger's: what a touch event set and a mouse event clears. */
+    touch: () => touch,
+    /** The finger's events the canvas has taken: `touch()` is the frame's, this is the listener's. */
+    touches: () => touches,
+    /** A clip element's offset, positive down. */
+    offset: (id: string) => -ui.scrollOffset(id),
     commands: () => readCommands(wasm),
     errors: () => ui.errors(),
     /** The last frame as desktop/clay_dump.c's JSON (browser/ui.c's `dump`), read out of the memory. */
@@ -233,7 +296,7 @@ export async function mountPage(options: Options): Promise<void> {
     bench(n = 100) {
       const t0 = performance.now();
       for (let i = 0; i < n; i++) {
-        frame(px, py, down, 1 / 60, false);
+        frame(px, py, down, 1 / 60, false, touch);
         paint();
         ctx.getImageData(0, 0, 1, 1); // a readback, so the raster is done, not just queued
       }

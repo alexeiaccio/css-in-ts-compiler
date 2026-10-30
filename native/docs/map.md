@@ -863,9 +863,49 @@ Each step ends in a check that fails when it breaks.
    window, no dead key, none of an IME's own keydowns, no several-clause `textformatupdate`), the EditContext carries no
    mirror of the field's text (`updateText` is not called, so an IME sees an empty context), the clipboard's read is the
    page's permission (the check grants `clipboard-read`/`clipboard-write`; an insecure context has no `navigator.clipboard`),
-   no touch and no pointer drag but the Widgets slider (the desktop's `list.test.ts` has it), no HMR; and the panel's live
+   no pinch or long-press, no real touchscreen on this machine (the finger's path is Chromium's own touch
+   through the DevTools protocol), no HMR; and the panel's live
    values edit through `ui.value`, but its `s` and the host's `--tune` are file paths and Bun's browser bundle stubs
    `node:fs`, so both are no-ops in the page.
+   **Done: a finger in the browser, and the two drags** (2026-10-30). The browser was the mouse's and the wheel's; a
+   touchscreen's pointer events reached no listener, so the List's rows and its thumb and the Sky's feed could not be
+   dragged with a finger — and the drawer's sixth argument was never passed (`shell.ts`'s and `sky.ts`'s `step` called
+   `draw(px, py, down, dt, discrete)`), so `src/frame.ts`'s flag was false whatever the pointer was. Now:
+   `pointerdown`/`pointermove`/`pointerup`/`pointercancel` with `pointerType === "touch"` in both loops, the same `at()`
+   mapping as the mouse's, `down` while the finger is on the canvas and up where it lifts, the frame's `touch` **true**,
+   `event.preventDefault()` on the press (no compatibility mouse events: one tap is one press and one release),
+   `touch-action: none` on the canvas (`shell.ts` for its five pages, `sky.html` for the Sky: without it the browser pans
+   the document and cancels the page's gesture), `setPointerCapture` so a finger that leaves the canvas still lifts on it,
+   and `pointercancel` ending the gesture at the last point as a release. The mouse's listeners are untouched and their
+   frames stay `touch = false`; `window.__page` grew `touch()` (the flag the last frame's `onPointer` got), `touches()`
+   (the finger's events the canvas has taken: a check waits on it) and `offset(id)` (a clip element's offset, positive
+   down), for the check. **`browser/ui.c` needed nothing**: the flag never
+   enters Clay (`ui_begin` carries the button and the time; a finger is the same pointer above that line), and the DOM's
+   pointer events are already in the canvas's CSS pixels, so `ui_touch_map` — the desktop's SDL mapping — has no work
+   here; `ui.wasm` is 141,104 B, unchanged. Measured, by Chromium's own touch (`Input.dispatchTouchEvent`,
+   `hasTouch: true`; the check waits on the listeners' own count, `window.__page.touches`, because a CDP call resolves
+   before the renderer runs, and Playwright's `touchscreen.tap` only taps), the window loop held so a frame is one asked
+   for, plus the one an event runs:
+   **the List** — a 40px drag moves the offset **40.000px** and row 0's top with it **40.000px**, the selection stays
+   ("Room A1 — 1 of 30"), and a release with the finger at rest for 12 frames **ends there** (40.000; a finger that lifts
+   while moving throws, as `list.test.ts` has it); a press with no travel still clicks (a tap selects "Room C1 — 3 of 30",
+   then "Room A1 — 1 of 30"); the thumb, up after that drag at `314, 112.69, 4x64.14`, holds the offset where it is
+   (40.000) and **20px on it is 74.833px of offset** — 20·(898−240)/(240−64.14) — with the thumb itself **20.000px**, and
+   its release ends at **114.833** with no fling. **The Sky** (Science: 742px of content in the 664px feed, 78px of
+   scroll) — 60px of drag are **60.000px** of offset and 120px are **100.323** (the end, 78, then `f(42) = 22.323` of the
+   rubber band in 664), the release letting the band go back to **78.000**; the throw is the desktop's own drag (10px in
+   five 1/60 frames, through `__page.pointer` + `warm`): released at **11.48**, **12.90** the frame after (a positive
+   velocity), resting at **54.955** — the projection of its last frames' speed, `sky.test.ts`'s 54.95 — and a 5px drag
+   does not open the thread a tap does (Back, tapped, returns). The flag's one rule at 2px: a finger's 2px travel is
+   already a drag (no thread, `touch` true) and the mouse's is a click (the thread opens, `touch` false). **The mouse is
+   unchanged**: `solid-check.mjs`, `sky-check.mjs`, `input-check.mjs` and `dialog-check.mjs` all pass (the List's and the
+   Sky's rasters at rest are their stored frames), a 45px mouse drag is **45.000px**, and a touch drag and a mouse drag
+   that end in the same place leave **byte-identical dumps**. Cost: the touch path adds 1,107 B to `list.js` (200,586 →
+   **201,693 B**, 50,079 → 50,252 gzip) and 880 B to `sky.js` (357,624 → **358,504 B**, 82,575 → 82,737 gzip); a frame
+   with a drag in flight is **0.20 ms** on the List and **0.82 ms** on the Sky. Check: `browser/touch-check.mjs` (31
+   comparisons) in `solid/test.sh` with the other four. Limits: pinch and any two-finger gesture, long-press, a
+   touchscreen (this machine has none), the Widgets page's slider under a finger (`Widgets.tsx`'s drag is the same
+   `drag.onPointer`, untested), and HMR.
 
 
 ## What Rune's research gives us (2026-10-23)

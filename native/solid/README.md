@@ -1211,3 +1211,21 @@ shimmed in `browser/solid/globals.ts`; nothing else of Bun or Node is reached. W
 `solid/native/ui.c` (the shadow, backdrop, gradient and group tables, images, the window, key and text queues, the
 clipboard, PNG I/O, `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the
 pages it carries, and their cost, are in `native/README.md`'s browser chapter.
+
+**The pointer in the browser, mouse or finger.** `browser/solid/shell.ts` (the five shell pages) and
+`browser/solid/sky.ts` (its own loop) listen to the mouse (`mousemove`, `mousedown`, `mouseup`, `mouseleave`) and to a
+touchscreen (`pointerdown`, `pointermove`, `pointerup`, `pointercancel` with `pointerType === "touch"`), and both lists
+write one state: `px`, `py`, `down` — and `touch`, the flag that becomes `src/frame.ts`'s `onPointer(x, y, down, touch)`
+through the drawer's sixth argument (`draw(px, py, down, dt, discrete, touch)`; before this the argument was dropped, so
+a frame's `touch` was always false). The mouse's frames carry `touch = false` and a finger's `true`; the page's machine,
+`src/vscroll.ts`, uses it for one rule — a finger has no 4px click threshold, so any travel starts a drag while a press
+that never moves is still a click. A finger's press is `preventDefault`ed (no compatibility mouse events after a tap), its
+pointer captured (a drag that leaves the canvas still lifts on it), the canvas is `touch-action: none` (the browser's pan
+is off: the page owns the gesture), and `pointercancel` — the browser taking the gesture back — ends it where the finger
+last was, as a release. The mapping is the mouse's `at()`: the element's box into the layout's pixels, which is why
+`ui_touch_map` (the desktop's SDL coordinates) has nothing to do here. `window.__page` exposes what a check needs beyond
+the frames: `touch()` (the flag the last frame's `onPointer` got) and `offset(id)` (a clip element's `ui_scroll_offset`,
+positive down). `browser/touch-check.mjs` holds it — Chromium's own touch through the DevTools protocol's
+`Input.dispatchTouchEvent`, the List's 40px row drag and its thumb's 20px, the Sky's 120px drag into the rubber band and a
+throw resting on the decay's projection, a tap that selects and opens — with the measured numbers in `native/README.md`'s
+browser chapter.
