@@ -6,6 +6,7 @@ import { render } from "@solidjs/web";
 import type { JSX } from "@solidjs/web";
 import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
 import {
   Alerts,
@@ -306,13 +307,18 @@ describe("the kit composes", () => {
     expect(trigger.getAttribute("aria-describedby")).toBeNull();
   });
 
-  it("opens the select from its trigger, moves the highlight, chooses and gives focus back", () => {
+  it("opens the select from its combobox button, moves aria-activedescendant, chooses and closes", async () => {
     const root = mount(() => <Selects />);
-    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="listbox"]')!;
+    // the button that shows the value is the combobox: no input, and the listbox is its popup
+    const trigger = root.querySelector<HTMLElement>('[role="combobox"]')!;
     const listbox = root.querySelector<HTMLElement>('[data-part="select-listbox"]')!;
+    expect(trigger.tagName).toBe("BUTTON");
     expect(trigger.getAttribute("aria-label")).toBe("Fruit");
+    expect(trigger.getAttribute("aria-haspopup")).toBe("listbox");
+    expect(trigger.textContent).toBe("Apple");
     expect(listbox.hidden).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(trigger.getAttribute("aria-activedescendant")).toBeNull();
     // hidden has to mean hidden: no display in the list's class may override the UA's `[hidden] { display: none }`
     expect(style(listbox).display).toBe("none");
     trigger.focus();
@@ -323,7 +329,7 @@ describe("the kit composes", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(trigger.getAttribute("aria-controls")).toBe(listbox.id);
     expect(listbox.getAttribute("role")).toBe("listbox");
-    expect(trigger.textContent).toBe("Apple");
+    expect(listbox.getAttribute("aria-label")).toBe("Fruit");
     const options = [...root.querySelectorAll<HTMLElement>('[data-part="select-option"]')];
     expect(options.map((option) => option.getAttribute("role"))).toEqual([
       "option",
@@ -331,59 +337,68 @@ describe("the kit composes", () => {
       "option",
       "option",
     ]);
+    // DOM focus never leaves the combobox; the active row is the one it names, and that row is the highlight
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.getAttribute("aria-activedescendant")).toBe(options[0]!.id);
     expect(options.map((option) => option.getAttribute("aria-selected"))).toEqual([
       "true",
       "false",
       "false",
       "false",
     ]);
-    // the highlight is the roving tab stop the widget announces, and the DOM focus is on that row
-    expect(options[0]!.tabIndex).toBe(0);
-    expect(options[1]!.tabIndex).toBe(-1);
-    expect(document.activeElement).toBe(options[0]);
-    // an arrow key moves the highlight: the tab stop and the styled row follow it
-    options[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    expect(style(options[0]!).backgroundColor).not.toBe(style(options[1]!).backgroundColor);
+    // an arrow key moves `aria-activedescendant`, not the DOM focus, and the styled row follows it
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     flush();
-    expect(options[1]!.tabIndex).toBe(0);
-    expect(options[0]!.tabIndex).toBe(-1);
-    expect(document.activeElement).toBe(options[1]);
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.getAttribute("aria-activedescendant")).toBe(options[1]!.id);
+    expect(options.map((option) => option.getAttribute("aria-selected"))).toEqual([
+      "false",
+      "true",
+      "false",
+      "false",
+    ]);
     expect(style(options[1]!).backgroundColor).not.toBe(style(options[0]!).backgroundColor);
-    // a disabled option says so and an arrow steps over it
-    expect(options[2]!.getAttribute("aria-disabled")).toBe("true");
-    expect(style(options[2]!).cursor).toBe("not-allowed");
-    options[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
-    flush();
-    expect(document.activeElement).toBe(options[3]);
-    options[3]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
-    flush();
-    expect(document.activeElement).toBe(options[1]);
-    // Enter chooses the highlighted row, closes the list and the trigger shows the label
-    options[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    // Enter commits the highlighted row: the list closes and the button shows its label
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     flush();
     expect(listbox.hidden).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(trigger.textContent).toBe("Banana");
-    expect(options[1]!.getAttribute("aria-selected")).toBe("true");
+    expect(trigger.getAttribute("aria-activedescendant")).toBeNull();
     expect(document.activeElement).toBe(trigger);
-    // Escape closes it too and the focus goes back to what opened it
+    // Escape closes without choosing, and the focus is where it already was
     trigger.click();
     flush();
     expect(listbox.hidden).toBe(false);
-    expect(document.activeElement).toBe(options[1]);
-    document.activeElement!.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
-    );
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.getAttribute("aria-activedescendant")).toBe(options[1]!.id);
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     flush();
     expect(listbox.hidden).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(trigger);
-    // a pointer outside the anchor is the other way out
+    expect(trigger.textContent).toBe("Banana");
+    // a click outside is the combobox's blur, which is the dismiss: it commits the active row and closes
     trigger.click();
     flush();
     expect(listbox.hidden).toBe(false);
-    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    // far from the list, so the press lands on it and not on a row the list covers
+    const outside = document.createElement("button");
+    outside.textContent = "outside";
+    outside.style.position = "fixed";
+    outside.style.insetBlockEnd = "0";
+    outside.style.insetInlineEnd = "0";
+    outside.style.zIndex = "9999";
+    document.body.append(outside);
+    // a pointer press outside moves the focus there, and that focus change is the blur the primitive reads as a dismiss
+    await userEvent.click(outside);
+    outside.remove();
     flush();
     expect(listbox.hidden).toBe(true);
+    expect(trigger.textContent).toBe("Cherry");
   });
 
   it("gives a textarea the field's id and invalid state", () => {

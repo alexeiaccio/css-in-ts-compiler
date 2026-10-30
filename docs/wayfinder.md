@@ -2389,3 +2389,40 @@ together, the spinbutton stops at its maximum with the stepper disabled there an
 the named group without the others. **Left**: no drag on the slider (the primitive models a rail press only), a vertical
 rail has a fixed `space.10` height a page overrides with its own class, and the spinbutton's steppers are not tab stops
 (the primitive's `tabindex="-1"`).
+
+## The select is a select-only combobox, and the kit no longer owns the popup (apps/ui, 2026-10-30)
+
+`Select` was written on `createListbox`, which is a listbox and not a combobox: it has no open state and no Escape, and
+it announces a roving tab stop. So the kit owned the open signal, Escape, Tab, a `pointerdown` listener on the document
+and the DOM focus on the active row. `@cssints/headless` has the pattern the APG specifies for exactly this component —
+`createCombobox` with `filter: false` and `autoComplete: "none"`, mirroring `specs/apg/combobox-select-only.qnt` — so
+the item now sits on it and all five mechanisms are deleted. What the primitive owns: the open state,
+`aria-expanded`/`aria-controls`, the active option as `aria-activedescendant`, the arrows, Home/End, PageUp/PageDown,
+typeahead, Enter/Space/Tab/Alt+ArrowUp, the blur that commits and closes, Escape, and the commit from an option click.
+What the kit keeps: the anchor the popup floats from (the menu's `position: relative` box and `z.popover`), the surface
+and the highlight, the label, `items`, `value`/`defaultValue`/`onValueChange` as indices, `SelectOption` with `render`
+and `data-part`, and the label on the trigger. The primitive's value is a string, so an option's value is the kit's
+index as a string and `onValueChange` maps it back.
+
+The button is the combobox. A select-only combobox has no text input, so `SelectTrigger` passes `comboboxProps` to the
+same `Button` — `role="combobox"` replaces the button's implicit role, which ARIA allows for a select-only combobox, and
+the button keeps the native focus, so `tabindex="0"` comes from `Button`. `value`, `onInput` and `aria-autocomplete` are
+an input's and are left out: a button has no editable value, and the typeahead runs off the key handler the button does
+receive. The props go through `merge()`, not a spread, so the primitive's getters stay live.
+
+The highlight is `aria-selected`. The primitive marks the visually focused option with it while the popup is open (that
+is the APG example's contract), so the row's class paints `attr("aria-selected", "true")` and the kit keeps no copy of
+the active index; the roving tab stop and its `:focus-visible` rule are gone because no row is ever a DOM tab stop. The
+click outside is no longer a listener: a press outside moves focus, the combobox blurs, and the primitive's blur commits
+the active option and closes. `onFocusRelease` is wired to blur the active element for Tab, as the primitive asks of a
+DOM host.
+
+`combos.browser.test.tsx` follows the new mechanism: DOM focus stays on the button, the arrow key moves
+`aria-activedescendant`, Enter puts the label on the trigger, Escape closes with focus where it was, and a click outside
+(the blur) closes and commits.
+
+**Left**: no `disabled` options and no `SelectProps.disabled` — the primitive has no notion of one, and announcing
+`aria-disabled` while Enter still commits it would be a lie; the chosen option has no mark while the highlight is
+elsewhere (its label is on the trigger); no controlled open; Tab follows the primitive, which commits, closes and
+prevents the browser's own tab move, so the focus lands on the body rather than the next control — a real fix belongs in
+the primitive.

@@ -214,7 +214,7 @@ export const Tooltips = (): JSX.Element => (
   </Tooltip>
 );
 
-const FRUIT = ["Apple", "Banana", { label: "Cherry", disabled: true }, "Date"];
+const FRUIT = ["Apple", "Banana", { label: "Cherry" }, "Date"];
 
 export const Selects = (): JSX.Element => {
   const [value, setValue] = createSignal(0);

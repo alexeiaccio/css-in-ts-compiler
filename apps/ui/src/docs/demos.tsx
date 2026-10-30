@@ -224,7 +224,7 @@ const SelectDemo = (): JSX.Element => {
   return (
     <div class="demo-column">
       <Select
-        items={["Apple", "Banana", "Cherry", { label: "Durian", disabled: true }]}
+        items={["Apple", "Banana", "Cherry", { label: "Durian" }]}
         value={value()}
         onValueChange={setValue}
         label="Fruit"

@@ -1,24 +1,18 @@
-import { createListbox, type Listbox, type ListboxItemInput } from "@cssints/headless";
+import { type Combobox, type ComboboxOption, createCombobox } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import {
-  createContext,
-  createEffect,
-  createSignal,
-  createUniqueId,
-  merge,
-  omit,
-  onSettled,
-  useContext,
-} from "solid-js";
+import { createContext, merge, omit, useContext } from "solid-js";
 
 import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
 
+/** An option: a string that is both its label and its identity, or an object with a label. */
+export type SelectItem = string | { readonly label: string };
+
 export interface SelectProps {
   /** The options, declared once: the primitive needs their labels for typeahead, and the trigger shows the chosen one. */
-  readonly items: ReadonlyArray<string | ListboxItemInput>;
+  readonly items: ReadonlyArray<SelectItem>;
   /** Controlled: the chosen index. Leave it out and the select owns the value. */
   readonly value?: number | undefined;
   /** Uncontrolled starting index. */
@@ -29,8 +23,6 @@ export interface SelectProps {
   readonly placeholder?: string;
   /** The accessible name: the trigger and the listbox both take it. */
   readonly label?: string;
-  /** Item indices that cannot be chosen. */
-  readonly disabled?: ReadonlyArray<number>;
   readonly id?: string;
   readonly children?: JSX.Element;
 }
@@ -53,7 +45,6 @@ export interface SelectContentProps extends Renderable<PartProps, void> {
 export interface SelectOptionState {
   readonly highlighted: () => boolean;
   readonly selected: () => boolean;
-  readonly disabled: () => boolean;
 }
 
 export type SelectOptionPartProps = PartProps;
@@ -67,12 +58,11 @@ export interface SelectOptionProps extends Renderable<SelectOptionPartProps, Sel
 }
 
 interface SelectContextValue {
-  readonly listbox: Listbox;
-  readonly listboxId: string;
+  readonly combobox: Combobox;
+  /** The corpus, once: `items` with the index as the option's value. */
+  readonly items: ReadonlyArray<ComboboxOption>;
   readonly anchor: () => HTMLElement | undefined;
-  readonly open: () => boolean;
-  readonly show: () => void;
-  readonly close: (focusTrigger: boolean) => void;
+  readonly label: () => string | undefined;
   /** The chosen label, while there is a choice. */
   readonly chosen: () => string | undefined;
   readonly placeholder: () => string | undefined;
@@ -103,8 +93,9 @@ const contentClass = css.cn(
   css.boxShadow(t.shadow.popover),
 );
 
-// The highlight is the roving tab stop the primitive announces (`tabindex="0"` on one row), not a second copy of the active
-// index: a pointer hover and an arrow key both move it. The chosen option is painted from `aria-selected`.
+// The APG select-only combobox keeps DOM focus on the trigger and marks the visually focused option with `aria-selected`;
+// that announcement is the highlight, so a pointer hover and an arrow key paint the same row and the kit keeps no copy of
+// the active index.
 const optionClass = css.cn(
   css.display("flex"),
   css.alignItems("center"),
@@ -113,98 +104,66 @@ const optionClass = css.cn(
   css.fontSize(t.font.size),
   css.color(t.color.text),
   css.cursor("pointer"),
-  css.attr("tabindex", "0")(css.bg(t.color.buttonBackground)),
-  css.attr("aria-selected", "true")(css.fontWeight("500")),
-  css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
-  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
+  css.attr("aria-selected", "true")(css.bg(t.color.buttonBackground)),
 );
 
-const triggerOf = (root: HTMLElement | undefined): HTMLElement | undefined =>
-  root?.querySelector<HTMLElement>('[aria-haspopup="listbox"]') ?? undefined;
-
-const rowsOf = (root: HTMLElement | undefined): HTMLElement[] =>
-  root === undefined ? [] : [...root.querySelectorAll<HTMLElement>('[data-part="select-option"]')];
-
 /**
- * APG listbox as a select, styled: `Select.Trigger` (a `Button`) shows the chosen label, `Select.Content` is the floating
- * list of `Select.Option`s. `createListbox` owns the selection, the single roving tab stop, the arrow keys, Home and End,
- * Enter and typeahead; a listbox is not a combobox, so the kit owns the open state, Escape, Tab and the click outside, and
- * hands the focus back to the trigger when it closes from the keyboard.
+ * APG select-only combobox, styled: `Select.Trigger` (a `Button`) shows the chosen label and is the combobox, `Select.Content`
+ * is the floating listbox of `Select.Option`s. `createCombobox` owns the open state, the ARIA, the arrows, Home and End,
+ * Enter, Space, Tab, Escape, the typeahead, the blur that commits, and a commit from an option click; DOM focus never leaves
+ * the trigger, so the kit moves no focus and listens to no document. It keeps the anchor the content floats from, the
+ * surface, the highlight and the label on the trigger.
  *
- * The options are declared on `Select`, once, as on `Menu`: the primitive needs their labels for typeahead, and the
- * trigger needs them to show the chosen one.
+ * The options are declared on `Select`, once, as on `Menu`: the primitive needs their labels for typeahead, and the trigger
+ * needs them to show the chosen one. The primitive's value is a string, so the kit's index is the option's value.
  */
 export const Select = (props: SelectProps): JSX.Element => {
-  const base = props.id ?? createUniqueId();
-  const listboxId = `${base}-listbox`;
-  const listbox = createListbox({
-    id: base,
-    items: props.items,
+  // read once: the primitive takes its corpus up front (`options` is not an accessor)
+  const items = props.items.map((item, index) => ({
+    value: String(index),
+    label: typeof item === "string" ? item : item.label,
+  }));
+  const combobox = createCombobox({
+    options: items,
     get value() {
-      return props.value === undefined ? undefined : [props.value];
+      return props.value === undefined ? undefined : String(props.value);
     },
-    defaultValue: props.defaultValue === undefined ? [] : [props.defaultValue],
-    get disabled() {
-      return props.disabled;
-    },
-    get label() {
-      return props.label;
-    },
+    defaultValue: props.defaultValue === undefined ? null : String(props.defaultValue),
+    autoComplete: "none",
+    filter: false,
+    id: props.id,
     get onValueChange() {
       const change = props.onValueChange;
       return change === undefined
         ? undefined
-        : (selected: ReadonlyArray<number>) => change(selected[0] ?? 0);
+        : (value: string | null) => {
+            // the primitive only commits an option, so a `null` is not a choice to pass on
+            if (value !== null) {
+              change(Number(value));
+            }
+          };
+    },
+    // Tab: the primitive has committed and closed, and says the DOM host may let go of native focus
+    onFocusRelease: () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     },
   });
-  const [open, setOpen] = createSignal(false);
   let anchor: HTMLDivElement | undefined;
 
-  const show = (): void => {
-    if (open()) {
-      return;
-    }
-    setOpen(true);
-    // the focused flag and the entry option (the chosen one, else the first); the DOM focus follows in the content's effect
-    listbox.focus();
-  };
-
-  const close = (focusTrigger: boolean): void => {
-    if (!open()) {
-      return;
-    }
-    setOpen(false);
-    listbox.blur();
-    if (focusTrigger) {
-      triggerOf(anchor)?.focus();
-    }
-  };
-
-  // a pointerdown outside the anchor is the dismiss the primitive does not own (as in Menu)
-  onSettled(() => {
-    const dismiss = (event: PointerEvent): void => {
-      if (anchor !== undefined && event.target instanceof Node && !anchor.contains(event.target)) {
-        close(false);
-      }
-    };
-    document.addEventListener("pointerdown", dismiss);
-    return () => document.removeEventListener("pointerdown", dismiss);
-  });
-
   const chosen = (): string | undefined => {
-    const index = listbox.selected()[0];
-    return index === undefined ? undefined : listbox.items[index]?.label;
+    const value = combobox.value();
+    return value === null ? undefined : items[Number(value)]?.label;
   };
 
   return (
     <SelectContext
       value={{
-        listbox,
-        listboxId,
+        combobox,
+        items,
         anchor: () => anchor,
-        open,
-        show,
-        close,
+        label: () => props.label,
         chosen,
         placeholder: () => props.placeholder,
       }}
@@ -222,119 +181,91 @@ export const Select = (props: SelectProps): JSX.Element => {
   );
 };
 
-/** The button that opens the list and shows the chosen label: `Button` unless `render` says otherwise. */
+/**
+ * The button that shows the chosen label and is the combobox: `Button` unless `render` says otherwise.
+ *
+ * A select-only combobox has no text input, so the button takes the primitive's `comboboxProps` itself: `role="combobox"`,
+ * `aria-expanded`, `aria-controls` and `aria-activedescendant` (the popup's active option), and the focus, blur, click and
+ * key handlers. `value` and `onInput` are a text input's, and so is `aria-autocomplete` (what typing does in a field), so
+ * they are left out; the typeahead still runs off the key handler.
+ */
 export const SelectTrigger = (props: SelectTriggerProps): JSX.Element => {
-  const { listbox, listboxId, open, show, close, chosen, placeholder } = useContext(SelectContext);
+  const { combobox, chosen, placeholder, label } = useContext(SelectContext);
   const rest = omit(props, "render", "class", "children");
-  // no `data-part` of its own: the part renders a `Button`, which owns the attribute
-  const merged = merge(rest, () => ({
-    type: "button" as const,
-    "aria-haspopup": "listbox" as const,
-    get "aria-expanded"(): "true" | "false" {
-      return open() ? "true" : "false";
-    },
-    "aria-controls": listboxId,
-    "aria-label": listbox.listboxProps["aria-label"],
-    get class() {
-      return css.cn(props.class);
-    },
-    onClick: () => {
-      if (open()) {
-        close(false);
-      } else {
-        show();
-      }
-    },
-    onKeyDown: (event: KeyboardEvent) => {
-      if (
-        event.key === "ArrowDown" ||
-        event.key === "ArrowUp" ||
-        event.key === "Enter" ||
-        event.key === " "
-      ) {
-        event.preventDefault();
-        show();
-      }
-    },
-  }));
+  // no `data-part` of its own: the part renders a `Button`, which owns the attribute. `merge` reads these through, so a
+  // plain spread here would read the primitive's getters once and freeze `aria-expanded`.
+  const merged = merge(rest, () => {
+    const input = combobox.comboboxProps;
+    return {
+      id: input.id,
+      role: input.role,
+      "aria-haspopup": input["aria-haspopup"],
+      get "aria-expanded"() {
+        return input["aria-expanded"];
+      },
+      get "aria-controls"() {
+        return input["aria-controls"];
+      },
+      get "aria-activedescendant"() {
+        return input["aria-activedescendant"];
+      },
+      get "aria-label"() {
+        return label();
+      },
+      onFocus: input.onFocus,
+      onBlur: input.onBlur,
+      onClick: input.onClick,
+      onKeyDown: input.onKeyDown,
+      get class() {
+        return css.cn(props.class);
+      },
+    };
+  });
   return renderPart(props, merged, undefined, (part) => (
     <Button {...part}>{props.children ?? chosen() ?? placeholder() ?? ""}</Button>
   ));
 };
 
 /**
- * The list, floating under the trigger with the same anchor as the menu. The primitive's handler owns the arrows, Home,
- * End, Enter and typeahead; the kit closes on Escape (returning the focus), on Tab and after a choice. The DOM focus is
- * moved to whatever row holds the roving tab stop, as the menu does.
+ * The listbox, floating under the trigger with the same anchor as the menu. The primitive hides it, names its active option
+ * and leaves the keys to the trigger, which keeps the DOM focus; nothing here listens for a key or for a pointer.
  */
 export const SelectContent = (props: SelectContentProps): JSX.Element => {
-  const { listbox, listboxId, anchor, open, close } = useContext(SelectContext);
-  createEffect(
-    () => [open(), listbox.active()] as const,
-    ([isOpen, index]) => {
-      if (!isOpen) {
-        return;
-      }
-      const element = rowsOf(anchor())[index];
-      if (element !== undefined && document.activeElement !== element) {
-        element.focus();
-      }
-    },
-  );
-  const merged = merge(listbox.listboxProps, () => ({
-    id: listboxId,
+  const { combobox, items, label } = useContext(SelectContext);
+  const merged = merge(combobox.listboxProps, () => ({
     "data-part": "select-listbox",
-    get hidden() {
-      return !open();
+    get "aria-label"() {
+      return label();
     },
     get class() {
       return css.cn(contentClass, props.class);
     },
-    onKeyDown: (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        close(true);
-        return;
-      }
-      listbox.listboxProps.onKeyDown(event);
-      if (event.key === "Tab") {
-        close(false);
-        return;
-      }
-      if (event.key === "Enter" || event.key === " " || event.key === "Space") {
-        close(true);
-      }
-    },
   }));
   return renderPart(props, merged, undefined, (part) => (
-    <div {...part}>
-      {props.children ?? listbox.items.map((_, index) => <SelectOption index={index} />)}
-    </div>
+    <div {...part}>{props.children ?? items.map((_, index) => <SelectOption index={index} />)}</div>
   ));
 };
 
-/** One row: `role="option"`, its id and its tab stop from the primitive, the declared label unless `children` says. */
+/**
+ * One row: `role="option"`, its id and its announced state from the primitive, the declared label unless `children` says.
+ * A press keeps the focus on the trigger (the primitive cancels the mouse-down) and commits.
+ */
 export const SelectOption = (props: SelectOptionProps): JSX.Element | null => {
-  const { listbox, close } = useContext(SelectContext);
-  const declared = listbox.items[props.index];
-  if (declared === undefined) {
+  const { combobox, items } = useContext(SelectContext);
+  const declared = items[props.index];
+  const option = combobox.options()[props.index];
+  if (declared === undefined || option === undefined) {
     return null;
   }
-  const option = listbox.optionProps(props.index);
-  const merged = merge(option, () => ({
+  const merged = merge(option.props, () => ({
     "data-part": "select-option",
     get class() {
       return css.cn(optionClass, props.class);
     },
-    onClick: () => {
-      option.onClick();
-      close(true);
-    },
   }));
   const state: SelectOptionState = {
-    highlighted: () => listbox.active() === props.index,
-    selected: () => listbox.selected().includes(props.index),
-    disabled: () => declared.disabled,
+    highlighted: () => combobox.open() && combobox.activeIndex() === props.index,
+    selected: () => combobox.value() === declared.value,
   };
   return renderPart(props, merged, state, (part) => (
     <div {...part}>{props.children ?? declared.label}</div>
