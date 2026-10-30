@@ -2350,3 +2350,42 @@ described-by ids and `aria-invalid`, and the component paints the invalid state 
 needs them); no max height or scrolling inside a long list, no portal and no flip above the trigger (the same "left" as the
 menu); the placeholder has no colour of its own; a space typed into a typeahead buffer still closes the list as a choice; the
 textarea does not grow with its content (no `field-sizing`).
+
+## Three form controls: slider, spinbutton and a checkbox group (apps/ui, 2026-10-30)
+
+The kit had `Checkbox`, `Switch` and `RadioGroup` but no control that holds a number, so three registry items now sit on the
+headless primitives: `Slider`, `Spinbutton` and `CheckboxGroup`, each one `.tsx` with `render` on its parts, `data-part` on
+every box and the states read off the ARIA the widget announces.
+
+The slider. The rail is the `data-part="slider"` box and takes `createSlider`'s `trackProps`; the fill and the thumb are
+decoration over it, the thumb being the announced `role="slider"`. CSS cannot compute a share of the rail from
+`aria-valuenow` (an arithmetic turn of `attr()` inside `calc()` is not shipped), so the fill's width — a height when
+vertical — is an inline percentage of the same `aria-valuenow`/`aria-valuemin`/`aria-valuemax` the thumb announces, as
+`Meter` does with the primitive's `percent()`. A box cannot read an attribute of its child either, so the rail copies the
+announced `aria-orientation` to `data-orientation`: the fill's vertical geometry reads it through `within()`, and the thumb
+paints its own from `aria-orientation`. The primitive has no disabled state: the kit adds `disabled`, announces it as
+`aria-disabled` on the rail and the thumb, and drops the key and rail presses.
+Multi-thumb (`slider-multithumb.ts`) is left out on purpose: the primitive has no `trackProps` — a rail press names the
+thumb — so the port is not the same component, and a two-thumb range waits for that.
+
+Spinbutton. The primitive owns the text draft (Enter commits, Escape reverts, blur commits), the stepped keys and the
+steppers' labels; at a bound it announces `aria-disabled` on the stepper, and only that announced state sets the native
+`disabled` and paints it. Composition with `Field` needed one thing: `Field.Control` hands its id (`<base>-control`) to the
+control, and `createSpinbutton` makes `<base>-input`, so the kit lets the caller's `id` win on the input — the label's `for`
+resolves without a second prop. The field's `aria-invalid` is OR-ed with the primitive's draft-invalid rather than
+replacing it, and `aria-describedby`/`required` cross unchanged. There is no `disabled` in the primitive here either, and
+the item does not invent one.
+
+CheckboxGroup. `createCheckboxGroup` is the APG tri-state controller: exactly three child values, the derived
+all/none/mixed parent, and the "remember the last mixed combination" cycle. Its `childProps` are a `role="checkbox"` with a
+focus model of its own, so the kit uses the primitive's state (the checked subset, `parentChecked`, `click`) with the
+kit's existing `Checkbox` per value instead: the `aria-checked` of each box is the primitive's bit (the item lists
+`@cssints/checkbox` in `also`). The primitive has no label and no error state: `label` names the group with `aria-label`,
+as `ButtonGroup` and `Toolbar` do, and a form-level error stays the host's element. The primitive's wrapping Tab is not
+wired — the kit `Checkbox` owns focus and the boxes keep the browser's tab order.
+
+`combos.browser.test.tsx` proves the three compositions: an arrow key on a focused thumb moves `aria-valuenow` and the fill
+together, the spinbutton stops at its maximum with the stepper disabled there and takes `Field`'s id, and a box toggles in
+the named group without the others. **Left**: no drag on the slider (the primitive models a rail press only), a vertical
+rail has a fixed `space.10` height a page overrides with its own class, and the spinbutton's steppers are not tab stops
+(the primitive's `tabindex="-1"`).
