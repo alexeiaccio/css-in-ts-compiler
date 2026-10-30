@@ -31,8 +31,11 @@ import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
+import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
+import { Slider } from "../registry/slider/slider.tsx";
+import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { createSignal } from "solid-js";
@@ -380,7 +383,60 @@ const TREEVIEW_NODES = [
 const TreeviewDemo = (): JSX.Element => (
   <Treeview nodes={TREEVIEW_NODES} defaultValue={[2]} defaultExpanded={[1, 2]} label="Files" />
 );
+const SliderDemo = (): JSX.Element => {
+  const [volume, setVolume] = createSignal(4);
+  return (
+    <div class="demo-column">
+      <Slider label="Volume" value={volume()} onValueChange={setVolume} />
+      <div class="demo-row">
+        {/* vertical: the rail is as tall as the theme's space.10, and a page sets its own height */}
+        <Slider label="Zoom" min={1} max={4} defaultValue={2} orientation="vertical" />
+      </div>
+    </div>
+  );
+};
 
+const SpinbuttonDemo = (): JSX.Element => {
+  const [quantity, setQuantity] = createSignal(3);
+  return (
+    <div class="demo-column">
+      {/* Field names the control: the spinbutton takes the field's id as its input's, so the label points at it */}
+      <Field id="demo-quantity" hint="Up to 12">
+        <FieldLabel>Quantity</FieldLabel>
+        <FieldControl
+          render={(props) => (
+            <Spinbutton
+              {...props}
+              min={1}
+              max={12}
+              value={quantity()}
+              onValueChange={setQuantity}
+            />
+          )}
+        />
+        <FieldMessage />
+      </Field>
+      {/* at the bound the primitive announces the stepper as disabled and the kit paints and disables it */}
+      <Spinbutton aria-label="Copies" min={1} max={5} defaultValue={5} />
+    </div>
+  );
+};
+
+const CheckboxGroupDemo = (): JSX.Element => {
+  const [channels, setChannels] = createSignal<ReadonlyArray<string>>(["email"]);
+  return (
+    <CheckboxGroup
+      label="Notifications"
+      values={["email", "push", "sms"]}
+      value={channels()}
+      onValueChange={setChannels}
+      parent
+      parentLabel="All channels"
+    >
+      {(channel) => channel}
+    </CheckboxGroup>
+  );
+};
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -407,4 +463,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   tooltip: TooltipDemo,
   select: SelectDemo,
   textarea: TextareaDemo,
+  slider: SliderDemo,
+  spinbutton: SpinbuttonDemo,
+  "checkbox-group": CheckboxGroupDemo,
 };

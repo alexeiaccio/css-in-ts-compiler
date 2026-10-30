@@ -241,6 +241,31 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A multi-line field styled like `Input`, and the control `Field` puts in with `render`",
   },
+  {
+    name: "slider",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Slider",
+    description:
+      "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
+  },
+  {
+    name: "spinbutton",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Spinbutton",
+    description:
+      "APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by",
+  },
+  {
+    name: "checkbox-group",
+    tested: false,
+    with: ["checkbox/checkbox.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Checkbox group",
+    description:
+      "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
+    also: ["@cssints/checkbox"],
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files

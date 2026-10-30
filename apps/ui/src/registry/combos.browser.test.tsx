@@ -10,6 +10,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   Alerts,
   Crumbs,
+  CheckboxGroups,
   Dialogs,
   Fields,
   Groups,
@@ -21,6 +22,8 @@ import {
   Selects,
   Sizes,
   Textareas,
+  Sliders,
+  Spinbuttons,
   Toolbars,
   Tooltips,
 } from "./combos.fixture.tsx";
@@ -396,5 +399,68 @@ describe("the kit composes", () => {
     expect(style(invalid).borderTopColor).not.toBe(style(resting).borderTopColor);
     // it is a textarea, not a one-line control: it takes a height and grows down
     expect(style(resting).resize).toBe("vertical");
+  });
+  it("moves a slider's thumb, its value and the fill with an arrow key", () => {
+    const root = mount(() => <Sliders />);
+    const rails = root.querySelectorAll<HTMLElement>('[data-part="slider"]');
+    const fills = root.querySelectorAll<HTMLElement>('[data-part="slider-fill"]');
+    const thumbs = root.querySelectorAll<HTMLElement>('[data-part="slider-thumb"]');
+    const horizontal = thumbs[0]!;
+    expect(rails[0]!.getAttribute("data-orientation")).toBe("horizontal");
+    expect(horizontal.getAttribute("aria-valuenow")).toBe("5");
+    expect(fills[0]!.style.width).toBe("50%");
+    horizontal.focus();
+    // Solid 2 applies the focus signal on the flush, and the primitive's keys need it before they move anything
+    flush();
+    horizontal.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    flush();
+    // the thumb announces the new value and the fill is the same share of the rail: one number, not two
+    expect(horizontal.getAttribute("aria-valuenow")).toBe("6");
+    expect(fills[0]!.style.width).toBe("60%");
+    expect(horizontal.style.getPropertyValue("inset-inline-start")).toBe("60%");
+    // the vertical rail is the primitive's announcement too, and there the fill grows upwards
+    expect(rails[1]!.getAttribute("data-orientation")).toBe("vertical");
+    expect(thumbs[1]!.getAttribute("aria-orientation")).toBe("vertical");
+    expect(fills[1]!.style.height.startsWith("33.33")).toBe(true);
+    expect(fills[1]!.style.width).toBe("");
+  });
+
+  it("stops a spinbutton at its maximum, disables the stepper there and takes a Field's name", () => {
+    const root = mount(() => <Spinbuttons />);
+    const input = root.querySelector<HTMLInputElement>('[data-part="spinbutton-input"]')!;
+    const increment = root.querySelector<HTMLButtonElement>('[data-part="spinbutton-increment"]')!;
+    expect(input.getAttribute("role")).toBe("spinbutton");
+    expect(input.getAttribute("aria-valuemax")).toBe("2");
+    increment.click();
+    flush();
+    expect(input.getAttribute("aria-valuenow")).toBe("2");
+    expect(input.value).toBe("2");
+    // the primitive announces the bound; the kit paints it and sets the native `disabled` from it
+    expect(increment.getAttribute("aria-disabled")).toBe("true");
+    expect(increment.disabled).toBe(true);
+    increment.click();
+    flush();
+    expect(input.getAttribute("aria-valuenow")).toBe("2");
+    // the field's id is the input's, so its label names the spinbutton rather than a generated id
+    const quantity = root.querySelector<HTMLInputElement>('[id="qty-control"]')!;
+    expect(root.querySelector('label[for="qty-control"]')).not.toBeNull();
+    expect(quantity.getAttribute("role")).toBe("spinbutton");
+    expect(quantity.getAttribute("aria-describedby")).toBe("qty-hint");
+  });
+
+  it("names a checkbox group and toggles one box without the others", () => {
+    const root = mount(() => <CheckboxGroups />);
+    const group = part(root, "checkbox-group");
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.getAttribute("aria-label")).toBe("Notifications");
+    const boxes = [...root.querySelectorAll<HTMLElement>('[data-part="checkbox"]')];
+    expect(boxes.map((box) => box.getAttribute("aria-checked"))).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
+    boxes[1]!.click();
+    flush();
+    expect(boxes.map((box) => box.getAttribute("aria-checked"))).toEqual(["true", "true", "false"]);
   });
 });

@@ -37,6 +37,9 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - tooltip: APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`. `add @cssints/tooltip`
 - select: APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside. `add @cssints/select`
 - textarea: A multi-line field styled like `Input`, and the control `Field` puts in with `render`. `add @cssints/textarea`
+- slider: APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`. `add @cssints/slider`
+- spinbutton: APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by. `add @cssints/spinbutton`
+- checkbox-group: APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them. `add @cssints/checkbox-group`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written

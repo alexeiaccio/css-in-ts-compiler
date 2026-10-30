@@ -6,6 +6,7 @@ import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import { Button } from "./button/button.tsx";
+import { CheckboxGroup } from "./checkbox-group/checkbox-group.tsx";
 import {
   Dialog,
   DialogClose,
@@ -28,6 +29,8 @@ import { Input } from "./input/input.tsx";
 import { Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
 import { Select, SelectContent, SelectTrigger } from "./select/select.tsx";
 import { Textarea } from "./textarea/textarea.tsx";
+import { Slider } from "./slider/slider.tsx";
+import { Spinbutton } from "./spinbutton/spinbutton.tsx";
 import { Toolbar } from "./toolbar/toolbar.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip/tooltip.tsx";
 
@@ -235,4 +238,27 @@ export const Textareas = (): JSX.Element => (
       <FieldControl render={(props) => <Textarea {...props} />} />
     </Field>
   </>
+);
+export const Sliders = (): JSX.Element => (
+  <>
+    <Slider label="Volume" min={0} max={10} defaultValue={5} />
+    <Slider label="Zoom" min={1} max={4} defaultValue={2} orientation="vertical" />
+  </>
+);
+
+export const Spinbuttons = (): JSX.Element => (
+  <>
+    <Spinbutton aria-label="Copies" min={1} max={2} defaultValue={1} />
+    <Field id="qty" hint="Up to 12">
+      <FieldLabel>Quantity</FieldLabel>
+      <FieldControl render={(props) => <Spinbutton {...props} min={1} max={12} />} />
+      <FieldMessage />
+    </Field>
+  </>
+);
+
+export const CheckboxGroups = (): JSX.Element => (
+  <CheckboxGroup label="Notifications" values={["email", "push", "sms"]} defaultValue={["email"]}>
+    {(channel) => channel}
+  </CheckboxGroup>
 );
