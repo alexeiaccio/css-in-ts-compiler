@@ -16,10 +16,16 @@ import { createControllable } from "./controllable";
  * may ignore. The zoom window (`viewStart`/`viewEnd`) is not the controlled
  * value and stays uncontrolled.
  *
- * ponytail: the fixed 5-span tree is a demo fixture; a real consumer owns the
- * span list (layout is theirs). Roving tabindex only — a consumer must call
- * `focus()` on the row whose `tabindex` is 0 after arrow navigation (the tests'
- * fixture does this with an effect).
+ * The fixed 5-span tree is the demo fixture (the differential walk's oracle).
+ * A real consumer passes `rows`: span data on one shared axis, laid out by
+ * `barProps` as percentages of the rows' extent. No roles are borrowed from
+ * APG: a trace waterfall is a list of spans in time, so the rows mode is
+ * `role="list"` / `role="listitem"` (with `aria-level` for the depth) and the
+ * current row is `aria-current="true"`, which every element may carry.
+ *
+ * Roving tabindex only — a consumer must call `focus()` on the row whose
+ * `tabindex` is 0 after arrow navigation (the tests' fixture does this with an
+ * effect; the rows mode's span rows are reached by tabbing to the current one).
  */
 
 /** One span row: a fraction of the parent span on a shared 0..1 axis. */
@@ -106,6 +112,92 @@ export interface Timeline {
   readonly rulerProps: TimelineRulerProps;
 }
 
+/** One span of a real trace: a point on a shared axis, labelled, at a depth. */
+export interface TimelineSpan {
+  readonly id: string;
+  readonly label: string;
+  /** Offset on the axis, in the axis' unit; `end` is the same axis, not a duration. */
+  readonly start: number;
+  readonly end: number;
+  /** Nesting level, 0 for a root span. */
+  readonly depth?: number;
+  readonly status?: "ok" | "error" | "unset";
+}
+
+export interface TimelineAxis {
+  /** The unit the numbers are in; the ruler labels its ticks with it. */
+  readonly unit?: "ms" | "us" | "s";
+}
+
+/** The rows mode: real span data, read lazily like every other option. */
+export interface TimelineRowsOptions {
+  readonly rows: ReadonlyArray<TimelineSpan>;
+  readonly axis?: TimelineAxis | undefined;
+  /** Controlled: the host owns the selection. */
+  readonly selected?: string | undefined;
+  /** A request to change the selection the host may ignore. */
+  readonly onSelect?: ((id: string) => void) | undefined;
+}
+
+export interface TimelineTick {
+  readonly value: number;
+  readonly left: number;
+  readonly label: string;
+}
+
+export interface TimelineListProps {
+  readonly role: "list";
+  readonly "aria-label": string;
+}
+
+export interface TimelineSpanRowProps {
+  readonly role: "listitem";
+  /** `depth + 1`: the nesting a flat list cannot show in the DOM. */
+  readonly "aria-level": number;
+  readonly "aria-current": "true" | undefined;
+  /** A styling hook: the status the span ended with. */
+  readonly "data-status": "ok" | "error" | "unset";
+  readonly tabindex: number;
+  readonly onClick: () => void;
+  readonly onKeyDown: (event: KeyboardEvent) => void;
+}
+
+export interface TimelineBarProps {
+  readonly "aria-hidden": "true";
+  /** `left` / `width` are percentages of the extent; `--depth` is the row's depth. */
+  readonly style: {
+    readonly left: string;
+    readonly width: string;
+    readonly "--depth": string;
+  };
+}
+
+export interface TimelineLabelProps {
+  /** `--depth`, so the host indents the label (`padding-inline-start: calc(var(--depth) * 1rem)`) instead of nesting it. */
+  readonly style: { readonly "--depth": string };
+}
+
+export interface TimelineRulerRowsProps {
+  readonly role: "presentation";
+  readonly "aria-hidden": "true";
+  /** Ticks of a nice step across the extent; render them as children. */
+  readonly ticks: ReadonlyArray<TimelineTick>;
+}
+
+export interface TimelineRows {
+  /** `{ start, end }` across the rows; `{ 0, 0 }` when there are none. */
+  readonly extent: () => { readonly start: number; readonly end: number };
+  readonly depthOf: (id: string) => number;
+  readonly listProps: TimelineListProps;
+  readonly rowProps: (id: string) => TimelineSpanRowProps;
+  readonly barProps: (id: string) => TimelineBarProps;
+  readonly labelProps: (id: string) => TimelineLabelProps;
+  readonly rulerProps: TimelineRulerRowsProps;
+  /** Programmatic selection request; a controlled host may ignore it. */
+  readonly select: (id: string) => void;
+  readonly selectedId: Accessor<string | undefined>;
+}
+
 const LAST_NODE = 5;
 const DOMAIN_MIN = 0;
 const DOMAIN_MAX = 100;
@@ -187,11 +279,10 @@ const clampStart = (start: number, w: number): number =>
   start < DOMAIN_MIN ? DOMAIN_MIN : start + w > DOMAIN_MAX ? DOMAIN_MAX - w : start;
 
 /**
- * Headless span timeline on Solid 2. The exported accessors are signals; the
- * prop objects are getter-backed, so spreading them keeps every attribute
- * reactive.
+ * The demo tree: five fixed spans, collapsing, zoom. Its oracle is
+ * `specs/apg/timeline.qnt` through the differential walk.
  */
-export const createTimeline = (options: TimelineOptions = {}): Timeline => {
+const createDemoTimeline = (options: TimelineOptions = {}): Timeline => {
   const initialExpanded = (options.defaultExpanded ?? []).reduce(
     (mask, node) => setBit(mask, node, true),
     0,
@@ -373,3 +464,187 @@ export const createTimeline = (options: TimelineOptions = {}): Timeline => {
     },
   };
 };
+
+/** A zero-length span still paints: at least half a percent of the track. */
+const MIN_BAR_WIDTH = 0.5;
+/** Aim for about five ticks, whatever the extent. */
+const TICK_TARGET = 5;
+
+const percent = (value: number): string => `${Math.round(value * 1000) / 1000}%`;
+
+/** 1, 2 or 5 times a power of ten, the step that makes the fewest labels fit. */
+const niceStep = (span: number): number => {
+  const raw = span / TICK_TARGET;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const normalized = raw / magnitude;
+  const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return factor * magnitude;
+};
+
+const formatTick = (value: number, step: number, unit: string): string => {
+  const decimals = step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step)));
+  return `${value.toFixed(decimals)} ${unit}`;
+};
+
+/**
+ * The rows mode: real span data on one axis. Everything hangs off `options.rows`
+ * read at attribute-read time, so the host may pass a getter and a trace may
+ * arrive after mount.
+ */
+const createRowsTimeline = (options: TimelineRowsOptions): TimelineRows => {
+  const rows = (): ReadonlyArray<TimelineSpan> => options.rows;
+  // ponytail: a linear scan per attribute read; a Map over a thousand-span
+  // trace if that ever shows up in a profile.
+  const rowOf = (id: string): TimelineSpan => {
+    const row = rows().find((candidate) => candidate.id === id);
+    if (row === undefined) {
+      throw new Error(`createTimeline: no row ${id}`);
+    }
+    return row;
+  };
+  const [selectedId, requestSelected] = createControllable<string | undefined>({
+    value: () => options.selected,
+    initial: undefined,
+    onChange: () => (id) => {
+      if (id !== undefined) {
+        options.onSelect?.(id);
+      }
+    },
+  });
+  const [focus, setFocus] = createSignal<string | undefined>(undefined);
+  const currentFocus = (): string | undefined => focus() ?? rows()[0]?.id;
+
+  const select = (id: string): void => {
+    requestSelected(id);
+  };
+
+  const extent = (): { readonly start: number; readonly end: number } => {
+    let start = Number.POSITIVE_INFINITY;
+    let end = Number.NEGATIVE_INFINITY;
+    for (const row of rows()) {
+      start = Math.min(start, row.start);
+      end = Math.max(end, row.end);
+    }
+    return start <= end ? { start, end } : { start: 0, end: 0 };
+  };
+
+  const ticks = (): ReadonlyArray<TimelineTick> => {
+    const list = rows();
+    if (list.length === 0) {
+      return [];
+    }
+    const { start, end } = extent();
+    const unit = options.axis?.unit ?? "ms";
+    const span = end - start;
+    if (!(span > 0)) {
+      return [{ value: start, left: 0, label: formatTick(start, 1, unit) }];
+    }
+    const step = niceStep(span);
+    const out: TimelineTick[] = [];
+    for (let value = Math.ceil(start / step) * step; value <= end; value += step) {
+      out.push({
+        value,
+        left: ((value - start) / span) * 100,
+        label: formatTick(value, step, unit),
+      });
+    }
+    return out;
+  };
+
+  const barStyle = (id: string): TimelineBarProps["style"] => {
+    const row = rowOf(id);
+    const depth = String(row.depth ?? 0);
+    const { start, end } = extent();
+    const span = end - start;
+    if (!(span > 0)) {
+      return { left: "0%", width: percent(MIN_BAR_WIDTH), "--depth": depth };
+    }
+    const left = Math.max(0, ((row.start - start) / span) * 100);
+    const width = Math.max(MIN_BAR_WIDTH, ((row.end - row.start) / span) * 100);
+    return { left: percent(left), width: percent(width), "--depth": depth };
+  };
+
+  const onKeyDown = (id: string, event: KeyboardEvent): void => {
+    const list = rows();
+    const index = list.findIndex((row) => row.id === id);
+    switch (event.key) {
+      case "ArrowDown":
+        setFocus(list[Math.min(index + 1, list.length - 1)]?.id);
+        break;
+      case "ArrowUp":
+        setFocus(list[Math.max(index - 1, 0)]?.id);
+        break;
+      case "Home":
+        setFocus(list[0]?.id);
+        break;
+      case "End":
+        setFocus(list[list.length - 1]?.id);
+        break;
+      case "Enter":
+      case " ":
+        select(id);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  };
+
+  return {
+    extent,
+    depthOf: (id) => rowOf(id).depth ?? 0,
+    listProps: {
+      role: "list",
+      "aria-label": "Span timeline",
+    },
+    rowProps: (id) => ({
+      role: "listitem",
+      get "aria-level"() {
+        return (rowOf(id).depth ?? 0) + 1;
+      },
+      get "aria-current"() {
+        return selectedId() === id ? "true" : undefined;
+      },
+      get "data-status"() {
+        return rowOf(id).status ?? "unset";
+      },
+      get tabindex() {
+        return currentFocus() === id ? 0 : -1;
+      },
+      onClick: () => {
+        setFocus(id);
+        select(id);
+      },
+      onKeyDown: (event) => onKeyDown(id, event),
+    }),
+    barProps: (id) => ({
+      "aria-hidden": "true",
+      get style() {
+        return barStyle(id);
+      },
+    }),
+    labelProps: (id) => ({
+      get style() {
+        return { "--depth": String(rowOf(id).depth ?? 0) };
+      },
+    }),
+    rulerProps: {
+      role: "presentation",
+      "aria-hidden": "true",
+      get ticks() {
+        return ticks();
+      },
+    },
+    select,
+    selectedId,
+  };
+};
+
+/** The demo five-span tree (`rows` absent) or real span data (`rows` given). */
+export function createTimeline(options: TimelineRowsOptions): TimelineRows;
+export function createTimeline(options?: TimelineOptions): Timeline;
+export function createTimeline(
+  options: TimelineOptions | TimelineRowsOptions = {},
+): Timeline | TimelineRows {
+  return "rows" in options ? createRowsTimeline(options) : createDemoTimeline(options);
+}

@@ -319,6 +319,42 @@ const table = createTable({
 - **`numeric` is a layout hint** for the host's skin (right alignment, tabular figures): HTML has no attribute for it, so the primitive carries nothing.
 - Solid 2 arrives through delegated events; a host that reads the DOM right after a click waits a tick.
 
+## Timeline
+
+`createTimeline` has two modes over one axis. Without `rows` it renders the package's demo tree of five fixed spans (collapsing, a zoom window, the differential walk against `specs/apg/timeline.qnt`); with `rows` it takes real span data and lays it out as a trace waterfall.
+
+```tsx
+const timeline = createTimeline({
+  rows: spans, // { id, label, start, end, depth?, status? }, in the host's display order
+  axis: { unit: "ms" },
+  selected: selected(), // controlled; omit it and the primitive keeps the value
+  onSelect: (id) => setSelected(id),
+});
+
+<ul {...timeline.listProps}>
+  {spans.map((span) => (
+    <li {...timeline.rowProps(span.id)}>
+      <span {...timeline.labelProps(span.id)}>{span.label}</span>
+      <div class="track">
+        <div {...timeline.barProps(span.id)} />
+      </div>
+    </li>
+  ))}
+</ul>
+<div {...{ role: timeline.rulerProps.role }}>
+  {timeline.rulerProps.ticks.map((tick) => (
+    <span style={{ left: `${tick.left}%` }}>{tick.label}</span>
+  ))}
+</div>;
+```
+
+- **A waterfall is a list, not an APG widget.** There is no trace/waterfall pattern, and the rows are neither a tree (nothing collapses) nor a grid (nothing is edited). The rows mode is `role="list"` / `role="listitem"` (see `listProps` / `rowProps`) with `aria-level` = `depth + 1`, so the nesting a flat DOM cannot show is still announced; the selected row is `aria-current="true"`, which every element may carry — `aria-selected` is not allowed on a `listitem` and a waterfall is not a selection control. The demo tree keeps `role="tree"` / `treeitem`, because it does collapse.
+- **The extent is the rows'.** `extent()` is the smallest `start` and the largest `end`, so a nested span is positioned and sized as a percentage of the whole trace, not of its parent. `barProps(id).style` is `left` / `width` in percent of that extent. A zero-length span (a marker, `start === end`) still paints: every bar has a **0.5% floor** (2 px on a 400 px track), the floor the o11y dashboard hand-rolled before this mode existed.
+- **Depth is a custom property**, `--depth` on `barProps` and `labelProps`, so a narrow track keeps its indentation: `padding-inline-start: calc(var(--depth) * 0.75rem)`. Nesting the label's DOM would steal width from the bar.
+- **The ruler is derived.** `rulerProps.ticks` is the extent stepped by 1, 2 or 5 times a power of ten (about five ticks), each `{ value, left, label }` with the label in the `axis.unit` (default `ms`). The ruler itself is decorative (`role="presentation"`, `aria-hidden="true"`); render the ticks as children.
+- **Selection and keys.** A row click selects it and moves the tab stop; ArrowUp / ArrowDown / Home / End move a roving tab stop, and Enter or Space selects the row that has DOM focus — the host moves the real focus after an arrow key, as the demo fixture does. `selected` + `onSelect` make it controlled (`selected` is a request the host may ignore); `select(id)` is the programmatic request.
+- `status` is carried as `data-status` on the row for the host's colour, and `label` never leaves the host's data: the primitive does not invent the row's text.
+
 ## Confirm
 
 `createConfirm` is a promise-based confirmation over `createDialogModal({ role: "alertdialog" })`. Like the field it is not checked against a spec (the dialog is; `test/confirm.browser.test.tsx` covers the promise around it, in Chromium).
