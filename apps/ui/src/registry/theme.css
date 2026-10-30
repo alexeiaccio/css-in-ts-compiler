@@ -81,6 +81,8 @@
   --color-button-background-pressed: var(--color-tint-200);
   --color-overlay-background: var(--color-surface);
   --color-overlay-border: rgb(0 0 0 / 0.06);
+  --color-scrim: oklch(0 0 0 / 0.35);
+  --z-dialog: 20;
   --shadow-popover: 0 8px 20px 0 rgb(0 0 0 / 0.12);
   --space-1: var(--space-base);
   --space-2: calc(var(--space-base) * 2);

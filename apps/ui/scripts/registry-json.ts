@@ -58,6 +58,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/input"],
   },
   {
+    name: "dialog",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Dialog",
+    description:
+      "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
+    also: ["@cssints/button"],
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
@@ -71,6 +80,15 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
+  },
+  {
+    name: "button-group",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Button group",
+    description:
+      "Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's",
+    also: ["@cssints/button"],
   },
   {
     name: "switch",
@@ -156,7 +174,7 @@ const starter = (item: Starter) => ({
   type: "registry:ui",
   title: item.title,
   description: item.description,
-  dependencies: ["@cssints/headless", "cssints"],
+  dependencies: ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
   // `solid-js` rc, which this item cannot know.

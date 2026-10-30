@@ -15,8 +15,10 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 
 - card: A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`. `add @cssints/card`
 - field: A label, a control, a hint and an error: the ids and the ARIA are `createField`'s. `add @cssints/field`
+- dialog: APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close. `add @cssints/dialog`
 - input: A text field on the neutral theme, and the control `Field` puts in by default. `add @cssints/input`
 - toolbar: A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context. `add @cssints/toolbar`
+- button-group: Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's. `add @cssints/button-group`
 - switch: APG switch on @cssints/headless, on the neutral theme, with its scenario test. `add @cssints/switch`
 - disclosure: APG disclosure on @cssints/headless, on the neutral theme, with its scenario test. `add @cssints/disclosure`
 - button: APG button and toggle button: `tone` and `size` variants, and `render` for a link. `add @cssints/button`

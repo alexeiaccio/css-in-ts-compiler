@@ -1,5 +1,11 @@
 # @cssints/squircle
 
+## 0.13.0
+
+### Patch Changes
+
+- cssints@0.13.0
+
 ## 0.12.1
 
 No changes in this release.

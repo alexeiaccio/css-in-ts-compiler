@@ -50,6 +50,11 @@ interface Page {
   /** The finger's events the canvas has taken (`pointerdown`/`move`/`up`/`cancel` with `pointerType: "touch"`): a check
    *  waits on it, so it knows the renderer dispatched the event it sent. */
   touches(): number;
+  /** The frames the drawer drew and the shell painted (`ui.draws`, `ui.presents`): the dev panel's counters. */
+  draws(): number;
+  presents(): number;
+  /** The last frame's hash (`ui.hash`), as hex: the frame is the same when it is the same. */
+  hash(): string;
   bench(n?: number): number;
 }
 
@@ -67,6 +72,8 @@ export interface Options {
   input?: Input;
   /** The page's tree: `render`ed once, before the first frame. */
   tree: (setup: Setup) => () => El;
+  /** The frame loop's own array (`View.stats`), for the dev page's panel: the four phases of every frame. */
+  stats?: [number, number, number, number][];
 }
 
 /**
@@ -108,8 +115,9 @@ export async function mountPage(options: Options): Promise<void> {
     onPressMiss: () => options.input?.pressMiss(),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
     tick: (dt) => motion.tick?.(dt),
+    stats: options.stats,
   });
-  const draw = createDrawer(frame);
+  const draw = createDrawer(frame, options.stats);
 
   // the pointer, as the layout's pixels: the canvas is drawn at W x H CSS pixels, so the only mapping is the element's box
   let px = -1;
@@ -219,6 +227,7 @@ export async function mountPage(options: Options): Promise<void> {
   /** One frame's commands and the renderer's tables beside them (a page with no effect has empty ones). */
   function paint(): void {
     surface.draw(readCommands(wasm), readEffects(wasm));
+    ui.present(); // the desktop's window present: what the dev panel's `presents` counts
   }
 
   /** One iteration of the desktop's window loop: the wheel, then the frame; the canvas is drawn when the drawer drew. */
@@ -278,6 +287,11 @@ export async function mountPage(options: Options): Promise<void> {
       const box = ui.bounds(bound.get(id) ?? (bound.set(id, new TextEncoder().encode(id)), bound.get(id)!));
       return box === undefined ? undefined : [...box];
     },
+    /** The drawer's draws and the shell's paints, the two counters the dev panel prints. */
+    draws: () => ui.draws(),
+    presents: () => ui.presents(),
+    /** The last frame's hash (a string: a bigint does not cross the page's edge): the same value, the same pixels. */
+    hash: () => ui.hash().toString(16),
     /** Ms a frame: the tree declared, Clay's layout, the commands read out, Canvas2D's raster and one readback. */
     bench(n = 100) {
       const t0 = performance.now();

@@ -40,6 +40,11 @@ export interface ButtonProps
 
 // One cv() for every button. The states are the widget's, read off the attrs it announces — never a second copy of the
 // pressed state — and an ancestor with `data-size="sm"` shrinks the button without a prop: a toolbar is the context.
+// A button group is the context too, and it says which way it lies with its marker class (`_g-row` / `_g-column`): the
+// `:first-child` and `:last-child` rules below style this element only where such a group is its ancestor.
+const groupRow = css.within(css.attr("data-part", "button-group"), "row");
+const groupColumn = css.within(css.attr("data-part", "button-group"), "column");
+
 const button = css.cv({
   base: css.cn(
     css.boxSizing("border-box"),
@@ -73,6 +78,35 @@ const button = css.cv({
     css.within(css.attr("data-size", "sm"))(
       css.padding(t.space._1, t.space._2),
       css.fontSize(t.font.sizeSm),
+    ),
+    // `ButtonGroup` is the other context: it marks itself `group("row")` or `group("column")`. Inside it every corner
+    // is square first (the corners two neighbours share), then the two on the outer side come back for the first and
+    // the last button — a lone button in a group is both, so it keeps its radius. Every button after the first slides
+    // 1px into its neighbour, so their two 1px borders are one line. `data-part` keeps a `_g` ancestor that is not a
+    // group of buttons out of it.
+    groupRow(
+      css.marginInlineStart("-1px"),
+      css.borderStartStartRadius(0),
+      css.borderEndStartRadius(0),
+      css.borderStartEndRadius(0),
+      css.borderEndEndRadius(0),
+      css.firstChild(
+        css.borderStartStartRadius(t.radius.md),
+        css.borderEndStartRadius(t.radius.md),
+      ),
+      css.lastChild(css.borderStartEndRadius(t.radius.md), css.borderEndEndRadius(t.radius.md)),
+    ),
+    groupColumn(
+      css.marginBlockStart("-1px"),
+      css.borderStartStartRadius(0),
+      css.borderEndStartRadius(0),
+      css.borderStartEndRadius(0),
+      css.borderEndEndRadius(0),
+      css.firstChild(
+        css.borderStartStartRadius(t.radius.md),
+        css.borderStartEndRadius(t.radius.md),
+      ),
+      css.lastChild(css.borderEndStartRadius(t.radius.md), css.borderEndEndRadius(t.radius.md)),
     ),
   ),
   variants: {
@@ -113,7 +147,8 @@ const button = css.cv({
 /**
  * APG button, styled: a command button, and a toggle button with `isToggle`. `tone` and `size` are the look; `render`
  * replaces the `<button>` with another component or tag (`<a>` for a link that acts as a button). A pressed toggle, a
- * disabled button and the compact size are read off `aria-pressed`, `aria-disabled` and an ancestor's `data-size`.
+ * disabled button and the compact size are read off `aria-pressed`, `aria-disabled` and an ancestor's `data-size`; in a
+ * `ButtonGroup` the corners two neighbours share are the group's, not the button's.
  */
 export const Button = (props: ButtonProps): JSX.Element => {
   const buttonControl = createButton({

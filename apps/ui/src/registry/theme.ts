@@ -1,3 +1,4 @@
+import { look } from "@cssints/mise-en-mode" with { type: "cssints" };
 import { check, createGlobalTheme, createTokens, media } from "cssints" with { type: "cssints" };
 
 import { darkTheme, forcedColorsTheme, lightTokens } from "./tokens.ts";
@@ -14,8 +15,10 @@ const t = createTokens(lightTokens);
 createGlobalTheme(t, media("(prefers-color-scheme: dark)"), darkTheme);
 
 // The same dark look as a scope a page can ask for: `<div data-mode="dark">` moves every token inside it, and a surface or a
-// frame under it follows without a prop. Layers app < author < viewer come from the look's source: an app look, here.
-createGlobalTheme(t, '[data-mode="dark"]', darkTheme);
+// frame under it follows without a prop. It is a mise-en-mode look, so it is in the `app` layer: a host's `author` or `viewer`
+// look over the same marker wins without a specificity trick, and `data-mode="dark/color"` moves the colours alone. The media
+// query above stays a global theme: a look is a `data-mode` scope, and the system preference is not one.
+look(t, "dark", "app", darkTheme);
 
 // One preset, because the theme is neutral: the reference's indigo, as its two numbers. The others are in its theme.css.
 createGlobalTheme(t, '[data-tint="indigo"]', {
