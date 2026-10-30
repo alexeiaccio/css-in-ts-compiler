@@ -13,6 +13,7 @@
     "destroy": "alchemy destroy --stage prod"
   },
   "dependencies": {
+    "@cssints/headless": "workspace:*",
     "@cssints/icons": "workspace:*",
     "@cssints/reset": "workspace:*",
     "@solidjs/router": "2.0.0-next.35",
