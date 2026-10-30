@@ -845,6 +845,70 @@
           "type": "registry:file"
         }
       ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "select",
+      "type": "registry:ui",
+      "title": "Select",
+      "description": "APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme", "@cssints/button"],
+      "files": [
+        {
+          "path": "select.tsx",
+          "target": "src/components/ui/select.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "textarea",
+      "type": "registry:ui",
+      "title": "Textarea",
+      "description": "A multi-line field styled like `Input`, and the control `Field` puts in with `render`",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "textarea.tsx",
+          "target": "src/components/ui/textarea.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
     }
   ]
 }

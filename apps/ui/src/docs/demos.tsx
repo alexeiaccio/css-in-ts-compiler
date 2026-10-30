@@ -23,7 +23,9 @@ import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field
 import { Input } from "../registry/input/input.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
+import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
+import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
@@ -214,6 +216,39 @@ const FieldDemo = (): JSX.Element => (
   </div>
 );
 
+const SelectDemo = (): JSX.Element => {
+  const [value, setValue] = createSignal(1);
+  return (
+    <div class="demo-column">
+      <Select
+        items={["Apple", "Banana", "Cherry", { label: "Durian", disabled: true }]}
+        value={value()}
+        onValueChange={setValue}
+        label="Fruit"
+      >
+        <SelectTrigger />
+        <SelectContent />
+      </Select>
+      {/* nothing chosen: the trigger shows the placeholder, and the first arrow picks the first option */}
+      <Select items={["Small", "Medium", "Large"]} label="Size" placeholder="Pick a size">
+        <SelectTrigger />
+        <SelectContent />
+      </Select>
+    </div>
+  );
+};
+
+const TextareaDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <Textarea placeholder="A plain textarea" />
+    <Field id="demo-notes" hint="Markdown is fine">
+      <FieldLabel>Notes</FieldLabel>
+      <FieldControl render={(props) => <Textarea {...props} rows={4} />} />
+      <FieldMessage />
+    </Field>
+  </div>
+);
+
 const CheckboxDemo = (): JSX.Element => {
   const [checked, setChecked] = createSignal<"true" | "false" | "mixed">("mixed");
   return (
@@ -370,4 +405,6 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   treeview: TreeviewDemo,
   menu: MenuDemo,
   tooltip: TooltipDemo,
+  select: SelectDemo,
+  textarea: TextareaDemo,
 };

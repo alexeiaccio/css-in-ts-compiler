@@ -35,6 +35,8 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - treeview: APG tree view: roving focus, expanded rows and levels on `createTreeview`. `add @cssints/treeview`
 - menu: APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close. `add @cssints/menu`
 - tooltip: APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`. `add @cssints/tooltip`
+- select: APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside. `add @cssints/select`
+- textarea: A multi-line field styled like `Input`, and the control `Field` puts in with `render`. `add @cssints/textarea`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written

@@ -2320,3 +2320,33 @@ state is uncontrolled), so there is no `open` prop to offer; no submenus, no che
 primitive has none of those in the plain menu); no show delay (both open immediately on focus and hover; `showDelayMs` and
 `showTimer` are exposed for a page that wants the 600 ms default). Typeahead is not an addition here: it is the primitive's
 own buffer, fed by a letter key in the content's handler.
+
+## The select reuses the menu's anchor, the textarea is the input on many lines (apps/ui, 2026-10-30)
+
+`Select` is the kit's third floating element, so it takes the anchor decision of the first two rather than a second
+mechanism: one box around the trigger and the list (`position: relative`), the list `position: absolute` under it, and the
+`z.popover` token. Nothing measures a rect, there is no scroll or resize listener, and the list moves with its trigger. It
+inherits the cost the Menu entry states: the wrapper is a box the caller's layout did not have, and an `overflow: hidden`
+ancestor clips the list. The list comes from `items`, as on `Menu`, not from a children-based `SelectOption`: `createListbox`
+needs every label and id up front (typeahead searches the labels, the option ids come from the base id), and the trigger needs
+the label of the chosen index to show it. A row is still a part — `<SelectOption index={0} />`, with `render`, its
+`data-part`, and the declared label unless `children` says otherwise — so a custom row is a custom row and not a second list.
+
+`createListbox` is a listbox, not a combobox: it owns the selection, the one roving tab stop, the arrows, Home and End, Enter
+and typeahead, but it has no open state and no Escape. `Select` therefore owns the open signal, Escape (which closes and hands
+the focus back to the trigger), Tab (which closes without moving the focus) and the `pointerdown` outside the anchor (which
+closes without stealing the focus from what was clicked), the same split as `Menu` for its dismiss. The content moves the DOM
+focus to the row that holds the tab stop, and a chosen row closes the list and returns the focus to the trigger. The
+highlight is read off the roving tab stop (`attr("tabindex", "0")`), the choice off `aria-selected` and the disabled row off
+`aria-disabled`: the kit keeps no copy of the active index.
+
+`Textarea` is small on purpose: the same skin as `Input` — border, padding, radius, focus ring, `aria-invalid` border — plus
+`resize: vertical` and a minimum height, in its own file. Importing `Input`'s class would have made a registry copy pull
+`input/input.tsx` in for a few declarations, and the registry flattens a kit import into the copy. The duplicate is the cost:
+a change to the field skin is two edits. `Field.Control render={(props) => <Textarea {...props} />}` hands it the id, the
+described-by ids and `aria-invalid`, and the component paints the invalid state from that attribute.
+
+**Left**: no controlled open for the select (`Menu` has none either; `defaultOpen` and `onOpenChange` can come with a page that
+needs them); no max height or scrolling inside a long list, no portal and no flip above the trigger (the same "left" as the
+menu); the placeholder has no colour of its own; a space typed into a typeahead buffer still closes the list as a choice; the
+textarea does not grow with its content (no `field-sizing`).

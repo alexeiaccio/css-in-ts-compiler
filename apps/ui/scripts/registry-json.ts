@@ -224,6 +224,23 @@ const STARTERS: ReadonlyArray<Starter> = [
       "APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`",
     also: ["@cssints/button"],
   },
+  {
+    name: "select",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Select",
+    description:
+      "APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "textarea",
+    tested: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Textarea",
+    description:
+      "A multi-line field styled like `Input`, and the control `Field` puts in with `render`",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
