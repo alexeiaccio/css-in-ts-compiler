@@ -2463,3 +2463,43 @@ contradict the extension, it just does not see it.
 
 **Left**: `disabled` is not a scenario config, so the differential walk always runs enabled (the bridges throw
 `Unsupported` for it), and a disabled slider still cannot be dragged, because dragging is not modelled or shipped.
+
+## Tabs: close and rename (docs playground, 2026-10-30, cssints-gdv2)
+
+The docs playground's file tabs add, close and rename files, and `createTabs` only selected. The choice was an
+**extension of the one primitive**, not a second one and not a flag soup in `createTabs`'s core: `closable` and
+`renamable` are off by default, so the plain tablist and every scenario file are untouched, and the capabilities ride on
+`closeProps` / `renameProps` plus the requests `onClose(index)` / `onRename(index, label)`.
+
+**The primitive owns no list.** It has never known tab contents and still does not: a close or a rename is a request,
+the host removes or renames and passes `items` / `label` again. `label(index)` was the one new read the buttons needed —
+"Close <label>", "Rename <label>", and the draft the inline input starts with — and both it and `items` are read lazily,
+so shrinking the host's list moves the bounds, the roving tab stop and `firstEnabled` with it. That last part is a
+behaviour change to the plain widget: `items` used to be captured once at creation.
+
+**Close.** The close button is `tabindex=-1`: a tablist's stops are its tabs, so the button must not add one. The
+keyboard path is Delete on the focused tab. Focus after a close is decided here, not left to each host: the tab that slid
+into the closed one's place (the following tab, so the index is unchanged in the shortened list), or the previous tab when
+the last one closed; `focusAfterClose(index)` returns that index and the host focuses it after its removal lands. Closing
+the last remaining tab is refused, as `tabs.qnt` already refuses an empty tablist, and closing the selected tab asks for
+the tab that takes the focus, the spec's "a deleted selected tab hands selection to the tab that receives focus". What the
+primitive cannot do is keep index identities across a removal before the selection (the host's list is names/ids to it),
+so a host that closes a tab before the selected one adjusts its own selection; the playground selects by name.
+
+**Rename.** A double click starts it; the tab renders `inputProps` (a text field) instead of its label. Enter commits,
+Escape reverts, and blur commits — the click that leaves the field is the commit, the same rule `createSpinbutton` uses,
+and an empty label cancels instead of leaving an unnamed tab. While editing, the input owns the keys: `keyDown` returns
+before the roving switch, so arrows and Home/End do not move the tablist under the caret, and the same guard covers a
+keydown that bubbles from the input to the tab. The tab cannot be a `<button>` while it holds the input (interactive
+content), so the README's sketch swaps it for a `role="tab"` element; `begin(index)` starts a rename programmatically for
+a tab the host has just added, after `focusTab(index)`.
+
+**What the spec carries.** `tabs.qnt`'s `deletable` flavour already models the Delete key, the focus to the following tab
+(previous when last), the refused last tab and the selected hand-off, so those decisions follow the model; the rename, the
+callbacks and the close button are not modelled at all. The spec's `Delete` step is not in any ported scenario file
+(`deletable` is always false in them), so `packages/headless/test/tabs-close.browser.test.tsx` is the oracle for the whole
+extension: the buttons' tab order, Delete, both focus cases, the refused last tab, Enter / Escape / blur, arrows while
+editing, and the plain tablist still walking and ignoring Delete.
+
+**Left**: no `deletable` scenario file (the model can carry it, the ported scenarios do not), no controlled close, and
+add-a-tab stays the host's (append, then `focusTab` + `begin`); nothing about the model or a `setItems` was needed.
