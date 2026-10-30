@@ -1,6 +1,6 @@
 {
   "name": "@cssints/headless",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Headless APG widgets on Solid 2: state plus attribute objects, no elements, no styling, each conformance-checked against its Quint spec",
   "license": "MIT",
   "repository": {
