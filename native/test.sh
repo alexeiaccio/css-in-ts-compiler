@@ -270,6 +270,9 @@ if command -v script >/dev/null 2>&1; then
 else
   echo "terminal: no script(1), termbox2's pty checks skipped"
 fi
+# ... and one page as Solid over the same cells (solid/native/term.c -> build/solid/libterm.dylib, terminal/solid.ts):
+# Sensors.tsx unmodified, its frames against the C page's own. terminal/test.sh prints its comparisons.
+NATIVE_OUT="$OUT" sh terminal/test.sh
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no
 # emscripten), drawn on a canvas by browser/render.js. The check builds it, opens browser/index.html in Chromium

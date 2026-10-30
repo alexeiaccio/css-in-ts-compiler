@@ -124,11 +124,14 @@ static const char *key_of(const struct tb_event *e, char *one)
     return one;
 }
 
-Tb2Status term_tb2_poll(TermEvent *ev)
+Tb2Status term_tb2_poll(TermEvent *ev) { return term_tb2_poll_ms(ev, -1); }
+
+Tb2Status term_tb2_poll_ms(TermEvent *ev, int ms)
 {
     if (!started) return TB2_QUIT;
     struct tb_event e;
-    const int rv = tb_poll_event(&e);
+    const int rv = ms < 0 ? tb_poll_event(&e) : tb_peek_event(&e, ms);
+    if (rv == TB_ERR_NO_EVENT) return TB2_NONE;
     if (rv != TB_OK) return TB2_QUIT;
     ev->key = NULL;
     ev->down = ev->up = 0;

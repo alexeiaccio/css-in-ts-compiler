@@ -1696,6 +1696,91 @@ touchscreen** (this machine
 has none: what is tested is Chromium's own touch pipeline into the shell, not a panel's), and HMR. `native/docs/map.md`'s
 step 8 keeps the list.
 
+## Solid on the terminal
+
+Step 6's Solid half: one page runs as Solid over the terminal's cells. `solid/native/term.c` is Clay over
+`terminal/cells.c`, `render.c`, `measure.c` and `tb2.c` — no SDL3, no ThorVG, no window — built as
+`build/solid/libterm.dylib` beside `libui.dylib`, and it takes the same declaration surface the desktop's `ui.c` takes:
+a packed 45-float box style, a 10-float text style and the value channel (`solid/src/pack.ts`'s `FIELDS`). So a page's
+`styles.ts` is one module on both targets, and `solid/app/Sensors.tsx` is the page, **unmodified**.
+
+```sh
+sh solid/native/build.sh                          # libui.dylib and libterm.dylib
+bun terminal/solid.ts                             # live: the page in termbox2; q/Ctrl+C/Escape quits
+bun terminal/solid.ts --dump out.txt              # one frame headless, plain text ('.' is a fill); no file: stdout
+bun terminal/solid.ts --ansi out.ansi             # the same cells as truecolour ANSI (SGR runs merged)
+bun terminal/solid.ts --keys Tab,ArrowDown --dump out.txt     # the frame after each key, as main.c
+bun terminal/solid.ts --click 40,9 --dump out.txt # a press and a release on the Units pill (the page's own onClick)
+bun terminal/solid.ts --theme light --dump out.txt            # the light theme (also THEME=light)
+bun terminal/solid.ts --cols 80 --rows 11 --bench 20          # the frame's ms, and the same cells as ANSI
+sh terminal/test.sh                               # the comparisons below (native/test.sh runs it)
+```
+
+**The binding.** `term_open(cols, rows)` starts Clay and the grid — cols and rows headless, `0, 0` for termbox2's own
+size — `term_begin(px, py, down, dt)` opens a frame with the pointer in cells (Clay's pixels are a cell's, 8x16),
+`term_open_element`/`term_text`/`term_close_element` are the tree, `term_value` is the value channel, `term_end(dt)` lays
+out and runs the commands into the grid (`terminal/render.c`: a fill is its cells' background, a border is `─│┌┐└┘`,
+text at `x / CELL_W` one row, a scissor stack; `terminal/measure.c`: a code point a cell, a line a cell), and
+`term_present`/`term_dump`/`term_ansi` are the three ways out. `term_poll(key, out)` is termbox2's next event within
+16ms (0 none, 1 an event, 2 a resize, 3 quit; `out` is the pointer's cell and the button). `terminal/tb2.c` gained
+`term_tb2_poll_ms` for that wait: the C host keeps blocking in `term_tb2_poll`, which is the same call with no timeout,
+so the C pages' frames are untouched. The parts of a style a cell cannot show are not declared: a float (counted as an
+error), an image, a shadow, a backdrop, a gradient, and the group fields of the value channel (46–49, 55), which arrive
+and are dropped — the page's entry animation is a no-op in cells rather than a different frame.
+
+**A page's frame.** `terminal/solid.ts` is the desktop loop's shape: `createInput()` (the keys named as `src/input.ts`
+names them, Space as `" "`), the page's `Motion` hook, `flush()` for Solid, the tree walked in order, `term_value` for
+the cell re-cut, Clay's layout and the cells. It is not `solid/src/frame.ts`, and honestly: that module imports the
+desktop's `src/ffi.ts` and draws through `ui_draw`, so the host walks the same tree itself (~40 lines, without the
+effects a cell has no command for) and aliases `solid/src/ffi.ts` to `terminal/term.ts` — the page's own
+`pageEntry` therefore writes its motion into libterm. The two lengths page.c re-cuts, it re-cuts the same way, through
+the value channel, not by editing the page: the root's padding (2 cells) and gap (0), and the pill's height (3 cells,
+so a border, a line of text and a border are three rows). The pill's ring is the host's: page.c's `pill_style(focused)`
+asks the page's focus, and `Sensors.tsx` has no focus prop, so the host draws the same accent border
+(`styles.magnitude`'s colour in the theme that is on) while its own focus is on the pill. Tab moves it off the pill,
+which is where the C page's list would take it; there is no list in `Sensors.tsx`, so the ring simply goes.
+
+**The proof.** The C page is the oracle, and at the page's own height the Solid frame is the C frame byte for byte —
+the same cells, the same palette in the same first-use order, the same ANSI runs:
+
+```
+solid, terminal: the page's frame, dark, is the C page's own (80x11 cells) -> identical
+solid, terminal: after Tab and ArrowDown (the ring off the pill, nowhere to go) the frame is the C page's own -> identical
+solid, terminal: and the page's rows are expected-focus.txt's own (the C page's ring is the list's, on row 12) -> identical
+solid, terminal: its ANSI is the C page's own (truecolour, SGR runs merged) -> identical
+solid, terminal: the pill's fill is 3 SGR runs (one a row, not one a cell) and the title is 38;2;230;60;60 -> identical
+solid, terminal: the same in the light theme (the theme variant, folded by the same styles.ts) -> identical
+solid, terminal: at 80x20 the page's 11 rows are expected-dark.txt's own (rows 12-19 are the C page's list, not the page's) -> identical
+solid, terminal: a click on the pill flips Units through the page's own onClick (hover fill 48,53,68, as a mouse leaves it) -> identical
+solid, terminal: termbox2 drew the Solid page's screen (80x24, truecolour) under a pty -> identical
+```
+
+11 cells is the page's own height: the C page's list starts on row 12, so `demo --cols 80 --rows 11` draws exactly the
+page and nothing of the list or the footer. At the suite's 20 rows the page's first 11 rows are `expected-dark.txt`'s
+own and rows 12-19 are the C page's list and footer — 9 of 20 rows, 720 cells — which `Sensors.tsx` does not have. That
+is the slice's one real gap, counted by `terminal/test.sh` rather than hidden; the two pages are not the same page yet,
+they are the same *page part* drawn by two different programs.
+
+**The cost**, on this Mac (`--bench 20`, headless, the 80x11 frame): **0.384 ms a frame** (begin, the tree declared
+through Bun's FFI, Solid's flush, Clay's layout, and the commands turned into 880 cells) and **0.463 ms** more for the
+same cells as ANSI (3018 bytes, the file write included). The C page's own frame is ~0.08 ms measured as the delta of
+`demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints no frame time, so that
+delta is the number; it is 5x less than Solid's). The binding is 236 KB of `libterm.dylib` (Clay's implementation,
+cells.c, render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one declaration per
+element and one per text through `bun:ffi`, where the C page calls Clay directly.
+
+**What it cannot do in cells.** Text is one row, so a body does not wrap (a clipped row is all a cell page gives it); an
+image is a box with no glyph; a float has no cells to sit over; there is no shadow, backdrop, gradient, group opacity,
+scale or rotation; termbox2 reports no motion events, so a hover is only where the last press was (a click leaves the
+pointer on the pill, which is why the click's frame is the hovered one); a 1px and a 4px border are one cell; a corner
+radius is a square corner; a wide glyph (CJK, most emoji) is one cell and breaks the row by one; and the cell size makes
+a page's pixel lengths land between cells — 38px is 2.4 rows and 200px is 25 columns — so a terminal page re-cuts them
+(here through the value channel, in C by hand). The other four screens of step 6 — the feed, the thread, the profile and
+the notifications — are still C: `terminal/sky.c`, `thread.c`, `profile.c`, `notify.c`, with `focus.c` for their focus.
+Moving one of them over is the next slice; the shape is there (a page declares, Clay lays out in cells, termbox2 draws)
+and what it needs is what `Sensors.tsx` lacked here: the page's own list and focus, and a `src/frame.ts` that takes the
+binding instead of importing one.
+
 ## The sky screens in a terminal
 
 `apps/csssky-tui` (`../apps/csssky-tui`) ported to cells: the same cards, the same recorded fixtures, the same palette

@@ -23,6 +23,9 @@ int term_tb2_truecolor(void);
 /** The grid onto the screen: every cell, then tb_present (termbox2 diffs it against its own front buffer). */
 void term_tb2_present(const Cells *g);
 Tb2Status term_tb2_poll(TermEvent *ev);
+/** The same, waiting at most `ms` for an event (TB2_NONE when none arrived): a host that animates needs a frame tick,
+ *  and the key names are this file's whatever the wait. `term_tb2_poll` is this with no timeout. */
+Tb2Status term_tb2_poll_ms(TermEvent *ev, int ms);
 void term_tb2_close(void);
 /** The last open's error, for a caller that has to say why termbox2 did not start. */
 const char *term_tb2_error(void);
