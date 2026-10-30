@@ -283,8 +283,10 @@ if command -v zig >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
   sh browser/build.sh >/dev/null
   node browser/check.mjs
   # ... and the Solid pages in the same browser, on the desktop's own modules (browser/solid/): Sensors and Widgets (the
-  # second driven by the keyboard), the Sky (browser/sky-check.mjs) and the Dialog (browser/dialog-check.mjs: its floats
-  # and the menu's backdrop). Their checks are in solid/test.sh, which has just run above with the same guard
+  # second driven by the keyboard), the Sky (browser/sky-check.mjs), the Dialog (browser/dialog-check.mjs: its floats
+  # and the menu's backdrop), the List and the Text field (browser/input-check.mjs) and the Dev page with the Text sheet
+  # (browser/dev-check.mjs: the panel's own readout). Their checks are in solid/test.sh, which has just run above with
+  # the same guard
 else
   echo "browser: no zig, node or Playwright chromium, skipped (sh browser/build.sh && node browser/check.mjs)"
 fi

@@ -1506,6 +1506,77 @@ are `preventDefault`ed, as the keys the shell consumes are (the shell's own `con
 Home/End, PageUp/Down, Enter, Backspace, Delete), so a character never reaches a browser accelerator; a Cmd, Ctrl or
 Alt chord is left to the browser.
 
+### The Dev page and the Text sheet in the browser
+
+`browser/solid/dev.ts` + `dev.html` are `solid/app/Dev.tsx` **unmodified** at its own 660x760 — the Widgets page in its
+360px column and the 300px panel beside it — and `browser/solid/sheet.ts` + `sheet.html` are `solid/app/Sheet.tsx` at
+440x564, the static text sheet. Both are `mountPage` calls: the sheet takes no input and no hook, and it is still the
+shell's page rather than a loop of its own, which is what "not a special case" means here. With them all eight pages the
+desktop has are real in a browser (the Sky's own loop `sky.ts`, the other seven on the shell), and the Sky chapter's
+"Sheet and Dev are still not here" is done.
+
+**What the panel needed from the surface.** `Dev.tsx` reads the page's own tree (`snapshot`), the innermost box under
+the pointer (`ui.over` + `ui.bounds`) and the frame's numbers (`stats`, pushed by `createFrame`, and `ui.draws` /
+`ui.presents`), and prints them when the page changes. Of those the browser surface had `ui.over` and `ui.draws`; it
+gained exactly two things. `Options.stats` (one member of `mountPage`'s options, handed to `createFrame` and
+`createDrawer`, so the panel's phases and the draw's time are the loop's own) and the presents counter: `ui_present`
+(called by the shell's `paint`, once a frame on the canvas, the desktop's window present) and `ui_presents` beside
+`ui_draws` in `browser/ui.c` — **+67 B**, and every other page's frame is untouched. The pointer needed nothing: the
+shell already feeds the press/release point into `frame(px, py, …)` → `ui_begin`, and that is the point `ui.over` answers,
+so the panel's `deepest` and the page's `:hover` follow the real mouse; `dev.ts` hands the page the shell's `motion`
+(its tick samples the panel, its `onPointer` pins a click) and its `drag` (the Widgets slider). The panel prints into its
+own frame, not to the console — it is a Clay text like any other, and `window.__page.commands()` reads the lines back:
+
+```
+hover:  press  button "Presses: 0"          the panel's "hovered box", and in the live values
+        press  button "Presses: 0"  40,72 280×40
+keys:   switch "Wi-Fi" [checked=false focused=true] 40,118 280×32   after Tab, Tab
+        switch "Wi-Fi" [checked=true focused=true] 40,118 280×32    after Space
+frame:  draws 15  presents 15                                        the counters of the frame that printed
+```
+
+A row wider than the 276px of panel wraps: `checkbox "Beta (disabled)" [checked=false disabled=true] 40,258 280×28`
+arrives in the page as two text commands. That is Clay's wrapping on a narrower measure (Canvas2D's), not a second row.
+
+**The frames, measured.** `node browser/dev-check.mjs` (in `solid/test.sh`, the same zig/bun/Chromium guard):
+
+| what | measured |
+| --- | --- |
+| the Dev page's 360px column against `solid/frames/dev.png` (there is no command golden for this page: the panel prints the frame's milliseconds, so its text differs on every run — the panel is asserted through its commands instead) | **9.63%** of pixels differ, 51 command boxes' means within **17.3/255**, every text's ink box within **3.00px**, the column's mean colour within **1.62/255** — `check.mjs`'s numbers (20/255, 4 px, 3/255) hold; the 12% pixel band is what the Widgets page alone pays (8.36% against its own frame) |
+| the panel | not compared pixel-wise, and that is the point: its 40 lines of 10px text are a pixel or two lower in Canvas2D's metrics (24.18% of its own pixels), and its printed numbers are the run's. What it says is checked as text |
+| the a11y tree | **28 nodes**, the Widgets page's, in its order (`button "Presses: 0"`, `switch "Wi-Fi" [checked=false]`, the unnamed `group no bounds`, …, `treeitem "Storage" [selected=false]`); no node's box is in the panel's column (every one ends at x ≤ 360) |
+| the hover | the pointer on the button: `press  button "Presses: 0"` and the live values' `press  button "Presses: 0"  40,72 280×40`; the pointer over the panel prints `nothing` (the panel is not the page) |
+| the keys | Tab, Tab: the panel's row is `switch "Wi-Fi" [checked=false focused=true] …`; Space: `[checked=true focused=true] …`; the frame's hash moves and the key's frame draws and presents (13 → 16 draws) |
+| the page at rest | **30 frames, 0 draws and 0 presents**: `ui.draws`/`ui.presents` stand still, which is what a panel that reprinted every frame could not do |
+| the Text sheet's 13 commands against `solid/goldens/sheet.json` (a new golden, `bun solid/dump.ts sheet --update`) | every field the golden's, the worst box **7.24px**: `"Wm ¼ ⅓ — “quotes”"`, whose ⅓ is one face's empty box in ThorVG and a fallback glyph in Canvas2D, so its advance differs (8 px is this page's band; the other 12 lines are inside 1 px) |
+| the sheet against `solid/frames/text-sheet.png` | **4.04%** of pixels differ, 11 boxes' means within **14.6/255**, the frame's mean within **1.80/255**; the fallback line's ink is not compared (8 px of it is that glyph), the other eleven lines are within **0.00px** |
+| the sheet at rest | 30 frames, 0 draws: a static page is the frame hash's easiest case |
+
+| What | Size |
+| --- | --- |
+| `dev.js` | 297,480 B (66,322 B gzip), unminified |
+| `dev.html` | 1,598 B |
+| `sheet.js` | 160,731 B (39,926 B gzip), unminified |
+| `sheet.html` | 1,278 B |
+| `ui.wasm` | 141,171 B (52,235 B gzip): +67 B for `ui_present`/`ui_presents` |
+| a frame, Dev | **0.76-0.96 ms**: the page and the panel (28 a11y nodes, the hover walk, the panel sampled every frame), 100 frames, headless Chromium, M2 |
+| a frame, the sheet | **0.13-0.18 ms**: the same, 13 commands |
+
+Each is a mutation the check catches (measured by breaking one thing, rebuilding): the pointer not reaching `ui_begin`
+— `FAIL hover, the panel's readout: the panel has 0 lines naming the button`; `stats` not handed to the frame — `FAIL
+the panel's counters: no "draws N presents M" line in the panel` (the panel prints `no frame yet` instead); a panel that
+reprints every frame (the very thing the page exists to avoid) — `FAIL 30 frames at rest: draws 50 -> 80, presents 50
+-> 80`.
+
+What the two pages still are not, after them: the panel's live values edit through `ui.value` (the surface has had it
+since the Dialog), but the check does not drive the arrows, and the panel's `s` (save a session) and the host's `--tune`
+(read one) are file paths — Bun's browser bundle stubs `node:fs` to an empty object, so both are no-ops here. And what
+was true of the chapter before is still true: **no IME** (a canvas gets no composition event; typed characters are
+`Input.textInput`'s, as `field.ts` has it), **no clipboard** (`paste` is an editable element's event), **no touch** (the
+shell listens to the mouse only; the wasm's `ui_touch_map` has no fibre of it), **no pointer drag** beyond the Widgets
+slider the shell hands the page (the List's rows and thumb, the Sky feed's fling are the desktop tests'), and **no HMR or
+dev server story** — the bundles are built once, by hand, into `$TMPDIR`.
+
 ## The sky screens in a terminal
 
 `apps/csssky-tui` (`../apps/csssky-tui`) ported to cells: the same cards, the same recorded fixtures, the same palette

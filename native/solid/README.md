@@ -1066,7 +1066,7 @@ panel field`.
 
 ## The command-stream goldens
 
-`solid/goldens/` is five pages' last frames as JSON, and `solid/dump.test.ts` is their gate. `ui_dump_json(path)` in
+`solid/goldens/` is six pages' last frames as JSON, and `solid/dump.test.ts` is their gate. `ui_dump_json(path)` in
 `solid/native/ui.c` writes the frame (the commands with every field a draw reads, then the renderer's tables beside them:
 the shadows, the backdrops, the gradients, the groups, the text weight), `solid/src/dump.ts` adds the a11y snapshot
 (`dumpPage(root)`) and formats it stably, and `solid/dump.ts` is the script:
@@ -1152,6 +1152,14 @@ browser/solid/field.ts      the Text field: app/Field.tsx unmodified, the DOM's 
                             keys.ts's selectionChord (a canvas has no beforeinput and no composition)
 browser/input-check.mjs     the two pages' check: the List's golden and raster, its wheel, its thumb and its keys; the
                             field's typed text, its caret and its selection's pixels, against frames/field-typed.png
+browser/solid/dev.ts        the Dev page: app/Dev.tsx unmodified (the Widgets page and the 300px panel that prints the
+                            a11y tree, the hovered box, the live values and the frame's phases), with the page's `stats`
+                            and the two counters the panel prints (`ui.draws`, `ui.presents`)
+browser/solid/sheet.ts      the Text sheet: app/Sheet.tsx unmodified, 440x564 and static — the shell's page with no input
+browser/solid/dev.html      the Dev canvas (660x760, tabindex=0) and its script
+browser/solid/sheet.html    the sheet's canvas (440x564) and its script
+browser/dev-check.mjs       Chromium: the Dev column against frames/dev.png, its 28-node a11y tree, the hover's printed
+                            line, Tab/Space and 30 idle frames, and the sheet's golden and raster
 browser/solid/build.ts      Bun.build --target=browser, one bundle a page; this src/frame.ts's ./ffi.ts and
                             app/Widgets.tsx's ../src/ffi.ts are resolved to ffi-browser.ts
 ```

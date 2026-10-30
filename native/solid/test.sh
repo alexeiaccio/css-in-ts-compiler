@@ -272,9 +272,10 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
   node browser/sky-check.mjs
   node browser/dialog-check.mjs
   node browser/input-check.mjs
+  node browser/dev-check.mjs
 else
-  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/dialog-check.mjs)"
-  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/input-check.mjs)"
+  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/dialog-check.mjs && node browser/dev-check.mjs)"
+  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/input-check.mjs && node browser/dev-check.mjs)"
 fi
 # the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
 # field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.
