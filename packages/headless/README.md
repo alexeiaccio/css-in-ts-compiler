@@ -65,7 +65,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -219,6 +219,32 @@ const remove = async () => {
 - **Nesting.** Confirms from different `createConfirm` calls may be open together (a "discard changes?" over a "delete?" that opened it): the one opened last gets Escape and Tab, the one under it waits, and the scroll lock is counted, so the first takes it and the last to close restores it. One `createConfirm` is still one request at a time. A `createDialogModal` that is open under a confirm knows nothing of this stack.
 - **Labels are the host's.** The defaults, `"Confirm"` and `"Cancel"`, stay English. An app that translates passes `confirmLabel` and `cancelLabel` (and the `title`) with each request, `confirm({ title: t("unsaved"), confirmLabel: t("discard"), cancelLabel: t("keep") })`; a label left out, or `undefined`, falls back to the English default. Nothing in the options needed to change for this: `ConfirmRequest` already carried both labels.
 - `aria-labelledby` is the title and `aria-describedby` **always** the description (an alertdialog needs one), so render `descriptionProps` always: it is `hidden` when the request has no description. `triggerProps` are dialog-modal's trigger attributes without the handlers; the click that calls `confirm()` is the host's. `request()` keeps the last request after it settles, so a closing animation does not flash empty.
+
+## Popover
+
+`createPopover` is the non-modal overlay: an anchored surface a trigger opens, dismissed by a click on the trigger, an outside `pointerdown` or Escape, with focus moving into it and back to the trigger. **There is no APG pattern for a popover** (APG has Dialog, which is modal), so there is no Quint spec and `test/popover.browser.test.tsx` is the oracle. It is copied from Base UI's Popover (the trigger click toggle, Enter / Space / ArrowDown, light dismiss on an outside `pointerdown` that does not steal focus) and React Aria's `usePopover` (focus in on open, back on close, `role="dialog"` without `aria-modal`, a placement that flips at the viewport edge).
+
+```tsx
+const popover = createPopover({ placement: "bottom-start" });
+let trigger!: HTMLButtonElement;
+let content!: HTMLDivElement;
+
+onMount(() => {
+  const teardown = popover.attach(trigger, content);
+  onCleanup(teardown);
+});
+
+<button {...popover.triggerProps} ref={(element) => (trigger = element)}>Filters</button>
+<div {...popover.contentProps} style={popover.contentStyle()} ref={(element) => (content = element)}>
+  …
+</div>;
+```
+
+- **`attach(trigger, content)`** is the whole DOM contract and returns its teardown: it measures and places on open (and on resize, scroll and a `ResizeObserver`), focuses the first focusable element in the content (else the content itself, which is `tabindex="-1"`), returns focus to the trigger on a close it caused, and closes on a `pointerdown` outside both elements. Call it from a `ref`; it creates an effect.
+- **`position(triggerRect, contentRect, viewport)`** is pure: it returns `{ top, left, placement }` for the requested placement, flipped to the other side when the room is not there, and shifted (not flipped) into the viewport horizontally. The rects and the viewport must share a space; `attach` measures in client space and writes page space for `position: absolute`.
+- **Non-modal, deliberately.** The page behind keeps its focus, its clicks and its scroll: no `inert`, no scroll lock, no Tab cycle, no `aria-modal`. That is `createDialogModal`, and `modal` is typed `false` for that reason.
+- **Not a menu.** No roving focus, no arrow keys between items: it is the base for `createMenu` in a popover, and for the filterable menu, which own their own item focus.
+- Absent on purpose: hover open (that is `createTooltipGroup`), submenus and item navigation (the menu), a scroll lock and `inert` (the modal dialog), and a vertical shift when neither side fits (the caller sees the requested placement).
 
 ## Commands
 
