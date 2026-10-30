@@ -10,8 +10,11 @@ import { t } from "../theme.ts" with { type: "cssints" };
 export interface MenuProps {
   /** The items, declared once: the primitive needs the labels for typeahead, and the ids come from here. */
   readonly items: ReadonlyArray<string | MenuItemInput>;
-  /** Open at mount. */
+  /** Controlled: the host owns the open state and this is the only thing that opens or closes it. */
+  readonly open?: boolean;
+  /** Open at mount; ignored while `open` is set. */
   readonly defaultOpen?: boolean;
+  /** A request to change the open state: uncontrolled it is accepted, controlled the host may ignore it. */
   readonly onOpenChange?: (open: boolean) => void;
   /** An item was activated: its index in `items`. */
   readonly onItemClick?: (index: number) => void;
@@ -105,12 +108,18 @@ const rowsOf = (root: HTMLElement | undefined): HTMLElement[] =>
  * stop. `createMenu` owns the open state, the ARIA, the arrow keys, Escape and the typeahead buffer; the kit adds the
  * anchor the content floats from, the surface, the highlight and the DOM focus, and closes the menu on a click outside.
  *
+ * `open` makes it controlled: then every intent (the trigger, a key, Escape, an item, a click outside) is a request the
+ * host may ignore, and `open` is the only thing that moves. Without it the primitive owns the state from `defaultOpen`.
+ *
  * The items are declared on `Menu`, once: the primitive needs their labels, so a row names its item by `index` instead of
  * repeating the label. One level only — no submenus, no checkbox or radio items, no separators (the primitive has none).
  */
 export const Menu = (props: MenuProps): JSX.Element => {
   const menu = createMenu({
     items: props.items,
+    get open() {
+      return props.open;
+    },
     defaultOpen: props.defaultOpen,
     disabled: props.disabled,
     id: props.id,
@@ -123,7 +132,8 @@ export const Menu = (props: MenuProps): JSX.Element => {
   });
   let anchor: HTMLDivElement | undefined;
   // A pointerdown outside the anchor is the dismiss the primitive does not own: it has no document listener, and the
-  // trigger's own click is inside the anchor, so the toggle still works.
+  // trigger's own click is inside the anchor, so the toggle still works. It is a close *request*, so a host that holds
+  // `open` keeps the menu.
   onSettled(() => {
     const dismiss = (event: PointerEvent): void => {
       if (anchor !== undefined && event.target instanceof Node && !anchor.contains(event.target)) {
