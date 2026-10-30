@@ -2257,3 +2257,16 @@ no-plugin project reads is the whole theme: 194 lines instead of 148, with `--co
 `--color-page: Canvas` under `forced-colors`. Found while the guide pages documented the limit as a fact
 (`#theming`, "theme.css, the plain twin"); the paragraph now says what is genuinely missing, the layer model, which a flat
 file cannot express. `theme:check` compares bytes, so the regenerated file is the one CI sees.
+
+## A red release that had already published (2026-10-30)
+
+`0.14.0` went out complete — 27 packages on npm, each with a provenance attestation, 27 tags pushed — and the next two release
+runs still failed, on 4 packages at a time: `E409: Cannot publish over previously staged version "0.14.0"`. The cause is two
+pushes in a row. Each runs the workflow (`concurrency: release`, not cancelled), and the second one reads the registry ~50 s
+after the first published: `changeset publish` decides those versions are still unpublished (the stage entry still exists) and
+publishes again, which npm refuses. A release that is on the registry is not a failure, so `release:publish` is now
+`scripts/publish.mjs`: it asks the registry for every package's exact version first (all there: print, push tags, exit 0), runs
+`changeset publish` otherwise, and after a failure asks again — only a version that is genuinely missing makes the job red. The
+probe is 27 `HEAD` requests, about a second. **Left**: the underlying npm behaviour is staged publishing, which is why a publish
+can be "staged but not yet on the registry" at all; a trusted publisher allowed to `npm publish` directly (the "Allowed actions"
+box, unset on connections created after 2026-09-03) would remove the race instead of tolerating it.
