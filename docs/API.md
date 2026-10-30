@@ -1291,6 +1291,49 @@ createConfirm(options?: { id?: string | undefined; onOpenChange?(open: boolean):
 
 `confirm()` resolves `true` on confirm and `false` on cancel, Escape and a backdrop click. A second request while one is pending rejects with `ConfirmPendingError` (it is not queued). Focus goes to the cancel button on open and back to the element that had it when `confirm()` was called. While it is open the dialog has a shell: Tab and Shift+Tab cycle inside it, `overflow: hidden` is set on `document.documentElement` (restored on close; counted, so nested confirms restore it once), and Escape is read from the document in the capture phase, so it works with the focus outside the dialog. Confirms from different `createConfirm` calls may be open together: the last opened gets Escape and Tab. The default labels stay English; a translating host passes `confirmLabel` and `cancelLabel` with each request.
 
+### Headless: `createToast` and `createStatus` (`@cssints/headless`)
+
+Two live regions with no APG pattern and no Quint spec: `createStatus` is one polite message whose text is replaced, `createToast` queues toasts whose countdown pauses. Their oracle is `packages/headless/test/toast.browser.test.tsx`.
+
+```ts skip
+createStatus(options?: { id?: string | undefined }): {
+  message(): string | undefined;
+  show(text: string): void; // replaces the text; nothing is queued
+  clear(): void;
+  statusProps: { id; role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
+};
+
+createToast(options?: {
+  timeout?: number | undefined; // ms, 5000; 0 dismisses on the next tick
+  max?: number | undefined; // visible toasts, 3; a new one past it drops the oldest
+  pauseOnHover?: boolean | undefined; // true; focus always pauses
+  labels?: { region?: string | undefined } | undefined; // "Notifications"
+  onDismiss?(id: string): void; // every departure: timeout, dismiss, dismissAll, ceiling
+}): {
+  toasts(): readonly ToastItem[]; // oldest first
+  show(input: {
+    title: string;
+    description?: string | undefined;
+    tone?: "info" | "success" | "error" | undefined; // "info"
+  }): string; // the id
+  dismiss(id: string): void;
+  dismissAll(): void;
+  regionProps: { role: "region"; "aria-label": string }; // the F6 target
+  toastProps(id: string): {
+    role: "alert" | "status"; // "alert" for tone "error", "status" otherwise
+    "aria-atomic": "true";
+    onMouseEnter(): void;
+    onMouseLeave(): void;
+    onFocusIn(): void;
+    onFocusOut(): void;
+  };
+};
+```
+
+`createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast.
+
+A toast is its own live region inside the `role=region` landmark: `role=alert` for `tone: "error"` (assertive) and `role=status` otherwise (polite). The host renders the `title` and `description` handed to `show` inside that element, so the toast's own text is the announcement — `aria-atomic` reads all of it, a close button's label included, so keep a toast to its title and description and give a close button no more than an icon with a label. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host. One timer per toast honours `timeout`; hover pauses it when `pauseOnHover` is true and focus always pauses, and both resume with the time that was left rather than restarting the deadline. `max` drops the oldest toast past the ceiling, and `onDismiss` fires for every toast that leaves. F6 into the region is the host's handler (hotkeys are a separate bean, cssints-h0d5): give `regionProps` an element with `tabindex="-1"` and focus it, remembering where focus was.
+
 ### Headless: `createPopover` (`@cssints/headless`)
 
 **No APG pattern exists** for a popover (APG has Dialog, which is modal), so it has no Quint spec and no ported scenarios: `packages/headless/test/popover.browser.test.tsx` is its oracle. The behaviour is copied from Base UI's Popover (a trigger click toggles, Enter / Space / ArrowDown open, an outside `pointerdown` light-dismisses without stealing focus) and React Aria's `usePopover` (focus into the content on open and back to the trigger on close, `role="dialog"` without `aria-modal`, a placement that flips at the viewport edge).
