@@ -169,9 +169,11 @@ const render = (node: Obj) => {
 export const portableTextToMarkdown = (value: unknown) => {
   const pieces: { text: string; sep: string; quote: boolean }[] = [];
   const widths: number[] = [];
-  // the list being written: its kind, and whether it is loose (a list is a run of blocks)
-  let listType: string | undefined;
-  let loose = false;
+  // the list being written at each level: its kind, and whether it is loose. A nested list has
+  // its own answer — a tight list inside a loose item stays tight, which is how marked read it —
+  // so the state is per level and is reset deeper down whenever an item starts.
+  const kinds: (string | undefined)[] = [];
+  const looseAt: boolean[] = [];
   const indentOf = (level: number) =>
     " ".repeat(widths.slice(1, level).reduce((sum, width) => sum + width, 0));
 
@@ -184,28 +186,38 @@ export const portableTextToMarkdown = (value: unknown) => {
 
     if (item !== undefined) {
       const level = num(node.level) ?? 1;
-      const starts = level === 1 && listType !== item;
+      const starts = kinds[level] !== item;
       if (starts) {
-        listType = item;
-        loose = node.loose === true;
+        kinds[level] = item;
+        looseAt[level] = node.loose === true;
       }
+      // a new item at this level starts any deeper list under it afresh
+      kinds.length = level + 1;
+      looseAt.length = level + 1;
+      const loose = looseAt[level] === true;
+      // a blank line before the first item of a nested list is a blank line inside the item
+      // above it, which makes the outer list loose, so only a loose outer list can afford one
+      const looseAbove = level > 1 && looseAt[level - 1] === true;
       const marker = item === "number" ? "1." : "-";
       widths[level] = marker.length + 1;
       widths.length = level + 1;
       pieces.push({
         text: `${indentOf(level)}${marker} ${indented(rendered, " ".repeat(marker.length + 1)).replace(/^\s+/, "")}`,
-        sep: first ? "" : starts || loose ? "\n\n" : "\n",
+        // a nested list's first item is separated from the text above it by the outer list's
+        // looseness; after that, by its own
+        sep: first ? "" : (starts ? level === 1 || looseAbove : loose) ? "\n\n" : "\n",
         quote: false,
       });
       continue;
     }
 
-    if (itemLevel !== undefined && listType !== undefined) {
+    if (itemLevel !== undefined && kinds.length > 0) {
       pieces.push({ text: indented(rendered, indentOf(itemLevel + 1)), sep: "\n\n", quote: false });
       continue;
     }
 
-    listType = undefined;
+    kinds.length = 0;
+    looseAt.length = 0;
     widths.length = 0;
     const quote = str(node.style) === "blockquote";
     const last = pieces.at(-1);
