@@ -2124,3 +2124,19 @@ but it is 1px); a nested `ButtonGroup` inside a group is read as the same group,
 The same shape is what the kit's other containers already use (`Toolbar`'s `data-size` via `within()`), so the kit has no
 container that selects a child: it has classes that read the container. `ButtonGroup`'s size cascade works the same way, and
 it needs both markers (`group()` for `data-size`, `group("row")` for the geometry).
+
+## The native targets that need no graphics stack run in CI (`native`, 2026-10-30)
+
+`bun run test:native` was local-only, and eight commits of `native/browser` work (Dialog, List, Field, notifications) landed
+on master with nothing but `release:check` behind them. The suite cannot simply move to `ubuntu-latest`: it needs brew's SDL3,
+SDL3_ttf, SDL3_image and ThorVG (not in Ubuntu 24.04's archive), its stored frames are a Mac rasteriser's, the termbox2 checks
+are `script(1)` with BSD flags, and the Sensors page's C is generated through the Solid renderer, whose `libui` is a `bun:ffi`
+dylib built from SDL3 and ThorVG — so even `generator/page-to-c.ts` fails on a machine without it (measured: the generator
+imports `solid/src/ffi.ts`, which `dlopen`s the dylib at module load).
+
+What is left is the half that runs anywhere, and it is the half that rots silently: the Clay header of a styles module, the C
+compiled and run against `clay.h` (now `native/check.sh`, one source for `test.sh` and CI), the focus manager's Tab order and
+walk, and the headless widgets against the ported Quint scenarios (1084 tests). `.github/workflows/native.yml` runs
+`native/ci.sh` on every push and pull request that touches `native/`, `packages/cssints/src`, `packages/headless` or
+`packages/apg-specs`. **Left**: the frames and the generated C keep their Mac-only check, so a rendering regression on another
+platform is still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
