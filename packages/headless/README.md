@@ -206,6 +206,36 @@ const email = createTextInput({ type: "email", autoComplete: "email", inputMode:
 - **`disabled` vs `readOnly`.** Disabled is out of the tab order and not submitted; readOnly is focusable, selectable and submitted. A field the user must read before signing is readOnly, not disabled.
 - `createTextArea` adds `rows`, `wrap` and `resize` (`resize` is a style, since CSS has no attribute for it; `none` is what a layout that owns its own height wants).
 
+## Drop zone
+
+`createDropZone` is a file drop target on a **hidden native `<input type="file">`**: the picker, the `accept` filter and `multiple` are the platform's, and the primitive adds a drag target, the validation and a status line. **There is no APG pattern for a drop zone**, so there is no Quint spec: `test/dropzone.browser.test.tsx` is its oracle. The same primitive replaces the bare file inputs of cms-admin's image field and kocharin's dashboard upload.
+
+```tsx
+const upload = createDropZone({
+  accept: "image/*",
+  multiple: true,
+  maxSize: 5 * 1024 * 1024,
+  labels: { zone: "Images", browse: "Choose images" },
+  onFiles: (files) => void add(files),
+  onReject: ({ file, reason }) => toast(`${file.name}: ${reason}`),
+});
+
+<div {...upload.zoneProps}>
+  <p>Drop images here{upload.dragging() ? " (release to add)" : ""}</p>
+  <input {...upload.inputProps} />
+  <button {...upload.browseProps}>{upload.message() ?? "Choose images"}</button>
+  <p {...upload.statusProps}>{upload.message()}</p>
+</div>;
+```
+
+- **The zone is never drag-only.** `browseProps` goes on a real `<button type="button">` that clicks the hidden input, so the picker is the keyboard path (Enter and Space are the platform's) and a pointer user can click as well as drag. The browse button's text is the host's; `labels.browse` is its accessible name when that text is an icon.
+- **Render the hidden input and the status region always.** `inputProps` carries `hidden`, so it is out of the tab order and the accessibility tree but still the thing the button clicks; the `role="status"` region announces a change of text, which only happens if it was already mounted.
+- **Validation happens once per file**, type then size: `accept` is the HTML grammar (`.png`, `image/png`, `image/*`), `maxSize` is bytes. A refused file reaches `onReject` with `reason: "type" | "size"`; the accepted ones reach `onFiles` in one batch, and a batch with nothing accepted calls neither.
+- **`message()` is a default sentence**, "2 files, 1 rejected: too large", for the status region; the words are the host's, the primitive only tracks the counts of the last batch. It is `undefined` before the first file.
+- **A folder or an empty `DataTransfer` is a no-op**: no callback, no rejection, and the previous announcement stays.
+- **`dragleave` counts.** A child's `dragleave` bubbles to the zone, so the state is a depth counter: `dragging()` clears only when the drag leaves the zone itself, or on a drop. `dragging()` is the styling hook — the primitive writes no `data-*`.
+- **`disabled`** marks the zone `aria-disabled`, disables the input natively and the browse button, and drops every drag before it becomes a batch. Options are read when an attribute is read, so a host may flip it on a mounted zone.
+
 ## Pagination
 
 `createPagination` is a navigation landmark over a page list. **No APG pattern exists**; the requirements are TetraLogical's (accessible-components-library v1.0.0), and `test/pagination.browser.test.tsx` is the oracle.
