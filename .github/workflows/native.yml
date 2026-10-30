@@ -1,8 +1,7 @@
-# The native workspace's checks that need no graphics stack: the Clay headers and the C against them (native/check.sh), the
-# focus manager's walk, and the headless widgets against their Quint scenarios. The frames — SDL3, ThorVG's software raster,
-# the browser's canvas — are compared on a Mac with brew's SDL3 and ThorVG: `bun run test:native` (native/test.sh), not here.
-# The `sensors` page's C is generated through the Solid renderer, which is a bun:ffi library built with those, so that step
-# stays local too.
+# The native workspace's checks that need no graphics stack: the Clay headers and the C against them, the Solid pages
+# evaluated at build time to C and compared byte for byte with the C in git (native/check.sh), the focus manager's walk,
+# and the headless widgets against their Quint scenarios. The frames — SDL3, ThorVG's software raster, the browser's
+# canvas — are compared on a Mac with brew's SDL3 and ThorVG: `bun run test:native` (native/test.sh), not here.
 name: native
 
 on:
