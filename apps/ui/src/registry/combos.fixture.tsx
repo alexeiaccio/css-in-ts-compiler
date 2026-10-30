@@ -25,7 +25,9 @@ import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
+import { Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
 import { Toolbar } from "./toolbar/toolbar.tsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip/tooltip.tsx";
 
 export const Nesting = (): JSX.Element => (
   <Card>
@@ -187,4 +189,22 @@ export const Crumbs = (): JSX.Element => (
       </BreadcrumbList>
     </Breadcrumb>
   </div>
+);
+
+export const Menus = (): JSX.Element => (
+  <Menu
+    items={["Rename", "Duplicate", { label: "Delete", disabled: true }]}
+    onItemClick={() => undefined}
+  >
+    <MenuTrigger>Actions</MenuTrigger>
+    {/* no children: the declared items are the rows */}
+    <MenuContent />
+  </Menu>
+);
+
+export const Tooltips = (): JSX.Element => (
+  <Tooltip>
+    <TooltipTrigger>Delete</TooltipTrigger>
+    <TooltipContent>Deletes the file</TooltipContent>
+  </Tooltip>
 );

@@ -14,11 +14,13 @@ import {
   Fields,
   Groups,
   Meters,
+  Menus,
   Mode,
   Nesting,
   Renders,
   Sizes,
   Toolbars,
+  Tooltips,
 } from "./combos.fixture.tsx";
 
 const mount = (view: () => JSX.Element): HTMLElement => {
@@ -216,5 +218,86 @@ describe("the kit composes", () => {
     expect(style(links[2]!).color).not.toBe(style(links[0]!).color);
     expect(style(links[2]!).fontWeight).toBe("500");
     expect(links[2]!.getAttribute("href")).toBe("#report");
+  });
+
+  it("opens the menu from its trigger, moves the highlight with a key, and gives focus back", () => {
+    const root = mount(() => <Menus />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    const menu = root.querySelector<HTMLElement>('[data-part="menu"]')!;
+    expect(menu.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    // hidden has to mean hidden: no display in the content's class may override the UA's `[hidden] { display: none }`
+    expect(style(menu).display).toBe("none");
+    trigger.focus();
+    trigger.click();
+    flush();
+    // the trigger names the menu it controls, and the menu is the popup the primitive says it is
+    expect(menu.hidden).toBe(false);
+    expect(style(menu).display).not.toBe("none");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(menu.getAttribute("role")).toBe("menu");
+    expect(trigger.getAttribute("aria-controls")).toBe(menu.id);
+    // the highlight is the roving tab stop the widget announces, and the DOM focus is on that row
+    const items = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+    expect(items.map((item) => item.getAttribute("role"))).toEqual([
+      "menuitem",
+      "menuitem",
+      "menuitem",
+    ]);
+    expect(items[0]!.tabIndex).toBe(0);
+    expect(items[1]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(items[0]);
+    expect(style(items[0]!).backgroundColor).not.toBe(style(items[1]!).backgroundColor);
+    // an arrow key moves the highlight: the tab stop and the styled row follow it
+    items[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    expect(items[1]!.tabIndex).toBe(0);
+    expect(items[0]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(items[1]);
+    expect(style(items[1]!).backgroundColor).not.toBe(style(items[2]!).backgroundColor);
+    // a disabled item stays focusable and says so (APG note 1)
+    expect(items[2]!.getAttribute("aria-disabled")).toBe("true");
+    expect(style(items[2]!).cursor).toBe("not-allowed");
+    // Escape closes it and the focus goes back to what opened it
+    items[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(menu.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    // a pointer outside the anchor is the other way out
+    trigger.click();
+    flush();
+    expect(menu.hidden).toBe(false);
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    flush();
+    expect(menu.hidden).toBe(true);
+  });
+
+  it("describes the trigger with the tooltip's id while the tooltip is shown", () => {
+    const root = mount(() => <Tooltips />);
+    const trigger = root.querySelector<HTMLElement>('[data-part="button"]')!;
+    const tooltip = root.querySelector<HTMLElement>('[role="tooltip"]')!;
+    // the bubble is in the DOM while it is off, because `aria-describedby` names it
+    expect(tooltip.id).not.toBe("");
+    expect(tooltip.hidden).toBe(true);
+    // no display in the bubble's class: the UA's `[hidden] { display: none }` is what hides it
+    expect(style(tooltip).display).toBe("none");
+    expect(trigger.getAttribute("aria-describedby")).toBeNull();
+    // focus is enough: the tooltip appears with the focus and goes with it
+    trigger.focus();
+    flush();
+    expect(tooltip.hidden).toBe(false);
+    expect(style(tooltip).display).not.toBe("none");
+    expect(trigger.getAttribute("aria-describedby")).toBe(tooltip.id);
+    expect(tooltip.textContent).toBe("Deletes the file");
+    // it floats in the anchor, under a dialog's layer, and is absolute there
+    const anchor = root.querySelector<HTMLElement>('[data-part="tooltip-anchor"]')!;
+    expect(style(anchor).position).toBe("relative");
+    expect(style(tooltip).position).toBe("absolute");
+    expect(style(tooltip).zIndex).toBe("10");
+    trigger.blur();
+    flush();
+    expect(tooltip.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-describedby")).toBeNull();
   });
 });
