@@ -138,6 +138,7 @@
       "name": "cssints-ui",
       "dependencies": {
         "@cssints/headless": "workspace:*",
+        "@cssints/mise-en-mode": "workspace:*",
         "@cssints/reset": "workspace:*",
         "@solidjs/web": "2.0.0-rc.13",
         "cssints": "workspace:*",

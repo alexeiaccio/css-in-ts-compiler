@@ -165,7 +165,7 @@ const starter = (item: Starter) => ({
   type: "registry:ui",
   title: item.title,
   description: item.description,
-  dependencies: ["@cssints/headless", "cssints"],
+  dependencies: ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
   // `solid-js` rc, which this item cannot know.

@@ -2161,3 +2161,22 @@ still leave the frames a Mac rasteriser's: nothing the generator does needs the 
 place. `native/check.sh` now holds the page-to-C steps (moved out of `native/test.sh`, which calls the shared script and
 keeps the frames), `native/ci.sh` runs it unchanged, and the workflow's header says so. **Left**: the frames still need
 SDL3 and ThorVG on a Mac; a `libui` that builds on Linux would move those too.
+
+## The kit's `data-mode="dark"` is a mise-en-mode look (apps/ui, 2026-10-30)
+
+The kit's theme wrote the dark mode twice: `createGlobalTheme(t, media("(prefers-color-scheme: dark)"), darkTheme)` for the
+system preference, and `createGlobalTheme(t, '[data-mode="dark"]', darkTheme)` for the scope a page sets. Both rules landed
+in `_.k`, so a host that wanted its own theme on the same marker was at the mercy of sheet order: with the kit's module
+evaluated later, `createGlobalTheme(t, '[data-mode="dark"]', { color: { page: "#000" } })` still painted the kit's
+`#1b1b1b`. The scope is now `look(t, "dark", "app", darkTheme)` of `@cssints/mise-en-mode`: the sheet declares
+`@layer app, author, viewer` after the engine's layers, so a host's `author` or `viewer` look on `dark` fills over the
+kit's value by value instead of racing it, and `data-mode="dark/color"` moves the colours alone (the overrides split by
+aspect, one theme rule each). The media query keeps `createGlobalTheme`: a look is a `data-mode` scope, and the system
+preference is not one, so there is nothing to write as a look there. Weighed and left: `theme.css` (the same tokens as
+plain CSS for a project without the plugin, from `node scripts/theme-css.ts`) carries no `data-mode` scope and still does
+not; a faithful one would put the whole plain theme in layers, because an unlayered `:root` beats a layered look on
+`<html data-mode="dark">`, and the flat file is right for its purpose (every token on `:root`, the media queries beside
+it). Cost: every registry item now depends on `@cssints/mise-en-mode` (`apps/ui/package.json`,
+`scripts/registry-json.ts`), the dark scope prints three theme rules instead of one, and the sheet gains the `@layer app,
+author, viewer;` statement. `combos.browser.test.tsx` ("follows the mode the card sits in") and the contrast checks are
+unchanged and green.
