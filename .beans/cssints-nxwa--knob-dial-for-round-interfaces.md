@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-30T18:33:36Z
+updated_at: 2026-10-30T18:34:18Z
 parent: cssints-65eb
 ---
 
@@ -24,3 +24,5 @@ Reference: jherrm.github.io/knobs (GarageBand's virtual knob). Needed for round 
 - test/knob.browser.test.tsx: 11 tests in real Chromium (semantics, label/format, keyboard and clamps, custom range, controlled hold, spin direction, vertical lock, horizontal sides, wheel, wrap, percentOf).
 - Exported from src/index.ts; README section Knob; docs/API.md entry; .changeset/knob.md (minor).
 - No APG pattern or ARIA dial role exists, so role=slider plus a live value, and the README states a numeric field must sit next to the dial.
+
+PR: https://github.com/alexeiaccio/css-in-ts-compiler/pull/91 (not merged, not published).
