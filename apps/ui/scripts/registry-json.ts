@@ -31,13 +31,12 @@ const content = (targetPath: string, type: ItemFile["type"], text: string): Item
 });
 
 // A copy lands flat in `src/components/ui/`, while a component is authored one directory deeper
-// (`src/registry/<name>/`): an import of a kit file loses its `../` and keeps the name it has in
-// the copy (`../theme.ts` is `./theme.ts` there, `../input/input.tsx` is `./input.tsx`).
+// (`src/registry/<name>/`): an import of a kit file loses its `../` (and the directory it names,
+// if any) and keeps the file name it has in the copy (`../theme.ts` is `./theme.ts` there,
+// `../input/input.tsx` and `../button/button.tsx` are `./input.tsx` and `./button.tsx`). A kit
+// file is the only thing a registry source imports with `../`, so the rewrite is the whole rule.
 const flatten = (text: string): string =>
-  text
-    .replaceAll('"../theme.ts"', '"./theme.ts"')
-    .replaceAll('"../render.tsx"', '"./render.tsx"')
-    .replaceAll('"../input/input.tsx"', '"./input.tsx"');
+  text.replaceAll(/"\.\.\/(?:[\w-]+\/)?([\w.-]+\.tsx?)"/g, '"./$1"');
 
 const file = (targetPath: string, type: ItemFile["type"], source: string): ItemFile =>
   content(targetPath, type, flatten(read(source)));

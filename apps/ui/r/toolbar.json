@@ -4,9 +4,15 @@
   "type": "registry:ui",
   "title": "Toolbar",
   "description": "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
-  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+  "dependencies": [
+    "@cssints/headless",
+    "@cssints/mise-en-mode",
+    "cssints"
+  ],
   "devDependencies": [],
-  "registryDependencies": ["@cssints/theme"],
+  "registryDependencies": [
+    "@cssints/theme"
+  ],
   "files": [
     {
       "path": "toolbar.tsx",

@@ -4,9 +4,15 @@
   "type": "registry:ui",
   "title": "Input",
   "description": "A text field on the neutral theme, and the control `Field` puts in by default",
-  "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+  "dependencies": [
+    "@cssints/headless",
+    "@cssints/mise-en-mode",
+    "cssints"
+  ],
   "devDependencies": [],
-  "registryDependencies": ["@cssints/theme"],
+  "registryDependencies": [
+    "@cssints/theme"
+  ],
   "files": [
     {
       "path": "input.tsx",
