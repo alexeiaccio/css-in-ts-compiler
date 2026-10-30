@@ -264,6 +264,10 @@ bun solid/tune.test.ts
 # The Dialog page (browser/solid/dialog.ts) is the two root floats and the menu's glass: dialog-check.mjs holds the
 # closed, open and mid-entry frames to solid/frames/dialog-*, the menu's mid-slide frame to solid/goldens/dialog.json
 # (a shadow, a backdrop and a group in one frame), and the backdrop's blur as an A/B against `?glass=0`.
+# ... and a finger: touch-check.mjs drives Chromium's own touch (CDP's Input.dispatchTouchEvent, the context's `hasTouch`)
+# on the List and the Sky — the frame's `touch` flag, the List's 40px row drag and its thumb's 20px (74.83 of offset), the
+# Sky's 120px drag into the rubber band and a throw resting where the decay projects, a tap that selects and opens, a 5px
+# drag that does not — and the mouse's frames at rest (the other four checks).
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null
@@ -272,9 +276,10 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
   node browser/sky-check.mjs
   node browser/dialog-check.mjs
   node browser/input-check.mjs
+  node browser/touch-check.mjs
 else
   echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/dialog-check.mjs)"
-  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/input-check.mjs)"
+  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs && node browser/input-check.mjs && node browser/touch-check.mjs)"
 fi
 # the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
 # field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.

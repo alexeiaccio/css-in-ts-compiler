@@ -51,7 +51,8 @@ const motion: Motion = {};
 render(() => Sky({ input, motion, theme: () => undefined, load: () => new Promise(() => {}) }), root);
 const frame = createFrame(root, {
   onPressMiss: () => input.pressMiss(),
-  onPointer: (x, y, down, touch) => motion.onPointer?.(x, y, down, touch),
+  // the finger's flag is kept for `window.__page.touch`
+  onPointer: (x, y, down, finger) => ((touch = finger), motion.onPointer?.(x, y, down, finger)),
   onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
   tick: (dt) => motion.tick?.(dt),
 });
@@ -66,6 +67,10 @@ function paint(): void {
 
 // the pointer, as the layout's pixels: the canvas is drawn at W x H CSS pixels, so the only mapping is the element's box
 let px = -1, py = -1, down = false;
+// ... and whether it is a finger's (src/frame.ts's `touch`): the shell.ts loop keeps the same flag for its pages
+let touch = false;
+// the finger's events the canvas has taken (`window.__page.touches`): a check waits on it rather than on a guessed time
+let touches = 0;
 const at = (e: MouseEvent): [number, number] => {
   const box = canvas.getBoundingClientRect();
   return [((e.clientX - box.left) * W) / box.width, ((e.clientY - box.top) * H) / box.height];
@@ -76,13 +81,34 @@ canvas.addEventListener("mousemove", (e) => {
 // a press and a release are discrete inputs: the frame runs on the event, not on the next tick, so a quick click cannot
 // land two events inside one frame and lose the press (the desktop's loop runs a frame after every poll)
 canvas.addEventListener("mousedown", (e) => {
-  [px, py] = at(e), (down = true), immediate();
+  [px, py] = at(e), (down = true), (touch = false), immediate();
 });
 canvas.addEventListener("mouseup", (e) => {
-  [px, py] = at(e), (down = false), immediate();
+  [px, py] = at(e), (down = false), (touch = false), immediate();
 });
 canvas.addEventListener("mouseleave", () => {
-  px = py = -1, down = false;
+  px = py = -1, down = false, touch = false;
+});
+// A finger: the pointer events a touchscreen sends, at the same mapping and with the frame's `touch` flag, which is what
+// the feed's machine reads for a drag with no click threshold (src/vscroll.ts). `sky.html`'s canvas already has
+// `touch-action: none` (the page owns the gesture, not the browser), and a tap's compatibility mouse events are cancelled
+// so one tap is one press and one release; the pointer is captured on a press, so a finger that leaves the canvas still
+// lifts on it.
+canvas.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "touch") return;
+  e.preventDefault();
+  [px, py] = at(e), (down = true), (touch = true), touches++, canvas.setPointerCapture(e.pointerId), immediate();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (e.pointerType === "touch") [px, py] = at(e), (touch = true), touches++;
+});
+canvas.addEventListener("pointerup", (e) => {
+  if (e.pointerType !== "touch") return;
+  [px, py] = at(e), (down = false), (touch = true), touches++, immediate();
+});
+// the browser took the gesture back (a system edge swipe): it ends where the finger last was, as a release
+canvas.addEventListener("pointercancel", (e) => {
+  if (e.pointerType === "touch") (down = false), (touch = true), touches++, immediate();
 });
 // SDL's wheel is ±1 a notch and positive is away from the user (a wheel up); a browser's delta is in pixels and positive
 // is a wheel down (the content goes up). So one event is one notch, with the sign turned round — which is what
@@ -131,7 +157,7 @@ const pumpWheel = () => {
 /** One iteration of the desktop's window loop: the wheel, then the frame; the canvas is drawn when the drawer drew. */
 function step(dt: number, discrete = false): boolean {
   pumpWheel();
-  const painted = draw(px, py, down, dt, discrete);
+  const painted = draw(px, py, down, dt, discrete, touch);
   if (painted) paint();
   return painted;
 }
@@ -154,6 +180,9 @@ requestAnimationFrame(tick);
 interface Page {
   warm(n?: number): unknown;
   pointer(x: number, y: number, down: boolean): void;
+  touch(): boolean;
+  touches(): number;
+  offset(): number;
   wheel(notches: number): void;
   commands(): unknown;
   effects(): unknown;
@@ -198,6 +227,12 @@ window.__page = {
   pointer(x: number, y: number, isDown: boolean) {
     px = x, py = y, down = isDown;
   },
+  /** The last frame's pointer was a finger's (src/frame.ts's `touch`): what a touch event set and a mouse event clears. */
+  touch: () => touch,
+  touches: () => touches,
+  /** The feed's offset this instant, positive down: the page's own scroll (`src/vscroll.ts` writes it on the clip element,
+   *  whose offset is negative down), which a drag and a throw move. */
+  offset: () => -ui.scrollOffset("sky-feed"),
   /** N wheel notches down over the feed, a frame each: the feed's own track (10px a notch, one a frame is a flick). */
   wheel(notches: number) {
     for (let i = 0; i < notches; i++) {
@@ -229,7 +264,7 @@ window.__page = {
   bench(n = 100) {
     const t0 = performance.now();
     for (let i = 0; i < n; i++) {
-      frame(px, py, down, 1 / 60, false);
+      frame(px, py, down, 1 / 60, false, touch);
       paint();
       ctx.getImageData(0, 0, 1, 1); // a readback, so the raster is done, not just queued
     }
