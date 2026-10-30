@@ -5,7 +5,7 @@ status: todo
 type: task
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-30T10:56:07Z
+updated_at: 2026-10-30T18:38:44Z
 parent: cssints-65eb
 ---
 
@@ -30,3 +30,8 @@ Patterns that are a composition, not a primitive. Base UI's "building a filterab
 
 - Base UI, "Building a filterable menu that works for everyone": https://base-ui.com/blog/building-a-filterable-menu (read via https://defuddle.md/). The decisions above are theirs; the API shape (a provider wrapper) may differ for us.
 - The knob reference (cssints-nxwa): https://jherrm.github.io/knobs/ — spin, vertical and horizontal slide, one gesture locked per drag.
+
+## Notes
+
+- [x] command palette: shipped in PR #92 (`createCommandPalette`: dialog + searchbox + listbox, `packages/headless/src/command-palette.ts`, 9 browser tests, docs and a minor changeset).
+- [ ] filterable menu and date picker: left for later PRs on the same research (the palette is the first composition).

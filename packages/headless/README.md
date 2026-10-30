@@ -65,8 +65,8 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, scrollspy, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, panzoom, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, command-palette, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, scrollspy, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, command-palette, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, panzoom, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -622,6 +622,57 @@ onSettled(() => toc.attach()); // returns the teardown
 - **Exactly one `aria-current="location"`**, on the link, never on the heading: the heading's own `id` is the target. Skin it with `a[aria-current="location"]`.
 - **Smooth scrolling is the host's.** The links are plain `#id` targets, the primitive never moves the scrollport, so `scroll-behavior: smooth` (and any `prefers-reduced-motion` override) belongs to the page's CSS; there is no scroll helper to reduce.
 - **"On this page" is English.** Spread `navProps` first and override it after: `<nav {...toc.navProps} aria-label={t("onThisPage")}>`.
+
+## Command palette
+
+The first **composition** on the primitives — no new widget, no new spec: `createCommandPalette` is `createDialogModal` (a modal dialog) + `createTextInput` (the field) + `createStatus` (the count), wired into the shape [docs/research/compositions-2026-10.md](docs/research/compositions-2026-10.md) settles.
+
+```tsx
+const palette = createCommandPalette({
+  commands, // ReadonlyArray<{ id, label, group?, keywords?, run(): void | Promise<void> }>
+  hotkey: "mod+k", // what attach() binds; this is the default
+  labels: { title: t("palette"), placeholder: t("search"), empty: t("empty") },
+});
+
+onSettled(() => palette.attach()); // one document hotkey; returns the teardown
+
+const groups = () => [...new Set(palette.results().map((result) => result.group ?? ""))];
+
+<button
+  aria-haspopup="dialog"
+  aria-expanded={palette.open()}
+  onClick={() => palette.openPalette()}
+>
+  Commands
+</button>
+<div {...palette.backdropProps} />
+<div {...palette.dialogProps}>
+  <h2 {...palette.titleProps}>{palette.labels.title}</h2>
+  <input {...palette.inputProps} />
+  <div {...palette.listProps}>
+    <For each={groups()}>
+      {(group) => (
+        <section>
+          <h3>{group}</h3>
+          <For each={palette.results().filter((result) => result.group === group)}>
+            {(result) => <div {...palette.optionProps(result.id)}>{result.label}</div>}
+          </For>
+        </section>
+      )}
+    </For>
+  </div>
+  <p {...palette.emptyProps}>{palette.labels.empty}</p>
+  <div {...palette.statusProps}>{palette.status()}</div>
+</div>;
+```
+
+- **A dialog, not a combobox.** Choosing a row runs a command; it does not complete the field. So the field is `input[type=text][role=searchbox]` with no `aria-autocomplete` and no `aria-haspopup`, the container is `role=dialog` (a trigger says `aria-haspopup="dialog"`), and the list is a `role=listbox` named by the title. Nothing is changed by typing.
+- **Focus stays in the field.** `aria-activedescendant` names the highlighted option; ↓ past the last and ↑ before the first put the highlight back on the field (the attribute is absent), and ↓/↑ from there re-enter the list at the first/last row. Home/End move the caret while the field has text and are list keys (first/last) only while it is empty. Enter runs the highlighted command; Escape closes through the dialog; Tab is not intercepted, so the dialog's own focus policy applies.
+- **Filtering is a plain case-insensitive substring match** on `label` and `keywords`. No fuzzy scoring: a palette holds tens of commands, and ranking (recents, scopes, weighted keywords) is a policy the host owns — a typo hiding a command is worse than an extra row. `results()` keeps host order.
+- **Groups, empty state, one announcement.** `result.group` (or `undefined`) is what the host groups by; it renders the headings and the CSS. `emptyProps.hidden` is false when nothing matches, and `labels.empty` is the text to show. The count lands in one polite region (`statusProps`, `status()`), written once per query change — moving the highlight does not re-announce it.
+- **Reset on close**: the query and highlight are cleared on close, so the next open starts at the full list (unlike a combobox, which keeps its value). Focus returns to the element that had it when the palette opened.
+- **The host's**: rendering, grouping and CSS; async commands (`run` may return a promise, and moving the highlight to the next command is the host's call); closing on anything but Escape or a command; every visible string through `labels`; and the dialog's title element, which carries `titleProps` (`aria-labelledby` points at it).
+- **Not in this PR**: the filterable menu (`filter: true` on `createMenu`, with the IME guard and the arrow loop to the field) and the date picker are later compositions on the same research; this one is the palette only.
 
 ## Commands
 
