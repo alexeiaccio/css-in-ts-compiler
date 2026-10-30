@@ -43,27 +43,31 @@ export const PAGES = {
   list: { width: 360, height: 400, warm: 31 },
   sky: { width: 360, height: 760, warm: 41 },
   dialog: { width: 360, height: 480, warm: 1, keys: ["Tab", "Tab", "Enter"], settle: 2 },
+  // the text sheet is static: one frame is the page (and the oracle's rows at their own boxes)
+  sheet: { width: 440, height: 564, warm: 1 },
 } satisfies Record<string, Page>;
 
 export type PageName = keyof typeof PAGES;
 
 /** The pages, imported once per process (the plugin compiles them on the way in). */
 const apps: Record<string, unknown> = {};
-const EXPORT = { sensors: "Sensors", widgets: "Widgets", list: "List", sky: "Sky", dialog: "Dialog" } as const;
+const EXPORT = { sensors: "Sensors", widgets: "Widgets", list: "List", sky: "Sky", dialog: "Dialog", sheet: "Sheet" } as const;
 async function app(name: PageName): Promise<unknown> {
   if (!apps.Sensors) {
-    const [sensors, widgets, list, sky, dialog] = await Promise.all([
+    const [sensors, widgets, list, sky, dialog, sheet] = await Promise.all([
       import("./app/Sensors.tsx"),
       import("./app/Widgets.tsx"),
       import("./app/List.tsx"),
       import("./app/Sky.tsx"),
       import("./app/Dialog.tsx"),
+      import("./app/Sheet.tsx"),
     ]);
     apps.Sensors = sensors.Sensors;
     apps.Widgets = widgets.Widgets;
     apps.List = list.List;
     apps.Sky = sky.Sky;
     apps.Dialog = dialog.Dialog;
+    apps.Sheet = sheet.Sheet;
   }
   return apps[EXPORT[name]];
 }

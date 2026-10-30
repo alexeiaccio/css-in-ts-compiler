@@ -3,6 +3,7 @@
 import { Accordion } from "../registry/accordion/accordion.tsx";
 import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.tsx";
 import { Button } from "../registry/button/button.tsx";
+import { ButtonGroup } from "../registry/button-group/button-group.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
@@ -101,6 +102,21 @@ const ToolbarDemo = (): JSX.Element => (
   </div>
 );
 
+const ButtonGroupDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <ButtonGroup label="Text alignment">
+      <Button tone="quiet">Left</Button>
+      <Button tone="quiet">Center</Button>
+      <Button tone="quiet">Right</Button>
+    </ButtonGroup>
+    {/* a vertical group squares the top and the bottom instead, and size="sm" is the context as in a toolbar */}
+    <ButtonGroup label="Stacked" orientation="vertical" size="sm">
+      <Button>Up</Button>
+      <Button>Down</Button>
+    </ButtonGroup>
+  </div>
+);
+
 const InputDemo = (): JSX.Element => (
   <div class="demo-column">
     <Input placeholder="A plain input" />
@@ -187,6 +203,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,
+  "button-group": ButtonGroupDemo,
   checkbox: CheckboxDemo,
   radio: RadioDemo,
   tabs: TabsDemo,

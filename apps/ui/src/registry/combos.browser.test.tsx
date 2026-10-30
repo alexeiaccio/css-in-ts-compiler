@@ -7,7 +7,7 @@ import type { JSX } from "@solidjs/web";
 import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 
-import { Fields, Mode, Nesting, Renders, Sizes, Toolbars } from "./combos.fixture.tsx";
+import { Fields, Groups, Mode, Nesting, Renders, Sizes, Toolbars } from "./combos.fixture.tsx";
 
 const mount = (view: () => JSX.Element): HTMLElement => {
   const root = document.createElement("div");
@@ -60,6 +60,29 @@ describe("the kit composes", () => {
     expect(style(buttons[0]!).paddingTop).toBe("8px");
     expect(style(buttons[1]!).paddingTop).toBe("4px");
     expect(style(buttons[1]!).paddingLeft).toBe("8px");
+  });
+
+  it("collapses the corners and the borders two buttons in a group share", () => {
+    const root = mount(() => <Groups />);
+    expect(part(root, "button-group").getAttribute("role")).toBe("group");
+    expect(part(root, "button-group").getAttribute("aria-label")).toBe("Text alignment");
+    const buttons = root.querySelectorAll<HTMLElement>('[data-part="button"]');
+    // a row: the first keeps its left corners, the middle is square, the last keeps its right ones
+    expect(style(buttons[0]!).borderStartStartRadius).toBe("8px");
+    expect(style(buttons[1]!).borderStartStartRadius).toBe("0px");
+    expect(style(buttons[1]!).borderStartEndRadius).toBe("0px");
+    expect(style(buttons[2]!).borderStartEndRadius).toBe("8px");
+    // every button after the first slides 1px into its neighbour: the two 1px borders between them are one line
+    const first = buttons[0]!.getBoundingClientRect();
+    const second = buttons[1]!.getBoundingClientRect();
+    const third = buttons[2]!.getBoundingClientRect();
+    expect(Math.round(second.left)).toBe(Math.round(first.right) - 1);
+    expect(Math.round(third.left)).toBe(Math.round(second.right) - 1);
+    // a column squares the top and the bottom instead, and a compact group sizes what it holds
+    expect(style(buttons[3]!).borderStartStartRadius).toBe("8px");
+    expect(style(buttons[3]!).borderEndStartRadius).toBe("0px");
+    expect(style(buttons[4]!).borderEndEndRadius).toBe("8px");
+    expect(style(buttons[4]!).paddingTop).toBe("4px");
   });
 
   it("lets render replace a part and keeps the props and the state live", () => {

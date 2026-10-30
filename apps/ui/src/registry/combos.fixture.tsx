@@ -6,6 +6,7 @@ import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import { Button } from "./button/button.tsx";
+import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
@@ -71,6 +72,23 @@ export const Toolbars = (): JSX.Element => (
     <Toolbar label="Compact" size="sm">
       <Button>Two</Button>
     </Toolbar>
+  </>
+);
+
+export const Groups = (): JSX.Element => (
+  <>
+    <ButtonGroup label="Text alignment">
+      <Button>Left</Button>
+      <Button isToggle defaultValue>
+        Center
+      </Button>
+      <Button>Right</Button>
+    </ButtonGroup>
+    {/* the group is a context too: a compact one sizes what it holds, as a toolbar does */}
+    <ButtonGroup label="Stacked" orientation="vertical" size="sm">
+      <Button>Up</Button>
+      <Button>Down</Button>
+    </ButtonGroup>
   </>
 );
 

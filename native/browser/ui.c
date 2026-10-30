@@ -15,7 +15,7 @@
 //   - ui_window_*, SDL's key/text queues, the clipboard, PNG load/save/diff, `ui_pixel`/`ui_pixels_copy` (the pixels are
 //     the page's canvas: ffi-browser reads them with getImageData);
 //   - `ui_density` (the canvas's devicePixelRatio is the page's), `ui_font` (the page loads Roboto as a FontFace and
-//     Canvas2D measures with it; a font id is the style's), `ui_init_gpu`, `ui_presents`.
+//     Canvas2D measures with it; a font id is the style's), `ui_init_gpu`.
 //
 // ABI, all 32-bit little endian in the linear memory (browser/solid/ffi-browser.ts allocates):
 //   ui_init(w, h)              Clay's arena and the layout's size; once
@@ -102,6 +102,8 @@ static int width, height, errors;
 static Clay_RenderCommandArray cmds;
 static uint64_t frame_hash = 0xcbf29ce484222325ull;
 static int draw_count;
+// the host's paints (ui_present): the page's raster is JS's, so the dev panel's `presents` is the shell's own count
+static int present_count;
 
 // the value channel: this frame's overrides of a packed style, by element id
 static struct {
@@ -807,6 +809,11 @@ EXPORT("ui_hash") uint64_t ui_hash(void) { return frame_hash; }
 EXPORT("ui_draw") void ui_draw(void) { draw_count++; }
 
 EXPORT("ui_draws") int32_t ui_draws(void) { return draw_count; }
+
+/** The frames the host put on the canvas (the desktop's window present): the shell calls it once a paint. */
+EXPORT("ui_present") void ui_present(void) { present_count++; }
+
+EXPORT("ui_presents") int32_t ui_presents(void) { return present_count; }
 
 // ---------- the frame as data: solid/src/dump.ts, the goldens in solid/goldens ----------
 

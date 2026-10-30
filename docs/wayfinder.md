@@ -2094,3 +2094,89 @@ makes the buttons it holds compact without a prop on each (`combos.browser.test.
 contexts do not carry: `frame()` passes a radius down the tree, not sideways, and a user class has no `:first-child` (`nest()`
 is kernel-only). The two ways are parts (`ButtonGroup.Item`, the container knows the index) or a small `@cssints/group` member
 whose kernel uses `nest("& > * + *")`; not chosen yet.
+
+## Sibling geometry is the child's, read off an ancestor's marker (`ButtonGroup`, 2026-10-30)
+
+The two ways considered for a button group were parts (`ButtonGroup.Item`, the container knows the index) and a small
+`@cssints/group` member with `nest("& > * + *")`. Both are wrong here, and the reason is the layer model. A kernel's rules
+live in `_.k`, below every class layer, so `nest("& > *")` in a kernel **cannot** square a corner or collapse a border the
+child's own class sets — the child always wins. And a container cannot count or clone its children either (Solid creates
+them after the container's function runs; JSX is already a node).
+
+What works is the third thing: the **child** carries the sibling rules, and an **ancestor marker** gates them. `ButtonGroup`
+marks itself `group("row")` or `group("column")`, and `Button` has
+
+```
+within(attr("data-part", "button-group"), "row")(…, firstChild(…), lastChild(…))
+```
+
+which compiles to `:where(._g-row[data-part="button-group"]) ._b:first-child` — a condition on the button's own class, in a
+later layer than its base, so the corners it shares with a neighbour are the group's. `data-part` is what keeps any other
+`_g` ancestor (a toolbar, a disclosure) out of it. The container draws nothing at all: no frame, no background, so a `quiet`
+tone keeps its look and the focus ring is not clipped (which is why `overflow: clip` on the container was rejected).
+
+Two rules the button gives up inside a group: every corner is square first, then `:first-child` brings back the two on the
+start side and `:last-child` the two on the end side (one child is both, so a lone button in a group keeps its radius); and
+every button after the first slides 1px into its neighbour (`margin-inline-start: -1px`), so the two 1px borders between two
+buttons become one line. **Left**: the first button slides 1px too, so the row sits 1px left of the group's box (invisible,
+but it is 1px); a nested `ButtonGroup` inside a group is read as the same group, since the marker inherits down the tree.
+
+The same shape is what the kit's other containers already use (`Toolbar`'s `data-size` via `within()`), so the kit has no
+container that selects a child: it has classes that read the container. `ButtonGroup`'s size cascade works the same way, and
+it needs both markers (`group()` for `data-size`, `group("row")` for the geometry).
+
+## The native targets that need no graphics stack run in CI (`native`, 2026-10-30)
+
+`bun run test:native` was local-only, and eight commits of `native/browser` work (Dialog, List, Field, notifications) landed
+on master with nothing but `release:check` behind them. The suite cannot simply move to `ubuntu-latest`: it needs brew's SDL3,
+SDL3_ttf, SDL3_image and ThorVG (not in Ubuntu 24.04's archive), its stored frames are a Mac rasteriser's, the termbox2 checks
+are `script(1)` with BSD flags, and the Sensors page's C is generated through the Solid renderer, whose `libui` is a `bun:ffi`
+dylib built from SDL3 and ThorVG — so even `generator/page-to-c.ts` fails on a machine without it (measured: the generator
+imports `solid/src/ffi.ts`, which `dlopen`s the dylib at module load).
+
+What is left is the half that runs anywhere, and it is the half that rots silently: the Clay header of a styles module, the C
+compiled and run against `clay.h` (now `native/check.sh`, one source for `test.sh` and CI), the focus manager's Tab order and
+walk, and the headless widgets against the ported Quint scenarios (1084 tests). `.github/workflows/native.yml` runs
+`native/ci.sh` on every push and pull request that touches `native/`, `packages/cssints/src`, `packages/headless` or
+`packages/apg-specs`. **Left**: the frames keep their Mac-only check, so a rendering regression on another platform is
+still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
+
+## The generator opens `libui` at its first call, so CI checks the committed C (2026-10-30)
+
+`native/generator/page-to-c.ts` is a Solid page rendered at build time, and the page imports `solid/src/entry.ts`, which
+imported `solid/src/ffi.ts`, which called `dlopen` on `build/solid/libui.dylib` **at module load**: the dylib is built by
+`solid/native/build.sh` from SDL3 and ThorVG (brew, macOS only), so on a machine without that build the generator died
+before it generated anything — `error: Failed to open library ".../native/build/solid/libui.dylib": dlopen(...): no such
+file ... at native/solid/src/ffi.ts:5:24`. That is why `native/check.sh` covered only the Clay headers, and the step that
+catches a stale golden — regenerate the Sensors page's five files, `cmp` them with `examples/sensors/*.c`, compile and run
+`gen.c` against the hand-written `page.c`, compile `InlineDemo.tsx`, grep the `--text` hook — ran on a Mac only. The fix is
+in `ffi.ts`, which every page module passes through: `dlopen`'s table moved into `open()`, and the exported `ui` wrappers
+go through `lib()`, a memoised open, so the library loads at the first call that needs it and never at import; the six
+members that were the symbol itself (`begin`, `wheel`, `close`, `end`, `draw`, `windowPresent`) are one-line forwarders,
+because a stored function reference would have opened it while the `ui` object was built. A missing library is still
+fatal where it is used: dlopen's own error, naming the path, on the first native call, so nothing degrades silently. The
+cost is one nullish check per FFI call and one memo slot; the wrappers are the same closures as before. Chosen over
+installing SDL3 and ThorVG on Linux, which would make a graphics stack a build dependency of a text generator and would
+still leave the frames a Mac rasteriser's: nothing the generator does needs the dylib, so the load was in the wrong
+place. `native/check.sh` now holds the page-to-C steps (moved out of `native/test.sh`, which calls the shared script and
+keeps the frames), `native/ci.sh` runs it unchanged, and the workflow's header says so. **Left**: the frames still need
+SDL3 and ThorVG on a Mac; a `libui` that builds on Linux would move those too.
+
+## The kit's `data-mode="dark"` is a mise-en-mode look (apps/ui, 2026-10-30)
+
+The kit's theme wrote the dark mode twice: `createGlobalTheme(t, media("(prefers-color-scheme: dark)"), darkTheme)` for the
+system preference, and `createGlobalTheme(t, '[data-mode="dark"]', darkTheme)` for the scope a page sets. Both rules landed
+in `_.k`, so a host that wanted its own theme on the same marker was at the mercy of sheet order: with the kit's module
+evaluated later, `createGlobalTheme(t, '[data-mode="dark"]', { color: { page: "#000" } })` still painted the kit's
+`#1b1b1b`. The scope is now `look(t, "dark", "app", darkTheme)` of `@cssints/mise-en-mode`: the sheet declares
+`@layer app, author, viewer` after the engine's layers, so a host's `author` or `viewer` look on `dark` fills over the
+kit's value by value instead of racing it, and `data-mode="dark/color"` moves the colours alone (the overrides split by
+aspect, one theme rule each). The media query keeps `createGlobalTheme`: a look is a `data-mode` scope, and the system
+preference is not one, so there is nothing to write as a look there. Weighed and left: `theme.css` (the same tokens as
+plain CSS for a project without the plugin, from `node scripts/theme-css.ts`) carries no `data-mode` scope and still does
+not; a faithful one would put the whole plain theme in layers, because an unlayered `:root` beats a layered look on
+`<html data-mode="dark">`, and the flat file is right for its purpose (every token on `:root`, the media queries beside
+it). Cost: every registry item now depends on `@cssints/mise-en-mode` (`apps/ui/package.json`,
+`scripts/registry-json.ts`), the dark scope prints three theme rules instead of one, and the sheet gains the `@layer app,
+author, viewer;` statement. `combos.browser.test.tsx` ("follows the mode the card sits in") and the contrast checks are
+unchanged and green.

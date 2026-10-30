@@ -836,13 +836,36 @@ Each step ends in a check that fails when it breaks.
    going through `Input.textInput` — "the value is "", want "Ada"" and "the composed run is 18 px in [52,52,212,229],
    the typed one 192 px"; a paste not awaited — "the field is "" with the caret at 52 and 18 px of ink, want "Ada", the
    caret at 80.1640625 and 192 px".
-   Limits: a real IME was not driven (Playwright cannot: the composition's events are dispatched, so no candidate window,
-   no dead key, none of an IME's own keydowns, no several-clause `textformatupdate`), the EditContext carries no mirror of
-   the field's text (`updateText` is not called, so an IME sees an empty context), the clipboard's read is the page's
-   permission (the check grants `clipboard-read`/`clipboard-write`; an insecure context has no `navigator.clipboard`), no
-   pointer drag of the List's rows or thumb in the browser (the desktop's `list.test.ts` has it), no touch; four of the
-   shell's pages are real now (Sensors, Widgets, List, Text field) and the Sky has its own loop — Dialog, Sheet and Dev
-   are still not here.
+   **Done: the Dev page and the Sheet** (2026-10-30), the last two, so all eight of the desktop's pages are real in a
+   browser. `browser/solid/dev.ts` + `dev.html` run `solid/app/Dev.tsx` unmodified (660x760: the Widgets page in its
+   360px column, a 300px panel that prints the page's a11y tree, the box under the pointer, the live values and the
+   frame's phases) and `browser/solid/sheet.ts` + `sheet.html` run `solid/app/Sheet.tsx` (440x564, static) — both
+   `mountPage`, the sheet with no input and no hook, so a page that needs nothing is still the shell's page. The surface
+   gained only what the panel reads: the frame's `stats` (`Options.stats`, handed to `createFrame` and `createDrawer`, so
+   the phases and the draw's time are the loop's own) and `ui_present`/`ui_presents` beside `ui_draws` (+67 B; the
+   shell's `paint` calls it once a frame, the desktop's window present) — `ui.over` was already the point `ui_begin` gets,
+   so the panel's `deepest` and the page's `:hover` follow the real mouse with nothing added. Check:
+   `browser/dev-check.mjs`, in `solid/test.sh` with the same guard. (a) the Dev page's 360px column against
+   `frames/dev.png`: 9.63 % of pixels differ, 51 command boxes' means within 17.3/255, ink within 3.00 px, the column's
+   mean within 1.62/255 (the panel is not compared pixel-wise — it prints its own frame's milliseconds and Canvas2D
+   re-wraps one of its 10px rows — and is asserted through its text commands instead). (b) the a11y tree is the page's:
+   28 nodes, every box inside x ≤ 360, the panel's boxes none of them. (c) the pointer on the button makes the panel print
+   `press  button "Presses: 0"` and, in the live values, `press  button "Presses: 0"  40,72 280×40`. (d) Tab, Tab, Space:
+   the panel's row `switch "Wi-Fi" [checked=false focused=true]` -> `[checked=true focused=true]`, the frame's hash moves,
+   and 30 frames at rest draw and present nothing (draws 16, presents 16 stand still). (e) the sheet's 13 commands against
+   the new `goldens/sheet.json` (every field, the worst box 7.24 px: the fallback ⅓ is another font's glyph here) and its
+   raster against `frames/text-sheet.png` (4.04 %; means within 14.6/255, the frame's mean within 1.80/255). Cost:
+   `dev.js` 297,480 B (66,322 B gzip) and 0.76-0.96 ms a frame with the panel's 28 nodes and hover walk, `sheet.js`
+   160,731 B (39,926 B gzip) and 0.13-0.18 ms, on `ui.wasm` 141,171 B (52,235 B gzip). Mutations it catches: the pointer
+   not reaching `ui_begin` — "the panel has 0 lines naming the button"; `stats` not handed to the frame — no
+   `draws N presents M` line at all; a panel that reprints every frame — "30 frames at rest: draws 50 -> 80".
+   Limits: a real IME was not driven (Playwright cannot: the composition's events are dispatched, so no candidate
+   window, no dead key, none of an IME's own keydowns, no several-clause `textformatupdate`), the EditContext carries no
+   mirror of the field's text (`updateText` is not called, so an IME sees an empty context), the clipboard's read is the
+   page's permission (the check grants `clipboard-read`/`clipboard-write`; an insecure context has no `navigator.clipboard`),
+   no touch and no pointer drag but the Widgets slider (the desktop's `list.test.ts` has it), no HMR; and the panel's live
+   values edit through `ui.value`, but its `s` and the host's `--tune` are file paths and Bun's browser bundle stubs
+   `node:fs`, so both are no-ops in the page.
 
 
 ## What Rune's research gives us (2026-10-23)
@@ -1082,10 +1105,10 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    alpha/scale/translate/rotation — a neutral group left out, as the hash leaves it out — and the text weight).
    `solid/dump.ts` renders a page as `main.ts`'s headless path does (its size and `View` hooks, `--warm 30`'s 31 frames,
    the Sky's 41, the Dialog's `Tab,Tab,Enter` + 2) and never draws; `solid/src/dump.ts` adds `snapshot(root)` and writes
-   one command a line with sorted keys and `%.9g` floats, so two processes write the same bytes. Measured: five pages —
+   one command a line with sorted keys and `%.9g` floats, so two processes write the same bytes. Measured: six pages —
    Sensors 10 commands / 0 a11y nodes, Widgets 59/28, the List's top 36/0, the Sky's Discover settled 35/4, the Dialog's
    menu two frames into its slide 22/7 (a group at alpha 233, scale 0.971, -1.48°, the menu's shadow at blur 3.45, its
-   backdrop at 10, the Sky's three gradients) — `solid/dump.test.ts`, in `test.sh`. The differ names command and field:
+   backdrop at 10, the Sky's three gradients), and the Text sheet 13/0 — `solid/dump.test.ts`, in `test.sh`. The differ names command and field:
    `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255`. Mutations: the Sensors
    subtitle's ink `150 155 170 → 160 165 180` fails exactly that line (and command 4, "gyro °/s", on the same token);
    swapping two commands' emission order in the dump fails

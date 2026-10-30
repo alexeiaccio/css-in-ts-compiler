@@ -23,7 +23,7 @@
       "type": "registry:ui",
       "title": "Card",
       "description": "A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -55,7 +55,7 @@
       "type": "registry:ui",
       "title": "Field",
       "description": "A label, a control, a hint and an error: the ids and the ARIA are `createField`'s",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme", "@cssints/input"],
       "files": [
@@ -92,7 +92,7 @@
       "type": "registry:ui",
       "title": "Input",
       "description": "A text field on the neutral theme, and the control `Field` puts in by default",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -124,7 +124,7 @@
       "type": "registry:ui",
       "title": "Toolbar",
       "description": "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -152,11 +152,43 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "button-group",
+      "type": "registry:ui",
+      "title": "Button group",
+      "description": "Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme", "@cssints/button"],
+      "files": [
+        {
+          "path": "button-group.tsx",
+          "target": "src/components/ui/button-group.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "switch",
       "type": "registry:ui",
       "title": "Switch",
       "description": "APG switch on @cssints/headless, on the neutral theme, with its scenario test",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -203,7 +235,7 @@
       "type": "registry:ui",
       "title": "Disclosure",
       "description": "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -250,7 +282,7 @@
       "type": "registry:ui",
       "title": "Button",
       "description": "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -282,7 +314,7 @@
       "type": "registry:ui",
       "title": "Checkbox",
       "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -329,7 +361,7 @@
       "type": "registry:ui",
       "title": "Radio group",
       "description": "APG radio group with roving tabindex or aria-activedescendant focus",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -376,7 +408,7 @@
       "type": "registry:ui",
       "title": "Tabs",
       "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
@@ -423,7 +455,7 @@
       "type": "registry:ui",
       "title": "Accordion",
       "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
-      "dependencies": ["@cssints/headless", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
