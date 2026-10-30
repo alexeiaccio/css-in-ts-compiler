@@ -1704,6 +1704,38 @@ Principles:
 - **`message()` is a default sentence for the host's status region** ("2 files, 1 rejected: too large", `undefined` before the first batch): the primitive tracks the counts of the last batch, the host decides the words. Render `statusProps` once and keep it mounted, or a change of its text is not announced.
 - Picking through the input is the same path as a drop and clears `input.value` afterwards, so choosing the same file twice fires `change` again.
 
+### Headless: `createTimeline` (`@cssints/headless`)
+
+Two modes over one axis. Without `rows` it is the package's demo tree of five fixed spans (collapsing, a zoom window, checked against `specs/apg/timeline.qnt` by the differential walk in `packages/headless/test/timeline.browser.test.tsx`). With `rows` it is a trace waterfall: real span data laid out in percentages of the rows' own extent. The rows mode has **no APG pattern** to follow, so its contract is `packages/headless/test/timeline-rows.browser.test.tsx`.
+
+```ts skip
+createTimeline(options: {
+  rows: ReadonlyArray<{ id: string; label: string; start: number; end: number; depth?: number; status?: "ok" | "error" | "unset" }>; // in display order
+  axis?: { unit?: "ms" | "us" | "s" } | undefined; // "ms": the ruler's labels
+  selected?: string | undefined; // controlled; undefined = uncontrolled
+  onSelect?(id: string): void; // a request the host may ignore
+}): {
+  extent(): { start: number; end: number }; // min start, max end; { 0, 0 } when empty
+  depthOf(id: string): number; // 0 for a root span
+  listProps: { role: "list"; "aria-label": string };
+  rowProps(id: string): { role: "listitem"; "aria-level": number; "aria-current": "true" | undefined; "data-status"; tabindex; onClick; onKeyDown };
+  barProps(id: string): { "aria-hidden": "true"; style: { left; width; "--depth" } };
+  labelProps(id: string): { style: { "--depth" } };
+  rulerProps: { role: "presentation"; "aria-hidden": "true"; ticks: ReadonlyArray<{ value: number; left: number; label: string }> };
+  select(id: string): void;
+  selectedId(): string | undefined;
+};
+```
+
+`createTimeline()` with no `rows` keeps the tree API exactly as it was (`rows()`, `treeProps`, `rowProps`, zoom, collapse).
+
+- **Role.** A waterfall is neither a tree (nothing collapses in rows mode) nor a grid (nothing is edited), and `aria-selected` is not allowed on a `listitem`. So the rows are `role="list"` / `role="listitem"`, the depth is `aria-level` (`depth + 1`, which `listitem` supports) and the selected row is `aria-current="true"`, which any element may carry. The demo tree keeps `role="tree"` / `"treeitem"` because it does collapse.
+- **Geometry.** `extent()` is across every row, so a child span is a percentage of the whole trace: `barProps(id).style.left` / `.width` are percentages of it, and a zero-length span (`start === end`) still paints because every bar has a **0.5% width floor** — 2 px on a 400 px track, the floor the o11y dashboard used when it hand-rolled these rows. An empty extent (`{ 0, 0 }`) puts every bar at `left: 0%` with that floor rather than dividing by zero.
+- **Depth is `--depth`** on `barProps` and `labelProps`, not nested DOM: the host indents with `padding-inline-start: calc(var(--depth) * 0.75rem)`, and the bar keeps its track when the panel is narrow.
+- **Ruler.** `ticks` steps the extent by 1, 2 or 5 times a power of ten (about five ticks), each with `value` on the axis, `left` in percent and a `label` in the axis unit. The ruler element is decorative; the host renders ticks as its children.
+- **Selection.** A click selects and moves the tab stop; ArrowUp / ArrowDown / Home / End move a roving tab stop; Enter or Space selects the focused row. The host moves real DOM focus after an arrow key, as the demo fixture does; `selected` + `onSelect` make it controlled, `select(id)` is the programmatic request.
+- **`status` is `data-status`** on the row, a styling hook for the host's colour. The primitive never invents the label: the host's data holds it.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
