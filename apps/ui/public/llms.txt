@@ -35,7 +35,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - treeview: APG tree view: roving focus, expanded rows and levels on `createTreeview`. `add @cssints/treeview`
 - menu: APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close. `add @cssints/menu`
 - tooltip: APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`. `add @cssints/tooltip`
-- select: APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside. `add @cssints/select`
+- select: APG select-only combobox: the button that shows the chosen label is the combobox, a floating listbox follows it with `aria-activedescendant`, and Enter, Tab or a click commits. `add @cssints/select`
 - textarea: A multi-line field styled like `Input`, and the control `Field` puts in with `render`. `add @cssints/textarea`
 - slider: APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`. `add @cssints/slider`
 - spinbutton: APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by. `add @cssints/spinbutton`

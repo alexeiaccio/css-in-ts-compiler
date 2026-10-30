@@ -230,7 +230,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Select",
     description:
-      "APG single-select listbox in a button: the chosen label on the trigger, a floating list, arrows, Enter, Escape and a click outside",
+      "APG select-only combobox: the button that shows the chosen label is the combobox, a floating listbox follows it with `aria-activedescendant`, and Enter, Tab or a click commits",
     also: ["@cssints/button"],
   },
   {
