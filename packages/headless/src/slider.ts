@@ -16,6 +16,11 @@ export interface SliderOptions {
   readonly defaultValue?: number;
   readonly orientation?: SliderOrientation;
   readonly direction?: SliderDirection;
+  /**
+   * aria-disabled: the thumb stays the tab stop (the APG pattern's focus
+   * contract) but a key or a rail press changes nothing.
+   */
+  readonly disabled?: boolean;
   /** Base for the generated thumb id. */
   readonly id?: string;
   /**
@@ -33,6 +38,7 @@ export interface SliderThumbProps {
   readonly "aria-valuemax": string;
   readonly "aria-valuetext": string;
   readonly "aria-orientation": SliderOrientation;
+  readonly "aria-disabled": "true" | undefined;
   readonly tabindex: number;
   readonly onFocus: () => void;
   readonly onBlur: () => void;
@@ -76,6 +82,11 @@ const valueTextFor = (value: number): string =>
  * pass `value` + `onValueChange` to own the value. A key or rail press is a
  * request the host may ignore.
  *
+ * `disabled` is a widget-level extension of the pattern (the spec lists it
+ * under its deliberate omissions): the thumb keeps its tab stop and announces
+ * `aria-disabled`, and every key and rail press is dropped before it becomes a
+ * request.
+ *
  * ponytail: dragging (pointer capture/move) is not modelled — the spec
  * deliberately only fixes a discrete rail press.
  */
@@ -96,6 +107,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
 
   const orientation = (): SliderOrientation => options.orientation ?? "horizontal";
   const direction = (): SliderDirection => options.direction ?? "ltr";
+  const disabled = (): boolean => options.disabled === true;
   const flipped = (): boolean => orientation() === "horizontal" && direction() === "rtl";
 
   const commit = (next: number): void => request(clamp(next));
@@ -120,7 +132,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
   };
 
   const keyDown = (key: string): boolean => {
-    if (!focused()) {
+    if (!focused() || disabled()) {
       return false;
     }
     if (key === "Home") {
@@ -140,6 +152,9 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
   };
 
   const pointerDown = (position: number): void => {
+    if (disabled()) {
+      return;
+    }
     const steps = Math.round((position * (max - min)) / step);
     commit(min + steps * step);
     setFocused(true);
@@ -166,6 +181,9 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
       },
       get "aria-orientation"() {
         return orientation();
+      },
+      get "aria-disabled"() {
+        return disabled() ? "true" : undefined;
       },
       get tabindex() {
         return 0;

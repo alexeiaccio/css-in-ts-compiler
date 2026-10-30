@@ -14,6 +14,11 @@ export interface SpinbuttonOptions {
   readonly defaultValue?: number;
   /** Wrap around at the bounds instead of clamping. */
   readonly wrap?: boolean;
+  /**
+   * aria-disabled plus the native `disabled` on the text field: keys, typing
+   * and both steppers change nothing, and both steppers announce `aria-disabled`.
+   */
+  readonly disabled?: boolean;
   /** Base for the generated input / button ids. */
   readonly id?: string;
   /**
@@ -31,6 +36,8 @@ export interface SpinbuttonInputProps {
   readonly "aria-valuemax": string;
   readonly "aria-valuetext": string;
   readonly "aria-invalid": "true" | undefined;
+  readonly "aria-disabled": "true" | undefined;
+  readonly disabled: boolean;
   readonly tabindex: number;
   readonly value: string;
   readonly onFocus: () => void;
@@ -89,6 +96,12 @@ export interface Spinbutton {
  * stepper buttons, Enter and blur are requests the host may ignore; typing and
  * Escape change no committed value.
  *
+ * `disabled` is a widget-level extension of the pattern (the spec models the
+ * steppers' bound only, and lists this under its deliberate omissions): the
+ * field announces `aria-disabled` and carries the native `disabled`, every key,
+ * typed draft and both steppers are dropped before they become a request, and
+ * neither stepper offers itself.
+ *
  * ponytail: commit/revert on Enter/blur/Escape is the common convention, not
  * APG text.
  */
@@ -110,6 +123,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
   const [wrap, setWrapSignal] = createSignal(options.wrap ?? false);
+  const disabled = (): boolean => options.disabled === true;
 
   const draftInRange = (text: string): boolean => {
     const number = Number(text);
@@ -149,7 +163,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
   };
 
   const keyDown = (key: string): boolean => {
-    if (!focused()) {
+    if (!focused() || disabled()) {
       return false;
     }
     switch (key) {
@@ -185,7 +199,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
   };
 
   const commit = (): void => {
-    if (!focused()) {
+    if (!focused() || disabled()) {
       return;
     }
     const next = baseValue();
@@ -197,10 +211,37 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
     clearDraft();
   };
 
+  // the shared blur: end editing, commit a valid draft unless the widget is disabled
+  const blurField = (): void => {
+    const next = baseValue();
+    clearDraft();
+    setFocused(false);
+    if (disabled()) {
+      return;
+    }
+    commitValue(next);
+  };
+
+  const increment = (): void => {
+    if (disabled()) {
+      return;
+    }
+    setFocused(true);
+    applyStep(1, step);
+  };
+
+  const decrement = (): void => {
+    if (disabled()) {
+      return;
+    }
+    setFocused(true);
+    applyStep(-1, step);
+  };
+
   const displayed = (): string => (editing() ? draft() : String(value()));
 
   const ariaDisabled = (atBound: boolean): "true" | undefined =>
-    !wrap() && atBound ? "true" : undefined;
+    disabled() || (!wrap() && atBound) ? "true" : undefined;
 
   return {
     value,
@@ -210,15 +251,10 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
     displayed,
     setValue: commitValue,
     focus: () => setFocused(true),
-    blur: () => {
-      const next = baseValue();
-      clearDraft();
-      setFocused(false);
-      commitValue(next);
-    },
+    blur: blurField,
     keyDown,
     typeInput: (text) => {
-      if (!focused()) {
+      if (!focused() || disabled()) {
         return;
       }
       setEditing(true);
@@ -226,14 +262,8 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
     },
     commit,
     revert,
-    increment: () => {
-      setFocused(true);
-      applyStep(1, step);
-    },
-    decrement: () => {
-      setFocused(true);
-      applyStep(-1, step);
-    },
+    increment,
+    decrement,
     setWrap: (next) => setWrapSignal(next),
     inputProps: {
       id: `${base}-input`,
@@ -249,6 +279,12 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       get "aria-invalid"() {
         return editing() && !draftInRange(draft()) ? "true" : undefined;
       },
+      get "aria-disabled"() {
+        return disabled() ? "true" : undefined;
+      },
+      get disabled() {
+        return disabled();
+      },
       get tabindex() {
         return 0;
       },
@@ -256,12 +292,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
         return displayed();
       },
       onFocus: () => setFocused(true),
-      onBlur: () => {
-        const next = baseValue();
-        clearDraft();
-        setFocused(false);
-        commitValue(next);
-      },
+      onBlur: blurField,
       onKeyDown: (event) => {
         if (keyDown(event.key)) {
           event.preventDefault();
@@ -269,7 +300,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       },
       onInput: (event) => {
         const target = event.currentTarget as HTMLInputElement | null;
-        if (target !== null) {
+        if (target !== null && !disabled()) {
           // a fresh typed value is a draft, mirroring `setDraft(text)`
           setEditing(true);
           setDraft(target.value);
@@ -285,10 +316,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       },
       // keep focus on the text field: the steppers are not tab stops
       onMouseDown: (event) => event.preventDefault(),
-      onClick: () => {
-        setFocused(true);
-        applyStep(1, step);
-      },
+      onClick: increment,
     },
     decrementProps: {
       role: "button",
@@ -298,10 +326,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
         return ariaDisabled(value() === min);
       },
       onMouseDown: (event) => event.preventDefault(),
-      onClick: () => {
-        setFocused(true);
-        applyStep(-1, step);
-      },
+      onClick: decrement,
     },
   };
 };

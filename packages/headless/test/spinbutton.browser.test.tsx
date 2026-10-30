@@ -7,6 +7,8 @@ import {
   specDriver,
 } from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
+import { createSignal } from "solid-js";
+import { render } from "@solidjs/web";
 import { describe, expect, it } from "vite-plus/test";
 import {
   spinbuttonBridge,
@@ -16,11 +18,15 @@ import {
 } from "@cssints/apg-specs/apg/spinbutton.bridge";
 import baseUi from "@cssints/apg-specs/scenarios/apg/spinbutton.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/spinbutton.model.json";
+import { type Spinbutton, createSpinbutton } from "../src/spinbutton";
 import { domDriver } from "./dom-driver";
 import { mountSpinbutton } from "./spinbutton.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/spinbutton.react-aria.json";
 
 const model = makeReferenceModel(decodeDefinition(definitionJson));
+
+// Solid 2 delivers events through its delegated listener on a later turn, and applies setters on its flush.
+const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
 
 const dom = (config: ScenarioConfig) =>
   domDriver(mountSpinbutton(spinbuttonConfig(config)), { hideableParts: [] });
@@ -81,4 +87,87 @@ describe("createSpinbutton x spec (differential walk)", () => {
       });
     });
   }
+});
+
+// `disabled` is a widget-level extension of the pattern (the spec models the steppers'
+// bound only): the field announces `aria-disabled`, carries the native `disabled`, takes
+// no typing and no key, and neither stepper moves the value.
+describe("createSpinbutton disabled", () => {
+  const renderSpin = () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const [disabled, setDisabled] = createSignal(true);
+    let api: Spinbutton | undefined;
+    const dispose = render(() => {
+      const spin = createSpinbutton({
+        defaultValue: 5,
+        get disabled() {
+          return disabled();
+        },
+      });
+      api = spin;
+      return (
+        <div role="group">
+          <input data-part="input" {...spin.inputProps} />
+          <div data-part="increment" {...spin.incrementProps} />
+          <div data-part="decrement" {...spin.decrementProps} />
+        </div>
+      );
+    }, root);
+    const part = (name: string) => root.querySelector<HTMLElement>(`[data-part="${name}"]`)!;
+    return {
+      setDisabled,
+      api: () => api!,
+      input: () => root.querySelector<HTMLInputElement>('[data-part="input"]')!,
+      increment: () => part("increment"),
+      decrement: () => part("decrement"),
+      dispose: () => {
+        dispose();
+        root.remove();
+      },
+    };
+  };
+
+  it("announces aria-disabled, takes no typing and ignores both steppers", async () => {
+    const { setDisabled, api, input, increment, decrement, dispose } = renderSpin();
+    const now = () => input().getAttribute("aria-valuenow");
+    expect(input().getAttribute("aria-disabled")).toBe("true");
+    expect(input().disabled).toBe(true);
+    expect(increment().getAttribute("aria-disabled")).toBe("true");
+    expect(decrement().getAttribute("aria-disabled")).toBe("true");
+
+    // a native disabled field is not a target, and the primitive refuses the draft anyway
+    input().focus();
+    await tick();
+    expect(document.activeElement).not.toBe(input());
+    api().focus();
+    api().typeInput("9");
+    input().value = "9";
+    input().dispatchEvent(new InputEvent("input", { bubbles: true }));
+    await tick();
+    expect(api().draft()).toBe("");
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await tick();
+    expect(now()).toBe("5");
+
+    increment().click();
+    decrement().click();
+    await tick();
+    expect(now()).toBe("5");
+
+    // the getters are live: enabling the field enables its keys, its typing and its steppers
+    setDisabled(false);
+    await tick();
+    expect(input().hasAttribute("aria-disabled")).toBe(false);
+    expect(input().disabled).toBe(false);
+    input().focus();
+    await tick();
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    await tick();
+    expect(now()).toBe("6");
+    increment().click();
+    await tick();
+    expect(now()).toBe("7");
+    dispose();
+  });
 });
