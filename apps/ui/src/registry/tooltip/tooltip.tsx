@@ -27,7 +27,6 @@ export interface TooltipContentProps extends Renderable<PartProps, void> {
 
 const TooltipContext = createContext<{
   readonly group: TooltipGroup;
-  readonly anchor: () => HTMLElement | undefined;
   /** Hide after the primitive's hide delay: the bubble sits below the trigger, and a pointer crossing the gap leaves it. */
   readonly hideLater: () => void;
   readonly cancelHide: () => void;
@@ -74,7 +73,6 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
     openOnFocus: true,
     openOnHover: true,
   });
-  let anchor: HTMLDivElement | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const cancelHide = (): void => {
     if (timer !== undefined) {
@@ -91,14 +89,8 @@ export const Tooltip = (props: TooltipProps): JSX.Element => {
   };
   onCleanup(cancelHide);
   return (
-    <TooltipContext value={{ group, anchor: () => anchor, hideLater, cancelHide }}>
-      <div
-        data-part="tooltip-anchor"
-        class={anchorClass}
-        ref={(element: HTMLDivElement) => {
-          anchor = element;
-        }}
-      >
+    <TooltipContext value={{ group, hideLater, cancelHide }}>
+      <div data-part="tooltip-anchor" class={anchorClass}>
         {props.children}
       </div>
     </TooltipContext>

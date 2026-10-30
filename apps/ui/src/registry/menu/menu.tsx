@@ -29,8 +29,8 @@ export interface MenuTriggerProps extends Renderable<MenuTriggerPartProps, void>
 }
 
 export interface MenuContentProps extends Renderable<PartProps, void> {
-  /** A row of your own; without children the declared items are the rows, in order. */
   readonly class?: string;
+  /** Rows of your own; without children the declared items are the rows, in order. */
   readonly children?: JSX.Element;
 }
 
