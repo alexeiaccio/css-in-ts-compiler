@@ -582,12 +582,31 @@ Each step ends in a check that fails when it breaks.
    `imageData`) included: `2 images, identical`; `test.sh` regenerates the file and `cmp`s it. Mutations: one byte of
    the path fails naming `renderData.image.imageData (path)`, an 8x32 box fails at `boundingBox`, and an element with no
    style emits no command at all (10 against 11).
-   Not emitted: Dialog and
-   Widgets' menu (floats; `Clay_ElementDeclaration.floating` would print, but no page proves it and the pointer capture
-   is the host's), List (the viewport's offset is `Clay_GetScrollOffset()`, which `ui_open` asks Clay for each frame, not
-   a declaration), Field (typing is SDL's text events) and Widgets itself (12 Tab stops and keys; a static frame is
-   possible but unproven); `clip.childOffset` is the host's too. `:focus` comes from a prop, not a signal, so only a page
-   rendered with `focused` gets it. The fonts
+   **Done: the floats.** The style contract did carry Clay's `Clay_FloatingElementConfig` too: `header()` prints
+   `.floating` with the fields `pack.ts` packs into slots 32-44, in the struct's order (`offset`, `expand`,
+   `parentId` as the hash with its `u`, `zIndex`, `attachPoints.element`/`.parent`, `pointerCaptureMode`, `attachTo`,
+   `clipTo`), so what was missing was a page. It is `solid/app/Dialog.tsx`, whose overlays are the modal's backdrop and
+   panel (both `CLAY_ATTACH_TO_ROOT`, z 1 and 2, capturing the pointer) and the menu floated off `zoom-trigger`
+   (`ELEMENT_WITH_ID`, left-top on left-bottom, offset y -20, z 10). Its state is a click, so `examples/dialog/states.json`
+   names `{"menu": [{"click": "zoom-trigger"}], "dialog": [{"click": "settings-trigger"}]}` and
+   `examples/dialog/page_generated.c` (both closed, 14 commands), `page_generated_menu.c` (22) and
+   `page_generated_dialog.c` (26) are the page at those states, one file each (the click also moves the focus: the menu's
+   first item, the dialog's Cancel, so the frames carry `style_10_focus`/`style_3_focus`). `examples/dialog/gen.c`
+   compiles them with Clay and `desktop/clay_dump.c`, measures with ThorVG as the Solid host does (exact boxes, no
+   tolerance), and `dump-check.ts` compares them with the Solid page's own frame at the same state
+   (`examples/dialog/solid-dump.ts`, `ui_dump_json`): `closed: 14 commands, identical`, `menu: 22`, `dialog: 26`; the
+   closed frame whole, the overlays' commands only (a shadow, a backdrop and a group are the host's tables, no Clay
+   field). The stored `solid/goldens/dialog.json` is the menu two frames into its slide — offset y the value channel's
+   -12.5813, a group at alpha 233/scale 0.9703/rotate -1.484° — so a static frame cannot be it: the differ names its
+   eight menu commands and their y, 7.418686 px, and nothing else. `check.sh` regenerates the three files and `cmp`s them.
+   Mutations: the parent attach point → the box moves by the trigger's 37.09 px; `.zIndex = 10` → `-1` draws the menu
+   first (`element "Root" -> "zoom-menu" … the order moved`); no `.floating` → the box falls into the page's column and
+   z 10 → 0; no `.pointerCaptureMode` → no command changes, the grep names the field.
+   Still not emitted: List (the viewport's offset is `Clay_GetScrollOffset()`, which `ui_open` asks Clay for each frame,
+   not a declaration), Field (typing is SDL's text events), Widgets itself (12 Tab stops and keys; a static frame is
+   possible but unproven) and Widgets' toolbar menu (the same float the Dialog's menu proves, but its page's keys are the
+   Widgets page's); `clip.childOffset` is the host's too. `:focus` comes from a prop or a part's state, not a signal, so
+   only a page rendered over it gets it. The fonts
    enum (`font_Roboto = 0`) is the header's; the C page carries no font array, and text measure stays the host's
    (gen.c fixes one to compare layout). Text without a style is the renderer's white 14, printed as `white_14_text`.
 6. **Done: the terminal renderer.** `terminal/`: Clay's commands into a grid of character cells (`cells.c`: a

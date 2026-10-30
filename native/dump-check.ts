@@ -3,6 +3,11 @@
 //
 //   node dump-check.ts solid/goldens/sensors.json /tmp/sensors.json
 //   node dump-check.ts solid/goldens/sensors.json /tmp/sensors.json --name sensors
+//   node dump-check.ts /tmp/dialog.json /tmp/dialog-c.json --commands
+//
+// `--commands` compares the command array only: a C page keeps no renderer tables (a shadow, a backdrop, a group are no
+// Clay field, so header() drops them and the C host's tables are empty), while its commands are the same bytes as the
+// Solid host's. Without it the whole frame is compared, the effects and the text weight included.
 //
 // Three things a C host does not know, and the golden does, are settled here and nowhere else:
 //   — the page's id strings: the Solid host interns them from its JSX tree, a C page only has Clay's hashes, so a
@@ -23,6 +28,7 @@ const argv = process.argv.slice(2);
 const nameAt = argv.indexOf("--name");
 const name = nameAt < 0 ? undefined : argv[nameAt + 1];
 const skip = nameAt < 0 ? -1 : nameAt + 1;
+const commandsOnly = argv.includes("--commands");
 const paths = argv.filter((a, i) => !a.startsWith("--") && i !== skip);
 const [goldenPath, dumpPath] = paths as [string | undefined, string | undefined];
 if (!goldenPath || !dumpPath) {
@@ -108,13 +114,17 @@ function compare(want: unknown, got: unknown, path: string, out: string[], golde
   if (want !== got) out.push(`${place} ${show(want)} -> ${show(got)}${hint(path, got, golden)}`);
 }
 
-const a = format(want);
-const b = format(got);
+// the frame as compared: the whole of it, or the commands alone (`--commands`: the effect tables are the host's, and
+// a C page keeps none of them)
+const view = (frame: Json): Json => (commandsOnly ? { commands: frame.commands } : frame);
+const a = format(view(want));
+const b = format(view(got));
 if (a === b) {
   console.log(`${page}: ${(got.commands as unknown[]).length} commands, identical`);
 } else {
   const diffs: string[] = [];
-  compare(want, got, "", diffs, want);
+  const golden = view(want);
+  compare(golden, view(got), "", diffs, golden);
   for (const line of diffs) console.error(`FAIL ${page}: ${line}`);
   console.error(`  re-store it after a deliberate change, and read the diff first: ${goldenPath}`);
   process.exit(1);

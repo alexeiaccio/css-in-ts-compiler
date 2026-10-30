@@ -109,6 +109,7 @@ const opts: Partial<Options> & { styles: string[]; state: string[]; props: Recor
 await import("../solid/plugin.ts");
 const { El, Txt, render } = await import("../solid/src/renderer.ts");
 const { resolve: resolveStyle } = await import("../solid/src/pack.ts");
+const { createInput } = await import("../solid/src/input.ts");
 const { flush } = await import("solid-js");
 
 const mod = await import(resolve(opts.page!));
@@ -164,7 +165,10 @@ function apply(a: Action, root: El, label: string): void {
 /** A fresh page, with its signals at their defaults, its props as `--prop` fixed them, and the pointer off it. */
 function openPage(): { root: El; dispose: () => void } {
   const root = new El("root");
-  const dispose = render(() => Page!({ ...opts.props }), root);
+  // the page's own input: a page of the headless widgets (the Dialog, the Field) builds its tree from it — the ids, the
+  // roles and the handlers of its parts — so a build-time frame needs one, empty of keys and pointer, as its signals
+  // are fixed. A page that takes no input ignores the prop, as it ignores every other it is not handed.
+  const dispose = render(() => Page!({ input: createInput(), ...opts.props }), root);
   flush();
   pointer.id = undefined;
   pointer.down = false;
