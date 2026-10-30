@@ -1465,6 +1465,41 @@ createTable(options: {
 
 Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
+### Headless: `createTabs` (`@cssints/headless`)
+
+The APG tablist as state and attribute objects: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). `packages/apg-specs/specs/apg/tabs.qnt` is its model; `packages/headless/test/tabs.browser.test.tsx` replays it in Chromium.
+
+Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground's file tabs), off by default so the plain tabs are untouched. The primitive owns no list: it asks (`onClose`, `onRename`), the host removes or renames. `packages/headless/test/tabs-close.browser.test.tsx` is their oracle.
+
+```ts skip
+createTabs(options?: {
+  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, onValueChange
+  closable?: boolean; // false: closeProps and the Delete key; the host removes from onClose
+  renamable?: boolean; // false: a double click edits the label inline; the host renames from onRename
+  label?(index: number): string | undefined; // the tab's name: the buttons' labels and the rename draft
+  onClose?(index: number): void; // a request: the host removes the tab and may ignore it
+  onRename?(index: number, label: string): void; // a request with a non-empty label
+}): {
+  ...;
+  editing(): number | null; // the tab being renamed inline
+  focusAfterClose(index: number): number; // the tab to focus once the removal landed
+  closeProps(index): { "aria-label": string; tabindex: -1; onClick: () => void };
+  renameProps(index): {
+    onDblClick: () => void;
+    editing(): boolean;
+    begin(index: number): void;
+    commit(label: string): void;
+    cancel(): void;
+    inputProps: { type: "text"; value; "aria-label"; onInput; onKeyDown; onBlur };
+  };
+};
+```
+
+- **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
+- **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tablist's roving does not move. `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
+- **The host's list.** `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list. `label` is read lazily too, so a renamed tab renames its buttons with it.
+- The spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but neither a rename nor the callbacks, so the browser test, not the model, holds the extension.
+
 ### Headless: `createHotkeys` (`@cssints/headless`)
 
 One registry for the chords every app hand-rolls (`/` focuses search, Cmd/Ctrl+K opens it, Cmd/Ctrl+S saves). **A platform utility rather than a widget**: no APG pattern exists for a keyboard registry, so it has no role, no element, no styling, no Quint spec and no ported scenarios; `packages/headless/test/hotkeys.browser.test.tsx` is its oracle.

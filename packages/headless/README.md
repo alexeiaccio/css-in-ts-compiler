@@ -355,6 +355,51 @@ const timeline = createTimeline({
 - **Selection and keys.** A row click selects it and moves the tab stop; ArrowUp / ArrowDown / Home / End move a roving tab stop, and Enter or Space selects the row that has DOM focus — the host moves the real focus after an arrow key, as the demo fixture does. `selected` + `onSelect` make it controlled (`selected` is a request the host may ignore); `select(id)` is the programmatic request.
 - `status` is carried as `data-status` on the row for the host's colour, and `label` never leaves the host's data: the primitive does not invent the row's text.
 
+## Tabs
+
+`createTabs` is the APG tablist: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). The plain widget is checked against `specs/apg/tabs.qnt` by the scenario bridge and the differential walk in `test/tabs.browser.test.tsx`.
+
+The docs playground's file tabs add and close files and rename them, so `createTabs` also takes `closable` and `renamable` — both off by default, so the plain widget is unchanged. **The primitive never takes the list:** it asks (`onClose`, `onRename`), the host removes or renames. `label(index)` is the tab's name: it names the close and rename buttons and seeds the rename draft, and it is read lazily.
+
+```tsx
+const tabs = createTabs({
+  get items() {
+    return files().length;
+  }, // the host's list; it shrinks after a close
+  get closable() {
+    return true;
+  },
+  get renamable() {
+    return true;
+  },
+  label: (index) => files()[index], // "Close index.ts", the rename draft
+  onClose: (index) => setFiles((all) => all.filter((_, at) => at !== index)),
+  onRename: (index, label) =>
+    setFiles((all) => all.map((name, at) => (at === index ? label : name))),
+});
+
+<div {...tabs.tablistProps}>
+  {files().map((name, index) => (
+    <div {...tabs.tabProps(index)} onDblClick={tabs.renameProps(index).onDblClick}>
+      {tabs.renameProps(index).editing() ? (
+        <input
+          {...tabs.renameProps(index).inputProps}
+          ref={(element) => queueMicrotask(() => element.focus())}
+        />
+      ) : (
+        name
+      )}
+    </div>
+  ))}
+  {/* ... the close button of each tab, and the panels */}
+</div>;
+```
+
+- **Close.** `closeProps(index)` is the tab's close button: `aria-label` "Close <label>" and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` is that index in the shortened list, and the host focuses it after its removal lands. Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
+- **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits; a label that trims to nothing cancels. An `<input>` cannot live in a `<button>`, so the tab becomes a `role="tab"` element while it is editing. While editing the input owns the keys: the tablist's roving does not move, and an arrow key leaves the caret alone. `begin(index)` is the programmatic start (a tab the host has just added: append it, then `focusTab(index)` and `begin(index)`).
+- **State.** `editing()` is the tab being renamed, `null` when none. `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list.
+- The rename and the two callbacks are the extension's own: the spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but no rename and no callbacks, so `test/tabs-close.browser.test.tsx` is the oracle for all of it.
+
 ## Confirm
 
 `createConfirm` is a promise-based confirmation over `createDialogModal({ role: "alertdialog" })`. Like the field it is not checked against a spec (the dialog is; `test/confirm.browser.test.tsx` covers the promise around it, in Chromium).
