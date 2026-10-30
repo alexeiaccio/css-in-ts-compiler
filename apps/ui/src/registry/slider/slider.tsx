@@ -16,8 +16,6 @@ export type SliderPartProps = PartProps;
 export interface SliderProps extends Omit<SliderOptions, "id">, Renderable<SliderPartProps, void> {
   /** The slider's name: a `role="slider"` needs one. */
   readonly label: string;
-  /** The primitive has no disabled state, so the kit announces one and stops listening. */
-  readonly disabled?: boolean;
   /** The thumb: `render` is the rail, which is the box a page lays out. */
   readonly renderThumb?: Render<PartProps, void>;
   readonly class?: string;
@@ -90,6 +88,8 @@ const thumb = css.cn(
  * attributes the thumb announces, as `Meter` does. Vertical, the rail is as tall as `space.10` and a page sets its own.
  *
  * `value` makes it controlled; without it the slider owns the value. `onValueChange` is a request the host may ignore.
+ * `disabled` is the primitive's: it announces `aria-disabled` on the thumb and drops every key and rail press, so the kit
+ * only copies that announced state onto the rail and the fill (a box cannot read an attribute of its child).
  */
 export const Slider = (props: SliderProps): JSX.Element => {
   const slider = createSlider({
@@ -115,13 +115,15 @@ export const Slider = (props: SliderProps): JSX.Element => {
     get direction() {
       return props.direction;
     },
+    get disabled() {
+      return props.disabled;
+    },
     get onValueChange() {
       return props.onValueChange;
     },
   });
   untrack(() => props.onReady)?.(slider);
 
-  const disabled = (): boolean => props.disabled === true;
   const orientation = (): "horizontal" | "vertical" => props.orientation ?? "horizontal";
   // the same two attributes the thumb announces, so the fill cannot disagree with the value a reader hears
   const percent = (): number => {
@@ -137,34 +139,21 @@ export const Slider = (props: SliderProps): JSX.Element => {
       return slider.thumbProps["aria-orientation"];
     },
     get "aria-disabled"() {
-      return disabled() ? "true" : undefined;
+      return slider.thumbProps["aria-disabled"];
     },
     get class() {
       return css.cn(rail, props.class);
-    },
-    onPointerDown: (event: PointerEvent) => {
-      if (!disabled()) {
-        slider.trackProps.onPointerDown(event);
-      }
     },
   });
 
   const thumbPart = merge(slider.thumbProps, {
     "data-part": "slider-thumb",
     "aria-label": props.label,
-    get "aria-disabled"() {
-      return disabled() ? "true" : undefined;
-    },
     class: thumb,
     get style() {
       return orientation() === "vertical"
         ? { "inset-inline-start": "50%", "inset-block-end": `${percent()}%` }
         : { "inset-inline-start": `${percent()}%` };
-    },
-    onKeyDown: (event: KeyboardEvent) => {
-      if (!disabled()) {
-        slider.thumbProps.onKeyDown(event);
-      }
     },
   });
 

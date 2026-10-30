@@ -73,6 +73,12 @@ const field = css.cn(
     css.border("1px solid", t.color.invalid),
     css.outline("2px solid", t.color.invalid),
   ),
+  css.attr("aria-disabled", "true")(
+    css.bg(t.color.page),
+    css.color(t.color.textDisabled),
+    css.border("1px solid", t.color.borderDisabled),
+    css.cursor("not-allowed"),
+  ),
 );
 
 const steppers = css.cn(
@@ -120,8 +126,8 @@ const decrementClass = css.cn(
  * native `disabled` from that announced state and paints it.
  *
  * `id` is the field's (`Field.Control` hands the one its label points at), so `Field` names the input without a second
- * prop; the field's `aria-invalid` joins the primitive's draft-invalid instead of replacing it. The primitive has no
- * `disabled`: a host disables the control by not rendering it.
+ * prop; the field's `aria-invalid` joins the primitive's draft-invalid instead of replacing it. `disabled` is the
+ * primitive's too: the field announces `aria-disabled` and carries the native `disabled`, and both steppers offer it.
  */
 export const Spinbutton = (props: SpinbuttonProps): JSX.Element => {
   const spinbutton = createSpinbutton({
@@ -144,6 +150,9 @@ export const Spinbutton = (props: SpinbuttonProps): JSX.Element => {
     get wrap() {
       return props.wrap;
     },
+    get disabled() {
+      return props.disabled;
+    },
     get onValueChange() {
       return props.onValueChange;
     },
@@ -159,6 +168,7 @@ export const Spinbutton = (props: SpinbuttonProps): JSX.Element => {
     "value",
     "defaultValue",
     "wrap",
+    "disabled",
     "onValueChange",
     "onReady",
     "class",
