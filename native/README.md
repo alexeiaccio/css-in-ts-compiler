@@ -1312,6 +1312,7 @@ page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; 
 frame carries its `:hover` (48,53,68), and with the pointer off it the use_g frame is the no-JS page's `frame(1)` field
 for field and box for box, 0 px. A second click returns to the base frame, again identical. (c) the canvas against
 `browser/expected.png`: 0.00% of pixels differ, worst 8x8 block 0.0/255.
+
 (a) each base frame, dumped through the same emitter, against its golden: Sensors 10 commands, every field and every box
 — the worst box 3.38 px, the Units pill sitting that much lower because the measure callback rounds every line height up
 (37.5 -> 38 at 32px, 16.4 -> 17 at 14px, `draw.js`, as the no-JS page's does) while ThorVG's is exact; the no-JS page's own
@@ -1331,6 +1332,42 @@ ink box is within 3 px, the frame's mean colour within 1.41/255 — `check.mjs`'
 Tab twice puts the `Wi-Fi` switch's node in the a11y tree at `focused: true` and draws the 2 px ring at its edge
 (90,170,255 one px in), Space sets `checked: true` and turns the track's fill from #3c404e to #f08c32 (the accent at a
 pixel of it), ten more Tabs reach the settings tree (the `Network` item) and ArrowDown moves the roving node to `Wi-Fi`.
+
+### The dev server: a save builds, and the page reloads
+
+`bun browser/serve.ts`, from `native/`, is the whole loop: it builds both artefacts with the scripts above into a temp
+directory (`browser/build.sh` for `page.wasm` and `ui.wasm`, `browser/solid/build.ts` for the bundles), serves
+`browser/` and them at one origin, and watches the builds' inputs — `browser/`, `solid/`, `desktop/clay_dump.c`,
+`vendor/clay/`, `generator/`, `examples/sensors/`, `apps/` (the Sky page imports apps/csssky's api and models) and
+`packages/cssints/dist`. A save's extension picks the build: `.c`/`.h`/`.sh` is the wasm, `.ts`/`.tsx`/`.jsx` is the
+bundles, a change under `packages/cssints/dist` is both, and a `.js`/`.html` is no build at all, only a reload. Each
+build writes into a staging directory and is copied over the served one — renamed into place, so a fetch never sees half
+a file — only when the child exits 0, and the open pages reload over a `text/event-stream` at `/__events`; the client is
+a script the server injects into every `text/html`, so the htmls are untouched.
+
+```sh
+bun browser/serve.ts                  # http://127.0.0.1:4173/browser/solid/index.html (Sensors)
+bun browser/serve.ts --port 0 --open  # a free port, and the browser opened on the page
+```
+
+The reload is `location.reload()`: a page's Solid state, its scroll and a thread it opened are lost — an honest "reload
+on save", not a hot swap. HMR needs the module graph, i.e. the cssints plugin and Vite's client in this path (`apps/docs`
+has them: the engine's own `cssints/vite`), and a way to re-mount a page's tree over the new modules; a `.c` save is a
+new `ui.wasm` whatever else is hot, because the page holds one `WebAssembly.Instance` (`browser/solid/ffi-browser.ts`).
+The desktop has none of this: `bun solid/main.ts` reads its modules once and a save is a restart by hand, and this server
+cannot help it — the window is another process over `libui.dylib`, with no page and no origin.
+
+A failed build keeps the last good artefact: the page is not reloaded, it keeps running, and the compiler's own text
+goes out as an `error` event — a dark red bar at the bottom of the page and a `console.error` — until a save builds.
+Cost, `browser/serve-check.mjs` on an M2, three runs: two ran under a load average of 70-170 (other work on the same
+machine) and one on a quiet minute, so the median of the three is a loaded one — the first build **101.3 s** (wasm
+58.1 s, bundles 43.1 s), a `.ts` save **38.0 s** to the bundles and **38.2 s** to the page's first frame, a `.c` save
+**21.4 s** to the wasm and **21.6 s** to its first frame. On the quiet run: the first build **25.5 s** (wasm 15.0 s,
+bundles 10.5 s), a `.ts` save **11.4 s** / **11.7 s**, a `.c` save **2.5 s** / **2.6 s** — the loop's own cost; the
+loaded numbers are what a busy machine makes of it. The bundle build is the cost: `Bun.build` over eight entry points,
+each page's `.tsx` through Solid's compiler and cssints in a Node child, so any `.ts` save rebuilds all eight
+(`src/frame.ts` and `src/renderer.ts` are shared by all of them). `--root` builds and serves another tree, which is how
+the check runs on a temp copy.
 
 ### The renderer's effects, on a command array
 

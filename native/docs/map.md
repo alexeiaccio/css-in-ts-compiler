@@ -155,7 +155,9 @@ Each step ends in a check that fails when it breaks.
    plugin, theme and `:active` picked at run time. Check: `solid/test.sh` renders the Solid page headless and compares
    it with the C page's three ThorVG frames, pixel for pixel (identical), plus the pressed look and click rules. Cost:
    about 0.4 ms a frame on an Apple-silicon Mac, 0.006 ms of it the JS walk and FFI, the rest ThorVG's raster. Left: reload on save,
-   JSX types, the window checked by eye.
+   JSX types, the window checked by eye. (2026-10-30: still none here — `bun solid/main.ts` loads its modules once and a
+   save is Ctrl-C and a restart. The browser target's dev server, step 8, rebuilds and reloads a *page*; it cannot help
+   this process, which is a window over `libui.dylib` with no origin and no module graph to swap.)
    **Headless widgets** (`headless/`, between Solid and JSX to C). The first widgets of effects-of-atmosphere's
    `@eoa/headless` (button, switch, checkbox, disclosure, radio, tabs, toolbar, slider, tree) with no DOM: Solid 2 signals for state and, instead of aria-*
    attributes, parts of plain fields (`id`, `role`, `checked`, `selected`, `expanded`, `controls`, `tabIndex`, `hidden`, `disabled`, `focused`, `valueNow`, `level`, `posInSet`, `setSize`)
@@ -905,7 +907,34 @@ Each step ends in a check that fails when it breaks.
    with a drag in flight is **0.20 ms** on the List and **0.82 ms** on the Sky. Check: `browser/touch-check.mjs` (31
    comparisons) in `solid/test.sh` with the other four. Limits: pinch and any two-finger gesture, long-press, a
    touchscreen (this machine has none), the Widgets page's slider under a finger (`Widgets.tsx`'s drag is the same
-   `drag.onPointer`, untested), and HMR.
+   `drag.onPointer`, untested), and no HMR (a save is a build and a full reload, below).
+   **Done: the dev server, and reload on save** (2026-10-30). The browser target had no loop: a style change was
+   `sh browser/build.sh` and `bun browser/solid/build.ts` again and a person's reload, and `check.mjs --serve` was a
+   static server that built nothing. `browser/serve.ts` (Bun, `bun browser/serve.ts`) is the loop: it builds both
+   artefacts into a temp directory, serves `browser/` and them at one origin
+   (`http://127.0.0.1:4173/browser/solid/index.html`; `--port`, `--open`, `--root`), watches the builds' inputs
+   (`browser/`, `solid/`, `desktop/clay_dump.c`, `vendor/clay/`, `generator/`, `examples/sensors/`, `apps/`,
+   `packages/cssints/dist`), debounces 80 ms and picks the build by extension: `.c`/`.h`/`.sh` the wasm,
+   `.ts`/`.tsx`/`.jsx` the bundles, cssints' `dist` both, `.js`/`.html` no build at all, only a reload. A build writes
+   into a staging directory and is renamed over the served copy only when the child exits 0, so a broken save keeps the
+   last good artefact: the page is not reloaded, it keeps running, and the compiler's text arrives as an `error` event —
+   a dark red bar at the bottom of the page (a script the server injects into every `text/html`, so the htmls are
+   untouched) and a `console.error`. A good build pushes `reload` over the same `text/event-stream` and the page does
+   `location.reload()`: a full reload, so its Solid state and its scroll are lost. Measured by `browser/serve-check.mjs`
+   (three runs on an M2: two under a load average of 70-170 and one quiet, so the median is a loaded one): the first
+   build **101.3 s** (wasm 58.1 s, bundles 43.1 s); a `.ts` save **38.0 s** to the bundles and **38.2 s** to the page's
+   first frame; a `.c` save **21.4 s** to the wasm and **21.6 s** to the first frame. The quiet run: **25.5 s** first
+   build (wasm 15.0, bundles 10.5), a `.ts` save **11.4 s** / **11.7 s**, a `.c` save **2.5 s** / **2.6 s**. The bundles
+   are the cost — `Bun.build` over eight entry points, each page's `.tsx` through Solid's compiler and cssints in a Node
+   child — so any `.ts` save rebuilds all eight. The check (in `solid/test.sh`'s browser block) runs on a temp copy of
+   the repo as `--root` (it writes no tracked file): a `.ts` save rebuilds the bundles and not the wasm (the live
+   `ui.wasm`'s mtime does not move, `page.js`'s does), and the page's `timeOrigin` changes; a `#error` in `ui.c` fails
+   the wasm build, the page's bar
+   names it (`serve-check-typo`), the page is *not* reloaded, and a manual reload still serves the last good `ui.wasm`;
+   the fixed save rebuilds the wasm and reloads, and the frame is the one from before the break (the same hash). HMR is
+   still absent: it needs the module graph — the engine's own `cssints/vite` plugin and Vite's client, as `apps/docs`
+   runs them — in this path, a page that re-mounts its tree over the new modules, and a `.c` save would still be a
+   reload, because the page holds one `WebAssembly.Instance`.
 
 
 ## What Rune's research gives us (2026-10-23)

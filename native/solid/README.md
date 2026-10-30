@@ -1180,6 +1180,14 @@ click, to `browser/expected.png`, and to `frames/sky.png`. The two globals these
 What the browser surface drops from `solid/native/ui.c` (the window, key and text queues, the clipboard, PNG I/O,
 `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the pages it carries, and
 their cost, are in `native/README.md`'s browser chapter.
+The dev loop is `bun browser/serve.ts` (from `native/`, not from here): it builds `ui.wasm` and the bundles into a temp
+directory, serves `browser/` and them at one origin (`http://127.0.0.1:4173/browser/solid/index.html`; `--port`,
+`--open`, `--root`), and rebuilds on save — a `.ts`/`.tsx` save the bundles, a `.c`/`.h` save the wasm, a
+`packages/cssints/dist` change both, a `.js`/`.html` nothing but a reload — then reloads the open pages over a
+`text/event-stream` with `location.reload()`, so a page's Solid state is lost. A broken save keeps the last good
+artefact, the page keeps running, and the compiler's error shows in a bar at its bottom. `browser/serve-check.mjs` (in
+`solid/test.sh`) drives it on a temp copy of the tree; the measured ms and what HMR would need are in
+`native/README.md`'s browser chapter.
 `browser/solid/keys.ts` is this host's other half of `src/input.ts`. The desktop pops SDL's queue and calls `keyName`
 (`main.ts`); the page gets a DOM `keydown`/`keyup` on its canvas and names it with the same answers — `Tab` and
 `Shift+Tab`, `" "` for Space (the parts take `Space` too), `Enter`, `Escape`, `Backspace`, `Delete`, the arrows,
