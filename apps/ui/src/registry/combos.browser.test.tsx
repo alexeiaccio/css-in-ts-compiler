@@ -18,7 +18,9 @@ import {
   Mode,
   Nesting,
   Renders,
+  Selects,
   Sizes,
+  Textareas,
   Toolbars,
   Tooltips,
 } from "./combos.fixture.tsx";
@@ -299,5 +301,100 @@ describe("the kit composes", () => {
     flush();
     expect(tooltip.hidden).toBe(true);
     expect(trigger.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("opens the select from its trigger, moves the highlight, chooses and gives focus back", () => {
+    const root = mount(() => <Selects />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="listbox"]')!;
+    const listbox = root.querySelector<HTMLElement>('[data-part="select-listbox"]')!;
+    expect(trigger.getAttribute("aria-label")).toBe("Fruit");
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    // hidden has to mean hidden: no display in the list's class may override the UA's `[hidden] { display: none }`
+    expect(style(listbox).display).toBe("none");
+    trigger.focus();
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(false);
+    expect(style(listbox).display).not.toBe("none");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(trigger.getAttribute("aria-controls")).toBe(listbox.id);
+    expect(listbox.getAttribute("role")).toBe("listbox");
+    expect(trigger.textContent).toBe("Apple");
+    const options = [...root.querySelectorAll<HTMLElement>('[data-part="select-option"]')];
+    expect(options.map((option) => option.getAttribute("role"))).toEqual([
+      "option",
+      "option",
+      "option",
+      "option",
+    ]);
+    expect(options.map((option) => option.getAttribute("aria-selected"))).toEqual([
+      "true",
+      "false",
+      "false",
+      "false",
+    ]);
+    // the highlight is the roving tab stop the widget announces, and the DOM focus is on that row
+    expect(options[0]!.tabIndex).toBe(0);
+    expect(options[1]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(options[0]);
+    // an arrow key moves the highlight: the tab stop and the styled row follow it
+    options[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    expect(options[1]!.tabIndex).toBe(0);
+    expect(options[0]!.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(options[1]);
+    expect(style(options[1]!).backgroundColor).not.toBe(style(options[0]!).backgroundColor);
+    // a disabled option says so and an arrow steps over it
+    expect(options[2]!.getAttribute("aria-disabled")).toBe("true");
+    expect(style(options[2]!).cursor).toBe("not-allowed");
+    options[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    flush();
+    expect(document.activeElement).toBe(options[3]);
+    options[3]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    flush();
+    expect(document.activeElement).toBe(options[1]);
+    // Enter chooses the highlighted row, closes the list and the trigger shows the label
+    options[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(trigger.textContent).toBe("Banana");
+    expect(options[1]!.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(trigger);
+    // Escape closes it too and the focus goes back to what opened it
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(false);
+    expect(document.activeElement).toBe(options[1]);
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    // a pointer outside the anchor is the other way out
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(false);
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    flush();
+    expect(listbox.hidden).toBe(true);
+  });
+
+  it("gives a textarea the field's id and invalid state", () => {
+    const root = mount(() => <Textareas />);
+    const invalid = root.querySelector<HTMLTextAreaElement>('[id="notes-control"]')!;
+    expect(invalid.tagName).toBe("TEXTAREA");
+    expect(invalid.getAttribute("data-part")).toBe("textarea");
+    expect(invalid.getAttribute("aria-invalid")).toBe("true");
+    expect(invalid.getAttribute("aria-describedby")).toBe("notes-error");
+    // the field's invalid border is the theme's, and not the resting one the second textarea has
+    const resting = root.querySelector<HTMLTextAreaElement>('[id="summary-control"]')!;
+    expect(resting.getAttribute("aria-invalid")).toBeNull();
+    expect(style(invalid).borderTopColor).not.toBe(style(resting).borderTopColor);
+    // it is a textarea, not a one-line control: it takes a height and grows down
+    expect(style(resting).resize).toBe("vertical");
   });
 });

@@ -26,6 +26,8 @@ import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
 import { Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
+import { Select, SelectContent, SelectTrigger } from "./select/select.tsx";
+import { Textarea } from "./textarea/textarea.tsx";
 import { Toolbar } from "./toolbar/toolbar.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip/tooltip.tsx";
 
@@ -207,4 +209,30 @@ export const Tooltips = (): JSX.Element => (
     <TooltipTrigger>Delete</TooltipTrigger>
     <TooltipContent>Deletes the file</TooltipContent>
   </Tooltip>
+);
+
+const FRUIT = ["Apple", "Banana", { label: "Cherry", disabled: true }, "Date"];
+
+export const Selects = (): JSX.Element => {
+  const [value, setValue] = createSignal(0);
+  return (
+    <Select items={FRUIT} value={value()} onValueChange={setValue} label="Fruit">
+      <SelectTrigger />
+      <SelectContent />
+    </Select>
+  );
+};
+
+export const Textareas = (): JSX.Element => (
+  <>
+    <Field id="notes" invalid="Say a little more">
+      <FieldLabel>Notes</FieldLabel>
+      <FieldControl render={(props) => <Textarea {...props} />} />
+      <FieldMessage />
+    </Field>
+    <Field id="summary">
+      <FieldLabel>Summary</FieldLabel>
+      <FieldControl render={(props) => <Textarea {...props} />} />
+    </Field>
+  </>
 );
