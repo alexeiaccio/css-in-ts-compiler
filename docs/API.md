@@ -1754,6 +1754,51 @@ createSpinbutton(options?: {
 - a disabled spinbutton's field announces `aria-disabled` **and carries the native `disabled`** (the field is an `<input>`, so the platform's own form-control rule applies); the spin keys, the typed draft (Enter and blur included) and both steppers change nothing, and **both** steppers announce `aria-disabled="true"` — the at-bound rule of the spec stays, and a disabled widget adds the other side;
 - both read the option on every attribute read, so a host may flip `disabled` on a mounted widget and the attributes and the guards follow in the same tick.
 
+### Headless: `createKnob` (`@cssints/headless`)
+
+A virtual knob after GarageBand's ([How Apple Designs a Virtual Knob](https://jherrm.github.io/knobs/)): spin around the centre, or slide vertically / horizontally, with one gesture locked per drag. **No APG pattern and no ARIA role exist for a dial**, so there is no Quint spec and no ported scenarios: `packages/headless/test/knob.browser.test.tsx` (real Chromium) is the oracle. The knob is a `role=slider` — the closest role WAI-ARIA has — with a polite live value; a numeric field must sit next to it, because a dial is never the only control. Options are plain and read lazily; `value` + `onValueChange` make the widget controlled.
+
+```ts skip
+createKnob(options?: {
+  min?: number; // 0
+  max?: number; // 100
+  step?: number; // 1
+  value?: number | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: number; // the middle of the range, quantised to step
+  wrap?: boolean | undefined; // false: clamp at the bounds; true: continuous, past max wraps to min
+  gesture?: "spin" | "slide" | "both" | undefined; // "both": locked per drag from the first movement
+  labels?: { knob?: string | undefined } | undefined; // aria-label on the knob, "Knob" by default
+  format?: ((value: number) => string) | undefined; // aria-valuetext, String by default
+  id?: string | undefined; // base of the value region id
+  onValueChange?(value: number): void; // a request the host may ignore
+}): {
+  value(): number;
+  setValue(value: number): void; // a request
+  percentOf(value: number): number; // the rotation fraction, 0..1 (× 360 for degrees)
+  stepBy(delta: number): void; // a request
+  knobProps: {
+    role: "slider";
+    tabindex: 0;
+    "aria-valuemin";
+    "aria-valuemax";
+    "aria-valuenow";
+    "aria-valuetext";
+    "aria-label";
+    onKeyDown;
+    onPointerDown;
+    onPointerMove;
+    onPointerUp;
+    onPointerCancel;
+    onWheel;
+  };
+  valueProps: { id; role: "status"; "aria-live": "polite" };
+};
+```
+
+**Gestures.** The first movement past 6 px picks the mode once: movement that stays on one axis (the other under 35% of it) is a slide, anything else is a turn around the centre, and `gesture: "spin"` / `"slide"` disables the other. The direction is the reference's "which side you turn": a vertical slide down turns clockwise (up in value) on the right half and counter-clockwise on the left half; a horizontal slide uses the same left/right side (the reference picks top/bottom for that one). A spin's value per degree shrinks with the pointer's distance from the centre — farther is finer. `percentOf` maps the value to the fraction of a full turn for the skin; `wrap` makes the dial continuous instead of clamped.
+
+**Keyboard.** Arrows step, PageUp/PageDown move ten steps, Home/End jump to the bounds (no typing: the dial has no text entry). The wheel steps once per event and `preventDefault`s while the pointer is over the knob.
+
 ### Headless: `createDropZone` (`@cssints/headless`)
 
 A file drop target. **There is no APG pattern and no Quint spec for a drop zone** — the contract is HTML's file input plus WAI-ARIA's live region — so `packages/headless/test/dropzone.browser.test.tsx` (real Chromium) is its oracle. It is the replacement for the bare `<input type="file">` fields of cms-admin's image field and kocharin's dashboard upload.
