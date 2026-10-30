@@ -4,6 +4,7 @@
 import { componentFile, items, type CatalogItem } from "./catalog.ts";
 import { For, Show, createEffect, createSignal, onCleanup } from "solid-js";
 import { demos } from "./demos.tsx";
+import { GUIDES, type Guide } from "./guides.tsx";
 import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
@@ -52,6 +53,8 @@ export const Docs = (): JSX.Element => {
   });
 
   const item = (): CatalogItem | undefined => items.find((entry) => entry.name === name());
+  // a guide is a page of its own: a hash that names one renders it instead of a widget
+  const guide = (): Guide | undefined => GUIDES.find((entry) => entry.name === name());
 
   // Solid 2 has no `createResource`: the current item's result is a plain fetch into a signal. An
   // item published before the preflight existed has no file, and the section stays hidden.
@@ -64,6 +67,10 @@ export const Docs = (): JSX.Element => {
     }
     requested = target;
     setPreflight(undefined);
+    // a guide has no published item to ask about; only a widget page has a preflight result
+    if (GUIDES.some((entry) => entry.name === target)) {
+      return;
+    }
     const response = await fetch(`${HOST}/r/${target}.result.json`).catch(() => undefined);
     const body: unknown =
       response?.ok === true ? await response.json().catch(() => undefined) : undefined;
@@ -101,12 +108,28 @@ export const Docs = (): JSX.Element => {
           Styled APG widgets for Solid 2. The behaviour is <code>@cssints/headless</code> from npm;
           what you copy is the skin and the test.
         </p>
-        <nav>
+        <nav aria-label="Guides">
+          <p class="docs__label">Guides</p>
+          <For each={GUIDES}>
+            {(entry) => (
+              <a
+                class={`docs__link${entry.name === name() ? " docs__link--active" : ""}`}
+                href={`#${entry.name}`}
+                aria-current={entry.name === name() ? "page" : undefined}
+              >
+                {entry.title}
+              </a>
+            )}
+          </For>
+        </nav>
+        <nav aria-label="Components">
+          <p class="docs__label">Components</p>
           <For each={items}>
             {(entry) => (
               <a
                 class={`docs__link${entry.name === name() ? " docs__link--active" : ""}`}
                 href={`#${entry.name}`}
+                aria-current={entry.name === name() ? "page" : undefined}
               >
                 {entry.title}
               </a>
@@ -131,7 +154,17 @@ export const Docs = (): JSX.Element => {
       </aside>
 
       <main class="docs__main">
-        <Show when={item()} fallback={<p>Pick a widget.</p>}>
+        <Show when={guide()} keyed>
+          {(entry) => <entry.Page />}
+        </Show>
+        <Show
+          when={item()}
+          fallback={
+            <Show when={!guide()}>
+              <p>Pick a widget.</p>
+            </Show>
+          }
+        >
           {(entry) => (
             <>
               <h1 class="docs__title">{entry().title}</h1>

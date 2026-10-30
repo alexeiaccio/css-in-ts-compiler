@@ -169,6 +169,11 @@ code {
   line-height: 1.5;
 }
 
+/* A code block of a guide has no summary above it: the box is the surface, not a fold. */
+.docs__file > .docs__code:first-child {
+  border-top: 0;
+}
+
 .demo-row {
   display: flex;
   flex-wrap: wrap;
