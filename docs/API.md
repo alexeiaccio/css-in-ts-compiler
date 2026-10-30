@@ -1469,6 +1469,8 @@ Selection is over ids, so it survives the host's re-sort. `rowProps` carries `ar
 
 The APG tablist as state and attribute objects: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). `packages/apg-specs/specs/apg/tabs.qnt` is its model; `packages/headless/test/tabs.browser.test.tsx` replays it in Chromium.
 
+Its accessibility requirements are catalogued, gap by gap, in `packages/headless/docs/requirements/tabs.md` (the model is `packages/headless/docs/requirements/README.md`).
+
 Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground's file tabs), off by default so the plain tabs are untouched. The primitive owns no list: it asks (`onClose`, `onRename`), the host removes or renames. `packages/headless/test/tabs-close.browser.test.tsx` is their oracle.
 
 ```ts skip
