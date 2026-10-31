@@ -21,6 +21,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - scrollspy: A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`. `add @cssints/scrollspy`
 - diagram: A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is. `add @cssints/diagram`
 - shortcuts: A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to. `add @cssints/shortcuts`
+- carousel: APG carousel: slides in a frame with previous and next, dots and a count as the indicator, arrow keys on a focused slide, a touch swipe, and the live region the primitive asks for. `add @cssints/carousel`
 - input: A text field on the neutral theme, and the control `Field` puts in by default. `add @cssints/input`
 - toolbar: A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context. `add @cssints/toolbar`
 - button-group: Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's. `add @cssints/button-group`
