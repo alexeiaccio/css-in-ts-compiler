@@ -267,6 +267,11 @@ code {
   max-width: 44rem;
 }
 
+/* A trace waterfall follows the reading column: the ruler and the bars share one 44 rem frame. */
+.demo-timeline {
+  max-width: 44rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;

@@ -88,6 +88,7 @@ import { FeedExample } from "../registry/feed/feed.fixture.tsx";
 import { PlayerExample } from "../registry/player/player.fixture.tsx";
 import { ResizablePanelsExample } from "../registry/resizable-panels/resizable-panels.fixture.tsx";
 import { KnobExample } from "../registry/knob/knob.fixture.tsx";
+import { TimelineExample } from "../registry/timeline/timeline.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
@@ -725,6 +726,8 @@ const FeedDemo = (): JSX.Element => <FeedExample class="demo-feed" />;
 const PlayerDemo = (): JSX.Element => <PlayerExample />;
 // The two dials the browser test drives: a volume with a percentage and a pan whose centre is its own word.
 const KnobDemo = (): JSX.Element => <KnobExample />;
+// The checkout trace the browser test drives: a root, two branches and a nested database span on a 0 to 1 ruler.
+const TimelineDemo = (): JSX.Element => <TimelineExample class="demo-timeline" />;
 // The Files / Editor / Preview workspace the browser test mounts: the dividers drag, the arrows step, Enter folds.
 const ResizablePanelsDemo = (): JSX.Element => <ResizablePanelsExample class="demo-panels" />;
 const SliderDemo = (): JSX.Element => {
@@ -1228,6 +1231,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   player: PlayerDemo,
   "resizable-panels": ResizablePanelsDemo,
   knob: KnobDemo,
+  timeline: TimelineDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,
