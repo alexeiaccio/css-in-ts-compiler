@@ -604,11 +604,27 @@ Each step ends in a check that fails when it breaks.
    Mutations: the parent attach point → the box moves by the trigger's 37.09 px; `.zIndex = 10` → `-1` draws the menu
    first (`element "Root" -> "zoom-menu" … the order moved`); no `.floating` → the box falls into the page's column and
    z 10 → 0; no `.pointerCaptureMode` → no command changes, the grep names the field.
-   Still not emitted: List (the viewport's offset is `Clay_GetScrollOffset()`, which `ui_open` asks Clay for each frame,
-   not a declaration), Field (typing is SDL's text events), Widgets itself (12 Tab stops and keys; a static frame is
+   **Done: the List.** `examples/list/` is the page whose tree is not its literals: the window of rows is its own tick's
+   (`solid/src/virtual.ts`), so `page-to-c.ts` grew `--tick <n>` — the page gets its `motion`, and the hook runs n frames
+   at 1/60 before the frame is emitted, with `generator/ui-build.ts` in place of `solid/src/ffi.ts` answering the two reads
+   a build can (`ui.bounds`: the box the element's own style states, the viewport's 240; `ui.scrollOffset`: `--scroll`'s
+   number) — and the value channel is **baked**: the writes the page made (the spacers' FIXED heights, the thumb's height,
+   offset and 0 opacity, its capture) are applied to the declaration as `ui_open` applies them and printed as `values_<n>`.
+   The viewport is Clay's scroll container (`css.overflow("hidden")`: `.clip = { .horizontal = 1, .vertical = 1 }`), and
+   its offset is still not a declaration: the generator declares a clipped element through `clip_scroll`, which reads
+   `Clay_GetScrollOffset()` where Clay has the element open (the call `ui_open` makes), so the C host writes the offset in
+   the container (`Clay_ScrollContainerData.scrollPosition`, `ui_scroll_to`'s line) and the frame draws it. The window is
+   the offset's, so a file is one offset: `page_generated.c` (rest, rows 0..8) and `page_generated_scrolled.c` (10px, rows
+   0..9). Check: `examples/list/gen.c` lays each out twice (the container, then the offset), and the Solid page's own frame
+   at the same two states (`examples/list/solid-dump.ts`: the page's loop with its wheel and 90 frames of settle, which
+   `capture` cannot do) is identical, 36 and 39 commands; the rest frame is `solid/goldens/list.json` too, and the desktop
+   host's raster of the generated page is `solid/frames/list-top.png` pixel for pixel. Mutations: no `clip_scroll` → the
+   rows stay at row 0 while the reference is 10px down; no `.clip` → `gen.c` finds no container.
+   Still not emitted: Field (typing is SDL's text events), Widgets itself (12 Tab stops and keys; a static frame is
    possible but unproven) and Widgets' toolbar menu (the same float the Dialog's menu proves, but its page's keys are the
-   Widgets page's); `clip.childOffset` is the host's too. `:focus` comes from a prop or a part's state, not a signal, so
-   only a page rendered over it gets it. The fonts
+   Widgets page's); and a page's own scroll *state* is the host's still — the List's file is one offset, its track
+   (`vscroll.ts`'s notch, fling, band and reveal) is the desktop's. `:focus` comes from a prop or a part's state, not a
+   signal, so only a page rendered over it gets it. The fonts
    enum (`font_Roboto = 0`) is the header's; the C page carries no font array, and text measure stays the host's
    (gen.c fixes one to compare layout). Text without a style is the renderer's white 14, printed as `white_14_text`.
 6. **Done: the terminal renderer.** `terminal/`: Clay's commands into a grid of character cells (`cells.c`: a
