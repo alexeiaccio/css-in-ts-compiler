@@ -175,7 +175,6 @@ export const Dropzone = (props: DropzoneProps): JSX.Element => {
 export const DropzoneBrowse = (props: DropzoneBrowseProps): JSX.Element => {
   const { zone } = useContext(DropzoneContext);
   const merged = merge(zone.browseProps, {
-    "data-part": "dropzone-browse",
     get class() {
       return css.cn(props.class);
     },
