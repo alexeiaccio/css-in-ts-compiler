@@ -38,6 +38,12 @@ import {
   DrawerTrigger,
 } from "../registry/drawer/drawer.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
+import {
+  PANZOOM_HEIGHT,
+  PANZOOM_IMAGE,
+  PANZOOM_WIDTH,
+} from "../registry/panzoom/panzoom.fixture.tsx";
+import { Panzoom } from "../registry/panzoom/panzoom.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
@@ -257,6 +263,18 @@ const DrawerDemo = (): JSX.Element => {
     </div>
   );
 };
+
+// The frame is as wide as the preview card allows; its height follows the image's shape. The value and the three buttons
+// are the skin; the drag, the wheel, the pinch, the double click and the keys are the primitive's.
+const PanzoomDemo = (): JSX.Element => (
+  <Panzoom
+    src={PANZOOM_IMAGE}
+    alt="A mountain lake at dusk"
+    width={PANZOOM_WIDTH}
+    height={PANZOOM_HEIGHT}
+    label="A mountain lake at dusk"
+  />
+);
 
 // The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
 // or Escape closes it, and a pointer outside the anchor is the third way out.
@@ -1087,6 +1105,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   input: InputDemo,
   dialog: DialogDemo,
   drawer: DrawerDemo,
+  panzoom: PanzoomDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,
