@@ -365,6 +365,11 @@ float term_scroll_put(const char *id, int len, int axis, float v)
 
 int term_errors(void) { return errors; }
 
+/** Writes the terminal's colour query (OSC 10, 11, 4) to the tty and reads the answer: the bytes into out, NUL-terminated,
+ *  the count; 0 without a terminal or an answer. `ms` is the time a silent terminal is given (a quiet gap ends a real
+ *  answer sooner); a negative `ms` waits with no timeout, which is a test's mutation and not a host's mode. */
+int term_ask(const char *query, char *out, int cap, int ms) { return term_tb2_ask(query, out, cap, ms); }
+
 /** Gives the terminal back and reports what the renderer could not draw (an image, a custom command). */
 void term_close(void)
 {

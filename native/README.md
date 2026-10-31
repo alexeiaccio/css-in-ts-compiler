@@ -1993,6 +1993,29 @@ turned into cells), and 0.12–0.17 ms more for the same cells as ANSI (3924 byt
 the 30x a page of its element count might suggest, and it stays under a frame at 60fps with room. The C feed's own frame
 has not changed (~0.08 ms as the `demo --frames 1`/`--frames 201` delta, termbox2 included).
 
+**The terminal's own palette.** `--system-theme` (`THEME=system`) asks the terminal instead of taking a flag: `tb2.c`'s
+`term_tb2_ask` opens `/dev/tty`, puts it in raw mode for the query, writes `@cssints/tui/system`'s `QUERY` — OSC 11 (the
+background), OSC 10 (the foreground), `OSC 4;0;?` … `OSC 4;15;?` (the 16 ANSI entries) and `CSI ? 996 n` (the colour
+scheme) — and reads the answer with a **120 ms timeout**, a 15 ms quiet gap ending a real answer soon after its first
+bytes; the termios is restored and the fd closed. The bytes go through the package's **`scan`**, the parser
+`followSystemTheme` uses for bomb.sh's stdin (there is no second parser here), and the Sky page's nine tokens through
+its **`createSystemTheme`**, the solver apps/csssky-tui runs — so a surface sits at the background, the panel 1.1:1 above
+it, the ink 7:1 on every surface it is drawn on, the accent and the ring from the terminal's blue and bright blue, and
+the light/dark call is the background's WCAG 2 luminance (`#f0e0d0` is light, `#101316` dark). A compiled style keeps
+colours, not token names, so `terminal/theme.ts` repaints by the palette's nine values (`Sky.styles.ts`'s dark and light
+literals) and leaves a colour outside them alone; the note in the file says the ceiling. The answer need not be
+complete: with OSC 11 only, the app's own hues fill the gaps (`#e6e9ec`, `#8b98a5`, `#3b9cf0`, `#5cb0ff`: a dark
+`#101316` background gives back roughly the page's own dark palette, a warm light one a light palette); a terminal that
+answers nothing at all — a pipe, no `/dev/tty`, `TERM=dumb` — keeps the theme the flag gave and says so on stderr:
+`terminal: no colours from the terminal in 120.x ms (0 bytes); the dark theme`, or, for a dumb terminal, `terminal:
+TERM=dumb, no colours asked; the dark theme` without waiting. `s` asks again, before a frame. What is read is the Sky
+page's palette: the Sensors page's tokens have no roles (they keep their static light/dark), and the C pages keep theirs
+too. Cost: an answering terminal is one write, one read and the 15 ms gap (a pty with a scripted answer: 22.7–28.7 ms
+in `terminal/test.sh`, Bun's first `dlopen` of libterm and the pty helper's own read tick included); a silent one is its
+120 ms once, at startup (129.5 ms measured, `dlopen` included), and a frame is unchanged (0.077 ms for the feed in the
+suite's system-themed `--bench 50` against 0.107 ms for the plain one: the palette is solved once and the repainted
+variants are cached per style and state).
+
 **The proof.** The C page is the oracle, and at the page's own height the Solid frame is the C frame byte for byte —
 the same cells, the same palette in the same first-use order, the same ANSI runs:
 

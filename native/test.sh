@@ -386,7 +386,8 @@ fi
 # ... and the pages as Solid over the same cells (solid/native/term.c -> build/solid/libterm.dylib, terminal/solid.ts):
 # Sensors.tsx unmodified, its frames against the C page's own, then Sky.tsx's feed, thread and profile against
 # terminal/sky.c's, thread.c's and profile.c's behaviour (the row/cell distance, not a golden). terminal/test.sh prints
-# its comparisons.
+# its comparisons, and the system theme's pty checks are there too (a scripted OSC answer, the timeout's fallback, and
+# the wrong-channel and no-timeout mutations).
 NATIVE_OUT="$OUT" sh terminal/test.sh
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no

@@ -698,7 +698,9 @@ Each step ends in a check that fails when it breaks.
    feed's thread is the page's screen in its loading state, with a loader that never settles), unread counts and their
    badge, the notifications' grouping and the actor's avatar, images (a media line; counted and reported, not drawn),
    quote boxes, a body that wraps in the C pages (one clipped row; the Solid feed wraps at words, a long word still is
-   not broken), the system theme of `src/system.ts` (the static dark/light ones are ported), dragging (termbox2 reports
+   not broken), the system theme in the C pages (they keep the static dark/light ones; the Solid Sky page reads the
+   terminal's own palette at `--system-theme`, `@cssints/tui/system`'s OSC 10/11/4 and solver, and falls back to the dark
+   one with a message), dragging (termbox2 reports
    no motion, so a press has nowhere to travel; the wheel is a notch now), wide glyphs and emoji (a code point is one
    cell), sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius
    is a square corner) and scrollback. The cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25
@@ -763,8 +765,9 @@ Each step ends in a check that fails when it breaks.
    as the page's own (the feed, the thread, the profile); the notifications stay C (`terminal/notify.c`) — `Sky.tsx`
    has no notifications screen, so that one is hand-carried. **Left:** the notifications' Solid screen (it would have
    to be invented, not ported), images (the thread's avatars), the thread's wrapped bodies against the C's one-row clip
-   (a cell's limit, not a gap), the app's banner picture (the page has none; the C draws a band), the page's system
-   theme of `src/system.ts`, the wheel's *set* bounds, and the C `sky.c` as the oracle it already is.
+   (a cell's limit, not a gap), the app's banner picture (the page has none; the C draws a band), the Sensors page's
+   system theme (its tokens have no roles; the Sky page's are read from the terminal), the wheel's *set* bounds, and the
+   C `sky.c` as the oracle it already is.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors
