@@ -61,6 +61,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - virtual-list: A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set. `add @cssints/virtual-list`
 - pagination: A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count. `add @cssints/pagination`
 - knob: A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End. `add @cssints/knob`
+- timeline: A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line. `add @cssints/timeline`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written

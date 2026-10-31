@@ -447,6 +447,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End",
   },
+  {
+    tested: true,
+    // no APG pattern: a trace waterfall is a list of spans, and the rows mode's fixture and browser test are the oracle
+    name: "timeline",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Timeline",
+    description:
+      "A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
