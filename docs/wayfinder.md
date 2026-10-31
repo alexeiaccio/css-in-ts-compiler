@@ -3125,3 +3125,34 @@ way to, on purpose. No async or `preventDefault` helper (the native event is in 
 style position reports `SiteMissingError` ("site N in X was not evaluated") rather than naming the mismatch, because the
 engine reads any plain object at a site as a definition with nothing to ship; the type error is the real guard, and a build
 that ignores it still fails at the site.
+
+## The kit's toast, and what the live region already owns (apps/ui, 2026-10-31)
+
+`createToast` already decides everything about a queue: one timer per toast, `timeout` and `max`, a pause on hover and
+focus that resumes with the time that was left rather than restarting, `onDismiss` for every departure, and the live
+region — a `role="region"` landmark in which each row is its own `role="status"` (`role="alert"` for `tone: "error"`)
+with `aria-atomic="true"`. The skin therefore owns no timer and no copy of the queue: `Toaster` is the landmark, `Toast`
+is one row, and both read `toast.toasts()`, `regionProps` and `toastProps(id)`. The row writes the tone the primitive
+queued (`item.tone`) as `data-tone`: the primitive announces no `data-tone` of its own, and `role="alert"` is the only
+tone it announces, so `error` is painted from its own `data-tone` and its title from the same attribute through
+`within()`. The theme has one accent and one invalid colour, so `success` takes the accent, `info` the plain border, and
+the row's leading edge is the only thing the tone moves.
+
+The stack is `position: fixed` in the viewport's bottom inline-end corner with `z-index: var(--z-toast)`, a new token
+(`z.toast`, 30) that sorts over `z.dialog` (20): a toast can arrive while a modal is open and must still be read. A fixed
+box is still trapped by an ancestor with `transform`, `filter`, `contain` or `overflow: hidden`, which becomes its
+containing block or clips it, so the stack is portalled with `Portal` into `document.body` (or `Toaster`'s `mount`), the
+same decision as the dialog's layer. The landmark is always in the DOM and empty when there is nothing to say; it is
+`pointer-events: none` and `tabindex="-1"` (the F6 target the primitive's docs describe) so an empty stack over the page
+takes neither a click nor a tab stop, and a row turns the pointer back on.
+
+The skin paints no paused or leaving state, because the primitive announces neither: a paused countdown is not an
+attribute (the row's `:hover` / `:focus-within` is what a page can style), and a leaving toast is removed from the queue
+in the same commit, so there is no exit to animate. Only the entry is painted (an opacity fade under
+`prefers-reduced-motion: no-preference`), and the close button is a labelled glyph, since `aria-atomic` reads the row's
+whole text. `apps/ui/src/registry/toast/toast.browser.test.tsx` is the conformance test — a plain browser test, no
+scenario driver, because a toast has no APG pattern and no Quint spec (`packages/headless/test/toast.browser.test.tsx`
+is the primitive's oracle); it checks the announced region and row roles, the close button, the auto-dismiss, the hover
+pause and the corner geometry inside a transformed ancestor. Left: no stacking limit of its own (the primitive's `max`
+is 3), no swipe-dismiss or direction, no exit animation, no F6 binding (the host's, bean cssints-h0d5), and the close
+label is English — a translating host replaces the row with its `render`.
