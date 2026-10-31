@@ -15,7 +15,8 @@
 import "./globals.ts";
 
 import { Field, size } from "../../solid/app/Field.tsx";
-import { createInput } from "../../solid/src/input.ts";
+import type { Motion } from "../../solid/src/entry.ts";
+import { createInput, type FieldView } from "../../solid/src/input.ts";
 import { selectionChord } from "./keys.ts";
 import { mountPage } from "./shell.ts";
 import { attachText } from "./text.ts";
@@ -23,6 +24,7 @@ import { attachText } from "./text.ts";
 const input = createInput();
 // one frame on the event, as a press and a key have: the shell's own
 let frame = () => {};
+let motion: Motion | undefined;
 
 await mountPage({
   width: size.width,
@@ -30,12 +32,23 @@ await mountPage({
   input,
   tree: (setup) => {
     frame = setup.immediate;
+    motion = setup.motion;
     return () => Field({ input, motion: setup.motion });
   },
 });
 
 const canvas = document.getElementById("frame") as HTMLCanvasElement;
 const text = attachText(canvas, input, () => frame());
+// The IME's mirror of the field is the model's view of it, so it is brought up to date once a frame, in the page's tick
+// (before the tree is declared: the boxes it feeds are the frame just drawn). `window.__page.field` is that model, which
+// browser/ime-check.mjs compares the context's own text and caret with.
+(window.__page as typeof window.__page & { field: () => FieldView | undefined }).field = () => text.field();
+const tick = motion?.tick;
+if (motion) motion.tick = (dt) => {
+  tick?.(dt);
+  text.sync();
+};
+text.sync();
 
 // The typed text, beside the shell's key listener: the two do not overlap — `keyName` drops a selection chord and takes
 // no character, and a printable key is a letter, a digit or a mark, not one of the keys it names. Cmd, Ctrl and Alt

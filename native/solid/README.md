@@ -593,6 +593,14 @@ input.bind(name.part);        // keys and focus; the typed characters come throu
 | `part.clipboard(op, text)` | copy and cut return the selected text, paste inserts what was on the clipboard |
 | `focus()`, `blur()` | the manager's (Escape blurs) |
 
+**The text path is text, not keys.** A host hands the platform's characters to `Input.textInput(text)`, which goes to the
+focused part's `insert` — one insertion at the caret, replacing the selection — so the field never knows which key made a
+character, and an IME's committed run arrives by the same call; `Input.clipboard(op, text)` is that path's other half
+(copy and cut return the run, paste inserts what came off the clipboard). A host that has to *show* the field to something
+else — the browser page's `EditContext`, or the hidden textarea its fallback keeps — reads `Input.field()` rather than
+keeping a second model: `{ id, value, caret, selection }` of the focused text field (`undefined` for any other part), the
+string, the moving end and the ordered run, which `browser/solid/text.ts` mirrors once a frame.
+
 **The keys.** Tab reaches the field as one stop. Typing inserts at the caret; Backspace and Delete remove before and
 after it or the whole selection; Left and Right move and collapse a selection to the near end; Home and End go to the
 ends; Shift with Left, Right, Home or End extends from the anchor; Enter calls `onSubmit` (a key repeat does not fire it
