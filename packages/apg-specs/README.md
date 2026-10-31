@@ -1,6 +1,6 @@
 # @cssints/apg-specs — APG widget specs
 
-The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the scenario sets (ported upstream ones and our own), and the spec-only verification. It is the test oracle of the widgets and of `native/headless`, and it is published so that widget libraries outside this repository can replay the same specs and scenarios against their own code.
+The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels), and the model of a plugin's runtime (reactive), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the scenario sets (ported upstream ones and our own), and the spec-only verification. It is the test oracle of the widgets and of `native/headless`, and it is published so that widget libraries outside this repository can replay the same specs and scenarios against their own code.
 
 The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are written by the code generation of [`@quint-machine/core`](https://www.npmjs.com/package/@quint-machine/core) and are never edited by hand. Ticket ids like `effects-of-atmosphere-dx00` in the comments of the specs and tests are tickets of the repository these files came from.
 
@@ -9,7 +9,7 @@ The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are
 ```
 specs/apg/<pattern>.qnt                           # APG pattern specs (one behavior-machine each)
 specs/canvas/<machine>.qnt                        # canvas camera + pointer specs
-specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels)
+specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels), a plugin runtime (reactive)
 shared/<module>.qnt                               # vocabulary + pure defs: aria, focusgroup, popover, invokers, details-group
 src/<service>/<machine>.model.generated.json      # generated model document
 src/<service>/<machine>.scaffolding.generated.ts  # generated typed scaffolding
@@ -49,7 +49,7 @@ npm install @cssints/apg-specs effect @quint-machine/core
 | `@cssints/apg-specs/scenario`                                                    | the scenario decoder, `replayScenario`, `differentialWalk`, `specDriver`, `Unsupported`, driver and bridge types |
 | `@cssints/apg-specs/apg/<pattern>.bridge`                                        | the `SpecBridge`, `<pattern>Config`, `<pattern>Steps` and `<pattern>Probe` of a pattern                          |
 | `@cssints/apg-specs/apg/<pattern>.model.json`                                    | the generated model document (`src/apg/<pattern>.model.generated.json` in the repository)                        |
-| `@cssints/apg-specs/patterns/<machine>.bridge`                                   | the same for a non-APG pattern composed of APG widgets (`resizable-panels`)                                      |
+| `@cssints/apg-specs/patterns/<machine>.bridge`                                   | the same for a non-APG pattern composed of APG widgets (`resizable-panels`, `reactive`)                          |
 | `@cssints/apg-specs/patterns/<machine>.model.json`                               | its generated model document (`src/patterns/<machine>.model.generated.json`)                                     |
 | `@cssints/apg-specs/canvas/{canvas.bridge,camera.model.json,pointer.model.json}` | the canvas bridge and models                                                                                     |
 | `@cssints/apg-specs/scenarios/apg/<pattern>.<set>.json`                          | a ported scenario set (also `scenarios/canvas/*.json`, `scenarios/parts.json`)                                   |

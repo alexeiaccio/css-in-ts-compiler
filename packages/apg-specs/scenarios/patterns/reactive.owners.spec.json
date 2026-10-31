@@ -1,0 +1,215 @@
+{
+  "pattern": "reactive",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "The owner half of specs/patterns/reactive.qnt (bean cssints-tm9j): the same page as reactive.spec.json, driven in sequences that cross the two owners. A click, a change and a key inside the inner owner must leave the outer one alone; a condition of a descendant reads its nearest owner, not an inherited value; a program on an ancestor element writes the ancestor.",
+  "skipped": [
+    {
+      "id": "reactive.isolation.sibling-owners",
+      "reason": "the instance is two owners, one nested in the other, so isolation from a sibling owner cannot be replayed"
+    },
+    {
+      "id": "reactive.isolation.persistence",
+      "reason": "a stored value restored at setup is not modelled, so the sequences never leave and re-enter the page"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "reactive.isolation.inner-events-leave-the-outer-owner-alone",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "inner-btn"
+        },
+        {
+          "event": "click",
+          "target": "inner-tab-1"
+        },
+        {
+          "event": "change",
+          "target": "inner-check",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "true",
+              "one"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-open": "false",
+                "data-reactive-tab": "one"
+              },
+              "outer-btn": {
+                "aria-expanded": "false"
+              },
+              "outer-tab-1": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              },
+              "outer-panel": {
+                "display": "none"
+              },
+              "inner": {
+                "data-reactive-open": "true",
+                "data-reactive-tab": "one"
+              },
+              "inner-check": {
+                "data-checked": "true"
+              },
+              "inner-panel": {
+                "display": "block"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reactive.isolation.the-two-owners-diverge",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "inner-tab-1"
+        },
+        {
+          "event": "click",
+          "target": "outer-tab-2"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "two",
+              "false",
+              "one"
+            ],
+            "attrs": {
+              "outer-tab-1": {
+                "aria-selected": "false",
+                "tabindex": "-1"
+              },
+              "outer-tab-2": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              },
+              "inner-tab-1": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              },
+              "inner-tab-2": {
+                "aria-selected": "false",
+                "tabindex": "-1"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reactive.isolation.a-nested-owner-keeps-its-own-condition",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "outer-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "true",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "outer-panel": {
+                "display": "block"
+              },
+              "inner-panel": {
+                "display": "block"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "inner-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "true",
+              "one",
+              "true",
+              "two"
+            ],
+            "attrs": {
+              "outer-panel": {
+                "display": "block"
+              },
+              "inner-panel": {
+                "display": "block"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "inside() is a CSS ancestor match: the outer owner opening shows the inner panel too, because both owners declare `open` (the runtime writes the attribute on the nearest owner, but the rule matches any ancestor with it). With the outer closed, the inner owner alone decides its panel"
+    },
+    {
+      "id": "reactive.isolation.both-owners-toggle-independently",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "outer-btn"
+        },
+        {
+          "event": "click",
+          "target": "inner-btn"
+        },
+        {
+          "event": "click",
+          "target": "outer-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "true",
+              "two"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-open": "false"
+              },
+              "outer-btn": {
+                "aria-expanded": "false"
+              },
+              "outer-panel": {
+                "display": "none"
+              },
+              "inner": {
+                "data-reactive-open": "true"
+              },
+              "inner-btn": {
+                "aria-expanded": "true"
+              },
+              "inner-panel": {
+                "display": "block"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

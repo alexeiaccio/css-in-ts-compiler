@@ -1,0 +1,417 @@
+{
+  "pattern": "reactive",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Written from specs/patterns/reactive.qnt (bean cssints-tm9j): the protocol of @cssints/reactive as the spec models it. Two owners, the outer with an inner nested in it, each with `open` (\"false\"|\"true\") and `tab` (\"one\"|\"two\"); they start opposite (outer tab one, inner tab two) so a value read from the wrong owner shows. Parts are the page's ids: `outer`/`inner` owners, `outer-btn`/`inner-btn` (a click toggles `open`), `outer-tab-1`/`outer-tab-2` and the inner pair (a click sets `tab`), `outer-field` (a change writes `tab` from @value), `inner-check` (a change writes `open` from @checked), `outer-panel`/`inner-panel` (the display of an inside() condition). A key on `inner-btn` runs the outer owner element's keydown program, so it writes the outer owner.",
+  "skipped": [
+    {
+      "id": "reactive.spec.persistence",
+      "reason": "persist() and localStorage are not modelled: the spec has no storage, no reload and no stored value replacing the declared one"
+    },
+    {
+      "id": "reactive.spec.binding-added-late",
+      "reason": "a binding added to an owner that already stands (the MutationObserver) is not modelled; the spec's elements and bindings are fixed"
+    },
+    {
+      "id": "reactive.spec.sibling-owners",
+      "reason": "the instance is two owners, one nested in the other, so isolation from a sibling owner cannot be replayed"
+    },
+    {
+      "id": "reactive.spec.values-beyond-two",
+      "reason": "each state has two values, so a comparison's value and a choice's literals are the only ones the model needs"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "reactive.spec.setup-writes-both-owners",
+      "apg": "extension",
+      "steps": [
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-open": "false",
+                "data-reactive-tab": "one"
+              },
+              "outer-btn": {
+                "aria-expanded": "false"
+              },
+              "outer-tab-1": {
+                "aria-selected": "true",
+                "aria-controls": "panel-1",
+                "tabindex": "0"
+              },
+              "outer-tab-2": {
+                "aria-selected": "false",
+                "tabindex": "-1"
+              },
+              "outer-field": {
+                "data-current": "one"
+              },
+              "outer-panel": {
+                "display": "none"
+              },
+              "inner": {
+                "data-reactive-open": "false",
+                "data-reactive-tab": "two"
+              },
+              "inner-btn": {
+                "aria-expanded": "false"
+              },
+              "inner-tab-1": {
+                "aria-selected": "false",
+                "aria-controls": "panel-1",
+                "tabindex": "-1"
+              },
+              "inner-tab-2": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              },
+              "inner-check": {
+                "data-checked": "false"
+              },
+              "inner-panel": {
+                "display": "none"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "the first step: every owner's data-reactive-<name> and the four kinds of binding, each from its own owner"
+    },
+    {
+      "id": "reactive.spec.click-toggles-the-nearest-owner",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "inner-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "true",
+              "two"
+            ],
+            "attrs": {
+              "inner": {
+                "data-reactive-open": "true"
+              },
+              "inner-btn": {
+                "aria-expanded": "true"
+              },
+              "inner-panel": {
+                "display": "block"
+              },
+              "outer": {
+                "data-reactive-open": "false"
+              },
+              "outer-btn": {
+                "aria-expanded": "false"
+              },
+              "outer-panel": {
+                "display": "none"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "inner-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "inner-btn": {
+                "aria-expanded": "false"
+              },
+              "inner-panel": {
+                "display": "none"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reactive.spec.a-comparison-reads-the-nearest-owner",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "inner-tab-1"
+        },
+        {
+          "event": "click",
+          "target": "outer-tab-2"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "two",
+              "false",
+              "one"
+            ],
+            "attrs": {
+              "outer-tab-1": {
+                "aria-selected": "false",
+                "aria-controls": "panel-1",
+                "tabindex": "-1"
+              },
+              "outer-tab-2": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              },
+              "inner-tab-1": {
+                "aria-selected": "true",
+                "aria-controls": "panel-1",
+                "tabindex": "0"
+              },
+              "inner-tab-2": {
+                "aria-selected": "false",
+                "tabindex": "-1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "the owners' tab differ (outer two, inner one): each strip follows its own owner, so a value written from the other owner would show here"
+    },
+    {
+      "id": "reactive.spec.the-owner-and-its-bindings-agree-at-once",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "outer-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "true",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-open": "true"
+              },
+              "outer-btn": {
+                "aria-expanded": "true"
+              },
+              "outer-panel": {
+                "display": "block"
+              },
+              "outer-tab-1": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "one click, one flush: the replay reads the page with no frame waited, so the owner attribute, the binding and the computed display must already agree"
+    },
+    {
+      "id": "reactive.spec.the-select-writes-the-fields-value",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "change",
+          "target": "outer-field",
+          "value": "two"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "two",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-tab": "two"
+              },
+              "outer-field": {
+                "data-current": "two"
+              },
+              "outer-tab-1": {
+                "aria-selected": "false",
+                "tabindex": "-1"
+              },
+              "outer-tab-2": {
+                "aria-selected": "true",
+                "tabindex": "0"
+              }
+            }
+          }
+        },
+        {
+          "event": "change",
+          "target": "outer-field",
+          "value": "one"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "outer": {
+                "data-reactive-tab": "one"
+              },
+              "outer-field": {
+                "data-current": "one"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reactive.spec.the-checkbox-writes-whether-it-is-checked",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "change",
+          "target": "inner-check",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "true",
+              "two"
+            ],
+            "attrs": {
+              "inner-check": {
+                "data-checked": "true"
+              },
+              "inner-btn": {
+                "aria-expanded": "true"
+              },
+              "inner-panel": {
+                "display": "block"
+              }
+            }
+          }
+        },
+        {
+          "event": "change",
+          "target": "inner-check",
+          "value": false
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "inner-check": {
+                "data-checked": "false"
+              },
+              "inner-panel": {
+                "display": "none"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reactive.spec.an-ancestor-program-changes-the-ancestor-only",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "inner-btn"
+        },
+        {
+          "expect": {
+            "value": [
+              "true",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-open": "true"
+              },
+              "outer-btn": {
+                "aria-expanded": "true"
+              },
+              "outer-panel": {
+                "display": "block"
+              },
+              "inner": {
+                "data-reactive-open": "false"
+              },
+              "inner-btn": {
+                "aria-expanded": "false"
+              },
+              "inner-panel": {
+                "display": "block"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "the key is pressed on an element inside the inner owner and bubbles to the outer owner element, whose keydown program writes the outer owner's open, not the inner's. inside() is a CSS ancestor match, so the inner panel shows while the outer owner is open too"
+    },
+    {
+      "id": "reactive.spec.a-click-with-no-program-changes-nothing",
+      "apg": "extension",
+      "steps": [
+        {
+          "event": "click",
+          "target": "inner-panel"
+        },
+        {
+          "expect": {
+            "value": [
+              "false",
+              "one",
+              "false",
+              "two"
+            ],
+            "attrs": {
+              "outer": {
+                "data-reactive-open": "false",
+                "data-reactive-tab": "one"
+              },
+              "inner": {
+                "data-reactive-open": "false",
+                "data-reactive-tab": "two"
+              },
+              "inner-panel": {
+                "display": "none"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

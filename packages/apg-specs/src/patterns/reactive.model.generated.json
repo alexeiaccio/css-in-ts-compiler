@@ -1,0 +1,5232 @@
+{
+  "generatedFrom": "../../specs/patterns/reactive.qnt",
+  "specHash": "2fa4d417f54e7245af5df512bd22488a8a348b802acb756a002691d062bac472",
+  "module": "patterns_reactive",
+  "vars": [
+    {
+      "name": "xo",
+      "type": "str"
+    },
+    {
+      "name": "xt",
+      "type": "str"
+    },
+    {
+      "name": "yo",
+      "type": "str"
+    },
+    {
+      "name": "yt",
+      "type": "str"
+    },
+    {
+      "name": "xaOpen",
+      "type": "str"
+    },
+    {
+      "name": "xaTab",
+      "type": "str"
+    },
+    {
+      "name": "yaOpen",
+      "type": "str"
+    },
+    {
+      "name": "yaTab",
+      "type": "str"
+    },
+    {
+      "name": "aExpanded",
+      "type": "str"
+    },
+    {
+      "name": "aOneSel",
+      "type": "str"
+    },
+    {
+      "name": "aOneTab",
+      "type": "str"
+    },
+    {
+      "name": "aOneControls",
+      "type": "str"
+    },
+    {
+      "name": "aTwoSel",
+      "type": "str"
+    },
+    {
+      "name": "aTwoTab",
+      "type": "str"
+    },
+    {
+      "name": "aCurrent",
+      "type": "str"
+    },
+    {
+      "name": "aPanel",
+      "type": "str"
+    },
+    {
+      "name": "bExpanded",
+      "type": "str"
+    },
+    {
+      "name": "bOneSel",
+      "type": "str"
+    },
+    {
+      "name": "bOneTab",
+      "type": "str"
+    },
+    {
+      "name": "bOneControls",
+      "type": "str"
+    },
+    {
+      "name": "bTwoSel",
+      "type": "str"
+    },
+    {
+      "name": "bTwoTab",
+      "type": "str"
+    },
+    {
+      "name": "bChecked",
+      "type": "str"
+    },
+    {
+      "name": "bPanel",
+      "type": "str"
+    },
+    {
+      "name": "ready",
+      "type": "bool"
+    },
+    {
+      "name": "snapXo",
+      "type": "str"
+    },
+    {
+      "name": "snapXt",
+      "type": "str"
+    },
+    {
+      "name": "snapYo",
+      "type": "str"
+    },
+    {
+      "name": "snapYt",
+      "type": "str"
+    },
+    {
+      "name": "scope",
+      "type": "str"
+    }
+  ],
+  "defs": {
+    "TRUE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "true"
+      }
+    },
+    "FALSE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "false"
+      }
+    },
+    "ONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "one"
+      }
+    },
+    "TWO": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "two"
+      }
+    },
+    "NO": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": ""
+      }
+    },
+    "BLOCK": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "block"
+      }
+    },
+    "HIDDEN": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "none"
+      }
+    },
+    "PANEL_ONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "panel-1"
+      }
+    },
+    "flip": {
+      "kind": "function",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "TRUE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "FALSE"
+          },
+          {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        ]
+      }
+    },
+    "displayOf": {
+      "kind": "function",
+      "params": [
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "open"
+              },
+              {
+                "kind": "name",
+                "name": "TRUE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "BLOCK"
+          },
+          {
+            "kind": "name",
+            "name": "HIDDEN"
+          }
+        ]
+      }
+    },
+    "insideDisplay": {
+      "kind": "function",
+      "params": [
+        "outerOpen",
+        "innerOpen"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outerOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TRUE"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "innerOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TRUE"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "BLOCK"
+          },
+          {
+            "kind": "name",
+            "name": "HIDDEN"
+          }
+        ]
+      }
+    },
+    "selected": {
+      "kind": "function",
+      "params": [
+        "tab",
+        "value"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tab"
+              },
+              {
+                "kind": "name",
+                "name": "value"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "TRUE"
+          },
+          {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        ]
+      }
+    },
+    "tabIndexOf": {
+      "kind": "function",
+      "params": [
+        "tab",
+        "value"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tab"
+              },
+              {
+                "kind": "name",
+                "name": "value"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "0"
+          },
+          {
+            "kind": "str",
+            "value": "-1"
+          }
+        ]
+      }
+    },
+    "outerTabsOk": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "aOneSel"
+              },
+              {
+                "kind": "app",
+                "opcode": "selected",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "xt"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "aOneTab"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "tabIndexOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xt"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "aTwoSel"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "selected",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "xt"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TWO"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "aTwoTab"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "tabIndexOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "xt"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TWO"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "innerTabsOk": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "bOneSel"
+              },
+              {
+                "kind": "app",
+                "opcode": "selected",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "yt"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bOneTab"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "tabIndexOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "yt"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "bTwoSel"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "selected",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "yt"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TWO"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "bTwoTab"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "tabIndexOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "yt"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TWO"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "outerBindingsOk": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "aExpanded"
+              },
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "aCurrent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "xt"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "aOneControls"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "PANEL_ONE"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "outerTabsOk"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "innerBindingsOk": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "bExpanded"
+              },
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bChecked"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "yo"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "bOneControls"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "PANEL_ONE"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "innerTabsOk"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Nearest": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ready"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "outerBindingsOk"
+              },
+              {
+                "kind": "name",
+                "name": "innerBindingsOk"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Setup": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ready"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "xaOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "xo"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xaTab"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "xt"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "yaOpen"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "yo"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "yaTab"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "yt"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Isolated": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "scope"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "inner"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xo"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapXo"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xt"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapXt"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "scope"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ancestor"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "yo"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapYo"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "yt"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapYt"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Deep": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ready"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "aPanel"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "displayOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xo"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bPanel"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "insideDisplay",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xo"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "yo"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ComparisonReadsNearest": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ready"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "xt"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "yt"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "aOneSel"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "selected",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "xt"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "ONE"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "aOneTab"
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "tabIndexOf",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "xt"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "ONE"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "aTwoSel"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "selected",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "xt"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "TWO"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "aTwoTab"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "tabIndexOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "xt"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "TWO"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "bOneSel"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "selected",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "yt"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "ONE"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "bOneTab"
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "tabIndexOf",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "yt"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "ONE"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "bTwoSel"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "selected",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "yt"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "TWO"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "bTwoTab"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "tabIndexOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "yt"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "TWO"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Atomic": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ready"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "xo"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapXo"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "xaOpen"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "xo"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "aExpanded"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "xo"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "or",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "xt"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "snapXt"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "xaTab"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "xt"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "aOneSel"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "selected",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "xt"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "ONE"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "aCurrent"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "xt"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "yo"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "snapYo"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "yaOpen"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "yo"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "bExpanded"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "yo"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "yt"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "snapYt"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "yaTab"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "yt"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "and",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "bOneSel"
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "selected",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "yt"
+                                          },
+                                          {
+                                            "kind": "name",
+                                            "name": "ONE"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "bTwoSel"
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "selected",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "yt"
+                                          },
+                                          {
+                                            "kind": "name",
+                                            "name": "TWO"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ScopeKnown": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "scope"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "scope"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "outer"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "scope"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "inner"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "scope"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ancestor"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "NO"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setup",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "insideDisplay",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              },
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickOuterToggle",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "flip",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "xo"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "insideDisplay",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "flip",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "xo"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "outer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickOuterTabOne",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "str",
+            "value": "0"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "str",
+            "value": "-1"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "outer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickOuterTabTwo",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "str",
+            "value": "-1"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "str",
+            "value": "0"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "outer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "changeOuterFieldOne",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "str",
+            "value": "0"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "str",
+            "value": "-1"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "outer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "changeOuterFieldTwo",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "str",
+            "value": "-1"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "str",
+            "value": "0"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "outer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickInnerToggle",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xaOpen"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xaTab"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "aExpanded"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneSel"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneTab"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneControls"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoSel"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoTab"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "aCurrent"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "aPanel"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "app",
+            "opcode": "flip",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "insideDisplay",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              },
+              {
+                "kind": "app",
+                "opcode": "flip",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "yo"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "inner"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickInnerTabOne",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xaOpen"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xaTab"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "ONE"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "aExpanded"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneSel"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneTab"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneControls"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoSel"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoTab"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "aCurrent"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "aPanel"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "str",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "str",
+            "value": "-1"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "inner"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickInnerTabTwo",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xaOpen"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xaTab"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "TWO"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "aExpanded"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneSel"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneTab"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneControls"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoSel"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoTab"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "aCurrent"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "aPanel"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "str",
+            "value": "-1"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "str",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "inner"
+          }
+        }
+      ]
+    },
+    {
+      "name": "changeInnerCheckOn",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xaOpen"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xaTab"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "aExpanded"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneSel"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneTab"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneControls"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoSel"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoTab"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "aCurrent"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "aPanel"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "insideDisplay",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              },
+              {
+                "kind": "name",
+                "name": "TRUE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "inner"
+          }
+        }
+      ]
+    },
+    {
+      "name": "changeInnerCheckOff",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xaOpen"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xaTab"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "aExpanded"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneSel"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneTab"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneControls"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoSel"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoTab"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "aCurrent"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "aPanel"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "yt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "FALSE"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "insideDisplay",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xo"
+              },
+              {
+                "kind": "name",
+                "name": "FALSE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "inner"
+          }
+        }
+      ]
+    },
+    {
+      "name": "keydownInner",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "TRUE"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "PANEL_ONE"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "selected",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tabIndexOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "xt"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "displayOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "TRUE"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "app",
+            "opcode": "insideDisplay",
+            "args": [
+              {
+                "kind": "name",
+                "name": "TRUE"
+              },
+              {
+                "kind": "name",
+                "name": "yo"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "ancestor"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clickInnerPanel",
+      "assignments": [
+        {
+          "field": "xo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "xt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "yo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "yt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "xaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "xaOpen"
+          }
+        },
+        {
+          "field": "xaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "xaTab"
+          }
+        },
+        {
+          "field": "yaOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "yaOpen"
+          }
+        },
+        {
+          "field": "yaTab",
+          "rhs": {
+            "kind": "name",
+            "name": "yaTab"
+          }
+        },
+        {
+          "field": "aExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "aExpanded"
+          }
+        },
+        {
+          "field": "aOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneSel"
+          }
+        },
+        {
+          "field": "aOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneTab"
+          }
+        },
+        {
+          "field": "aOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "aOneControls"
+          }
+        },
+        {
+          "field": "aTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoSel"
+          }
+        },
+        {
+          "field": "aTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "aTwoTab"
+          }
+        },
+        {
+          "field": "aCurrent",
+          "rhs": {
+            "kind": "name",
+            "name": "aCurrent"
+          }
+        },
+        {
+          "field": "aPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "aPanel"
+          }
+        },
+        {
+          "field": "bExpanded",
+          "rhs": {
+            "kind": "name",
+            "name": "bExpanded"
+          }
+        },
+        {
+          "field": "bOneSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneSel"
+          }
+        },
+        {
+          "field": "bOneTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneTab"
+          }
+        },
+        {
+          "field": "bOneControls",
+          "rhs": {
+            "kind": "name",
+            "name": "bOneControls"
+          }
+        },
+        {
+          "field": "bTwoSel",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoSel"
+          }
+        },
+        {
+          "field": "bTwoTab",
+          "rhs": {
+            "kind": "name",
+            "name": "bTwoTab"
+          }
+        },
+        {
+          "field": "bChecked",
+          "rhs": {
+            "kind": "name",
+            "name": "bChecked"
+          }
+        },
+        {
+          "field": "bPanel",
+          "rhs": {
+            "kind": "name",
+            "name": "bPanel"
+          }
+        },
+        {
+          "field": "ready",
+          "rhs": {
+            "kind": "name",
+            "name": "ready"
+          }
+        },
+        {
+          "field": "snapXo",
+          "rhs": {
+            "kind": "name",
+            "name": "xo"
+          }
+        },
+        {
+          "field": "snapXt",
+          "rhs": {
+            "kind": "name",
+            "name": "xt"
+          }
+        },
+        {
+          "field": "snapYo",
+          "rhs": {
+            "kind": "name",
+            "name": "yo"
+          }
+        },
+        {
+          "field": "snapYt",
+          "rhs": {
+            "kind": "name",
+            "name": "yt"
+          }
+        },
+        {
+          "field": "scope",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "setup",
+    "clickOuterToggle",
+    "clickOuterTabOne",
+    "clickOuterTabTwo",
+    "changeOuterFieldOne",
+    "changeOuterFieldTwo",
+    "clickInnerToggle",
+    "clickInnerTabOne",
+    "clickInnerTabTwo",
+    "changeInnerCheckOn",
+    "changeInnerCheckOff",
+    "keydownInner",
+    "clickInnerPanel"
+  ]
+}
