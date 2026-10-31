@@ -295,6 +295,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A media player on an injected `PlaybackAdapter`: a video frame or an audio bar, play and pause named from the stage, the m:ss time, a seek slider with the APG keys, and a mute toggle",
   },
   {
+    name: "resizable-panels",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Resizable panels",
+    description:
+      "A group of panes with a separator between each pair: drag or use the arrows, Home and End jump a pair to its bounds, Enter collapses and restores, and the primitive keeps the layout summing to 100%",
+  },
+  {
     name: "menu",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

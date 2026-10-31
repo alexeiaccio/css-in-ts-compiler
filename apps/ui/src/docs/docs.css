@@ -262,6 +262,11 @@ code {
   max-width: 26rem;
 }
 
+/* A resizable layout follows the reading column; its 18 rem height keeps the preview page from growing. */
+.demo-panels {
+  max-width: 44rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;
