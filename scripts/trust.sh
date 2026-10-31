@@ -44,6 +44,15 @@ if [ "$MODE" = setup ]; then
 fi
 
 [ -n "$PACKAGES" ] || PACKAGES=$GROUP
+
+if [ -z "$DRY" ]; then
+  # npm wants a one-time password on the first trust call of a session and caches it for a few minutes. That call needs a
+  # terminal for the link it prints, so it is made here, on its own, before the loop takes npm's stdout away.
+  first=$(echo $PACKAGES | cut -d" " -f1)
+  echo "npm may ask for a one-time password now: open the link it prints, and the run continues" >&2
+  npm trust list "$first" >/dev/null || true
+fi
+
 for p in $PACKAGES; do
   echo "$p"
   if [ -n "$DRY" ]; then
@@ -55,13 +64,22 @@ for p in $PACKAGES; do
   # and creating a connection on top of the one that failed to list would leave two for the same workflow. Where the listing
   # goes to a file and its errors stay on the terminal, so the one-time-password link npm prints is readable: capturing both
   # would hide it and the run would look hung.
-  echo "  (npm may ask for a one-time password: open the link it prints, and the run continues)" >&2
   listing=$(mktemp)
-  if ! npm trust list "$p" --json >"$listing"; then
-    rm -f "$listing"
-    echo "  cannot read the connections of $p — run \`npm login\` first, and approve the one-time password" >&2
+  errors=$(mktemp)
+  if ! npm trust list "$p" --json >"$listing" 2>"$errors"; then
+    cat "$errors" >&2
+    rm -f "$listing" "$errors"
+    case "$(cat "$errors")" in
+      *EOTP* | *"one-time password"* | *authId*)
+        echo "  $p: npm wants a one-time password — open the link above (or run \`npm login\`), then re-run this" >&2 ;;
+      *E401* | *"logged in"*)
+        echo "  $p: the session is stale — run \`npm login\`" >&2 ;;
+      *)
+        echo "  $p: cannot read the connections, nothing was revoked or created" >&2 ;;
+    esac
     exit 1
   fi
+  rm -f "$errors"
   if ! ids=$(node scripts/trust.mjs ids <"$listing"); then
     rm -f "$listing"
     echo "  $p: the listing carries no connection id, nothing was revoked or created" >&2
