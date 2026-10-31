@@ -61,7 +61,11 @@ if (process.argv.includes("--check")) {
 if (process.argv.includes("ids")) {
   let raw = "";
   for await (const chunk of process.stdin) raw += chunk;
-  const found = ids(JSON.parse(raw));
+  const listing = JSON.parse(raw);
+  // A package that has no trusted publisher yet lists no connections: there is nothing to revoke, and the create step that
+  // follows in scripts/trust.sh makes the first one (@cssints/reactive, the 28th package).
+  if (Array.isArray(listing?.connections) && listing.connections.length === 0) process.exit(0);
+  const found = ids(listing);
   if (found.length === 0) {
     process.stderr.write(
       "no connection in this listing carries an id: revoke it by hand (npm trust revoke <pkg> --id=…)\n",
