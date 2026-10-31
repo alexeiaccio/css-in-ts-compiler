@@ -6,7 +6,9 @@ import {
   checked,
   inside,
   on,
+  type Persisted,
   type Source,
+  persist,
   set,
   state,
   toggle,
@@ -74,3 +76,36 @@ export const payloadAsStyle: Style = value();
 export const payloadAsWrap: Wrap = checked();
 // @ts-expect-error a payload is not a value of when()
 when(checked());
+
+// persistence: a persisted value is a state() value, and the source keeps the value's type
+const stored = state({
+  open: persist(false, "demo-open"),
+  tab: persist("one", "demo-tab"),
+  count: 0,
+});
+export const storedOwner: Style = stored.owner;
+export const storedOpen: Source<boolean> = stored.open;
+export const storedTab: Source<string> = stored.tab;
+export const storedCount: Source<number> = stored.count;
+const persisted: Persisted<boolean> = persist(false, "demo-open");
+
+// @ts-expect-error a Persisted is not a source
+toggle(persisted);
+// @ts-expect-error a Persisted is not a source of set()
+set(persisted, true);
+// @ts-expect-error a Persisted is not a value of a source
+set(stored.open, persisted);
+// @ts-expect-error a Persisted is not a source of bind()
+bind({ "aria-expanded": persisted });
+// @ts-expect-error a Persisted is not a condition
+when(persisted);
+// @ts-expect-error a Persisted is not an action
+on({ click: persisted });
+// @ts-expect-error a Persisted is not a style
+export const persistedAsStyle: Style = persisted;
+// @ts-expect-error a Persisted is not a state's source name
+inside(persisted);
+// @ts-expect-error persist() takes a value
+persist();
+// @ts-expect-error persist() takes a state value
+persist({}, "demo-open");

@@ -42,8 +42,8 @@ const EVENTS: readonly EventName[] = [
 
 const isEvent = (name: string): name is EventName => (EVENTS as readonly string[]).includes(name);
 
-// The states of a state() call, by name.
-type States = Readonly<Record<string, StateValue>>;
+// The states of a state() call, by name: a value, or one that persists (state({ open: persist(false, "demo-open") })).
+type States = Readonly<Record<string, StateValue | Persisted<StateValue>>>;
 
 // What a source is at build time: the name of its state. Never part of the public type.
 interface SourceData {
@@ -66,16 +66,35 @@ type BindData = Readonly<Record<string, SourceData>>;
 const NAME = /^[a-z][a-z0-9-]*$/;
 const SPACE = /[,\s]/;
 const ATTRIBUTE = /^[a-zA-Z_:][a-zA-Z0-9_:.-]*$/;
+// A storage key: the protocol is a comma-separated list of `name:key`, so a comma or a space would split it.
+const KEY = /^[a-zA-Z0-9_.:-]+$/;
+
+// What persist() is at build time: the storage key, and the value the state declares.
+interface PersistData {
+  readonly "~persist": string;
+  readonly "~value": StateValue;
+}
 
 const fail = (message: string) => new Error(`cssints: reactive: ${message}`);
 
+const isStateValue = (value: unknown): value is StateValue =>
+  typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+
+// The value a state declares: the inner value of a persist(), or the value itself.
+const stateOf = (value: StateValue | Persisted<StateValue> | undefined): StateValue | undefined => {
+  const data = persistedOf(value);
+  if (data) return data["~value"];
+  return isStateValue(value) ? value : undefined;
+};
+
 // A value as the protocol writes it, or the error of one that would break it (commas and spaces split a property list, and
 // a value starting with @ would be read as a payload token).
-const valueOf = (where: string, value: StateValue | undefined): string => {
-  if (value === undefined) throw fail(`${where} is missing`);
-  if (typeof value === "number" && !Number.isFinite(value))
-    throw fail(`${where} is ${String(value)}: a state is a finite number`);
-  const text = String(value);
+const valueOf = (where: string, value: StateValue | Persisted<StateValue> | undefined): string => {
+  const state = stateOf(value);
+  if (state === undefined) throw fail(`${where} is missing`);
+  if (typeof state === "number" && !Number.isFinite(state))
+    throw fail(`${where} is ${String(state)}: a state is a finite number`);
+  const text = String(state);
   if (SPACE.test(text))
     throw fail(`${where} is ${JSON.stringify(text)}: a value has no commas and no spaces`);
   if (text.includes("@"))
@@ -89,6 +108,12 @@ const valueOf = (where: string, value: StateValue | undefined): string => {
 const payloadOf = (value: unknown): "@value" | "@checked" | undefined => {
   const token = (value as { "~payload"?: unknown } | undefined)?.["~payload"];
   return token === "@value" || token === "@checked" ? token : undefined;
+};
+
+// What persist() wrapped, if the value is one: the state declares its inner value, and the key goes in the protocol.
+const persistedOf = (value: unknown): PersistData | undefined => {
+  const data = value as PersistData | undefined;
+  return typeof data?.["~persist"] === "string" ? data : undefined;
 };
 
 const nameOf = (where: string, source: unknown): string => {
@@ -114,6 +139,11 @@ const reactive = scope("reactive", {
     css: "&{}",
     atProperty: '@property --reactive-binding{syntax:"*";inherits:false}',
   },
+  // The storage of persisted states, on the owner: `open:demo-open,tab:demo-tab` (non-inheriting, like the other lists).
+  "#persist": {
+    css: "&{}",
+    atProperty: '@property --reactive-persist{syntax:"*";inherits:false}',
+  },
   // The DOM runtime: no feature to polyfill, so every target gets it (delivery.ts).
   "#run": { polyfills: [], script: "@cssints/reactive/runtime" },
   // The owner element: --reactive-owner lists the states, one --reactive-<name> holds each value. group: true adds
@@ -129,14 +159,24 @@ const reactive = scope("reactive", {
     const names = Object.keys(states);
     if (!names.length) throw fail("state() takes at least one state: state({ open: false })");
     const decls: [string, string][] = [];
+    const stored: string[] = [];
     for (const name of names) {
       if (!NAME.test(name))
         throw fail(
           `the state name ${JSON.stringify(name)} is not an ident: lowercase letters, digits and -, starting with a letter`,
         );
       decls.push([`--reactive-${name}`, valueOf(`the state "${name}"`, states[name])]);
+      const data = persistedOf(states[name]);
+      if (data) stored.push(`${name}:${data["~persist"]}`);
     }
-    return { decls: [append("--reactive-owner", names.join(",")), ...decls] };
+    return {
+      decls: [
+        append("--reactive-owner", names.join(",")),
+        ...decls,
+        ...(stored.length ? [append("--reactive-persist", stored.join(","))] : []),
+      ],
+      ...(stored.length ? { uses: ["persist"] } : {}),
+    };
   },
   on: (program) => {
     const segments: string[] = [];
@@ -186,8 +226,13 @@ type Widen<T> = T extends boolean
       ? string
       : never;
 
+// The value a state declares: a persisted state's inner value.
+type ValueOf<T> = T extends Persisted<infer V> ? V : T;
+
 /** The sources a `state()` call gives, one per state, by name. */
-export type Sources<S extends States> = { readonly [K in keyof S & string]: Source<Widen<S[K]>> };
+export type Sources<S extends States> = {
+  readonly [K in keyof S & string]: Source<Widen<ValueOf<S[K]>>>;
+};
 
 /** What `state()` gives: the owner element's style and one source per state. */
 export type State<S extends States> = { readonly owner: Style } & Sources<S>;
@@ -226,6 +271,15 @@ export interface Payload<T extends StateValue> {
   readonly [payloadType]: T;
 }
 
+declare const persistedType: unique symbol;
+/**
+ * A state value that survives a reload, from `persist(value, key)`. Only `state()` takes one (`state({ open: persist(false,
+ * "demo-open") })`): it is not a `Source`, an `Action` or a `Style`, and a write still goes through the source.
+ */
+export interface Persisted<T extends StateValue> {
+  readonly [persistedType]: T;
+}
+
 const payload = <T extends StateValue>(token: "@value" | "@checked"): Payload<T> =>
   ({ "~payload": token }) as unknown as Payload<T>;
 
@@ -239,7 +293,8 @@ const ownerOf = (states: States): Style => members.state(states);
  * in one `cn()` are one owner). It gives the owner's style (`cn(ui.owner, p(4))`) and one source per state. The initial
  * values are CSS custom properties on the owner, and `./runtime` writes `data-reactive-<name>` on it on load and after an
  * event: a condition on an initial value may paint one frame late. Names are idents (lowercase letters, digits and -), and
- * a string value has no commas, spaces or `@`.
+ * a string value has no commas, spaces or `@`. A value may be `persist(value, key)`, which the runtime restores from
+ * `localStorage` at that same initialisation.
  *
  * @param {S} states the state names and their initial values
  * @returns {State} the owner's style and the sources
@@ -250,6 +305,27 @@ export function state<const S extends States>(states: S): State<S> {
   for (const name of Object.keys(states)) sources[name] = { "~source": name } satisfies SourceData;
   // the site ships an object: the owner as its class string, the sources as their names (ship(), macro.ts)
   return ship(sources) as unknown as State<S>;
+}
+
+/**
+ * `state({ open: persist(false, "demo-open") })`: a state value that survives a reload. The runtime stores it under
+ * `"reactive:" + key` on every write and restores it when the owner is initialised, before the first paint the page can
+ * show, so a stored value wins over the declared one. A key is letters, digits, `-`, `_`, `.` and `:` (a comma or a space
+ * would split the protocol list), and an app prefixes its keys with its name (`demo-open`, not `open`). Two states may
+ * share a key on purpose: one storage slot, kept in sync. Only `state()` takes a `Persisted`: it is not a source, an
+ * action or a style, and a write goes through the source.
+ *
+ * @param {T} value the value when nothing is stored
+ * @param {string} key the storage key, after `"reactive:"`
+ * @returns {Persisted<T>} the state value
+ */
+export function persist<T extends StateValue>(value: T, key: string): Persisted<T> {
+  if (value === undefined) throw fail('persist() is missing a value: persist(false, "demo-open")');
+  if (typeof key !== "string" || !KEY.test(key))
+    throw fail(
+      `the persistence key ${JSON.stringify(key)} is not a key: letters, digits, - _ . and :, and no comma or space`,
+    );
+  return { "~persist": key, "~value": value } as unknown as Persisted<T>;
 }
 
 /**

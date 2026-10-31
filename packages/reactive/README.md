@@ -58,6 +58,7 @@ const own = when(ui.open)(display("block")); // the element itself
 | `set(source, value)`                | An action that sets a source to a value, or to the field's (`value()`, `checked()`). Only `on()` takes it.      |
 | `value()`                           | The value of the field the event fired on (`target.value`, a string). Only `set()` takes it.                    |
 | `checked()`                         | Whether the field is checked (`target.checked`). Only `set()` takes it.                                         |
+| `persist(value, key)`               | A state value that survives a reload, stored under `"reactive:" + key`. Only `state()` takes it.                |
 | `on({ event: action \| action[] })` | The element's program: click, input, change, submit, keydown, keyup, pointerdown, pointerup, focusin, focusout. |
 | `bind({ attribute: source })`       | Writes each attribute on the element it is on, from its nearest owner.                                          |
 | `when(source, value?)`              | A condition on the element itself (`data-reactive-<name>`), `"true"` when the value is left out.                |
@@ -67,6 +68,14 @@ Two calls of `on()`, `bind()` or `state()` in one `cn()` append instead of repla
 `click toggle open,keydown set tab two`, its attributes `aria-expanded open,data-current tab`, and its owner's states
 `open,tab`. A `<select>` drives a string state with `set(ui.tab, value())`, a checkbox a boolean one with
 `set(ui.open, checked())`.
+
+A value may be `persist(value, key)`: `state({ open: persist(false, "demo-open") })` keeps that state in `localStorage`
+under `"reactive:" + key`, and a reload restores it when the runtime initialises the owner — the module runs after the
+document is parsed and before the first paint the page can show, with the same caveat the initial value has (a condition on
+it may paint a frame late where the browser paints before the script runs). A stored value wins over the one the build
+declares. Every write of the state stores it, so a click needs no extra call. Two states may share a key on purpose: one
+storage slot, kept in sync by their writes. Prefix an app's keys with its name (`demo-open`, not `open`), so two
+applications on one origin do not meet.
 
 The CSS of the example above (the class names are hashes):
 
@@ -126,26 +135,31 @@ The CSS of the example above (the class names are hashes):
 ```
 
 `--reactive-open` and `--reactive-tab` inherit, so any descendant can read them in CSS
-(`color: var(--reactive-tab)`); the three lists do not inherit, so an element sees only its own program and bindings.
+(`color: var(--reactive-tab)`); the protocol lists (`--reactive-owner`, `--reactive-on`, `--reactive-binding`,
+`--reactive-persist`) do not inherit, so an element sees only its own program, bindings and storage.
 
 ## Protocol
 
 What the build emits, and what `./runtime` reads (for debugging):
 
-| Custom property      | On                   | Value                                     |
-| -------------------- | -------------------- | ----------------------------------------- |
-| `--reactive-owner`   | `._reactive-owner`   | the states, `open,tab`                    |
-| `--reactive-<name>`  | the owner            | the state's value (`false`, `one`, `2`)   |
-| `--reactive-on`      | `._reactive-events`  | `click toggle open,change set tab @value` |
-| `--reactive-binding` | `._reactive-binding` | `aria-expanded open,data-current tab`     |
+| Custom property      | On                   | Value                                            |
+| -------------------- | -------------------- | ------------------------------------------------ |
+| `--reactive-owner`   | `._reactive-owner`   | the states, `open,tab`                           |
+| `--reactive-<name>`  | the owner            | the state's value (`false`, `one`, `2`)          |
+| `--reactive-on`      | `._reactive-events`  | `click toggle open,change set tab @value`        |
+| `--reactive-binding` | `._reactive-binding` | `aria-expanded open,data-current tab`            |
+| `--reactive-persist` | `._reactive-persist` | the stored states, `open:demo-open,tab:demo-tab` |
 
 The runtime writes `data-reactive-<name>="<value>"` on the owner — what `when()` and `inside()` read — and the same value
 as an inline `--reactive-<name>`, what CSS derivations read. On load it initialises each owner (`data-reactive-<name>` from
-the declared value) and writes its bindings; on an event it walks from the target up, applies every program it finds to
-that element's nearest owner, and then updates the bindings of each owner once. Nodes added later are initialised too
-(a `MutationObserver`). A set segment's value is a literal, or `@value`/`@checked`: the runtime reads `target.value` (a
-string) or `target.checked` (`"true"`, `"false"`) off the element the event fired on. An identical segment written twice
-is applied once, so a program twice is still one toggle.
+the declared value, or from `localStorage` for a persisted state) and writes its bindings; on an event it walks from the
+target up, applies every program it finds to that element's nearest owner, and then updates the bindings of each owner
+once. Nodes added later are initialised too (a `MutationObserver`). A set segment's value is a literal, or
+`@value`/`@checked`: the runtime reads `target.value` (a string) or `target.checked` (`"true"`, `"false"`) off the element
+the event fired on. An identical segment written twice is applied once, so a program twice is still one toggle. A persisted
+state is stored on every write, and its stored value replaces the declared one at initialisation. Values reach the page
+only through `setAttribute` and `style.setProperty`, never as a string of HTML or CSS, so a stored value cannot inject
+anything.
 
 ## Limits
 
@@ -153,27 +167,33 @@ is applied once, so a program twice is still one toggle.
   attribute list. An identical segment twice is applied once (the runtime dedupes it), so a repeated program does not
   toggle twice.
 - A string value has no commas, no spaces and no `@` (the protocol is a comma-separated list, and `@value`/`@checked` are
-  payloads); names are idents (lowercase letters, digits and `-`). All are build errors at the call site.
+  payloads); names are idents (lowercase letters, digits and `-`). All are build errors at the call site. A persistence key
+  is letters, digits, `-`, `_`, `.` and `:` (a comma or a space would split the protocol list), at least one character, and
+  a build error at the call site too; `persist()` without a value is one at the type level and at build time.
 - The event set is fixed: click, input, change, submit, keydown, keyup, pointerdown, pointerup, focusin, focusout.
 - A write must be reachable from the element's program: the event bubbles to `<document>`, so a program on an ancestor runs
   for its descendants' events, but a button outside the owner has no owner to write.
 - A bound attribute and a condition read the nearest owner of the element they are on, so they must sit inside the owner's
   subtree.
 - The initial state is written by the script: before it runs, `data-reactive-*` are absent, so a condition on an initial
-  value may paint a frame late, and the runtime writes them once the document is parsed.
+  value may paint a frame late, and the runtime writes them once the document is parsed. A restored persisted value has the
+  same timing.
 - A state is build-time data: the client gets the owner's class string and the sources' names, never a readable value. A
   component cannot read `ui.open` in JavaScript — that is the point, the state is CSS; a value JavaScript needs is the
   framework's own state.
-- No persistence, counters, gestures, async or `event()` callbacks in v1: a state is a string, a number or a boolean,
-  written by a click, a key or a form event. `calc()` over a state value is CSS, not a source: nothing increments it from
-  JavaScript.
+- No counters, gestures, async or `event()` callbacks in v1: a state is a string, a number or a boolean, written by a
+  click, a key or a form event. `calc()` over a state value is CSS, not a source: nothing increments it from JavaScript.
+- Persistence is `localStorage` only: no cross-tab sync (a second tab keeps its own copy until it reloads), no versioning
+  or expiry (a stored value is a string the current build may no longer expect), and a storage failure — private mode, a
+  quota, a page without storage — is silent: the state stays interactive, it just does not survive the reload.
 
 ## Browsers
 
-Every browser: the runtime is a script with no polyfills, so it ships to every target of a build (1.8 kB minified, 0.9 kB
+Every browser: the runtime is a script with no polyfills, so it ships to every target of a build (2.5 kB minified, 1.2 kB
 gzipped), and it reads custom properties registered with `@property` (`syntax: "*"; inherits: false`; Chrome 85, Safari
 16.4, Firefox 128). Where `@property` is missing the lists inherit, but the marker classes still keep an element to its own
-program.
+program and storage. Persistence needs `localStorage`; where it is missing or refuses a write, the state works and does not
+survive the reload.
 
 ## Tests
 
@@ -181,6 +201,7 @@ program.
 cd packages/reactive && bun run test            # the engine: class strings, the protocol, the @property rules, errors
 cd packages/reactive && bun run test:browsers   # Chrome, Firefox, WebKit: two disclosures, an initial true state,
                                                 # tabs, a nested owner, the flush of one click, a <select> from value(),
-                                                # a checkbox from checked(), two programs on one element, a repeated one
-                                                # (BROWSERS=chrome)
+                                                # a checkbox from checked(), two programs on one element, a repeated one,
+                                                # a persisted disclosure across a reload, a stored value winning, a
+                                                # state that is not persisted (BROWSERS=chrome)
 ```
