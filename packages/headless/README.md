@@ -685,6 +685,65 @@ onSettled(() => toc.attach()); // returns the teardown
 - **Smooth scrolling is the host's.** The links are plain `#id` targets, the primitive never moves the scrollport, so `scroll-behavior: smooth` (and any `prefers-reduced-motion` override) belongs to the page's CSS; there is no scroll helper to reduce.
 - **"On this page" is English.** Spread `navProps` first and override it after: `<nav {...toc.navProps} aria-label={t("onThisPage")}>`.
 
+## Virtualiser
+
+`createVirtualizer` renders a window of a long list instead of the list: the visible rows plus an overscan, with two spacer boxes standing in for the rows above and below, so the content height, the scroll's clamp and its thumb stay the whole list's. It ports the rules the native renderer already had (`native/solid/src/virtual.ts`): the arithmetic of a fixed row, the measured mode that declares everything until every height is in and then virtualises, the gap-compensated spacers (`above = first·(item + gap) − gap`), no spacer at an end, and `OVERSCAN` two. The DOM adds the scrollport (`attach`), the `ResizeObserver` that reads the heights (the native renderer reads a row's box from `ui.bounds` after layout), and the ARIA pair. **There is no APG pattern for virtualisation and no Quint machine** — the state is pixels — so `test/virtual.browser.test.tsx` is the oracle.
+
+```tsx
+const list = createVirtualizer({
+  count: () => rows().length, // 10 000: the whole list, not the window
+  itemSize: 40, // fixed rows; omit it (or pass an estimate per index) to measure
+  gap: 4,
+});
+
+const range = createMemo(() => {
+  const at = list.window();
+  return Array.from({ length: at.last - at.first + 1 }, (_, step) => at.first + step);
+});
+
+<div class="port" {...list.scrollProps} ref={(element) => list.attach(element)}>
+  <div class="column">
+    <Show when={list.window().above > 0}>
+      <div {...list.spacerProps("start")} />
+    </Show>
+    <For each={range()}>
+      {(index) => (
+        <div role="listitem" {...list.itemProps(index)}>
+          {rows()[index]?.title}
+        </div>
+      )}
+    </For>
+    <Show when={list.window().below > 0}>
+      <div {...list.spacerProps("end")} />
+    </Show>
+  </div>
+</div>;
+```
+
+```css
+.port {
+  height: 600px;
+  overflow: auto;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  row-gap: 4px; /* the option's gap */
+}
+```
+
+- **The spacers and the rows are one gap-spaced column.** A spacer's height is already the gap short, so the first declared row starts at `first·(itemSize + gap)`. At an end there is no spacer, so render one only while its height is positive (`window().above > 0` / `window().below > 0`, as the two `Show`s do): a zero-height box would still add the gap.
+- **`attach` creates no computation**, so it is safe from a `ref` (Solid 2 runs refs in the effect phase, where `createPopover`'s old `attach` threw `PRIMITIVE_IN_EFFECT_CALLBACK`). It records the scrollport, adds a passive `scroll` listener and the observers, and returns the teardown; the measured mode needs it. `scrollProps.onScroll` is the same sync as a prop for hosts that wire scrolling themselves.
+- **Fixed or measured.** A number `itemSize` is arithmetic. A function, or no `itemSize`, measures the declared rows: while any height is unknown the whole column is declared (one frame pays the layout), and every frame after it has exact heights, so the content's end and the thumb do not move as rows are first seen. An unmeasured row is the per-row estimate, else `estimate`, else the mean of the measured, else 190.
+- **`count` shrinking drops only the heights past it.** Growing again leaves those indexes unknown, so the pass runs for the new rows.
+- **ARIA is per row**: `aria-setsize` is the whole count and `aria-posinset` is `index + 1` on every declared row, so a screen reader says "row 4,321 of 10,000" while 20 exist. A table host adds `aria-rowindex` itself: it counts the header row, which the primitive cannot know (and `createTable` carries `aria-rowcount`).
+- **Focus is the host's.** A row that leaves the window unmounts, so call `scrollToIndex(index)` when your keys move focus to a row the window may not declare; it scrolls the least amount that shows the row, and does nothing when the row is already fully visible.
+- **Limits**: the scrollport and its column must have no padding (the arithmetic starts at the content's 0); no horizontal virtualisation; no sticky header inside the port (put it above the scrollport); the measured window rebuilds a prefix sum per call, fine for a feed but not for a dataset.
+
+```bash
+bun run test -- virtual # the 10,000-row list, the measured pass, the count change
+```
+
 ## Command palette
 
 The first **composition** on the primitives — no new widget, no new spec: `createCommandPalette` is `createDialogModal` (a modal dialog) + `createTextInput` (the field) + `createStatus` (the count), wired into the shape [docs/research/compositions-2026-10.md](docs/research/compositions-2026-10.md) settles.
