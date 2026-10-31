@@ -123,6 +123,15 @@ the notifications — the last one's rows are the app's recordings hand-carried,
 notifications screen or fixture). The full account, with what a cell cannot carry, is `native/README.md`'s "Solid on the
 terminal".
 
+**The theme's third value.** `theme` is `"light"`, the page's default (undefined) — or `"system"`: `--system-theme`
+(`THEME=system`) asks the terminal at startup and on `s` (`terminal/tb2.c`'s `term_tb2_ask` over `/dev/tty` with
+`@cssints/tui/system`'s `QUERY`, a 120 ms timeout and a 15 ms quiet gap), parses the answer with the same package's
+`scan` and solves the page's nine tokens with its `createSystemTheme` (`terminal/theme.ts`); the compiled styles are
+repainted by value, so a warm terminal and a cool one are two different pages (the pty check's `#f0e0d0` page, its
+`#0060d0` accent). A terminal that does not answer keeps the dark theme and the host says so on stderr; the Sensors page
+and the C pages keep their static light/dark. `pack.ts` is untouched: `solid.ts`'s `skin` picks `repaint` for the system
+theme and `variant` otherwise, and the re-cut's two colour writes go through it as well.
+
 ## Layout
 
 ```

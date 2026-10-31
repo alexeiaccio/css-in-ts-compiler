@@ -40,6 +40,8 @@
 //   --keys WheelDown                       the page's wheel, as a notch down (WheelUp: a notch up)
 //   --click X,Y                            headless: the frame, a press over that cell with a frame, a release with a frame
 //   --theme light                          the light theme (also THEME=light)
+//   --system-theme                         the page's colours from the terminal's own (also THEME=system): OSC 11, OSC 10
+//                                          and OSC 4;0..15 through @cssints/tui/system's parser and solver; `s` re-asks
 //   --cols N --rows N                      the grid (80x20 by default: the C pages' size in test.sh)
 //   --bench N                              headless: N frames, printing the ms a frame and the cells as ANSI
 //   --mutate scroll|tab|open|back          a deliberately broken host, for terminal/test.sh's mutation lines: `scroll`
@@ -49,6 +51,9 @@
 //                                          hands the page an Escape (a thread or a profile stays up). `verbs` and `rows`
 //                                          are the page's own (`Sky.tsx`'s prop, `Notify.tsx`): one wrong verb on every
 //                                          notification row, and the rows no Tab stops
+//   --mutate channel|wait                  the system theme's two: `channel` reads the answer's foreground as its
+//                                          background (a light terminal's frame goes dark), `wait` asks with no timeout (a
+//                                          terminal that never answers hangs the host)
 //
 // The thread, the profile and the notifications are the page's **screens**, not pages of their own: `Sky.tsx` mounts the
 // thread as a root float over the feed and `Profile.tsx`'s `createProfile` and `Notify.tsx`'s `createNotify` are called
@@ -68,7 +73,11 @@
 import "../solid/plugin.ts";
 import { plugin } from "bun";
 import { readFileSync } from "node:fs";
+import type { ClayShape } from "cssints/clay";
+
 import type { Motion } from "../solid/src/entry.ts";
+import type { State, Variant } from "../solid/src/pack.ts";
+import type { Report } from "../../packages/tui/src/system.ts";
 
 // The page's own module (`src/entry.ts`, `pageEntry`) writes its entry motion through `solid/src/ffi.ts`, which on this
 // target is libterm: the alias is here, before the page is imported. The motion's fields (a subtree's opacity and
@@ -124,7 +133,10 @@ const warm = Number(arg("--warm")?.[0] ?? (skyPage ? 60 : 0));
 // live: draw N frames with no input, then quit (a smoke check, as main.c's; 1 is a screen)
 const maxFrames = Number(arg("--frames")?.[0] ?? Infinity);
 const headless = dump !== undefined || ansi !== undefined || bench > 0 || framesOut !== undefined;
-let theme = (arg("--theme")?.[0] ?? process.env.THEME) === "light" ? "light" : undefined;
+// the theme's two static literals, and the third: the terminal's own colours (`--system-theme`/THEME=system), solved
+let theme: string | undefined = (arg("--theme")?.[0] ?? process.env.THEME) === "light" ? "light" : undefined;
+const systemFlag =
+  arg("--theme") === undefined && (arg("--system-theme") !== undefined || process.env.THEME === "system");
 
 const { term } = await import("./term.ts");
 const { flush } = await import("solid-js");
@@ -140,11 +152,74 @@ const { Sky, s: skyStyles, screenOf } =
   skyPage ? await import("../solid/app/Sky.tsx") : { Sky: undefined, s: undefined, screenOf: undefined };
 const styles = skyPage ? undefined : await import("../examples/sensors/styles.ts");
 
+// The system theme is the tui package's, not a second copy of it: `scan` takes OSC 10/11/4 and `CSI ? 997 n` out of a
+// chunk of input, and `createSystemTheme` (./theme.ts) solves the page's tokens from what it found. The package prints a
+// deprecation notice from its index (this host is the target it points at); the flag is that file's own, set first.
+(globalThis as Record<symbol, boolean>)[Symbol.for("cssints.tui.deprecated")] = true;
+const { QUERY, scan } = await import("../../packages/tui/src/system.ts");
+const { forget, repaint, solve } = await import("./theme.ts");
+
 // A cell is 8x16 (terminal/cells.h): the terminal's own unit, and the re-cut below is in it.
 const CELL_W = 8;
 const CELL_H = 16;
 const WHITE_14 = packText({ textColor: { r: 255, g: 255, b: 255, a: 255 }, fontSize: 14 });
 const NO_STYLE = new Float32Array(45);
+
+// The system theme's cost and its answer. 120 ms is the whole of a silent terminal's charge, paid once at startup (and
+// once per `s`): a terminal that answers does so in single-digit ms and a 15 ms quiet gap ends the read, so the frame's
+// first draw is the only thing the ask delays, never a frame of the loop.
+const ASK_MS = 120;
+const ASK_BYTES = 4096;
+let paint: Awaited<ReturnType<typeof solve>>;
+
+/** Asks the terminal for its colours (`QUERY`: OSC 11, OSC 10, the 16 OSC 4 entries, `CSI ? 996 n`) and folds the answer
+ *  into the page's palette with the tui's solver. A terminal that does not answer (a pipe, `TERM=dumb`, no `/dev/tty`)
+ *  keeps the theme the flag gave, and says so on stderr. */
+function askSystem(): void {
+  if (!systemFlag) return;
+  if (!skyPage) {
+    console.error("terminal: the system theme is the Sky page's (its tokens are the ones with roles); the dark theme");
+    return;
+  }
+  const out = new Uint8Array(ASK_BYTES);
+  const started = performance.now();
+  // a mutation for terminal/test.sh: `wait` hands the ask no timeout, so a terminal that never answers hangs the host
+  const dumb = process.env.TERM === "dumb";
+  const len = dumb ? 0 : term.ask(QUERY, out, mutate === "wait" ? -1 : ASK_MS);
+  const ms = performance.now() - started;
+  // the reply is bytes of ASCII: one char a byte, as the parser takes it
+  const { replies } = scan(Buffer.from(out.subarray(0, len)).toString("latin1"));
+  const report: Report = { ansi: [] };
+  if (replies.fg) report.fg = replies.fg;
+  if (replies.bg) report.bg = replies.bg;
+  if (replies.scheme) report.scheme = replies.scheme;
+  const ansi: (string | undefined)[] = [];
+  for (const [i, hex] of replies.ansi) ansi[i] = hex;
+  report.ansi = ansi;
+  // a mutation for terminal/test.sh: the answer read as the wrong channel, so a light terminal's page is the
+  // foreground's (dark) and the frame draws where the answer did not
+  if (mutate === "channel") [report.fg, report.bg] = [report.bg, report.fg];
+  const solved = solve(skyStyles!.t as never, report);
+  if (!solved) {
+    console.error(
+      dumb
+        ? "terminal: TERM=dumb, no colours asked; the dark theme"
+        : `terminal: no colours from the terminal in ${ms.toFixed(1)} ms (${len} bytes); the dark theme`,
+    );
+    return;
+  }
+  paint = solved;
+  forget();
+  theme = "system";
+  console.error(
+    `terminal: ${report.fg ?? "?"} on ${report.bg} (${solved.appearance}), ${replies.ansi.size} of the 16 palette ` +
+      `entries; asked in ${ms.toFixed(1)} ms`,
+  );
+}
+
+/** A style under the theme that is on: pack.ts's `variant`, or the terminal's palette painted over it in the system theme. */
+const skin = (shape: ClayShape, states: State[] = []): Variant =>
+  theme === "system" && paint ? repaint(shape, states, paint) : variant(shape, theme, states);
 
 const encoder = new TextEncoder();
 const ids = new Map<string, Uint8Array>();
@@ -173,11 +248,19 @@ let landWait = 0;
 
 const root = new El("root");
 const input = createInput();
-// `t` is the page's shortcut, and the host's: as solid/main.ts, while no text field has focus
-input.fallback = (name) => (name === "t" ? ((theme = theme ? undefined : "light"), true) : false);
+// `t` is the page's shortcut, and the host's: as solid/main.ts, while no text field has focus. `s` asks the terminal
+// for its colours again (the system theme's own key)
+input.fallback = (name) =>
+  name === "t"
+    ? ((theme = theme ? undefined : "light"), true)
+    : systemFlag && name === "s"
+      ? (askSystem(), true)
+      : false;
 // the page's frame hook. The Sky page puts its wheel, its pointer and its tick on it; Sensors uses no motion of its own,
 // and `pageEntry` (which this target drops into the binding) puts the first mount on the tick.
 const motion: Motion = {};
+// the theme is asked for before the tree's first frame: the page's `theme` getter reads the host's variable every frame
+if (systemFlag) askSystem();
 const dispose = skyPage
   ? render(
       () =>
@@ -235,7 +318,7 @@ function emit(el: El, down: boolean) {
   if (el.tag === "text") {
     const tid = el.props.id ? idBytes(el.props.id) : undefined;
     if (skyPage && el.props.id) recut(el.props.id);
-    term.text(tid, bytesOf(el), (style && variant(style, theme).text) || WHITE_14);
+    term.text(tid, bytesOf(el), (style && skin(style).text) || WHITE_14);
     return;
   }
   const id = el.props.id ? idBytes(el.props.id) : undefined;
@@ -246,7 +329,7 @@ function emit(el: El, down: boolean) {
   if (el.props.focused) states.push(":focus");
   if (el.props.id === "Units") units = el;
   if (id && (el.props.onClick || el.props.onPress)) clickable.push(el);
-  const v = style ? variant(style, theme, states) : undefined;
+  const v = style ? skin(style, states) : undefined;
   // an image is a box with no glyph: the Sky cards' avatars are pictures, and a cell page has none, so the host skips
   // the element rather than spending its 40x40 box (three rows of nothing) on the grid
   if (v?.image) return;
@@ -290,7 +373,7 @@ function cellStyle() {
   term.value(pill, FIELDS.HEIGHT + 2, 3 * CELL_H);
   // the ring is page.c's `magnitude_text` border, resolved in the theme that is on
   if (focus === 0) {
-    const accent = variant(styles!.magnitude, theme).text!;
+    const accent = skin(styles!.magnitude).text!;
     for (let i = 0; i < 4; i++) term.value(pill, FIELDS.BORDER + i, accent[i]!);
   }
 }
@@ -342,7 +425,7 @@ function recut(id: string): void {
     put(id, FIELDS.PADDING + 3, 0);
     // the border widths are the four before the border colour (pack.ts's packBox: 22..25, then 26..29)
     for (let f = FIELDS.BORDER - 4; f < FIELDS.BORDER; f++) put(id, f, 0);
-    const accent = skyStyles ? variant(skyStyles.tabTextOn, theme).text : undefined;
+    const accent = skyStyles ? skin(skyStyles.tabTextOn).text : undefined;
     if (accent && id === input.focus.focused()) {
       for (let k = 0; k < 3; k++) put(id, FIELDS.BACKGROUND + k, accent[k]!);
       put(id, FIELDS.BACKGROUND_ALPHA, 255);
