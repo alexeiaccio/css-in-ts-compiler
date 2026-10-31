@@ -1350,12 +1350,62 @@ bun browser/serve.ts                  # http://127.0.0.1:4173/browser/solid/inde
 bun browser/serve.ts --port 0 --open  # a free port, and the browser opened on the page
 ```
 
-The reload is `location.reload()`: a page's Solid state, its scroll and a thread it opened are lost — an honest "reload
-on save", not a hot swap. HMR needs the module graph, i.e. the cssints plugin and Vite's client in this path (`apps/docs`
-has them: the engine's own `cssints/vite`), and a way to re-mount a page's tree over the new modules; a `.c` save is a
-new `ui.wasm` whatever else is hot, because the page holds one `WebAssembly.Instance` (`browser/solid/ffi-browser.ts`).
+The reload is `location.reload()`: a page's Solid state is lost and the thread it opened is gone — an honest "reload on
+save", not a hot swap. A page that opts in is re-mounted instead, and the reload is what a `.c` save and a page without
+the opt-in get — the hot re-mount is the next section. HMR proper — a component's signals kept across an edit, a style
+patched rather than rebuilt — needs the module graph, i.e. the cssints plugin and Vite's client in this path (`apps/docs`
+has them: the engine's own `cssints/vite`); a `.c` save is a new `ui.wasm` whatever else is hot, because the page holds
+one `WebAssembly.Instance` (`browser/solid/ffi-browser.ts`).
 The desktop's loop is its own, below; this server cannot help it: the page there is a Bun process that opens a window over
 `libui.dylib`, not a document at an origin, so there is no page to reload.
+
+### The hot re-mount: the shell's state survives, the page's does not
+
+A bundle-only save is the one thing a page can keep. The server pushes `hot` instead of `reload` — one event on the same
+`text/event-stream`, its data one JSON line, `{"v":3,"why":"solid/app/Widgets.tsx","ms":3854}`: the version a page
+imports its bundle at, the file that changed and the bundle build's ms — and a page that opted in
+(`mountPage({ ..., hot: true })`, today the Widgets page, `browser/solid/widgets.ts`) does not navigate. The injected
+client calls `window.__hotSwap(v)`, the shell's own `import("<this bundle>?v=" + v)`, and the new module's `mountPage` —
+a second copy of the shell, its own Solid runtime — finds the page load's **host** on `globalThis` instead of making a
+second one: the canvas and its context, the `WebAssembly.Instance` and Clay's state in it, the font, the canvas's 11 DOM
+listeners and the pointer. A **session** is one page: the Solid tree, the frame, the drawer, one rAF and
+`window.__page`. The new session's tree is rendered first (a save that parses and throws while it renders leaves the old
+page drawing and its error in the bar), then the old session is stopped (`cancelAnimationFrame` and the Solid `render`'s
+dispose), and the host carries over what was never the page's. `?hot=0` is the old reload; a page that does not opt in
+(the Sky's own loop, the Field's own listeners) reloads, and the client falls back to `location.reload()` when
+`window.__hotSwap` is absent.
+
+What survives, measured on the Widgets page: the document does not navigate (`performance.timeOrigin`), the same row is
+still hovered (the host's pointer, 48,53,68), `document.activeElement` is still the canvas, the document's scroll is
+where it was, and the wasm's counters carry on — one instance, `presents` 31 → 53 (and 97 → 22 after the `.c` save
+below). What does not: the switch reads
+`checked: false` and its 2 px focus ring is gone, because its signal is the component's and a new module is a new
+component; the page's `Input` (the focus manager), its scroll machine and its state are all new. **The shell survives,
+the page does not** — the state a person put into a page is lost on a re-mount as on a reload. The same save with the
+full reload, side by side, also costs the pointer (no hover: the row shows the page's 16,18,24), the focus and the
+counters (`presents` restarts at 22) — and the switch is unchecked there too. Chrome restores the document's scroll
+across a reload (`history.scrollRestoration` is `auto`), so that one is not what a re-mount buys.
+
+A `.c` save is still a reload: a new `ui.wasm` is a new `WebAssembly.Instance`, and the page's id table, Clay's arena and
+its counters are its — the server sends `reload` for the wasm and for `both` (cssints' `dist` compiles styles into both).
+A broken `.tsx` save is still only an `error` event: nothing is published, the page keeps drawing the frame it had (the
+same hash) and the bar has the compiler's own `Unexpected token` in `solid/app/Widgets.tsx`; the fixed save re-mounts it.
+
+Cost, `browser/hot-check.mjs` on an M2 sharing its cores with two sibling worktrees, medians of three at a load average
+of 29/13/10 (1/5/15 min): a `.tsx` save to its new frame **4125 ms** hot (3949, 4125, 4265) against **4315 ms** for the
+reload (4315, 3942, 4615) — the build is most of both, so the two are within the machine's noise of each other; after
+the build, the hot re-mount is **37 ms** (the bundle's import, its render and the first frame) against the reload's
+**71 ms** (navigation, wasm, font and mount). A `.c` save reached its new frame in **2290 ms** (its build 2.4 s). Three
+re-mounts cost **4.6 MB** of `usedJSHeapSize` (3.4 → 7.9 MB; 3.2 MB in an earlier run — the garbage collector's
+moment, a fresh copy of the bundle and its Solid runtime, the host's copy staying), and leave the canvas at the **11**
+listeners it started with and the loop at **62 frames/s** — one rAF, not four. Real HMR needs what this path still has
+not: the module graph. A style change is
+compiled into the bundle by the cssints plugin, so it is a new module and not a patchable string; patching a style, and
+keeping a component's signals across an edit (`solid-refresh`), want the engine's own `cssints/vite` plugin and Vite's
+client here, as `apps/docs` runs them. The mutations that would fake this are checked too:
+`browser/hot-check.mjs --mutate=dispose` (the old session not stopped: 240 frames/s, four loops) and `--mutate=state`
+(claiming the switch survives: `the switch reads checked: false, not true`) both fail the check, which exits 0 only when
+a mutation is caught.
 
 ### The desktop's dev loop: a save restarts the window
 

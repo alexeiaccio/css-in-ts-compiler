@@ -992,7 +992,8 @@ Each step ends in a check that fails when it breaks.
    with a drag in flight is **0.20 ms** on the List and **0.82 ms** on the Sky. Check: `browser/touch-check.mjs` (31
    comparisons) in `solid/test.sh` with the other four. Limits: pinch and any two-finger gesture, long-press, a
    touchscreen (this machine has none), the Widgets page's slider under a finger (`Widgets.tsx`'s drag is the same
-   `drag.onPointer`, untested), and no HMR (a save is a build and a full reload, below).
+   `drag.onPointer`, untested), and no HMR — a hot re-mount keeps the shell's state and not the page's, with the numbers,
+   below; a style change is a new module, so true style patching would need Vite's graph.
    **Done: the dev server, and reload on save** (2026-10-30). The browser target had no loop: a style change was
    `sh browser/build.sh` and `bun browser/solid/build.ts` again and a person's reload, and `check.mjs --serve` was a
    static server that built nothing. `browser/serve.ts` (Bun, `bun browser/serve.ts`) is the loop: it builds both
@@ -1016,10 +1017,28 @@ Each step ends in a check that fails when it breaks.
    `ui.wasm`'s mtime does not move, `page.js`'s does), and the page's `timeOrigin` changes; a `#error` in `ui.c` fails
    the wasm build, the page's bar
    names it (`serve-check-typo`), the page is *not* reloaded, and a manual reload still serves the last good `ui.wasm`;
-   the fixed save rebuilds the wasm and reloads, and the frame is the one from before the break (the same hash). HMR is
-   still absent: it needs the module graph — the engine's own `cssints/vite` plugin and Vite's client, as `apps/docs`
-   runs them — in this path, a page that re-mounts its tree over the new modules, and a `.c` save would still be a
-   reload, because the page holds one `WebAssembly.Instance`.
+   the fixed save rebuilds the wasm and reloads, and the frame is the one from before the break (the same hash). Real HMR
+   was still absent, and is what the next paragraph took the first step of: it needs the module graph — the engine's own
+   `cssints/vite` plugin and Vite's client, as `apps/docs` runs them — in this path, and a `.c` save is a reload whatever
+   else is hot, because the page holds one `WebAssembly.Instance`.
+   **Done: the hot re-mount** (2026-10-31). The reload above is now the fallback. A bundle-only save pushes a `hot` event
+   — one JSON line of data, `{"v","why","ms"}` — and a page that opts in (`mountPage({ ..., hot: true })`, the Widgets
+   page) imports its bundle again at `?v=<v>` instead of navigating; `shell.ts` split into a **host** on `globalThis`
+   (the canvas and its context, the `WebAssembly.Instance` and Clay's state in it, the font, the DOM listeners, the
+   pointer) and a **session** per module copy (the tree, the frame, the drawer, one rAF, `window.__page`), so the new
+   copy's `mountPage` renders its tree, stops the old session (`cancelAnimationFrame` plus `render`'s dispose) and takes
+   its place; `ffi-browser.ts` keeps the instance and the transient heap slot on `globalThis` for the same reason. The
+   page's `Input` and every signal stay the page's — a new module is a new component. Measured by `browser/hot-check.mjs`
+   on a temp copy (medians of three, load average 29/13/10): a `.tsx` save to its new frame **4125 ms** hot against
+   **4315 ms** reload — the build is most of both — of which after the build **37 ms** against **71 ms**; a `.c` save
+   **2290 ms** (still a reload: a new instance is a new page). What survives a re-mount: no navigation, the same row hovered (the host's pointer), the
+   canvas focused, the document's scroll, one wasm (`presents` 31 → 53), one loop (62 frames/s; skipped dispose: 240) and
+   the canvas's 11 listeners. What does not: the switch reads `checked: false`, its `:focus` ring is gone, and the page's
+   own scroll machine is new — the same as after a reload, which also costs the pointer and restarts `presents` at 22.
+   Three re-mounts cost 4.6 MB of heap (3.4 → 7.9 MB: a bundle copy and its Solid runtime). A broken `.tsx` save keeps
+   the last good frame and says why in the bar, as before. A style change is compiled into the bundle, so it is a new
+   module and not a patchable string: patching one, and keeping a component's signals (`solid-refresh`), still want
+   Vite's module graph and the engine's own `cssints/vite` plugin in this path.
 
 
 ## What Rune's research gives us (2026-10-23)

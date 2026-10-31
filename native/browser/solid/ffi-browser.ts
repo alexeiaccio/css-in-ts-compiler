@@ -62,18 +62,33 @@ interface Exports {
 
 let onMeasure: (ptr: Ptr, len: number, fontId: number, size: number) => void = () => {};
 
-const response = await fetch("ui.wasm");
-if (!response.ok) throw new Error(`ui.wasm: HTTP ${response.status}; run "sh browser/build.sh" first`);
-const module = await (response.headers.get("content-type") === "application/wasm"
-  ? WebAssembly.compileStreaming(response)
-  : WebAssembly.compile(await response.arrayBuffer()));
-const instance = await WebAssembly.instantiate(module, {
-  env: { measure: (ptr: Ptr, len: number, fontId: number, size: number) => onMeasure(ptr, len, fontId, size) },
-});
-const wasm = instance.exports as unknown as Exports;
-if ((wasm as unknown as { _initialize?: () => void })._initialize) {
-  (wasm as unknown as { _initialize: () => void })._initialize(); // reactor: libc's constructors
+// The page's own slots: the wasm and the transient region below are the page's, not a module copy's.
+const page = globalThis as typeof globalThis & {
+  /** One WebAssembly.Instance a page: Clay's state — its arena, a scroll container's offset, the draws and presents the
+   *  dev panel counts — is the instance's, and a second instance would be a new page. A hot re-mount
+   *  (browser/serve.ts's `hot`) imports the bundle again and the new copy finds this one; a `.c` save rebuilds ui.wasm
+   *  and a new instance is exactly what cannot be hot, which is why the server reloads the page for it. */
+  __uiWasm?: Promise<Exports>;
+  __uiRegion?: { heap: Ptr; heapSize: number; heapUsed: number };
+};
+
+async function load(): Promise<Exports> {
+  const response = await fetch("ui.wasm");
+  if (!response.ok) throw new Error(`ui.wasm: HTTP ${response.status}; run "sh browser/build.sh" first`);
+  const module = await (response.headers.get("content-type") === "application/wasm"
+    ? WebAssembly.compileStreaming(response)
+    : WebAssembly.compile(await response.arrayBuffer()));
+  const instance = await WebAssembly.instantiate(module, {
+    env: { measure: (ptr: Ptr, len: number, fontId: number, size: number) => onMeasure(ptr, len, fontId, size) },
+  });
+  const exports = instance.exports as unknown as Exports;
+  if ((exports as unknown as { _initialize?: () => void })._initialize) {
+    (exports as unknown as { _initialize: () => void })._initialize(); // reactor: libc's constructors
+  }
+  return exports;
 }
+
+const wasm = await (page.__uiWasm ??= load());
 
 /** The wasm's exports, for page.ts: its memory and its command array are what draw.js reads. */
 export { wasm };
@@ -85,23 +100,23 @@ export function setMeasure(fn: (ptr: Ptr, len: number, fontId: number, size: num
 
 const encoder = new TextEncoder();
 
-// the transient region: a style's 45 floats, a text's bytes, an out array. Reset by `begin`.
-let heap: Ptr = 0;
-let heapSize = 0;
-let heapUsed = 0;
+// the transient region: a style's 45 floats, a text's bytes, an out array. Reset by `begin`. It is the page's (the slot
+// above), so a hot re-mount's copy finds the same one in the wasm's memory and the wasm is not left with a second dead
+// region.
+const region0 = (page.__uiRegion ??= { heap: 0, heapSize: 0, heapUsed: 0 });
 
 function region(n: number): Ptr {
   n = (n + 7) & ~7;
-  if (heapUsed + n > heapSize) {
-    const size = Math.max(1 << 16, heapSize * 2, n);
-    if (heap) wasm.free(heap);
-    heap = wasm.malloc(size);
-    heapSize = size;
-    if (!heap) throw new Error(`ui.wasm: malloc(${size}) failed`);
-    heapUsed = 0;
+  if (region0.heapUsed + n > region0.heapSize) {
+    const size = Math.max(1 << 16, region0.heapSize * 2, n);
+    if (region0.heap) wasm.free(region0.heap);
+    region0.heap = wasm.malloc(size);
+    region0.heapSize = size;
+    if (!region0.heap) throw new Error(`ui.wasm: malloc(${size}) failed`);
+    region0.heapUsed = 0;
   }
-  const at = heap + heapUsed;
-  heapUsed += n;
+  const at = region0.heap + region0.heapUsed;
+  region0.heapUsed += n;
   return at;
 }
 
@@ -164,7 +179,7 @@ export const ui = {
   font: (_path: string) => wasm.ui_font(0),
   errors: () => wasm.ui_errors(),
   begin: (px: number, py: number, down: number, dt: number) => {
-    heapUsed = 0; // the previous frame's styles and texts are dead: a bump region the whole page shares
+    region0.heapUsed = 0; // the previous frame's styles and texts are dead: a bump region the whole page shares
     wasm.ui_begin(px, py, down, dt);
   },
   wheel: (dx: number, dy: number) => wasm.ui_wheel(dx, dy),

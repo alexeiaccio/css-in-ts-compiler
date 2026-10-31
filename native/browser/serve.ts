@@ -11,16 +11,22 @@
 // is the bundles, a change under packages/cssints/dist is both (the plugin compiles styles in both), and a `.js`/`.html`
 // is no build at all, only a reload. Each build writes into a staging directory and is copied over the served one — by
 // rename, so a fetch never sees half a file — only when the child exits 0: a broken save leaves the last good artefact
-// in place,
-// the running page keeps it (it is not reloaded), and the failure goes out as an `error` event, which the injected client
-// shows in a bar at the bottom of the page and logs to the console. A successful build pushes `reload`, and the page does
-// `location.reload()`: a full reload, not a hot swap, so a page's Solid state and its scroll are lost. HMR needs the
-// module graph (the engine's own cssints/vite plugin and Vite's client in this path, as apps/docs has them); the desktop
-// (`bun solid/main.ts`) has no watcher at all and is restarted by hand.
+// in place, the running page keeps it (it is not reloaded), and the failure goes out as an `error` event, which the
+// injected client shows in a bar at the bottom of the page and logs to the console.
+//
+// A successful build pushes one of two events. `hot` — the bundles only, so a page a save can keep — asks a page that
+// opted in (browser/solid/shell.ts's `options.hot`, i.e. `window.__hotSwap`) to import its bundle again at a new version
+// and take the page's place without navigating: the shell's host (canvas, wasm, pointer, DOM listeners) stays and the
+// page's tree is replaced, so the shell's state survives and the page's does not. `reload` is `location.reload()`: the
+// wasm was rebuilt (a new `WebAssembly.Instance`, which cannot be hot), both were (styles are compiled into both), or the
+// html moved. Nothing here knows a module graph: a style change is a new bundle module, not a patchable string, so real
+// style patching and true state-preserving HMR (a component's signals kept) still need the engine's own cssints/vite
+// plugin and Vite's client in this path, as apps/docs has them; the desktop (`bun solid/main.ts`) has no watcher at all
+// and is restarted by hand.
 //
 // The page-side client is injected into every text/html response, so browser/solid/*.html stay untouched. The event
-// stream is one `text/event-stream` per page at /__events, no dependency: `retry: 500`, a `reload` with the kind and ms,
-// an `error` with the compiler's own text, and a ping every 20 s so a proxy does not close it.
+// stream is one `text/event-stream` per page at /__events, no dependency: `retry: 500`, a `hot` or a `reload` with the
+// kind and ms, an `error` with the compiler's own text, and a ping every 20 s so a proxy does not close it.
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, watch } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
@@ -82,7 +88,11 @@ function publish(kind: "wasm" | "bundles"): void {
   }
 }
 
-async function build(kind: "wasm" | "bundles"): Promise<boolean> {
+// The build's version, bumped when new files are published: a hot re-mount imports the bundle at `?v=<version>`, so the
+// browser's module cache never hands back the copy it has.
+let version = 0;
+
+async function build(kind: "wasm" | "bundles"): Promise<{ ok: boolean; ms: number }> {
   const result =
     kind === "wasm"
       ? await run(["sh", "browser/build.sh", next])
@@ -91,11 +101,12 @@ async function build(kind: "wasm" | "bundles"): Promise<boolean> {
     log(`build failed: ${kind} after ${result.ms} ms`);
     for (const line of result.error.split("\n").slice(0, 60)) logError(`  ${line}`);
     send("error", `build failed (${kind}): ${result.error.slice(0, 6000)}`);
-    return false;
+    return { ok: false, ms: result.ms };
   }
   publish(kind);
+  version++;
   log(`build ${kind} ${result.ms} ms`);
-  return true;
+  return { ok: true, ms: result.ms };
 }
 
 // --- the event stream -----------------------------------------------------------------------------------------------
@@ -210,14 +221,31 @@ async function flush(): Promise<void> {
       return;
     }
     let ok = true;
+    let ms = 0;
     if (kinds.includes("both")) {
-      ok = (await build("wasm")) && (await build("bundles"));
+      const w = await build("wasm");
+      const b = w.ok ? await build("bundles") : { ok: false, ms: 0 };
+      ok = w.ok && b.ok;
+      ms = w.ms + b.ms;
     } else {
       // the wasm first, and the bundles only if it did not fail: a page reloaded onto half a build is worse than none
-      if (kinds.includes("wasm")) ok = await build("wasm");
-      if (ok && kinds.includes("bundles")) ok = await build("bundles");
+      for (const kind of ["wasm", "bundles"] as const) {
+        if (!kinds.includes(kind)) continue;
+        const built = await build(kind);
+        ok = built.ok;
+        ms += built.ms;
+        if (!ok) break;
+      }
     }
-    if (ok) send("reload", `${kinds.join("+")} ${why}`);
+    if (!ok) return;
+    // the bundles alone can be a hot re-mount; anything the wasm is in is a reload (a new instance is a new page)
+    if (kinds.length === 1 && kinds[0] === "bundles") {
+      log(`hot ${why} (v${version})`);
+      send("hot", JSON.stringify({ v: version, why, ms }));
+    } else {
+      log(`reload ${why}`);
+      send("reload", `${kinds.join("+")} ${why}`);
+    }
   } finally {
     building = false;
     if (pending.size) {
@@ -265,7 +293,7 @@ const MIME: Record<string, string> = {
   ".map": "application/json",
 };
 
-/** The page-side client: the reload, and a build's failure as a bar (and the console), in one event stream. */
+/** The page-side client: the hot re-mount or the reload, and a build's failure as a bar (and the console), in one stream. */
 const CLIENT = `<script>
 (() => {
   const bar = (text) => {
@@ -280,8 +308,27 @@ const CLIENT = `<script>
     }
     el.textContent = text;
   };
+  const clear = () => document.getElementById("__serve-error")?.remove();
   const events = new EventSource("/__events");
   events.addEventListener("reload", () => location.reload());
+  // A bundle-only save: a page that opted in (browser/solid/shell.ts sets window.__hotSwap) imports its bundle again at
+  // the new version and the shell swaps the page's tree without navigating — the canvas, the wasm, the pointer and the
+  // document stay. A page that did not (Field's own listeners, Sky's own loop) reloads, as before.
+  events.addEventListener("hot", async (event) => {
+    clear();
+    let data;
+    try { data = JSON.parse(event.data); } catch { location.reload(); return; }
+    if (typeof window.__hotSwap !== "function") { location.reload(); return; }
+    try {
+      await window.__hotSwap(data.v);
+      console.info("hot: " + data.why + " in " + data.ms + " ms");
+    } catch (error) {
+      // the old page is still on the canvas: the new module's tree threw before the shell took it
+      const text = "hot failed: " + (error && error.message ? error.message : String(error));
+      console.error(text);
+      bar(text);
+    }
+  });
   // a lost connection is an Event with no data; the server's failure is a MessageEvent that carries the compiler's text
   events.addEventListener("error", (event) => {
     const text = event.data;
@@ -331,8 +378,9 @@ log(`artefacts ${live}`);
 log(`watched browser/, solid/, desktop/clay_dump.c, vendor/clay/, generator/, examples/sensors/, apps/, packages/cssints/dist`);
 
 const first = performance.now();
-let ok = await build("wasm");
-if (ok) ok = await build("bundles");
+const builtWasm = await build("wasm");
+const builtBundles = builtWasm.ok ? await build("bundles") : { ok: false, ms: 0 };
+const ok = builtWasm.ok && builtBundles.ok;
 log(`first build ${Math.round(performance.now() - first)} ms${ok ? "" : " (failed; serving what is there, and a fixed save rebuilds)"}`);
 
 const url = `http://127.0.0.1:${server.port}/browser/solid/index.html`;
