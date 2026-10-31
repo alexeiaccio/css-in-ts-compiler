@@ -26,6 +26,20 @@ import { Meter } from "../registry/meter/meter.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+  TableScroll,
+} from "../registry/table/table.tsx";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationStatus,
+} from "../registry/pagination/pagination.tsx";
 import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "../registry/popover/popover.tsx";
@@ -655,6 +669,99 @@ const DatePickerDemo = (): JSX.Element => {
   );
 };
 
+// The table and the pagination on one dataset: the table renders a page of it and the pagination owns the page. The sort is
+// the host's — the primitive announces a descriptor and this list is reordered from it — and the table's `rows` is the ids
+// of the page, which is also what its select-all covers.
+const TABLE_COLUMNS = [
+  { key: "title", label: "Issue" },
+  { key: "owner", label: "Owner", sortable: false },
+  { key: "count", label: "Open", numeric: true },
+] as const;
+
+const TABLE_ROWS = [
+  { id: "cs-101", title: "Focus ring on the slider", owner: "Ada", count: 3 },
+  { id: "cs-102", title: "Tooltip stays on Escape", owner: "Grace", count: 1 },
+  { id: "cs-103", title: "Menu clips in a card", owner: "Linus", count: 2 },
+  { id: "cs-104", title: "Roving tab stop in tabs", owner: "Ada", count: 1 },
+  { id: "cs-105", title: "Select announces the count", owner: "Margaret", count: 2 },
+  { id: "cs-106", title: "Checkbox mixed state", owner: "Grace", count: 1 },
+  { id: "cs-107", title: "Accordion keeps its panel", owner: "Linus", count: 2 },
+  { id: "cs-108", title: "Dialog returns focus", owner: "Ada", count: 1 },
+  { id: "cs-109", title: "Table sorts by a click", owner: "Margaret", count: 1 },
+  { id: "cs-110", title: "Tree view typeahead", owner: "Grace", count: 2 },
+  { id: "cs-111", title: "Pagination on a page slice", owner: "Linus", count: 1 },
+  { id: "cs-112", title: "Switch paints its label", owner: "Ada", count: 1 },
+] as const;
+
+const PAGE_SIZE = 2;
+
+type Issue = (typeof TABLE_ROWS)[number];
+
+const issueValue = (row: Issue, key: string): string | number =>
+  key === "count" ? row.count : key === "owner" ? row.owner : row.title;
+
+const TableDemo = (): JSX.Element => {
+  const [page, setPage] = createSignal(1);
+  const [sort, setSort] = createSignal<{
+    key: string;
+    direction: "ascending" | "descending";
+  } | null>(null);
+  const pageCount = Math.ceil(TABLE_ROWS.length / PAGE_SIZE);
+  const ordered = (): ReadonlyArray<Issue> => {
+    const current = sort();
+    if (current === null) {
+      return TABLE_ROWS;
+    }
+    const sign = current.direction === "ascending" ? 1 : -1;
+    return [...TABLE_ROWS].sort((a, b) => {
+      const left = issueValue(a, current.key);
+      const right = issueValue(b, current.key);
+      return sign * (left < right ? -1 : left > right ? 1 : 0);
+    });
+  };
+  const visible = (): ReadonlyArray<Issue> =>
+    ordered().slice((page() - 1) * PAGE_SIZE, page() * PAGE_SIZE);
+  return (
+    <div class="demo-column">
+      <TableScroll>
+        <Table
+          columns={TABLE_COLUMNS}
+          rows={() => visible().map((issue) => issue.id)}
+          sort={sort()}
+          onSortChange={(next) => setSort(next ?? null)}
+          selection="multiple"
+          caption="Open issues"
+          labels={{ selectRow: (id) => `Select ${id}` }}
+        >
+          <TableHead>
+            {TABLE_COLUMNS.map((column) => (
+              <TableHeaderCell column={column.key}>{column.label}</TableHeaderCell>
+            ))}
+          </TableHead>
+          <TableBody>
+            {visible().map((issue) => (
+              <TableRow row={issue.id}>
+                <TableCell column="title">{issue.title}</TableCell>
+                <TableCell column="owner">{issue.owner}</TableCell>
+                <TableCell column="count">{issue.count}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableScroll>
+      {/* the same page signal: the table renders the slice, the pagination moves it */}
+      <Pagination
+        page={page()}
+        pageCount={pageCount}
+        onPageChange={setPage}
+        labels={{ nav: "Open issues pages" }}
+      >
+        <PaginationContent />
+        <PaginationStatus />
+      </Pagination>
+    </div>
+  );
+};
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -689,5 +796,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   "slider-multithumb": SliderMultithumbDemo,
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
+  table: TableDemo,
+  pagination: TableDemo,
   toast: ToastDemo,
 };

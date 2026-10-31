@@ -318,6 +318,22 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast",
   },
+  {
+    tested: true,
+    name: "table",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Table",
+    description:
+      "A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, and a numeric column right-aligned from the column's hint",
+  },
+  {
+    tested: true,
+    name: "pagination",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Pagination",
+    description:
+      "A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files

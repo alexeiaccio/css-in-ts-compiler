@@ -46,6 +46,8 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - spinbutton: APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by. `add @cssints/spinbutton`
 - checkbox-group: APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them. `add @cssints/checkbox-group`
 - toast: A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast. `add @cssints/toast`
+- table: A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, and a numeric column right-aligned from the column's hint. `add @cssints/table`
+- pagination: A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count. `add @cssints/pagination`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written
