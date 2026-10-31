@@ -57,9 +57,9 @@ names the row of the assistive-technology table. `gap:` names the open task at t
 | ------------------------------------------------------------------------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | The tablist can be horizontal or vertical, and says which                                        | Adaptability                         | quint: `specs/apg/tabs.qnt` (`orientation`, `ConfigValid`, `ariaOrientationKnown`); test: `test/tabs.browser.test.tsx` (`tabs.base-ui.aria-orientation-vertical`)                                                                                                                    |
 | Orientation is announced, so the arrow keys are described correctly                              | Assistive technologies and semantics | quint: `specs/apg/tabs.qnt`; test: `test/tabs.browser.test.tsx` (`tabs.base-ui.aria-orientation-default-absent` — horizontal omits the attribute, the ARIA default)                                                                                                                  |
-| Text scales to 200 % without loss                                                                | Adaptability                         | gap: G1                                                                                                                                                                                                                                                                              |
-| Content reflows at 320 px without horizontal scrolling                                           | Adaptability                         | gap: G1                                                                                                                                                                                                                                                                              |
-| No loss when line, letter and word spacing are increased                                         | Adaptability                         | gap: G1                                                                                                                                                                                                                                                                              |
+| Text scales to 200 % without loss                                                                | Adaptability                         | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("keeps the labels whole at 200 % text" — 28 px labels, each tab and the tablist `scrollWidth <= clientWidth`)                                                                                                               |
+| Content reflows at 320 px without horizontal scrolling                                           | Adaptability                         | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("reflows at 320 px without a horizontal scrollbar" — the tablist and every tab `scrollWidth <= clientWidth`)                                                                                                                |
+| No loss when line, letter and word spacing are increased                                         | Adaptability                         | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("keeps the labels whole with increased text spacing" — same boxes at 0.12em letter, 0.16em word, 1.5 line spacing)                                                                                                          |
 | Content and the selected tab stay identifiable in high contrast themes                           | Adaptability                         | manual: Windows Contrast themes                                                                                                                                                                                                                                                      |
 | Below 800 px the same sections are an accordion, one open at a time, same section selected       | Adaptability                         | gap: G2                                                                                                                                                                                                                                                                              |
 | There is no animation, so `prefers-reduced-motion` has nothing to reduce                         | Animation and movement               | manual: `prefers-reduced-motion` (N/A)                                                                                                                                                                                                                                               |
@@ -72,10 +72,10 @@ names the row of the assistive-technology table. `gap:` names the open task at t
 | The tablist has role `tablist`, each tab role `tab` inside it, each panel `tabpanel`             | Assistive technologies and semantics | test: `test/tabs-requirements.browser.test.tsx` ("names every tab, panel and state in the accessibility tree")                                                                                                                                                                       |
 | A disabled tab is announced as disabled                                                          | Assistive technologies and semantics | test: `test/tabs-requirements.browser.test.tsx` ("names every tab, panel and state in the accessibility tree" — `aria-disabled`)                                                                                                                                                     |
 | The markup is parsed and exposed to the accessibility tree                                       | Assistive technologies and semantics | test: `test/tabs.browser.test.tsx` (every mount is parsed by Chromium)                                                                                                                                                                                                               |
-| Colour alone does not identify the active tab                                                    | Colour and contrast                  | gap: G4                                                                                                                                                                                                                                                                              |
-| Text in the component has 4.5 : 1 contrast (7 : 1 at AAA)                                        | Colour and contrast                  | gap: G4                                                                                                                                                                                                                                                                              |
-| The active-tab indicator has 3 : 1 against its background and the unselected tabs                | Colour and contrast                  | gap: G4                                                                                                                                                                                                                                                                              |
-| A custom focus style has 3 : 1 against adjacent colours                                          | Colour and contrast                  | gap: G4                                                                                                                                                                                                                                                                              |
+| Colour alone does not identify the active tab                                                    | Colour and contrast                  | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("marks the selected tab with more than colour" — the selected underline is 3 px, the unselected 2 px)                                                                                                                       |
+| Text in the component has 4.5 : 1 contrast (7 : 1 at AAA)                                        | Colour and contrast                  | theme: `apps/ui/src/registry/theme.ts` (`check.contrast` text/page ≥ 7, muted/page ≥ 4.5)                                                                                                                                                                                            |
+| The active-tab indicator has 3 : 1 against its background and the unselected tabs                | Colour and contrast                  | theme: `apps/ui/src/registry/theme.ts` (`check.contrast` highlight/page ≥ 3; the skin's underline)                                                                                                                                                                                   |
+| A custom focus style has 3 : 1 against adjacent colours                                          | Colour and contrast                  | theme: `apps/ui/src/registry/theme.ts` (`check.contrast` focusRing/page ≥ 3; test: the focus-ring test asserts the computed ratio)                                                                                                                                                   |
 | Receiving focus on a tab does not change context                                                 | Consistency and predictability       | manual: all five screen-reader rows                                                                                                                                                                                                                                                  |
 | An icon used instead of a visible label has a text alternative; an icon beside a label is hidden | Images and media                     | host obligation, checked by the AT table (see Host obligations)                                                                                                                                                                                                                      |
 | Real text is used, not images of text                                                            | Images and media                     | N/A — the primitive renders no media                                                                                                                                                                                                                                                 |
@@ -88,13 +88,13 @@ names the row of the assistive-technology table. `gap:` names the open task at t
 | The component does not trap focus                                                                | Keyboard                             | test: `test/tabs-requirements.browser.test.tsx` ("lets focus leave the tablist and keeps hidden panels out of the tab order")                                                                                                                                                        |
 | Focus cannot move into the content of a hidden panel                                             | Keyboard                             | test: `test/tabs-requirements.browser.test.tsx` ("lets focus leave the tablist and keeps hidden panels out of the tab order" — native `hidden`)                                                                                                                                      |
 | The panel is not in the tab order when its content is focusable                                  | Keyboard                             | test: `test/tabs.browser.test.tsx` (`tabs.ariakit.panel-tabindex-no-tabbable`) — see the divergence below                                                                                                                                                                            |
-| Each tab has a visible focus indicator                                                           | Keyboard                             | gap: G7                                                                                                                                                                                                                                                                              |
-| A focused tab is not fully hidden by other content (AA), and fully visible (AAA)                 | Keyboard                             | gap: G7                                                                                                                                                                                                                                                                              |
-| A custom focus style has a 2 px solid perimeter                                                  | Keyboard                             | gap: G7 (`apps/ui` sets a 2 px outline; nothing asserts it)                                                                                                                                                                                                                          |
+| Each tab has a visible focus indicator                                                           | Keyboard                             | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("draws a 2 px focus ring with 3 : 1 against the page" — `outline-style: solid`, width ≥ 2 px, computed ring/page ratio ≥ 3)                                                                                                 |
+| A focused tab is not fully hidden by other content (AA), and fully visible (AAA)                 | Keyboard                             | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("keeps a focused tab clear of a sticky header" — `tabs.fixture.tsx`'s `mountTabsUnderStickyHeader`; after `scrollIntoView` the tab's top is at or below the header's bottom)                                                |
+| A custom focus style has a 2 px solid perimeter                                                  | Keyboard                             | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("draws a 2 px focus ring with 3 : 1 against the page" — `outline-width` is at least 2 px and `outline-style` is `solid`)                                                                                                    |
 | Each tab has a clear label that says what its panel holds                                        | Navigation                           | manual: JAWS + Chrome, NVDA + Firefox (name and role announcement)                                                                                                                                                                                                                   |
 | A tab is activated on the up event, not the down event                                           | Pointer and touch                    | test: `test/tabs-requirements.browser.test.tsx` ("selects on the up event, not the down event")                                                                                                                                                                                      |
-| Each tab's target is at least 24 × 24 CSS px, alone or with spacing (AA)                         | Pointer and touch                    | gap: G9                                                                                                                                                                                                                                                                              |
-| Each tab's target is at least 44 × 44 CSS px (AAA)                                               | Pointer and touch                    | gap: G9                                                                                                                                                                                                                                                                              |
+| Each tab's target is at least 24 × 24 CSS px, alone or with spacing (AA)                         | Pointer and touch                    | test: `apps/ui/src/registry/tabs/tabs.browser.test.tsx` ("gives every tab a 24 x 24 target" — a one-letter label's box is ≥ 24 × 24; `tabs.tsx` sets `min-height`/`min-width: 24px`)                                                                                                 |
+| Each tab's target is at least 44 × 44 CSS px (AAA)                                               | Pointer and touch                    | not met: the skin's box is about 33 px; the 24 × 24 floor is asserted above, 44 × 44 is an AAA departure                                                                                                                                                                             |
 | A close button is out of the tablist's tab order and named after its tab                         | Pointer and touch (extension)        | test: `test/tabs-close.browser.test.tsx` ("keeps the close buttons out of the tablist's tab order")                                                                                                                                                                                  |
 | Delete closes the focused tab, focus goes to the tab that took its place or the previous one     | Keyboard (extension)                 | quint: `specs/apg/tabs.qnt` (`deleting`, `afterDelete`); test: `test/tabs-close.browser.test.tsx` ("closes the focused tab with Delete…")                                                                                                                                            |
 | The last remaining tab is never closed                                                           | Consistency and predictability       | test: `test/tabs-close.browser.test.tsx` ("refuses to close the last remaining tab")                                                                                                                                                                                                 |
@@ -143,50 +143,70 @@ the status column, no hand pass needed), `@manual` where a person must.
 
 The requirements above that no artefact holds. Each is a task, in this document, until it has one.
 
-- [ ] **G1 — Reflow and text scaling.** No test at 320 px, 200 % text, increased spacing, or the
-      visual-presentation AAA rules. The primitive emits no CSS, so the test belongs to the skin:
-      `apps/ui/src/registry/tabs/tabs.browser.test.tsx` at a 320 px viewport.
+- [x] **G1 — Reflow and text scaling.** `apps/ui/src/registry/tabs/tabs.browser.test.tsx` mounts the
+      skin at a 320 px viewport: the tablist and every tab keep `scrollWidth <= clientWidth`. At
+      200 % text (32 px root, 28 px labels) the same boxes hold, and so they do with 0.12em letter,
+      0.16em word and 1.5 line spacing. `tabs.tsx` wraps the tablist so four labels reflow instead
+      of scrolling horizontally.
+
 - [ ] **G2 — The narrow accordion.** Below 800 px TetraLogical switch the same sections to an
       accordion that keeps one open. Nothing composes `createAccordion` with `createTabs` and
       nothing tests a breakpoint; the chevron-before-label rule has no home until this exists.
+
 - [x] **G3 — Roles and names.** `test/tabs-requirements.browser.test.tsx` ("names every tab,
       panel and state in the accessibility tree") asserts `role="tablist" | "tab" | "tabpanel"` on
       the real elements, `aria-controls` and `aria-labelledby` as reciprocal ids, exactly one
       `aria-selected="true"` and one `tabindex="0"`, `aria-disabled` on the disabled tab, and each
       tab's accessible name through Playwright's role + name query (4.1.2 and 2.5.3).
-- [ ] **G4 — Contrast.** The `apps/ui` theme sets text, an active-tab border and a focus ring, and
-      nothing resolves their contrast. `packages/tokens` already has `check.contrast`; the tabs pair
-      is not among its fixtures. Needs a test of the four values (4.5 : 1, 3 : 1 ×2, 7 : 1) and of
-      the non-colour cue for the active tab.
+
+- [x] **G4 — Contrast.** The tabs pair is gated in `apps/ui/src/registry/theme.ts` by
+      `check.contrast` in both modes: text/page ≥ 7, muted/page ≥ 4.5, highlight/page ≥ 3 (the
+      active underline) and focusRing/page ≥ 3. Every pair passes; the closest is the dark-mode
+      underline at 3.17 : 1 with the indigo preset. `tabs.browser.test.tsx` ("marks the selected tab
+      with more than colour") asserts the selected underline is 3 px against the unselected 2 px, so
+      the cue is a weight, not colour alone.
+
 - [x] **G5 — Icons.** Host obligation, checked by the AT table: the primitive renders no icon and
       names nothing. Beside a visible label the icon is `aria-hidden="true"`; when the icon is the
       tab's only content the tab is named from `label(index)` (an `aria-label` or visually hidden
       text on the tab), because `label` is the one text the host already supplies. See Host
       obligations.
+
 - [x] **G6 — Focus leaves, and hidden panels stay out of it.** `test/tabs-requirements.browser.test.tsx`
       ("lets focus leave the tablist and keeps hidden panels out of the tab order") focuses the
       tablist, walks Tab through the real DOM to the sibling after the component (no trap), and
       proves a `<button>` in an unselected panel is never reached: `tabpanelProps(i).hidden` is
       `true` and the native `hidden` keeps the child out of the tab order.
-- [ ] **G7 — Focus appearance and obscuring.** `apps/ui` sets `outline: 2px solid` with `-2px`
-      offset; nothing measures it, and nothing covers 2.4.11 / 2.4.12 (a sticky header over a
-      focused tab). Needs a computed-style test and a composition test.
+
+- [x] **G7 — Focus appearance and obscuring.** `tabs.browser.test.tsx` ("draws a 2 px focus ring
+      with 3 : 1 against the page") reads the computed `outline-style` (`solid`), `outline-width`
+      (≥ 2 px) and the ring/background ratio (≥ 3, from the computed colours). The composition test
+      ("keeps a focused tab clear of a sticky header") mounts `tabs.fixture.tsx`'s
+      `mountTabsUnderStickyHeader`, reveals the tab at the scrollport's start and asserts its top is
+      at or below the 32 px header's bottom, backed by `scroll-margin-top: 40px` on the tab.
+
 - [x] **G8 — Activation on the up event.** `test/tabs-requirements.browser.test.tsx` ("selects on
       the up event, not the down event") dispatches a `mousedown` alone (inert), then the full
       pointerup / click sequence (selects), then `pointercancel` between a down and its release
       (the selection is untouched). 2.5.2 now has evidence, not a construction claim.
-- [ ] **G9 — Target size.** The skin's padding is not a minimum. No box assertion for 24 × 24 or
-      44 × 44; the skin also sets no `min-height`, so a short label may fall under 24 px.
+
+- [x] **G9 — Target size.** `tabs.browser.test.tsx` ("gives every tab a 24 x 24 target") asserts a
+      one-letter label's rendered box is at least 24 × 24 CSS px; `tabs.tsx` sets `min-height` and
+      `min-width` to 24 px so the padding is no longer the only floor. The AAA 44 × 44 target is not
+      claimed — the box is about 33 px — and the requirements table records that departure.
+
 - [ ] **G10 — No-JS fallback.** Nothing renders TetraLogical's fallback (a list of in-page links,
       then a heading and the full content per section) and nothing tests that the script's replacement
       leaves no unreachable content. This is the catalogue's no-JS rule with no implementation behind
       it yet, and the largest gap in this page.
+
 - [x] **G11 — RTL.** `dir: "ltr" | "rtl"` (default ltr) is an option on the primitive: a
       horizontal tablist swaps ArrowLeft / ArrowRight, a vertical one is unaffected.
       `tabs.qnt` still models ltr only, so the `direction` scenarios stay `Unsupported` and skipped.
       `test/tabs-requirements.browser.test.tsx` holds both halves ("swaps ArrowLeft and ArrowRight
       in a horizontal rtl tablist", "keeps the ltr arrows and the vertical axis unchanged"); the
       spec gaining `direction` is still open work, not this gap's residue.
+
 - [ ] **G12 — The AT table has never been run.** Every row is `not run`. The first pass is the gap.
 
 ## Host obligations
