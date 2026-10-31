@@ -67,9 +67,11 @@ if (process.argv.includes("--check")) {
 if (process.argv.includes("ids")) {
   let raw = "";
   for await (const chunk of process.stdin) raw += chunk;
+  // A package that has no trusted publisher yet is answered with nothing on stdout ("No trust configurations found" goes to
+  // stderr) and an empty `connections` in a JSON listing: both mean nothing to revoke, and the create step that follows in
+  // scripts/trust.sh makes the first connection (@cssints/reactive, the 28th package). A listing that failed exits earlier.
+  if (raw.trim() === "") process.exit(0);
   const listing = JSON.parse(raw);
-  // A package that has no trusted publisher yet lists no connections: there is nothing to revoke, and the create step that
-  // follows in scripts/trust.sh makes the first one (@cssints/reactive, the 28th package).
   if (Array.isArray(listing?.connections) && listing.connections.length === 0) process.exit(0);
   const found = ids(listing);
   if (found.length === 0) {
