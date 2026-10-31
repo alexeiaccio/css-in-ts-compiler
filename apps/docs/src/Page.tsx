@@ -1,18 +1,10 @@
+import { createScrollspy } from "@cssints/headless";
 import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
 import { useLocation } from "@solidjs/router";
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  For,
-  Loading,
-  onSettled,
-  Show,
-  useContext,
-} from "solid-js";
+import { createEffect, createMemo, For, Loading, onSettled, Show, useContext } from "solid-js";
 
 import { DocsContext, type Meta, url } from "./docs.ts";
 import { gtOutline, gtSidebar } from "./layout.ts" with { type: "cssints" };
@@ -150,24 +142,17 @@ function Article(props: { html: string }) {
   return <div class="prose" innerHTML={props.html} />;
 }
 
+// The line a heading has to reach to be the current one: the sticky header's height (t.layout.headerHeight) plus the 16 px
+// the page leaves above an anchor (base.ts's scrollPaddingTop).
+const ANCHOR = 56 + 16;
+
 function Outline(props: { entries: Meta["entries"] }) {
-  const [current, setCurrent] = createSignal("");
-  onSettled(() => {
-    // the last heading or term that has reached the top of the window
-    const update = () => {
-      let id = "";
-      for (const e of props.entries) {
-        const el = document.getElementById(e.id);
-        if (!el) continue;
-        if (el.getBoundingClientRect().top > 96) break;
-        id = e.id;
-      }
-      setCurrent(id);
-    };
-    window.addEventListener("scroll", update, { passive: true });
-    update();
-    return () => window.removeEventListener("scroll", update);
+  // the last heading at or above the line is current, marked aria-current="location" on its link
+  const spy = createScrollspy({
+    entries: props.entries.map((e) => ({ id: e.id, label: e.text })),
+    offset: ANCHOR,
   });
+  onSettled(() => spy.attach());
   return (
     <ul class={outlineList}>
       <For each={props.entries}>
@@ -177,7 +162,7 @@ function Outline(props: { entries: Meta["entries"] }) {
               href={`#${e.id}`}
               class={outlineLink({ heading: e.depth < 5 })}
               // the router owns aria-current="page" and data-active on links to the open page; an authored value is left alone
-              aria-current={current() === e.id ? "location" : "false"}
+              aria-current={spy.active() === e.id ? "location" : "false"}
             >
               {e.text}
             </a>
