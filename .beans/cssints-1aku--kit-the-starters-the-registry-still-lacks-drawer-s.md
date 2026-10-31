@@ -5,13 +5,13 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-31T17:44:18Z
-updated_at: 2026-10-31T18:01:56Z
+updated_at: 2026-10-31T18:15:23Z
 ---
 
 Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these starters are still missing.
 
 - [x] drawer
-- [ ] scrollspy
+- [x] scrollspy
 - [x] panzoom
 - [ ] diagram
 - [ ] hotkeys
@@ -42,3 +42,14 @@ Tests: `apps/ui` 343 passed (7 new for the drawer), `bun run typecheck`, `bun ru
 - Regenerated `r/panzoom.json`, `r/registry.json` and `public/llms.txt`; added the demo to `src/docs/demos.tsx`.
 
 Tests: `apps/ui` 350 passed (7 new for the panzoom), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
+
+
+## Scrollspy (round three)
+
+- Added `apps/ui/src/registry/scrollspy/`: `Scrollspy` over `createScrollspy`; the skin is the named navigation landmark, the list with an indent per entry level, and the left rule painted from `aria-current` in the theme's tokens. The primitive owns the one passive scroll listener on the container, the "last heading at or above the offset" rule and the one-current-link invariant.
+- Added the fixture (an article of four 300 px sections in a 260 px pane, the table beside it, and `reveal()` that adds the last entry) and the Chromium browser test: the named landmark and its list, indentation by level, scrolling moving `aria-current` to the heading that passed the top (exactly one), a heading below the fold staying out, a link click scrolling the pane, and the entries being read again when they change.
+- Added the demo to `src/docs/demos.tsx` and `docs.css`; a fragment link inside a preview no longer moves the gallery page (an in-page anchor is not an item or a guide).
+- Regenerated `r/scrollspy.json`, `r/registry.json` and `public/llms.txt`.
+
+Tests: `apps/ui` 362 passed (6 new for the scrollspy), `bun run typecheck`, `bun run build` and `theme:check` pass.
