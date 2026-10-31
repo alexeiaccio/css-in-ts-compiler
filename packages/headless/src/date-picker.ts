@@ -1,7 +1,7 @@
 import { type Accessor, createEffect, createMemo, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
 import { type GridProps, createGrid } from "./grid";
-import { type PopoverContentProps, createPopover } from "./popover";
+import { type PopoverContentProps, type PopoverStyle, createPopover } from "./popover";
 import { type StatusProps, createStatus } from "./status";
 
 /**
@@ -141,6 +141,8 @@ export interface DatePicker {
   readonly statusProps: StatusProps;
   readonly triggerProps: DatePickerTriggerProps;
   readonly popoverProps: DatePickerPopoverProps;
+  /** `style` for the popup element: the popover's last measure, in page space. */
+  readonly contentStyle: Accessor<PopoverStyle>;
   readonly headerProps: DatePickerHeaderProps;
   readonly previousProps: DatePickerNavProps;
   readonly nextProps: DatePickerNavProps;
@@ -555,6 +557,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
       },
       "aria-labelledby": headerId,
     },
+    contentStyle: popover.contentStyle,
     headerProps: {
       id: headerId,
       get text() {
