@@ -1,5 +1,14 @@
 # @cssints/mcp
 
+## 0.22.0
+
+### Patch Changes
+
+- Updated dependencies [988df79]
+  - cssints@0.22.0
+  - @cssints/devtools@0.22.0
+  - @cssints/css-grammar@0.22.0
+
 ## 0.21.0
 
 ### Patch Changes
