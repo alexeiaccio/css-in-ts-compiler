@@ -459,10 +459,10 @@ export default function cssints({
     if (!marked(code, id)) {
       if (ctx.environment.name === "client") yield* drop(id);
       // The runner follows the imports of a module with sites, into components that have none: their JSX is inert as well.
-      return ctx.environment.name === "ssr" &&
-        (inner || !build) &&
-        /[jt]sx$/.test(id) &&
-        !id.includes("node_modules")
+      // That includes a dependency that ships `.jsx` (the Solid router behind its `solid` condition): this environment has
+      // no framework plugin to compile it, and Vite's generic transform would ask for React's runtime, which an app on
+      // another framework does not install.
+      return ctx.environment.name === "ssr" && (inner || !build) && /[jt]sx$/.test(id)
         ? yield* inertJsx(code, id)
         : undefined;
     }
