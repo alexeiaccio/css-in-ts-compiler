@@ -64,8 +64,8 @@ const opened = state({ open: true });
 const closedFrame = cn(closed.owner, frame);
 const closedButton = cn(
   on({ click: toggle(closed.open) }),
-  // aria-controls is a literal id and bind() writes a source's value only: it is left out, not faked.
-  bind({ "aria-expanded": closed.open }),
+  // aria-controls is a literal id: bind() writes it as is, beside the state it binds.
+  bind({ "aria-expanded": closed.open, "aria-controls": "disclosure-closed-panel" }),
   trigger,
 );
 const closedPanel = cn(hidden, inside(closed.open)(display("block")), panel);

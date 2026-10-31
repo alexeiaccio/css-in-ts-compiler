@@ -60,6 +60,7 @@ try {
     page.locator(selector).evaluate((el) => getComputedStyle(el).display);
   const ariaSelected = (name) =>
     page.locator(`#reactive-tab-${name}`).getAttribute("aria-selected");
+  const tabIndex = (name) => page.locator(`#reactive-tab-${name}`).getAttribute("tabindex");
 
   // One row per named export of every CSF file, by component; the exports of a module are alphabetical, as in Storybook.
   assert.deepEqual(await options.allInnerTexts(), [
@@ -74,7 +75,7 @@ try {
     "Button · Toggle",
     "CSS interactions/Disclosure · Closed",
     "CSS interactions/Disclosure · Open",
-    "CSS interactions/Tabs · Boolean",
+    "CSS interactions/Tabs · Computed",
     "Tabs · Three",
     "Tabs · WithDisabled",
   ]);
@@ -118,7 +119,7 @@ try {
   assert.equal(await id(), "tabs--three");
   assert.equal(new URL(page.url()).hash, "#tabs--three");
   await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "reactive-tabs--boolean");
+  assert.equal(await id(), "reactive-tabs--computed");
   await page.keyboard.press("ArrowUp");
   assert.equal(await id(), "disclosure--open");
   await page.keyboard.press("ArrowUp");
@@ -150,13 +151,22 @@ try {
   await page.locator("#disclosure-open-btn[aria-expanded=true]").waitFor();
   assert.equal(await displayOf("#disclosure-open-panel"), "block");
 
-  // the tabs: one boolean per tab, so aria-selected is the tab's own binding, and a click writes all three in one flush
-  await page.goto(`${base}#reactive-tabs--boolean`);
-  assert.equal(await id(), "reactive-tabs--boolean");
+  // the tabs: one string state, three comparisons; a click writes the state and the runtime derives aria-selected, the
+  // literal aria-controls and the roving tabindex in one flush
+  await page.goto(`${base}#reactive-tabs--computed`);
+  assert.equal(await id(), "reactive-tabs--computed");
   await page.locator("#reactive-tab-one[aria-selected=true]").waitFor();
   assert.deepEqual(
     [await ariaSelected("one"), await ariaSelected("two"), await ariaSelected("three")],
     ["true", "false", "false"],
+  );
+  assert.deepEqual(
+    [await tabIndex("one"), await tabIndex("two"), await tabIndex("three")],
+    ["0", "-1", "-1"],
+  );
+  assert.equal(
+    await page.locator("#reactive-tab-one").getAttribute("aria-controls"),
+    "reactive-panel-one",
   );
   assert.deepEqual(
     [
@@ -170,6 +180,10 @@ try {
   assert.deepEqual(
     [await ariaSelected("one"), await ariaSelected("two"), await ariaSelected("three")],
     ["false", "true", "false"],
+  );
+  assert.deepEqual(
+    [await tabIndex("one"), await tabIndex("two"), await tabIndex("three")],
+    ["-1", "0", "-1"],
   );
   assert.deepEqual(
     [
