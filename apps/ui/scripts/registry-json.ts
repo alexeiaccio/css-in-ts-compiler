@@ -465,6 +465,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved",
   },
+  {
+    tested: true,
+    // the APG combobox specs walk the primitive; this starter is the autocomplete variant with a listbox popup
+    name: "combobox",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Combobox",
+    description:
+      "A searchable picker: the field filters a listbox as the reader types, `aria-activedescendant` marks the active option, and Enter, Space or a click chooses it",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
