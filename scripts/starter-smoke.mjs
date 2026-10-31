@@ -8,11 +8,19 @@
 //
 //   node scripts/starter-smoke.mjs [--keep]
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 const template = join(root, "templates", "solid-vite");
@@ -78,6 +86,43 @@ const run = (command, args) => {
 
 try {
   cpSync(template, dest, { recursive: true });
+
+  // The registry items are built from this checkout's sources, which are ahead of the last release whenever a kit change
+  // lands with the engine change it needs: install the workspace's own packages (CI builds their `dist` before this
+  // script) so what is checked is this commit, not whichever version npm happens to serve. Tarballs, not `file:` paths:
+  // npm installs a directory as a symlink, and the packages then lose their own dependency tree (a peer such as `effect`
+  // is not installed for a symlink). The live-registry step at the end still exercises the published item JSON and the CDN.
+  const manifestPath = join(dest, "package.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const tarballs = join(dest, ".tarballs");
+  mkdirSync(tarballs, { recursive: true });
+  const linked = [];
+  for (const field of ["dependencies", "devDependencies"]) {
+    for (const name of Object.keys(manifest[field] ?? {})) {
+      const dir = join(root, "packages", name.split("/").pop());
+      const path = join(dir, "package.json");
+      if (!existsSync(path) || JSON.parse(readFileSync(path, "utf8")).name !== name) {
+        continue;
+      }
+      // `bun pm pack`, not `npm pack`: it rewrites a `workspace:*` dependency to the version it packs, and npm cannot
+      // install a tarball that still carries the protocol.
+      // bun ends its output with a size summary, npm with the filename: the `*.tgz` line is the one both agree on
+      const packed = execFileSync("bun", ["pm", "pack", "--destination", tarballs], {
+        cwd: dir,
+        encoding: "utf8",
+      })
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.endsWith(".tgz"))
+        .pop();
+      manifest[field][name] = `file:.tarballs/${basename(packed)}`;
+      linked.push(name);
+    }
+  }
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  if (linked.length > 0) {
+    process.stdout.write(`from this checkout: ${linked.join(", ")}\n`);
+  }
 
   // `--legacy-peer-deps`: a peer range somewhere in the toolchain should not decide whether the
   // template works; the test run is the evidence.
