@@ -37,12 +37,14 @@ Then add their trusted publishers (the table below) and merge the version pull r
 
 ## The newest package: `@cssints/reactive` (2026-10-31, cssints-zrt2)
 
-`@cssints/reactive` is the 28th of the group, and trusted publishing cannot create it either: publish its first version by hand before the "Version Packages" pull request that carries it is merged, then add its trusted publisher and merge.
+`@cssints/reactive` is the 28th of the group, and trusted publishing cannot create it either. Publish its first version by hand **now**, at the version in its manifest (0.20.0, the one the group is on npm with); the next "Version Packages" pull request bumps every package to 0.21.0, and that is the release CI should publish through the trusted publisher.
 
 ```bash
 bun run release:check                                  # stages packages/reactive/.publish
-cd packages/reactive/.publish && npm publish --access public --tag latest
+cd packages/reactive/.publish && npm publish --access public --tag latest   # 0.20.0, from a terminal (npm login first)
 ```
+
+Then wait for that pull request, add the package's trusted publisher right before merging it (`sh scripts/trust.sh --recreate @cssints/reactive`: a new package has no connection to revoke; or the table below), and merge within 2 days. CI then publishes 0.21.0 through the new configuration. Publishing 0.21.0 by hand instead would leave the configuration unused — CI skips a version already on npm — so it would expire, and the next release would need it again.
 
 `packages/apg-specs` (`@cssints/apg-specs`) is the test oracle of the widgets and of `native/headless`, and it is published for consumers outside the repository that replay its scenarios against their own widgets. Its tarball carries data on purpose, which `release.mjs` allows by name (`shippedData`) and for this package only: `specs/` and `shared/` (the `.qnt` sources), `scenarios/` (the ported scenario JSON) and, in `dist/`, the generated models as `.json` (copied by `vp pack` from `src/*/*.model.generated.json`, published as `*.model.json`). The generated scaffolding (`*.scaffolding.generated.ts`) and the spec tests stay out. The subpath exports: `/scenario`, `/apg/<pattern>.bridge`, `/apg/<pattern>.model.json`, `/canvas/<machine>.bridge`, `/canvas/<machine>.model.json`, `/scenarios/{apg,canvas}/*.json`, `/specs/{apg,canvas}/*.qnt`, `/shared/*.qnt`. `effect` is a peer (`^4.0.0`), `@quint-machine/core` a dependency. In the repository `development` (vite, tsc) and `bun` (`bun test` of `native/headless`, which cannot take `development`: it would switch `solid-js` to its dev build) point at `src/`.
 
