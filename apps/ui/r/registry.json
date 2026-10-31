@@ -2015,6 +2015,53 @@
           "type": "registry:file"
         }
       ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "knob",
+      "type": "registry:ui",
+      "title": "Knob",
+      "description": "A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "knob.tsx",
+          "target": "src/components/ui/knob.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "knob.fixture.tsx",
+          "target": "src/components/ui/knob.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "knob.browser.test.tsx",
+          "target": "src/components/ui/knob.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
     }
   ]
 }

@@ -438,6 +438,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count",
   },
+  {
+    tested: true,
+    // no APG pattern (and no ARIA role for a dial): the fixture and the browser test are the whole oracle
+    name: "knob",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Knob",
+    description:
+      "A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files

@@ -60,6 +60,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - table: A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, a numeric column right-aligned from the column's hint, and an optional window over 10 000 rows that keeps `aria-rowcount` and every `aria-rowindex`. `add @cssints/table`
 - virtual-list: A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set. `add @cssints/virtual-list`
 - pagination: A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count. `add @cssints/pagination`
+- knob: A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End. `add @cssints/knob`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written
