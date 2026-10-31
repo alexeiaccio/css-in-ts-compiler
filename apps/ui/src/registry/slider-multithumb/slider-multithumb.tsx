@@ -26,8 +26,11 @@ export interface SliderMultithumbProps
 }
 
 // The rail is the box, the fill and the two thumbs are decoration over it: each thumb is the announced `role=slider`, and the
-// primitive owns its value, bounds, orientation and keys. The rail copies the announced orientation to `data-orientation`
-// because a box cannot read an attribute of its child: the fill and the thumbs paint the vertical geometry from it.
+// primitive owns its value, bounds, orientation, keys, the nearest-thumb press and the drag. The rail copies the announced
+// orientation to `data-orientation` because a box cannot read an attribute of its child: the fill and the thumbs paint the
+// vertical geometry from it. `touch-action` and `user-select` are the one thing the drag needs from CSS (the primitive
+// carries none): a press on a touch rail must move the thumb instead of scrolling the page, and a mouse drag must not select
+// the text it crosses.
 const rail = css.cn(
   css.boxSizing("border-box"),
   css.position("relative"),
@@ -37,8 +40,11 @@ const rail = css.cn(
   css.bg(t.color.buttonBackground),
   css.borderRadius("999px"),
   css.cursor("pointer"),
+  css.touchAction("none"),
+  css.userSelect("none"),
   css.transition("background-color 120ms"),
   css.attr("data-orientation", "vertical")(css.width(t.space._2), css.height(t.space._10)),
+  css.attr("aria-disabled", "true")(css.bg(t.color.borderDisabled), css.cursor("not-allowed")),
 );
 
 const fill = css.cn(
@@ -54,6 +60,7 @@ const fill = css.cn(
     css.height("100%"),
     css.width("100%"),
   ),
+  css.attr("aria-disabled", "true")(css.bg(t.color.textDisabled)),
 );
 
 const thumb = css.cn(
@@ -69,6 +76,11 @@ const thumb = css.cn(
   css.transition("background-color 120ms, border-color 120ms"),
   css.hover(css.border("1px solid", t.color.borderHover)),
   css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("2px")),
+  css.attr("aria-disabled", "true")(
+    css.bg(t.color.borderDisabled),
+    css.border("1px solid", t.color.borderDisabled),
+    css.cursor("not-allowed"),
+  ),
   css.attr("aria-orientation", "vertical")(
     css.insetBlockStart("auto"),
     css.transform("translate(-50%, 50%)"),
@@ -78,18 +90,21 @@ const thumb = css.cn(
 /**
  * APG multi-thumb slider, styled: a rail, the interval between the two thumbs as a fill, and the two thumbs.
  * `createSliderMultiThumb` owns the pair, the neighbour bounds (a thumb cannot pass the other), the orientation, the
- * arrow/Home/End/Page keys and a press on one thumb; the kit adds the interval and the rail press.
+ * arrow/Home/End/Page keys, the nearest-thumb rail press and the drag; the kit adds the interval and the DOM focus.
  *
  * The primitive announces each thumb's `aria-valuenow` / `aria-valuemin` / `aria-valuemax`, and the outer two are the
  * range: the lower thumb's `aria-valuemin` is the range's minimum and the higher thumb's `aria-valuemax` is its maximum,
  * while the inner bounds follow the neighbour. So both thumbs and the fill are percentages of the same announced numbers
  * (`(now - min) / (max - min)`), and a thumb's position and the fill's edges cannot disagree with the value a reader hears.
- * The fill spans `lo` to `hi`; nothing is measured for it.
+ * The fill spans `lo` to `hi`; nothing is measured for it, and nothing is measured for the press either: the primitive
+ * reads the pointer's position on the rail and names the thumb.
  *
- * The primitive has no rail press (a press names its thumb), so the kit picks the nearer thumb from the press point, which
- * is the only measurement here: a pointer has a position, and the primitive wants a 0..1 fraction of the rail.
+ * A press names the thumb the primitive announces in `focused()`; the host moves the DOM focus with it, because an
+ * element is the host's and the primitive owns only state.
  *
  * `value` makes it controlled; without it the slider owns the pair. `onValueChange` is a request the host may ignore.
+ * `disabled` is the primitive's: both thumbs announce `aria-disabled` and drop every key, rail press and drag, so the kit
+ * only copies that announced state onto the rail, the fill and the thumbs (a box cannot read an attribute of its child).
  */
 export const SliderMultithumb = (props: SliderMultithumbProps): JSX.Element => {
   const slider = createSliderMultiThumb({
@@ -115,6 +130,9 @@ export const SliderMultithumb = (props: SliderMultithumbProps): JSX.Element => {
     get direction() {
       return props.direction;
     },
+    get disabled() {
+      return props.disabled;
+    },
     get onValueChange() {
       return props.onValueChange;
     },
@@ -132,38 +150,33 @@ export const SliderMultithumb = (props: SliderMultithumbProps): JSX.Element => {
   };
   const orientation = (): "horizontal" | "vertical" => slider.thumbProps(0)["aria-orientation"];
 
+  // The primitive names the thumb a press moves and a drag keeps; the host moves the DOM focus with it (the primitive
+  // announces `focused()`, it cannot focus an element it does not own). A disabled pair keeps its focus where it is.
   const press = (event: PointerEvent): void => {
-    const element = event.currentTarget as HTMLElement;
-    // a press on a thumb is the primitive's own: it already names the thumb
-    if (
-      !(event.target instanceof Element) ||
-      event.target.closest("[data-part='thumb']") !== null
-    ) {
+    slider.trackProps.onPointerDown(event);
+    if (slider.thumbProps(0)["aria-disabled"] === "true") {
       return;
     }
-    const rect = element.getBoundingClientRect();
-    const raw =
-      orientation() === "vertical"
-        ? 1 - (event.clientY - rect.top) / rect.height
-        : (event.clientX - rect.left) / rect.width;
-    const position = Math.min(1, Math.max(0, raw));
-    const point = position * 100;
-    const index: SliderMultiThumbIndex =
-      Math.abs(point - percentOf(0)) <= Math.abs(point - percentOf(1)) ? 0 : 1;
-    slider.pointerDown(index, position);
-    element.querySelectorAll<HTMLElement>("[data-part='thumb']")[index]?.focus();
+    const index = slider.focused();
+    if (index === null || !(event.currentTarget instanceof HTMLElement)) {
+      return;
+    }
+    event.currentTarget.querySelectorAll<HTMLElement>("[data-part='thumb']")[index]?.focus();
   };
 
-  const railPart = {
+  const railPart = merge(slider.trackProps, {
     "data-part": "track",
     get "data-orientation"() {
       return orientation();
+    },
+    get "aria-disabled"() {
+      return slider.thumbProps(0)["aria-disabled"];
     },
     get class() {
       return css.cn(rail, props.class);
     },
     onPointerDown: press,
-  } as PartProps;
+  });
 
   const thumbPart = (index: SliderMultiThumbIndex) =>
     merge(slider.thumbProps(index), {

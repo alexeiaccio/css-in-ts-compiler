@@ -1,8 +1,15 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
+import {
+  type RailDrag,
+  type SliderDirection,
+  type SliderOrientation,
+  beginRailDrag,
+  endRailDrag,
+  railPositionAt,
+} from "./rail-pointer";
 
-export type SliderOrientation = "horizontal" | "vertical";
-export type SliderDirection = "ltr" | "rtl";
+export type { SliderDirection, SliderOrientation } from "./rail-pointer";
 
 export interface SliderOptions {
   readonly min?: number;
@@ -76,24 +83,6 @@ export interface Slider {
 
 const valueTextFor = (value: number): string =>
   value <= 3 ? "low" : value <= 7 ? "medium" : "high";
-
-// Capture throws on a synthetic pointer (a test, or a pointer that is not
-// active); the drag still works, it just does not survive leaving the rail.
-const capture = (element: Element, pointerId: number): void => {
-  try {
-    element.setPointerCapture(pointerId);
-  } catch {
-    // no active pointer to capture
-  }
-};
-
-const release = (element: Element, pointerId: number): void => {
-  try {
-    element.releasePointerCapture(pointerId);
-  } catch {
-    // the capture is already gone (pointerup / lostpointercapture end a drag too)
-  }
-};
 
 /**
  * APG Slider (https://www.w3.org/WAI/ARIA/apg/patterns/slider/): a single
@@ -194,28 +183,10 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
     setFocused(true);
   };
 
-  /**
-   * The fraction of the rail a pointer is at, 0..1, for both orientations and
-   * both directions. The rail press and every drag move go through this one
-   * function, so a drag cannot land where a press would not; `flipped()` is the
-   * key rule (horizontal under rtl) and the value axis mirrors with it.
-   */
-  const positionOf = (event: PointerEvent, rect: DOMRect): number => {
-    const along =
-      orientation() === "vertical"
-        ? 1 - (event.clientY - rect.top) / rect.height // up is more
-        : (event.clientX - rect.left) / rect.width; // right is more in ltr
-    return flipped() ? 1 - along : along;
-  };
-
-  /** `position` of `event` on `element`'s box, or `undefined` when it has no length yet. */
-  const positionAt = (event: PointerEvent, element: Element): number | undefined => {
-    const rect = element.getBoundingClientRect();
-    const length = orientation() === "vertical" ? rect.height : rect.width;
-    return length > 0 ? positionOf(event, rect) : undefined;
-  };
-
-  let drag: { readonly element: Element; readonly pointerId: number } | undefined;
+  // The press and every drag move share `railPositionAt` with the multi-thumb
+  // slider, so a drag cannot land where a press would not and the four
+  // orientation/direction combinations have one definition.
+  let drag: RailDrag | undefined;
   let thumb: Element | undefined;
 
   // a press that landed on the thumb is not a jump: it is already at the value
@@ -223,12 +194,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
     thumb !== undefined && event.target instanceof Node && thumb.contains(event.target);
 
   const endDrag = (event: PointerEvent): void => {
-    if (drag === undefined || drag.pointerId !== event.pointerId) {
-      return;
-    }
-    const element = drag.element;
-    drag = undefined;
-    release(element, event.pointerId);
+    drag = endRailDrag(drag, event);
   };
 
   return {
@@ -277,19 +243,13 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
         if (disabled()) {
           return;
         }
-        // a secondary click (a context menu, a middle click) is not a press
-        if (event.button !== 0) {
+        const next = beginRailDrag(event);
+        if (next === undefined) {
           return;
         }
-        const element = event.currentTarget;
-        if (!(element instanceof Element)) {
-          return;
-        }
-        // the newest press owns the drag; the browser releases the old capture
-        drag = { element, pointerId: event.pointerId };
-        capture(element, event.pointerId);
+        drag = next;
         if (!onThumb(event)) {
-          const position = positionAt(event, element);
+          const position = railPositionAt(event, next.element, orientation(), direction());
           if (position !== undefined) {
             pointerDown(position);
           }
@@ -302,7 +262,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
         if (drag === undefined || drag.pointerId !== event.pointerId) {
           return;
         }
-        const position = positionAt(event, drag.element);
+        const position = railPositionAt(event, drag.element, orientation(), direction());
         if (position !== undefined) {
           pointerDown(position);
         }

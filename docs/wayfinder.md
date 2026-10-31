@@ -2795,6 +2795,60 @@ is the host's decision; the handlers and the geometry are the primitive's and th
 still has no drag and no rail (its own entry's reason), a thumb that is not inside the rail starts no drag (documented, not
 checked), and a pointer that leaves the window without a `pointerup` relies on the browser's capture release.
 
+## The multi-thumb slider takes a rail press and a drag (packages/headless, 2026-10-31)
+
+The kit's two-thumb range slider shipped with its own rail press because `createSliderMultiThumb` had no `trackProps`: it
+measured the rail, picked the nearer thumb and called `pointerDown`. That is widget behaviour in a skin, and the single
+slider's last round had just put the same press and a drag on the primitive, so the siblings disagreed twice (the
+multi-thumb had no drag and no `disabled`, and its kit measured from the physical left under `rtl`, where the single
+slider's rail already flips). The primitive now owns both.
+
+**One geometry, two sliders.** The four-case mapping (up is more on a vertical rail; a horizontal rail under `rtl` mirrors,
+as the arrows do), the "no length yet" guard, pointer capture and the drag's end are now `packages/headless/src/rail-pointer.ts`,
+imported by `slider.ts` and `slider-multithumb.ts`. The single slider's behaviour is unchanged: its tests pass untouched.
+The drag's _state_ stays per slider, because the multi-thumb's carries the thumb index.
+
+**How a press picks its thumb.** The measured pointer position is the value axis's fraction (the flip is already in it), so
+the target value is `min + position * (max - min)` and the thumb whose current value is nearer takes the press. A tie goes
+to the lower thumb: it is the pair's floor and the first tab stop, and a press that cannot say which thumb it means should
+move the start of the interval, not its ceiling, which would shrink the interval instead of shifting it. A press that starts
+on a thumb names that thumb (the APG's rule) and starts the drag where the value already is, so it does not jump by half a
+thumb; the rail learns which thumb from the thumb's own `onPointerDown`, exactly as the single slider marks its press. The
+chosen thumb moves to the pointer, `focused()` names it, and every `pointermove` asks for that thumb's value again; it
+clamps at its neighbour, so a drag cannot make the thumbs cross, and moving back follows the pointer back.
+
+**`focused()` is synchronous.** Solid 2 applies a signal setter on its next flush, so a host that reads `focused()` inside
+the same press (the kit moves the DOM focus to the named thumb) would read the old thumb. The accessor now keeps a local
+and a version signal, the pattern `createControllable` already uses for a value requested in the same tick; the signal
+still notifies, the local is fresh. The single slider's `focused()` was left alone: nothing reads it mid-press.
+
+**`disabled`** is the single slider's rule: a plain option read on every attribute read, `aria-disabled="true"` on both
+thumbs, both tab stops kept, and every key, press and drag dropped before it becomes a request (nothing is captured, so
+nothing moves).
+
+**What the spec cannot carry.** `slider-multithumb.qnt` models a discrete press per thumb (`pointerLo` / `pointerHi` carry
+a value, not a position) and has no `disabled` var. So the header now records the two extensions and names the invariants
+the machine does not hold: **NearestThumbTakesPress** (a press beside the thumbs moves the nearer one, and a thumb press
+starts from the value it has) and **DragFollowsPointer** (the thumb's `aria-valuenow` is the value of the pointer's current
+position, on the step grid and within the neighbour bounds, so it does not accumulate and nothing moves after the release),
+with `packages/headless/test/slider-multithumb.browser.test.tsx` as their oracle. The model is otherwise untouched: the
+neighbour clamp and the step grid the drag uses are its own rules, and a regenerate moved only the spec hash.
+
+**Tests.** Six new real-DOM cases in the primitive's test: a press near either thumb moves that one, a tie goes to the
+lower, a thumb press drags from where it is, a drag follows the pointer with one request per value and stops on release,
+the upper thumb clamps at the lower one and follows back, a vertical rail increases upward, a horizontal `rtl` rail counts
+from its right edge, and a disabled pair ignores a key, a press and a drag while announcing `aria-disabled` on both. The
+kit's conformance test keeps its 90% press case — now through the primitive — and adds the drag (the fill closes when the
+upper thumb clamps) and a disabled view; the demo shows one disabled pair beside the live one.
+
+**The kit dropped its press arithmetic** and now spreads `trackProps`; it keeps the interval, the anchor, the labels and
+the focus move, which the primitive cannot do because it owns no elements. Its `touch-action: none` / `user-select: none`
+and the disabled colours are the skin's, as on the single `Slider`.
+
+**Left**: no `dragging()` accessor (same as the single slider), the drag is still one thumb at a time (a press names one
+thumb), there is no keyboard equivalent for moving a whole interval, and a thumb that is not inside the rail starts no
+drag (documented, not checked).
+
 ## Reactive round two: the field's value, and programs that append (packages/reactive, 2026-10-31, cssints-674d)
 
 The round-one note left two limits: one `on()` and one `state()` per element, and a `set()` with a literal only. Both

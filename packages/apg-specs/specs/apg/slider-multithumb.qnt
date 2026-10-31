@@ -30,6 +30,26 @@
 // thumbs while `controlled`; `setValue` is the host writing it. `control` /
 // `acceptRequests` are configuration events (init is literal-only).
 //
+// The primitive also takes a press on the rail and drags. That is an extension
+// whose oracle is the DOM test, like `disabled` below: a press beside the thumbs
+// names the one nearest the pointer (a tie goes to the lower, the pair's floor
+// and first tab stop), and every press starts a drag that stays with that thumb
+// until `pointerup` / `pointercancel` / a lost capture, where the thumb clamps
+// at its neighbour exactly as Home / End does. What this spec therefore does
+// not say, because `pointerLo` / `pointerHi` name their thumb and carry a value
+// rather than a position:
+//   **NearestThumbTakesPress** — a press beside the thumbs moves the nearer one,
+//   so the thumb the user aimed at is the thumb that answers, and a press that
+//   starts on a thumb drags it from the value it already has (no jump); and
+//   **DragFollowsPointer** — while the pointer is held, that thumb's
+//   aria-valuenow is the value of the pointer's *current* position on the rail
+//   (on the step grid and within the neighbour bounds), so it does not
+//   accumulate, returning the pointer to where the press was returns the value,
+//   and no move after the release changes anything.
+// The geometry (which corner of the rail is the minimum, per orientation and
+// direction) and the nearest-thumb choice are the DOM's, not the machine's: the
+// bridge hands `pointerLo` / `pointerHi` a 0..1 fraction of the value axis.
+//
 // Deliberate omissions (ponytail: ceilings, not bugs):
 //   - The independent-thumbs variant ("in some multi-thumb sliders, each thumb
 //     sets a value that does not depend on the other thumb values"): the spec
@@ -41,10 +61,18 @@
 //     no list state, so N is not expressible. The controlled pair is packed
 //     into one int for the same reason.
 //   - aria-label / aria-labelledby, non-integer values, a coarser step grid,
-//     dragging (only a discrete pointer press per thumb, clamped to its
-//     bounds), disabled, and aria-valuetext formatting (units, locale).
-//   - Picking the nearest thumb for a pointer press on the rail: the event
-//     names the thumb.
+//     and aria-valuetext formatting (units, locale).
+//   - Dragging (pointer capture, move events) and a rail press that picks its
+//     thumb: only a discrete press per thumb, snapped to the step grid and
+//     clamped, is modelled. The extension's rules and the invariants the model
+//     does not carry are above; `slider-multithumb.browser.test.tsx` holds them.
+//   - Disabled / read-only: the primitive's widget-level `disabled` is a
+//     deliberate extension of the pattern, and the machine has no `disabled`
+//     var. So the model carries no invariant for it ("a disabled pair drops
+//     every key, rail press and drag, keeps both thumbs as tab stops and
+//     announces aria-disabled on both"); its oracle is the DOM test in
+//     `packages/headless/test/slider-multithumb.browser.test.tsx`. Read-only is
+//     not offered at all.
 module apg_slider_multithumb {
   import aria.* from "../../shared/aria"
 
