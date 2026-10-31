@@ -23,6 +23,8 @@ export interface SelectProps {
   readonly placeholder?: string;
   /** The accessible name: the trigger and the listbox both take it. */
   readonly label?: string;
+  /** A disabled select keeps its tab stop and never opens (the pattern's `aria-disabled`). */
+  readonly disabled?: boolean;
   readonly id?: string;
   readonly children?: JSX.Element;
 }
@@ -132,6 +134,9 @@ export const Select = (props: SelectProps): JSX.Element => {
     autoComplete: "none",
     filter: false,
     id: props.id,
+    get disabled() {
+      return props.disabled;
+    },
     get onValueChange() {
       const change = props.onValueChange;
       return change === undefined
@@ -211,6 +216,10 @@ export const SelectTrigger = (props: SelectTriggerProps): JSX.Element => {
       },
       get "aria-label"() {
         return label();
+      },
+      // the primitive's decision for a disabled widget: `aria-disabled` on a focusable combobox, not the native attribute
+      get "aria-disabled"() {
+        return input["aria-disabled"];
       },
       onFocus: input.onFocus,
       onBlur: input.onBlur,

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cssints/headless": "workspace:*",
+    "@cssints/reactive": "workspace:*",
     "@cssints/reset": "workspace:*",
     "@solidjs/web": "2.0.0-rc.13",
     "cssints": "workspace:*",

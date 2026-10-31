@@ -79,6 +79,11 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
   });
   props.onReady?.(group);
 
+  // the primitive takes the values either bare or behind a getter (a list that follows a signal), so the rows read the
+  // same way: unwrapping it here is the one place the kit has to know the shape
+  const values = (): ReadonlyArray<T> =>
+    typeof props.values === "function" ? props.values() : props.values;
+
   const radios = new Map<number, HTMLElement>();
   let root: HTMLElement | undefined;
   const syncFocus = (): void => {
@@ -106,7 +111,7 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
         queueMicrotask(syncFocus);
       }}
     >
-      {props.values.map((value, index) => {
+      {values().map((value, index) => {
         const radio = group.radioProps(index);
         return (
           <div

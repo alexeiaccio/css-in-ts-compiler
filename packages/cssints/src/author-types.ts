@@ -1,7 +1,15 @@
 // The shapes the engine and the helpers of "cssints/plugin" share: kernels, global rules, themes, runtimes, conflicts and
 // the themes of a call member. Interfaces only; the helpers and their types are in author.ts and scope.ts.
-/** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
-export type Decl = readonly [prop: string, value: string];
+import type { Cond } from "./node.ts";
+
+/** A declaration a member emits: property and value (a custom property, `--_r`, is allowed); `append()` makes a list. */
+export type Decl = readonly [
+  prop: string,
+  value: string,
+  conds?: readonly Cond[],
+  fallbacks?: readonly string[],
+  join?: ",",
+];
 /** A feature of `@mdn/browser-compat-data`: `css.at-rules.container.style_queries_for_custom_properties`. */
 export type BcdKey = `css.${string}`;
 
@@ -69,6 +77,14 @@ export interface Runtime {
   css?: string;
   /** The plugin's browser script, a module specifier the app resolves (`"@cssints/balance/runtime"`): imported, never evaluated at build time. */
   script?: string;
+}
+/**
+ * A value a site ships as a JavaScript object of its own: `ship({ owner, open })` (`@cssints/reactive`'s `state()`, whose
+ * owner is a style and whose sources are data). Each `Style` becomes its class string, an array or an object keeps its
+ * shape, and anything else is its JSON.
+ */
+export interface Ship {
+  readonly "~ship": { readonly [key: string]: unknown };
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
 export interface Conflict {

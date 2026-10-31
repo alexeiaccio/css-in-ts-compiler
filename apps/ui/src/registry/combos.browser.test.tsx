@@ -10,14 +10,18 @@ import { userEvent } from "vite-plus/test/browser";
 
 import {
   Alerts,
+  CheckableMenus,
   Crumbs,
   CheckboxGroups,
   Dialogs,
+  DisabledSelects,
   Fields,
   Groups,
   Meters,
   Menus,
+  MountedDialogs,
   Mode,
+  MultiCheckboxMenus,
   Nesting,
   Renders,
   Selects,
@@ -108,13 +112,17 @@ describe("the kit composes", () => {
   it("puts a modal above the page, names it, keeps focus and gives it back", () => {
     const root = mount(() => <Dialogs />);
     const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
-    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
     // a real pointer click focuses the button first; `click()` does not, and the dialog gives focus back to what had it
     trigger.focus();
     trigger.click();
     flush();
-    const panel = root.querySelector<HTMLElement>('[data-part="dialog"]')!;
-    const backdrop = root.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!;
+    // the layer is portalled out of the view and into the body, so the whole document is where the panel lives
+    const panel = document.querySelector<HTMLElement>('[data-part="dialog"]')!;
+    const backdrop = document.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!;
+    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
+    expect(root.contains(layer)).toBe(false);
+    expect(document.body.contains(layer)).toBe(true);
     // the panel is the dialog: a role and a name from the prop, the description it renders, and the modal state
     expect(panel.getAttribute("role")).toBe("dialog");
     expect(panel.getAttribute("aria-label")).toBe("Rename file");
@@ -124,7 +132,7 @@ describe("the kit composes", () => {
       "dialog-description",
     );
     // above the page, behind a wash, and the page does not scroll under it
-    expect(style(root.querySelector<HTMLElement>('[data-part="dialog-layer"]')!).zIndex).toBe("20");
+    expect(style(layer).zIndex).toBe("20");
     expect(style(panel).position).toBe("relative");
     expect(style(backdrop).position).toBe("absolute");
     expect(style(backdrop).backgroundColor).not.toBe(style(panel).backgroundColor);
@@ -133,16 +141,68 @@ describe("the kit composes", () => {
     expect(document.activeElement).toBe(panel);
     panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     flush();
-    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
-    expect(root.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
     expect(document.activeElement).toBe(trigger);
     expect(document.body.style.overflow).toBe("");
     // and the backdrop is a way out too
     trigger.click();
     flush();
-    root.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!.click();
+    document.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!.click();
     flush();
-    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
+  });
+
+  it("covers the viewport from a transformed, clipped ancestor", () => {
+    // a card with a hover lift (`transform`) and a scroll box (`overflow: hidden`) is both a containing block for
+    // `position: fixed` and a clip: inline, the layer would be as tall as the card and its `top: 0` would be the card's
+    const view = (): JSX.Element => (
+      <div style={{ transform: "translateZ(0)", overflow: "hidden" }}>
+        <Dialogs />
+      </div>
+    );
+    const root = mount(view);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
+    trigger.focus();
+    trigger.click();
+    flush();
+    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
+    const rect = layer.getBoundingClientRect();
+    // the layer is the viewport, not the ancestor: `fixed` resolves against it and no ancestor clips it
+    expect(Math.round(rect.top)).toBe(0);
+    expect(Math.round(rect.left)).toBe(0);
+    expect(Math.round(rect.width)).toBe(window.innerWidth);
+    expect(Math.round(rect.height)).toBe(window.innerHeight);
+    // a fixed box with no containing block above it, and it is a child of the document's body
+    expect(layer.offsetParent).toBeNull();
+    expect(document.body.contains(layer)).toBe(true);
+    expect(root.contains(layer)).toBe(false);
+    document
+      .querySelector<HTMLElement>('[data-part="dialog"]')!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("sends the layer to the host's own modal root", () => {
+    const root = mount(() => <MountedDialogs />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
+    trigger.focus();
+    trigger.click();
+    flush();
+    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
+    // the `mount` prop is the portal's target: the layer's parent is the host's root, not the body
+    const target = document.getElementById("combos-modal-root")!;
+    expect(layer.parentElement).toBe(target);
+    expect(document.body.contains(layer)).toBe(true);
+    expect(root.contains(layer)).toBe(false);
+    document
+      .querySelector<HTMLElement>('[data-part="dialog"]')!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 
   it("lets render replace a part and keeps the props and the state live", () => {
@@ -279,6 +339,82 @@ describe("the kit composes", () => {
     expect(menu.hidden).toBe(true);
   });
 
+  it("checks a checkbox item from Space without closing, and moves the radio group's choice", () => {
+    const root = mount(() => <CheckableMenus />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    const menu = root.querySelector<HTMLElement>('[data-part="menu"]')!;
+    const readout = part(root, "menu-checked");
+    trigger.focus();
+    trigger.click();
+    flush();
+    expect(menu.hidden).toBe(false);
+    const rows = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+    // the variant decides each row's role by index: one checkbox, a radio group, then plain items
+    expect(rows.map((row) => row.getAttribute("role"))).toEqual([
+      "menuitemcheckbox",
+      "menuitemradio",
+      "menuitemradio",
+      "menuitemradio",
+      "menuitem",
+    ]);
+    expect(rows.map((row) => row.getAttribute("aria-checked"))).toEqual([
+      "false",
+      "true",
+      "false",
+      "false",
+      null,
+    ]);
+    expect(readout.textContent).toBe("|1");
+    // the check is painted from aria-checked, not from a kit copy of the state
+    const marks = rows.map((row) => row.querySelector<HTMLElement>('span[aria-hidden="true"]')!);
+    expect(style(marks[0]!).visibility).toBe("hidden");
+    expect(style(marks[1]!).visibility).toBe("visible");
+    // Space toggles a checkbox without closing the menu, and the host's readable pair follows
+    rows[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(rows[0]!.getAttribute("aria-checked")).toBe("true");
+    expect(menu.hidden).toBe(false);
+    expect(style(marks[0]!).visibility).toBe("visible");
+    expect(readout.textContent).toBe("0|1");
+    // Space on a radio checks it and clears the one before it
+    rows[3]!.focus();
+    flush();
+    rows[3]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(rows[3]!.getAttribute("aria-checked")).toBe("true");
+    expect(rows[1]!.getAttribute("aria-checked")).toBe("false");
+    expect(readout.textContent).toBe("0|3");
+  });
+
+  it("checks a checkbox beyond item 0 in a controlled menu", () => {
+    const root = mount(() => <MultiCheckboxMenus />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    const readout = part(root, "menu-checked");
+    trigger.focus();
+    trigger.click();
+    flush();
+    const rows = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+    expect(rows.map((row) => row.getAttribute("role"))).toEqual([
+      "menuitemcheckbox",
+      "menuitemcheckbox",
+      "menuitemcheckbox",
+    ]);
+    expect(readout.textContent).toBe("|-1");
+    // the third row, not item 0: the primitive's packed value had one checkbox bit, so this could never round trip
+    rows[2]!.focus();
+    flush();
+    rows[2]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(rows[2]!.getAttribute("aria-checked")).toBe("true");
+    expect(readout.textContent).toBe("2|-1");
+    // a second checkbox is kept alongside it
+    rows[0]!.focus();
+    flush();
+    rows[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(readout.textContent).toBe("0,2|-1");
+  });
+
   it("describes the trigger with the tooltip's id while the tooltip is shown", () => {
     const root = mount(() => <Tooltips />);
     const trigger = root.querySelector<HTMLElement>('[data-part="button"]')!;
@@ -399,6 +535,29 @@ describe("the kit composes", () => {
     flush();
     expect(listbox.hidden).toBe(true);
     expect(trigger.textContent).toBe("Cherry");
+  });
+
+  it("keeps a disabled select's tab stop and opens nothing", () => {
+    const root = mount(() => <DisabledSelects />);
+    const trigger = root.querySelector<HTMLElement>('[role="combobox"]')!;
+    const listbox = root.querySelector<HTMLElement>('[data-part="select-listbox"]')!;
+    // the pattern's state is `aria-disabled` on a focusable combobox, not the native attribute a button would take
+    expect(trigger.getAttribute("aria-disabled")).toBe("true");
+    expect(trigger.hasAttribute("disabled")).toBe(false);
+    expect(trigger.tabIndex).toBe(0);
+    expect(listbox.hidden).toBe(true);
+    trigger.focus();
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.textContent).toBe("Apple");
+    // the disabled look is the button's own `aria-disabled` rule, not a second one in the select
+    expect(style(trigger).cursor).toBe("not-allowed");
   });
 
   it("gives a textarea the field's id and invalid state", () => {

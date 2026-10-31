@@ -667,36 +667,57 @@ Each step ends in a check that fails when it breaks.
    Left: **termbox2 is in** (`terminal/vendor/termbox2.h`, upstream master, MIT, sha256 `e019abb9`; `terminal/tb2.c`: truecolour or 256, keys and the mouse, checked through a pty in
    `test.sh`), and so are clicks; what a click cannot do is hover — termbox2 reports no motion events. Still left:
    `csssky-tui`'s own profile screen (the one here is the web app's), notifications in the tui itself (the terminal
-   shows the web app's, hand-carried), its data fetching and paging (every frame is one recorded fixture), unread
-   counts and their badge, the notifications' grouping and the actor's avatar, images (a media line; counted and
-   reported, not drawn), quote boxes, a body that wraps (one clipped row), the system theme of `src/system.ts` (the
-   static dark/light ones are ported), the wheel and dragging, wide glyphs and emoji (a code point is one cell),
-   floating overlays (untried), sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius
+   shows the web app's, hand-carried), its data fetching and paging (every frame is one recorded fixture; the Solid
+   feed's thread is the page's screen in its loading state, with a loader that never settles), unread counts and their
+   badge, the notifications' grouping and the actor's avatar, images (a media line; counted and reported, not drawn),
+   quote boxes, a body that wraps in the C pages (one clipped row; the Solid feed wraps at words, a long word still is
+   not broken), the system theme of `src/system.ts` (the static dark/light ones are ported), dragging (termbox2 reports
+   no motion, so a press has nowhere to travel; the wheel is a notch now), wide glyphs and emoji (a code point is one
+   cell), sub-cell borders and radii (a 1px and a 4px border are both one cell, a corner radius
    is a square corner) and scrollback. The cell size is the cost: 8x16 makes a 38px pill 2.4 rows and a 200px pill 25
    columns, so a page's pixel lengths have to be re-cut to land on cell boundaries, and text smaller or larger than a
    cell is the same cell.
-   **Done: one page runs as Solid; the rest are C.** `solid/native/term.c` (built as `build/solid/libterm.dylib`
+   **Done: two pages run as Solid; the rest are C.** `solid/native/term.c` (built as `build/solid/libterm.dylib`
    beside `libui.dylib`) is Clay over the terminal's own cells — `terminal/cells.c`, `render.c`, `measure.c` and
    `tb2.c`, no SDL3, no ThorVG, no window — behind the declaration surface `solid/native/ui.c` has: a packed 45-float
    box style, a 10-float text and the value channel, so a page's `styles.ts` and `solid/src/pack.ts` are one module on
-   both targets. `terminal/solid.ts` is `solid/main.ts`'s loop shape over it, and the page is
-   `solid/app/Sensors.tsx` **unmodified**: the host re-cuts page.c's two lengths for cells through the value channel
-   (the root's padding and gap, the pill's 3-cell height) and draws the pill's ring from its own focus, as
-   `pill_style(focused)` does. One caveat of the slice: `solid/src/frame.ts` imports the desktop's `ffi.ts` and draws
-   through `ui_draw`, so the host walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to
-   the terminal's binding, which is how the page's own `pageEntry` motion lands in libterm and why its group fields
-   (opacity, translate) are dropped by a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh`
-   runs it), 9 `identical` lines — at the page's own height of 11 cells (the C page's list starts on row 12) the Solid
-   frame is the C frame's bytes as a dump, dark and light and after `Tab,ArrowDown`, and as ANSI; the page's 11 rows at
-   the suite's 20 rows are `expected-dark.txt`'s and, after the keys, `expected-focus.txt`'s, and the run says which rows
-   are not (rows 12-19 are the C page's list and the footer); a click on the pill flips Units through the page's own
-   `onClick`; termbox2 draws the frame under a pty. Cost: 0.38 ms a frame headless (declare + Solid's flush + Clay + the
-   commands into cells) and 0.46 ms more for the same cells as ANSI (file write included), against the C page's ~0.08 ms
-   a frame, measured as the delta of `demo --frames 1` and `--frames 201` under a pty with the present included
-   (`main.c` prints no number); the dylib is 236 KB. What the Solid page cannot do in cells is the cell's limit as the
-   C pages' is: an image is a box with no glyph, a float has no cells to sit over, text is one row, there is no shadow,
-   backdrop, gradient, group opacity or scale, and a hover exists only where the last press was (termbox2 reports no
-   motion). The other four screens — the feed, the thread, the profile and the notifications — are still C.
+   both targets. `terminal/solid.ts` is `solid/main.ts`'s loop shape over it, and the pages are
+   `solid/app/Sensors.tsx` and `solid/app/Sky.tsx` **unmodified**:
+   - Sensors: the host re-cuts page.c's two lengths for cells through the value channel (the root's padding and gap,
+     the pill's 3-cell height) and draws the pill's ring from its own focus, as `pill_style(focused)` does. At the
+     page's own 11 cells the frame is the C frame's bytes (dump and ANSI, dark/light, after `Tab,ArrowDown`), and the
+     page's 11 rows at 20 are `expected-dark.txt`'s.
+   - the Sky feed: the bar 1 row, the status line 1 row, a card's lines whole rows, the feed's own 12px padding and
+     8px gap left as the page's (its scroll arithmetic adds the same lengths); the avatar image skipped, an image has
+     no glyph; the tablist's focus the C bar's accent fill (a 2px underline is a one-row tab's label), the feed's
+     focus the page's ring token as a cell of box characters; `Tab`/arrows/clicks drive the page's own tablist and
+     scroll machine (`src/vscroll.ts`), `j`/`k` and the wheel (a termbox2 notch) too, and a card's click opens the
+     thread's loading state (the host's `load` never settles).
+   - The binding gained what the feed needed: the clip offset read after the element is open (it was the parent's),
+     `term_bounds`, `term_scroll_offset/to/put`, floats declared with their attach/offset/z/capture (Clay places them
+     over the flow), a text's line height forced to the cell's, and a 256-entry value table.
+   One caveat of the slice: `solid/src/frame.ts` imports the desktop's `ffi.ts` and draws through `ui_draw`, so the host
+   walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to the terminal's binding, which is
+   how a page's own `pageEntry`/tick motion lands in libterm and why its group fields (opacity, translate) are dropped by
+   a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh` runs it), 9 Sensors `identical`
+   lines (the stored frames above, the click on the pill, termbox2 under a pty) and 8 for the feed: the stored
+   `expected-solid-sky.txt`/`-focus.txt`, the focus order (Tab the tablist's accent fill, Tab the feed's ring), the tab
+   switch, the key and the wheel on the same -24px end, the scroll to the third post at 80x12, a card's click opening
+   the thread, and two mutations (the page's offset dropped before Clay -> the feed stays at row 0; no flush after the
+   tab key -> the bar's active tab stays Discover; each prints the check's own FAIL message). The C feed is not
+   reproducible cell for cell: the measured distance is **1251 cells, 0 of 20 rows identical, the worst row 1 (80/80)**
+   at rest, **1397** after the tab switch and **684** after the scroll; its bar's `1/2/3`, its six separator rows, its
+   hand-cut card heights, its one-row body clips and its key-hint footer have no counterpart, and the nearest rows are
+   the body lines (31 and 6 of 80). Cost: 0.08-0.35 ms a frame for the feed (34 commands, 1600 cells), ~3.4x the
+   Sensors page's 10 commands, against the C page's ~0.08 ms; the dylib is 236 KB. What the Solid pages cannot do in
+   cells is the cell's limit as the C pages' is: text is one row (the Solid feed wraps at words, the C pages clip),
+   an image is a skipped box, a float sits over the flow but its shadow/backdrop/alpha fade do not, there is no shadow,
+   backdrop, gradient, group opacity or scale, and a hover or a drag exists only where the last press was (termbox2
+   reports no motion). The thread, the profile and the notifications are still C (`terminal/thread.c`, `profile.c`,
+   `notify.c`); the feed now has its Solid half. **Left for the feed's own screen:** its thread (the page declares it
+   as a root float and the host shows it in its loading state), its data (the host's `load` is a promise that never
+   settles: no fetching, no paging), images, the page's system theme of `src/system.ts`, the wheel's *set* bounds and
+   the thread's thumb, and the C `sky.c` as the oracle it already is.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors
@@ -1495,7 +1516,6 @@ gradient; soft masks on clips; an effect is opt-in with a plain fallback, and sh
 desktop frame and the board where it exists. The GPU raster does not buy the cost back (0.69-1.06 vs 0.31-0.47 ms,
 before the compositor), so the first pass is the CPU raster.
 
-||||||| e044926a
 ## Mobile: iOS and Android (2026-10-23)
 
 Status: not started. The first slice is **A: no JavaScript** — Clay, ThorVG, the C renderer and generated pages in a

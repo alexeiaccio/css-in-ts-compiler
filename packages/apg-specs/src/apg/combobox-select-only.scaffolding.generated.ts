@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/combobox-select-only.qnt
-// Spec hash (sha256): 4061df9290e72b482b8b9a2da85462cd8aab5c2b24b29d647e1146369c0248e6
+// Spec hash (sha256): ba125384c6d539a2e12632dd6ff123a4cf8e29884f094e20ca1922ff9ac84a07
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";

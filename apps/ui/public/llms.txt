@@ -33,11 +33,12 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - meter: APG meter: a track and the fill of the value, on `createMeter`. `add @cssints/meter`
 - breadcrumb: APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it. `add @cssints/breadcrumb`
 - treeview: APG tree view: roving focus, expanded rows and levels on `createTreeview`. `add @cssints/treeview`
-- menu: APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close. `add @cssints/menu`
+- menu: APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items. `add @cssints/menu`
 - tooltip: APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`. `add @cssints/tooltip`
 - select: APG select-only combobox: the button that shows the chosen label is the combobox, a floating listbox follows it with `aria-activedescendant`, and Enter, Tab or a click commits. `add @cssints/select`
 - textarea: A multi-line field styled like `Input`, and the control `Field` puts in with `render`. `add @cssints/textarea`
 - slider: APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`. `add @cssints/slider`
+- slider-multithumb: APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill. `add @cssints/slider-multithumb`
 - spinbutton: APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by. `add @cssints/spinbutton`
 - checkbox-group: APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them. `add @cssints/checkbox-group`
 - theme: the neutral theme as plain custom properties; arrives with any starter

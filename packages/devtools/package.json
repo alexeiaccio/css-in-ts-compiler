@@ -1,6 +1,6 @@
 {
   "name": "@cssints/devtools",
-  "version": "0.20.0",
+  "version": "0.23.0",
   "description": "A dev overlay inspector for cssints: an element's classes by the call that made them, the cascade of the sheet, checked against the browser",
   "license": "MIT",
   "repository": {
@@ -50,7 +50,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.20.0"
+    "cssints": "^0.23.0"
   },
   "engines": {
     "node": ">=22"

@@ -27,15 +27,32 @@ export const Item = () => <span class={p(2)} />;
 `,
 );
 
+// A dependency that ships .jsx sources (`@solidjs/router` does, behind its `solid` condition): no framework plugin
+// compiles a dependency's JSX, and Vite's generic transform would ask for React's runtime, which a Solid app does not
+// install.
+mkdirSync(join(root, "node_modules/ships-jsx"), { recursive: true });
+writeFileSync(
+  join(root, "node_modules/ships-jsx/package.json"),
+  JSON.stringify({
+    name: "ships-jsx",
+    type: "module",
+    exports: { ".": "./index.jsx" },
+  }),
+);
+writeFileSync(join(root, "node_modules/ships-jsx/index.jsx"), "export const Dep = () => <b />;\n");
+
 // A component with JSX and no cssints of its own, that a module with sites imports: the runner loads it too.
-writeFileSync(join(root, "src/plain.tsx"), "export const Plain = () => <i />;\n");
+writeFileSync(
+  join(root, "src/plain.tsx"),
+  'import { Dep } from "ships-jsx";\n\nexport const Plain = () => <i>{Dep}</i>;\n',
+);
 
 let seen = "";
 const fakeFramework = () => ({
   name: "fake-jsx-framework",
   enforce: "pre",
   transform(code, id) {
-    if (!id.endsWith(".tsx") || this.environment.name !== "client") return;
+    if (!/\.(tsx|jsx)$/.test(id) || this.environment.name !== "client") return;
     seen = code;
     return transformWithOxc(code, id, {
       jsx: { runtime: "classic", pragma: "h", pragmaFrag: "h" },

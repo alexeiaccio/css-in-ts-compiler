@@ -1,3 +1,4 @@
+import { createStatus, createTabs } from "@cssints/headless";
 import { createSignal, For, onSettled, Show } from "solid-js";
 
 import { type Compiled, type Files, start } from "./client.ts";
@@ -28,11 +29,12 @@ export default function Playground() {
   const [tab, setTab] = createSignal<Tab>("preview");
   const [doc, setDoc] = createSignal("");
   const [problem, setProblem] = createSignal("");
-  const [copied, setCopied] = createSignal(false);
+  const copied = createStatus();
   const [files, setFiles] = createSignal<Files>({});
   const [active, setActive] = createSignal("");
   const [project, setProject] = createSignal("");
-  const [naming, setNaming] = createSignal<{ from?: string; value: string }>();
+  // the name of a file being added; a rename of an existing tab is the tabs' own
+  const [naming, setNaming] = createSignal<{ value: string }>();
   const [types, setTypes] = createSignal("");
   const engine = start();
   let host: HTMLDivElement | undefined;
@@ -123,8 +125,8 @@ export default function Playground() {
 
   const share = async () => {
     await navigator.clipboard.writeText(location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    copied.show("Link copied");
+    setTimeout(copied.clear, 1500);
   };
   // a project of apps/docs/examples replaces the files (what was edited is gone: Copy link first)
   const open = async (id: string) => {
@@ -133,19 +135,25 @@ export default function Playground() {
     setProject(id || DEFAULT);
     update(all, Object.keys(all)[0]);
   };
+  // A new name for a file: `.ts` unless it has an extension
+  const named = (name: string) => (/\.\w+$/.test(name) ? name : `${name}.ts`);
   const commit = () => {
     const n = naming();
     setNaming(undefined);
     const name = n?.value.trim().replace(/^\.?\//, "");
-    if (!n || !name || name === n.from || Object.hasOwn(files(), name)) return;
-    const named = /\.\w+$/.test(name) ? name : `${name}.ts`;
-    // a renamed file keeps its place (the first is the entry)
-    const all = Object.fromEntries(
-      n.from
-        ? Object.entries(files()).map(([k, v]) => [k === n.from ? named : k, v])
-        : [...Object.entries(files()), [named, ""]],
+    if (!n || !name || Object.hasOwn(files(), name)) return;
+    const to = named(name);
+    update({ ...files(), [to]: "" }, to);
+  };
+  // a renamed file keeps its place (the first is the entry)
+  const rename = (from: string, label: string) => {
+    const name = label.trim().replace(/^\.?\//, "");
+    if (!name || name === from || Object.hasOwn(files(), name)) return;
+    const to = named(name);
+    update(
+      Object.fromEntries(Object.entries(files()).map(([k, v]) => [k === from ? to : k, v])),
+      to,
     );
-    update(all, named);
   };
   const remove = (name: string) => {
     const { [name]: _, ...rest } = files();
@@ -160,6 +168,44 @@ export default function Playground() {
     if (!r?.ok) return "";
     return t === "css" || t === "shipped" ? r[t] : (r.files[active()]?.[t] ?? "");
   };
+  const names = () => Object.keys(files());
+  // the tab of the file open: the tabs are controlled by `active`, so a click is a request the page takes
+  const openAt = () => Math.max(0, names().indexOf(active()));
+  // One registry per list (close, rename, the Delete key; the output's arrows). The example tabs that plugin/markdown.ts builds
+  // stay radios that the CSS switches: they must work prerendered, before any script runs.
+  const tabs = createTabs({
+    get items() {
+      return names().length;
+    },
+    get value() {
+      return openAt();
+    },
+    closable: true,
+    renamable: true,
+    label: (index) => names()[index],
+    onValueChange: (index) => {
+      const name = names()[index];
+      if (name) update(files(), name);
+    },
+    onClose: (index) => {
+      const name = names()[index];
+      if (name) remove(name);
+    },
+    onRename: (index, label) => {
+      const name = names()[index];
+      if (name) rename(name, label);
+    },
+  });
+  const output = createTabs({
+    items: TABS.length,
+    get value() {
+      return TABS.findIndex(([id]) => id === tab());
+    },
+    onValueChange: (index) => {
+      const next = TABS[index];
+      if (next) setTab(next[0]);
+    },
+  });
 
   return (
     <div class={s.page}>
@@ -196,33 +242,34 @@ export default function Playground() {
           Format
         </button>
         <button type="button" class={s.button} onClick={() => void share()}>
-          {copied() ? "Link copied" : "Copy link"}
+          Copy link
         </button>
+        <span class={s.status} {...copied.statusProps}>
+          {copied.message()}
+        </span>
       </div>
       <div class={s.split}>
         <div class={s.column}>
-          <div class={s.tabs} role="tablist" aria-label="Files">
-            <For each={Object.keys(files())}>
-              {(name) => (
+          <div class={s.tabs} {...tabs.tablistProps} aria-label="Files">
+            <For each={names()}>
+              {(name, i) => (
                 <span>
-                  <button
-                    type="button"
-                    role="tab"
+                  <div
                     class={s.tab({ on: active() === name })}
-                    aria-selected={active() === name ? "true" : "false"}
-                    onClick={() => update(files(), name)}
-                    onDblClick={() => setNaming({ from: name, value: name })}
+                    {...tabs.tabProps(i())}
+                    onDblClick={tabs.renameProps(i()).onDblClick}
                     title="Double-click to rename"
                   >
-                    {name}
-                  </button>
-                  <Show when={Object.keys(files()).length > 1}>
-                    <button
-                      type="button"
-                      class={s.tab({ on: false })}
-                      aria-label={`Delete ${name}`}
-                      onClick={() => remove(name)}
-                    >
+                    <Show when={tabs.renameProps(i()).editing()} fallback={name}>
+                      <input
+                        {...tabs.renameProps(i()).inputProps}
+                        class={s.button}
+                        ref={(el) => queueMicrotask(() => el.focus())}
+                      />
+                    </Show>
+                  </div>
+                  <Show when={names().length > 1}>
+                    <button type="button" class={s.tab({ on: false })} {...tabs.closeProps(i())}>
                       ×
                     </button>
                   </Show>
@@ -245,10 +292,10 @@ export default function Playground() {
               {(n) => (
                 <input
                   class={s.button}
-                  aria-label={n().from ? `Rename ${n().from}` : "File name"}
+                  aria-label="File name"
                   value={n().value}
                   ref={(el) => queueMicrotask(() => el.focus())}
-                  onInput={(e) => setNaming({ ...n(), value: e.currentTarget.value })}
+                  onInput={(e) => setNaming({ value: e.currentTarget.value })}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") commit();
                     else if (e.key === "Escape") setNaming(undefined);
@@ -260,6 +307,8 @@ export default function Playground() {
           </div>
           <div
             class={s.editor}
+            {...tabs.tabpanelProps(openAt())}
+            tabindex={-1}
             ref={(el) => {
               host = el;
             }}
@@ -280,22 +329,20 @@ export default function Playground() {
           </Show>
         </div>
         <div class={s.result}>
-          <div class={s.tabs} role="tablist" aria-label="Output">
+          <div class={s.tabs} {...output.tablistProps} aria-label="Output">
             <For each={TABS}>
-              {([id, label]) => (
-                <button
-                  type="button"
-                  role="tab"
-                  class={s.tab({ on: tab() === id })}
-                  aria-selected={tab() === id ? "true" : "false"}
-                  onClick={() => setTab(id)}
-                >
+              {([id, label], i) => (
+                <button type="button" class={s.tab({ on: tab() === id })} {...output.tabProps(i())}>
                   {label}
                 </button>
               )}
             </For>
           </div>
-          <div class={s.pane} role="tabpanel">
+          <div
+            class={s.pane}
+            {...output.tabpanelProps(TABS.findIndex(([id]) => id === tab()))}
+            tabindex={-1}
+          >
             <Show
               when={tab() === "preview"}
               fallback={<pre class={s.code}>{text(tab() as Exclude<Tab, "preview">)}</pre>}

@@ -38,19 +38,36 @@
 // ControlledFollowsProp (no event commits while controlled),
 // RejectedRequestUntouched, AcceptedRequestCommits.
 //
+// The primitive also drags (`pointerdown` on the rail or the thumb, then a move
+// per pointer position until `pointerup` / `pointercancel`). That is an
+// extension whose oracle is the DOM test, like `disabled` below: a drag is not a
+// var here but a sequence of positions, and carrying it would need a pointer
+// position var and a `setPointer` event in every action that assigns every var,
+// which is a second machine, not a line. What this spec therefore does not say:
+// **DragFollowsPointer** — while the pointer is held, aria-valuenow is the value
+// of the pointer's *current* position on the rail (on the step grid), so it does
+// not accumulate, returning the pointer to where the press was returns the
+// value, and no move after the release changes anything. `pointer` below fixes
+// the one press the model knows, and the step grid and the clamp it shares with
+// the drag are the same rule; the geometry (which corner of the rail is the
+// minimum, per orientation and direction) is the DOM's, not the machine's: the
+// bridge hands `pointer` a 0..1 fraction.
+//
 // Deliberate omissions (ponytail: ceilings, not bugs):
 //   - aria-label / aria-labelledby (labelling is a rendering concern).
 //   - Non-integer values and a step that does not divide the range: the range
 //     is 0..10 and every variant's step divides it, so `End` and a pointer
 //     press always land on the grid.
 //   - Dragging (pointer capture, move events): only a discrete pointer
-//     "press at value" is modelled, snapped to the step grid and clamped.
+//     "press at value" is modelled, snapped to the step grid and clamped. The
+//     extension's rules and the invariant the model does not carry are above;
+//     `slider.browser.test.tsx` holds it.
 //   - Disabled / read-only: the primitive's widget-level `disabled` is a
 //     deliberate extension of the pattern, and the machine has no `disabled`
 //     var. So the model carries no invariant for it ("a disabled thumb drops
-//     every key and rail press and announces aria-disabled"); its oracle is the
-//     DOM test in `packages/headless/test/slider.browser.test.tsx`. Read-only is
-//     not offered at all.
+//     every key, rail press and drag and announces aria-disabled"); its oracle
+//     is the DOM test in `packages/headless/test/slider.browser.test.tsx`.
+//     Read-only is not offered at all.
 //   - Touch assistive-technology key synthesis, and aria-valuetext formatting
 //     (units, locale): a real widget formats the text from its own value; the
 //     spec only fixes WHEN the text is derived (always, from valuenow).

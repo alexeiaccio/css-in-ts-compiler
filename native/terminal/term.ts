@@ -25,6 +25,10 @@ const open = () =>
     term_present: { args: [], returns: T.void },
     term_poll: { args: [T.ptr, T.i32, T.ptr], returns: T.i32 },
     term_over: { args: [T.ptr, T.i32], returns: T.i32 },
+    term_bounds: { args: [T.ptr, T.i32, T.ptr], returns: T.i32 },
+    term_scroll_offset: { args: [T.ptr, T.i32, T.i32], returns: T.f32 },
+    term_scroll_to: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.f32 },
+    term_scroll_put: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.f32 },
     term_dump: { args: [T.cstring], returns: T.i32 },
     term_ansi: { args: [T.cstring], returns: T.i32 },
     term_errors: { args: [], returns: T.i32 },
@@ -71,6 +75,36 @@ export const term = {
   poll: (key: Uint8Array, out: Float32Array) => lib().term_poll(ptr(key), key.length, ptr(out)),
   /** Is the pointer over the element with that id, in the last layout? */
   over: (id: Uint8Array) => lib().term_over(ptr(id), id.length) !== 0,
+  /** x, y, width, height of the element in the last layout, or undefined. */
+  bounds: (id: Uint8Array) => {
+    const out = new Float32Array(4);
+    return lib().term_bounds(ptr(id), id.length, ptr(out)) ? out : undefined;
+  },
+  /** A clip element's offset (negative is scrolled down): the page's own scroll wrote it. 0 when there is no clip. */
+  scrollOffset: (id: string) => {
+    const bytes = Buffer.from(id);
+    return lib().term_scroll_offset(ptr(bytes), bytes.length, 0);
+  },
+  /** Scrolls a clip element to y, clamped to its content (negative is down); the offset it took. */
+  scrollTo: (id: string, y: number) => {
+    const bytes = Buffer.from(id);
+    return lib().term_scroll_to(ptr(bytes), bytes.length, 0, y);
+  },
+  /** ... and its x. */
+  scrollToX: (id: string, x: number) => {
+    const bytes = Buffer.from(id);
+    return lib().term_scroll_to(ptr(bytes), bytes.length, 1, x);
+  },
+  /** Puts a clip element's offset where the page says, past its content too: a rubber band's overscroll. */
+  scrollPut: (id: string, y: number) => {
+    const bytes = Buffer.from(id);
+    return lib().term_scroll_put(ptr(bytes), bytes.length, 0, y);
+  },
+  /** ... and its x. */
+  scrollPutX: (id: string, x: number) => {
+    const bytes = Buffer.from(id);
+    return lib().term_scroll_put(ptr(bytes), bytes.length, 1, x);
+  },
   /** The last frame as plain text: "-" is stdout. 0 on success. */
   dump: (path: string) => lib().term_dump(cstr(path)),
   /** The last frame as ANSI truecolour: "-" is stdout. 0 on success. */
@@ -87,4 +121,14 @@ export const term = {
  */
 export const ui = {
   value: (id: Uint8Array, field: number, v: number) => term.value(id, field, v),
+  over: (id: Uint8Array) => term.over(id),
+  bounds: (id: Uint8Array) => term.bounds(id),
+  /** Clay's own wheel scrolling: the terminal never drives it (term_begin does not call Clay_UpdateScrollContainers),
+   *  so a page that asks for it off is asking for what it already has — the pre-cut lengths stay the page's. */
+  autoScroll: () => {},
+  scrollOffset: (id: string) => term.scrollOffset(id),
+  scrollTo: (id: string, y: number) => term.scrollTo(id, y),
+  scrollToX: (id: string, x: number) => term.scrollToX(id, x),
+  scrollPut: (id: string, y: number) => term.scrollPut(id, y),
+  scrollPutX: (id: string, x: number) => term.scrollPutX(id, x),
 } as Record<string, (...args: unknown[]) => unknown>;

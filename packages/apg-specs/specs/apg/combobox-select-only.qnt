@@ -61,7 +61,13 @@
 //     event, standing in for the timeout).
 //   - Scrolling the active option into view, hover styling, the label,
 //     aria-controls / aria-labelledby wiring (static ids).
-//   - Disabled / required props, multi-select, option groups.
+//   - Required, multi-select, option groups.
+//   - A widget-level `disabled`: a deliberate extension of the pattern, not
+//     modelled. The machine has no `disabled` var, so it cannot say "while
+//     disabled, a key, a click, a typeahead character, a filter input and an
+//     option click change nothing, no popup opens, the combobox keeps its tab
+//     stop and it and the trigger announce aria-disabled". The DOM test in
+//     `packages/headless/test/combobox.browser.test.tsx` is its oracle.
 //   - Pointer hover over an option does not move the active option.
 //
 // Generator notes: the generator supports no action preconditions, so every

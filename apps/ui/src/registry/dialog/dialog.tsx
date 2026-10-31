@@ -1,4 +1,5 @@
 import { createDialogModal, type DialogModal } from "@cssints/headless";
+import { Portal } from "@solidjs/web";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
@@ -34,6 +35,8 @@ export interface DialogProps {
   readonly dismissable?: boolean;
   /** Escape cannot close it. */
   readonly keyboardDismissDisabled?: boolean;
+  /** The element the layer is portalled into (default `document.body`), for a host that has its own modal root. */
+  readonly mount?: Element;
   readonly id?: string;
   readonly children?: JSX.Element;
 }
@@ -65,6 +68,7 @@ const DialogContext = createContext<{
   readonly descriptionId: string;
   readonly label: () => string;
   readonly description: () => string | undefined;
+  readonly mount: () => Element | undefined;
 }>();
 
 // The layer holds the page still and takes the wash; the backdrop sits in it and takes the dismiss click; the panel floats
@@ -146,8 +150,9 @@ export const Dialog = (props: DialogProps): JSX.Element => {
   // the panel names itself with `aria-label`: the label is a prop, and a title part is the visible heading, not the name
   const label = () => props.label;
   const description = () => props.description;
+  const mount = () => props.mount;
   return (
-    <DialogContext value={{ dialog, descriptionId, label, description }}>
+    <DialogContext value={{ dialog, descriptionId, label, description, mount }}>
       {props.children}
     </DialogContext>
   );
@@ -171,10 +176,12 @@ export const DialogTrigger = (props: DialogTriggerProps): JSX.Element => {
 
 /**
  * The panel and the wash under it. Nothing is in the DOM while the dialog is closed; focus moves into the panel when it
- * opens and back to whatever had it when it closes, and the page does not scroll while it is open.
+ * opens and back to whatever had it when it closes, and the page does not scroll while it is open. The layer is portalled
+ * into `document.body` (or `Dialog`'s `mount`) so an ancestor's `transform`, `filter`, `contain` or `overflow` can neither
+ * clip it nor become the containing block of its `position: fixed`.
  */
 export const DialogContent = (props: DialogContentProps): JSX.Element => {
-  const { dialog, descriptionId, label, description } = useContext(DialogContext);
+  const { dialog, descriptionId, label, description, mount } = useContext(DialogContext);
   let panel: HTMLDivElement | undefined;
   let restore: HTMLElement | null = null;
   let scroll: string | undefined;
@@ -198,38 +205,40 @@ export const DialogContent = (props: DialogContentProps): JSX.Element => {
   );
   return (
     <Show when={dialog.open()}>
-      <div data-part="dialog-layer" class={layerClass}>
-        <div {...dialog.backdropProps} data-part="dialog-backdrop" class={backdropClass} />
-        {renderPart(
-          props,
-          merge(omit(props, "render", "class", "children"), dialog.dialogProps, () => ({
-            "aria-label": label(),
-            "data-part": "dialog",
-            get class() {
-              return css.cn(panelClass, props.class);
-            },
-          })),
-          undefined,
-          (part) => (
-            <div
-              {...part}
-              ref={(element: HTMLDivElement) => {
-                panel = element;
-              }}
-            >
-              <p
-                id={descriptionId}
-                data-part="dialog-description"
-                class={descriptionClass}
-                hidden={description() === undefined}
+      <Portal mount={mount()}>
+        <div data-part="dialog-layer" class={layerClass}>
+          <div {...dialog.backdropProps} data-part="dialog-backdrop" class={backdropClass} />
+          {renderPart(
+            props,
+            merge(omit(props, "render", "class", "children"), dialog.dialogProps, () => ({
+              "aria-label": label(),
+              "data-part": "dialog",
+              get class() {
+                return css.cn(panelClass, props.class);
+              },
+            })),
+            undefined,
+            (part) => (
+              <div
+                {...part}
+                ref={(element: HTMLDivElement) => {
+                  panel = element;
+                }}
               >
-                {description()}
-              </p>
-              {props.children}
-            </div>
-          ),
-        )}
-      </div>
+                <p
+                  id={descriptionId}
+                  data-part="dialog-description"
+                  class={descriptionClass}
+                  hidden={description() === undefined}
+                >
+                  {description()}
+                </p>
+                {props.children}
+              </div>
+            ),
+          )}
+        </div>
+      </Portal>
     </Show>
   );
 };

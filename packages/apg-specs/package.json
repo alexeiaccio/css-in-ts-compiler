@@ -1,6 +1,6 @@
 {
   "name": "@cssints/apg-specs",
-  "version": "0.20.0",
+  "version": "0.23.0",
   "description": "APG widget specs: Quint sources, generated models, scenario bridges and ported scenario sets, the test oracle of headless widgets",
   "license": "MIT",
   "repository": {

@@ -1,5 +1,30 @@
 # cssints
 
+## 0.23.0
+
+### Patch Changes
+
+- @cssints/css-grammar@0.23.0
+
+## 0.22.0
+
+### Patch Changes
+
+- 988df79: The evaluation server compiles a dependency's `.jsx` inertly too.
+  
+  A package that ships `.jsx` sources (`@solidjs/router` does, behind its `solid` condition) reached the private Vite server of a build and the app server's `ssr` environment untransformed, where Vite's generic transform asked for `react/jsx-runtime` — which an app on another framework does not install, so the build failed on the first module importing it. A `.jsx` the runner follows into has the same job as the app's own components: its top level must run, its elements are irrelevant.
+- @cssints/css-grammar@0.22.0
+
+## 0.21.0
+
+### Minor Changes
+
+- e69636e: A plugin runtime with a `script` (or `css`) and no `polyfills` is delivered for every target, not only where a target lacks a feature: a plugin whose own script is the feature (`@cssints/reactive`) ships it in every build. `ship({ owner, open })` (from `cssints/plugin`) is a site that returns more than a class string: each style becomes its class string and the rest its JSON, so `state()`'s owner and its sources reach the browser as an object.
+
+### Patch Changes
+
+- @cssints/css-grammar@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

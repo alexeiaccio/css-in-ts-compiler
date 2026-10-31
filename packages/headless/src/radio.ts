@@ -3,10 +3,16 @@ import { type Accessor, createSignal, createUniqueId } from "solid-js";
 export type RadioFlavor = "roving" | "activedescendant";
 
 export interface RadioGroupOptions<T = unknown> {
-  /** Radio values, one per radio; the observable `value` is the checked one. */
-  readonly values: ReadonlyArray<T>;
-  /** Controlled: the host owns the checked value and this is the only thing that changes it. */
-  readonly value?: T | undefined;
+  /** Radio values, one per radio; the observable `value` is the checked one. A getter is fine. */
+  readonly values: ReadonlyArray<T> | (() => ReadonlyArray<T>);
+  /**
+   * Controlled: the host owns the checked value and this is the only thing that
+   * changes it. Pass a getter (`() => checked()`) when the check follows a
+   * signal, or when "nothing checked" is a real controlled state: an accessor
+   * that returns `undefined` is still controlled, while the bare `undefined`
+   * prop means uncontrolled.
+   */
+  readonly value?: T | (() => T | undefined) | undefined;
   /** Uncontrolled starting checked value; ignored while `value` is set. */
   readonly defaultValue?: T | undefined;
   /** Roving tabindex (default) or `aria-activedescendant` on the group. */
@@ -45,6 +51,8 @@ export interface RadioProps {
   readonly "aria-checked": "true" | "false";
   readonly "aria-disabled": "true" | "false";
   readonly "aria-describedby": string | undefined;
+  /** Inert on a `<div role=radio>`; on a `<button role=radio>` it keeps a surrounding form from submitting. */
+  readonly type: "button";
   readonly tabindex: 0 | -1 | undefined;
   readonly onClick: () => void;
   readonly onFocus: () => void;
@@ -86,8 +94,9 @@ export interface RadioGroup<T = unknown> {
  * callback, which `createControllable` does not expose.
  */
 export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): RadioGroup<T> => {
-  const values = options.values;
-  const count = values.length;
+  const valueList = (): ReadonlyArray<T> =>
+    typeof options.values === "function" ? options.values() : options.values;
+  const count = (): number => valueList().length;
   const base = options.id ?? createUniqueId();
   const dir = options.dir ?? "ltr";
 
@@ -95,13 +104,13 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     if (value === undefined) {
       return -1;
     }
-    const index = values.indexOf(value);
+    const index = valueList().indexOf(value);
     return index >= 0 ? index : -1;
   };
 
   const initial = indexOfValue(options.defaultValue);
   const [localChecked, setLocalChecked] = createSignal<number>(
-    initial >= 0 && initial < count ? initial : -1,
+    initial >= 0 && initial < count() ? initial : -1,
   );
   const [focused, setFocused] = createSignal<number | null>(null);
   const [disabledSet, setDisabledSet] = createSignal<ReadonlySet<number>>(
@@ -109,15 +118,15 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
   );
   const [flavor, setFlavorSignal] = createSignal<RadioFlavor>(options.flavor ?? "roving");
 
-  // the controlled value prop wins; undefined = uncontrolled
-  const controlledIndex = (): number | undefined => {
-    if (options.value === undefined) {
-      return undefined;
-    }
-    const index = indexOfValue(options.value);
-    return index >= 0 ? index : undefined;
+  // the controlled value prop wins; the bare `undefined` prop is uncontrolled,
+  // while a getter may return `undefined` for "nothing checked"
+  const controlled = (): boolean => options.value !== undefined;
+  const controlledIndex = (): number => {
+    const value = options.value;
+    const current = typeof value === "function" ? (value as () => T | undefined)() : value;
+    return indexOfValue(current);
   };
-  const checkedIndex = (): number => controlledIndex() ?? localChecked();
+  const checkedIndex = (): number => (controlled() ? controlledIndex() : localChecked());
   const checked = (): number | null => {
     const index = checkedIndex();
     return index >= 0 ? index : null;
@@ -128,10 +137,10 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     if (next === checkedIndex()) {
       return;
     }
-    if (controlledIndex() === undefined) {
+    if (!controlled()) {
       setLocalChecked(next);
     }
-    const value = values[next];
+    const value = valueList()[next];
     if (value !== undefined) {
       options.onValueChange?.(value);
     }
@@ -145,7 +154,7 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
   const isDisabled = (index: number): boolean => disabledSet().has(index);
 
   const firstEnabled = (): number => {
-    for (let index = 0; index < count; index += 1) {
+    for (let index = 0; index < count(); index += 1) {
       if (!isDisabled(index)) {
         return index;
       }
@@ -156,8 +165,8 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
   const tabStop = (): number => checked() ?? firstEnabled();
 
   const stepIndex = (from: number, delta: 1 | -1): number => {
-    for (let offset = 1; offset <= count; offset += 1) {
-      const index = (((from + delta * offset) % count) + count) % count;
+    for (let offset = 1; offset <= count(); offset += 1) {
+      const index = (((from + delta * offset) % count()) + count()) % count();
       if (!isDisabled(index)) {
         return index;
       }
@@ -169,11 +178,11 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
 
   const value = (): T | null => {
     const index = checked();
-    return index === null ? null : (values[index] ?? null);
+    return index === null ? null : (valueList()[index] ?? null);
   };
 
   const select = (index: number): void => {
-    if (index < 0 || index >= count || isDisabled(index)) {
+    if (index < 0 || index >= count() || isDisabled(index)) {
       return;
     }
     request(index);
@@ -243,7 +252,9 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     checked,
     focused,
     flavor,
-    values,
+    get values() {
+      return valueList();
+    },
     value,
     focus,
     blur,
@@ -305,6 +316,7 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
       get "aria-describedby"() {
         return options.describedby;
       },
+      type: "button",
       get tabindex() {
         return flavor() === "roving" ? (index === tabStop() ? 0 : -1) : undefined;
       },

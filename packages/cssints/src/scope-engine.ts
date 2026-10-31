@@ -8,11 +8,21 @@ import { grammarOf } from "@cssints/css-grammar/token";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Result } from "effect";
 
+import type { Decl as EmittedDecl } from "./author-types.ts";
 import { MemberError } from "./errors.ts";
 import { inGroup } from "./group.ts";
 import { kernelWarnings } from "./kernel.ts";
 import { relation } from "./leaves.ts";
-import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
+import {
+  camel,
+  type Carry,
+  type Decl,
+  failIn,
+  isNode,
+  node,
+  probed,
+  type CssNode,
+} from "./node.ts";
 import { type Kernel, type KernelWarning, type Plug, registry } from "./registry.ts";
 import type {
   ArgsDef,
@@ -478,8 +488,12 @@ const chainOf = (c: Compiler, key: string, def: ChainDef) => {
 const grouped = (c: Compiler, def: { group?: true }, carry: Carry): Carry =>
   def.group ? { ...carry, markers: [...(carry.markers ?? []), [`_g-${c.name}`, "group"]] } : carry;
 
-const ownDecls = (c: Compiler, emitted: readonly (readonly [string, string])[]) =>
-  emitted.map(([p, v]): [string, string] => [c.own(p), c.own(v)]);
+const ownDecls = (c: Compiler, emitted: readonly EmittedDecl[]) =>
+  emitted.map(([p, v, , fallbacks, join]): Decl =>
+    fallbacks || join
+      ? [c.own(p), c.own(v), undefined, fallbacks && [...fallbacks], join]
+      : [c.own(p), c.own(v)],
+  );
 
 // One positional argument against its definition: the value as `build` gets it.
 const argOf = (c: Compiler, label: string, def: unknown, v: unknown, tokens?: unknown): unknown => {

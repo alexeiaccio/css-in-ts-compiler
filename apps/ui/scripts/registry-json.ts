@@ -212,7 +212,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Menu",
     description:
-      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close",
+      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
     also: ["@cssints/button"],
   },
   {
@@ -248,6 +248,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Slider",
     description:
       "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
+  },
+  {
+    name: "slider-multithumb",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Range slider",
+    description:
+      "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
   },
   {
     name: "spinbutton",

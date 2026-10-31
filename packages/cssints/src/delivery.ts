@@ -76,11 +76,16 @@ export const uncovered = Effect.fnUntraced(function* (
   return off.filter((t) => beyond.has(t));
 });
 
-/** Whether a target needs the runtime: it lacks a feature in `polyfills` and the runtime reaches it (`unreached`). */
+/**
+ * Whether a target needs the runtime: it lacks a feature in `polyfills` and the runtime reaches it (`unreached`). A
+ * runtime with a `script` (or `css`) and no `polyfills` is the plugin's own face, not a fallback: no target can decide it,
+ * so every target needs it.
+ */
 export const needed = Effect.fnUntraced(function* (
   runtime: Runtime,
   ts?: Target[],
 ): Effect.fn.Return<boolean> {
+  if (!runtime.polyfills.length && (runtime.script || runtime.css)) return true;
   const off = yield* unreached(runtime, ts);
   for (const key of runtime.polyfills)
     for (const t of yield* lacking(key, ts)) if (!off.has(t.join(" "))) return true;

@@ -18,8 +18,10 @@ import { type Prefs, withPrefs } from "./prefs";
  *
  * Request/commit (map ticket `rt1p`): the open state, and the checked items of
  * the checkable variants, are controllable. Uncontrolled by default
- * (`defaultOpen` / `defaultValue`); pass `open` / `value` (+ `onOpenChange` /
- * `onCheckedValueChange`) to own them. Every opening and closing intent — the
+ * (`defaultOpen` / `defaultChecked` + `defaultChoice`); pass `open`, and the
+ * checked state as either view — the readable `checked` / `choice` (+
+ * `onCheckedValuesChange`) or the packed `value` (+ `onCheckedValueChange`) —
+ * to own them. Every opening and closing intent — the
  * trigger's click and keys, Escape, an item's activation, Tab, and the
  * programmatic `openMenu` / `closeMenu` — is a request the host may ignore.
  */
@@ -57,16 +59,33 @@ export interface MenuOptions {
   /** Radio item index selected at mount (`radio-items` / `mixed`). */
   readonly defaultChoice?: number;
   /**
-   * Controlled: the host owns the checked items. Packed as
+   * Controlled, readable: the checked checkbox item indices. The readable pair
+   * (`checked` + `choice`) is the store; the packed `value` is a view of it
+   * (`menu-checkable.qnt`'s `checked(wrap, choice)` has one checkbox bit, so
+   * only the readable pair names a checkbox beyond item 0). `undefined` leaves
+   * the pair uncontrolled.
+   */
+  readonly checked?: ReadonlyArray<number> | undefined;
+  /** Controlled, readable: the chosen radio item index; `-1` for none. */
+  readonly choice?: number | undefined;
+  /**
+   * Controlled: the host owns the checked items, packed as
    * `checkboxItem0 * 5 + radioChoice` (1-based), matching `menu-checkable.qnt`'s
-   * `checked(wrap, choice)`; pass `undefined` for uncontrolled. The open state
-   * has its own `open` pair.
+   * `checked(wrap, choice)`; pass `undefined` for uncontrolled. It is the
+   * packed view of the same state as `checked` / `choice`, and the readable
+   * pair wins where both are given. The open state has its own `open` pair.
    */
   readonly value?: number | undefined;
   /** The uncontrolled packed checked state at mount. */
   readonly defaultValue?: number;
   /** A request to change the checked items (a packed `value` the host may ignore). */
   readonly onCheckedValueChange?: (value: number) => void;
+  /**
+   * A request to change the readable pair: the packed `onCheckedValueChange`'s
+   * readable twin. Uncontrolled it is accepted (the state has committed when it
+   * is called); controlled with `checked` / `choice` the host may ignore it.
+   */
+  readonly onCheckedValuesChange?: (checked: ReadonlyArray<number>, choice: number) => void;
   /** Item indices disabled (focusable, not activatable). */
   readonly disabled?: ReadonlyArray<number>;
   readonly id?: string;
@@ -134,8 +153,12 @@ export interface Menu {
   readonly focusLevel: Accessor<0 | 1 | 2>;
   readonly focusIndex: Accessor<number>;
   readonly items: ReadonlyArray<MenuItem>;
+  /** The checked checkbox items, by index: the readable view of the state. */
   readonly checked: Accessor<ReadonlyArray<number>>;
+  /** The chosen radio item, `-1` for none: the readable view of the state. */
   readonly choice: Accessor<number>;
+  /** The packed view of the same state: `checkboxItem0 * 5 + radioChoice` (1-based). */
+  readonly value: Accessor<number>;
   readonly focusTrigger: () => void;
   readonly leave: () => void;
   readonly clickTrigger: () => void;
@@ -218,9 +241,17 @@ export const createMenu = (options: MenuOptions): Menu => {
     choice = packedChoice === 0 ? -1 : packedChoice - 1;
   }
 
-  // The controlled checked items live in the host; the packed encoding matches
-  // `menu-checkable.qnt` (`checked(wrap, choice)`).
+  // One state, two views: the readable pair (`checked` + `choice`) is the store
+  // and the packed number (`value`) is derived from it. The pack of
+  // `menu-checkable.qnt` is `checked(wrap, choice)` = one checkbox bit * 5 +
+  // the radio, so only the readable pair can name a checkbox beyond item 0; the
+  // packed pair stays as the spec's and the existing callers' contract. A host
+  // may own either view (each field falls back to the packed one, then to the
+  // local state); where both are given the readable pair wins.
   const currentChecked = (): Set<number> => {
+    if (options.checked !== undefined) {
+      return new Set(options.checked);
+    }
     if (options.value === undefined) {
       return checked;
     }
@@ -231,6 +262,9 @@ export const createMenu = (options: MenuOptions): Menu => {
     return set;
   };
   const currentChoice = (): number => {
+    if (options.choice !== undefined) {
+      return options.choice;
+    }
     if (options.value === undefined) {
       return choice;
     }
@@ -239,6 +273,34 @@ export const createMenu = (options: MenuOptions): Menu => {
   };
   const packChecked = (set: Set<number>, radio: number): number =>
     (set.has(0) ? 5 : 0) + (radio >= 0 ? radio + 1 : 0);
+  // The packed view of the readable pair, as `menu-checkable.qnt` carries it.
+  const packed = (): number => packChecked(currentChecked(), currentChoice());
+
+  // A write from either view is the same commit: the fields the host does not
+  // own commit here, the packed request stays controlled-only (as it was), and
+  // the readable one fires always.
+  const requestChecked = (next: Set<number>, nextChoice: number): void => {
+    const checkedOwned = options.checked !== undefined || options.value !== undefined;
+    const choiceOwned = options.choice !== undefined || options.value !== undefined;
+    if (!checkedOwned) {
+      checked = next;
+    }
+    if (!choiceOwned) {
+      choice = nextChoice;
+    }
+    if (!checkedOwned || !choiceOwned) {
+      bump();
+    }
+    if (options.value !== undefined) {
+      options.onCheckedValueChange?.(packChecked(next, nextChoice));
+    }
+    // Readable requests fire uncontrolled too, like `onOpenChange`: the state
+    // has committed, and a host that only listens still hears the change.
+    options.onCheckedValuesChange?.(
+      [...next].sort((a, b) => a - b),
+      nextChoice,
+    );
+  };
   let buffer = "";
   let bufferTimer: ReturnType<typeof setTimeout> | undefined;
   const [version, setVersion] = createSignal(0);
@@ -376,12 +438,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       } else {
         updated.delete(index);
       }
-      if (options.value === undefined) {
-        checked = updated;
-        bump();
-      } else {
-        options.onCheckedValueChange?.(packChecked(updated, currentChoice()));
-      }
+      requestChecked(updated, currentChoice());
       options.onCheckedChange?.(next, index);
       if (close) {
         closeToTrigger();
@@ -389,12 +446,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       return;
     }
     if (item.kind === "radio") {
-      if (options.value === undefined) {
-        choice = index;
-        bump();
-      } else {
-        options.onCheckedValueChange?.(packChecked(currentChecked(), index));
-      }
+      requestChecked(currentChecked(), index);
       options.onValueChange?.(index);
       if (close) {
         closeToTrigger();
@@ -517,6 +569,7 @@ export const createMenu = (options: MenuOptions): Menu => {
     items,
     checked: track(() => [...currentChecked()].sort((a, b) => a - b)),
     choice: track(() => currentChoice()),
+    value: track(packed),
     focusTrigger,
     leave,
     clickTrigger,

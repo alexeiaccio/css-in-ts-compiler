@@ -1,4 +1,4 @@
-import { type Accessor, createSignal } from "solid-js";
+import { type Accessor, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
 import { createField, type FieldErrorProps } from "./field";
 
@@ -16,7 +16,7 @@ export interface CheckboxGroupOptions<T = unknown> {
   readonly parent?: boolean;
   /** Remember the last mixed combination for the controller's third activation. */
   readonly remember?: boolean;
-  /** Base of the group's ids (`<id>-control`, `-error`); a unique one when absent. */
+  /** Base of the group's ids (`<id>-control`, the children's `<id>-0`..`-2`, `-error`); unique when absent. */
   readonly id?: string;
   /** The group's name, as `aria-label`: a `role="group"` needs one. */
   readonly label?: string | undefined;
@@ -159,12 +159,16 @@ const nextFocus = (focus: CheckboxGroupFocus): CheckboxGroupFocus => {
  * Behaviour is checked against `specs/apg/checkbox-group.qnt` by the bridge. That
  * model leaves labelling out on purpose ("shift+Tab, accessible names,
  * fieldset/legend or role=group labelling" in its header), so the field contract
- * is checked by plain assertions in `test/checkbox-group.browser.test.tsx`.
+ * is checked by plain assertions in `test/checkbox-group.browser.test.tsx`. Ids
+ * are omitted there too: the children's ids follow the group's base
+ * (`<base>-0`..`-2`, from `id` or a unique one), so two groups on one page do
+ * not collide.
  */
 export const createCheckboxGroup = <T = unknown>(
   options: CheckboxGroupOptions<T>,
 ): CheckboxGroup<T> => {
   const values = options.values;
+  const base = options.id ?? createUniqueId();
   const packedOf = (labels: ReadonlyArray<T>): number =>
     packed(values.map((value) => labels.includes(value)));
   const labelsOf = (packedValue: number): ReadonlyArray<T> =>
@@ -176,7 +180,7 @@ export const createCheckboxGroup = <T = unknown>(
     onChange: () => (next: number) => options.onValueChange?.(labelsOf(next)),
   });
   const field = createField({
-    id: options.id,
+    id: base,
     get invalid() {
       return options.invalid;
     },
@@ -327,7 +331,7 @@ export const createCheckboxGroup = <T = unknown>(
       },
     },
     childProps: (index) => ({
-      id: `${index}`,
+      id: `${base}-${index}`,
       role: "checkbox",
       get "aria-checked"() {
         return children()[index] === true ? "true" : "false";

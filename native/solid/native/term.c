@@ -8,7 +8,9 @@
 // ui.c cannot take a different measure (it hard-codes Clay_ThorVG_MeasureText and draws into a pixel buffer), and the
 // terminal does not link SDL3, ThorVG or a window at all, so this is the "thin terminal variant" as its own file. The
 // declaration part is ui.c's, field for field (the order is solid/README.md's table, mirrored by solid/src/pack.ts);
-// the parts of a style a cell cannot show are not declared there: a float, a shadow, a backdrop, a gradient, an image.
+// the parts of a style a cell cannot show are not declared there: a shadow, a backdrop, a gradient, an image. A float
+// is declared (Clay places it over the flow, in the grid's own pixels), because the Sky page's thumb and screen are
+// floats; only their shadow, backdrop and fade are a cell's to drop.
 //
 // One frame from JS: term_begin, term_open/term_text/term_close in tree order, term_end (Clay lays out, render.c turns
 // the commands into cells), then term_present (cells -> termbox2) or term_dump/term_ansi (headless).
@@ -39,9 +41,10 @@
 #define FIELD_TEXT_COLOR_A 54
 #define FIELD_ROTATE 55
 
-// ponytail: 64 KB of text a frame and 64 value overrides a frame, as ui.c; a longer page needs bigger tables
+// ponytail: 64 KB of text a frame and 256 value overrides a frame (the Sky feed's re-cut of twelve card ids is 60 of
+// them, and the page's own writes are more); a longer page needs bigger tables
 #define ARENA_SIZE (1 << 16)
-#define MAX_VALUES 64
+#define MAX_VALUES 256
 
 static Cells grid;
 static Clay_RenderCommandArray cmds;
@@ -134,7 +137,7 @@ static Clay_Color color(const float *f) { return (Clay_Color){f[0], f[1], f[2], 
 
 /** An override of one number of the style of the element with that id, for this frame only. 0..44 is a packed field,
  *  45..55 the fields a cell has no use for (accepted and ignored) but a page may still write, 51..54 the colour of a
- *  text element with that id. Out of range, or past 64 a frame, is counted as an error and dropped. */
+ *  text element with that id. Out of range, or past 256 a frame, is counted as an error and dropped. */
 void term_value(const char *id, int len, int field, float value)
 {
     if (field < 0 || field > FIELD_ROTATE || value_count == MAX_VALUES) {
@@ -181,13 +184,25 @@ void term_open_element(const char *id, int len, const float *style)
     d.border.width = (Clay_BorderWidth){f[22], f[23], f[24], f[25]};
     d.border.color = color(f + 26);
     d.clip.horizontal = f[30] != 0, d.clip.vertical = f[31] != 0;
-    // a clip element is a scroll container: the offset Clay kept for it across frames shifts its children
-    if (d.clip.horizontal || d.clip.vertical) d.clip.childOffset = Clay_GetScrollOffset();
-    // 32..44 are a float's fields (css.floating). A terminal cannot place one over another element's cells yet, so a
-    // page with a float declares it as a plain box here: the honest limit of this slice, counted so it is not silent
-    if (f[32] != 0) errors++;
+    // 32..44 are a float's fields (css.floating): Clay places a float over the flow in the grid's own pixels, and
+    // render.c draws it after the flow, so a thumb over a feed or a screen over a page keeps its place (its shadow,
+    // backdrop and alpha are still a cell's to ignore)
+    if (f[32] != 0) {
+        d.floating.attachTo = (Clay_FloatingAttachToElement)(int)f[33];
+        d.floating.parentId = ((uint32_t)f[34] << 16) | (uint32_t)f[35];
+        d.floating.attachPoints =
+            (Clay_FloatingAttachPoints){(Clay_FloatingAttachPointType)(int)f[36], (Clay_FloatingAttachPointType)(int)f[37]};
+        d.floating.offset = (Clay_Vector2){f[38], f[39]};
+        d.floating.expand = (Clay_Dimensions){f[40], f[41]};
+        d.floating.zIndex = (int16_t)f[42];
+        d.floating.pointerCaptureMode = (Clay_PointerCaptureMode)(int)f[43];
+        d.floating.clipTo = (Clay_FloatingClipToElement)(int)f[44];
+    }
     if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();
+    // a clip element is a scroll container: the offset Clay kept for it across frames shifts its children. It is read
+    // after the element is open, because Clay_GetScrollOffset is the *open* element's, as the CLAY macro's is.
+    if (d.clip.horizontal || d.clip.vertical) d.clip.childOffset = Clay_GetScrollOffset();
     Clay__ConfigureOpenElement(d);
 }
 
@@ -224,7 +239,11 @@ void term_text(const char *id, int len, const char *s, int slen, const float *f)
     }
     Clay_TextElementConfig c = {0};
     c.textColor = color(tf);
-    c.fontId = tf[4], c.fontSize = tf[5], c.letterSpacing = tf[6], c.lineHeight = tf[7];
+    c.fontId = tf[4], c.fontSize = tf[5], c.letterSpacing = tf[6];
+    // a cell has one line height: the grid's. Clay lays a text out at the style's lineHeight (a card's 22px name is
+    // 1.4 rows), so the value is the cell's measured height, whatever the page's styles.ts says; measure.c already
+    // returns one cell a line.
+    c.lineHeight = CELL_H;
     c.textAlignment = al[(int)tf[8]], c.wrapMode = wm[(int)tf[9]];
     Clay__OpenTextElement(slice(copy, slen), c);
 }
@@ -298,6 +317,50 @@ int term_ansi(const char *path)
 int term_over(const char *id, int len)
 {
     return Clay_PointerOver(Clay__HashString(slice(id, len), 0)) ? 1 : 0;
+}
+
+/** Writes the box of the element with that id in the last layout into out[4] (x, y, w, h); 0 when there is none. */
+int term_bounds(const char *id, int len, float *out)
+{
+    const Clay_ElementData d = Clay_GetElementData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    out[0] = d.boundingBox.x, out[1] = d.boundingBox.y, out[2] = d.boundingBox.width, out[3] = d.boundingBox.height;
+    return 1;
+}
+
+/** The scroll offset of the clip element with that id along `axis` (0 y, 1 x), in pixels (negative is down or right);
+ *  0 when there is none. It is the one a page's own scroll (solid/src/vscroll.ts) wrote, not a device's. */
+float term_scroll_offset(const char *id, int len, int axis)
+{
+    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    return axis ? d.scrollPosition->x : d.scrollPosition->y;
+}
+
+/** Scrolls the clip element with that id to `v` on `axis` (0 y, 1 x; negative is down or right), clamped to its content;
+ *  returns the offset it took. */
+float term_scroll_to(const char *id, int len, int axis, float v)
+{
+    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    if (axis) {
+        const float lowest = -fmaxf(d.contentDimensions.width - d.scrollContainerDimensions.width, 0);
+        d.scrollPosition->x = fminf(fmaxf(v, lowest), 0);
+        return d.scrollPosition->x;
+    }
+    const float lowest = -fmaxf(d.contentDimensions.height - d.scrollContainerDimensions.height, 0);
+    d.scrollPosition->y = fminf(fmaxf(v, lowest), 0);
+    return d.scrollPosition->y;
+}
+
+/** Puts a clip element's offset where the page says, past its content too: the rubber band's overscroll. */
+float term_scroll_put(const char *id, int len, int axis, float v)
+{
+    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    if (axis) d.scrollPosition->x = v;
+    else d.scrollPosition->y = v;
+    return v;
 }
 
 int term_errors(void) { return errors; }

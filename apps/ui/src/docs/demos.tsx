@@ -35,6 +35,7 @@ import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
 import { Slider } from "../registry/slider/slider.tsx";
+import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
@@ -396,6 +397,32 @@ const SliderDemo = (): JSX.Element => {
   );
 };
 
+const SliderMultithumbDemo = (): JSX.Element => {
+  const [price, setPrice] = createSignal<readonly [number, number]>([20, 80]);
+  return (
+    <div class="demo-column">
+      {/* the two thumbs cannot pass each other, and the fill is the interval between them */}
+      <SliderMultithumb
+        label="Price"
+        min={0}
+        max={100}
+        step={10}
+        value={price()}
+        onValueChange={setPrice}
+      />
+      {/* disabled: both thumbs keep their tab stops, announce it, and no key or press changes the pair */}
+      <SliderMultithumb
+        label="Price (unavailable)"
+        min={0}
+        max={100}
+        step={10}
+        defaultValue={[30, 70]}
+        disabled
+      />
+    </div>
+  );
+};
+
 const SpinbuttonDemo = (): JSX.Element => {
   const [quantity, setQuantity] = createSignal(3);
   return (
@@ -464,6 +491,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   select: SelectDemo,
   textarea: TextareaDemo,
   slider: SliderDemo,
+  "slider-multithumb": SliderMultithumbDemo,
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
 };

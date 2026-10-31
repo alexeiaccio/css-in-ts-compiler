@@ -1,6 +1,6 @@
 {
   "name": "@cssints/masonry",
-  "version": "0.20.0",
+  "version": "0.23.0",
   "description": "Masonry for cssints: display grid-lanes with a CSS columns fallback, as a chain member",
   "license": "MIT",
   "repository": {
@@ -48,7 +48,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.20.0"
+    "cssints": "^0.23.0"
   },
   "engines": {
     "node": ">=22"
