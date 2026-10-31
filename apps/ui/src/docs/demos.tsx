@@ -75,14 +75,17 @@ import { Slider } from "../registry/slider/slider.tsx";
 import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
+
+import { VirtualList } from "../registry/virtual-list/virtual-list.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Toaster } from "../registry/toast/toast.tsx";
-import { createSignal, For, onSettled } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onSettled } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
   type CommandPalette as CommandPaletteController,
   createHotkeys,
   createToast,
+  type Virtualizer,
 } from "@cssints/headless";
 
 const SwitchDemo = (): JSX.Element => {
@@ -732,16 +735,23 @@ const DatePickerDemo = (): JSX.Element => {
   );
 };
 
-// The table and the pagination on one dataset: the table renders a page of it and the pagination owns the page. The sort is
-// the host's — the primitive announces a descriptor and this list is reordered from it — and the table's `rows` is the ids
-// of the page, which is also what its select-all covers.
+// The table and the pagination on one dataset. The table windows it: the primitive announces a sort descriptor and this
+// page reorders its own 10 000 issues, `renderRow` builds only the rows the window declares, and `aria-rowcount` stays
+// 10 000. The pagination shows the same idea with a page slice; it is a composition, not a second table.
 const TABLE_COLUMNS = [
   { key: "title", label: "Issue" },
   { key: "owner", label: "Owner", sortable: false },
   { key: "count", label: "Open", numeric: true },
 ] as const;
 
-const TABLE_ROWS = [
+interface Issue {
+  readonly id: string;
+  readonly title: string;
+  readonly owner: string;
+  readonly count: number;
+}
+
+const TABLE_ROWS: ReadonlyArray<Issue> = [
   { id: "cs-101", title: "Focus ring on the slider", owner: "Ada", count: 3 },
   { id: "cs-102", title: "Tooltip stays on Escape", owner: "Grace", count: 1 },
   { id: "cs-103", title: "Menu clips in a card", owner: "Linus", count: 2 },
@@ -754,44 +764,110 @@ const TABLE_ROWS = [
   { id: "cs-110", title: "Tree view typeahead", owner: "Grace", count: 2 },
   { id: "cs-111", title: "Pagination on a page slice", owner: "Linus", count: 1 },
   { id: "cs-112", title: "Switch paints its label", owner: "Ada", count: 1 },
-] as const;
+];
 
 const PAGE_SIZE = 2;
-
-type Issue = (typeof TABLE_ROWS)[number];
 
 const issueValue = (row: Issue, key: string): string | number =>
   key === "count" ? row.count : key === "owner" ? row.owner : row.title;
 
+const sortIssues = (
+  rows: ReadonlyArray<Issue>,
+  sort: { readonly key: string; readonly direction: "ascending" | "descending" } | null,
+): ReadonlyArray<Issue> => {
+  if (sort === null) {
+    return rows;
+  }
+  const sign = sort.direction === "ascending" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const left = issueValue(a, sort.key);
+    const right = issueValue(b, sort.key);
+    return sign * (left < right ? -1 : left > right ? 1 : 0);
+  });
+};
+
+const ISSUE_TITLES = [
+  "Focus ring on the slider",
+  "Tooltip stays on Escape",
+  "Menu clips in a card",
+  "Roving tab stop in tabs",
+  "Select announces the count",
+  "Checkbox mixed state",
+  "Accordion keeps its panel",
+  "Dialog returns focus",
+] as const;
+const ISSUE_OWNERS = ["Ada", "Grace", "Linus", "Margaret"] as const;
+
+// 10 000 issues, made once: the table builds only the 20-a-screen rows, never 10 000.
+const ISSUES: ReadonlyArray<Issue> = Array.from({ length: 10_000 }, (_, index) => ({
+  id: `cs-${index + 1}`,
+  title: ISSUE_TITLES[index % ISSUE_TITLES.length] ?? "An issue",
+  owner: ISSUE_OWNERS[index % ISSUE_OWNERS.length] ?? "Ada",
+  count: (index % 5) + 1,
+}));
+const ISSUE_BY_ID = new Map(ISSUES.map((issue) => [issue.id, issue]));
+
 const TableDemo = (): JSX.Element => {
-  const [page, setPage] = createSignal(1);
   const [sort, setSort] = createSignal<{
     key: string;
     direction: "ascending" | "descending";
   } | null>(null);
+  const [selected, setSelected] = createSignal<ReadonlyArray<string>>([]);
+  const ordered = createMemo(() => sortIssues(ISSUES, sort()));
+  const ids = createMemo(() => ordered().map((issue) => issue.id));
+  return (
+    <div class="demo-column">
+      <Table
+        columns={TABLE_COLUMNS}
+        rows={ids}
+        sort={sort()}
+        onSortChange={(next) => setSort(next ?? null)}
+        selection="multiple"
+        selected={selected()}
+        onSelectionChange={setSelected}
+        caption="Open issues"
+        labels={{ selectRow: (id) => `Select ${id}` }}
+        virtualized={{ height: 480, rowHeight: 44 }}
+        renderRow={(id) => {
+          const issue = ISSUE_BY_ID.get(id);
+          return (
+            <TableRow row={id}>
+              <TableCell column="title">{issue?.title}</TableCell>
+              <TableCell column="owner">{issue?.owner}</TableCell>
+              <TableCell column="count">{issue?.count}</TableCell>
+            </TableRow>
+          );
+        }}
+      >
+        <TableHead>
+          {TABLE_COLUMNS.map((column) => (
+            <TableHeaderCell column={column.key}>{column.label}</TableHeaderCell>
+          ))}
+        </TableHead>
+        {/* The window renders itself: `renderRow` builds each declared row, from the row's real id. */}
+        <TableBody />
+      </Table>
+      <p class="demo-text">
+        10 000 issues, {selected().length} selected. The select-all covers the rendered window — the
+        rows the reader can see — not the whole set; a row outside the window that was selected
+        before stays selected.
+      </p>
+    </div>
+  );
+};
+
+// The pagination keeps the small dataset: a page is the host's slice, and the table's select-all covers the slice.
+const PaginationDemo = (): JSX.Element => {
+  const [page, setPage] = createSignal(1);
   const pageCount = Math.ceil(TABLE_ROWS.length / PAGE_SIZE);
-  const ordered = (): ReadonlyArray<Issue> => {
-    const current = sort();
-    if (current === null) {
-      return TABLE_ROWS;
-    }
-    const sign = current.direction === "ascending" ? 1 : -1;
-    return [...TABLE_ROWS].sort((a, b) => {
-      const left = issueValue(a, current.key);
-      const right = issueValue(b, current.key);
-      return sign * (left < right ? -1 : left > right ? 1 : 0);
-    });
-  };
   const visible = (): ReadonlyArray<Issue> =>
-    ordered().slice((page() - 1) * PAGE_SIZE, page() * PAGE_SIZE);
+    TABLE_ROWS.slice((page() - 1) * PAGE_SIZE, page() * PAGE_SIZE);
   return (
     <div class="demo-column">
       <TableScroll>
         <Table
           columns={TABLE_COLUMNS}
           rows={() => visible().map((issue) => issue.id)}
-          sort={sort()}
-          onSortChange={(next) => setSort(next ?? null)}
           selection="multiple"
           caption="Open issues"
           labels={{ selectRow: (id) => `Select ${id}` }}
@@ -822,6 +898,100 @@ const TableDemo = (): JSX.Element => {
         <PaginationContent />
         <PaginationStatus />
       </Pagination>
+    </div>
+  );
+};
+
+// 10 000 names, made once: the list builds only the declared rows, never 10 000.
+const AGENTS: ReadonlyArray<string> = Array.from(
+  { length: 10_000 },
+  (_, index) => `Agent ${String(index + 1).padStart(5, "0")}`,
+);
+
+const VirtualListDemo = (): JSX.Element => {
+  let list: Virtualizer | undefined;
+  const [focus, setFocus] = createSignal(0);
+  const [pending, setPending] = createSignal<number | undefined>(undefined);
+  const elements = new Map<number, HTMLElement>();
+
+  // The list declares the target, the host focuses it. `scrollToIndex` only scrolls: a row outside the window is not in
+  // the DOM, so the effect waits until `window()` contains the index, then focuses the caller's element. A jump elsewhere
+  // (or a hand scroll that leaves the row out) never runs it, and the row's `ref` is the only handle the host needs.
+  createEffect(
+    () => `${pending()}|${list?.window().first}|${list?.window().last}`,
+    () => {
+      const index = pending();
+      const at = list?.window();
+      if (index === undefined || at === undefined || index < at.first || index > at.last) {
+        return;
+      }
+      const element = elements.get(index);
+      if (element === undefined || !element.isConnected) {
+        return;
+      }
+      setPending(undefined);
+      element.focus();
+    },
+  );
+
+  const jump = (index: number): void => {
+    const target = Math.min(AGENTS.length - 1, Math.max(0, index));
+    setFocus(target);
+    setPending(target);
+    list?.scrollToIndex(target);
+  };
+
+  const onKeyDown =
+    (index: number) =>
+    (event: KeyboardEvent): void => {
+      const step = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+      if (step === 0) {
+        return;
+      }
+      event.preventDefault();
+      jump(index + step);
+    };
+
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Button size="sm" tone="quiet" onClick={() => jump(0)}>
+          First
+        </Button>
+        <Button size="sm" tone="quiet" onClick={() => jump(9_000)}>
+          Jump to 9 000
+        </Button>
+        <Button size="sm" tone="quiet" onClick={() => jump(9_999)}>
+          Last
+        </Button>
+      </div>
+      <VirtualList
+        count={AGENTS.length}
+        itemSize={36}
+        gap={4}
+        height={320}
+        onReady={(ready) => {
+          list = ready;
+        }}
+        renderItem={(index) => (
+          <button
+            class="demo-vlist-item"
+            tabindex={index === focus() ? 0 : -1}
+            ref={(element) => {
+              elements.set(index, element);
+            }}
+            onKeyDown={onKeyDown(index)}
+            onClick={() => jump(index)}
+          >
+            {AGENTS[index]}
+          </button>
+        )}
+      />
+      <p class="demo-text">
+        10 000 agents, one screenful of rows: “Jump to 9 000” calls the primitive's `scrollToIndex`,
+        and the row is focused only once the window declares it — the list declares the target, the
+        host focuses it. Up and down move the host's focus index and scroll before focusing.
+      </p>
     </div>
   );
 };
@@ -946,6 +1116,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
   table: TableDemo,
-  pagination: TableDemo,
+  pagination: PaginationDemo,
+  "virtual-list": VirtualListDemo,
   toast: ToastDemo,
 };

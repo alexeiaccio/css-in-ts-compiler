@@ -339,10 +339,18 @@ const STARTERS: ReadonlyArray<Starter> = [
   {
     tested: true,
     name: "table",
-    with: ["theme.ts", "tokens.ts"],
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Table",
     description:
-      "A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, and a numeric column right-aligned from the column's hint",
+      "A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, a numeric column right-aligned from the column's hint, and an optional window over 10 000 rows that keeps `aria-rowcount` and every `aria-rowindex`",
+  },
+  {
+    tested: true,
+    name: "virtual-list",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Virtual list",
+    description:
+      "A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set",
   },
   {
     tested: true,

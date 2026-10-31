@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { render } from "@solidjs/web";
 import { describe, expect, it } from "vite-plus/test";
 import type { TableColumn, TableSelectionMode, TableSort } from "@cssints/headless";
@@ -89,6 +89,10 @@ const rowCheckbox = (root: HTMLElement, id: string): HTMLElement | null =>
   row(root, id)?.querySelector<HTMLElement>('[data-part="table-row-checkbox"]') ?? null;
 const selectAll = (root: HTMLElement): HTMLElement | null =>
   root.querySelector<HTMLElement>('[data-part="table-select-all"]');
+
+/** The row's real id, read off its first cell: the selection control's mark is text too. */
+const rowId = (row: HTMLElement | undefined): string =>
+  row?.querySelector<HTMLElement>('[data-part="table-cell"]')?.textContent?.split("-")[0] ?? "";
 
 describe("Table skin", () => {
   it("flips aria-sort on a header click and repaints the arrow from it", async () => {
@@ -192,5 +196,153 @@ describe("Table skin", () => {
     expect(selectAll(root)?.getAttribute("aria-label")).toBe("Select all rows");
     expect(root.querySelector("caption")?.textContent).toBe("Issues");
     dispose();
+  });
+});
+
+const WINDOW_ROWS: ReadonlyArray<string> = Array.from(
+  { length: 10_000 },
+  (_, index) => `r${index}`,
+);
+const ROW_HEIGHT = 44;
+
+/** A windowed table: 10 000 ids, a 600 px scrollport, and the caller's `renderRow` for the declared slice. */
+const mountWindowedTable = () => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  const [selected, setSelected] = createSignal<ReadonlyArray<string>>([]);
+  const dispose = render(
+    () => (
+      <Table
+        columns={COLUMNS}
+        rows={WINDOW_ROWS}
+        selection="multiple"
+        selected={selected()}
+        onSelectionChange={setSelected}
+        caption="Issues"
+        virtualized={{ height: 600, rowHeight: ROW_HEIGHT }}
+        renderRow={(id) => (
+          <TableRow row={id}>
+            {COLUMNS.map((column) => (
+              <TableCell column={column.key}>{`${id}-${column.key}`}</TableCell>
+            ))}
+          </TableRow>
+        )}
+      >
+        <TableHead>
+          {COLUMNS.map((column) => (
+            <TableHeaderCell column={column.key}>{column.key}</TableHeaderCell>
+          ))}
+        </TableHead>
+        <TableBody />
+      </Table>
+    ),
+    root,
+  );
+  const viewport = root.querySelector<HTMLElement>('[data-part="table-viewport"]');
+  if (viewport === null) {
+    throw new Error("the table did not window");
+  }
+  const bodyRows = (): HTMLElement[] => [
+    ...root.querySelectorAll<HTMLElement>('[data-part="table-row"]'),
+  ];
+  return {
+    root,
+    viewport,
+    rows: bodyRows,
+    selected,
+    scrollTo: (top: number): void => {
+      viewport.scrollTop = top;
+      viewport.dispatchEvent(new Event("scroll"));
+      flush();
+    },
+    dispose: () => {
+      dispose();
+      root.remove();
+    },
+  };
+};
+
+describe("Table window", () => {
+  it("renders only the declared window, and every row announces its place in the whole set", () => {
+    const mounted = mountWindowedTable();
+    const rows = mounted.rows();
+
+    expect(mounted.root.querySelector<HTMLElement>("table")?.getAttribute("aria-rowcount")).toBe(
+      "10000",
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThan(40);
+
+    for (const row of rows) {
+      const id = rowId(row);
+      const index = Number(id.replace("r", ""));
+      // the header row is 1, so body row `index` is `index + 2`
+      expect(row.getAttribute("aria-rowindex")).toBe(String(index + 2));
+      expect(row.getAttribute("aria-selected")).toBe("false");
+    }
+    // The first declared row is the first id; the window starts at the top.
+    expect(rows[0]?.textContent).toContain("r0-title");
+    // At the top there is no spacer above the first row.
+    expect(
+      mounted.root.querySelector('[data-part="table-spacer"][data-position="start"]'),
+    ).toBeNull();
+    expect(
+      mounted.root.querySelector('[data-part="table-spacer"][data-position="end"]'),
+    ).not.toBeNull();
+    mounted.dispose();
+  });
+
+  it("moves the window with the scroll, re-rendering other rows with their own rowindex", () => {
+    const mounted = mountWindowedTable();
+    const top = mounted.rows().map((row) => row.getAttribute("aria-rowindex"));
+
+    mounted.scrollTo(60 * ROW_HEIGHT);
+    const rows = mounted.rows();
+
+    expect(rows.map((row) => row.getAttribute("aria-rowindex"))).not.toEqual(top);
+    expect(rows.length).toBeLessThan(40);
+    for (const row of rows) {
+      const id = rowId(row);
+      expect(row.getAttribute("aria-rowindex")).toBe(String(Number(id.replace("r", "")) + 2));
+    }
+    const start = mounted.root.querySelector<HTMLElement>(
+      '[data-part="table-spacer"][data-position="start"]',
+    );
+    expect(start).not.toBeNull();
+    expect(start?.getAttribute("aria-hidden")).toBe("true");
+    mounted.dispose();
+  });
+
+  it("keeps the select-all honest: it covers the rendered window, and a row toggles by its real id", async () => {
+    const mounted = mountWindowedTable();
+    const rows = mounted.rows();
+    const first = rowId(rows[0]);
+
+    // One control over the whole set would mean selecting 10 000 rows the reader cannot see.
+    selectAll(mounted.root)?.click();
+    await tick();
+    expect(mounted.selected().length).toBe(rows.length);
+    expect(mounted.selected().length).toBeLessThan(40);
+    expect(mounted.selected()).toContain(first);
+    expect(mounted.selected()).not.toContain("r9999");
+
+    // A row's control toggles the row's id, not its position in the window.
+    const second = rowId(rows[1]);
+    rowCheckbox(mounted.root, second)?.click();
+    await tick();
+    expect(mounted.selected()).not.toContain(second);
+    expect(mounted.selected()).toContain(first);
+
+    // A hand scroll leaves the window's selection behind and the new window's select-all covers the new rows.
+    mounted.scrollTo(80 * ROW_HEIGHT);
+    await tick();
+    const far = rowId(mounted.rows()[0]);
+    expect([...mounted.selected()].sort()).not.toContain(far);
+    selectAll(mounted.root)?.click();
+    await tick();
+    expect(mounted.selected()).toContain(far);
+    // the rows selected before the window moved are still selected
+    expect(mounted.selected()).toContain(first);
+    mounted.dispose();
   });
 });

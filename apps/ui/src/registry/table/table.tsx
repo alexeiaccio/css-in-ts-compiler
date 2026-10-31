@@ -1,12 +1,14 @@
 import {
   createTable,
+  createVirtualizer,
   type Table as TableController,
   type TableColumn,
   type TableOptions,
+  type Virtualizer,
 } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createContext, merge, Show, untrack, useContext } from "solid-js";
+import { createContext, For, merge, onCleanup, Show, untrack, useContext } from "solid-js";
 
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
@@ -17,6 +19,19 @@ export interface TablePartProps extends PartProps, Renderable<TablePartProps, vo
 /** A part that carries nothing of its own: the scroller, the head, the body, the caption. */
 export interface TableSectionProps extends TablePartProps {}
 
+/** How a table windows its rows: the primitive's arithmetic window inside a scrollport the kit draws. */
+export interface TableWindowProps {
+  /** The scrollport's height, px or a CSS length: the window needs a viewport of its own. */
+  readonly height: number | string;
+  /**
+   * Every row's height, px. The window's arithmetic and the rendered rows have to agree, so the skin sets it on each
+   * row; a row whose content is taller pushes the ones below it out of place.
+   */
+  readonly rowHeight: number;
+  /** The rows declared either side of the viewport. @default OVERSCAN (2) */
+  readonly overscan?: number | undefined;
+}
+
 export interface TableProps
   extends Omit<TableOptions, "columns" | "rows" | "id">, Renderable<TablePartProps, void> {
   readonly columns: ReadonlyArray<TableColumn>;
@@ -26,6 +41,13 @@ export interface TableProps
   readonly caption?: JSX.Element;
   readonly class?: string;
   readonly children?: JSX.Element;
+  /**
+   * Windows the rows: only the declared ones are rendered, in the kit's own scrollport, and `aria-rowcount` stays the
+   * whole count. `renderRow` builds them; the primitive's select-all then covers the rendered window, not the whole set.
+   */
+  readonly virtualized?: TableWindowProps | undefined;
+  /** One body row of a windowed table: the row's real id and its index in the whole set. */
+  readonly renderRow?: ((row: string, index: number) => JSX.Element) | undefined;
   /** The primitive, once: a page that sorts its own data from the sort it announces. */
   readonly onReady?: (table: TableController) => void;
 }
@@ -60,11 +82,30 @@ export interface TableRowCheckboxProps extends Renderable<TablePartProps, void> 
 const TableContext = createContext<{
   readonly table: TableController;
   readonly columns: ReadonlyArray<TableColumn>;
+  /** The primitive when the table windows its rows; `undefined` when it renders every row it is given. */
+  readonly virtual: Virtualizer | undefined;
+  /** Every row id the host passed, in its order; a window is a slice of it. */
+  readonly rows: () => ReadonlyArray<string>;
+  /** A windowed table's row height, px: the row and the window's arithmetic have to agree. */
+  readonly rowHeight: number | undefined;
+  /** The caller's row builder, used for the declared window. */
+  readonly renderRow: ((row: string, index: number) => JSX.Element) | undefined;
 }>();
 
 const RowContext = createContext<{ readonly row: string }>();
 
+/** The row's index in the whole set, while a window declares it: it is what `aria-rowindex` announces. */
+// -1 is "no window": a context default cannot be undefined, and `aria-rowindex` exists only under a window.
+const RowIndexContext = createContext<number>(-1);
+
 const scroll = css.cn(css.overflowX("auto"), css.maxWidth("100%"));
+
+// The window's own scrollport: the table scrolls inside it, so the page does not become the list. The scrollport and the
+// table take no vertical padding or margin the arithmetic cannot see (the primitive starts at the content's 0).
+const viewport = css.cn(css.overflow("auto"), css.maxWidth("100%"), css.position("relative"));
+
+// A spacer row stands in for the rows outside the window; its one cell carries the height and paints nothing.
+const spacerCell = css.cn(css.padding("0"), css.border("none"), css.height("0"));
 
 const table = css.cn(
   css.borderCollapse("collapse"),
@@ -186,12 +227,33 @@ const mixedMark = css.cn(
  *
  * Sorting is the host's: the primitive announces the descriptor, `onSortChange` asks for a new one, and the host reorders
  * its own array. The arrow, the selected row and the checkbox marks are painted from the announced attributes.
+ *
+ * `virtualized` gives the table a window: the kit wraps the `<table>` in its own scrollport, `TableBody` renders two
+ * spacer rows and the declared rows from `renderRow(row, index)`, `aria-rowcount` stays the whole count and every row
+ * announces `aria-rowindex = index + 2` (the header row is 1). The primitive judges the select-all on the rows it is
+ * given, and a window gives it the declared slice: **the select-all covers the rendered window**, never the rows the
+ * reader cannot see. Selection itself is by real id, so a selected row that scrolls out stays selected.
  */
 export const Table = (props: TableProps): JSX.Element => {
+  const allRows = (): ReadonlyArray<string> =>
+    typeof props.rows === "function" ? props.rows() : props.rows;
+  // The window is the primitive's: one row height, no gap (a table has none), and `rows` below is the declared slice.
+  const virtual =
+    props.virtualized === undefined
+      ? undefined
+      : createVirtualizer({
+          count: () => allRows().length,
+          itemSize: props.virtualized.rowHeight,
+          overscan: props.virtualized.overscan,
+        });
   const tableControl = createTable({
     columns: props.columns,
     get rows() {
-      return props.rows;
+      if (virtual === undefined) {
+        return props.rows;
+      }
+      const at = virtual.window();
+      return at.last < at.first ? [] : allRows().slice(at.first, at.last + 1);
     },
     get selection() {
       return props.selection;
@@ -218,7 +280,8 @@ export const Table = (props: TableProps): JSX.Element => {
       return props.onSelectionChange;
     },
     get rowCount() {
-      return props.rowCount;
+      // A window declares the whole count; every other table renders all of its rows.
+      return virtual === undefined ? props.rowCount : allRows().length;
     },
     get columnCount() {
       return props.columnCount;
@@ -230,22 +293,54 @@ export const Table = (props: TableProps): JSX.Element => {
   });
   untrack(() => props.onReady)?.(tableControl);
 
+  let detach: (() => void) | undefined;
+  onCleanup(() => detach?.());
+
+  const context = {
+    table: tableControl,
+    columns: props.columns,
+    virtual,
+    rows: allRows,
+    rowHeight: props.virtualized?.rowHeight,
+    renderRow: props.renderRow,
+  };
+
   const merged = merge(tableControl.tableProps, () => ({
     "data-part": "table",
     get class() {
       return css.cn(table, props.class);
     },
   }));
+  const element = (): JSX.Element =>
+    renderPart(props, merged, undefined, (part) => (
+      <table {...part}>
+        <Show when={props.caption !== undefined}>
+          <TableCaption>{props.caption}</TableCaption>
+        </Show>
+        {props.children}
+      </table>
+    ));
   return (
-    <TableContext value={{ table: tableControl, columns: props.columns }}>
-      {renderPart(props, merged, undefined, (part) => (
-        <table {...part}>
-          <Show when={props.caption !== undefined}>
-            <TableCaption>{props.caption}</TableCaption>
-          </Show>
-          {props.children}
-        </table>
-      ))}
+    <TableContext value={context}>
+      {props.virtualized === undefined ? (
+        element()
+      ) : (
+        <div
+          data-part="table-viewport"
+          class={viewport}
+          style={{
+            height:
+              typeof props.virtualized.height === "number"
+                ? `${props.virtualized.height}px`
+                : props.virtualized.height,
+          }}
+          ref={(node) => {
+            detach = virtual?.attach(node);
+          }}
+        >
+          {element()}
+        </div>
+      )}
     </TableContext>
   );
 };
@@ -339,8 +434,35 @@ export const TableHeaderCell = (props: TableHeaderCellProps): JSX.Element => {
   ));
 };
 
-export const TableBody = (props: TableSectionProps): JSX.Element =>
-  renderPart(
+/**
+ * The body: every caller row as it is given it, or the declared window when the table virtualises. A window's rows come
+ * from `renderRow` (the caller still builds each `TableRow`, from the row's real id), and two spacer rows stand in for the
+ * rows above and below it.
+ */
+export const TableBody = (props: TableSectionProps): JSX.Element => {
+  const { table: control, columns, virtual, rows, renderRow } = useContext(TableContext);
+  const colspan = (): number => columns.length + (control.selectionMode() === "none" ? 0 : 1);
+  const indexes = (): number[] => {
+    if (virtual === undefined) {
+      return [];
+    }
+    const at = virtual.window();
+    return Array.from({ length: Math.max(0, at.last - at.first + 1) }, (_, step) => {
+      return at.first + step;
+    });
+  };
+  const spacer = (position: "start" | "end"): JSX.Element | undefined => {
+    if (virtual === undefined) {
+      return undefined;
+    }
+    const height = virtual.spacerProps(position).style.height;
+    return (
+      <tr aria-hidden="true" data-part="table-spacer" data-position={position} style={{ height }}>
+        <td colspan={colspan()} data-part="table-spacer-cell" class={spacerCell} />
+      </tr>
+    );
+  };
+  return renderPart(
     props,
     {
       "data-part": "table-body",
@@ -349,12 +471,36 @@ export const TableBody = (props: TableSectionProps): JSX.Element =>
       },
     },
     undefined,
-    (part) => <tbody {...part}>{props.children}</tbody>,
+    (part) => (
+      <tbody {...part}>
+        <Show when={virtual !== undefined} fallback={props.children}>
+          {virtual === undefined ? undefined : (
+            <>
+              <Show when={virtual.window().above > 0}>{spacer("start")}</Show>
+              <For each={indexes()}>
+                {(index) => (
+                  <RowIndexContext value={index}>
+                    {renderRow?.(rows()[index] ?? "", index)}
+                  </RowIndexContext>
+                )}
+              </For>
+              <Show when={virtual.window().below > 0}>{spacer("end")}</Show>
+            </>
+          )}
+        </Show>
+      </tbody>
+    ),
   );
+};
 
-/** One body row: the primitive's `aria-selected` and click, its control in front, and the row id for every cell. */
+/**
+ * One body row: the primitive's `aria-selected` and click, its control in front, and the row id for every cell. In a
+ * window the row also announces its place in the whole set: `aria-rowindex` counts the header row, so the first body row
+ * is 2, and the total is the table's `aria-rowcount`.
+ */
 export const TableRow = (props: TableRowProps): JSX.Element => {
-  const { table: control } = useContext(TableContext);
+  const { table: control, rowHeight } = useContext(TableContext);
+  const index = useContext(RowIndexContext);
   const merged = merge(control.rowProps(props.row), () => ({
     "data-part": "table-row",
     get class() {
@@ -362,6 +508,13 @@ export const TableRow = (props: TableRowProps): JSX.Element => {
     },
     get "data-selectable"() {
       return control.rowProps(props.row).onClick === undefined ? undefined : "true";
+    },
+    get "aria-rowindex"() {
+      // the header row is 1, so a body row at `index` is `index + 2`
+      return index < 0 ? undefined : index + 2;
+    },
+    get style() {
+      return rowHeight === undefined ? undefined : { height: `${rowHeight}px` };
     },
   }));
   return renderPart(props, merged, undefined, (part) => (
