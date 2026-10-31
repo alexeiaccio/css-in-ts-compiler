@@ -560,6 +560,61 @@ const drawer = createDrawer({ side: "right", labelledby: "nav-title" });
 - **No drag-to-dismiss.** A drag is not a dialog interaction: it is a scroll snap the platform runs off the main thread, and it is the host's CSS (`scroll-snap-type: y mandatory`, snap markers, `scrollsnapchange`; see [docs/bottom-sheet.md](docs/bottom-sheet.md)). Re-implementing a native snap in pointer events would be the gesture duplication that research forbids, and the handle would drag on top of the snap that already moved the panel. So `handleProps` is decoration (`aria-hidden`, no pointer handlers) and the ways out are the backdrop, Escape, a close control the host puts in the panel, and the trigger. Swipe-to-dismiss, if it is ever wanted, is a separate decision with its own oracle.
 - **No `attach`.** The panel is edge-anchored: nothing is measured and no placement is computed, so focus and the Tab cycle find the panel through `contentProps.id` and the host only spreads attributes onto its own elements. Give the panel a name: pass `labelledby`, or set `aria-labelledby` / `aria-label` after the spread.
 
+## Diagram
+
+`createDiagramFocus` is the readable twin of a canvas: the same nodes and edges, positioned by the host, as one roving tab stop plus a keyboard cursor over the outgoing edges, with a polite live region saying where the user is. **The APG has no pattern for a diagram** (a graph is not one of the 44 patterns), so there is no Quint spec and no ported scenarios: `test/diagram.browser.test.tsx` is its oracle. What it borrows is the grid's roving tabindex (exactly one node in the tab order, so Tab leaves the composite), WAI-ARIA's `aria-roledescription="node"` on each `role="button"`, and the `role="status"` / `aria-live="polite"` region of `createStatus` for the announcement.
+
+```tsx
+const nodes = [
+  { id: "payment", label: "Payment", x: 0, y: 0, width: 160, height: 80 },
+  { id: "pending", label: "Pending", x: 260, y: 0, width: 160, height: 80 },
+  { id: "failed", label: "Failed", x: 260, y: 140, width: 160, height: 80 },
+];
+const edges = [
+  { id: "submit", from: "payment", to: "pending", label: "submit" },
+  { id: "fail", from: "payment", to: "failed" },
+];
+const diagram = createDiagramFocus({
+  nodes,
+  edges,
+  onActivate: (id) => select(id),
+  onEdgeActivate: (id) => fire(id),
+});
+
+<div role="group" aria-label="Checkout state chart">
+  <div style={{ position: "relative" }}>
+    <For each={nodes}>
+      {(node) => (
+        <button
+          {...diagram.nodeProps(node.id)}
+          style={{ position: "absolute", left: node.x, top: node.y }}
+        >
+          {node.label}
+        </button>
+      )}
+    </For>
+    <For each={edges}>
+      {(edge) => (
+        <button {...diagram.edgeProps(edge.id)} style={{ position: "absolute" }}>
+          {edge.label}
+        </button>
+      )}
+    </For>
+  </div>
+  <p {...diagram.statusProps}>{diagram.status()}</p>
+</div>;
+```
+
+- **The layout is the navigation.** `x`/`y` are the node's top-left in diagram space and `width`/`height` only size its centre (default 0). An arrow moves to the nearest node whose centre is in that half-plane — right is `dx > 0`, up is `dy < 0` — by smallest squared distance from the active centre, ties by id. Nothing that way? It wraps to the opposite end of that axis (right wraps to the leftmost node, down to the topmost), so every arrow does something. Home / End are the first and last node in option order.
+- **A diagram is never drag-only.** The pointer path is the host's drawing; the keyboard path is arrows, Enter / Space (`onActivate`), and `e`.
+- **`e` opens the outgoing edges.** The cursor starts on the first edge of `edgesOf(active)` (in option order, endpoints present) and the live region reads "Edge Payment → Pending. Enter to activate". Arrows move the cursor and wrap, Enter (or Space) fires `onEdgeActivate`, Escape — or any other navigation key — leaves the cursor. `edgeCursor()` is -1 while off and `setEdgeCursor(index)` is the programmatic version.
+- **The live region is the announcement.** `status()` says "Payment. 2 edges: to Pending, to Failed" or the edge sentence; it is derived, so it changes with every move (that is what makes a screen reader read it). Render it once and always: `statusProps` is `{ role: "status", "aria-live": "polite" }`. When the diagram is empty, `status()` is empty and nothing is tabbable.
+- **Exactly one node is in the tab order**, and it is the active one. `nodeProps` sets `tabindex="0"` on it and `-1` on the rest, and `onFocus` moves the tab stop to whatever node took focus — so a host that focuses the node it selects keeps the two in step.
+- **Focus follows the tab stop by itself.** `nodeProps` also carries an element `id` (`<base>-node-<node id>`, the base from `options.id` or generated), so an arrow, Home / End or `focus(id)` focuses the node it landed on: the host needs no effect, and the tab stop and `document.activeElement` cannot disagree. A host that renders a node outside the document (a portal on another document) moves focus itself.
+- **Edges carry `role="button"` and `tabindex="-1"`**: the keyboard path to an edge is the cursor, not a Tab stop, so a graph with 40 transitions does not add 40 stops. `edgeProps` names the edge `<from> → <to>` (with the label as a prefix).
+- **The host owns the DOM and may lose it.** A node id that is not in `nodes` is a no-op in `nodeProps` / `focus`; an edge whose endpoint is missing is ignored everywhere. A node that arrives later is fine: the lists take getters (`() => nodes()`), read at attribute-read time, and the tab stop keeps its node while it exists, else falls back to the first.
+- **`labels`** names the diagram in every announcement ("State chart. Payment. 2 edges: …") and the edge noun (`edges: "transitions"`); absent, both are left out and English.
+
 ## Hotkeys
 
 `createHotkeys` is a **platform utility, not a widget**: one registry for the chords every app hand-rolls (the docs app's `/` and Cmd/Ctrl+K, the CMS's Cmd/Ctrl+S). **No APG pattern exists for a keyboard registry**, so there is no role, no element, no styling and no Quint spec; `test/hotkeys.browser.test.tsx` is the oracle.

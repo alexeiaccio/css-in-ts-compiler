@@ -2034,6 +2034,40 @@ createTimeline(options: {
 - **Selection.** A click selects and moves the tab stop; ArrowUp / ArrowDown / Home / End move a roving tab stop; Enter or Space selects the focused row. The host moves real DOM focus after an arrow key, as the demo fixture does; `selected` + `onSelect` make it controlled, `select(id)` is the programmatic request.
 - **`status` is `data-status`** on the row, a styling hook for the host's colour. The primitive never invents the label: the host's data holds it.
 
+### Headless: `createDiagramFocus` (`@cssints/headless`)
+
+The readable twin of a canvas: the same nodes and edges, positioned by the host (absolute `div`s, an SVG layer for the edges), as one roving tab stop plus a keyboard cursor over the outgoing edges, with a polite live region saying where the user is. **The APG has no pattern for a diagram** — a graph is not one of the 44 — so there is no Quint spec and no ported scenarios: `packages/headless/test/diagram.browser.test.tsx` is its oracle. It borrows the grid's roving tabindex (exactly one node in the tab order, so Tab leaves the composite), WAI-ARIA's `aria-roledescription="node"` on each `role="button"`, and `createStatus`'s `role="status"` / `aria-live="polite"` region.
+
+```ts skip
+createDiagramFocus(options: {
+  nodes: ReadonlyArray<{ id: string; label: string; x: number; y: number; width?: number; height?: number }> | (() => ...); // x/y: the node's top-left in diagram space; width/height only size its centre (0)
+  edges: ReadonlyArray<{ id: string; from: string; to: string; label?: string }> | (() => ...); // in option order; an edge with a missing endpoint is ignored
+  onActivate?(nodeId: string): void; // Enter or Space on the active node
+  onEdgeActivate?(edgeId: string): void; // Enter on the edge cursor, or a click on an edge
+  labels?: { diagram?: string; edges?: string } | undefined; // the diagram's name in the announcement; the edge noun ("transitions", default "edges")
+  id?: string | undefined; // base for the nodes' element ids (<id>-node-<node id>), which is how a move focuses the node; generated when absent
+}): {
+  active(): string | undefined; // the node holding the tab stop; undefined when the diagram is empty
+  focus(id: string): string | undefined; // programmatic move; a node that is not in `nodes` is a no-op; returns where it landed
+  nodeProps(id: string): { id: string; role: "button"; "aria-roledescription": "node"; "aria-label": string; tabindex: 0 | -1; onFocus; onClick; onKeyDown };
+  edgeProps(id: string): { role: "button"; "aria-label": string; tabindex: -1; onClick }; // "From → To"
+  edgesOf(id: string): ReadonlyArray<{ id: string; from: string; to: string; label?: string }>; // outgoing, in option order
+  edgeCursor(): number; // an index into edgesOf(active()), or -1 while off
+  setEdgeCursor(index: number): void; // the programmatic version; a negative index clears
+  status(): string; // "Payment. 2 edges: to Pending, to Failed" / "Edge Payment → Pending. Enter to activate"; empty when the diagram is empty
+  statusProps: { role: "status"; "aria-live": "polite" }; // render once, always
+};
+```
+
+- **The layout is the navigation.** An arrow moves to the nearest node whose centre is in that direction's half-plane (right is `dx > 0`, up is `dy < 0`), by smallest squared distance, ties by id; when nothing lies that way it wraps to the opposite end of that axis (right to the leftmost node, down to the topmost, ties by id), so every arrow does something. Home / End are the first and last node in option order. The arrows compare **centres**, which is why `width`/`height` exist at all.
+- **A diagram is never drag-only.** The pointer path is the host's drawing; the keyboard path is the arrows plus Enter / Space (`onActivate`) and `e`, so a graph that was drawn with a mouse is still readable and operable from the keyboard.
+- **`e` opens the outgoing edges.** The cursor starts on the first edge of `edgesOf(active)` and the region says "Edge Payment → Pending. Enter to activate". Arrows move the cursor and wrap, Enter (or Space) fires `onEdgeActivate`, Escape — or any other navigation key — leaves the cursor. Edges are `role="button"` with `tabindex="-1"`: the keyboard path to an edge is the cursor, not a Tab stop, so 40 transitions do not add 40 stops.
+- **The live region is the announcement.** `status()` is derived from the active node and the cursor, so it changes with every move (that is what makes a screen reader read it). Render `statusProps` once and always; a region that mounts with its text announces nothing.
+- **Exactly one node is in the tab order.** `nodeProps` sets `tabindex="0"` on the active node and `-1` on the rest, and `onFocus` moves the tab stop to whatever node took focus, so a host that focuses the node it selects keeps the two in step. Tab then leaves the diagram (there is no `Tab` handling and no sentinels).
+- **Focus follows the tab stop by itself.** `nodeProps` also carries an element `id` (`<base>-node-<node id>`, the base from `options.id` or generated), so an arrow, Home / End or `focus(id)` focuses the node it landed on: the host spreads the props and needs no effect, and the tab stop and `document.activeElement` cannot disagree. A host that renders a node outside the document (a portal on another document) moves focus itself.
+- **The lists are getters.** Pass `() => nodes()` and the arrays are read at attribute-read time: an async model arrives without rebuilding the primitive, and the tab stop keeps its node while that node exists (else it falls back to the first). A node id that is not in `nodes` is a no-op in `nodeProps` and `focus`; an edge whose endpoint is missing is ignored everywhere.
+- **The host owns the DOM.** Nothing is measured, nothing is positioned and nothing is focused by the primitive; the host renders the nodes where its layout put them, the edges on its SVG layer, and the `role="status"` paragraph.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
