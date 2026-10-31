@@ -21,27 +21,46 @@
 //   bun terminal/solid.ts                  live: termbox2's alternate screen, the page's frame each 16ms, q/Ctrl+C/Escape
 //                                          quits; a click toggles the Units pill (the page's own onClick), Tab moves the
 //                                          focus off the pill, Space/Enter press it, `t` flips the theme
-//   bun terminal/solid.ts --page sky       live: the Sky feed. Tab reaches the tablist then the feed, Left/Right switch the
-//                                          feed, Up/Down, PageUp/PageDown, Home/End scroll it, `j`/`k` are the C page's
-//                                          Down/Up, the wheel is a notch, a click on a tab switches the feed and one on a
-//                                          card opens its thread (the page's own onClick, in its loading state)
+//   bun terminal/solid.ts --page sky       live: the Sky page — the feed, its thread and its profile (and the settings
+//                                          screen), as the desktop has them. Tab reaches the tablist then the feed,
+//                                          Left/Right switch the feed, Up/Down, PageUp/PageDown, Home/End scroll it,
+//                                          `j`/`k` are the C page's Down/Up, the wheel is a notch, a click on a tab
+//                                          switches the feed, one on a card opens its thread (the page's own onClick, in
+//                                          its loading state, then the app's recorded thread: `load`'s promise below),
+//                                          one on the card's author row opens the profile; Escape (or Enter on Back)
+//                                          returns; `t` flips the theme
 //   bun terminal/solid.ts --dump [file]    one frame headless, as plain text (cells_dump: '.' is a fill); no file: stdout
 //   bun terminal/solid.ts --ansi [file]    the same frame as ANSI truecolour (SGR runs merged)
-//   --keys Tab,ArrowDown                   headless: the frame, then each key with a frame after it, as main.c
+//   --keys Tab,ArrowDown                   headless: the frame, then each key with a frame after it, as main.c. A `-`
+//                                          is a frame with no input: what a screen needs between its opening and a
+//                                          scroll key, because the page measures its content from the last layout
 //   --keys WheelDown                       the page's wheel, as a notch down (WheelUp: a notch up)
 //   --click X,Y                            headless: the frame, a press over that cell with a frame, a release with a frame
 //   --theme light                          the light theme (also THEME=light)
 //   --cols N --rows N                      the grid (80x20 by default: the C pages' size in test.sh)
 //   --bench N                              headless: N frames, printing the ms a frame and the cells as ANSI
-//   --mutate scroll|tab                    a deliberately broken host, for terminal/test.sh's mutation lines: `scroll`
+//   --mutate scroll|tab|open|back          a deliberately broken host, for terminal/test.sh's mutation lines: `scroll`
 //                                          drops the page's offset before Clay (the feed stays at row 0), `tab` never
-//                                          flushes the frame a tab switch lands on (the bar's active tab stays)
+//                                          flushes the frame a tab switch lands on (the bar's active tab stays), `open`
+//                                          drops a card's own onClick (a click and Enter leave the feed), `back` never
+//                                          hands the page an Escape (a thread or a profile stays up)
 //
+// The thread and the profile are the page's **screens**, not pages of their own: `Sky.tsx` mounts the thread as a root
+// float over the feed and `Profile.tsx`'s `createProfile` is called by `Sky` and its element declared in `Sky`'s tree, so
+// there is no `--page profile` here (the C `demo --page profile` is a stack entry point its own host has). They are
+// driven as the page drives them: a card's click (or, as the C feed's Enter, the host pressing the first card's onClick
+// while the feed is focused) opens the thread, a click on the card's author row opens the profile, Escape is the page's
+// back. The thread's `load` is handed a promise the host settles with the app's **recorded** thread
+// (apps/csssky/test/fixtures/thread.json through the page's own screenOf, which is the fixture solid/thread.test.ts hands
+// it) a frame after the screen mounts: the loading row gets that frame, the app's rows the next. The profile needs
+// nothing: `profile.ts` reads the app's recordings itself, on the first opening.
+
 // What it cannot do is a cell's limit, and said in native/README.md: text is one row (a body wraps at words, but a line
 // is a cell and a long word is broken nowhere), an image is a skipped box, a group's opacity and translate have no
 // cells, and termbox2 reports no motion, so a hover is only where the last press was.
 import "../solid/plugin.ts";
 import { plugin } from "bun";
+import { readFileSync } from "node:fs";
 import type { Motion } from "../solid/src/entry.ts";
 
 // The page's own module (`src/entry.ts`, `pageEntry`) writes its entry motion through `solid/src/ffi.ts`, which on this
@@ -109,7 +128,8 @@ if (page !== "sensors" && !skyPage) {
   process.exit(2);
 }
 const { Sensors } = skyPage ? { Sensors: undefined } : await import("../solid/app/Sensors.tsx");
-const { Sky, s: skyStyles } = skyPage ? await import("../solid/app/Sky.tsx") : { Sky: undefined, s: undefined };
+const { Sky, s: skyStyles, screenOf } =
+  skyPage ? await import("../solid/app/Sky.tsx") : { Sky: undefined, s: undefined, screenOf: undefined };
 const styles = skyPage ? undefined : await import("../examples/sensors/styles.ts");
 
 // A cell is 8x16 (terminal/cells.h): the terminal's own unit, and the re-cut below is in it.
@@ -121,6 +141,27 @@ const NO_STYLE = new Float32Array(45);
 const encoder = new TextEncoder();
 const ids = new Map<string, Uint8Array>();
 const idBytes = (id: string) => ids.get(id) ?? (ids.set(id, encoder.encode(id)), ids.get(id)!);
+
+/**
+ * The thread's data: the app's recorded `getPostThread` answer (apps/csssky/test/fixtures/thread.json), shaped by the
+ * page's own `screenOf` — the same fixture `solid/thread.test.ts` hands the page. Read once, for the sky page only, and
+ * never fetched: the terminal has no AppView, and thread.c shows the same fixture for whichever post opened it (the
+ * app's test stub's answer).
+ */
+const SCREEN = skyPage
+  ? screenOf!(
+      (
+        JSON.parse(
+          readFileSync(new URL("../../apps/csssky/test/fixtures/thread.json", import.meta.url), "utf8"),
+        ) as { thread: unknown }
+      ).thread,
+    )
+  : undefined;
+/** The resolver of the `load` promise the page is waiting on, if any: `land` is the host settling it, and `landWait`
+ *  the frames still to draw before it does (the screen's node mounts one frame after the ask, so the loading row's own
+ *  frame is the one after that). */
+let landThread: (() => void) | undefined;
+let landWait = 0;
 
 const root = new El("root");
 const input = createInput();
@@ -139,9 +180,14 @@ const dispose = skyPage
           // the settings screen's theme radio writes the host's own `theme`: its frame's getter is what every style's
           // variant is picked by, so the palette follows the page
           setTheme: (next) => (theme = next),
-          // the thread's loader: no network in the host. A card's click opens the screen's loading state, and nothing
-          // settles it (the terminal has no thread screen of its own yet)
-          load: () => new Promise<never>(() => {}),
+          // the thread's loader: no network in the host. A card's click opens the loading state, and the host settles
+          // this promise a frame after the screen mounts with the app's recorded thread (SCREEN): the loading row is a
+          // frame the run really draws, and the rows land on the one after it
+          load: () =>
+            new Promise((resolve) => {
+              landThread = () => resolve(SCREEN!);
+              landWait = 1;
+            }),
         }),
       root,
     )
@@ -176,6 +222,7 @@ function emit(el: El, down: boolean) {
   const style = el.props.style;
   if (el.tag === "text") {
     const tid = el.props.id ? idBytes(el.props.id) : undefined;
+    if (skyPage && el.props.id) recut(el.props.id);
     term.text(tid, bytesOf(el), (style && variant(style, theme).text) || WHITE_14);
     return;
   }
@@ -191,6 +238,18 @@ function emit(el: El, down: boolean) {
   // an image is a box with no glyph: the Sky cards' avatars are pictures, and a cell page has none, so the host skips
   // the element rather than spending its 40x40 box (three rows of nothing) on the grid
   if (v?.image) return;
+  // the page's cell re-cut, for the elements a frame declares (the value channel is read when the element opens)
+  if (skyPage && el.props.id) {
+    recut(el.props.id);
+    // a card with a border — the selected feed card, the thread's focused root — keeps its lines off the border's row:
+    // Clay's border is drawn after the children, so a top border on a card with no vertical padding would overwrite the
+    // card's name with box characters (the C cards pad a cell above and below for the same reason)
+    const b = v?.box;
+    if (b && !!(b[22]! > 0 || b[23]! > 0 || b[24]! > 0 || b[25]! > 0) && CARD.test(el.props.id)) {
+      put(el.props.id, FIELDS.PADDING + 2, CELL_H);
+      put(el.props.id, FIELDS.PADDING + 3, CELL_H);
+    }
+  }
   term.openElement(id, v?.box ?? NO_STYLE);
   for (const c of el.children) if (c instanceof El) emit(c, down);
   term.closeElement();
@@ -200,7 +259,8 @@ function emit(el: El, down: boolean) {
 const put = (id: string, field: number, v: number) => term.value(idBytes(id), field, v);
 /** A FIXED axis (Clay's 3) on its min and max: a height that is exactly h pixels, so a row of text, a border and a row
  *  of text are three rows. */
-const fixedHeight = (id: string, h: number) => (put(id, FIELDS.HEIGHT, 3), put(id, FIELDS.HEIGHT + 1, h), put(id, FIELDS.HEIGHT + 2, h));
+const fixedHeight = (id: string, h: number) =>
+  (put(id, FIELDS.HEIGHT, 3), put(id, FIELDS.HEIGHT + 1, h), put(id, FIELDS.HEIGHT + 2, h));
 
 /** The terminal's re-cut of the page's lengths, and the ring the page's focus would draw: terminal/page.c's own numbers,
  *  through the value channel, so the page's styles.ts stays the desktop's. */
@@ -223,53 +283,103 @@ function cellStyle() {
   }
 }
 
+/** A card's re-cut, the feed's and a screen's alike: one cell of side padding, no sub-cell vertical padding or gap, so
+ *  its lines are rows (terminal/sky.c's card_style, thread.c's and profile.c's). */
+const CARD = /^sky-(?:thread-|profile-)?card-\d+$/;
+const cardCut = (id: string) => (
+  put(id, FIELDS.PADDING, CELL_W),
+  put(id, FIELDS.PADDING + 1, CELL_W),
+  put(id, FIELDS.PADDING + 2, 0),
+  put(id, FIELDS.PADDING + 3, 0),
+  put(id, FIELDS.GAP, 0)
+);
+
 /**
- * The Sky feed's re-cut, terminal/sky.c's own numbers through the value channel: the bar one row, its padding and gap one
- * cell, a tab's padding zero (its label is the row); the status line one row and one cell in; a card one cell of side
- * padding and no sub-cell vertical padding or gap, so the card's lines are rows. The feed's own 12px padding and 8px gap
- * are **not** re-cut: the page's scroll arithmetic adds the same 12px paddings and 8px gaps (its PAD/GAP), so a host that
- * zeroed them would make the page's content end larger than Clay's and the clip would stop the scroll short of the page's
- * own end — and in cells the 12px inset lands the first card on row 1, the 8px gap is the empty row between cards that the
- * C page draws as its separator. The C page cuts the same lengths by hand; the page's pixels are only touched here.
+ * One element's re-cut, written through the value channel by the walk **just before that element is opened**, so a frame
+ * writes a value only for the elements it declares (the value table is 256 a frame): the Sky page's re-cut, terminal/
+ * sky.c's, thread.c's and profile.c's numbers. The bar one row, its padding and gap one cell, a tab's padding zero (its
+ * label is the row); the status line one row and one cell in; a card one cell of side padding. The clips' own 12px
+ * padding and 8px gap are **not** re-cut: the page's scroll arithmetic adds the same lengths (its PAD/GAP), so a host
+ * that zeroed them would make the page's content end larger than Clay's and the clip would stop the scroll short of the
+ * page's own end — and in cells the 12px inset lands the first card on row 1, the 8px gap is the empty row between cards
+ * that the C page draws as its separator. The C pages cut the same lengths by hand; the page's pixels are only touched
+ * here.
+ *
+ * The thread and the profile are the page's **screens**, both the same shape (a root float at the page's 64px — the bar
+ * — and 696px — the window less the bar — over the content area, a 44px head with the Back control, a clip of cards): in
+ * cells the float sits one row down (the host's bar is one row) and takes the rows under it, the head and the 28px Back
+ * are one row each (a 2px border on a one-row control is the row's own cells, box characters), and a card is the feed's.
  */
-function skyStyle() {
-  fixedHeight("sky-bar", CELL_H);
-  put("sky-bar", FIELDS.PADDING, CELL_W);
-  put("sky-bar", FIELDS.PADDING + 1, CELL_W);
-  put("sky-bar", FIELDS.GAP, CELL_W);
+function recut(id: string): void {
+  if (id === "sky-bar") {
+    fixedHeight(id, CELL_H);
+    put(id, FIELDS.PADDING, CELL_W);
+    put(id, FIELDS.PADDING + 1, CELL_W);
+    put(id, FIELDS.GAP, CELL_W);
+    return;
+  }
   // the tablist's 2px gap is a sub-cell, so each tab carries a cell of right padding (its own label apart from the next)
   // A tab's 2px underline (its own bottom border) is the whole of a one-row tab's row, and drawing it overwrites the
   // label. A cell's active tab is its label's colour, and the bar's focus is the C bar's active tab: the accent fill and
   // an on-accent label, which is the one focus look a one-row control can carry without eating its glyphs.
-  const focusId = input.focus.focused();
-  const focusedTab = focusId?.startsWith("sky-tabs-tab-") ? Number(focusId.slice("sky-tabs-tab-".length)) : -1;
-  const accent = skyStyles ? variant(skyStyles.tabTextOn, theme).text : undefined;
-  for (let i = 0; i < 3; i++) {
-    put(`sky-tabs-tab-${i}`, FIELDS.PADDING, 0);
-    put(`sky-tabs-tab-${i}`, FIELDS.PADDING + 1, CELL_W); // one cell between one tab's label and the next
-    put(`sky-tabs-tab-${i}`, FIELDS.PADDING + 2, 0);
-    put(`sky-tabs-tab-${i}`, FIELDS.PADDING + 3, 0);
+  if (id.startsWith("sky-tabs-tab-")) {
+    put(id, FIELDS.PADDING, 0);
+    put(id, FIELDS.PADDING + 1, CELL_W); // one cell between one tab's label and the next
+    put(id, FIELDS.PADDING + 2, 0);
+    put(id, FIELDS.PADDING + 3, 0);
     // the border widths are the four before the border colour (pack.ts's packBox: 22..25, then 26..29)
-    for (let f = FIELDS.BORDER - 4; f < FIELDS.BORDER; f++) put(`sky-tabs-tab-${i}`, f, 0);
-    if (i === focusedTab && accent) {
-      for (let k = 0; k < 3; k++) put(`sky-tabs-tab-${i}`, FIELDS.BACKGROUND + k, accent[k]!);
-      put(`sky-tabs-tab-${i}`, FIELDS.BACKGROUND_ALPHA, 255);
-      for (let k = 0; k < 4; k++) put(`sky-tabs-label-${i}`, FIELDS.TEXT_COLOR + k, 255);
+    for (let f = FIELDS.BORDER - 4; f < FIELDS.BORDER; f++) put(id, f, 0);
+    const accent = skyStyles ? variant(skyStyles.tabTextOn, theme).text : undefined;
+    if (accent && id === input.focus.focused()) {
+      for (let k = 0; k < 3; k++) put(id, FIELDS.BACKGROUND + k, accent[k]!);
+      put(id, FIELDS.BACKGROUND_ALPHA, 255);
     }
+    return;
   }
-  fixedHeight("sky-status", CELL_H);
-  put("sky-status", FIELDS.PADDING, CELL_W);
-  put("sky-status", FIELDS.PADDING + 1, CELL_W);
-  // the cards are declared by the page's window; the ids are its own (`sky-card-${i}`), and a value for one that is not
-  // declared this frame is stored and applied when it is
-  for (let i = 0; i < 12; i++) {
-    put(`sky-card-${i}`, FIELDS.PADDING, CELL_W);
-    put(`sky-card-${i}`, FIELDS.PADDING + 1, CELL_W);
-    put(`sky-card-${i}`, FIELDS.PADDING + 2, 0);
-    put(`sky-card-${i}`, FIELDS.PADDING + 3, 0);
-    put(`sky-card-${i}`, FIELDS.GAP, 0);
+  // ... and the focused tab's label, which the page ids: its colour is the text's own four floats, not its box's
+  const labelOf = `sky-tabs-tab-${id.slice("sky-tabs-label-".length)}`;
+  if (id.startsWith("sky-tabs-label-") && labelOf === input.focus.focused()) {
+    for (let k = 0; k < 4; k++) put(id, FIELDS.TEXT_COLOR + k, 255);
+    return;
+  }
+  if (id === "sky-status") {
+    fixedHeight(id, CELL_H);
+    put(id, FIELDS.PADDING, CELL_W);
+    put(id, FIELDS.PADDING + 1, CELL_W);
+    return;
+  }
+  if (id.startsWith("sky-card-") || id.startsWith("sky-thread-card-") || id.startsWith("sky-profile-card-"))
+    return void cardCut(id);
+  if (id === "sky-thread" || id === "sky-profile") {
+    put(id, FIELDS.OFFSET_Y, CELL_H);
+    return void fixedHeight(id, (gridRows() - 1) * CELL_H);
+  }
+  if (id === "sky-thread-head" || id === "sky-profile-head") return void fixedHeight(id, CELL_H);
+  // the Back control: its 1px border is drawn after the text (Clay adds a border's command on the way out of the
+  // element, after its children) and would be its own row's cells, eating the word; a cell's Back is the panel fill and
+  // the word. The C pages have no control here (escape is their bar's text); this one is the page's own button.
+  if (id === "sky-back" || id === "sky-profile-back") {
+    fixedHeight(id, CELL_H);
+    for (let f = FIELDS.BORDER - 4; f < FIELDS.BORDER; f++) put(id, f, 0);
+    return;
+  }
+  // the profile's header: the avatar is a drawn 56px disc (no image, no glyph) and its 3.5 rows are two; the tabs are the
+  // bar's re-cut (no padding, a cell after the label), and their border widths are zero — the active tab's 2px underline
+  // and a focused tab's 2px ring are a one-row tab's whole row, and Profile.tsx gives its labels no id for the host to
+  // write an on-accent colour through, so the active tab is its own accent label (the style's literal) and the focus has
+  // no cell of its own. The bar's tabs can do more because Sky.tsx ids their labels.
+  if (id === "sky-profile-avatar") return void fixedHeight(id, 2 * CELL_H);
+  if (id.startsWith("sky-profile-tabs-tab-")) {
+    put(id, FIELDS.PADDING, 0);
+    put(id, FIELDS.PADDING + 1, CELL_W);
+    put(id, FIELDS.PADDING + 2, 0);
+    put(id, FIELDS.PADDING + 3, 0);
+    for (let f = FIELDS.BORDER - 4; f < FIELDS.BORDER; f++) put(id, f, 0);
   }
 }
+
+/** The grid's rows: termbox2's own in the live mode, the flag's headless (and after a resize). */
+const gridRows = () => term.size()[1];
 
 /** One frame: the pointer and its edges, the page's motion, the re-cut, the tree, Clay, the cells. Returns the command
  *  count. */
@@ -285,7 +395,9 @@ function frame(px: number, py: number, down: boolean, dt = 1 / 60): number {
   } else if (!down && wasDown) {
     const hit = clickable.filter((el) => pressed.has(el) && over(el));
     pressed.clear();
-    for (const el of hit) el.props.onClick?.(px, py);
+    // a mutation (`--mutate open`): the press's release never runs the control's own onClick, so a card's click leaves
+    // the feed as it was
+    if (mutate !== "open") for (const el of hit) el.props.onClick?.(px, py);
   }
   wasDown = down;
   // the page's own pointer (the Sky feed's drag, the List's): after the events, before the tick, as src/frame.ts
@@ -293,8 +405,7 @@ function frame(px: number, py: number, down: boolean, dt = 1 / 60): number {
   motion.tick?.(dt);
   // a mutation for terminal/test.sh: the page's offset never reaches Clay's clip, so the feed stays at row 0
   if (mutate === "scroll" && skyPage) term.scrollTo("sky-feed", 0);
-  if (skyPage) skyStyle();
-  else cellStyle();
+  if (!skyPage) cellStyle();
   // ... and the tab switch that never re-renders: the tree is not flushed after the key, so the bar's active tab stays
   if (!frozen) flush();
   clickable = [];
@@ -310,7 +421,13 @@ function press(name: string) {
     if (name === "WheelDown" || name === "WheelUp") return void motion.onWheel?.(0, name === "WheelDown" ? -1 : 1);
     const key = name === "Space" ? " " : name === "j" ? "ArrowDown" : name === "k" ? "ArrowUp" : name;
     if (mutate === "tab" && /^(ArrowLeft|ArrowRight|[1-3])$/.test(key)) frozen = true;
-    if (input.down(key)) input.up(key);
+    // a mutation (`--mutate back`): the page never sees an Escape, so a thread or a profile stays up
+    if (mutate === "back" && key === "Escape") return;
+    if (input.down(key)) return void input.up(key);
+    // the page's cards are not Tab stops, so Enter has no card of its own: the C page's Enter opens the focused post's
+    // thread, and the host presses the first card's own onClick while the feed is the focused stop (as it presses the
+    // Sensors pill's). Anywhere else the page's own parts have already taken the key.
+    if ((key === "Enter" || key === " ") && input.focus.focused() === "sky-feed") pressCard();
     return;
   }
   const key = name === "Space" ? " " : name;
@@ -320,6 +437,41 @@ function press(name: string) {
   // the C page's Space/Enter on the focused pill: the page wires no keyboard, so the host presses its own onClick
   else if ((key === " " || key === "Enter") && focus === 0) units?.props.onClick?.();
   input.up(key);
+}
+
+/** The feed's first declared card's own onClick (the C feed's Enter: the focused post's thread). Nothing under
+ *  `--mutate open`, and nothing when the window declared no card (an empty feed). */
+function pressCard() {
+  if (mutate === "open") return;
+  let first: El | undefined;
+  let index = Infinity;
+  for (const el of clickable) {
+    const id = el.props.id;
+    if (!id || !/^sky-card-\d+$/.test(id)) continue;
+    const n = Number(id.slice("sky-card-".length));
+    if (n < index) (index = n), (first = el);
+  }
+  first?.props.onClick?.(-1, -1);
+}
+
+/**
+ * Settles the thread's `load` after the frame that asked for it (the page's ask is a promise, and its `.then` is a
+ * microtask): the screen's node mounts a frame after the ask and the loading row is that frame's, so `landWait` holds
+ * the answer back one frame, and the next frame flushes the app's recorded rows. No-op while no thread is being
+ * loaded, so a frame loop can call it every frame.
+ */
+async function land() {
+  if (!landThread) return;
+  if (landWait > 0) {
+    landWait--;
+    return;
+  }
+  const resolve = landThread;
+  landThread = undefined;
+  resolve();
+  // the page's `.then` is a microtask and Solid's tree update follows it: one turn of the event loop is the smallest
+  // thing that lets both run before the next frame
+  await new Promise((r) => setTimeout(r, 0));
 }
 
 // the host's quit: `q` and Ctrl+C everywhere; Escape is the Sensors host's too, but on the Sky page it is the page's
@@ -343,12 +495,8 @@ if (headless) {
   frame(-1, -1, false);
   keep();
   frameNo++;
-  for (const key of keys ?? []) {
-    press(key);
-    frame(-1, -1, false);
-    keep();
-    frameNo++;
-  }
+  // the pointer first, then the keys: a screen the page opens on a click (the profile, from a card's author row) is up
+  // before the keys that drive it arrive
   if (click) {
     const [x, y] = [click[0]!, click[1]!];
     for (const down of [false, true, false]) {
@@ -356,9 +504,22 @@ if (headless) {
       keep();
       frameNo++;
     }
+    await land();
+  }
+  for (const key of keys ?? []) {
+    // a frame with no input: a screen measures its content from the last frame's layout, so its first scroll key needs one
+    if (key !== "-") press(key);
+    frame(-1, -1, false);
+    keep();
+    frameNo++;
+    // a key that opened a thread: the loader's answer lands after the frame that asked (the loading state's own frame)
+    await land();
   }
   // the motion at rest: after the keys and the click, a page with a track needs frames after the input, not one
-  for (let i = 0; i < settle; i++) frame(-1, -1, false);
+  for (let i = 0; i < settle; i++) {
+    frame(-1, -1, false);
+    await land();
+  }
   if (bench) {
     // the first frames are the JIT's: ten at rest, untimed, then the measured run
     for (let i = 0; i < 10; i++) frame(-1, -1, false);
@@ -385,6 +546,15 @@ if (headless) {
   if (showOffset && skyPage) {
     const o = term.scrollOffset("sky-feed");
     console.log(`offset ${o} px (${(o / CELL_H).toFixed(2)} rows)`);
+    // the screens' own clips: their offset is the page's scroll machine's, as the feed's
+    for (const [id, name] of [
+      ["sky-thread-view", "thread"],
+      ["sky-profile-view", "profile"],
+    ] as const) {
+      if (term.bounds(idBytes(id)) === undefined) continue;
+      const s = term.scrollOffset(id);
+      console.log(`${name} offset ${s} px (${(s / CELL_H).toFixed(2)} rows)`);
+    }
   }
   const status = term.errors() ? 1 : 0;
   dispose();
@@ -423,6 +593,7 @@ for (;;) {
   const now = performance.now();
   frame(px, py, down, Math.min((now - last) / 1000, 0.05));
   term.present();
+  await land();
   last = now;
   if (++frames >= maxFrames) break;
 }
