@@ -142,31 +142,31 @@ pattern); out-of-phase events are no-ops expressed as `if (<phase>) new else
 current`. Adapter-origin events are prefixed `on`; user-intent events are the
 primitive's public methods/keys.
 
-| Event                                      | Source (HTML)                    | Effect                                                                  |
+| Event | Source (HTML) | Effect |
 | ------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------- |
-| `onLoadedMetadata(d)`                      | `loadedmetadata`                 | if `loading`: `stage=ready`, `known=true`, `dur=d`, `pos=0`; else no-op |
-| `onCanPlay`                                | `canplay`                        | if `loading`: `stage=ready`; else no-op                                 |
-| `onWaiting`                                | `waiting`                        | if `playing`: `stage=buffering`; else no-op                             |
-| `onPlaying`                                | `playing`                        | if `buffering`: `stage=playing`; else no-op                             |
-| `onTimeUpdate(t)`                          | `timeupdate`                     | if `playing`: `pos=t` (+ refresh `textMin/textSec`); else no-op         |
-| `onPause`                                  | `pause` (external)               | if `playing` or `buffering`: `stage=paused`, `paused=true`              |
-| `onEnded`                                  | `ended`                          | if `playing`: `stage=ended`, `ended=true`, `paused=true`, `pos=dur`     |
-| `onError`                                  | `error`                          | `stage=error`                                                           |
-| `play`                                     | user `play()`/Space/K/button     | if `ready                                                               | paused                                                | ended | buffering`: `stage=playing`, `paused=false`, `ended=false`; **if previously `ended`, `pos=0`**; `plays++` |
-| `pause`                                    | user `pause()`/Space/K/button    | if `playing                                                             | buffering`: `stage=paused`, `paused=true`, `pauses++` |
-| `seekPreview(t)`                           | pointer drag / slider move       | if `known`: `pos=t`, `seeking=true`; no adapter call                    |
-| `seekCommit(t)`                            | pointerup / Enter on thumb       | if `known`: `pos=t`, `seeking=true`, `seeks++` (adapter `seek(t)`)      |
-| `onSeeked`                                 | `seeked`                         | `seeking=false`                                                         |
-| `seekStepBack/Fwd` (thumb)                 | ArrowLeft/Down / Right/Up        | on `seek`: commit target `pos ∓ 1`                                      |
-| `seekPageBack/Fwd` (thumb)                 | PageDown/PageUp                  | on `seek`: commit target `pos ∓ 15`                                     |
-| `seekHome/seekEnd` (thumb)                 | Home/End                         | on `seek`: commit `0` / `dur`                                           |
-| `seekBack/seekFwd` (surface)               | ArrowLeft/ArrowRight             | on `surface`: commit target `pos ∓ 5`                                   |
-| `setVolume(v)`                             | volume slider / `volumechange`   | `vol=v`, `applied=effectiveVolume(v,muted)`                             |
-| `toggleMute`                               | M / mute button / `volumechange` | `muted=!muted`, `applied=effectiveVolume(vol,!muted)`                   |
-| `onRateChange(r)`                          | `ratechange`                     | `rate=r`                                                                |
-| `toggleFullscreen`                         | F / fullscreen button            | `full=!full`                                                            |
-| `focusSurface/focusSeek/focusControl/blur` | focus events                     | `focus=…`                                                               |
-| `loadStart`                                | reload / retry                   | `stage=loading`, `known=false`, `dur=0`, `pos=0`, `seeking=false`       |
+| `onLoadedMetadata(d)` | `loadedmetadata` | if `loading`: `stage=ready`, `known=true`, `dur=d`, `pos=0`; else no-op |
+| `onCanPlay` | `canplay` | if `loading`: `stage=ready`; else no-op |
+| `onWaiting` | `waiting` | if `playing`: `stage=buffering`; else no-op |
+| `onPlaying` | `playing` | if `buffering`: `stage=playing`; else no-op |
+| `onTimeUpdate(t)` | `timeupdate` | if `playing`: `pos=t` (+ refresh `textMin/textSec`); else no-op |
+| `onPause` | `pause` (external) | if `playing` or `buffering`: `stage=paused`, `paused=true` |
+| `onEnded` | `ended` | if `playing`: `stage=ended`, `ended=true`, `paused=true`, `pos=dur` |
+| `onError` | `error` | `stage=error` |
+| `play` | user `play()`/Space/K/button | if `ready                                                               | paused                                                | ended | buffering`: `stage=playing`, `paused=false`, `ended=false`; **if previously `ended`, `pos=0`**; `plays++` |
+| `pause` | user `pause()`/Space/K/button | if `playing                                                             | buffering`: `stage=paused`, `paused=true`, `pauses++` |
+| `seekPreview(t)` | pointer drag / slider move | if `known`: `pos=t`, `seeking=true`; no adapter call |
+| `seekCommit(t)` | pointerup / Enter on thumb | if `known`: `pos=t`, `seeking=true`, `seeks++` (adapter `seek(t)`) |
+| `onSeeked` | `seeked` | `seeking=false` |
+| `seekStepBack/Fwd` (thumb) | ArrowLeft/Down / Right/Up | on `seek`: commit target `pos ∓ 1` |
+| `seekPageBack/Fwd` (thumb) | PageDown/PageUp | on `seek`: commit target `pos ∓ 15` |
+| `seekHome/seekEnd` (thumb) | Home/End | on `seek`: commit `0` / `dur` |
+| `seekBack/seekFwd` (surface) | ArrowLeft/ArrowRight | on `surface`: commit target `pos ∓ 5` |
+| `setVolume(v)` | volume slider / `volumechange` | `vol=v`, `applied=effectiveVolume(v,muted)` |
+| `toggleMute` | M / mute button / `volumechange` | `muted=!muted`, `applied=effectiveVolume(vol,!muted)` |
+| `onRateChange(r)` | `ratechange` | `rate=r` |
+| `toggleFullscreen` | F / fullscreen button | `full=!full` |
+| `focusSurface/focusSeek/focusControl/blur` | focus events | `focus=…` |
+| `loadStart` | reload / retry | `stage=loading`, `known=false`, `dur=0`, `pos=0`, `seeking=false` |
 
 Phase-pattern example (the only place a guard would have been used):
 

@@ -110,7 +110,9 @@ describe("createPagination", () => {
       pageCount: 5,
       hrefFor: (page) => `/issues?page=${page}`,
     });
-    expect(root.querySelector<HTMLAnchorElement>("a[rel=next]")?.getAttribute("href")).toBe("/issues?page=3");
+    expect(root.querySelector<HTMLAnchorElement>("a[rel=next]")?.getAttribute("href")).toBe(
+      "/issues?page=3",
+    );
     dispose();
   });
 
