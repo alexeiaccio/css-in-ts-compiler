@@ -3,13 +3,13 @@
 // off the elements themselves, through custom properties registered with `@property { syntax: "*"; inherits: false }`:
 //
 //   owner    ._reactive-owner      --reactive-owner: open,tab       --reactive-<name>: <value>   (these inherit)
-//   events   ._reactive-events     --reactive-on: click toggle open,input set tab two
+//   events   ._reactive-events     --reactive-on: click toggle open,input set tab @value
 //   output   ._reactive-binding    --reactive-binding: aria-expanded open,data-current tab
 //
 // On load it initialises each owner (data-reactive-<name> from the declared value) and writes its bindings; on an event it
 // applies every program of the target and its ancestors (DOM bubbling) to the nearest owner, then updates the bindings of
-// each owner it touched once — one flush, one frame. Added nodes are initialised as well. No imports, no Effect; tolerant of
-// pages that use none of it.
+// each owner it touched once — one flush, one frame. A set value of `@value` or `@checked` is read off the event's target
+// (a select, an input). Added nodes are initialised as well. No imports, no Effect; tolerant of pages that use none of it.
 const OWNER = "_reactive-owner";
 const EVENTS = "_reactive-events";
 const OUTPUT = "_reactive-binding";
@@ -48,14 +48,31 @@ const write = (owner: Element, name: string, state: string): void => {
 
 const read = (owner: Element, name: string): string => owner.getAttribute(ATTR + name) ?? "false";
 
-// One program: `click toggle open` and `input set tab two`, the segments of another event skipped.
-const apply = (owner: Element, program: string, event: string): boolean => {
+// A value of a set segment: `@value` and `@checked` come from the element the event fired on (a select, an input), anything
+// else is the literal the build wrote.
+const field = (target: Element | null, token: string): string => {
+  if (token === "@value") {
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLSelectElement ||
+      target instanceof HTMLTextAreaElement
+    )
+      return String(target.value ?? "");
+    return "";
+  }
+  if (token === "@checked") return (target as HTMLInputElement | null)?.checked ? "true" : "false";
+  return token;
+};
+
+// One program: `click toggle open` and `input set tab two`, the segments of another event skipped. A segment written twice
+// is applied once: the same program twice would toggle twice.
+const apply = (owner: Element, program: string, event: string, target: Element | null): boolean => {
   let touched = false;
-  for (const segment of list(program)) {
-    const [type, action, name, state] = segment.split(" ");
+  for (const segment of new Set(list(program))) {
+    const [type, action, name, value] = segment.split(" ");
     if (type !== event || !name) continue;
     if (action === "toggle") write(owner, name, read(owner, name) === "true" ? "false" : "true");
-    else if (action === "set") write(owner, name, state ?? "");
+    else if (action === "set") write(owner, name, field(target, value ?? ""));
     else continue;
     touched = true;
   }
@@ -93,7 +110,7 @@ const run = (event: Event): void => {
   for (let el = target; el; el = el.parentElement) {
     if (!el.classList.contains(EVENTS)) continue;
     const owner = ownerOf(el);
-    if (owner && apply(owner, prop(el, PROGRAM), event.type)) owners.add(owner);
+    if (owner && apply(owner, prop(el, PROGRAM), event.type, target)) owners.add(owner);
   }
   for (const owner of owners) flush(owner);
 };

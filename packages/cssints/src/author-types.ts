@@ -1,7 +1,15 @@
 // The shapes the engine and the helpers of "cssints/plugin" share: kernels, global rules, themes, runtimes, conflicts and
 // the themes of a call member. Interfaces only; the helpers and their types are in author.ts and scope.ts.
-/** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
-export type Decl = readonly [prop: string, value: string];
+import type { Cond } from "./node.ts";
+
+/** A declaration a member emits: property and value (a custom property, `--_r`, is allowed); `append()` makes a list. */
+export type Decl = readonly [
+  prop: string,
+  value: string,
+  conds?: readonly Cond[],
+  fallbacks?: readonly string[],
+  join?: ",",
+];
 /** A feature of `@mdn/browser-compat-data`: `css.at-rules.container.style_queries_for_custom_properties`. */
 export type BcdKey = `css.${string}`;
 

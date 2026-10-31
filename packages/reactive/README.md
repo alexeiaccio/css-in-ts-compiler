@@ -53,13 +53,20 @@ const own = when(ui.open)(display("block")); // the element itself
 
 | Member                              | What it does                                                                                                    |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `state(states)`                     | The owner: `{ owner, ...sources }`. Names are idents, one `state()` per element.                                |
+| `state(states)`                     | The owner: `{ owner, ...sources }`. Names are idents; two calls in one `cn()` are one owner.                    |
 | `toggle(source)`                    | An action that flips a boolean source. Only `on()` takes it.                                                    |
-| `set(source, value)`                | An action that sets a source to a value. Only `on()` takes it.                                                  |
+| `set(source, value)`                | An action that sets a source to a value, or to the field's (`value()`, `checked()`). Only `on()` takes it.      |
+| `value()`                           | The value of the field the event fired on (`target.value`, a string). Only `set()` takes it.                    |
+| `checked()`                         | Whether the field is checked (`target.checked`). Only `set()` takes it.                                         |
 | `on({ event: action \| action[] })` | The element's program: click, input, change, submit, keydown, keyup, pointerdown, pointerup, focusin, focusout. |
 | `bind({ attribute: source })`       | Writes each attribute on the element it is on, from its nearest owner.                                          |
 | `when(source, value?)`              | A condition on the element itself (`data-reactive-<name>`), `"true"` when the value is left out.                |
 | `inside(source, value?)`            | A condition on a descendant of the owner (`within()` over its `data-reactive-<name>`).                          |
+
+Two calls of `on()`, `bind()` or `state()` in one `cn()` append instead of replacing: the element's program is
+`click toggle open,keydown set tab two`, its attributes `aria-expanded open,data-current tab`, and its owner's states
+`open,tab`. A `<select>` drives a string state with `set(ui.tab, value())`, a checkbox a boolean one with
+`set(ui.open, checked())`.
 
 The CSS of the example above (the class names are hashes):
 
@@ -125,25 +132,28 @@ The CSS of the example above (the class names are hashes):
 
 What the build emits, and what `./runtime` reads (for debugging):
 
-| Custom property      | On                   | Value                                   |
-| -------------------- | -------------------- | --------------------------------------- |
-| `--reactive-owner`   | `._reactive-owner`   | the states, `open,tab`                  |
-| `--reactive-<name>`  | the owner            | the state's value (`false`, `one`, `2`) |
-| `--reactive-on`      | `._reactive-events`  | `click toggle open,input set tab two`   |
-| `--reactive-binding` | `._reactive-binding` | `aria-expanded open,data-current tab`   |
+| Custom property      | On                   | Value                                     |
+| -------------------- | -------------------- | ----------------------------------------- |
+| `--reactive-owner`   | `._reactive-owner`   | the states, `open,tab`                    |
+| `--reactive-<name>`  | the owner            | the state's value (`false`, `one`, `2`)   |
+| `--reactive-on`      | `._reactive-events`  | `click toggle open,change set tab @value` |
+| `--reactive-binding` | `._reactive-binding` | `aria-expanded open,data-current tab`     |
 
 The runtime writes `data-reactive-<name>="<value>"` on the owner — what `when()` and `inside()` read — and the same value
 as an inline `--reactive-<name>`, what CSS derivations read. On load it initialises each owner (`data-reactive-<name>` from
 the declared value) and writes its bindings; on an event it walks from the target up, applies every program it finds to
 that element's nearest owner, and then updates the bindings of each owner once. Nodes added later are initialised too
-(a `MutationObserver`).
+(a `MutationObserver`). A set segment's value is a literal, or `@value`/`@checked`: the runtime reads `target.value` (a
+string) or `target.checked` (`"true"`, `"false"`) off the element the event fired on. An identical segment written twice
+is applied once, so a program twice is still one toggle.
 
 ## Limits
 
-- One `state()` per element, and one `on()` per element: the object form makes an accidental merge visible (`cn` joins class
-  strings, so two `on()`s would silently become one element with two programs).
-- A string value has no commas and no spaces (the protocol is a comma-separated list); names are idents (lowercase letters,
-  digits and `-`). Both are build errors at the call site.
+- Several calls on one element append: two `state()`s are one owner's states, two `on()`s one program, two `bind()`s one
+  attribute list. An identical segment twice is applied once (the runtime dedupes it), so a repeated program does not
+  toggle twice.
+- A string value has no commas, no spaces and no `@` (the protocol is a comma-separated list, and `@value`/`@checked` are
+  payloads); names are idents (lowercase letters, digits and `-`). All are build errors at the call site.
 - The event set is fixed: click, input, change, submit, keydown, keyup, pointerdown, pointerup, focusin, focusout.
 - A write must be reachable from the element's program: the event bubbles to `<document>`, so a program on an ancestor runs
   for its descendants' events, but a button outside the owner has no owner to write.
@@ -154,8 +164,9 @@ that element's nearest owner, and then updates the bindings of each owner once. 
 - A state is build-time data: the client gets the owner's class string and the sources' names, never a readable value. A
   component cannot read `ui.open` in JavaScript — that is the point, the state is CSS; a value JavaScript needs is the
   framework's own state.
-- No persistence, counters, gestures or async in v1: a state is a string, a number or a boolean, written by a click, a key
-  or a form event. `calc()` over a state value is CSS, not a source: nothing increments it from JavaScript.
+- No persistence, counters, gestures, async or `event()` callbacks in v1: a state is a string, a number or a boolean,
+  written by a click, a key or a form event. `calc()` over a state value is CSS, not a source: nothing increments it from
+  JavaScript.
 
 ## Browsers
 
@@ -169,5 +180,7 @@ program.
 ```bash
 cd packages/reactive && bun run test            # the engine: class strings, the protocol, the @property rules, errors
 cd packages/reactive && bun run test:browsers   # Chrome, Firefox, WebKit: two disclosures, an initial true state,
-                                                # tabs, a nested owner, the flush of one click (BROWSERS=chrome)
+                                                # tabs, a nested owner, the flush of one click, a <select> from value(),
+                                                # a checkbox from checked(), two programs on one element, a repeated one
+                                                # (BROWSERS=chrome)
 ```

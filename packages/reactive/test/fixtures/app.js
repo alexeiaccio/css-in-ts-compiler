@@ -31,4 +31,25 @@ document.body.innerHTML = `
     <div id=in-panel class="${page.innerPanel}" ${panel}></div>
   </div>
 </div>
+<div id=s class="${page.selectCard}" ${card}>
+  <select id=s-field class="${page.selectField}">
+    <option value=one selected>one</option>
+    <option value=two>two</option>
+  </select>
+  <div id=s1 class="${page.selectOne}" ${panel}></div>
+  <div id=s2 class="${page.selectTwo}" ${panel}></div>
+</div>
+<div id=f class="${page.checkCard}" ${card}>
+  <input id=f-field type=checkbox class="${page.checkbox}">
+  <div id=f-panel class="${page.checkPanel}" ${panel}></div>
+</div>
+<div id=m class="${page.multiCard}" ${card}>
+  <div id=m-field class="${page.multiField}" tabindex=0>multi</div>
+  <div id=m-open class="${page.multiOpen}" ${panel}></div>
+  <div id=m-two class="${page.multiTwo}" ${panel}></div>
+</div>
+<div id=d class="${page.dupCard}" ${card}>
+  <button id=d-btn class="${page.dupButton}">d</button>
+  <div id=d-panel class="${page.dupPanel}" ${panel}></div>
+</div>
 `;
