@@ -5,7 +5,7 @@ status: todo
 type: task
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-31T11:04:04Z
+updated_at: 2026-10-31T11:13:31Z
 parent: cssints-65eb
 ---
 
@@ -35,3 +35,5 @@ Patterns that are a composition, not a primitive. Base UI's "building a filterab
 
 - [x] command palette: shipped in PR #92 (`createCommandPalette`: dialog + searchbox + listbox, `packages/headless/src/command-palette.ts`, 9 browser tests, docs and a minor changeset).
 - [ ] filterable menu and date picker: left for later PRs on the same research (the palette is the first composition).
+
+- [x] filterable menu: shipped in PR #105 (`createFilterableMenu`, `packages/headless/src/filterable-menu.ts`, 12 browser tests, README + docs/API entries, minor changeset). The manual AT checks in the bugs sub-box (VoiceOver/TalkBack/NVDA) are still open: they need real screen readers, not Chromium.
