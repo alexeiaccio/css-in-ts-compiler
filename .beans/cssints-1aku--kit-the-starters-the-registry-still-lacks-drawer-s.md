@@ -18,7 +18,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] carousel
 - [x] grid — infrastructure, not a starter: the two-dimensional focus and window machine `table` and `treegrid` sit on
 - [x] feed
-- [ ] player
+- [x] player
 - [x] treegrid
 - [ ] resizable-panels
 
@@ -98,6 +98,16 @@ Tests: `apps/ui` 389 passed (7 new for the carousel), `bun run typecheck`, `bun 
 - Added the demo to `src/docs/demos.tsx` and a `.demo-feed` rule in `docs.css`; regenerated `r/feed.json`, `r/registry.json` and `public/llms.txt`. The other `r/*.json` were left as committed (several embed a pre-format copy of their sources), so a full regeneration is still owed.
 - Finding: `docs/API.md` has no feed section and `packages/headless/README.md` only lists the pattern in the prefs table, so the contract is read from `src/feed.ts`, `specs/apg/feed.qnt` and `feed.browser.test.tsx`. The spec's deliberate omission ("scroll-position-triggered loading: load_start stands in for it") is exactly the seam this skin fills.
 
+
+## Player (round nine)
+
+- Added `apps/ui/src/registry/player/`: `Player` over `createPlayer`; the skin is the surface (a video frame with the caller's source and poster, or an audio bar), the frame's radius, border and tokens in light and dark, the control bar, the seek's rail, fill and thumb, the m:ss time line, the mute toggle painted from `aria-pressed`, the press on the rail that seeks, and the reduced-motion rules. The primitive owns the playback stage, the position and duration, the seek's `role="slider"` with its `aria-value*` and keys, the play/pause label, the mute toggle's `aria-pressed`, the four preferences and the surface keys (Space / K, the arrows, M, F).
+- The adapter is the caller's, so the primitive still imports no media library: the fixture's `DemoPlaybackAdapter` announces 1:30 and runs a 200 ms clock while playing, so pressing Play visibly moves the seek, the time and the fill, and it records every committed seek the test reads. No media file and no image file: the demo's frame is an inline SVG poster.
+- Added the fixture (a made-up 3:2 film, the control bar and the sentence about the keys) and the Chromium browser test: the named group and the caller's video frame, the m:ss duration and the slider's value text, the play/pause name following the stage, the slider's role, name and keys with every commit reaching the adapter, the clock advancing the slider/time/fill, a press on the rail seeking to the middle, and the mute toggle plus the surface keys.
+- Added the demo to `src/docs/demos.tsx`; regenerated `r/player.json`, `r/registry.json` and `public/llms.txt`. The other `r/*.json` were left as committed.
+- Finding: `PlayerSurfaceProps` carries only the tab stop and the keys, with no role or name, and `PlayerSeekProps` has no `aria-label`; the skin names the stage (`role="group"` and the caller's `label`) and the slider ("Seek"). Fullscreen stays the primitive's state without a button: requesting it on an element is the page's container decision.
+
+Tests: `apps/ui` 409 passed (6 new for the player), `bun run typecheck`, `bun run build` and `theme:check` pass.
 
 ## Engine gaps
 
