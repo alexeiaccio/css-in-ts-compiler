@@ -39,6 +39,14 @@ import {
 } from "../registry/drawer/drawer.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
 import {
+  DIAGRAM_HINT,
+  edgeLabel,
+  nodeLabel,
+  PAYMENT_EDGES,
+  PAYMENT_NODES,
+} from "../registry/diagram/diagram.fixture.tsx";
+import { Diagram } from "../registry/diagram/diagram.tsx";
+import {
   PANZOOM_HEIGHT,
   PANZOOM_IMAGE,
   PANZOOM_WIDTH,
@@ -317,6 +325,25 @@ const ScrollspyDemo = (): JSX.Element => {
         <p class="demo-scrollspy__label">On this page</p>
         <Scrollspy entries={SCROLLSPY_ENTRIES} root={() => pane} />
       </div>
+    </div>
+  );
+};
+
+// The diagram is a payment flow: four steps and five edges. The keys are the primitive's; the line under it shows what an
+// activation sends to the host, because a graph drawn from a model is useless if a click cannot be read.
+const DiagramDemo = (): JSX.Element => {
+  const [log, setLog] = createSignal("Nothing activated yet: click a node, or press Enter on it.");
+  return (
+    <div class="demo-column demo-diagram">
+      <Diagram
+        nodes={PAYMENT_NODES}
+        edges={PAYMENT_EDGES}
+        labels={{ diagram: "Payment flow" }}
+        onActivate={(id) => setLog(`Node “${nodeLabel(id)}” activated.`)}
+        onEdge={(id) => setLog(edgeLabel(id))}
+      />
+      <p class="demo-text">{DIAGRAM_HINT}</p>
+      <p class="demo-text">{log()}</p>
     </div>
   );
 };
@@ -1152,6 +1179,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   drawer: DrawerDemo,
   panzoom: PanzoomDemo,
   scrollspy: ScrollspyDemo,
+  diagram: DiagramDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,

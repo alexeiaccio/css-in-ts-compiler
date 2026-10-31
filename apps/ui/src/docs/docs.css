@@ -241,6 +241,12 @@ code {
   font-size: var(--font-size-sm);
 }
 
+/* A graph is drawn at its own pixel size: on a narrow page the frame scrolls sideways instead of squashing the lines. */
+.demo-diagram {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;

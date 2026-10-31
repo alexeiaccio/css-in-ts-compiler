@@ -108,6 +108,15 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`",
   },
   {
+    name: "diagram",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    title: "Diagram",
+    description:
+      "A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is",
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
