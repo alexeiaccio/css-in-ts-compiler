@@ -113,6 +113,26 @@ describe("createCheckboxGroup x the field contract", () => {
     expect(Object.keys(group.childProps(0))).not.toContain("aria-invalid");
     expect(Object.keys(group.parentProps)).not.toContain("aria-invalid");
   });
+
+  it("derives the children's ids from the group's base, so two groups do not collide", () => {
+    const named = createCheckboxGroup({ values, id: "channels", label: "Channels" });
+    expect(named.groupProps.id).toBe("channels-control");
+    expect([named.childProps(0).id, named.childProps(1).id, named.childProps(2).id]).toEqual([
+      "channels-0",
+      "channels-1",
+      "channels-2",
+    ]);
+    // no `id`: the unique base keeps the group's and its children's ids apart too
+    const first = createCheckboxGroup({ values, label: "Channels" });
+    const second = createCheckboxGroup({ values, label: "Topics" });
+    const firstIds = [first.childProps(0).id, first.childProps(1).id, first.childProps(2).id];
+    const secondIds = [second.childProps(0).id, second.childProps(1).id, second.childProps(2).id];
+    expect(firstIds).not.toEqual(secondIds);
+    expect(first.groupProps.id).not.toBe(second.groupProps.id);
+    for (const id of firstIds) {
+      expect(id.startsWith(`${first.groupProps.id.replace(/-control$/, "")}-`)).toBe(true);
+    }
+  });
 });
 
 describe("createCheckboxGroup x spec (differential walk)", () => {

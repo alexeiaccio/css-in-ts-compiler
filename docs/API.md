@@ -1714,7 +1714,7 @@ createCheckboxGroup(options: {
   defaultValue?: ReadonlyArray<T>;
   parent?: boolean; // the "all" controller is a focus stop
   remember?: boolean; // the third activation restores the last mixed combination
-  id?: string | undefined; // base of `<id>-control` (the group element) and `<id>-error`
+  id?: string | undefined; // base of `<id>-control` (the group element), `<id>-0`..`-2` (the children) and `<id>-error`
   label?: string | undefined; // the group's name, as aria-label
   labelledby?: string | undefined; // the id of the host's own label element; wins over `label`
   describedby?: string | undefined; // host-owned description ids, after the error
@@ -1731,7 +1731,7 @@ createCheckboxGroup(options: {
 };
 ```
 
-The group is not a `<label for>` target: pass `labelledby` naming the host's own label element, or `label` without one. The error id is in `aria-describedby` only while the error is shown, `aria-invalid` only while the group is invalid, and the group element's own id is there for a controller that names it with `aria-controls`. The checked set is unchanged by all of this: the request/commit split and the spec stay as they were.
+The group is not a `<label for>` target: pass `labelledby` naming the host's own label element, or `label` without one. The error id is in `aria-describedby` only while the error is shown, `aria-invalid` only while the group is invalid, and the group element's own id is there for a controller that names it with `aria-controls`. The children's ids follow the same base (`<base>-0`..`-2`), so two groups on one page do not collide (the model omits ids). The checked set is unchanged by all of this: the request/commit split and the spec stay as they were.
 
 ### Headless: `createSlider` and `createSpinbutton` (`@cssints/headless`)
 
