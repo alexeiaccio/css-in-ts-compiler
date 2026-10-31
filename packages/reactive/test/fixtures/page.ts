@@ -7,12 +7,16 @@
 //   f: a checkbox whose change sets a boolean state from checked()
 //   m: two on() calls on one element (click and keydown): one joined program, both run
 //   d: the same program twice on one element: one toggle per click
+//   pr: a persisted disclosure (the key "test-open"): a click stores it, a reload restores it at initialisation
+//   sv: a persisted string declared "one" under the key "test-tab": a stored value wins over the declared one
+//   np: a state without persist(): never written to storage
 import { bg, cn, display } from "cssints" with { type: "cssints" };
 import {
   bind,
   checked,
   inside,
   on,
+  persist,
   set,
   state,
   toggle,
@@ -94,3 +98,23 @@ const dup = state({ open: false });
 export const dupCard = cn(dup.owner);
 export const dupButton = cn(on({ click: toggle(dup.open) }), on({ click: toggle(dup.open) }));
 export const dupPanel = cn(hidden, inside(dup.open)(display("block")));
+
+// a persisted disclosure: a click stores "true", a reload restores it when the owner is initialised
+const persistOpen = state({ open: persist(false, "test-open") });
+export const persistCard = cn(persistOpen.owner);
+export const persistButton = cn(
+  on({ click: toggle(persistOpen.open) }),
+  bind({ "aria-expanded": persistOpen.open }),
+);
+export const persistPanel = cn(hidden, inside(persistOpen.open)(display("block")));
+
+// a persisted string declared "one": a stored "two" wins over it at initialisation
+const persistValue = state({ tab: persist("one", "test-tab") });
+export const valueCard = cn(persistValue.owner);
+export const valuePanel = cn(hidden, inside(persistValue.tab, "two")(display("block")));
+
+// a state without persist(): never written to storage
+const plain = state({ open: false });
+export const plainCard = cn(plain.owner);
+export const plainButton = cn(on({ click: toggle(plain.open) }));
+export const plainPanel = cn(hidden, inside(plain.open)(display("block")));

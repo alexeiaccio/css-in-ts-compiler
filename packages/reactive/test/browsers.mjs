@@ -2,7 +2,9 @@
 // Playwright's builds): fixtures/app.js, built once (the runtime ships for every target, so a target set decides nothing),
 // with the cases on one page — two independent disclosures, an owner whose state starts true, tabs on a string state,
 // a nested owner, the flush of one click, a <select> setting a state from value(), a checkbox from checked(), two
-// programs on one element and the same program twice (the owner's attribute and the bound aria-expanded agree at once).
+// programs on one element and the same program twice (the owner's attribute and the bound aria-expanded agree at once),
+// and persistence: storage cleared first, a persisted disclosure across a reload, a stored value winning over the
+// declared one, and a state without persist() writing nothing.
 //   node test/browsers.mjs        BROWSERS=chrome,webkit node test/browsers.mjs
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
@@ -39,6 +41,7 @@ const css = text(".css");
 // the runtime is the feature: it is in the bundle whatever the targets are, once (one module)
 assert.equal(js.split("data-reactive-").length > 1, true, "the runtime is in the bundle");
 assert.match(css, /@property --reactive-owner\{syntax:"\*";inherits:false\}/, css);
+assert.match(css, /@property --reactive-persist\{syntax:"\*";inherits:false\}/, css);
 assert.match(css, /data-reactive-open/, css);
 
 const modules = join(here, "../../../node_modules/.bun");
@@ -129,12 +132,23 @@ const read = (page) =>
       mTwoPanel: display("m-two"),
       dOpen: attr("d", "data-reactive-open"),
       dPanel: display("d-panel"),
+      pOpen: attr("pr", "data-reactive-open"),
+      pExpanded: attr("pr-btn", "aria-expanded"),
+      pPanel: display("pr-panel"),
+      vTab: attr("sv", "data-reactive-tab"),
+      vPanel: display("sv-panel"),
+      nOpen: attr("np", "data-reactive-open"),
+      nPanel: display("np-panel"),
     };
   });
 
 const run = async (page) => {
   const out = [];
   const check = (ok, what, s) => out.push(ok ? null : `${what}: ${JSON.stringify(s)}`);
+  // storage starts empty in every browser, so no case leaks into another (or into a later run)
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator("#a-btn").waitFor({ state: "attached" });
   // on load: the runtime initialises every owner from the declared value, one frame after the nodes appear
   await frames(page);
   let s = await read(page);
@@ -274,6 +288,63 @@ const run = async (page) => {
   await frames(page);
   s = await read(page);
   check(s.dOpen === "true" && s.dPanel === "block", "dup: one toggle per click", s);
+
+  // persistence: closed with no storage; a click stores "true"; a reload restores it at initialisation, read right after
+  // load with no frame waited, so the panel is open before the harness gets to look
+  s = await read(page);
+  check(s.pOpen === "false" && s.pPanel === "none", "persist: closed with no storage", s);
+  await page.locator("#pr-btn").click();
+  await frames(page);
+  s = await read(page);
+  check(
+    s.pOpen === "true" && s.pExpanded === "true" && s.pPanel === "block",
+    "persist: open after the click",
+    s,
+  );
+  check(
+    (await page.evaluate(() => localStorage.getItem("reactive:test-open"))) === "true",
+    "persist: the click stored the value",
+    s,
+  );
+  await page.reload();
+  s = await read(page);
+  check(
+    s.pOpen === "true" && s.pExpanded === "true" && s.pPanel === "block",
+    "persist: open right after the reload",
+    s,
+  );
+
+  // a stored value wins over the one the build declared (the page declared "one", the slot holds "two")
+  s = await read(page);
+  check(
+    s.vTab === "one" && s.vPanel === "none",
+    "persist: the declared value with no stored one",
+    s,
+  );
+  await page.evaluate(() => localStorage.setItem("reactive:test-tab", "two"));
+  await page.reload();
+  s = await read(page);
+  check(
+    s.vTab === "two" && s.vPanel === "block",
+    "persist: the stored value wins over the declared one",
+    s,
+  );
+
+  // a state without persist() is not written: the slot list is the same after a click, and a reload forgets the state
+  const before = await page.evaluate(() => Object.keys(localStorage).sort());
+  await page.locator("#np-btn").click();
+  await frames(page);
+  s = await read(page);
+  check(s.nOpen === "true" && s.nPanel === "block", "persist: the plain state opens", s);
+  const after = await page.evaluate(() => Object.keys(localStorage).sort());
+  check(
+    JSON.stringify(after) === JSON.stringify(before),
+    "persist: a state without persist() writes nothing",
+    { before, after },
+  );
+  await page.reload();
+  s = await read(page);
+  check(s.nOpen === "false" && s.nPanel === "none", "persist: a plain state is not restored", s);
   return out.filter(Boolean);
 };
 

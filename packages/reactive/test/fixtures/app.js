@@ -52,4 +52,15 @@ document.body.innerHTML = `
   <button id=d-btn class="${page.dupButton}">d</button>
   <div id=d-panel class="${page.dupPanel}" ${panel}></div>
 </div>
+<div id=pr class="${page.persistCard}" ${card}>
+  <button id=pr-btn class="${page.persistButton}">persist</button>
+  <div id=pr-panel class="${page.persistPanel}" ${panel}></div>
+</div>
+<div id=sv class="${page.valueCard}" ${card}>
+  <div id=sv-panel class="${page.valuePanel}" ${panel}></div>
+</div>
+<div id=np class="${page.plainCard}" ${card}>
+  <button id=np-btn class="${page.plainButton}">plain</button>
+  <div id=np-panel class="${page.plainPanel}" ${panel}></div>
+</div>
 `;

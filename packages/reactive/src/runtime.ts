@@ -5,19 +5,24 @@
 //   owner    ._reactive-owner      --reactive-owner: open,tab       --reactive-<name>: <value>   (these inherit)
 //   events   ._reactive-events     --reactive-on: click toggle open,input set tab @value
 //   output   ._reactive-binding    --reactive-binding: aria-expanded open,data-current tab
+//   storage  ._reactive-persist    --reactive-persist: open:demo-open,tab:demo-tab
 //
-// On load it initialises each owner (data-reactive-<name> from the declared value) and writes its bindings; on an event it
-// applies every program of the target and its ancestors (DOM bubbling) to the nearest owner, then updates the bindings of
-// each owner it touched once — one flush, one frame. A set value of `@value` or `@checked` is read off the event's target
-// (a select, an input). Added nodes are initialised as well. No imports, no Effect; tolerant of pages that use none of it.
+// On load it initialises each owner (data-reactive-<name> from the declared value, or from localStorage for a persisted
+// one) and writes its bindings; on an event it applies every program of the target and its ancestors (DOM bubbling) to the
+// nearest owner, then updates the bindings of each owner it touched once — one flush, one frame. A set value of `@value` or
+// `@checked` is read off the event's target (a select, an input). Added nodes are initialised as well. No imports, no
+// Effect; tolerant of pages that use none of it, and of storage that throws or is missing (private mode, quota, a page
+// without storage): a state that cannot be stored still works, it just does not survive the reload.
 const OWNER = "_reactive-owner";
 const EVENTS = "_reactive-events";
 const OUTPUT = "_reactive-binding";
 const STATES = "--reactive-owner";
 const PROGRAM = "--reactive-on";
 const BINDING = "--reactive-binding";
+const PERSIST = "--reactive-persist";
 const STATE = "--reactive-";
 const ATTR = "data-reactive-";
+const SLOT = "reactive:";
 const LISTENED = [
   "click",
   "input",
@@ -39,14 +44,63 @@ const list = (text: string): string[] => (text ? text.split(",").map((s) => s.tr
 
 const ownerOf = (el: Element | null): Element | null => (el ? el.closest(`.${OWNER}`) : null);
 
-// One state: the attribute (what conditions read) and the custom property (what CSS reads, calc() and var() included).
+// One state: the attribute (what conditions read) and the custom property (what CSS reads, calc() and var() included). A
+// persisted state is stored on every write. A value only ever reaches the page through setAttribute and
+// style.setProperty, never as a string of HTML or CSS, so a stored value cannot inject anything.
 const write = (owner: Element, name: string, state: string): void => {
   owner.setAttribute(ATTR + name, state);
   if (owner instanceof HTMLElement || owner instanceof SVGElement)
     owner.style.setProperty(STATE + name, state);
+  const key = keysOf(owner).get(name);
+  if (key !== undefined) save(key, state);
 };
 
 const read = (owner: Element, name: string): string => owner.getAttribute(ATTR + name) ?? "false";
+
+// The storage key of each state of an owner that persists, by name. Cached: the protocol is static, and a write would
+// otherwise read the computed style on every event.
+const storage = new WeakMap<Element, ReadonlyMap<string, string>>();
+const keysOf = (owner: Element): ReadonlyMap<string, string> => {
+  let keys = storage.get(owner);
+  if (!keys) {
+    const found = new Map<string, string>();
+    for (const pair of list(prop(owner, PERSIST))) {
+      const colon = pair.indexOf(":");
+      if (colon > 0) found.set(pair.slice(0, colon), pair.slice(colon + 1));
+    }
+    keys = found;
+    storage.set(owner, keys);
+  }
+  return keys;
+};
+
+// A failure of storage is silent: private mode, a quota or a page without storage leaves the state interactive, it just
+// does not survive the reload.
+const load = (key: string): string | null => {
+  try {
+    return globalThis.localStorage.getItem(SLOT + key);
+  } catch {
+    return null;
+  }
+};
+
+const save = (key: string, value: string): void => {
+  try {
+    globalThis.localStorage.setItem(SLOT + key, value);
+  } catch {
+    // silent on purpose: the state still works
+  }
+};
+
+// The stored value of each persisted state, read once when the owner is initialised.
+const restored = (owner: Element): ReadonlyMap<string, string> => {
+  const saved = new Map<string, string>();
+  for (const [name, key] of keysOf(owner)) {
+    const value = load(key);
+    if (value !== null) saved.set(name, value);
+  }
+  return saved;
+};
 
 // A value of a set segment: `@value` and `@checked` come from the element the event fired on (a select, an input), anything
 // else is the literal the build wrote.
@@ -96,10 +150,13 @@ const flush = (owner: Element): void => {
     if (ownerOf(el) === owner) output(el, owner);
 };
 
-// The initial value of each state, then the bindings; an owner already initialised keeps what it holds (a moved node).
+// The initial value of each state (a stored value for a persisted one, which wins over the declared value), then the
+// bindings; an owner already initialised keeps what it holds (a moved node).
 const setup = (owner: Element): void => {
+  const saved = restored(owner);
   for (const name of list(prop(owner, STATES)))
-    if (!owner.hasAttribute(ATTR + name)) write(owner, name, prop(owner, STATE + name) || "false");
+    if (!owner.hasAttribute(ATTR + name))
+      write(owner, name, saved.get(name) ?? (prop(owner, STATE + name) || "false"));
   flush(owner);
 };
 

@@ -1,6 +1,6 @@
 // @cssints/reactive through the engine: the owner's class (kernel markers, _g-reactive and one declaration per state),
-// the protocol declarations of on() and bind(), the @property rules, the conditions of inside() and when(), the runtime
-// module every target imports (delivery.ts: a script with no polyfills), the build errors, and the same in an
+// the protocol declarations of on(), bind() and persist(), the @property rules, the conditions of inside() and when(), the
+// runtime module every target imports (delivery.ts: a script with no polyfills), the build errors, and the same in an
 // all-supported set of targets.
 // Run: node test/reactive.mjs
 import assert from "node:assert/strict";
@@ -116,6 +116,32 @@ for (const d of [
 // one atom each: the first on() alone is never a rule of its own
 assert.ok(!fieldsOut.includes("{--reactive-on:click toggle open}"), fieldsOut);
 
+// persistence (cssints-3ydy): the owner's storage list joins across two state() calls, its own kernel and @property
+// rule, and a state without persist() emits neither
+const persisted = await code("persist.ts");
+const persistOut = sheet("persist.ts");
+assert.ok(persisted.includes("_reactive-persist"), persisted);
+assert.ok(
+  persistOut.includes('@property --reactive-persist{syntax:"*";inherits:false}'),
+  persistOut,
+);
+assert.ok(persistOut.includes("._reactive-persist{}"), persistOut);
+for (const d of [
+  "--reactive-owner:open,tab,count",
+  "--reactive-open:false",
+  "--reactive-tab:one",
+  "--reactive-persist:open:demo-open,tab:demo-tab",
+])
+  assert.ok(persistOut.includes(`{${d}}`), `${d}\n${persistOut}`);
+assert.equal(
+  persistOut.match(/--reactive-persist:open:demo-open,tab:demo-tab/g).length,
+  1,
+  persistOut,
+);
+assert.ok(!out.includes("--reactive-persist"), out);
+assert.ok(!out.includes("@property --reactive-persist"), out);
+// a persisted value is still the state's value: a bad string is the state's error, not a storage one
+
 // the build errors name the bad name, value, event or attribute, at the call site
 const fails = async (f, text, line) =>
   assert.rejects(code(f), (e) => {
@@ -149,6 +175,25 @@ await assert.rejects(code("bad-at.ts"), (e) => {
     /^cssints: reactive: the value of "tab" is "@value": a value has no @ \(the runtime reads @value and @checked from the field\)$/,
   );
   assert.equal(e.loc?.line, 5, "the call site");
+  return true;
+});
+// persistence: the key names what it found, and persist() without a value is an error at build time too
+await assert.rejects(code("bad-key.ts"), (e) => {
+  assert.equal(e._tag, "MacroError");
+  assert.match(
+    e.message.split("\n")[0],
+    /^cssints: reactive: the persistence key "demo open" is not a key: letters, digits, - _ \. and :, and no comma or space$/,
+  );
+  assert.equal(e.loc?.line, 3, "the call site");
+  return true;
+});
+await assert.rejects(code("bad-persist.ts"), (e) => {
+  assert.equal(e._tag, "MacroError");
+  assert.match(
+    e.message.split("\n")[0],
+    /^cssints: reactive: persist\(\) is missing a value: persist\(false, "demo-open"\)$/,
+  );
+  assert.equal(e.loc?.line, 3, "the call site");
   return true;
 });
 await server.close();
