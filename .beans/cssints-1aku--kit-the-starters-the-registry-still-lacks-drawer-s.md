@@ -5,14 +5,14 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-31T17:44:18Z
-updated_at: 2026-10-31T17:51:11Z
+updated_at: 2026-10-31T18:01:56Z
 ---
 
 Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these starters are still missing.
 
 - [x] drawer
 - [ ] scrollspy
-- [ ] panzoom
+- [x] panzoom
 - [ ] diagram
 - [ ] hotkeys
 - [ ] carousel
@@ -22,7 +22,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [ ] treegrid
 - [ ] resizable-panels
 
-This round adds the drawer starter.
+The drawer starter was the first round; the panzoom starter is the second.
 
 
 
@@ -33,3 +33,12 @@ This round adds the drawer starter.
 - Added `color.sheetBackground` (light and dark) and regenerated `theme.css`, `r/*.json`, `r/registry.json` and `public/llms.txt`; added the demo to `src/docs/demos.tsx`.
 
 Tests: `apps/ui` 343 passed (7 new for the drawer), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
+
+## Pan and zoom (round two)
+
+- Added `apps/ui/src/registry/panzoom/`: `Panzoom` over `createPanZoom`; the skin is the surface frame with its rounded corners and focus ring, the visible live value, the hint and the three controls. The primitive owns the drag, the pinch, the wheel, the double click, the keys and the live value.
+- Added the fixture (a drawn 16:9 landscape at a 480 px frame, so the test's bounds are whole numbers) and the Chromium browser test: the named focusable viewport, + / - / 0, arrows with Shift and the clamp, a double click, a pointer drag and bounds, and the controls.
+- Regenerated `r/panzoom.json`, `r/registry.json` and `public/llms.txt`; added the demo to `src/docs/demos.tsx`.
+
+Tests: `apps/ui` 350 passed (7 new for the panzoom), `bun run typecheck`, `bun run build` and `theme:check` pass.
