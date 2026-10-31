@@ -154,10 +154,17 @@ Each step ends in a check that fails when it breaks.
    `bun:ffi` calls into a dylib (Clay + ThorVG + SDL3), styles from `examples/sensors/styles.ts` through the cssints
    plugin, theme and `:active` picked at run time. Check: `solid/test.sh` renders the Solid page headless and compares
    it with the C page's three ThorVG frames, pixel for pixel (identical), plus the pressed look and click rules. Cost:
-   about 0.4 ms a frame on an Apple-silicon Mac, 0.006 ms of it the JS walk and FFI, the rest ThorVG's raster. Left: reload on save,
-   JSX types, the window checked by eye. (2026-10-30: still none here — `bun solid/main.ts` loads its modules once and a
-   save is Ctrl-C and a restart. The browser target's dev server, step 8, rebuilds and reloads a *page*; it cannot help
-   this process, which is a window over `libui.dylib` with no origin and no module graph to swap.)
+   about 0.4 ms a frame on an Apple-silicon Mac, 0.006 ms of it the JS walk and FFI, the rest ThorVG's raster. Left:
+   JSX types, the window checked by eye. **Done: reload on save** (2026-10-31). `bun solid/watch.ts <page>` runs the
+   page in a child and watches its inputs (`solid/`, `examples/`, `apps/`, `focus/`, `headless/`, `vendor/clay/`,
+   `packages/cssints/{src,dist}`): a `.c`/`.h`/`.sh` save rebuilds `build/solid/libui.dylib`, a `packages/cssints/src`
+   save builds the engine, a `.ts`/`.tsx` save nothing — and then restarts the page. The old window is kept until the
+   new process has a window of its own, so a save that fails to compile leaves the last good page drawing and prints
+   the compiler's text. Still no in-place reload: the modules are read once per process and a `.c` save is a new
+   `dlopen`; the terminal's host (`terminal/solid.ts`) is not in the loop yet. Cost, medians of three on an M2 sharing
+   its 8 cores with two sibling worktrees (a load average of 41-66): a colour change in the Sky's palette took 11.6 s
+   to the new window's first frame, a `.c` save 24.9 s (its dylib 4.0 s), a `packages/cssints/src` save 35.9 s (the
+   engine 17.0 s). `solid/watch-check.mjs`, in `solid/test.sh`, drives it on a temp copy of the tree.
    **Headless widgets** (`headless/`, between Solid and JSX to C). The first widgets of effects-of-atmosphere's
    `@eoa/headless` (button, switch, checkbox, disclosure, radio, tabs, toolbar, slider, tree) with no DOM: Solid 2 signals for state and, instead of aria-*
    attributes, parts of plain fields (`id`, `role`, `checked`, `selected`, `expanded`, `controls`, `tabIndex`, `hidden`, `disabled`, `focused`, `valueNow`, `level`, `posInSet`, `setSize`)

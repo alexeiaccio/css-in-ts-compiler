@@ -1354,8 +1354,60 @@ The reload is `location.reload()`: a page's Solid state, its scroll and a thread
 on save", not a hot swap. HMR needs the module graph, i.e. the cssints plugin and Vite's client in this path (`apps/docs`
 has them: the engine's own `cssints/vite`), and a way to re-mount a page's tree over the new modules; a `.c` save is a
 new `ui.wasm` whatever else is hot, because the page holds one `WebAssembly.Instance` (`browser/solid/ffi-browser.ts`).
-The desktop has none of this: `bun solid/main.ts` reads its modules once and a save is a restart by hand, and this server
-cannot help it — the window is another process over `libui.dylib`, with no page and no origin.
+The desktop's loop is its own, below; this server cannot help it: the page there is a Bun process that opens a window over
+`libui.dylib`, not a document at an origin, so there is no page to reload.
+
+### The desktop's dev loop: a save restarts the window
+
+`bun solid/watch.ts <page>`, from `native/`, is the desktop's loop: `bun solid/main.ts <page>` in a child, the page's
+and the engine's inputs watched, and the page restarted when a save changed one. The page's own flags go through as
+written (`--frames`, `--png`, `--warm`, `--bench`), and a headless run stays one shot: the child writes its frame and
+exits, and the watcher exits with its status, so `solid/test.sh` keeps calling `bun solid/main.ts` itself. `--hold`
+keeps the watcher up for a headless save loop; `--root DIR` runs and watches another tree, which is how the check runs
+on a temp copy.
+
+| a save of | the loop does |
+| --- | --- |
+| `solid/native/*.c`, `*.h`, `*.sh`, a `vendor/clay/*.h` | `sh solid/native/build.sh` (`build/solid/libui.dylib`), then a restart |
+| `packages/cssints/src/*.ts` | `bun run build` in `packages/cssints` (the engine's dist), then a restart |
+| `packages/cssints/dist/*` | a restart: that is the engine's build product |
+| a `.ts`/`.tsx` under `solid/`, `examples/`, `apps/`, `focus/`, `headless/` | nothing but the restart |
+| a stored frame, a golden, a scene, a test, `solid/watch.ts` | nothing |
+
+The page reads its modules once per process (Bun's loader, the cssints plugin's Node children, one `dlopen` of
+`libui.dylib`), so there is no reload in place: a restart is a new process and a new window. The old window is kept
+until the new process has a window of its own (`main.ts` prints `window: pixel density N` once SDL has one), so a save
+that fails to compile — a broken `.tsx`, a colour the cssints plugin rejects — exits first, the old window keeps
+drawing, and the compiler's own text is printed by the watcher. A failed `.c` save keeps it too: the running process
+holds the loaded image, whatever cc did to the file.
+
+```sh
+bun solid/watch.ts sky                  # the Sky page; a save restarts it
+bun solid/watch.ts list --frames 2      # the flags pass through to solid/main.ts
+bun solid/watch.ts --png out.png --hold # headless, and stay up for saves
+```
+
+Cost, three runs a kind, medians, on an M2 sharing its 8 cores with two sibling worktrees that were building and
+testing: the load average was 41-66 across the runs below (an earlier set under 72-114 gave 38.4 s, 47.3 s and 34.5 s
+— the loop's cost is mostly the machine's). A colour change in the Sky's palette (`solid/app/Sky.styles.ts`) reached
+the new window's first frame in **11.6 s**, a `.c` save in **24.9 s** (its dylib build 4.0 s of it), a
+`packages/cssints/src` save in **35.9 s** (its engine build 17.0 s of it). The restart is the cost: at every start the
+page's `.tsx` and its `.styles.ts` go through the cssints plugin in Node children, ~11 s here.
+
+The check is `solid/watch-check.mjs` (in `solid/test.sh`), on a temp copy of the tree as `--root`: the frame is the
+Sensors page's (its background and the pill's surface, read out of the PNG through the tree's own `libui.dylib`), a
+style save restarts it and the new colour is on the page, a broken style save prints the compiler's text and leaves the
+last good PNG, a `.c` save moves `libui.dylib`'s mtime and a `.tsx`-only save moves neither it nor the engine's `dist`.
+It writes no file of this tree.
+
+What the loop cannot do is reload in place. A `.ts`/`.tsx` save could be re-evaluated with a cache-busting import and
+the page re-mounted over the same Clay root (its state would be the new mount's), but the window and the loaded
+`libui.dylib` live in the same process, so a `.c` save is a new `dlopen` and therefore a new process whatever else is
+hot: the restart is the loop's unit. The terminal is out of it: `bun terminal/solid.ts` is a second host over the same
+page and the same plugin (its `libterm.dylib` comes from the same build script), it has no window to keep — a live run
+owns termbox2's alternate screen and its headless `--dump` is one shot — and it draws one page, `solid/app/Sensors.tsx`.
+A watcher for it is this file with `solid/main.ts` swapped for `terminal/solid.ts`, left out until the terminal has pages
+of its own to iterate on.
 
 A failed build keeps the last good artefact: the page is not reloaded, it keeps running, and the compiler's own text
 goes out as an `error` event — a dark red bar at the bottom of the page and a `console.error` — until a save builds.
