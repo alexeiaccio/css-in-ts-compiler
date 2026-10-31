@@ -16,7 +16,7 @@ import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import baseUi from "@cssints/apg-specs/scenarios/apg/accordion.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/accordion.model.json";
-import { domDriver } from "./dom-driver";
+import { domDriver } from "./accordion-driver.ts";
 import { mountAccordion } from "./accordion.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/accordion.react-aria.json";
 

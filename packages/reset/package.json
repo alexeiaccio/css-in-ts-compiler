@@ -1,6 +1,6 @@
 {
   "name": "@cssints/reset",
-  "version": "0.20.0",
+  "version": "0.24.0",
   "description": "A small modern CSS reset for cssints, in a layer below every style",
   "license": "MIT",
   "repository": {
@@ -60,7 +60,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.20.0"
+    "cssints": "^0.24.0"
   },
   "engines": {
     "node": ">=22"

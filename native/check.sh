@@ -75,4 +75,28 @@ for f in page_generated.c page_generated_menu.c page_generated_dialog.c; do
   cc -std=c99 -Wall -Wno-unused-variable -I "$CLAY_H" -c "$OUT/dialog-gen/$f" -o "$OUT/dialog-gen/$f.o"
 done
 
+# The List page's generated C (solid/app/List.tsx; its styles are in the .tsx, so header() prints them as literals): the
+# page's own window of rows, its scrollbar's numbers — the value channel, baked, because the page wrote them from its tick
+# and a static page has no channel — and its viewport as Clay's scroll container. Two files, because the window is the
+# offset's: at rest (rows 0..8, the stored golden's frame) and one notch down (10px, rows 0..9: the tenth is the
+# overscan). The offset itself is not a declaration: the clip element is declared through `clip_scroll`, which reads Clay's
+# own offset where the element is open (Clay_GetScrollOffset(), exactly as solid/native/ui.c's ui_open does), and the C
+# host puts the number in the container. The three greps below pin what a command array cannot show.
+L="bun --conditions=development generator/page-to-c.ts solid/app/List.tsx --tick 31"
+mkdir -p "$OUT/list-gen"
+$L --name app_frame_list --out "$OUT/list-gen/page_generated.c"
+$L --scroll list=10 --name app_frame_list_scrolled --out "$OUT/list-gen/page_generated_scrolled.c"
+for f in page_generated.c page_generated_scrolled.c; do
+  cmp "$OUT/list-gen/$f" "examples/list/$f" || { echo "FAIL: examples/list/$f is stale"; exit 1; }
+done
+grep -qF '.clip = { .horizontal = 1, .vertical = 1 }' examples/list/page_generated.c ||
+  { echo 'FAIL: the viewport is not a clip element (css.overflow("hidden")): no Clay_ClipElementConfig'; exit 1; }
+grep -qF 'CLAY(CLAY_ID("list"), clip_scroll(' examples/list/page_generated.c ||
+  { echo "FAIL: the viewport is not declared through clip_scroll: its childOffset would stay 0"; exit 1; }
+grep -qF 'd.clip.childOffset = Clay_GetScrollOffset();' examples/list/page_generated.c ||
+  { echo "FAIL: clip_scroll does not read Clay's scroll offset (Clay_GetScrollOffset)"; exit 1; }
+for f in page_generated.c page_generated_scrolled.c; do
+  cc -std=c99 -Wall -Wno-unused-variable -I "$CLAY_H" -c "$OUT/list-gen/$f" -o "$OUT/list-gen/$f.o"
+done
+
 echo "c: the headers, the C against them and the generated pages are current"

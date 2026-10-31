@@ -1,5 +1,36 @@
 # @cssints/reveal
 
+## 0.24.0
+
+### Patch Changes
+
+- Updated dependencies [2bcbb9e]
+  - cssints@0.24.0
+  - @cssints/motion@0.24.0
+
+## 0.23.0
+
+### Patch Changes
+
+- cssints@0.23.0
+  - @cssints/motion@0.23.0
+
+## 0.22.0
+
+### Patch Changes
+
+- Updated dependencies [988df79]
+  - cssints@0.22.0
+  - @cssints/motion@0.22.0
+
+## 0.21.0
+
+### Patch Changes
+
+- Updated dependencies [e69636e]
+  - cssints@0.21.0
+  - @cssints/motion@0.21.0
+
 ## 0.20.0
 
 ### Patch Changes

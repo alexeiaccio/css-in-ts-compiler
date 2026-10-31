@@ -1,8 +1,15 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
+import {
+  type RailDrag,
+  type SliderDirection,
+  type SliderOrientation,
+  beginRailDrag,
+  endRailDrag,
+  railPositionAt,
+} from "./rail-pointer";
 
-export type SliderOrientation = "horizontal" | "vertical";
-export type SliderDirection = "ltr" | "rtl";
+export type { SliderDirection, SliderOrientation } from "./rail-pointer";
 
 export interface SliderOptions {
   readonly min?: number;
@@ -43,10 +50,20 @@ export interface SliderThumbProps {
   readonly onFocus: () => void;
   readonly onBlur: () => void;
   readonly onKeyDown: (event: KeyboardEvent) => void;
+  /** Marks the press so the rail does not jump (the thumb is already at the value). */
+  readonly onPointerDown: (event: PointerEvent) => void;
 }
 
+/**
+ * Spread onto the rail, which must contain the thumb: the rail owns the drag
+ * whichever element took the press, so the moves and the release are here.
+ */
 export interface SliderTrackProps {
   readonly onPointerDown: (event: PointerEvent) => void;
+  readonly onPointerMove: (event: PointerEvent) => void;
+  readonly onPointerUp: (event: PointerEvent) => void;
+  readonly onPointerCancel: (event: PointerEvent) => void;
+  readonly onLostPointerCapture: (event: PointerEvent) => void;
 }
 
 export interface Slider {
@@ -58,7 +75,7 @@ export interface Slider {
   readonly blur: () => void;
   /** Returns whether the key moved the value (the caller preventDefaults it). */
   readonly keyDown: (key: string) => boolean;
-  /** A rail press at `position` (a 0..1 fraction of the track length). */
+  /** A rail press or a drag move at `position` (a 0..1 fraction of the rail). */
   readonly pointerDown: (position: number) => void;
   readonly thumbProps: SliderThumbProps;
   readonly trackProps: SliderTrackProps;
@@ -79,16 +96,22 @@ const valueTextFor = (value: number): string =>
  * element (styling the native thumb is not shipped).
  *
  * Request/commit (map ticket `rt1p`): uncontrolled by default (`defaultValue`);
- * pass `value` + `onValueChange` to own the value. A key or rail press is a
- * request the host may ignore.
+ * pass `value` + `onValueChange` to own the value. A key, a rail press and a
+ * drag are requests the host may ignore.
+ *
+ * A press on the rail jumps to the pointer and starts a drag: while the pointer
+ * is held the value follows its position on the rail, and `pointerup`,
+ * `pointercancel` or a lost capture ends it. The rail owns the drag whichever
+ * element took the press (the thumb's press bubbles to it), with pointer
+ * capture, so a drag keeps working off the rail and a host cleans up nothing.
  *
  * `disabled` is a widget-level extension of the pattern (the spec lists it
  * under its deliberate omissions): the thumb keeps its tab stop and announces
- * `aria-disabled`, and every key and rail press is dropped before it becomes a
- * request.
+ * `aria-disabled`, and every key, rail press and drag is dropped before it
+ * becomes a request.
  *
- * ponytail: dragging (pointer capture/move) is not modelled — the spec
- * deliberately only fixes a discrete rail press.
+ * The spec fixes a discrete rail press and has no pointer position, so the drag
+ * is a deliberate extension too: `test/slider.browser.test.tsx` is its oracle.
  */
 export const createSlider = (options: SliderOptions = {}): Slider => {
   const min = options.min ?? 0;
@@ -160,6 +183,20 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
     setFocused(true);
   };
 
+  // The press and every drag move share `railPositionAt` with the multi-thumb
+  // slider, so a drag cannot land where a press would not and the four
+  // orientation/direction combinations have one definition.
+  let drag: RailDrag | undefined;
+  let thumb: Element | undefined;
+
+  // a press that landed on the thumb is not a jump: it is already at the value
+  const onThumb = (event: PointerEvent): boolean =>
+    thumb !== undefined && event.target instanceof Node && thumb.contains(event.target);
+
+  const endDrag = (event: PointerEvent): void => {
+    drag = endRailDrag(drag, event);
+  };
+
   return {
     value,
     focused,
@@ -195,17 +232,46 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
           event.preventDefault();
         }
       },
+      // the rail's handler runs next in the same dispatch (the thumb sits in it)
+      // and reads this to tell a press on the thumb from one beside it
+      onPointerDown: (event) => {
+        thumb = event.currentTarget as Element;
+      },
     },
     trackProps: {
       onPointerDown: (event) => {
-        const element = event.currentTarget as HTMLElement;
-        const rect = element.getBoundingClientRect();
-        const position =
-          orientation() === "vertical"
-            ? 1 - (event.clientY - rect.top) / rect.height
-            : (event.clientX - rect.left) / rect.width;
-        pointerDown(position);
+        if (disabled()) {
+          return;
+        }
+        const next = beginRailDrag(event);
+        if (next === undefined) {
+          return;
+        }
+        drag = next;
+        if (!onThumb(event)) {
+          const position = railPositionAt(event, next.element, orientation(), direction());
+          if (position !== undefined) {
+            pointerDown(position);
+          }
+          return;
+        }
+        // a thumb press starts the drag where the value already is
+        setFocused(true);
       },
+      onPointerMove: (event) => {
+        if (drag === undefined || drag.pointerId !== event.pointerId) {
+          return;
+        }
+        const position = railPositionAt(event, drag.element, orientation(), direction());
+        if (position !== undefined) {
+          pointerDown(position);
+        }
+      },
+      onPointerUp: endDrag,
+      onPointerCancel: endDrag,
+      // a capture taken away (the rail removed, another element capturing) ends
+      // the drag: no move arrives for this pointer any more
+      onLostPointerCapture: endDrag,
     },
   };
 };

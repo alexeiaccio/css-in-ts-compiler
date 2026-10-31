@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectTrigger } from "../registry/select/select.
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
 import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
+import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
@@ -35,6 +36,7 @@ import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
 import { Slider } from "../registry/slider/slider.tsx";
+import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
@@ -180,6 +182,23 @@ const MenuDemo = (): JSX.Element => (
       <MenuContent />
     </Menu>
   </div>
+);
+
+const MenubarDemo = (): JSX.Element => (
+  <Menubar
+    items={[
+      {
+        label: "File",
+        menu: [
+          { label: "New" },
+          { label: "Export", submenu: [{ label: "PDF" }, { label: "PNG" }] },
+          { label: "Close" },
+        ],
+      },
+      { label: "Edit", menu: [{ label: "Undo" }, { label: "Redo" }] },
+      { label: "Help" },
+    ]}
+  />
 );
 
 const TooltipDemo = (): JSX.Element => (
@@ -396,6 +415,32 @@ const SliderDemo = (): JSX.Element => {
   );
 };
 
+const SliderMultithumbDemo = (): JSX.Element => {
+  const [price, setPrice] = createSignal<readonly [number, number]>([20, 80]);
+  return (
+    <div class="demo-column">
+      {/* the two thumbs cannot pass each other, and the fill is the interval between them */}
+      <SliderMultithumb
+        label="Price"
+        min={0}
+        max={100}
+        step={10}
+        value={price()}
+        onValueChange={setPrice}
+      />
+      {/* disabled: both thumbs keep their tab stops, announce it, and no key or press changes the pair */}
+      <SliderMultithumb
+        label="Price (unavailable)"
+        min={0}
+        max={100}
+        step={10}
+        defaultValue={[30, 70]}
+        disabled
+      />
+    </div>
+  );
+};
+
 const SpinbuttonDemo = (): JSX.Element => {
   const [quantity, setQuantity] = createSignal(3);
   return (
@@ -460,10 +505,12 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
   menu: MenuDemo,
+  menubar: MenubarDemo,
   tooltip: TooltipDemo,
   select: SelectDemo,
   textarea: TextareaDemo,
   slider: SliderDemo,
+  "slider-multithumb": SliderMultithumbDemo,
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
 };

@@ -1,5 +1,71 @@
 # @cssints/headless
 
+## 0.24.0
+
+### Minor Changes
+
+- 591e38b: `createDiagramFocus`: a diagram read from the keyboard — one roving tab stop over the nodes, arrows that follow the layout (nearest centre in that direction, wrapping at the edge), `e` for a cursor over the active node's outgoing edges, and a polite live region that says where the user is.
+- cde22d7: `createSliderMultiThumb` takes a press on the rail and drags. `trackProps` reads the
+  pointer's position on the rail in all four orientation/direction combinations,
+  names the nearer thumb (a tie goes to the lower) and moves it there; a press that
+  starts on a thumb drags it from the value it already has, without a jump. Every
+  `pointermove` asks for that thumb's value again, rounded to `step` and clamped at
+  the neighbour, until `pointerup`, `pointercancel` or a lost capture. The rail owns
+  the gesture with pointer capture, so the moves sit on `trackProps` and the thumb
+  only marks its own press. `focused()` now reads synchronously, so a host can move
+  the DOM focus to the thumb a press named. `disabled` announces `aria-disabled` on
+  both thumbs, keeps their tab stops, and drops every key, rail press and drag.
+  `pointerDown(index, 0..1)` stays for a programmatic press and the differential
+  walk. `slider-multithumb.qnt` records the nearest-thumb press and the drag as
+  deliberate extensions and names the invariants the model does not carry
+  (`NearestThumbTakesPress`, `DragFollowsPointer`), with
+  `slider-multithumb.browser.test.tsx` as their oracle. The kit's two-thumb slider
+  drops its own press arithmetic and focuses the thumb the primitive announces.
+
+## 0.23.0
+
+### Minor Changes
+
+- 93ce448: `createSlider` drags: a `pointerdown` on the rail jumps to the pointer and starts a
+  drag, a press on the thumb starts it where the value is, and `pointermove` follows the
+  pointer's position on the rail (rounded to `step`, clamped to `min`/`max`, in all four
+  orientation/direction combinations) until `pointerup`, `pointercancel` or a lost capture.
+  The rail owns the gesture with pointer capture, so `trackProps` carries the moves and the
+  release and the thumb only marks its own press; a drag is still one request per distinct
+  value, so a controlled host that ignores it keeps its value, and `disabled` captures
+  nothing and changes nothing. `slider.qnt` records the drag as a deliberate extension and
+  names the invariant the model does not carry (`DragFollowsPointer`), with
+  `slider.browser.test.tsx` as its oracle.
+
+## 0.22.0
+
+### Minor Changes
+
+- 2aebd87: The feedback that adopting 0.20.0 produced, in one release.
+  
+  **Lists that arrive later.** `createListbox`'s `items`, `createTable`'s `rows`, `createRadioGroup`'s `values` and `createTimeline`'s rows now take a getter (`() => list()`) and read it at attribute-read time, so an async fetch no longer forces the host to rebuild the widget and lose the active option, the selection and the roving tab stop. `listbox.items` is a getter over the live list; a `defaultValue` chosen before the items arrived now survives them.
+  
+  **Host-owned values.** `createRadioGroup` takes `value: () => checked()`, so `undefined` can be a real controlled state ("nothing checked") instead of meaning "uncontrolled"; its `radioProps` carries `type="button"`, so a radio rendered as a `<button>` no longer submits the form. `createStatus` and `createAlert` take `from: () => text`, and read the host's signal directly instead of asking for an effect that mirrors it into `show()`.
+  
+  **Host-named ids.** `createTabs` takes `tabId(index)` and `panelId(index)`, and `aria-controls` / `aria-labelledby` follow them: a console whose panels are `#traces`, `#logs`, `#metrics` no longer re-implements the two attributes.
+  
+  **Drop zone.** `maxFiles` caps one batch (a new `"count"` reject reason), `labels.labelledby` names the zone by the host's own visible heading, and `formatMessage` returns the announcement in the host's language from the same counts.
+  
+  **Timeline.** Rows mode reports `focusedId()`, the row that holds the roving tab stop.
+  
+  `test/props-later.browser.test.tsx` is the regression net for all of it.
+- 111c9c9: `createMenu` takes the checked state as a readable pair as well as the packed number: `checked` (the checked checkbox item indices) and `choice` (the chosen radio index, `-1` for none) with `onCheckedValuesChange(checked, choice)`. The readable pair is the store and the packed `value` / `onCheckedValueChange` (unchanged for existing callers and `menu-checkable.qnt`) is its derived view, so a controlled menu can check any checkbox item, not only item 0; `value()` joins `checked()` / `choice()` as the packed accessor.
+
+## 0.21.0
+
+### Minor Changes
+
+- ab516f1: `createCombobox` takes `disabled`: the combobox and its trigger announce `aria-disabled`, the combobox keeps its tab
+  stop, and a key, a click, a typeahead character, a filter input and an option click change nothing, so no popup opens;
+  `setOpen` / `setValue` stay host requests. The spec records it as a deliberate extension (no model var), so
+  `combobox.browser.test.tsx` is its oracle. `createCheckboxGroup`'s children take `<base>-0`..`-2` instead of `"0"`,
+  `"1"`, `"2"`, so two groups on one page no longer share ids.
+
 ## 0.20.0
 
 ### Minor Changes

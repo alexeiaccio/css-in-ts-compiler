@@ -43,6 +43,7 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
   const dispose = render(() => {
     const columns = options.columns ?? COLUMNS;
     const rows = options.rows ?? ROWS;
+    const rowList = (): ReadonlyArray<string> => (typeof rows === "function" ? rows() : rows);
     const table = createTable({
       columns,
       rows,
@@ -96,7 +97,7 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
           </tr>
         </thead>
         <tbody>
-          {rows.map((id) => {
+          {rowList().map((id) => {
             const checkbox = table.rowCheckboxProps(id);
             return (
               <tr data-row={id} {...table.rowProps(id)}>

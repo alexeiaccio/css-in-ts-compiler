@@ -45,6 +45,10 @@ for (const [path, module] of Object.entries(modules)) {
       continue;
     }
     const story = value as Story;
+    // The plugin adds exports of its own to a module it compiles (`__cssints_hoisted`, `$$moduleUrl`): a story is an object.
+    if (typeof value !== "object" || value === null) {
+      continue;
+    }
     const name = story.name ?? exported;
     found.push({
       id: `${kebab(file)}--${kebab(name)}`,

@@ -6,6 +6,8 @@
 //     (roving tabindex, follows focus, no wrapping at the ends) move the selection
 //   - the ARIA state the widgets announce is what the classes style: the selected row and the switch's track read tokens, in
 //     light and in dark
+//   - the @cssints/reactive stories hold no JavaScript state and no handler: a click on the disclosure's button flips
+//     aria-expanded and the panel's display, and the tabs' aria-selected is the tab's own binding
 //   - the overlay of @cssints/devtools picks the story's button and names the winner per property with the token it reads,
 //     and the file the classes were written in — the reason a lab exists at all
 //   node test/lab.mjs
@@ -35,6 +37,14 @@ try {
   page.setDefaultTimeout(120_000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  // the lab ships no favicon, so Chrome's own request for one is a 404 that is not the story's
+  page.on(
+    "console",
+    (message) =>
+      message.type() === "error" &&
+      !message.location().url.endsWith("/favicon.ico") &&
+      errors.push(message.text()),
+  );
   await page.goto(base);
 
   const heading = () => page.getByRole("heading", { level: 1 }).innerText();
@@ -46,6 +56,11 @@ try {
     page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
   const rowBg = (name) => row(name).evaluate((el) => getComputedStyle(el).backgroundColor);
   const expanded = (name) => page.getByRole("button", { name }).getAttribute("aria-expanded");
+  const displayOf = (selector) =>
+    page.locator(selector).evaluate((el) => getComputedStyle(el).display);
+  const ariaSelected = (name) =>
+    page.locator(`#reactive-tab-${name}`).getAttribute("aria-selected");
+  const tabIndex = (name) => page.locator(`#reactive-tab-${name}`).getAttribute("tabindex");
 
   // One row per named export of every CSF file, by component; the exports of a module are alphabetical, as in Storybook.
   assert.deepEqual(await options.allInnerTexts(), [
@@ -58,6 +73,9 @@ try {
     "Button · Row",
     "Button · Small",
     "Button · Toggle",
+    "CSS interactions/Disclosure · Closed",
+    "CSS interactions/Disclosure · Open",
+    "CSS interactions/Tabs · Computed",
     "Tabs · Three",
     "Tabs · WithDisabled",
   ]);
@@ -101,11 +119,80 @@ try {
   assert.equal(await id(), "tabs--three");
   assert.equal(new URL(page.url()).hash, "#tabs--three");
   await page.keyboard.press("ArrowUp");
+  assert.equal(await id(), "reactive-tabs--computed");
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await id(), "disclosure--open");
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await id(), "disclosure--closed");
+  await page.keyboard.press("ArrowUp");
   assert.equal(await id(), "button--toggle");
   await page.goto(`${base}#accordion--collapsed`);
   await row("Accordion · Collapsed").click();
   await page.keyboard.press("ArrowUp");
   assert.equal(await id(), "accordion--collapsed");
+
+  // @cssints/reactive: no JavaScript state and no handler in the story. The package's runtime writes the owner's
+  // attribute and its bindings on load (a MutationObserver sees the nodes Solid mounts), so a binding can land a frame
+  // after the render: wait for the binding, then read the condition it drives.
+  await page.goto(`${base}#disclosure--closed`);
+  assert.equal(await id(), "disclosure--closed");
+  const disclosure = page.locator("#disclosure-closed-btn");
+  await page.locator("#disclosure-closed-btn[aria-expanded=false]").waitFor();
+  assert.equal(await displayOf("#disclosure-closed-panel"), "none");
+  await disclosure.click();
+  assert.equal(await disclosure.getAttribute("aria-expanded"), "true");
+  assert.equal(await displayOf("#disclosure-closed-panel"), "block");
+  await disclosure.click();
+  assert.equal(await disclosure.getAttribute("aria-expanded"), "false");
+  assert.equal(await displayOf("#disclosure-closed-panel"), "none");
+
+  // an owner whose state starts true: the runtime writes it on load, with no click
+  await page.goto(`${base}#disclosure--open`);
+  await page.locator("#disclosure-open-btn[aria-expanded=true]").waitFor();
+  assert.equal(await displayOf("#disclosure-open-panel"), "block");
+
+  // the tabs: one string state, three comparisons; a click writes the state and the runtime derives aria-selected, the
+  // literal aria-controls and the roving tabindex in one flush
+  await page.goto(`${base}#reactive-tabs--computed`);
+  assert.equal(await id(), "reactive-tabs--computed");
+  await page.locator("#reactive-tab-one[aria-selected=true]").waitFor();
+  assert.deepEqual(
+    [await ariaSelected("one"), await ariaSelected("two"), await ariaSelected("three")],
+    ["true", "false", "false"],
+  );
+  assert.deepEqual(
+    [await tabIndex("one"), await tabIndex("two"), await tabIndex("three")],
+    ["0", "-1", "-1"],
+  );
+  assert.equal(
+    await page.locator("#reactive-tab-one").getAttribute("aria-controls"),
+    "reactive-panel-one",
+  );
+  assert.deepEqual(
+    [
+      await displayOf("#reactive-panel-one"),
+      await displayOf("#reactive-panel-two"),
+      await displayOf("#reactive-panel-three"),
+    ],
+    ["block", "none", "none"],
+  );
+  await page.locator("#reactive-tab-two").click();
+  assert.deepEqual(
+    [await ariaSelected("one"), await ariaSelected("two"), await ariaSelected("three")],
+    ["false", "true", "false"],
+  );
+  assert.deepEqual(
+    [await tabIndex("one"), await tabIndex("two"), await tabIndex("three")],
+    ["-1", "0", "-1"],
+  );
+  assert.deepEqual(
+    [
+      await displayOf("#reactive-panel-one"),
+      await displayOf("#reactive-panel-two"),
+      await displayOf("#reactive-panel-three"),
+    ],
+    ["none", "block", "none"],
+  );
 
   // The overlay picks the story's button: the properties table names the winner and the token it reads, and the classes by
   // the call that wrote them, in the component's file.

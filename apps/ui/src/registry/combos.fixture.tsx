@@ -26,7 +26,7 @@ import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
-import { Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
+import { type MenuChecked, Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
 import { Select, SelectContent, SelectTrigger } from "./select/select.tsx";
 import { Textarea } from "./textarea/textarea.tsx";
 import { Slider } from "./slider/slider.tsx";
@@ -133,6 +133,31 @@ export const Dialogs = (): JSX.Element => {
   );
 };
 
+/** The host's own modal root: a dialog can be sent to any element, not only `document.body`. */
+const modalRoot = (): HTMLElement => {
+  const existing = document.getElementById("combos-modal-root");
+  if (existing !== null) {
+    return existing;
+  }
+  const element = document.createElement("div");
+  element.id = "combos-modal-root";
+  document.body.append(element);
+  return element;
+};
+
+export const MountedDialogs = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <Dialog label="Move file" mount={modalRoot()} open={open()} onOpenChange={setOpen}>
+      <DialogTrigger>Move</DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Move</DialogTitle>
+        <DialogClose>Cancel</DialogClose>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const Fields = (): JSX.Element => (
   <>
     <Field id="email" hint="We never share it" error="Enter an address">
@@ -207,6 +232,49 @@ export const Menus = (): JSX.Element => (
   </Menu>
 );
 
+// The `mixed` variant: item 0 is the checkbox, 1-3 the radio group, the rest plain. Controlled, so the test reads the
+// public pair back: the kit's readable `MenuChecked` (the primitive's packed number never leaves the component).
+export const CheckableMenus = (): JSX.Element => {
+  const [checked, setChecked] = createSignal<MenuChecked>({ checked: [], radio: 1 });
+  return (
+    <>
+      <Menu
+        variant="mixed"
+        items={["Word wrap", "Small", "Medium", "Large", "Reset view"]}
+        value={checked()}
+        onValueChange={setChecked}
+      >
+        <MenuTrigger>View</MenuTrigger>
+        <MenuContent />
+      </Menu>
+      <output data-part="menu-checked">
+        {checked().checked.join(",")}|{checked().radio ?? -1}
+      </output>
+    </>
+  );
+};
+
+// `checkbox-items`: every row is a checkbox, so a controlled host can check one whose index is not 0.
+export const MultiCheckboxMenus = (): JSX.Element => {
+  const [checked, setChecked] = createSignal<MenuChecked>({ checked: [], radio: -1 });
+  return (
+    <>
+      <Menu
+        variant="checkbox-items"
+        items={["Bold", "Italic", "Underline"]}
+        value={checked()}
+        onValueChange={setChecked}
+      >
+        <MenuTrigger>Format</MenuTrigger>
+        <MenuContent />
+      </Menu>
+      <output data-part="menu-checked">
+        {checked().checked.join(",")}|{checked().radio ?? -1}
+      </output>
+    </>
+  );
+};
+
 export const Tooltips = (): JSX.Element => (
   <Tooltip>
     <TooltipTrigger>Delete</TooltipTrigger>
@@ -220,6 +288,16 @@ export const Selects = (): JSX.Element => {
   const [value, setValue] = createSignal(0);
   return (
     <Select items={FRUIT} value={value()} onValueChange={setValue} label="Fruit">
+      <SelectTrigger />
+      <SelectContent />
+    </Select>
+  );
+};
+
+export const DisabledSelects = (): JSX.Element => {
+  const [value, setValue] = createSignal(0);
+  return (
+    <Select items={FRUIT} value={value()} onValueChange={setValue} label="Frozen fruit" disabled>
       <SelectTrigger />
       <SelectContent />
     </Select>

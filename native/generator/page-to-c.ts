@@ -19,6 +19,16 @@
 // --prop name=value renders the page with that prop (`--prop image=true`): the page's props are fixed at build time,
 // as its signals are, and a variant a page reaches through a prop (not a signal) is a file of its own.
 //
+// --tick <n> gives the page its frame hook (`motion`) and runs it n frames at 1/60 before the frame is emitted, for a
+// page whose tree depends on it: the List's window is its tick's. The hook's reads of the host are answered by
+// generator/ui-build.ts — the box a style states (`ui.bounds`), the offset the host will scroll it to (`--scroll`) — and
+// its value-channel writes are baked into the emitted declarations, since a static page has no channel.
+//
+// --scroll <id>=<px> is the offset the host puts in the page's scroll container, positive down or right (the page's
+// `ui.scrollOffset` reads Clay's, which is negative). The offset is not a declaration: the emitted clip element reads
+// it from Clay (`Clay_GetScrollOffset()`, as the Solid host does), and the window the page declares depends on it, hence
+// a file per offset.
+//
 // --events <file.c> emits the page as a *state machine* instead of one frame: every state `--states` names, plus the
 // states its handlers lead to (a press and a release over each element with an onClick/onPress, with the page's own
 // :hover/:active), one frame function a state, the count and names, and the transition table
@@ -27,6 +37,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+import { plugin } from "bun";
 import { header } from "cssints/clay";
 
 const STATES = [":hover", ":focus", ":active"] as const;
@@ -61,13 +72,25 @@ interface Options {
   text?: string;
   /** The page's props, fixed at build time: `--prop image=true`. */
   props: Record<string, unknown>;
+  /** Frames of the page's own tick before the frame is emitted (`--tick`): the hook is given to the page. */
+  tick: number;
+  /** The offset the host will put in a scroll container, by id (`--scroll list=10`). */
+  scroll: Record<string, number>;
 }
-const opts: Partial<Options> & { styles: string[]; state: string[]; props: Record<string, unknown> } = {
+const opts: Partial<Options> & {
+  styles: string[];
+  state: string[];
+  props: Record<string, unknown>;
+  tick: number;
+  scroll: Record<string, number>;
+} = {
   name: "app_frame",
   eventsName: "page",
   styles: [],
   state: [],
   props: {},
+  tick: 0,
+  scroll: {},
 };
 {
   const argv = process.argv.slice(2);
@@ -82,7 +105,15 @@ const opts: Partial<Options> & { styles: string[]; state: string[]; props: Recor
     else if (a === "--states") opts.states = value();
     else if (a === "--state") opts.state.push(value());
     else if (a === "--text") opts.text = value();
-    else if (a === "--prop") {
+    else if (a === "--tick") {
+      const n = Number(value());
+      if (!Number.isInteger(n) || n < 0) fail(`${a} takes a whole number of frames`);
+      opts.tick = n;
+    } else if (a === "--scroll") {
+      const [name, px, ...rest] = value().split("=");
+      if (!name || px === undefined || rest.length || Number.isNaN(Number(px))) fail(`${a} takes id=px`);
+      opts.scroll[name] = Number(px);
+    } else if (a === "--prop") {
       const [name, ...rest] = value().split("=");
       if (!name || !rest.length) fail(`${a} takes name=value`);
       opts.props[name] = literalOf(rest.join("="));
@@ -107,8 +138,19 @@ const opts: Partial<Options> & { styles: string[]; state: string[]; props: Recor
 
 // JSX and cssints compile in Bun only through the app's loader, and it must be registered before the page is imported
 await import("../solid/plugin.ts");
+// A page's `ui` (solid/src/ffi.ts: libui.dylib through bun:ffi) is resolved to the build's own stand-in before any page
+// is imported: a page's tick asks the host for a box and a scroll offset, and there is no host here (and no dylib, which
+// needs SDL3 and ThorVG). The stub records what it is told and what the page writes; nothing is drawn.
+const build = await import("./ui-build.ts");
+plugin({
+  name: "cssints-native-build-ui",
+  setup(b) {
+    const stub = new URL("./ui-build.ts", import.meta.url).pathname;
+    b.onResolve({ filter: /(^|\/)ffi\.ts$/ }, () => ({ path: stub }));
+  },
+});
 const { El, Txt, render } = await import("../solid/src/renderer.ts");
-const { resolve: resolveStyle } = await import("../solid/src/pack.ts");
+const { packBox, resolve: resolveStyle, STYLE_FIELDS } = await import("../solid/src/pack.ts");
 const { createInput } = await import("../solid/src/input.ts");
 const { flush } = await import("solid-js");
 
@@ -168,12 +210,38 @@ function openPage(): { root: El; dispose: () => void } {
   // the page's own input: a page of the headless widgets (the Dialog, the Field) builds its tree from it — the ids, the
   // roles and the handlers of its parts — so a build-time frame needs one, empty of keys and pointer, as its signals
   // are fixed. A page that takes no input ignores the prop, as it ignores every other it is not handed.
-  const dispose = render(() => Page!({ input: createInput(), ...opts.props }), root);
+  // ... and with `--tick` its frame hook: the page wires its track to `motion`, and the loop's `tick` is what the
+  // generator then runs (the entry's, the scroll's, whatever the page put there).
+  const motion: { tick?: (dt: number) => void } = {};
+  const dispose = render(
+    () => Page!({ input: createInput(), ...(opts.tick ? { motion } : {}), ...opts.props }),
+    root,
+  );
   flush();
+  // what the page's tick will ask the host for: the box an element's own style states (a fixed length). A laid-out box
+  // is the layout's, and the build has none; an element whose size is grown or a percentage is the frame's, and the
+  // page that asks for one has to say so (`--scroll` is the same kind of input, for the offset).
+  build.reset();
+  for (const el of walk(root)) {
+    if (!el.props.id || !el.props.style) continue;
+    const layout = (resolveStyle(el.props.style, undefined, []) as { layout?: Record<string, any> }).layout;
+    const w = fixed(layout?.sizing?.width);
+    const h = fixed(layout?.sizing?.height);
+    build.box(el.props.id, w, h);
+  }
+  for (const [id, px] of Object.entries(opts.scroll)) build.scroll(id, px);
+  for (let i = 0; i < opts.tick; i++) {
+    motion.tick?.(1 / 60);
+    flush();
+  }
   pointer.id = undefined;
   pointer.down = false;
   return { root, dispose };
 }
+
+/** A style's length in px when the style states it exactly, else 0 (a grown or a percentage length is the layout's). */
+const fixed = (axis: Record<string, any> | undefined): number =>
+  axis?.type === "FIXED" ? Number(axis.min ?? 0) : 0;
 
 /** A page after replaying a state's actions: the tree that state declares, and the pointer as its actions left it. */
 function renderState(actions: readonly Action[], label: string): { root: El; dispose: () => void } {
@@ -211,11 +279,11 @@ const literals: string[] = [];
 const local = new Map<object, string>();
 const printed = new Set<string>();
 let themes: (string | undefined)[] = [];
-const printLiteral = (name: string, style: Record<string, any>) => {
+const printLiteral = (name: string, style: Record<string, any>, themed = true) => {
   if (printed.has(name)) return;
   printed.add(name);
   const shape = { ...style, themes: { ...(style.themes ?? {}) } };
-  for (const theme of themes) if (theme) shape.themes[theme] ??= {};
+  for (const theme of themes) if (themed && theme) shape.themes[theme] ??= {};
   for (const line of header({ [name]: shape }).split("\n"))
     if (line.startsWith("static const ")) literals.push(line);
 };
@@ -244,6 +312,16 @@ function decl(style: Record<string, any> | undefined, el: El, theme: string | un
   if (text && !resolved.text) return defaultText();
   if (!text && !box) return "{}";
 
+  // the value channel at build time: the numbers the page wrote for this element (`--tick`) are baked into a declaration
+  // of their own, since a static page has no channel to write them through. A text's colour is its own (`ui_text`'s
+  // fields 51-54), so a text is never baked here.
+  if (!text && el.props.id) {
+    const wrote = build.values(el.props.id);
+    // a write past the packed floats is a renderer table or a text's colour, which a declaration has no field for: only
+    // a write a declaration can hold makes it a declaration of its own
+    if (wrote && [...wrote.keys()].some((field) => field < STYLE_FIELDS)) return bakedName(resolved, wrote);
+  }
+
   const name = exported.get(style);
   if (name) {
     usedExports = true;
@@ -262,6 +340,98 @@ function decl(style: Record<string, any> | undefined, el: El, theme: string | un
 function defaultText(): string {
   printLiteral("white_14", { text: { textColor: { r: 255, g: 255, b: 255, a: 255 }, fontSize: 14 } });
   return "white_14_text";
+}
+
+// ---------- the value channel, baked
+
+// The packed fields a page writes (`solid/src/pack.ts`, `ui.c`'s ui_open reads them in this order). A field past 44 is a
+// renderer table (a shadow's blur, a group's alpha, scale, translate or rotate, a gradient's alpha) or a text's colour: a
+// static C page keeps none of those (header() drops the effects too), so they are dropped.
+const SIZING_TYPES = ["FIT", "GROW", "PERCENT", "FIXED"] as const;
+const ATTACH_TO = ["NONE", "PARENT", "ELEMENT_WITH_ID", "ROOT"] as const;
+const ATTACH_POINT = [
+  "LEFT_TOP",
+  "LEFT_CENTER",
+  "LEFT_BOTTOM",
+  "CENTER_TOP",
+  "CENTER_CENTER",
+  "CENTER_BOTTOM",
+  "RIGHT_TOP",
+  "RIGHT_CENTER",
+  "RIGHT_BOTTOM",
+] as const;
+const CAPTURE = ["CAPTURE", "PASSTHROUGH"] as const;
+const CLIP_TO = ["NONE", "ATTACHED_PARENT"] as const;
+const ALIGN_X = ["LEFT", "CENTER", "RIGHT"] as const;
+const ALIGN_Y = ["TOP", "CENTER", "BOTTOM"] as const;
+
+/** A style's packed floats as the declaration `ui.c`'s ui_open builds from them: the same fields, in the same order. */
+function fromPacked(f: Float32Array): Record<string, any> {
+  const sizing = (at: number) => {
+    const type = SIZING_TYPES[f[at]!] ?? fail(`a sizing type of ${f[at]}`);
+    return type === "PERCENT"
+      ? { type, percent: f[at + 1] }
+      : { type, min: f[at + 1], max: f[at + 2] };
+  };
+  const colour = (at: number) => ({ r: f[at], g: f[at + 1], b: f[at + 2], a: f[at + 3] });
+  const out: Record<string, any> = {
+    layout: {
+      sizing: { width: sizing(0), height: sizing(3) },
+      padding: { left: f[6], right: f[7], top: f[8], bottom: f[9] },
+      childGap: f[10],
+      childAlignment: { x: ALIGN_X[f[11]!] ?? fail(`an align of ${f[11]}`), y: ALIGN_Y[f[12]!] },
+      layoutDirection: f[13] ? "TOP_TO_BOTTOM" : "LEFT_TO_RIGHT",
+    },
+    backgroundColor: colour(14),
+    cornerRadius: { topLeft: f[18], topRight: f[19], bottomRight: f[20], bottomLeft: f[21] },
+    border: { width: { left: f[22], right: f[23], top: f[24], bottom: f[25] }, color: colour(26) },
+    clip: { horizontal: f[30] ? 1 : 0, vertical: f[31] ? 1 : 0 },
+  };
+  if (f[32])
+    out.floating = {
+      attachTo: ATTACH_TO[f[33]!] ?? fail(`an attachTo of ${f[33]}`),
+      parentId: ((((f[34]! | 0) << 16) >>> 0) | ((f[35]! | 0) & 0xffff)) >>> 0,
+      attachPoints: {
+        element: ATTACH_POINT[f[36]!] ?? fail(`an attach point of ${f[36]}`),
+        parent: ATTACH_POINT[f[37]!] ?? fail(`an attach point of ${f[37]}`),
+      },
+      offset: { x: f[38], y: f[39] },
+      expand: { width: f[40], height: f[41] },
+      zIndex: f[42],
+      pointerCaptureMode: CAPTURE[f[43]!] ?? fail(`a capture of ${f[43]}`),
+      clipTo: CLIP_TO[f[44]!] ?? fail(`a clip of ${f[44]}`),
+    };
+  return out;
+}
+
+/**
+ * The declaration a resolved shape becomes with a page's value-channel writes applied. `ui.c` copies the style's 45
+ * floats, overwrites the fields the page wrote and declares from the copy, so this is that copy: `packBox` of the
+ * shape, then the writes, then the declaration (`fromPacked`). What the packed floats do not hold — an image, an
+ * aspect ratio — stays the style's.
+ */
+function baked(shape: Record<string, any>, f: ReadonlyMap<number, number>): Record<string, any> {
+  const floats = packBox(shape);
+  for (const [field, v] of f) if (field < STYLE_FIELDS) floats[field] = v;
+  // the packed floats hold every box field, so they are the declaration's; what they do not hold (an image, an aspect
+  // ratio) is the style's, and a float the style has is the packed `f[32]` flag's
+  const { layout: _, floating: __, ...rest } = shape;
+  return { ...rest, ...fromPacked(floats) };
+}
+
+/** The name of the declaration `baked` prints for one shape and one set of writes, printed once per set. */
+const bakedNames = new Map<string, string>();
+function bakedName(shape: Record<string, any>, f: ReadonlyMap<number, number>): string {
+  const out = baked(shape, f);
+  const key = JSON.stringify(canon(out));
+  let name = bakedNames.get(key);
+  if (!name) {
+    name = `values_${bakedNames.size}`;
+    bakedNames.set(key, name);
+    // the shape is already resolved for one theme, so it is one declaration: no per-theme variants to print
+    printLiteral(name, out, false);
+  }
+  return name;
 }
 
 /** The states that hold for this element at build time, in pack.ts's order, and only those its style has. */
@@ -327,7 +497,12 @@ function frameLines(root: El, theme: string | undefined, name: string): string[]
       return;
     }
     const d = decl(el.props.style, el, theme, false);
-    const open = el.props.id ? `CLAY(CLAY_ID("${cstr(el.props.id)}"), ${d})` : `CLAY_AUTO_ID(${d})`;
+    // A clip element is also Clay's scroll container, and its offset is the host's: the declaration header() prints has
+    // the two axes and never a childOffset (a file-scope constant cannot ask Clay). The element is declared through
+    // `clip_scroll`, which reads the offset where Clay has it open — the same call solid/native/ui.c's ui_open makes —
+    // so the frame draws whatever offset the host put in the container.
+    const wrapped = hasClip(el, theme) ? `clip_scroll(${d})` : d;
+    const open = el.props.id ? `CLAY(CLAY_ID("${cstr(el.props.id)}"), ${wrapped})` : `CLAY_AUTO_ID(${wrapped})`;
     lines.push(`${pad}${open} {`);
     for (const c of el.children) if (c instanceof El) emit(c, depth + 1);
     lines.push(`${pad}}`);
@@ -335,6 +510,28 @@ function frameLines(root: El, theme: string | undefined, name: string): string[]
   for (const c of root.children) if (c instanceof El) emit(c, 1);
   return lines;
 }
+
+/** Does this element's declaration clip (Clay's scroll container), so its offset is the host's? */
+function hasClip(el: El, theme: string | undefined): boolean {
+  if (!el.props.style) return false;
+  const shape = resolveStyle(el.props.style, theme, heldStates(el.props.style, el)) as Record<string, any>;
+  return !!(shape.clip?.horizontal || shape.clip?.vertical);
+}
+
+// The one thing a declaration cannot say: a clip element's offset. Clay_GetScrollOffset() is only meaningful once the
+// element is open, which is inside CLAY(...)'s own line, so the declaration goes through this function.
+const CLIP_SCROLL = `// A clip element is Clay's scroll container, and its offset is the host's: header() prints the two axes and never a
+// childOffset (a file-scope constant cannot call Clay). Read where the element is open, exactly as solid/native/ui.c's
+// ui_open does, so the frame draws the offset the host put in the container (Clay_GetScrollContainerData).
+static Clay_ElementDeclaration clip_scroll(Clay_ElementDeclaration d)
+{
+    d.clip.childOffset = Clay_GetScrollOffset();
+    return d;
+}
+`;
+
+/** Does any element of this tree clip? Then the file needs `clip_scroll`. */
+const anyClip = (root: El): boolean => [...walk(root)].some((el) => hasClip(el, undefined));
 
 function frameFunction(name: string, root: El, theme: string | undefined): string {
   return `void ${name}(void)\n{\n${frameLines(root, theme, name).join("\n")}\n}\n`;
@@ -562,6 +759,7 @@ const eventsC = () => {
     ...(literals.length
       ? ["// styles the page does not export, printed by cssints/clay's header()", ...literals.sort(), ""]
       : []),
+    ...(states.some((s) => anyClip(s.root)) ? [CLIP_SCROLL] : []),
     ...eventFrames,
     `void ${name}_frame(int state, int light)\n{\n    switch (state) {\n${cases.join("\n")}\n` +
       `    default: ${fn(0, undefined)}(); break;\n    }\n}\n`,
@@ -617,6 +815,9 @@ if (opts.out) {
   if (Object.keys(opts.props).length)
     notes.push(`props: ${Object.entries(opts.props).map(([k, v]) => `${k}=${String(v)}`).join(", ")}`);
   if (opts.state.length) notes.push(`state: ${opts.state.join(", ")}`);
+  if (opts.tick) notes.push(`tick: ${opts.tick} frame(s) at 1/60 of the page's own hook`);
+  if (Object.keys(opts.scroll).length)
+    notes.push(`scroll: ${Object.entries(opts.scroll).map(([k, v]) => `${k}=${v}px`).join(", ")}`);
   if (pointer.id) notes.push(`pointer over ${pointer.id}, ${pointer.down ? "down" : "up"}`);
   if (!notes.length) notes.push("state: the page's defaults");
   const cfile =
@@ -627,6 +828,12 @@ if (opts.out) {
         ? `// styles: ${opts.styles.join(", ")}, generated as styles.h by generator/clay-header.ts; referred to by their names there`
         : "// styles: none exported by the page; printed below as literals, in tree order",
       "// The tree is the solid/src/renderer.ts tree the desktop draws, in tree order; each theme is the same tree again.",
+      ...(opts.tick
+        ? [
+            "// The page's frame hook ran at build time, so this frame is the one it declares: an element the page moved",
+            "// through the value channel is printed as `values_<n>`, its style with the numbers it wrote.",
+          ]
+        : []),
       ...(opts.text
         ? [
             `// The strings are the target's: ${opts.text}(index) is called once per text element, in tree order. These are`,
@@ -642,6 +849,7 @@ if (opts.out) {
       ...(literals.length
         ? ["// styles the page does not export, printed by cssints/clay's header()", ...literals.sort(), ""]
         : []),
+      ...(anyClip(page.root) ? [CLIP_SCROLL] : []),
       ...frames,
     ].join("\n") + "\n";
 

@@ -2187,9 +2187,8 @@ to a missing id is worse than an empty one. `Dialog.Trigger` and `Dialog.Close` 
 control renders an `Input`, so the button keeps `data-part="button"` and the trigger is found by `aria-haspopup="dialog"`.
 Focus goes into the panel on open (it is `tabindex="-1"` and has no ring of its own) and back to what had it on close, with
 the page's scroll locked meanwhile — `combos.browser.test.tsx` covers the name, the description, the stacking, the scroll
-lock, Escape, the backdrop click and the focus. **Left**: no portal — a dialog rendered inside a transformed ancestor is
-trapped by it, which is a host's corner and not yet a case; no nested-layer handle: a popover over a dialog wants the next `z`
-value.
+lock, Escape, the backdrop click and the focus. **Left** (the portal is done since, "The dialog's layer is portalled out
+of the view"): no nested-layer handle: a popover over a dialog wants the next `z` value.
 
 `packages/apg-specs`. **Left**: the frames and the generated C keep their Mac-only check, so a rendering regression on another
 platform is still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
@@ -2547,3 +2546,441 @@ independent request pairs with one `onOpenChange` each, so a host that controls 
 expose the checkable variants); the group's children keep their bare `"0"`/`"1"`/`"2"` ids, so two groups on one page
 collide until that becomes a bug worth the fixture churn; and the parent controller still has no `aria-controls` on its
 children, which the spec's header names but does not model.
+
+## The dialog's layer is portalled out of the view (apps/ui, 2026-10-31)
+
+The kit's first overlay entry left the dialog inline: a caller whose ancestor has `transform`, `filter`, `contain: paint` or
+`overflow: hidden` — a card with a hover lift, a scroll box in a layout — either clipped the layer or became the containing
+block of its `position: fixed`, so the layer was as tall as that ancestor and its `top: 0` was the ancestor's top, and the
+modal was broken through no fault of the caller. `DialogContent` now renders the layer inside `@solidjs/web`'s `Portal`,
+which appends it to `document.body`; `Dialog` gained an optional `mount` for a host that names its own root (a `#modal-root`,
+a shadow root's host), and the context carries it so the `mount` stays live.
+
+Only the layer moved. The trigger, the context, the ids (`dialogProps.id` is still how the panel is found for the focus and
+the Tab cycle), the focus save/restore (`restore?.focus()` reaches the trigger across the portal), the scroll lock on
+`document.body.style.overflow`, Escape on the panel, the backdrop's click and the panel's focus are unchanged; the layer,
+the backdrop and the panel are the same three boxes, and `z-index` still reads `var(--z-dialog)`. `Portal` sits inside
+`DialogContent`'s `Show`, so an unopened dialog renders nothing anywhere and the portal is disposed with its parent scope.
+
+The cost is client-only: `Portal` renders nothing on the server, so an `open` dialog at mount is not in pre-rendered HTML and
+appears once hydration settles — a layer cannot exist in server output without a second implementation of it, and hoisting
+data above the portal is the wrong trade for a dialog. `apps/ui` is a client SPA (`index.html` mounts `Docs` only when
+`import.meta.env.SSR` is false) and `apps/docs` does not import the kit, so neither build changes; a host that prerenders
+and opens a dialog at mount loses only its server paint. `combos.browser.test.tsx` adds "covers the viewport from a
+transformed, clipped ancestor", which mounts the dialog inside `transform: translateZ(0); overflow: hidden` and asserts the
+layer's `getBoundingClientRect` is the viewport, its `offsetParent` is null and `document.body` contains it — inline, the
+`offsetParent` was the transformed ancestor and the rect was the ancestor's box. The existing dialog case reads the panel,
+the backdrop and the layer off the document instead of its mount root, which is where they now live. A second case passes a
+host's own root (`mount`) and asserts the layer's parent is that element, with the focus restored to the trigger across the
+portal as before.
+
+## The kit's menu has checkbox and radio items (apps/ui, 2026-10-31)
+
+`Menu`'s own comment said "no checkbox or radio items (the primitive has none)". That was half true: `createMenu` has had
+`menuitemcheckbox` / `menuitemradio` since `menu-checkable.qnt` — the packed checked value, the twin-state memory and the
+radio group — and only the kit did not expose it. `Menu` now takes the primitive's `variant` (`plain`, `checkbox-items`,
+`radio-items`, `mixed`, which decides each item's role by index; the `kind` and `checked` fields of `MenuItemInput` are inert
+there), the controlled pair `value` / `defaultValue` and `onValueChange`, all in the readable `MenuChecked` =
+`{ checked: ReadonlyArray<number>; radio?: number }` (`-1` or absent is no radio). A row paints the mark from its own
+announced `aria-checked`: an `aria-hidden` `✓` inside the row, hidden unless `within(attr("aria-checked", "true"))`, with
+`group()` on the row for the `within()` marker; `MenuItem.render` also sees the row's `state.checked()`. Space toggles a
+checkbox or radio without closing, Enter toggles and closes (APG's optional variant, the primitive's reading), and a radio
+clears the others in its group.
+
+**Why the readable view, not the pack.** The primitive's controlled value is one number (`checkboxItem0 * 5 + radioChoice`,
+1-based), and the kit's job is the recognisable surface: as `Select` exposes an option index instead of the primitive's
+string, `MenuChecked` names the indices and the kit packs and unpacks at its boundary. The pack has exactly one checkbox
+bit, so a controlled menu controls item 0 (the `mixed` variant's checkbox) and a `value.checked` beyond 0 does not survive
+the round trip; an uncontrolled menu, whose primitive state is a `Set`, may check any item. Multi-checkbox control would
+need the primitive's value to grow, not the kit's API.
+
+**Stays out:** submenus and separators (`createMenubar` has them, `createMenu` does not), and the split of the events —
+`onItemClick` for a plain item, `onValueChange` for a checkable one. A caller must know the variant decides roles by index
+rather than per item, and that the trigger's open state, the anchor, the focus sync and the outside click are unchanged.
+
+## A form's disabled state and a group's child ids (packages/headless, 2026-10-31)
+
+**`createCombobox` takes `disabled`.** The slider and spinbutton rounds left the combobox out (the kit's `Select` is the
+only other consumer), and a disabled select is the commonest disabled control there is. It is a plain,
+non-controllable option, read lazily in every getter and every handler, like theirs: `comboboxProps` and `triggerProps`
+announce `aria-disabled` and the combobox keeps its tab stop (the APG pattern puts the state on a `role="combobox"`
+element, a button in the select-only example, so no native `disabled` is carried). A key, a click, a typeahead character,
+a filter input and an option click are dropped before they become a request, so `onOpenChange` / `onValueChange` never
+fire and no popup opens; `setOpen` / `setValue` stay host requests, so a programmatic write still applies. The spec's
+machine has no `disabled` var — adding one would mean a var in every action, a `setDisabled` event and bridge work — so
+`combobox-select-only.qnt` records the extension in its omission list, comment only, and
+`packages/headless/test/combobox.browser.test.tsx` is the oracle. **The invariant the model does not carry**: "while
+disabled, a key, a click, a typeahead character, a filter input and an option click change nothing, no popup opens, and
+the combobox (and the trigger) announce `aria-disabled`". Left: a filter input's DOM text can still change under a
+disabled combobox (the primitive's `query` does not), which is the host's rendering concern; a controlled host's
+`open` / `value` props still write through, as every request pair does. The kit's `Select` passes `disabled` through and
+hands the primitive's `aria-disabled` to its `Button`, whose own rule paints a dimmed, `not-allowed` trigger: a disabled
+select keeps the tab stop the pattern gives it, opens nothing and fires no change; `combos.browser.test.tsx` asserts it.
+
+**`createCheckboxGroup`'s children stop colliding.** They were `"0"`, `"1"`, `"2"`, so two groups on a page shared ids —
+the previous wayfinder entry named it as left over. The group already resolves a base (`id`, else `createUniqueId`) for
+`<base>-control`; the children now take `<base>-0`..`-2`, the shape `menu.ts` gives `<base>-item-<i>`. `checkbox-group.qnt`
+omits ids, so no spec change; the kit passes no `id` by default, so its unique base keeps both groups apart, and a second
+`createUniqueId` is not made. Checked by a plain assertion in `checkbox-group.browser.test.tsx` (two groups, distinct ids,
+the named base's exact ids).
+
+## CSS-first interactions: `@cssints/reactive` (packages/reactive, 2026-10-31, cssints-zrt2)
+
+The model comes from [Reactive CSS](https://reactivecss.com/): state as custom properties, events and conditions in the
+stylesheet. The strictness comes from Solid 2.0's
+[RULES-FUNDAMENTALS](https://github.com/solidjs/solid/blob/next/packages/signals/docs/RULES-FUNDAMENTALS.md) and
+[ReactiveScript](https://github.com/ryansolid/reactivescript): only sources are writable (E-1), a write happens in
+imperative scope (W-1/W-2), state belongs to an owner element (O-\*), one flush paints one whole frame (F-1/F-10), and v1
+has no async, so no loading or error boundaries.
+
+`:on(click)` does not port: it is not a valid selector, and cssints ships compiled class strings, so the event program
+travels as data. Three non-inheriting custom properties carry it — `--reactive-owner` (the states), `--reactive-on` (the
+program) and `--reactive-binding` (the DOM output) — each registered with `@property { syntax: "*"; inherits: false }` in
+its kernel, so an element sees only its own program and list. The state values themselves (`--reactive-<name>`) inherit, so
+any descendant can read them in CSS. The runtime writes `data-reactive-<name>` on the owner for the conditions (`when()` is
+`attr()`, `inside()` is `within(attr(), "reactive")` over the owner's `_g-reactive` group marker) and the same value inline
+as the custom property for derivations.
+
+**Two engine gaps.** (1) `needed()` (delivery.ts) answered false for a runtime with no polyfills, so a plugin whose script
+_is_ the feature was never delivered: with a target set that has every CSS feature, `virtual:cssints/runtime/reactive.run`
+was `export {};`. A runtime with `script` (or `css`) and no `polyfills` is now needed for every target; plugins.mjs covers
+both sides (a polyfilled runtime still ships nothing where every target has the feature). (2) A site could be a style, a
+condition, a Typed OM value or a plugin value with no replacement (a definition, `icons()`), but not an object:
+`state()` must return its owner style _and_ its sources, and a plain object was a `SiteMissingError` in a client module,
+because the engine writes only class strings. `ship(entries)` (`cssints/plugin`) marks an object as the site's value: the
+engine writes an object literal, each `Style` as its class string, arrays and objects recursively, the rest as JSON. At
+build time the object _is_ the entries, so `ui.owner` is the style and `ui.open` the source. A marker only, not a general
+serializer: a value that is none of these still fails, so a plugin value cannot silently ship as JSON.
+
+**Decisions.** Actions (`toggle()`, `set()`) are opaque and only `on()` takes them, so a write at module level does not
+typecheck; `Source<T>` is branded and only `state()` makes one, so a derivation has nothing in JavaScript to write to.
+State names are idents and string values have no commas or spaces because the protocol is a comma-separated list; both are
+build errors at the call site, as are an unknown event and an attribute name. `on()` takes an object of events so two
+`on()`s on one element are visible (a merge of class strings would be silent). The event set is the fixed ten that bubble;
+the listener is one per event on `document`, so nothing is retained and no disposal is needed, and it walks from the target
+up so an ancestor's program runs for its descendants (one flush per owner touched). A nested owner's elements bind to the
+nested owner (`closest`), which the browser test checks. The runtime is 1.75 kB minified, 0.87 kB gzipped; with
+`polyfills: []` the engine ships it to every target, so the cost is unconditional and the model has no fallback CSS to
+decide.
+
+**Left.** No persistence, no counters or gestures (`calc()` over a state is CSS, not a source: nothing increments it from
+JavaScript), no async (the Solid async boundaries are the reference for v2), one `state()` and one `on()` per element by
+rule, and a condition on an initial value may paint a frame late because the script writes the attribute. The plugin writes
+attributes, not ARIA behaviour: the author pairs `aria-expanded` (or `aria-current`) with the pattern they are building.
+
+attributes, not ARIA behaviour: the author pairs `aria-expanded` (or `aria-current`) with the pattern they are building.
+
+## A two-thumb range slider in the kit, on the primitive that already models it (apps/ui, 2026-10-31)
+
+The kit's slider entry left multi-thumb out because `createSliderMultiThumb` has no `trackProps`, so the port is not the
+same component. Reading it again, the missing rail press is the whole of that gap: it already owns the whole APG Slider
+(Multi-Thumb) contract — the pair, the neighbour bounds (a thumb's `aria-valuemax` / `aria-valuemin` follow the other, so
+the thumbs cannot cross and equal values are allowed), the constant tab order (lower, then upper), the arrows with the RTL
+flip, PageUp/PageDown, Home/End to the neighbour, the `value` + `onValueChange` request/commit pair, and each thumb's
+`role=slider` with `aria-valuenow` / `aria-valuemin` / `aria-valuemax` / `aria-valuetext` / `aria-orientation`, verified
+against `specs/apg/slider-multithumb.qnt`. The item is therefore a skin: two `data-part="thumb"` divs that take
+`thumbProps(0)` and `thumbProps(1)`, a name per thumb derived from one `label` (`Price lower thumb`, `Price upper thumb`),
+a `data-part="track"` rail and a `data-part="fill"` that the kit alone owns.
+
+The interval is the one thing the primitive does not announce, and it is painted without measuring the DOM: the outer
+announced bounds are the range (the lower thumb's `aria-valuemin` is the range's minimum, the upper thumb's
+`aria-valuemax` is its maximum; the inner two follow the neighbour), so a thumb's position is
+`(now - min) / (max - min)` of the range and the fill spans from the lower thumb's share to the higher one —
+`inset-inline-start` / `width`, or `inset-block-end` / `height` when vertical, the same arithmetic the single `Slider`
+uses for its fill. A thumb's position, the fill's two edges and the value a reader hears are one set of numbers, and no
+rect is read. The rail is the anchor of those percentages: it copies the announced `aria-orientation` to
+`data-orientation` (a box cannot read an attribute of its child), the fill reads it through `within()`, and each thumb
+paints its own from `aria-orientation`.
+
+The primitive deliberately has no rail press (the spec's event names its thumb), so the kit adds one thing: a
+`pointerdown` on the rail measures the rail's rect and the nearer thumb takes the press and the DOM focus. That is the
+only measurement in the component, and only because a pointer has a position while the primitive wants a 0..1 fraction.
+Ties go to the lower thumb, and a press that starts on a thumb is left to the primitive. The tokens are the single
+`Slider`'s, so the two siblings look the same: `buttonBackground` for the rail, `highlight` for the interval, `surface` /
+`border` / `borderHover` for the thumbs and `focusRing` for the focus ring.
+
+`slider-multithumb.browser.test.tsx` ships with the item: the primitive's ported scenarios (all `Unsupported`, since the
+spec fixes values `[3, 7]` over 0..10) and the differential walk over seven configs — plain, vertical, RTL, both, and
+controlled hosts that accept or hold — then the kit's own three points: the fill is 30%..70% for `[3, 7]` and moves with
+the upper thumb's arrow key, the vertical fill grows from `inset-block-end`, and a 90% rail press lands on the upper
+thumb and focuses it. `combos.browser.test.tsx` is untouched.
+
+**Left**: no dragging (the primitive models one press, not pointer move), no `disabled` (the primitive has none, as in
+`Spinbutton`), a rail press measures from the physical left under RTL as the single slider's `trackProps` does, the
+vertical rail is `space.10` tall until a page sets its own, and `aria-valuetext` stays the primitive's low/medium/high
+with no units.
+
+## The checkable menu's readable checked state (packages/headless, 2026-10-31)
+
+The kit round found that a controlled `Menu` could only ever control item 0's checkbox: `createMenu` took the checked
+state as one packed number, `checkboxItem0 * 5 + radioChoice` (1-based), so `MenuChecked.checked` beyond 0 did not survive
+the round trip and `apps/ui` packed and unpacked at its own boundary. The pack is the spec's own shape, not an accident:
+`menu-checkable.qnt`'s `checked(wrap, choice)` is `b2i(wrap) * 5 + choice`, folded with `wrapFrom` / `choiceFrom`.
+
+**The primitive now takes the readable pair additively**: `checked?: ReadonlyArray<number>` + `choice?: number` (the
+checked checkbox indices and the chosen radio, `-1` for none) and `onCheckedValuesChange(checked, choice)`, next to the
+packed `value` / `defaultValue` / `onCheckedValueChange`, which are unchanged. Names follow the package's request pairs
+(`value` / `onValueChange`, `open` / `onOpenChange`); `onCheckedChange` and `onValueChange` were already the per-item
+events, so the pair's request needed its own name. `checked` / `choice` are also the primitive's accessors, matching the
+existing `defaultChecked` / `defaultChoice`.
+
+**One store, two views.** The readable pair is the store and the packed number is derived from it (`Menu.value()` is the
+computed view), because the pack cannot express the new case and the readable pair can express every state the pack can.
+Each field falls back to the packed one, then to the local uncontrolled state, so an old caller with `value` keeps its
+exact behaviour: the local state does not commit, `onCheckedValueChange` carries the intent, and the pair's accessors
+unpack it. A host that owns the readable pair hears `onCheckedValuesChange`; where both views are passed the readable pair
+wins. A write from either side is the same commit (`requestChecked`), so the machine does not fork.
+
+**The spec is unchanged.** `checked(wrap, choice)` is still the oracle: the bit is item 0's checkbox and the modulo is the
+radio, so the readable pair is a view over it and no `specs/` file moved. The model cannot express a second checked
+checkbox (its fixture has one checkbox item), and it does not need to: the readable pair is not new behaviour, only a wider
+name for the same two state variables. **Left**: the packed value stays lossy for a checkbox other than item 0 by
+definition (that is why it is a derived view, not the store), and `defaultValue` still starts only the packed side.
+
+**The kit dropped its packing.** `apps/ui`'s `Menu` passes `checked` / `choice` straight through and forwards
+`onCheckedValuesChange`; `MenuChecked` keeps its shape (`{ checked, radio? }`) and now reads well because the primitive
+takes the same pair. `combos.browser.test.tsx` checks a `checkbox-items` menu's third row — the case the single-bit pack
+could not control — and the headless tests mount a readable host that accepts and one that ignores, asserting both views
+stay consistent.
+
+## The slider drags (cssints-headless, 2026-10-31)
+
+`createSlider` modelled a rail press — pointer down jumps the value to where it landed — and nothing after it, so the kit's
+`Slider` told people to click and the two earlier entries recorded dragging as Left. A real slider follows the thumb while
+the pointer is held, and a rail 300 px wide that only jumps is a control a user drags and thinks is broken (the thumb stays
+where it was pressed). The primitive now starts a drag on `pointerdown` at the rail **or the thumb** and follows the pointer
+until `pointerup`, `pointercancel` or a lost capture.
+
+**One mapping, reused.** The press already turned a pointer into a value; the drag calls that same `positionOf` /
+`pointerDown(position)` pair per move, so a drag cannot land where a press would not, and the four orientation/direction
+combinations have one definition. That definition now reads `flipped()` — the key rule (horizontal under rtl) — which it did
+not before: a rail press on an `rtl` horizontal slider landed on the mirrored value of the one it should, and no test could
+see it because the differential walk hands `pointer` a 0..1 fraction and never the geometry. Up is more on a vertical rail;
+direction flips only the horizontal axis, as the arrows do.
+
+**Who owns the drag.** The rail does, whichever element took the press: the thumb's press bubbles to it, and the rail is the
+box both the capture and the rect come from. So `trackProps` carries `onPointerDown` / `onPointerMove` / `onPointerUp` /
+`onPointerCancel` / `onLostPointerCapture`, and the thumb's own `onPointerDown` only marks the press so the rail does not
+jump (the thumb is already at the value). Weighed: a `ref` or an id in `trackProps` so a thumb press could find the rail —
+more contract for the same answer, and a thumb that is not inside the rail is not a slider a host can lay out anyway (the
+kit's is a child of the rail). Weighed too: a document listener with `onSettled` — pointer capture already retargets the
+moves off the rail, so there is no listener and nothing to dispose; `lostpointercapture` ends the drag when the browser takes
+the capture away.
+
+A drag is a request, not a write: every move goes through `createControllable`, so a controlled host that ignores
+`onValueChange` keeps its value, and `request`'s equality check makes one request per distinct value — three moves inside one
+step are one call. `disabled` is checked before the capture, so a disabled rail captures nothing, moves nothing and asks
+nothing.
+
+**What the spec cannot carry.** `specs/apg/slider.qnt` fixes a discrete press and has no pointer position var; carrying a
+drag would mean a position var and a `setPointer` event in every action that assigns every var (the generator's shape), a
+second machine rather than a line. So the spec's header records the extension and names the invariant it does not carry —
+**DragFollowsPointer**: while the pointer is held, `aria-valuenow` is the value of the pointer's current position (not an
+accumulation, so a move back to the press position returns the value), and a move after the release changes nothing — and
+`packages/headless/test/slider.browser.test.tsx` is its oracle, as it already is for `disabled`. The model still holds:
+`ValueOnStepGrid` and the clamp are the same rule the drag uses, `ControlledFollowsProp` and `RejectedRequestUntouched` are
+what the drag's request path goes through.
+
+**Tests.** Seven new cases in the real DOM: a press and drag to the middle moves `aria-valuenow` and asks for one value per
+step (three moves inside a step are one request), a drag past either end clamps to `0` / `10`, a vertical rail increases
+upward under `ltr` and `rtl` alike, a horizontal `rtl` rail counts from its right edge, a press on the thumb does not jump and
+still drags, a controlled host that rejects the requests keeps `5` while the callbacks arrive, and a lost capture or a
+`pointercancel` ends the drag so a later move changes nothing. The disabled case now also drags after its press.
+
+**The kit** gained two declarations and a comment: `touch-action: none` so a touch drag moves the thumb instead of scrolling
+the page, and `user-select: none` so a mouse drag does not select the text it crosses. The primitive carries no CSS, so this
+is the host's decision; the handlers and the geometry are the primitive's and the kit's `Slider` was otherwise unchanged.
+
+**Left**: no `dragging()` accessor (a host that wants to hide a tooltip while dragging has no read), the multi-thumb slider
+still has no drag and no rail (its own entry's reason), a thumb that is not inside the rail starts no drag (documented, not
+checked), and a pointer that leaves the window without a `pointerup` relies on the browser's capture release.
+
+## The multi-thumb slider takes a rail press and a drag (packages/headless, 2026-10-31)
+
+The kit's two-thumb range slider shipped with its own rail press because `createSliderMultiThumb` had no `trackProps`: it
+measured the rail, picked the nearer thumb and called `pointerDown`. That is widget behaviour in a skin, and the single
+slider's last round had just put the same press and a drag on the primitive, so the siblings disagreed twice (the
+multi-thumb had no drag and no `disabled`, and its kit measured from the physical left under `rtl`, where the single
+slider's rail already flips). The primitive now owns both.
+
+**One geometry, two sliders.** The four-case mapping (up is more on a vertical rail; a horizontal rail under `rtl` mirrors,
+as the arrows do), the "no length yet" guard, pointer capture and the drag's end are now `packages/headless/src/rail-pointer.ts`,
+imported by `slider.ts` and `slider-multithumb.ts`. The single slider's behaviour is unchanged: its tests pass untouched.
+The drag's _state_ stays per slider, because the multi-thumb's carries the thumb index.
+
+**How a press picks its thumb.** The measured pointer position is the value axis's fraction (the flip is already in it), so
+the target value is `min + position * (max - min)` and the thumb whose current value is nearer takes the press. A tie goes
+to the lower thumb: it is the pair's floor and the first tab stop, and a press that cannot say which thumb it means should
+move the start of the interval, not its ceiling, which would shrink the interval instead of shifting it. A press that starts
+on a thumb names that thumb (the APG's rule) and starts the drag where the value already is, so it does not jump by half a
+thumb; the rail learns which thumb from the thumb's own `onPointerDown`, exactly as the single slider marks its press. The
+chosen thumb moves to the pointer, `focused()` names it, and every `pointermove` asks for that thumb's value again; it
+clamps at its neighbour, so a drag cannot make the thumbs cross, and moving back follows the pointer back.
+
+**`focused()` is synchronous.** Solid 2 applies a signal setter on its next flush, so a host that reads `focused()` inside
+the same press (the kit moves the DOM focus to the named thumb) would read the old thumb. The accessor now keeps a local
+and a version signal, the pattern `createControllable` already uses for a value requested in the same tick; the signal
+still notifies, the local is fresh. The single slider's `focused()` was left alone: nothing reads it mid-press.
+
+**`disabled`** is the single slider's rule: a plain option read on every attribute read, `aria-disabled="true"` on both
+thumbs, both tab stops kept, and every key, press and drag dropped before it becomes a request (nothing is captured, so
+nothing moves).
+
+**What the spec cannot carry.** `slider-multithumb.qnt` models a discrete press per thumb (`pointerLo` / `pointerHi` carry
+a value, not a position) and has no `disabled` var. So the header now records the two extensions and names the invariants
+the machine does not hold: **NearestThumbTakesPress** (a press beside the thumbs moves the nearer one, and a thumb press
+starts from the value it has) and **DragFollowsPointer** (the thumb's `aria-valuenow` is the value of the pointer's current
+position, on the step grid and within the neighbour bounds, so it does not accumulate and nothing moves after the release),
+with `packages/headless/test/slider-multithumb.browser.test.tsx` as their oracle. The model is otherwise untouched: the
+neighbour clamp and the step grid the drag uses are its own rules, and a regenerate moved only the spec hash.
+
+**Tests.** Six new real-DOM cases in the primitive's test: a press near either thumb moves that one, a tie goes to the
+lower, a thumb press drags from where it is, a drag follows the pointer with one request per value and stops on release,
+the upper thumb clamps at the lower one and follows back, a vertical rail increases upward, a horizontal `rtl` rail counts
+from its right edge, and a disabled pair ignores a key, a press and a drag while announcing `aria-disabled` on both. The
+kit's conformance test keeps its 90% press case — now through the primitive — and adds the drag (the fill closes when the
+upper thumb clamps) and a disabled view; the demo shows one disabled pair beside the live one.
+
+**The kit dropped its press arithmetic** and now spreads `trackProps`; it keeps the interval, the anchor, the labels and
+the focus move, which the primitive cannot do because it owns no elements. Its `touch-action: none` / `user-select: none`
+and the disabled colours are the skin's, as on the single `Slider`.
+
+**Left**: no `dragging()` accessor (same as the single slider), the drag is still one thumb at a time (a press names one
+thumb), there is no keyboard equivalent for moving a whole interval, and a thumb that is not inside the rail starts no
+drag (documented, not checked).
+
+## Reactive round two: the field's value, and programs that append (packages/reactive, 2026-10-31, cssints-674d)
+
+The round-one note left two limits: one `on()` and one `state()` per element, and a `set()` with a literal only. Both
+blocked the obvious widget — a `<select>` or a checkbox driving a panel, a button that answers a click and a key — so this
+round removes them, with one engine change.
+
+**The engine: a declaration that is a list.** `merged()` (lib.ts) kept the later of a same-property declaration, which is
+right for `p(4), p(2)` and wrong for two `on()`s: both set `--reactive-on`, and the first program vanished without a word.
+`Decl` gains a fifth element, `join`, and `append(prop, value)` (`cssints/plugin`) makes a declaration a list: two lists of
+one property under the same conditions join with the separator, a third still appends, and a list beside a plain value is a
+build error — appending would be wrong, replacing would drop a program. A list with `firstThatWorks()` is an error too (a
+list has no alternatives). The separator is part of no printed or hashed form: the sheet prints the joined value, and
+`hashClass`, clay, tui and the devtools read the four elements they always did. `cv()` is deliberately not changed: a
+variant is an alternative, so a list declared there replaces the base's as any declaration does.
+
+**The protocol: `@value` and `@checked`.** `value()` and `checked()` are branded `Payload<T>` values, and only `set()`
+takes one: `set(open, value())` and `set(tab, checked())` are type errors, as are a payload in `bind()`, `toggle()`,
+`when()`, `on()` or where a `Style` goes. The build writes the token into the set segment (`change set tab @value`), and
+the runtime resolves it against the event's target: `String(target.value ?? "")`, `target.checked ? "true" : "false"`. A
+literal is written as it was. A literal value now has no `@`, a build error at the `set()` call, so a string can never be
+mistaken for a payload.
+
+**One element, several programs.** `state()`, `on()` and `bind()` emit their properties with `append()`, so two `on()`s in
+one `cn()` are one `--reactive-on` (`click toggle open,keydown set tab two`), two `bind()`s one `--reactive-binding`, and
+two `state()`s one owner's list. The runtime splits the list and drops an identical segment before applying it: a program
+written twice would otherwise toggle twice. No JavaScript event handler, no source of its own: still one delegated listener
+per event, one flush per owner.
+
+**Cost.** No type budget change (the payload brand is one interface), no runtime bytes of note (the dedupe is a `Set` over
+the segments of one program; `field()` is two branches). The browser suite grew from five cases to nine on one page
+(select, checkbox, two programs, a repeated program); Chrome 156, Firefox 157 and WebKit 27.2 pass.
+
+**Left.** Persistence, counters, gestures, async and `event()` callbacks stay out. A list is a build-time join of string
+values, not a general list type: the protocol is still a comma-separated string on one element, and a payload is read only
+off the event's own target, never an ancestor's.
+
+## Persistence: a state that survives a reload (packages/reactive, 2026-10-31, cssints-3ydy)
+
+The round-two note left persistence out, and a disclosure that reopens every visit is the obvious request for a state
+that already lives on one element. This round adds the constructor, not a store: `persist(value, key)` wraps a state's value
+
+```ts
+const ui = state({ open: persist(false, "demo-open"), tab: persist("one", "demo-tab") });
+```
+
+and returns a branded `Persisted<T>`. Only `state()` accepts it: `set()`, `toggle()`, `bind()`, `when()`, `on()` and a
+`Style` position refuse it (a `Persisted` is none of a source, a value, an action or a style), so a write still goes
+through the source, and `persist()` without a value is a type error too. The key is a build error at the call site when it
+is empty or has anything but letters, digits, `-`, `_`, `.` and `:`: the protocol is a comma-separated list, so a comma or a
+space would split it. Two states may share a key on purpose (one slot, kept in sync), and the docs ask an app to prefix its
+keys (`demo-open`).
+
+**Protocol.** A fourth non-inheriting property on the owner, `--reactive-persist: open:demo-open,tab:demo-tab`, from a
+kernel `#persist` (the same empty `&{}` plus `@property { syntax: "*"; inherits: false }` as `#owner`, `#events` and
+`#binding`). `state()` emits it with `append()`, so two `state()` calls in one `cn()` join their states, and a state without
+`persist()` never appears: the property, the kernel and its `@property` rule are all left out of a file that persists
+nothing.
+
+**Runtime.** The value lives under `"reactive:" + key` in `localStorage`. When an owner is initialised (the same `setup()`
+that writes the declared value, one `MutationObserver` pass for added nodes), a stored value replaces the declared one, so
+`data-reactive-<name>` and the inline `--reactive-<name>` already hold it by the time the harness reads the page after
+`load`; the module still runs after parsing, so a persisted state has the same frame-late caveat the initial value has. Every
+`write()` of a persisted state stores it, including the setup write, so a click needs no extra call. The parsed protocol is
+cached on a `WeakMap` per owner: a write would otherwise call `getComputedStyle` on every event. `localStorage` may be
+missing or throw (private mode, quota, a page without storage); `load()` and `save()` swallow it, so the state stays
+interactive and simply does not survive. A stored value reaches the page only through `setAttribute` and
+`style.setProperty`, never as a string of CSS or HTML, so it cannot inject anything — the note is in `write()`.
+
+**Cost and tests.** The runtime grew from 1.75 kB to 2.48 kB minified (0.87 to 1.16 kB gzipped): the cache, a colon split,
+two `try` guards and one map per initialisation. No engine change, no type budget change (one brand interface, `Sources` maps
+through `ValueOf`). `test/reactive.mjs` checks the property and its kernel in the sheet, the joined list of two `state()`
+calls, a file without persistence leaving both out, and the key and missing-value errors at the call site;
+`test/types/reactive.ts` checks the refusals; `test/browsers.mjs` clears storage at the start, clicks a persisted
+disclosure and reloads (open before the harness reads it after `load`), writes `reactive:test-tab` and sees the stored
+value win over the declared `"one"`, clicks a state without `persist()` and finds the key list unchanged (and the state
+back to its declared value after a reload), and fails on a console error. Chrome 156, Firefox 157 and WebKit 27.2 pass.
+
+**Left.** No cross-tab sync (a second tab keeps its own copy until it reloads), no versioning or expiry (a stored value is
+a string the current build may no longer expect), no `sessionStorage` choice, and no JavaScript read of a stored value: it is
+still a state, not a store. Storage failures stay silent by design. Counters, gestures, async and `event()` callbacks remain
+out as before.
+
+## Computed attributes in `bind()` (packages/reactive, 2026-10-31, cssints-ac3o)
+
+The lab's adoption of `@cssints/reactive` found the one thing the plugin could not say. On a tab strip, `bind()` writes a
+state's value, so `aria-selected` could only be one boolean per tab (three writes a click); a string state would write
+`aria-selected="one"`, which is invalid HTML and read as false; `aria-controls` is a constant and had no way in at all; and
+the APG roving `tabindex` (`"0"` for the selected tab, `"-1"` for the rest) was out of reach. `attr()` is a selector
+condition, not a declaration, so `when(ui.tab, "one")(attr("aria-selected", "true"))` writes nothing.
+
+**Four kinds of binding.** `bind()` now takes a source (the state's value, as before), a `Comparison` from
+`equals(source, value)`, a `Choice` from `either(comparison, whenTrue, whenFalse)`, or a literal string. `equals` refuses a
+value that is not of the source's type and `either` refuses a bare source (type errors); a comparison is not a `Source`, so
+`set()`, `toggle()`, `when()` and `inside()` refuse it and `persist()` does not store it. A literal is a build error at the
+call site for a comma, a space or a leading `=`/`?`/`!`, with the attribute and the value in the message. The protocol keeps
+one property, `--reactive-binding`, now with a kind per pair: `aria-expanded open` (a source), `aria-controls =panel-one`
+(a literal), `aria-selected ?tab one` (a comparison) and `tabindex ?tab one 0 -1` (a choice). The planned `!` before each
+literal of a choice does not parse in a custom property: lightningcss reads it as a broken `!important` and rejects the
+sheet, so the five-token form carries the choice instead. The runtime splits each pair once and caches the list per element
+on a `WeakMap`; a comparison reads the nearest owner, like a source, so the pair names a state, not an owner.
+
+**Why the runtime computes.** Every other derivation in the plugin is CSS (`calc(var(--reactive-count) * 2)`, `inside()`,
+`within()`). An attribute on the element itself cannot be: `attr()` reads, it does not compute, and a comparison holds no
+value of its own. Sources stay the only writable things; a comparison is an equation, and a binding is the only place the
+runtime evaluates one, on the flush of that owner.
+
+**Cost and tests.** The runtime grew from 2.48 kB to 2.73 kB minified (1.16 to 1.26 kB gzipped): a `WeakMap` cache, a
+`split(" ")` per pair and two branches. No engine change and no type budget change (two brand interfaces, `Bindings` widens
+to a union). `test/reactive.mjs` checks the four kinds in one `--reactive-binding`, the client class list, and the three
+literal errors at the call site; `test/types/reactive.ts` checks the refusals; `test/browsers.mjs` drives a tab strip
+(three tabs, `aria-selected`, a literal `aria-controls`, roving `tabindex`, `aria-pressed` from a boolean comparison): one
+click rewrites all three attributes before a frame, nothing is stored, and a reload shows the declared tab. Chrome 156,
+Firefox 157 and WebKit 27.2 pass. The lab's tabs story is now one string state with three comparisons (and its caveats are
+gone); the disclosure writes its literal `aria-controls`.
+
+**Left.** No ordering or arithmetic: `equals()` is equality and `either()` picks two literals, so `count > 2` waits for a
+real derived expression. The runtime still evaluates one comparison per binding, not a general expression tree.
+
+## The kit's menubar, and the nested submenus it gains (apps/ui, 2026-10-31)
+
+The kit's menu is one level: a trigger and a list on `createMenu`, which has no submenus, and `menu-button.qnt` does not model them either. The bar's primitive already existed and is the whole contract: `createMenubar` in `packages/headless/src/menu.ts` owns the roving tab stop (`barStop`, one `tabindex="0"` on the bar), every part's id, role and announcement (`aria-haspopup` / `aria-expanded` on a parent row, `tabindex` as the roving stop), the arrows with Home and End, Escape that closes one level at a time, Tab that leaves the widget, the typeahead buffer over the bar, and a hover that opens a submenu once its menu is open. Its behaviour is `specs/apg/menu-menubar.qnt`, and `packages/headless/test/menu.browser.test.tsx` replays the model, the ported ariakit and base-ui scenarios and the seeded walk. The focus rule the spec names is the APG note: with a menu open, Right/Left on a bar item moves along the bar and opens the next menu _without moving focus into it_ — the focus stays on the bar item, level 1; Right on a parent row inside a menu opens that submenu and takes the focus to its first row, level 3; Down from the bar is what enters a menu, level 2. `focusLevel` (0 outside, 1 the bar, 2 a menu, 3 a submenu) and `focusIndex` are that state, and nothing else is.
+
+The item is `apps/ui/src/registry/menubar/`, a skin over it: `Menubar` (`role="menubar"`), `Menubar.Menu` (one top-level item: the anchor box), `Menubar.Trigger` (`role="menuitem"`), `Menubar.Content`, `Menubar.Item`, `Menubar.Sub` (the parent row, which is also its submenu's anchor), `Menubar.SubContent` and `Menubar.SubItem`; every part takes `render`, `data-part`, `class` and the primitive's own props through `merge()`. One `position: relative` box per bar item holds the trigger and the menu, which is absolute under it; the submenu is absolute beside its parent row (`inset-inline-start: 100%`, so the writing direction is the browser's), and both surfaces are `z-index: var(--z-popover)`. That is inline positioning: an `overflow: hidden` ancestor clips a popup and nothing is flipped at the viewport's edge — the cost the component's comment states. The chevron is the row's announcement painted, not a kit copy: hidden by default, visible only under `aria-haspopup="menu"` and turned under `aria-expanded="true"` through `within()` and `attr()`, so the kit keeps no open state. One effect moves the DOM focus to the level the primitive reports (the bar item, the row of `openTop`'s menu, the row of its open submenu), and a pointerdown outside the bar closes everything, which the primitive does not listen for.
+
+`menubar.browser.test.tsx` ships with the item (`tested: true`): the ported scenarios replay with the divergences `packages/headless/test/menu.browser.test.tsx` already pins; the differential walk runs the horizontal, always-wrapping bar (the bridge rejects the other config keys, so vertical, `wrap` and a controlled top menu are skipped with the reason), and the kit's own assertions cover the bar's one tab stop, the anchors, a click opening a menu and Down entering it, Right opening the submenu with the chevron turned and the focus on its first row, Down inside it, Escape closing one level at a time, Right along the bar keeping the focus out of the menu, and the outside press.
+
+**Left.** The plain menu button is still one level: `createMenu` has no submenus and `menu-button.qnt` does not model them. `createMenubar` stores a per-item `disabled` but announces no `aria-disabled` and does not skip it, so the kit paints nothing for it and the declared flag is inert — the checkable menu's `aria-disabled` paint has no menubar counterpart to read. `wrap` is accepted but never read, so the bar always wraps as the spec does. The spec's controlled `openTop` (its value / request pair) is not exposed, so a host cannot own the open menu. `orientation: "vertical"` only changes `aria-orientation`; vertical navigation is not modelled.
+
+**A driver belongs to its item.** Every tested item ships a scenario driver under `src/components/ui/`, and the copy flattens
+them into one directory: the seven identical generic drivers overwrote each other harmlessly (same file, same export), and
+the menubar's — which maps the spec's nested labels (`menuitem:0/1/0`) onto the kit's parts — was a different file with a
+different export, so whichever item was added last won and the other's conformance test failed to import
+(`does not provide an export named 'menubarDriver'`). The driver's target is now `<item>-driver.ts`, so no item can claim
+another's, and `scripts/starter-smoke.mjs` fails before installing when two items ship one target with different content —
+the silent version of the same bug.

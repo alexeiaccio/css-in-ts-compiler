@@ -1,7 +1,7 @@
 import { type Disclosure } from "@cssints/headless";
 import { type DisclosureConfig } from "@cssints/apg-specs/apg/disclosure.bridge";
 import { type Json } from "@cssints/apg-specs/scenario";
-import { type Mounted } from "./dom-driver";
+import { type Mounted } from "./disclosure-driver.ts";
 import { Disclosure as StyledDisclosure } from "./disclosure.tsx";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";

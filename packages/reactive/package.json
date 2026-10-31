@@ -1,0 +1,71 @@
+{
+  "name": "@cssints/reactive",
+  "version": "0.24.0",
+  "description": "CSS-first interactions for cssints: state as custom properties, writes only in events, conditions and DOM output in plain CSS, wired by a ~1 kB runtime",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/reactive"
+  },
+  "homepage": "https://cssints.dev",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./src/runtime.ts",
+    "./dist/runtime.mjs"
+  ],
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./runtime": {
+      "development": {
+        "types": "./src/runtime.ts",
+        "default": "./src/runtime.ts"
+      },
+      "types": "./dist/runtime.d.mts",
+      "default": "./dist/runtime.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "./runtime": {
+        "types": "./dist/runtime.d.mts",
+        "default": "./dist/runtime.mjs"
+      }
+    },
+    "access": "public",
+    "directory": ".publish"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/reactive.mjs",
+    "test:browsers": "node test/browsers.mjs",
+    "typecheck": "node ../../scripts/typecheck.mjs",
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
+  },
+  "devDependencies": {
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.24.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

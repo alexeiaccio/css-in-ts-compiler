@@ -212,8 +212,16 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Menu",
     description:
-      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close",
+      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
     also: ["@cssints/button"],
+  },
+  {
+    name: "menubar",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Menubar",
+    description:
+      "APG menu and menubar: a roving bar whose menus float under their items, rows with one tab stop, and nested submenus that open beside the parent row",
   },
   {
     name: "tooltip",
@@ -250,6 +258,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
   },
   {
+    name: "slider-multithumb",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Range slider",
+    description:
+      "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
+  },
+  {
     name: "spinbutton",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
@@ -282,7 +298,13 @@ const kitFiles = (item: Starter) => [
           "registry:file",
           `src/registry/${item.name}/${item.name}.fixture.tsx`,
         ),
-        file(target("dom-driver.ts"), "registry:file", `src/registry/${item.name}/dom-driver.ts`),
+        // the driver is the item's own: the generic one is byte-identical across patterns, but a nested one (the
+        // menubar's labels a submenu's rows) is not, and a copy that two items write into one file keeps only the last
+        file(
+          target(`${item.name}-driver.ts`),
+          "registry:file",
+          `src/registry/${item.name}/${item.name}-driver.ts`,
+        ),
         file(
           target(`${item.name}.browser.test.tsx`),
           "registry:file",

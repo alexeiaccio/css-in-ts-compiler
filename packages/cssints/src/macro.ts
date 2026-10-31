@@ -24,6 +24,7 @@ import {
 import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effect";
 import { createHash } from "node:crypto";
 
+import type { Ship } from "./author-types.ts";
 import { MacroError, MemberError } from "./errors.ts";
 import {
   camel,
@@ -291,12 +292,12 @@ const wrapper = (cond: Cond): Wrapper =>
       return node(
         merged(
           styles.flatMap((n) =>
-            n.__cssints.map(([p, v, inner = [], fallbacks]): Decl => {
+            n.__cssints.map(([p, v, inner = [], fallbacks, join]): Decl => {
               if (inner.length >= MAX_CONDS)
                 throw fail(
                   `cssints: a style takes at most ${MAX_CONDS} conditions (layers ${LAYER[0]} to ${LAYER[MAX_CONDS]}); this one has ${inner.length + 1}: ${[cond, ...inner].map((c) => c.text).join(" > ")}`,
                 );
-              return [p, v, [cond, ...inner], fallbacks];
+              return [p, v, [cond, ...inner], fallbacks, join];
             }),
           ),
         ),
@@ -1059,6 +1060,28 @@ const inlineOf = Effect.fnUntraced(function* ({
 // module that calls it (`mdi("home")`) has a site of its own.
 const isPluginValue = Predicate.isObjectKeyword;
 
+// A plugin value that ships as a JavaScript object (`ship()`: a site that returns more than a class string, with a style
+// inside it): each style becomes its class string, an array or an object keeps its shape, anything else its JSON.
+const isShip = (v: unknown): v is Ship => Predicate.hasProperty(v, "~ship");
+const shippedOf = Effect.fnUntraced(function* (
+  value: unknown,
+  at: At,
+): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
+  if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
+  if (Array.isArray(value)) {
+    const parts: string[] = [];
+    for (const v of value) parts.push(yield* shippedOf(v, at));
+    return `[${parts.join(",")}]`;
+  }
+  if (Predicate.isObject(value) && !(value instanceof CSSStyleValue)) {
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(value))
+      parts.push(`${Formatter.formatJson(k)}:${yield* shippedOf(v, at)}`);
+    return `{${parts.join(",")}}`;
+  }
+  return Formatter.formatJson(value);
+});
+
 // The replacement expression of a site, undefined for a definition site: class strings, the cv() config, an inline style, or a Typed OM value's CSS text.
 const replacementOf = Effect.fnUntraced(function* (
   at: At,
@@ -1068,6 +1091,7 @@ const replacementOf = Effect.fnUntraced(function* (
   if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
   if (isScv(value)) return `${SCV_CALL}${yield* scvOf(value.__scv, at)})`;
   if (isGroup(value)) return yield* headOf(value, at);
+  if (isShip(value)) return yield* shippedOf(value["~ship"], at);
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
   if (tokens !== undefined) return tokens;

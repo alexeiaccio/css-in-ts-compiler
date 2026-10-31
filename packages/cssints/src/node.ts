@@ -28,9 +28,11 @@ export interface Cond {
 }
 /**
  * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other
- * values of a `firstThatWorks(...)`, best first: the rule prints them before `value`, which is the one wanted.
+ * values of a `firstThatWorks(...)`, best first: the rule prints them before `value`, which is the one wanted. `join`
+ * makes it a list: when two declarations of this property meet in one `cn()` under the same conditions, their values
+ * join with this separator instead of the later one replacing the earlier.
  */
-export type Decl = [prop: string, value: string, conds?: Cond[], fallbacks?: string[]];
+export type Decl = [prop: string, value: string, conds?: Cond[], fallbacks?: string[], join?: ","];
 /**
  * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
  * the key of the kernel it belongs to), the kernels it needs, and the plugin members whose runtime and conflicts apply

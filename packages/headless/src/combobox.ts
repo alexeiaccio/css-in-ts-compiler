@@ -11,6 +11,13 @@ import { createControllable } from "./controllable";
  * blur / Alt+ArrowUp / an option click / `setValue` do. `filter: true` switches
  * typing from typeahead to a prefix filter (the autocomplete variant).
  *
+ * `disabled` is a widget-level extension of the pattern (the spec lists it
+ * under its deliberate omissions): the combobox keeps its tab stop and
+ * announces `aria-disabled`, the trigger announces it too, a key, a click, a
+ * typeahead character, a filter input and an option click are dropped before
+ * they become a request, and no popup opens. `setOpen` / `setValue` are host
+ * requests, so they still apply.
+ *
  * Request/commit (map ticket `rt1p`): both the selected value and the popup are
  * controllable. Uncontrolled by default (`defaultSelectedValue` / `defaultOpen`);
  * pass `value` / `open` (+ `onValueChange` / `onOpenChange`) to own them. Every
@@ -51,6 +58,7 @@ export interface ComboboxInputProps {
   readonly "aria-expanded": "true" | "false";
   readonly "aria-controls": string | undefined;
   readonly "aria-activedescendant": string | undefined;
+  readonly "aria-disabled": "true" | undefined;
   readonly onInput: (event: InputEvent) => void;
   readonly onKeyDown: (event: KeyboardEvent) => void;
   readonly onFocus: () => void;
@@ -65,6 +73,7 @@ export interface ComboboxTriggerProps {
   readonly "aria-haspopup": "listbox";
   readonly "aria-expanded": "true" | "false";
   readonly "aria-controls": string | undefined;
+  readonly "aria-disabled": "true" | undefined;
   readonly onClick: () => void;
   /** Keep a pointer click from stealing focus, so DOM focus stays on the combobox. */
   readonly onMouseDown: (event: MouseEvent) => void;
@@ -108,6 +117,13 @@ export interface ComboboxOptions {
   /** `true` = prefix filtering while typing; `false` = single-letter typeahead. */
   readonly filter?: boolean;
   readonly placeholder?: string;
+  /**
+   * aria-disabled on the combobox (it keeps its tab stop: the APG pattern's
+   * focus contract) and on the trigger. A key, a click, a typeahead character,
+   * a filter input and an option click change nothing and no popup opens;
+   * `setOpen` / `setValue` stay host requests.
+   */
+  readonly disabled?: boolean;
   readonly id?: string;
   /**
    * A request to change the popup, called when the intent differs from the
@@ -141,6 +157,7 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
   const base = options.id ?? createUniqueId();
   const listboxId = `${base}-listbox`;
   const optionId = (index: number): string => `${base}-option-${index}`;
+  const disabled = (): boolean => options.disabled === true;
 
   const indexOfValue = (value: string | null): number =>
     value === null ? -1 : corpus.findIndex((option) => option.value === value);
@@ -221,6 +238,9 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
   };
 
   const commit = (index: number): void => {
+    if (disabled()) {
+      return;
+    }
     const option = options_()[index];
     if (option === undefined) {
       return;
@@ -248,7 +268,7 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
       return;
     }
     // an open popup commits its active option when focus leaves
-    if (open() && active() >= 0) {
+    if (!disabled() && open() && active() >= 0) {
       const option = options_()[active()];
       if (option !== undefined) {
         requestValue(option.value);
@@ -261,6 +281,9 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
   };
 
   const onClick = (): void => {
+    if (disabled()) {
+      return;
+    }
     setFocused(true);
     if (open()) {
       requestOpen(false);
@@ -271,6 +294,9 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
   };
 
   const type = (char: string): void => {
+    if (disabled()) {
+      return;
+    }
     if (readonlyFilter) {
       setQuery((text) => text + char);
       requestOpen(true);
@@ -288,6 +314,9 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
+    if (disabled()) {
+      return;
+    }
     const key = event.key;
     const alt = event.altKey;
     const isOpen = open();
@@ -424,7 +453,7 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
   };
 
   const onInput = (event: InputEvent): void => {
-    if (!readonlyFilter) {
+    if (!readonlyFilter || disabled()) {
       return;
     }
     const target = event.currentTarget;
@@ -471,6 +500,9 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
       get "aria-activedescendant"() {
         return open() && active() >= 0 ? optionId(active()) : undefined;
       },
+      get "aria-disabled"() {
+        return disabled() ? "true" : undefined;
+      },
       onInput,
       onKeyDown,
       onFocus,
@@ -487,6 +519,9 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
       },
       get "aria-controls"() {
         return open() ? listboxId : undefined;
+      },
+      get "aria-disabled"() {
+        return disabled() ? "true" : undefined;
       },
       onClick,
       onMouseDown: (event) => event.preventDefault(),

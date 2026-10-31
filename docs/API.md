@@ -85,7 +85,7 @@ The static arguments of `cn` are one class string; `prop && p(4)` depends on a r
 
 - **The class names** are a hash of the declaration (and its conditions), so the same declaration gives the same class in every file.
 - **One sheet.** All rules are in `virtual:cssints.css`, each once, sorted by layer, then condition, then shorthand before longhand (`border` before `border-top`, counted from Chrome's own expansion of each shorthand), then class name. So a longhand wins over a shorthand that contains it, whatever the order of the arguments: `cn(pl(2), p(4))` keeps `padding-left: 0.5rem`.
-- **`cn()` keeps the later of the same property.** `cn(p(4), p(2))` is `p(2)`: the earlier declaration is dropped at build time (also for an alias: `wordWrap` is `overflowWrap`). Under different conditions both stay, because they are in different layers: `cn(md(p(6)), p(2))`. Two properties that overlap without one containing the other are a build error, because the sheet cannot order them by the arguments: `cn(borderTop("1px solid red"), borderColor("blue"))` both set `border-top-color`; so do a physical and a logical side (`marginLeft` and `marginInline`, `width` and `inlineSize`), since which physical side a logical one is depends on the writing mode. A logical property inside a physical shorthand that sets every side is contained, not overlapping: `cn(border(...), borderInline(...))` is fine, and `borderInline` wins. A style in a runtime argument is compared with the static arguments at build time, and replaces the classes it overrides while it is active (see "Runtime: `cn`, `cv`").
+- **`cn()` keeps the later of the same property.** `cn(p(4), p(2))` is `p(2)`: the earlier declaration is dropped at build time (also for an alias: `wordWrap` is `overflowWrap`). Under different conditions both stay, because they are in different layers: `cn(md(p(6)), p(2))`. Two properties that overlap without one containing the other are a build error, because the sheet cannot order them by the arguments: `cn(borderTop("1px solid red"), borderColor("blue"))` both set `border-top-color`; so do a physical and a logical side (`marginLeft` and `marginInline`, `width` and `inlineSize`), since which physical side a logical one is depends on the writing mode. A logical property inside a physical shorthand that sets every side is contained, not overlapping: `cn(border(...), borderInline(...))` is fine, and `borderInline` wins. A style in a runtime argument is compared with the static arguments at build time, and replaces the classes it overrides while it is active (see "Runtime: `cn`, `cv`"). A declaration can be a list (`append()` in `cssints/plugin`): two of them of one property under the same conditions join their values instead of the later replacing the earlier, one beside a plain value of the property is a build error, and a list has no `firstThatWorks()` fallbacks (2026-10-31, cssints-674d).
 - **A layout context** gives one string: `flex().alignItems("center")` is `"_1s47490 _1ob5z5m"`.
 - **Also exported:** `css` (the namespace as a value) and `chain`, `cn`, `cv`, `firstThatWorks`, `media`, `container`, `supports`, `attr`, `within`, `group`, `global`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. Nothing is exported for the browser: the runtime is the plugin's.
 
@@ -886,6 +886,7 @@ export const hidden = ring().core; // error: no such method
 - **Call members** (`{ args, uses? }` and a function in `build()`) take their arguments by `args`: a grammar (the parts, joined by a space, as a property takes them: `args: "small | large"`), `arg<T>()` (one value of a TypeScript type, which TypeScript checks and `build` gets as it is: `arg<"home" | "star">()`), or a **tuple of positional arguments**, each a grammar (one part), `"$tokens"` (a token set from `createTokens`), `"$overrides"` (values by path for the tokens of the `$tokens` before it, checked in the types against that token set), `"$selector"` (a CSS selector list, checked in the types for brackets and quotes and at build time as a whole), `arg<T>()`, or at the end one object of named leaves (`{ "size?": "<width>", on: "<color>" }`, a key ending in `?` is optional). `build` gets them as written, grammar parts as checked text. The positional form type-checks within the per-call budget; its cost is that an error lands on the call, with the position and the reason in the message, not on the argument. `build` returns `{ decls?, uses?, globals?, themes?, layers? }`.
 - **`globals`** are global rules that are not classes (`{ rule, layer? }` in the table, or `{ css, layer? }[]` from `build`). A global is identified by its content, not by a name: the same rule from two styles is one, and editing a value replaces it. It is in the sheet of the modules whose styles carry it (as kernels are), and leaves it with them. `layer` sends a rule to a top-level layer of that name (`@layer app`); it must be declared by a `layers` entry (or `layers` from `build`: a list, or `{ layers: [...], before: true }` for layers below the engine's), or by `layers()` in a module imported before. No layer puts it in `_.k`. Unlike a kernel, two globals **may** declare the same custom property; that is what lets a look set the same `--color-*` in several source layers.
 - **`themes`** — `themes: { tokens, overrides, selector, layer?, scope? }[]` from `build` is `createGlobalTheme(tokens, selector, overrides, { layer, scope })` made by a member, through the same path: the paths and values of `overrides` are checked against the types of `tokens` at build time, the aliases that depend on an override are declared again, and `check.contrast` reads the theme with the others. With `args: ["$tokens", "$overrides", ...]` the member takes the token set from its caller and the overrides are checked in the types as well.
+- **`append(prop, value)`** (decided 2026-10-31, cssints-674d) makes a declaration a list: two declarations of that property in one `cn()` under the same conditions join their values with `,` instead of the later replacing the earlier, and a third still appends. It is how a plugin puts several programs on one element: `@cssints/reactive`'s two `on()` calls are `--reactive-on: click toggle open,keydown set tab two`. A list beside a plain value of the property is a build error (appending would be wrong, replacing would drop a program: `cssints: --x is a list "a" and a value "b": they cannot be merged`), and a list has no `firstThatWorks()` alternatives. The separator belongs to the declaration and nothing else reads it: the sheet prints the joined value, the class hash, clay, tui and the devtools see it as one declaration. A `cv()` variant is an alternative, not a list: a list declared in a variant replaces the base's as any declaration does.
 
 ```ts
 import { scope } from "cssints/plugin";
@@ -954,8 +955,9 @@ export const a = cn(row().gap("2rem"), margin(0), flexGrow(1)); // fine: the mar
 - **`conflicts: { props, message }`**: one `cn()` that holds the marker and one of the listed properties (a name, or a RegExp) is a build error with the plugin's message and the call site: `cssints: ring: ring() sets the outline: use its methods (this style also sets outline)`. Conditions count. The message is prefixed with the scope's name.
 - **Derived conflicts.** A kernel written as styles needs no `conflicts` entry: a member that uses it conflicts with every property that meets one the kernel sets, as `cn()` decides overlap: the property itself, its longhands, a shorthand over it, and a logical or physical sibling of the same side. `core: { css: (css) => [css.outline(...), css.outlineOffset("2px")] }` stops `outline`, `outlineColor`, `outlineWidth` and `outlineOffset` in the same `cn()`, under any condition, and lets `color` through: `cssints: ring: kernel core sets outline, outline-offset (this style also sets outline-color)`. The message names the scope, the kernel and the property that was set. A `conflicts` entry among the member's `uses` **replaces** what its kernels derive (a list that allows `outline-color` while the kernel sets `outline`: `{ props: ["outline"], message }`; `props: []` allows everything), and so does a raw kernel, which has nothing to derive from (`frame()` and `surface()` are raw CSS with custom properties and `@container` rules, and `frame()` lets `border-color` through). The check reads every declaration of the style, those a member emits itself included: a member that emits a property its kernel sets lists its own `conflicts`.
 
-- **`runtime: { polyfills, parentVars?, css?, script? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<scope>.<entry>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and the runtime reaches it. A runtime with `parentVars` is a script that stands on `@property`, so it reaches only the targets that have it; `css` and `script` stand on nothing and reach every target (`@cssints/fonts`' capsize trim in Firefox 120). When it is needed, `parentVars` (`{ marker: "&", read, write, watch? }`, custom properties written `--_x`) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, `css` (the fallback rules) is added to the sheet in layer `_.k`, only then, and the module imports `script`.
-- **`script`** (decided 2026-10-08, cssints-kuki) is the plugin's own browser code, a module specifier: `"#io": { polyfills: ["css.properties.animation-timeline"], script: "@cssints/reveal/runtime", css: "..." }`. It is a string the engine never evaluates (the script stays out of the build-time graph) and writes into the runtime module as `import "@cssints/reveal/runtime";`, which Vite resolves as the app's own imports are, in dev and in `vite build`. Write a subpath of the plugin's package, with a `development` condition for the source and a default for `dist/` (`exports: { "./runtime": { development: "./src/runtime.ts", default: "./dist/runtime.mjs" } }`): the package's own tests resolve it by its name too. A script reaches every target, so it is not gated: it ships to every browser of a build whose targets lack a key, and probes the feature itself (`CSS.supports`) to stay off where it is native; with `parentVars` beside it the two are decided apart. A script is a module, so the browser runs it once, however many sites, files or runtime entries import it. The plugin's subpath stays public: an app can still import it by hand, which is harmless. Derived tokens are not members; the engine registers their runtime (`cssints/derived`) on this same delivery (see "Themes").
+- **`runtime: { polyfills, parentVars?, css?, script? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<scope>.<entry>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and the runtime reaches it. A runtime with `parentVars` is a script that stands on `@property`, so it reaches only the targets that have it; `css` and `script` stand on nothing and reach every target (`@cssints/fonts`' capsize trim in Firefox 120). A runtime with `css` or `script` and **no** `polyfills` is not a fallback at all: it is the plugin's own face, so every target gets it (`@cssints/reactive`'s DOM runtime, 2026-10-31, cssints-zrt2). When it is needed, `parentVars` (`{ marker: "&", read, write, watch? }`, custom properties written `--_x`) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, `css` (the fallback rules) is added to the sheet in layer `_.k`, only then, and the module imports `script`.
+- **`ship({ owner, open })`** (decided 2026-10-31, cssints-zrt2) is what a member returns when a site has more to give than a class string: `@cssints/reactive`'s `state()` returns its owner style and the sources beside it. The client module gets an object literal — each style is its class string, an array or an object keeps its shape, anything else its JSON — so the owner is a string in the browser and the data is there (`const ui = state({ open: false }); cn(ui.owner, p(4))`). At build time the object is the entries themselves, so `ui.owner` is the style and `ui.open` the source. A value a member returns at a site that is neither a style, a condition, a Typed OM value nor a `ship()` is a build error, unless the member is only ever called from a build-time module (nothing of an `icons()` definition module is in the client graph).
+- **`script`** (decided 2026-10-08, cssints-kuki) is the plugin's own browser code, a module specifier: `"#io": { polyfills: ["css.properties.animation-timeline"], script: "@cssints/reveal/runtime", css: "..." }`. It is a string the engine never evaluates (the script stays out of the build-time graph) and writes into the runtime module as `import "@cssints/reveal/runtime";`, which Vite resolves as the app's own imports are, in dev and in `vite build`. Write a subpath of the plugin's package, with a `development` condition for the source and a default for `dist/` (`exports: { "./runtime": { development: "./src/runtime.ts", default: "./dist/runtime.mjs" } }`): the package's own tests resolve it by its name too. A script reaches every target, so it is not gated: it ships to every browser of a build whose targets lack a key — with no `polyfills` at all it ships to every build — and probes the feature itself (`CSS.supports`) to stay off where it is native; with `parentVars` beside it the two are decided apart. A script is a module, so the browser runs it once, however many sites, files or runtime entries import it. The plugin's subpath stays public: an app can still import it by hand, which is harmless. Derived tokens are not members; the engine registers their runtime (`cssints/derived`) on this same delivery (see "Themes").
 - **Identity.** A scope name is unique in the process, and a scope is its content (the table, the source of its functions, the scopes it embeds), hashed. A module that runs again with the same content is nothing (every client module that uses a plugin runs it again). Another content under the same name replaces the old one, as an edit does in dev: the files that imported the edited module are forgotten when Vite reports it and run again. It is a build error, `scope "x" is defined twice with different content`, while a file that was not affected still uses the old one: two modules that define one name. `icons()` runs its scope once per collection, with the same table and the same code: one scope, and the collection is the closure of `build`, which the hash does not see.
 - **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` (the scope) and the file, site and offset of the call, so the Vite overlay points at it. What `build`, `value`, a chain's `emit` or a kernel's styles throw is a `MemberError` at the call. A plain function the plugin exports (one that wraps styles, say) may throw an `Error`: while a site runs, anything thrown is located at that site, with its message (2026-10-08, cssints-rf3k).
 - **`lacking(...keys)`** gives the build's targets that lack one of the BCD keys, as browserslist names them, by the rules of the support warnings (`partial_implementation` lacks), and `[]` when every target has them all: a plugin emits fallback rules only when some target needs them (2026-10-08, cssints-rf3k). It runs at build time, in a member's functions or in the plugin's own:
@@ -1221,26 +1223,27 @@ export const typo = mdi("clos"); // error: not an icon of mdi
 
 More plugins on `scope()`, each a package of its own with its rules and limits in its README. Import them with the attribute, like `cssints`.
 
-| Package                                                     | Members                                                                                                  | What it does                                                                                                                                                                                             |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@cssints/fluid`](../packages/fluid/README.md)             | `fluid(min, max, { from?, to?, zoom? })`, `fluid.container(...)`                                         | A `clamp()` that grows between two widths, computed at build time; a range that fails WCAG 1.4.4 is a build error                                                                                        |
-| [`@cssints/layout`](../packages/layout/README.md)           | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()`                               | Every Layout primitives as chain members                                                                                                                                                                 |
-| [`@cssints/fonts`](../packages/fonts/README.md)             | `font(family, { provider, ... })` → `.family()`, `.trim()`                                               | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins                                                                                               |
-| [`@cssints/reset`](../packages/reset/README.md)             | `reset({ media?, prose? })`                                                                              | A modern reset in a top-level `@layer reset` declared before the engine's, below every style; `@cssints/reset/<baseline group>` keeps only the declarations of that group                                |
-| [`@cssints/tokens`](../packages/tokens/README.md)           | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors`, `/madoromi`                                   | DTCG data for `createTokens`                                                                                                                                                                             |
-| [`@cssints/gradient`](../packages/gradient/README.md)       | `gradient(kind, direction, from, to, easing?, stops?)`                                                   | Eased colour stops mixed in oklab at build time                                                                                                                                                          |
-| [`@cssints/gradient-2d`](../packages/gradient-2d/README.md) | `meshGradient(mesh)`, `freeformGradient(points)`                                                         | `mesh-gradient()` / `freeform-gradient()` where the browser has them, else a runtime's canvas (this package's algorithms; lines and shapes not yet)                                                      |
-| [`@cssints/color-names`](../packages/color-names/README.md) | `named(name)`, `colorNames.<sector>(name)`, `/nearest`                                                   | The Color Name List (31,939 names) as hex colours; the ten sector members keep an editor's completion short, `nearest()` is the build-time reverse lookup                                                |
-| [`@cssints/motion`](../packages/motion/README.md)           | `motion().preset().duration().delay().easing()`                                                          | Animation presets over `keyframes()`, with reduced motion                                                                                                                                                |
-| [`@cssints/squircle`](../packages/squircle/README.md)       | `squircle().radius()`                                                                                    | `corner-shape: squircle`, else a CSS `mask` of the same shape                                                                                                                                            |
-| [`@cssints/reveal`](../packages/reveal/README.md)           | `reveal().preset().range().duration().easing()`, `appear().preset().range().duration().easing().inOut()` | motion's entrance presets on `animation-timeline: view()` (reveal) or on `timeline-trigger` + `animation-trigger` (appear); for other targets a script plays it once on entry (delivered by the runtime) |
-| [`@cssints/stuck`](../packages/stuck/README.md)             | `sticky().top()`, `stuck(styles)`, `stuck("bottom")(styles)`                                             | Styles inside a sticky element while it is stuck, by `@container scroll-state()`; for other targets an `IntersectionObserver` (delivered by the runtime)                                                 |
-| [`@cssints/balance`](../packages/balance/README.md)         | `balance()`, `pretty()`                                                                                  | `text-wrap: balance` / `pretty`; for targets without balance a script balances the lines (delivered by the runtime)                                                                                      |
-| [`@cssints/masonry`](../packages/masonry/README.md)         | `masonry().columns().gap()`                                                                              | `display: grid-lanes`, else CSS `columns` (top to bottom per column)                                                                                                                                     |
-| [`@cssints/placeholder`](../packages/placeholder/README.md) | `placeholder(path, { mode? })`                                                                           | An `<image>` from a JPEG or PNG read at build time: a gradient of its colours laid out as the image, or a tiny thumbhash PNG                                                                             |
-| [`@cssints/ramp`](../packages/ramp/README.md)               | `ramp(base, { mode, steps \| ratios, background })`, `overrides(ramp)`                                   | An OKLCH palette as DTCG data for `createTokens`; the contrast mode meets each ratio against its background                                                                                              |
-| [`@cssints/rybitten`](../packages/rybitten/README.md)       | `color(hue, { cube })`, `wheel(steps, { cube })`, `shades(hue, lightness)`, `overrides(group)`           | RYBitten's red-yellow-blue colours (36 historical cubes) as DTCG data for `createTokens`: a hue, a wheel of hues, a hue at several lightnesses                                                           |
-| [`@cssints/skeleton`](../packages/skeleton/README.md)       | `skeleton().radius().color().highlight()`                                                                | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion                                                                                       |
+| Package                                                     | Members                                                                                                                             | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@cssints/fluid`](../packages/fluid/README.md)             | `fluid(min, max, { from?, to?, zoom? })`, `fluid.container(...)`                                                                    | A `clamp()` that grows between two widths, computed at build time; a range that fails WCAG 1.4.4 is a build error                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| [`@cssints/layout`](../packages/layout/README.md)           | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()`                                                          | Every Layout primitives as chain members                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| [`@cssints/fonts`](../packages/fonts/README.md)             | `font(family, { provider, ... })` → `.family()`, `.trim()`                                                                          | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| [`@cssints/reset`](../packages/reset/README.md)             | `reset({ media?, prose? })`                                                                                                         | A modern reset in a top-level `@layer reset` declared before the engine's, below every style; `@cssints/reset/<baseline group>` keeps only the declarations of that group                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| [`@cssints/tokens`](../packages/tokens/README.md)           | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors`, `/madoromi`                                                              | DTCG data for `createTokens`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| [`@cssints/gradient`](../packages/gradient/README.md)       | `gradient(kind, direction, from, to, easing?, stops?)`                                                                              | Eased colour stops mixed in oklab at build time                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| [`@cssints/gradient-2d`](../packages/gradient-2d/README.md) | `meshGradient(mesh)`, `freeformGradient(points)`                                                                                    | `mesh-gradient()` / `freeform-gradient()` where the browser has them, else a runtime's canvas (this package's algorithms; lines and shapes not yet)                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| [`@cssints/color-names`](../packages/color-names/README.md) | `named(name)`, `colorNames.<sector>(name)`, `/nearest`                                                                              | The Color Name List (31,939 names) as hex colours; the ten sector members keep an editor's completion short, `nearest()` is the build-time reverse lookup                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| [`@cssints/motion`](../packages/motion/README.md)           | `motion().preset().duration().delay().easing()`                                                                                     | Animation presets over `keyframes()`, with reduced motion                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| [`@cssints/squircle`](../packages/squircle/README.md)       | `squircle().radius()`                                                                                                               | `corner-shape: squircle`, else a CSS `mask` of the same shape                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| [`@cssints/reveal`](../packages/reveal/README.md)           | `reveal().preset().range().duration().easing()`, `appear().preset().range().duration().easing().inOut()`                            | motion's entrance presets on `animation-timeline: view()` (reveal) or on `timeline-trigger` + `animation-trigger` (appear); for other targets a script plays it once on entry (delivered by the runtime)                                                                                                                                                                                                                                                                                                                                                                                     |
+| [`@cssints/stuck`](../packages/stuck/README.md)             | `sticky().top()`, `stuck(styles)`, `stuck("bottom")(styles)`                                                                        | Styles inside a sticky element while it is stuck, by `@container scroll-state()`; for other targets an `IntersectionObserver` (delivered by the runtime)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| [`@cssints/balance`](../packages/balance/README.md)         | `balance()`, `pretty()`                                                                                                             | `text-wrap: balance` / `pretty`; for targets without balance a script balances the lines (delivered by the runtime)                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| [`@cssints/masonry`](../packages/masonry/README.md)         | `masonry().columns().gap()`                                                                                                         | `display: grid-lanes`, else CSS `columns` (top to bottom per column)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| [`@cssints/placeholder`](../packages/placeholder/README.md) | `placeholder(path, { mode? })`                                                                                                      | An `<image>` from a JPEG or PNG read at build time: a gradient of its colours laid out as the image, or a tiny thumbhash PNG                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| [`@cssints/ramp`](../packages/ramp/README.md)               | `ramp(base, { mode, steps \| ratios, background })`, `overrides(ramp)`                                                              | An OKLCH palette as DTCG data for `createTokens`; the contrast mode meets each ratio against its background                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| [`@cssints/rybitten`](../packages/rybitten/README.md)       | `color(hue, { cube })`, `wheel(steps, { cube })`, `shades(hue, lightness)`, `overrides(group)`                                      | RYBitten's red-yellow-blue colours (36 historical cubes) as DTCG data for `createTokens`: a hue, a wheel of hues, a hue at several lightnesses                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| [`@cssints/skeleton`](../packages/skeleton/README.md)       | `skeleton().radius().color().highlight()`                                                                                           | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| [`@cssints/reactive`](../packages/reactive/README.md)       | `state()`, `toggle()`, `set()`, `value()`, `checked()`, `persist()`, `equals()`, `either()`, `on()`, `bind()`, `when()`, `inside()` | State as custom properties, events as data on the element: writes only in events, conditions and DOM output in plain CSS, wired by a 1.3 kB runtime shipped to every target; `value()`/`checked()` take the field's value, calls of `on()`, `bind()` or `state()` in one `cn()` append, `persist(value, key)` keeps a state across a reload, and `bind()` takes a source, a comparison (`equals()`), a choice of two literals (`either()`) or a literal — the one expression the runtime evaluates, because an attribute on the element cannot be computed in CSS (2026-10-31, cssints-ac3o) |
 
 ### Headless: `createField` and `createConfirm` (`@cssints/headless`)
 
@@ -1296,8 +1299,8 @@ createConfirm(options?: { id?: string | undefined; onOpenChange?(open: boolean):
 Two live regions with no APG pattern and no Quint spec: `createStatus` is one polite message whose text is replaced, `createToast` queues toasts whose countdown pauses. Their oracle is `packages/headless/test/toast.browser.test.tsx`.
 
 ```ts skip
-createStatus(options?: { id?: string | undefined }): {
-  message(): string | undefined;
+createStatus(options?: { id?: string | undefined; from?: (() => string | undefined) | undefined }): {
+  message(): string | undefined; // from() when the host controls the text, else the last show
   show(text: string): void; // replaces the text; nothing is queued
   clear(): void;
   statusProps: { id; role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
@@ -1330,7 +1333,7 @@ createToast(options?: {
 };
 ```
 
-`createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast.
+`createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast. Both take `from: () => text`, which makes the text the host's own signal (`createAlert({ from: () => error() })`): no effect mirrors it into `show()`, and clearing the signal unmounts the alert.
 
 A toast is its own live region inside the `role=region` landmark: `role=alert` for `tone: "error"` (assertive) and `role=status` otherwise (polite). The host renders the `title` and `description` handed to `show` inside that element, so the toast's own text is the announcement — `aria-atomic` reads all of it, a close button's label included, so keep a toast to its title and description and give a close button no more than an icon with a label. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host. One timer per toast honours `timeout`; hover pauses it when `pauseOnHover` is true and focus always pauses, and both resume with the time that was left rather than restarting the deadline. `max` drops the oldest toast past the ceiling, and `onDismiss` fires for every toast that leaves. F6 into the region is the host's handler (hotkeys are a separate bean, cssints-h0d5): give `regionProps` an element with `tabindex="-1"` and focus it, remembering where focus was.
 
@@ -1430,7 +1433,7 @@ A data table on a **native `<table>`**: sortable column headers and row selectio
 ```ts skip
 createTable(options: {
   columns: ReadonlyArray<{ key: string; sortable?: boolean; numeric?: boolean; abbr?: string | undefined }>; // sortable defaults true
-  rows: ReadonlyArray<string>; // row ids in render order; the host sorts its own data
+  rows: ReadonlyArray<string> | (() => ReadonlyArray<string>); // row ids in render order; a getter is read lazily
   selection?: "none" | "single" | "multiple" | undefined; // "none"
   sortCycle?: "tri-state" | "toggle" | undefined; // "tri-state": ascending -> descending -> unsorted
   sort?: TableSort | null | undefined; // controlled; null = unsorted, undefined = uncontrolled
@@ -1463,7 +1466,7 @@ createTable(options: {
 
 `aria-sort` is carried by the sorted column only; a sortable header that is not sorted has none (ARIA's "not sorted" default), and a `sortable: false` column gets no button from `headerButtonProps` at all, so it is not a tab stop. The header button cycles `ascending` -> `descending` -> unsorted by default (so the table can be put back in its own order) and `ascending` <-> `descending` with `sortCycle: "toggle"` (what the APG grid example does); a new column always starts `ascending`, and only one is sorted. Sorting is the host's data: the primitive carries the descriptor and announces it, it never reorders a row.
 
-Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
+`rows` may be a getter (`() => rows()`): it is read at attribute-read time, so a table whose rows arrive later keeps its sort and its selection instead of being rebuilt, and a selection made before the rows landed applies once they do. Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
 ### Headless: `createTabs` (`@cssints/headless`)
 
@@ -1475,7 +1478,7 @@ Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground'
 
 ```ts skip
 createTabs(options?: {
-  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, onValueChange
+  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
   closable?: boolean; // false: closeProps and the Delete key; the host removes from onClose
   renamable?: boolean; // false: a double click edits the label inline; the host renames from onRename
   label?(index: number): string | undefined; // the tab's name: the buttons' labels and the rename draft
@@ -1499,6 +1502,7 @@ createTabs(options?: {
 
 - **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
 - **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tablist's roving does not move. `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
+- **Ids.** `tabId(index)` and `panelId(index)` replace the generated `${id}-tab-<index>` / `${id}-tabpanel-<index>`, and `aria-controls` / `aria-labelledby` follow them. Use them when the host's markup or a deep link already names a panel (`#logs`): the alternative is a second id on the same element, which no attribute can carry.
 - **The host's list.** `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list. `label` is read lazily too, so a renamed tab renames its buttons with it.
 - The spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but neither a rename nor the callbacks, so the browser test, not the model, holds the extension.
 
@@ -1638,7 +1642,7 @@ The host owns the box and the look: the viewport's size and `overflow: hidden`, 
 
 ### Headless: `createMenu` (`@cssints/headless`)
 
-The APG menu family (`createMenu` for the menu button and the checkable menus, `createMenubar` for the roving bar) as state and attribute objects. Its behaviour is `specs/apg/menu-button.qnt` and `menu-checkable.qnt`, and `packages/headless/test/menu-button.browser.test.tsx` replays the generated models, ported scenarios and seeded differential walks against it.
+The APG menu family (`createMenu` for the menu button and the checkable menus, `createMenubar` for the roving bar) as state and attribute objects. Its behaviour is `specs/apg/menu-button.qnt`, `menu-checkable.qnt` and `menu-menubar.qnt`, and `packages/headless/test/menu-button.browser.test.tsx` and `packages/headless/test/menu.browser.test.tsx` replay the generated models, ported scenarios and seeded differential walks against it.
 
 ```ts skip
 createMenu(options: {
@@ -1647,9 +1651,12 @@ createMenu(options: {
   open?: boolean | undefined; // controlled: the host owns the open state
   defaultOpen?: boolean; // uncontrolled starting state
   onOpenChange?(open: boolean): void; // a request the host may ignore
-  value?: number | undefined; // controlled checked items, packed (checkboxItem0 * 5 + radioChoice, 1-based)
-  defaultValue?: number;
-  onCheckedValueChange?(value: number): void;
+  checked?: ReadonlyArray<number> | undefined; // controlled, readable: the checked checkbox item indices
+  choice?: number | undefined; // controlled, readable: the chosen radio item, -1 for none
+  value?: number | undefined; // controlled, packed view of the same state (checkboxItem0 * 5 + radioChoice, 1-based)
+  defaultValue?: number; // the uncontrolled packed state at mount
+  onCheckedValueChange?(value: number): void; // a packed request the host may ignore
+  onCheckedValuesChange?(checked: ReadonlyArray<number>, choice: number): void; // the readable request
   triggerMode?: "outside" | "held" | undefined; // where the focus sits while the menu is closed
   disabled?: ReadonlyArray<number>; // focusable, never activated
   id?: string | undefined;
@@ -1658,6 +1665,9 @@ createMenu(options: {
   open(): boolean;
   focusLevel(): 0 | 1 | 2; // 0 outside, 1 on the trigger, 2 on an item
   focusIndex(): number;
+  checked(): ReadonlyArray<number>; // the readable view of the checked state
+  choice(): number; // the readable view of the radio choice
+  value(): number; // the packed view of the same state
   openMenu(): void; // a request, like every intent
   closeMenu(): void;
   keyDown(key: string): void;
@@ -1665,7 +1675,45 @@ createMenu(options: {
 };
 ```
 
+**The checked state has one store and two views.** The readable pair (`checked` + `choice`) is the store; `value` is derived from it as `menu-checkable.qnt`'s `checked(wrap, choice)` (one checkbox bit * 5 + the radio). The pack has one checkbox bit, so only the readable pair can name a checkbox beyond item 0. A host may own either view; each has its request (`onCheckedValuesChange(checked, choice)` and `onCheckedValueChange(value)`), and where both views are given the readable pair wins. `defaultChecked` / `defaultChoice` start the pair and `defaultValue` the packed side.
+
 **The open state is a request/commit pair**, like every other controlled primitive: `open` (+ `onOpenChange`) makes the host own it, `defaultOpen` starts it. Every intent that opens or closes — the trigger's click and its keys, Escape, an item's activation, Tab, an outside click in a kit, the programmatic `openMenu` / `closeMenu` — is a request, so a host that holds `open` keeps the menu open and the focus where it was; `menu-button.qnt` reverts the whole transition of a rejected request, focus included. A write the host makes on its own is not a request: it takes the focus to the first item when it opens and to the trigger when it closes, and a write of the value it already has moves nothing (no widget can observe it).
+
+### Headless: `createCombobox` (`@cssints/headless`)
+
+The APG combobox as state and attribute objects: the select-only variant of `specs/apg/combobox-select-only.qnt`, with a listbox popup; `filter: true` turns typing into the autocomplete variant's prefix filter. The grid, tree and dialog popups the other combobox specs model are not this primitive (their models are walked against themselves). Its behaviour is `packages/headless/test/combobox.browser.test.tsx`: DOM focus never leaves the combobox, the popup's active option is announced through `aria-activedescendant`, and navigating never commits — Enter, Space, Tab, blur, Alt+ArrowUp, an option click or `setValue` do.
+
+```ts skip
+createCombobox(options: {
+  options: ReadonlyArray<ComboboxOption | string>; // `{ value, label }`, or a string that is both
+  value?: string | null | undefined; // controlled selection
+  defaultSelectedValue?: string | null; // uncontrolled start (`defaultValue` is its alias)
+  open?: boolean | undefined; // controlled popup
+  defaultOpen?: boolean;
+  autoComplete?: "none" | "list" | "both"; // "list"
+  filter?: boolean; // false: single-letter typeahead; true: a prefix filter
+  disabled?: boolean; // aria-disabled on the combobox and the trigger; a key, click, typed character, filter input and option click change nothing, no popup opens
+  placeholder?: string;
+  id?: string; // base of `<id>-input`, `-trigger`, `-listbox`, `-option-<i>`
+  onOpenChange?(open: boolean): void; // a request the host may ignore
+  onValueChange?(value: string | null): void; // a request the host may ignore
+  onFocusRelease?(): void; // Tab: the host may blur its own DOM
+}): {
+  open(): boolean;
+  activeIndex(): number; // index into `options()`; -1 = the visual focus on the combobox
+  value(): string | null;
+  focused(): boolean;
+  query(): string; // the typeahead / filter text
+  options(): ReadonlyArray<{ value; label; selected; id; props }>;
+  setOpen(open: boolean): void; // a request
+  setValue(value: string | null): void;
+  comboboxProps: { id; role: "combobox"; value; "aria-autocomplete"; "aria-haspopup"; "aria-expanded"; "aria-controls"; "aria-activedescendant"; "aria-disabled"; onInput; onKeyDown; onFocus; onBlur; onClick };
+  triggerProps: { id; type: "button"; tabindex: -1; "aria-haspopup"; "aria-expanded"; "aria-controls"; "aria-disabled"; onClick; onMouseDown };
+  listboxProps: { id; role: "listbox"; hidden };
+};
+```
+
+**`disabled` is a widget-level extension** (`combobox-select-only.qnt` lists it under its deliberate omissions and has no `disabled` var, so the DOM test is its oracle): a key, a click, a typeahead character, a filter input and an option click are dropped before they become a request, and no popup opens. It announces `aria-disabled` — not the native `disabled` — because the pattern puts the state on a `role="combobox"` element that is a button in the select-only example; the combobox keeps its tab stop (the pattern's focus contract), as `createButton` and `createSlider`'s thumb do. The trigger announces `aria-disabled` too. `setOpen` / `setValue` stay host requests, so a programmatic write still applies.
 
 ### Headless: `createCheckboxGroup` (`@cssints/headless`)
 
@@ -1678,7 +1726,7 @@ createCheckboxGroup(options: {
   defaultValue?: ReadonlyArray<T>;
   parent?: boolean; // the "all" controller is a focus stop
   remember?: boolean; // the third activation restores the last mixed combination
-  id?: string | undefined; // base of `<id>-control` (the group element) and `<id>-error`
+  id?: string | undefined; // base of `<id>-control` (the group element), `<id>-0`..`-2` (the children) and `<id>-error`
   label?: string | undefined; // the group's name, as aria-label
   labelledby?: string | undefined; // the id of the host's own label element; wins over `label`
   describedby?: string | undefined; // host-owned description ids, after the error
@@ -1695,7 +1743,7 @@ createCheckboxGroup(options: {
 };
 ```
 
-The group is not a `<label for>` target: pass `labelledby` naming the host's own label element, or `label` without one. The error id is in `aria-describedby` only while the error is shown, `aria-invalid` only while the group is invalid, and the group element's own id is there for a controller that names it with `aria-controls`. The checked set is unchanged by all of this: the request/commit split and the spec stay as they were.
+The group is not a `<label for>` target: pass `labelledby` naming the host's own label element, or `label` without one. The error id is in `aria-describedby` only while the error is shown, `aria-invalid` only while the group is invalid, and the group element's own id is there for a controller that names it with `aria-controls`. The children's ids follow the same base (`<base>-0`..`-2`), so two groups on one page do not collide (the model omits ids). The checked set is unchanged by all of this: the request/commit split and the spec stay as they were.
 
 ### Headless: `createSlider` and `createSpinbutton` (`@cssints/headless`)
 
@@ -1721,7 +1769,7 @@ createSlider(options?: {
   focus(): void;
   blur(): void;
   keyDown(key: string): boolean; // true when the key was consumed (preventDefault it)
-  pointerDown(position: number): void; // a rail press at a 0..1 fraction of the track
+  pointerDown(position: number): void; // a rail press or a drag move at a 0..1 fraction of the rail
   thumbProps: {
     id;
     role: "slider";
@@ -1735,8 +1783,9 @@ createSlider(options?: {
     onFocus;
     onBlur;
     onKeyDown;
+    onPointerDown;
   };
-  trackProps: { onPointerDown };
+  trackProps: { onPointerDown; onPointerMove; onPointerUp; onPointerCancel; onLostPointerCapture };
 };
 ```
 
@@ -1792,9 +1841,69 @@ createSpinbutton(options?: {
 
 `disabled` is **a widget-level extension of the APG patterns**, and the specs say so: `slider.qnt` lists it under its deliberate omissions, and `spinbutton.qnt` models the steppers' at-bound state only (`DisabledOnlyAtBound`). Neither machine has a `disabled` var, so the DOM tests, not the model, hold the primitive to these rules:
 
-- a disabled slider **keeps the thumb as its tab stop** (`tabindex="0"`, the same choice `createButton` makes with `aria-disabled`) and announces `aria-disabled="true"` on the thumb; every key and every rail press is dropped before it becomes a request, so `onValueChange` never fires and `keyDown` returns `false` (nothing to preventDefault);
+- a disabled slider **keeps the thumb as its tab stop** (`tabindex="0"`, the same choice `createButton` makes with `aria-disabled`) and announces `aria-disabled="true"` on the thumb; every key, rail press and drag is dropped before it becomes a request, so `onValueChange` never fires and `keyDown` returns `false` (nothing to preventDefault);
 - a disabled spinbutton's field announces `aria-disabled` **and carries the native `disabled`** (the field is an `<input>`, so the platform's own form-control rule applies); the spin keys, the typed draft (Enter and blur included) and both steppers change nothing, and **both** steppers announce `aria-disabled="true"` — the at-bound rule of the spec stays, and a disabled widget adds the other side;
 - both read the option on every attribute read, so a host may flip `disabled` on a mounted widget and the attributes and the guards follow in the same tick.
+
+**Dragging** is the rail press repeated: `pointerdown` on the rail jumps the value to where it landed and starts a drag, and a press on the thumb starts the drag where the value already is (no jump, the thumb is there). While the pointer is held, every `pointermove` asks for the value of the pointer's position on the rail, rounded to `step` and clamped to `min`/`max`, in all four combinations of `orientation` and `direction`: up is more on a vertical rail, and a horizontal rail under `rtl` counts from its right edge, the same reflection the arrow keys use. `pointerup`, `pointercancel` or a lost capture ends the drag. The rail owns the gesture whichever element took the press, so the moves sit on `trackProps` and pointer capture keeps the drag alive off the rail: no document listener, and nothing to clean up on disposal. The thumb must be rendered inside the rail, because that is how its press reaches it. A drag is still a request: it fires `onValueChange` once per distinct value, and a controlled host that ignores the request keeps its value. `trackProps` carries no CSS, so a host that wants a drag instead of a text selection or a page scroll sets `touch-action: none` and `user-select: none` on the rail.
+
+`specs/apg/slider.qnt` fixes a discrete rail press only, so the drag is a second deliberate extension and `slider.browser.test.tsx` is its oracle. The invariant the machine does not carry is **DragFollowsPointer**: while the pointer is held, `aria-valuenow` is the value of the pointer's current position (not an accumulation of moves, so returning the pointer to the press position returns the value), and no move after the release changes anything. The step grid and the clamp the drag shares with the press are the model's; the geometry is the DOM's, and the bridge hands the model a 0..1 fraction.
+
+### Headless: `createSliderMultiThumb` (`@cssints/headless`)
+
+The APG Slider (Multi-Thumb) pattern: two `role="slider"` thumbs on one rail, each bounded by its neighbour, so they cannot pass one another; equal values are allowed. Its behaviour is `packages/apg-specs/specs/apg/slider-multithumb.qnt`, checked against the real DOM by the differential walk in `packages/headless/test/slider-multithumb.browser.test.tsx`. The spec fixes two thumbs and one linked pair: the independent-thumbs variant, N thumbs and per-thumb dragging are not modelled, and the primitive's nearest-thumb rail press, its drag and `disabled` are deliberate extensions of the pattern, with that DOM test as their oracle. Options are plain and read lazily; `value` + `onValueChange` make the widget controlled.
+
+```ts skip
+createSliderMultiThumb(options?: {
+  min?: number; // 0
+  max?: number; // 10
+  step?: number; // 1
+  largeStep?: number; // 3: the jump of PageUp / PageDown
+  value?: readonly [number, number] | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: readonly [number, number]; // [3, 7], clamped into the range and ordered
+  orientation?: "horizontal" | "vertical"; // "horizontal"
+  direction?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows and the rail flip
+  disabled?: boolean; // aria-disabled on both thumbs; no key, press or drag changes anything
+  id?: string; // base of the thumb ids
+  onValueChange?(values: readonly [number, number]): void; // a request the host may ignore
+}): {
+  values(): readonly [number, number];
+  focused(): 0 | 1 | null;
+  setValues(values: readonly [number, number]): void;
+  pointerDown(index: 0 | 1, position: number): void; // a press or a drag move at a 0..1 fraction of the value axis
+  focusThumb(index: 0 | 1): void;
+  blur(): void;
+  keyDown(key: string): boolean; // true when the key was consumed (preventDefault it)
+  thumbProps(index: 0 | 1): {
+    id;
+    role: "slider";
+    "aria-valuenow"; // the thumb's value
+    "aria-valuemin"; // the lower thumb: the range's minimum; the upper thumb: the lower value
+    "aria-valuemax"; // the lower thumb: the upper value; the upper thumb: the range's maximum
+    "aria-valuetext";
+    "aria-orientation";
+    "aria-disabled"; // "true" while disabled, else undefined
+    tabindex: 0;
+    onFocus;
+    onBlur;
+    onKeyDown;
+    onPointerDown;
+  };
+  trackProps: {
+    onPointerDown;
+    onPointerMove;
+    onPointerUp;
+    onPointerCancel;
+    onLostPointerCapture;
+  };
+};
+```
+
+Both thumbs are tab stops in a fixed order (lower, then upper), whatever the values are.
+
+`trackProps` is a rail press and a drag, like the single slider's: `pointerdown` beside the thumbs names the thumb nearest the pointer (a tie goes to the lower, the pair's floor and first tab stop) and moves it to the pointer's position; a press that starts on a thumb drags that thumb from the value it already has, without a jump. While the pointer is held, every `pointermove` asks for that thumb's value at the pointer's position on the rail, rounded to `step` and clamped to the neighbour, in all four combinations of `orientation` and `direction` (up is more on a vertical rail, and a horizontal rail under `rtl` counts from its right edge, as the arrows do). `pointerup`, `pointercancel` or a lost capture ends the drag. The rail owns the gesture whichever element took the press, so the moves sit on `trackProps`; the thumb must be rendered inside the rail, and pointer capture keeps the drag alive off it. A drag is still a request: it fires `onValueChange` once per distinct pair, a controlled host that ignores it keeps its pair, and a thumb clamps at its neighbour so the two can never cross. `focused()` names the thumb the press took and reads synchronously, so a host can move the DOM focus with it. `trackProps` carries no CSS, so a host that wants a drag instead of a page scroll or a text selection sets `touch-action: none` and `user-select: none` on the rail.
+
+`disabled` follows the single slider: both thumbs keep their tab stops and announce `aria-disabled="true"`, and every key, rail press and drag is dropped before it becomes a request. The spec has no `disabled` var, so `slider-multithumb.browser.test.tsx` is its oracle, as it is for the press's nearest thumb (`NearestThumbTakesPress`) and the drag (`DragFollowsPointer`).
 
 ### Headless: `createKnob` (`@cssints/headless`)
 
@@ -1852,8 +1961,10 @@ createDropZone(options: {
   maxSize?: number | undefined; // bytes; a larger file is rejected with "size"
   disabled?: boolean | undefined; // zone aria-disabled, native disabled input and button, drops ignored
   onFiles(files: File[]): void; // the accepted files of one batch; not called when none passed
-  onReject?({ file, reason }: { file: File; reason: "type" | "size" }): void; // once per refused file
-  labels?: { zone?: string | undefined; browse?: string | undefined };
+  maxFiles?: number | undefined; // files taken from one batch; the rest are rejected with "count"
+  onReject?({ file, reason }: { file: File; reason: "type" | "size" | "count" }): void; // once per refused file
+  labels?: { zone?: string | undefined; labelledby?: string | undefined; browse?: string | undefined };
+  formatMessage?(message: { total: number; accepted: number; rejected: ReadonlyArray<"type" | "size" | "count"> }): string | undefined; // the announcement in the host's language
 }): {
   dragging(): boolean; // a drag is over the zone; a child's dragleave does not clear it
   message(): string | undefined; // "2 files, 1 rejected: too large"; undefined before the first batch
@@ -1869,6 +1980,7 @@ createDropZone(options: {
   zoneProps: {
     role: "group";
     "aria-label": string | undefined;
+    "aria-labelledby": string | undefined; // labels.labelledby: the host's own heading wins over aria-label
     "aria-disabled": "true" | undefined;
     onDragEnter;
     onDragOver;
@@ -1883,10 +1995,10 @@ createDropZone(options: {
 Principles:
 
 - **The zone is never drag-only.** `browseProps` spreads onto a real `<button type="button">` that clicks the hidden input, so the picker is the keyboard path (Enter and Space are the platform's) and a pointer user can click too. The drop handlers add nothing the button cannot do.
-- **Validation happens once per file**, in the order type then size, with a reason the host can show: `onReject` gets the file and `"type" | "size"`, and `onFiles` gets the rest in one batch. A batch with nothing accepted calls `onFiles` not at all — not with an empty array.
+- **Validation happens once per file**, in the order type then size then count, with a reason the host can show: `onReject` gets the file and `"type" | "size" | "count"` (`maxFiles` limits what one batch takes), and `onFiles` gets the rest in one batch. A batch with nothing accepted calls `onFiles` not at all — not with an empty array.
 - **A folder or an empty `DataTransfer` is a no-op** (Chromium marks a dropped directory as a `file` item whose `webkitGetAsEntry().isDirectory` is true): no callback, no rejection, and `message()` keeps the previous sentence.
 - **`dragleave` counts.** A child's `dragleave` bubbles to the zone, so `dragging()` is a depth counter: it clears when the drag leaves the zone, or on a drop. It is the styling hook; the primitive writes no `data-dragging`.
-- **`message()` is a default sentence for the host's status region** ("2 files, 1 rejected: too large", `undefined` before the first batch): the primitive tracks the counts of the last batch, the host decides the words. Render `statusProps` once and keep it mounted, or a change of its text is not announced.
+- **`message()` is a default sentence for the host's status region** ("2 files, 1 rejected: too large", `undefined` before the first batch): the primitive tracks the counts of the last batch, the host decides the words. An app with a locale passes `formatMessage`, which gets the same counts (`total`, `accepted`, `rejected`) and returns the sentence to announce. Render `statusProps` once and keep it mounted, or a change of its text is not announced.
 - Picking through the input is the same path as a drop and clears `input.value` afterwards, so choosing the same file twice fires `change` again.
 
 ### Headless: `createTimeline` (`@cssints/headless`)
@@ -1895,7 +2007,7 @@ Two modes over one axis. Without `rows` it is the package's demo tree of five fi
 
 ```ts skip
 createTimeline(options: {
-  rows: ReadonlyArray<{ id: string; label: string; start: number; end: number; depth?: number; status?: "ok" | "error" | "unset" }>; // in display order
+  rows: ReadonlyArray<{ id: string; label: string; start: number; end: number; depth?: number; status?: "ok" | "error" | "unset" }> | (() => ...); // in display order; a getter lets a trace arrive after mount
   axis?: { unit?: "ms" | "us" | "s" } | undefined; // "ms": the ruler's labels
   selected?: string | undefined; // controlled; undefined = uncontrolled
   onSelect?(id: string): void; // a request the host may ignore
@@ -1909,6 +2021,7 @@ createTimeline(options: {
   rulerProps: { role: "presentation"; "aria-hidden": "true"; ticks: ReadonlyArray<{ value: number; left: number; label: string }> };
   select(id: string): void;
   selectedId(): string | undefined;
+  focusedId(): string | undefined; // the row with the roving tab stop: the last one focused, else the first
 };
 ```
 
@@ -1920,6 +2033,40 @@ createTimeline(options: {
 - **Ruler.** `ticks` steps the extent by 1, 2 or 5 times a power of ten (about five ticks), each with `value` on the axis, `left` in percent and a `label` in the axis unit. The ruler element is decorative; the host renders ticks as its children.
 - **Selection.** A click selects and moves the tab stop; ArrowUp / ArrowDown / Home / End move a roving tab stop; Enter or Space selects the focused row. The host moves real DOM focus after an arrow key, as the demo fixture does; `selected` + `onSelect` make it controlled, `select(id)` is the programmatic request.
 - **`status` is `data-status`** on the row, a styling hook for the host's colour. The primitive never invents the label: the host's data holds it.
+
+### Headless: `createDiagramFocus` (`@cssints/headless`)
+
+The readable twin of a canvas: the same nodes and edges, positioned by the host (absolute `div`s, an SVG layer for the edges), as one roving tab stop plus a keyboard cursor over the outgoing edges, with a polite live region saying where the user is. **The APG has no pattern for a diagram** — a graph is not one of the 44 — so there is no Quint spec and no ported scenarios: `packages/headless/test/diagram.browser.test.tsx` is its oracle. It borrows the grid's roving tabindex (exactly one node in the tab order, so Tab leaves the composite), WAI-ARIA's `aria-roledescription="node"` on each `role="button"`, and `createStatus`'s `role="status"` / `aria-live="polite"` region.
+
+```ts skip
+createDiagramFocus(options: {
+  nodes: ReadonlyArray<{ id: string; label: string; x: number; y: number; width?: number; height?: number }> | (() => ...); // x/y: the node's top-left in diagram space; width/height only size its centre (0)
+  edges: ReadonlyArray<{ id: string; from: string; to: string; label?: string }> | (() => ...); // in option order; an edge with a missing endpoint is ignored
+  onActivate?(nodeId: string): void; // Enter or Space on the active node
+  onEdgeActivate?(edgeId: string): void; // Enter on the edge cursor, or a click on an edge
+  labels?: { diagram?: string; edges?: string } | undefined; // the diagram's name in the announcement; the edge noun ("transitions", default "edges")
+  id?: string | undefined; // base for the nodes' element ids (<id>-node-<node id>), which is how a move focuses the node; generated when absent
+}): {
+  active(): string | undefined; // the node holding the tab stop; undefined when the diagram is empty
+  focus(id: string): string | undefined; // programmatic move; a node that is not in `nodes` is a no-op; returns where it landed
+  nodeProps(id: string): { id: string; role: "button"; "aria-roledescription": "node"; "aria-label": string; tabindex: 0 | -1; onFocus; onClick; onKeyDown };
+  edgeProps(id: string): { role: "button"; "aria-label": string; tabindex: -1; onClick }; // "From → To"
+  edgesOf(id: string): ReadonlyArray<{ id: string; from: string; to: string; label?: string }>; // outgoing, in option order
+  edgeCursor(): number; // an index into edgesOf(active()), or -1 while off
+  setEdgeCursor(index: number): void; // the programmatic version; a negative index clears
+  status(): string; // "Payment. 2 edges: to Pending, to Failed" / "Edge Payment → Pending. Enter to activate"; empty when the diagram is empty
+  statusProps: { role: "status"; "aria-live": "polite" }; // render once, always
+};
+```
+
+- **The layout is the navigation.** An arrow moves to the nearest node whose centre is in that direction's half-plane (right is `dx > 0`, up is `dy < 0`), by smallest squared distance, ties by id; when nothing lies that way it wraps to the opposite end of that axis (right to the leftmost node, down to the topmost, ties by id), so every arrow does something. Home / End are the first and last node in option order. The arrows compare **centres**, which is why `width`/`height` exist at all.
+- **A diagram is never drag-only.** The pointer path is the host's drawing; the keyboard path is the arrows plus Enter / Space (`onActivate`) and `e`, so a graph that was drawn with a mouse is still readable and operable from the keyboard.
+- **`e` opens the outgoing edges.** The cursor starts on the first edge of `edgesOf(active)` and the region says "Edge Payment → Pending. Enter to activate". Arrows move the cursor and wrap, Enter (or Space) fires `onEdgeActivate`, Escape — or any other navigation key — leaves the cursor. Edges are `role="button"` with `tabindex="-1"`: the keyboard path to an edge is the cursor, not a Tab stop, so 40 transitions do not add 40 stops.
+- **The live region is the announcement.** `status()` is derived from the active node and the cursor, so it changes with every move (that is what makes a screen reader read it). Render `statusProps` once and always; a region that mounts with its text announces nothing.
+- **Exactly one node is in the tab order.** `nodeProps` sets `tabindex="0"` on the active node and `-1` on the rest, and `onFocus` moves the tab stop to whatever node took focus, so a host that focuses the node it selects keeps the two in step. Tab then leaves the diagram (there is no `Tab` handling and no sentinels).
+- **Focus follows the tab stop by itself.** `nodeProps` also carries an element `id` (`<base>-node-<node id>`, the base from `options.id` or generated), so an arrow, Home / End or `focus(id)` focuses the node it landed on: the host spreads the props and needs no effect, and the tab stop and `document.activeElement` cannot disagree. A host that renders a node outside the document (a portal on another document) moves focus itself.
+- **The lists are getters.** Pass `() => nodes()` and the arrays are read at attribute-read time: an async model arrives without rebuilding the primitive, and the tab stop keeps its node while that node exists (else it falls back to the first). A node id that is not in `nodes` is a no-op in `nodeProps` and `focus`; an edge whose endpoint is missing is ignored everywhere.
+- **The host owns the DOM.** Nothing is measured, nothing is positioned and nothing is focused by the primitive; the host renders the nodes where its layout put them, the edges on its SVG layer, and the `role="status"` paragraph.
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 

@@ -1787,19 +1787,22 @@ step 8 keeps the list.
 
 ## Solid on the terminal
 
-Step 6's Solid half: one page runs as Solid over the terminal's cells. `solid/native/term.c` is Clay over
+Step 6's Solid half: two pages run as Solid over the terminal's cells. `solid/native/term.c` is Clay over
 `terminal/cells.c`, `render.c`, `measure.c` and `tb2.c` — no SDL3, no ThorVG, no window — built as
 `build/solid/libterm.dylib` beside `libui.dylib`, and it takes the same declaration surface the desktop's `ui.c` takes:
 a packed 45-float box style, a 10-float text style and the value channel (`solid/src/pack.ts`'s `FIELDS`). So a page's
-`styles.ts` is one module on both targets, and `solid/app/Sensors.tsx` is the page, **unmodified**.
+`styles.ts` is one module on both targets, and `solid/app/Sensors.tsx` and `solid/app/Sky.tsx` are the pages,
+**unmodified**.
 
 ```sh
 sh solid/native/build.sh                          # libui.dylib and libterm.dylib
 bun terminal/solid.ts                             # live: the page in termbox2; q/Ctrl+C/Escape quits
+bun terminal/solid.ts --page sky                  # live: the Sky feed (q/Ctrl+C quits; Escape is the page's back)
 bun terminal/solid.ts --dump out.txt              # one frame headless, plain text ('.' is a fill); no file: stdout
 bun terminal/solid.ts --ansi out.ansi             # the same cells as truecolour ANSI (SGR runs merged)
 bun terminal/solid.ts --keys Tab,ArrowDown --dump out.txt     # the frame after each key, as main.c
 bun terminal/solid.ts --click 40,9 --dump out.txt # a press and a release on the Units pill (the page's own onClick)
+bun terminal/solid.ts --page sky --keys WheelDown,WheelDown --settle 90 --offset --dump out.txt  # the page's wheel, then its rest
 bun terminal/solid.ts --theme light --dump out.txt            # the light theme (also THEME=light)
 bun terminal/solid.ts --cols 80 --rows 11 --bench 20          # the frame's ms, and the same cells as ANSI
 sh terminal/test.sh                               # the comparisons below (native/test.sh runs it)
@@ -1813,9 +1816,21 @@ text at `x / CELL_W` one row, a scissor stack; `terminal/measure.c`: a code poin
 `term_present`/`term_dump`/`term_ansi` are the three ways out. `term_poll(key, out)` is termbox2's next event within
 16ms (0 none, 1 an event, 2 a resize, 3 quit; `out` is the pointer's cell and the button). `terminal/tb2.c` gained
 `term_tb2_poll_ms` for that wait: the C host keeps blocking in `term_tb2_poll`, which is the same call with no timeout,
-so the C pages' frames are untouched. The parts of a style a cell cannot show are not declared: a float (counted as an
-error), an image, a shadow, a backdrop, a gradient, and the group fields of the value channel (46–49, 55), which arrive
-and are dropped — the page's entry animation is a no-op in cells rather than a different frame.
+so the C pages' frames are untouched. The Sky page needed four things of the binding the Sensors page did not:
+
+- a clip element's offset is read **after** the element is open (`Clay_GetScrollOffset` is the open element's offset, as
+  the `CLAY` macro's is), so a page's own scroll reaches Clay's clip at all; the binding had read the parent's;
+- `term_bounds`, `term_scroll_offset`, `term_scroll_to` and `term_scroll_put` (the four `ui.c` has), which is what
+  `solid/src/vscroll.ts` measures the viewport with and writes the page's offset through;
+- a **float** is declared with its attach, offset, z and pointer capture, not counted as an error and drawn as a plain
+  box: Clay places it over the flow in the grid's own pixels, so the feed's thumb and the thread's screen keep their
+  place. Only a float's shadow, backdrop and alpha fade are still a cell's to drop;
+- a text's line height is the **cell's**, not the style's: Clay lays a text out at its `lineHeight` (the Sky card's 22px
+  name was 1.4 rows and pushed every card out of its cells), so `term_text` writes `CELL_H` (measure.c already returns
+  one cell a line). The per-frame value table is 256, because twelve card re-cuts and the page's own writes are more
+  than 64. The parts of a style a cell cannot show are still not declared: an image, a shadow, a backdrop, a gradient,
+  and the group fields of the value channel (46–49, 55), which arrive and are dropped — the page's entry animation is a
+  no-op in cells rather than a different frame.
 
 **A page's frame.** `terminal/solid.ts` is the desktop loop's shape: `createInput()` (the keys named as `src/input.ts`
 names them, Space as `" "`), the page's `Motion` hook, `flush()` for Solid, the tree walked in order, `term_value` for
@@ -1828,6 +1843,63 @@ so a border, a line of text and a border are three rows). The pill's ring is the
 asks the page's focus, and `Sensors.tsx` has no focus prop, so the host draws the same accent border
 (`styles.magnitude`'s colour in the theme that is on) while its own focus is on the pill. Tab moves it off the pill,
 which is where the C page's list would take it; there is no list in `Sensors.tsx`, so the ring simply goes.
+
+**The Sky feed.** `bun terminal/solid.ts --page sky` renders `solid/app/Sky.tsx` **unmodified**: its props are the
+host's `input` (the headless parts and the focus manager), its `motion` (the page puts its wheel, its pointer and its
+tick there), `theme`/`setTheme` (the host's `t`), and a `load` that is a promise which never settles — the terminal has
+no AppView, so a card's click opens the thread's loading state and nothing lands. The page needed no prop it does not
+have on the desktop. What the host re-cuts, through the value channel, is the length set a cell cannot take as px:
+
+| the page | px | the cell |
+| --- | --- | --- |
+| the bar | 64 high, 0/16 padding, 20 gap | 1 row, 1 cell, 1 cell |
+| a tab | 6/10 padding, a 2px bottom underline | no padding, a cell after the label; no underline (a 2px border is a one-row tab's whole row and eats the label) |
+| the status line | 32 high | 1 row |
+| a card | 12 padding, 8 gap | 1 cell of side padding, 0 above/below, 0 gap (its lines are rows) |
+| the feed | 12 padding, 8 gap | **not** re-cut: the page's own scroll arithmetic adds the same lengths (a host that zeroed them would make the page's content end larger than Clay's and the clip would stop the scroll short) |
+
+The tab's focus is the C bar's active tab — the accent fill and an on-accent label — because a `:focus` ring on a
+one-row tab is the label's row; the feed's `:focus` ring is the page's own `t.color.ring` border as one cell of box
+characters around the viewport, and when it is focused it eats the first card's name row (a cell cannot be both a ring
+and that row). The avatar is a `css.image`: the host **skips** the element (a cell has no glyph for it, and its 40x40
+box would be three rows of nothing the C page does not draw). A card's own `onClick` opens the thread; the page's cards
+are not Tab stops, so Enter has no card to open (unlike the C page's list, which has the selection). Tab reaches the
+tablist and then the feed; Left/Right on the tablist switch the feed; Up/Down, PageUp/PageDown and Home/End scroll the
+feed; `j`/`k` are mapped to the page's Down/Up; a wheel event (`WheelDown`/`WheelUp` from termbox2, or a key in the
+headless run) is one 10px notch of the page's own machine. `--settle N` runs frames after the input (the track's spring
+and the band need them) and `--offset` prints the clip's offset, which is how the check states the displacement.
+
+**The C feed's cells are not the Solid feed's, and the check does not pretend they are.** The C card
+(`terminal/sky.c`) has a hand-cut border and separator row, its name and meta on one row, its body clipped to one row,
+its counts as the glyphs `↩ ⟲ ♥`, no avatar and a footer of key hints; the Solid card has one cell of side padding and
+no border at rest, its meta on its own row, a body that wraps at words, its counts in words, a skipped avatar and the
+page's status line as its footer. So no row of the two 80x20 frames is identical, and the measured distance is:
+
+```
+solid, terminal: the Sky feed against terminal/expected-sky.txt (the C feed): 1251 cells, 0 of 20 rows the same, the worst row 1 (80 of 80); rows 32,80,68,31,72,73,80,80,78,40,12,79,80,80,75,6,78,79,80,48
+solid, terminal: after the tab switch against terminal/expected-sky-focus.txt: 1397 cells, 0 of 20 rows the same, the worst row 1 (80 of 80); rows 32,80,74,9,76,79,80,80,76,67,77,80,80,76,77,80,77,80,67,50
+solid, terminal: after the scroll against the C list's scrolled frame (80x12): 684 cells, 0 of 12 rows the same, the worst row 1 (80 of 80); rows 32,80,76,67,79,79,80,16,10,37,80,48
+```
+
+The worst row is row 1 (80 of 80) every time: the C page's card top border against the Solid card's first line, which
+has no border. The closest rows are the body lines — row 3 differs in 31 of 80 cells at rest and 9 after the tab switch,
+row 15 in 6 — because the *words* are the same, one cell in and with no `│`. The C page's own rows (the bar's labels
+with their `1`/`2`/`3`, the six separator rows and the key-hint footer) have no counterpart; the bar row is 32 cells
+apart (the C bar's numbers and padding against the page's one-cell rhythm and the gear's marks). The tab switch and the
+scroll are compared
+as *behaviour*, not glyphs: after `Tab,ArrowRight` both pages show the Science feed (the Solid's 1397-cell distance is
+the same card-shape difference), after the wheel the Solid feed's rows move by its own offset (-24px, 1.5 rows, at
+80x20 where the C list does not scroll; -152px, 9.5 rows, at 80x12 where the C list's `scroll_into` drops two cards
+instead of moving an offset) and both hide the first post and show a later one. That is the honest ceiling: the C page
+re-cuts card heights and clips text by hand, so a cell page that keeps the app's own card structure cannot land on its
+rows.
+
+**The cost of the feed**, on this Mac (`--bench 50`, headless, 80x20 = 1600 cells, 34 commands): **0.11–0.35 ms a
+frame** over repeated runs (begin, the tree declared through Bun's FFI, Solid's flush, Clay's layout, and the commands
+turned into cells), and 0.12–0.17 ms more for the same cells as ANSI (3924 bytes, the file write included). The same
+`--bench` on the Sensors page is 0.04–0.13 ms (10 commands, the same 1600 cells): the feed is ~3.4x the commands, not
+the 30x a page of its element count might suggest, and it stays under a frame at 60fps with room. The C feed's own frame
+has not changed (~0.08 ms as the `demo --frames 1`/`--frames 201` delta, termbox2 included).
 
 **The proof.** The C page is the oracle, and at the page's own height the Solid frame is the C frame byte for byte —
 the same cells, the same palette in the same first-use order, the same ANSI runs:
@@ -1850,25 +1922,34 @@ own and rows 12-19 are the C page's list and footer — 9 of 20 rows, 720 cells 
 is the slice's one real gap, counted by `terminal/test.sh` rather than hidden; the two pages are not the same page yet,
 they are the same *page part* drawn by two different programs.
 
-**The cost**, on this Mac (`--bench 20`, headless, the 80x11 frame): **0.384 ms a frame** (begin, the tree declared
-through Bun's FFI, Solid's flush, Clay's layout, and the commands turned into 880 cells) and **0.463 ms** more for the
-same cells as ANSI (3018 bytes, the file write included). The C page's own frame is ~0.08 ms measured as the delta of
-`demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints no frame time, so that
-delta is the number; it is 5x less than Solid's). The binding is 236 KB of `libterm.dylib` (Clay's implementation,
-cells.c, render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one declaration per
-element and one per text through `bun:ffi`, where the C page calls Clay directly.
+**The cost**, on this Mac (`--bench 50`, headless; the number moves with the machine's load, so a range over repeated
+runs): the Sensors page's own 80x11 frame is **0.04–0.08 ms** (10 commands, 880 cells) and its 80x20 frame 0.10 in the
+suite's run; the Sky feed's 80x20 frame is **0.08–0.35 ms** (34 commands, 1600 cells), 0.11 in the suite's run — about
+3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a 60fps frame. The same cells as
+ANSI are 0.12–0.17 ms more (3924 bytes for the feed, the file write included). The C page's own frame is ~0.08 ms
+measured as the delta of `demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints
+no frame time, so that delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's implementation, cells.c,
+render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one declaration per element
+and one per text through `bun:ffi`, where the C page calls Clay directly.
 
-**What it cannot do in cells.** Text is one row, so a body does not wrap (a clipped row is all a cell page gives it); an
-image is a box with no glyph; a float has no cells to sit over; there is no shadow, backdrop, gradient, group opacity,
-scale or rotation; termbox2 reports no motion events, so a hover is only where the last press was (a click leaves the
-pointer on the pill, which is why the click's frame is the hovered one); a 1px and a 4px border are one cell; a corner
-radius is a square corner; a wide glyph (CJK, most emoji) is one cell and breaks the row by one; and the cell size makes
-a page's pixel lengths land between cells — 38px is 2.4 rows and 200px is 25 columns — so a terminal page re-cuts them
-(here through the value channel, in C by hand). The other four screens of step 6 — the feed, the thread, the profile and
-the notifications — are still C: `terminal/sky.c`, `thread.c`, `profile.c`, `notify.c`, with `focus.c` for their focus.
-Moving one of them over is the next slice; the shape is there (a page declares, Clay lays out in cells, termbox2 draws)
-and what it needs is what `Sensors.tsx` lacked here: the page's own list and focus, and a `src/frame.ts` that takes the
-binding instead of importing one.
+**What it cannot do in cells.** A text line is one row: the C pages clip a body to one row, and the Solid Sky page
+wraps at words (a long word is still broken nowhere) — neither is the paragraph the desktop draws. An image is a box
+the host skips (the Sky avatars: no glyph, and a 40x40 box is three rows of nothing the C page does not draw). A float
+now *is* placed (Clay's own float over the flow: the feed's thumb and the thread's screen), but its shadow, backdrop and
+alpha fade are not. There is no shadow, backdrop, gradient, group opacity, scale or rotation, so the cards' gradients and
+their staggered entry are literals; termbox2 reports no motion events, so a hover is only where the last press was (a
+click leaves the pointer on the pill, which is why the click's frame is the hovered one) and a drag has nowhere to
+travel; a 1px and a 4px border are one cell (a 2px tab underline is the label's row, hence the accent fill instead); a
+corner radius is a square corner; a wide glyph (CJK, most emoji) is one cell and breaks the row by one; and the cell size
+makes a page's pixel lengths land between cells — 38px is 2.4 rows and 200px is 25 columns — so a terminal page re-cuts
+them (here through the value channel, in C by hand). The Sky feed shows the ceiling concretely: no card border at rest,
+no drawn avatars, the meta on its own row, the counts in words where the C page has `↩ ⟲ ♥`, and the page's status line
+where the C page has the key hints. The thread, the profile and the notifications of step 6 are still C
+(`terminal/thread.c`, `profile.c`, `notify.c`, with `focus.c` for their focus); the feed runs as Solid too now
+(`terminal/solid.ts --page sky`, `solid/app/Sky.tsx`), and moving the thread (the page's second screen, a root float the
+host already shows in its loading state) or the profile is the next slice. The shape is there (a page declares, Clay
+lays out in cells, termbox2 draws); what a page still lacks is its data — the terminal host's `load` is a promise that
+never settles, and fetching, paging and the app's system theme are not in the terminal yet.
 
 ## The sky screens in a terminal
 
@@ -2031,10 +2112,10 @@ one byte of the path fails `FAIL dark, image: command 2 (image) differs at rende
 style at all (`{}`) fails `FAIL dark, image: 10 generated commands, 11 hand-written` (an element with no box emits no
 command).
 
-What a generated page still does not carry: a clip's `childOffset` (the scroll is the host's, as on the List), and
-`:focus` (a prop of an *element*, not a page, and `--prop` sets only the page's). The image variant is a file of its own
+What a generated page still does not carry: `:focus` (a prop of an *element*, not a page, and `--prop` sets only the
+page's). The image variant is a file of its own
 and not a state of `--events` for the same reason: a prop is not a signal the table can dispatch. A float is a
-declaration and the generator prints it (below).
+declaration and the generator prints it, and a clip element's `childOffset` is read from the host (the List, below).
 
 ## The floats in a generated page
 
@@ -2118,11 +2199,108 @@ and the differ names `command 14 (rectangle) box … -> …` (the declaration's 
 `.floating` from the menu's declaration lays it out in the page's column and the differ names its `box` and `z` (`10 ->
 0`); dropping `.pointerCaptureMode` changes no command and the grep fails naming `floating.pointerCaptureMode`.
 
-Still not emitted: a clip's `childOffset` and the List's scroll offset (Clay asks the host, `Clay_GetScrollOffset()`, not
-a declaration), the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a static
-frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now proves,
-but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never from a
-signal of the page.
+Still not emitted: the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a
+static frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now
+proves, but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never
+from a signal of the page. A clip element's offset is not a declaration either, and the List page shows what that means
+for a generated page: the file asks Clay for the container's offset (below).
+
+## The List in a generated page
+
+The List page (`solid/app/List.tsx`) is the first generated page whose tree is not the page's literals alone: its
+viewport declares what the screen shows (a window of rows, `solid/src/virtual.ts`), its scrollbar's thumb is five numbers
+the page writes every frame through the value channel, and its offset is the host's. Three things had to follow, and none
+of them is a new field of a declaration:
+
+**The page's frame hook ran at build time** (`--tick <n>`). The window is the page's tick's: it reads the viewport's
+height from `ui.bounds` and the offset from `ui.scrollOffset`, and without a tick the tree is an empty viewport and its
+opaque thumb (9 commands, against the golden's 36). So the generator gives the page its `motion` and runs the hook n frames at 1/60 before
+every frame it emits, exactly as `main.ts` does. There is no host to ask, so `generator/ui-build.ts` — resolved in place of
+`solid/src/ffi.ts` before the page is imported — answers the two reads a build can answer: the box an element's *own
+style* states (the viewport's `css.height(240)`) and the offset the host will scroll it to (`--scroll`). Every other call
+of the `ui` surface is a no-op: nothing is drawn, uploaded or scrolled at build time.
+
+**The value channel was baked.** The rows are the tick's, but so are the spacers' heights (FIXED min and max), the
+thumb's height, its offset, its fade and its capture: the page writes them with `ui.value`, and a static page has no
+channel. `ui-build.ts` records the writes and the generator applies them the way `ui_open` does — `packBox` of the
+resolved shape, the page's fields over it, the declaration back — and prints the element as `values_<n>`. At rest that is
+the below spacer (628px) and the thumb (64.14 tall, 0 opacity: the golden's frame has no thumb command and this file has
+none either). A write past the 45 packed floats (a group's alpha, a shadow's blur, a text's colour) is dropped, as
+`header()` drops the effects: a static C page keeps none of those tables. One seam: the page's *track* is at 0 at build
+time, so the thumb's baked top is the rest one, while `--scroll` is the offset the host will put in the container; both
+frames have the bar faded out (it never rose: no wheel was delivered at build time), so no command carries the number —
+a visible thumb would want the page's own wheel instead, which is a stub `ui.over` and a notch away.
+
+**The offset is the host's, and the declaration reads it.** `header()` prints the viewport's
+`.clip = { .horizontal = 1, .vertical = 1 }` — Clay's `Clay_ClipElementConfig`, which is also its scroll container — and
+never a `childOffset`, because a file-scope constant cannot call Clay. The generator therefore declares a clipped element
+through `clip_scroll`, which reads it where the element is open:
+
+```c
+static Clay_ElementDeclaration clip_scroll(Clay_ElementDeclaration d)
+{
+    d.clip.childOffset = Clay_GetScrollOffset();
+    return d;
+}
+...
+CLAY(CLAY_ID("list"), clip_scroll(style_4)) {
+```
+
+the same call `solid/native/ui.c`'s `ui_open` makes (and the browser's `ui.c`), so the C frame draws whatever offset the
+host put in the container. The host puts it there exactly as the Solid page's `ui.scrollTo` does:
+`Clay_GetScrollContainerData(...).scrollPosition->y`. The window, though, is the *offset's* — one notch down is one more
+row in the overscan — so a generated file is one offset, as the Dialog's is one state:
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/List.tsx \
+  --tick 31 --name app_frame_list --out examples/list/page_generated.c
+bun --conditions=development generator/page-to-c.ts solid/app/List.tsx \
+  --tick 31 --scroll list=10 --name app_frame_list_scrolled --out examples/list/page_generated_scrolled.c
+```
+
+`page_generated.c` is the page at rest (rows 0..8, 36 commands), `page_generated_scrolled.c` at 10px (rows 0..9, 39:
+the tenth is the overscan and is drawn outside the scissor).
+
+**The check** (`examples/list/gen.c`) compiles both with Clay and `desktop/clay_dump.c`, measures with ThorVG as the
+Solid host does, and lays the page out twice: the first frame creates the container, the host writes the offset, the
+second is the frame the declaration's `Clay_GetScrollOffset()` makes. The reference is the Solid page's own frame at the
+same two states — `examples/list/solid-dump.ts` is the page's loop with `motion.onWheel`, because `solid/dump.ts`'s
+`capture` has no wheel field: 31 frames at rest, the pointer onto the viewport (the page's wheel is gated on `ui.over`),
+one notch down, 90 frames of settle (the offset lands on exactly 10 and the thumb has faded) — and `dump-check.ts`
+compares them field by field:
+
+```
+rest: 36 commands, viewport offset 0
+scrolled: 39 commands, viewport offset -10
+list-golden: 36 commands, identical
+list-rest: 36 commands, identical
+list-scrolled: 39 commands, identical
+solid/frames/list-top.png: identical, 36 commands
+```
+
+The golden's line holds `solid-dump.ts` to `solid/goldens/list.json` (the page at rest, which is what the stored frame
+is); `list-rest` holds the *generated* frame to the same golden, whole — no tolerance, its measure is the Solid host's;
+`list-scrolled` holds the generated frame to the page 10px down. The last line is the desktop host's own raster of the
+generated page (`examples/list/page.c`, `-DAPP_W=360 -DAPP_H=400`, the page's own size: `desktop/build.sh` has no size
+flag) against the Solid page's stored `solid/frames/list-top.png`, **pixel for pixel, 0 of 144,000 pixels**: the same
+ThorVG renderer, the same measure, the same tree.
+
+Mutations, each reverted (on a copy of the committed file, so the repository's generated C never moved): declaring the
+viewport without `clip_scroll` — the offset not read — leaves the rows at row 0 while the reference is 10px down:
+`FAIL list-scrolled (no noclipscroll): command 5 (rectangle) box 40/91.5/280/28 -> 40/101.5/280/28`, and the same for
+every row and its three texts; dropping the clip element's axes sends the host to `the page has no scroll container
+"list": the viewport's css.overflow("hidden") was not declared as a clip element`, and a dump of the same file loses the
+scissor (`commands: 39 -> 37`, `command 3 (scissor-start) axes horizontal/vertical -> (absent)`); dropping the value bake
+leaves the thumb's opaque style in the frame (`FAIL list-rest (no value bake): commands: 36 -> 37`: the golden has no
+thumb at all); and dropping `--tick` loses the window itself (`rest: 9 commands`, `FAIL list-rest (no --tick): commands:
+36 -> 9`: the empty viewport and its opaque thumb).
+
+What it does not close: the page's own scroll *state*. The List's Solid page animates its offset with a track; a
+generated file is one offset, chosen at build time, and the C host is what moves it — the machine (`vscroll.ts`'s 10px
+notch, the fling, the band, the reveal) is the desktop's, not the board's. So a board page shows a scrolled viewport;
+it does not scroll itself. The thumb is a sibling float over the content (a float has no `childOffset`, which is why it
+does not travel): its numbers are the page's value channel, baked for the frame the file is.
+
 
 ## The generated page's events: a state machine
 

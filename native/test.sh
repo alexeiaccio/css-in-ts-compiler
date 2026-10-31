@@ -82,6 +82,32 @@ done
 # the focus manager (no DOM): Tab order, roving focus, restore, and a seeded random walk
 node focus/test/focus.test.ts
 
+# The List page, as generated C (solid/app/List.tsx): a page that owns its viewport's offset. examples/list/gen.c lays the
+# page out twice — the first frame creates the clip element's scroll container, the host writes the offset in it (the
+# page's own 10px notch: Clay_ScrollContainerData.scrollPosition, ui_scroll_to's line), and the second frame is the one the
+# declaration's Clay_GetScrollOffset() makes — and dumps both states. The reference is the Solid page's own frame at the
+# same two states (examples/list/solid-dump.ts: the page's own loop, its wheel gated on the viewport and its settle), and
+# the rest state is the stored golden as well. 39 commands at 10px against 36 at rest: the tenth row is in the overscan.
+mkdir -p "$OUT/list"
+cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable \
+  -I vendor/clay -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+  -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+  examples/list/gen.c examples/list/page_generated.c examples/list/page_generated_scrolled.c \
+  -L "$BREW/lib" -lthorvg-1 -lm -o "$OUT/list/gen"
+"$OUT/list/gen" "$OUT/list"
+bun examples/list/solid-dump.ts "$OUT/list"
+node dump-check.ts solid/goldens/list.json "$OUT/list/solid-rest.json" --name list-golden --commands
+node dump-check.ts solid/goldens/list.json "$OUT/list/rest.json" --name list-rest
+node dump-check.ts "$OUT/list/solid-scrolled.json" "$OUT/list/scrolled.json" --name list-scrolled
+# ... and the desktop host's own raster of the same generated page (ThorVG, the renderer the Solid page draws through),
+# against the Solid page's stored frame, pixel for pixel: the offset is 0 here, and the frame is the page's
+cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable -DAPP_W=360 -DAPP_H=400 \
+  -I vendor/clay -I generator -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+  -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+  desktop/host.c examples/list/page.c \
+  -L "$BREW/lib" -lSDL3 -lSDL3_ttf -lSDL3_image -lthorvg-1 -lm -o "$OUT/list/app"
+"$OUT/list/app" --raster thorvg --expect solid/frames/list-top.png
+
 # Headless widgets (button, switch, checkbox, disclosure) on neutral parts: ported scenarios and a walk against the Quint models
 (cd headless && bun run typecheck:native && bun run test:native)
 
@@ -291,8 +317,9 @@ if command -v script >/dev/null 2>&1; then
 else
   echo "terminal: no script(1), termbox2's pty checks skipped"
 fi
-# ... and one page as Solid over the same cells (solid/native/term.c -> build/solid/libterm.dylib, terminal/solid.ts):
-# Sensors.tsx unmodified, its frames against the C page's own. terminal/test.sh prints its comparisons.
+# ... and the pages as Solid over the same cells (solid/native/term.c -> build/solid/libterm.dylib, terminal/solid.ts):
+# Sensors.tsx unmodified, its frames against the C page's own, then Sky.tsx's feed against terminal/sky.c's behaviour (the
+# row/cell distance, not a golden). terminal/test.sh prints its comparisons.
 NATIVE_OUT="$OUT" sh terminal/test.sh
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no
