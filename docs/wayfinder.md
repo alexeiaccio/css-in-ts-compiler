@@ -2623,7 +2623,6 @@ the previous wayfinder entry named it as left over. The group already resolves a
 omits ids, so no spec change; the kit passes no `id` by default, so its unique base keeps both groups apart, and a second
 `createUniqueId` is not made. Checked by a plain assertion in `checkbox-group.browser.test.tsx` (two groups, distinct ids,
 the named base's exact ids).
-||||||| 0f00b800
 
 ## CSS-first interactions: `@cssints/reactive` (packages/reactive, 2026-10-31, cssints-zrt2)
 

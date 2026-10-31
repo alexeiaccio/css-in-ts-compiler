@@ -1479,7 +1479,6 @@ gradient; soft masks on clips; an effect is opt-in with a plain fallback, and sh
 desktop frame and the board where it exists. The GPU raster does not buy the cost back (0.69-1.06 vs 0.31-0.47 ms,
 before the compositor), so the first pass is the CPU raster.
 
-||||||| e044926a
 ## Mobile: iOS and Android (2026-10-23)
 
 Status: not started. The first slice is **A: no JavaScript** — Clay, ThorVG, the C renderer and generated pages in a
