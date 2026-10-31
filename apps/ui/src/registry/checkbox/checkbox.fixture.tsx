@@ -1,7 +1,7 @@
 import type { CheckboxConfig } from "@cssints/apg-specs/apg/checkbox.bridge";
 import type { Checkbox as CheckboxController, CheckboxState } from "@cssints/headless";
 import type { Json } from "@cssints/apg-specs/scenario";
-import type { Mounted } from "./dom-driver";
+import type { Mounted } from "./checkbox-driver.ts";
 import { Checkbox } from "./checkbox.tsx";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";

@@ -1,7 +1,7 @@
 import { type Menubar as MenubarController } from "@cssints/headless";
 import type { Json } from "@cssints/apg-specs/scenario";
 import type { MenuMenubarConfig } from "@cssints/apg-specs/apg/menu-menubar.bridge";
-import type { Mounted } from "./dom-driver";
+import type { Mounted } from "./menubar-driver.ts";
 import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from "./menubar.tsx";
 import { render } from "@solidjs/web";
 

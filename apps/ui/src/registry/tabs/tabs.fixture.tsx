@@ -1,6 +1,6 @@
 import { type Tabs as TabsController } from "@cssints/headless";
 import type { Json } from "@cssints/apg-specs/scenario";
-import type { Mounted } from "./dom-driver";
+import type { Mounted } from "./tabs-driver.ts";
 import type { TabsConfig } from "@cssints/apg-specs/apg/tabs.bridge";
 import { Tabs } from "./tabs.tsx";
 import { createSignal } from "solid-js";

@@ -298,7 +298,13 @@ const kitFiles = (item: Starter) => [
           "registry:file",
           `src/registry/${item.name}/${item.name}.fixture.tsx`,
         ),
-        file(target("dom-driver.ts"), "registry:file", `src/registry/${item.name}/dom-driver.ts`),
+        // the driver is the item's own: the generic one is byte-identical across patterns, but a nested one (the
+        // menubar's labels a submenu's rows) is not, and a copy that two items write into one file keeps only the last
+        file(
+          target(`${item.name}-driver.ts`),
+          "registry:file",
+          `src/registry/${item.name}/${item.name}-driver.ts`,
+        ),
         file(
           target(`${item.name}.browser.test.tsx`),
           "registry:file",

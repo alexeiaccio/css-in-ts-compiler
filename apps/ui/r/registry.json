@@ -245,8 +245,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "switch-driver.ts",
+          "target": "src/components/ui/switch-driver.ts",
           "type": "registry:file"
         },
         {
@@ -297,8 +297,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "disclosure-driver.ts",
+          "target": "src/components/ui/disclosure-driver.ts",
           "type": "registry:file"
         },
         {
@@ -381,8 +381,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "checkbox-driver.ts",
+          "target": "src/components/ui/checkbox-driver.ts",
           "type": "registry:file"
         },
         {
@@ -433,8 +433,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "radio-driver.ts",
+          "target": "src/components/ui/radio-driver.ts",
           "type": "registry:file"
         },
         {
@@ -485,8 +485,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "tabs-driver.ts",
+          "target": "src/components/ui/tabs-driver.ts",
           "type": "registry:file"
         },
         {
@@ -537,8 +537,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "accordion-driver.ts",
+          "target": "src/components/ui/accordion-driver.ts",
           "type": "registry:file"
         },
         {
@@ -850,8 +850,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "menubar-driver.ts",
+          "target": "src/components/ui/menubar-driver.ts",
           "type": "registry:file"
         },
         {
@@ -1035,8 +1035,8 @@
           "type": "registry:file"
         },
         {
-          "path": "dom-driver.ts",
-          "target": "src/components/ui/dom-driver.ts",
+          "path": "slider-multithumb-driver.ts",
+          "target": "src/components/ui/slider-multithumb-driver.ts",
           "type": "registry:file"
         },
         {

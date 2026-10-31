@@ -19,7 +19,7 @@ import apg from "@cssints/apg-specs/scenarios/apg/disclosure.apg.json";
 import ariakit from "@cssints/apg-specs/scenarios/apg/disclosure.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/disclosure.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/disclosure.model.json";
-import { domDriver } from "./dom-driver";
+import { domDriver } from "./disclosure-driver.ts";
 import { mountDisclosure } from "./disclosure.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/disclosure.react-aria.json";
 

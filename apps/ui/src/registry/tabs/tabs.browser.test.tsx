@@ -20,7 +20,7 @@ import {
 import ariakit from "@cssints/apg-specs/scenarios/apg/tabs.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/tabs.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/tabs.model.json";
-import { domDriver } from "./dom-driver";
+import { domDriver } from "./tabs-driver.ts";
 import { mountTabs } from "./tabs.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/tabs.react-aria.json";
 import { userEvent } from "vite-plus/test/browser";

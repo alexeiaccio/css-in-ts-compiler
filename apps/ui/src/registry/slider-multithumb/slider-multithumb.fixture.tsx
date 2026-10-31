@@ -1,7 +1,7 @@
 import { type SliderMultiThumb } from "@cssints/headless";
 import { type Json } from "@cssints/apg-specs/scenario";
 import { type SliderMultithumbConfig } from "@cssints/apg-specs/apg/slider-multithumb.bridge";
-import { type Mounted } from "./dom-driver";
+import { type Mounted } from "./slider-multithumb-driver.ts";
 import { SliderMultithumb as StyledSliderMultithumb } from "./slider-multithumb.tsx";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";

@@ -18,7 +18,7 @@ import { describe, expect, it } from "vite-plus/test";
 import ariakit from "@cssints/apg-specs/scenarios/apg/radio.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/radio.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/radio.model.json";
-import { domDriver } from "./dom-driver";
+import { domDriver } from "./radio-driver.ts";
 import { mountRadio } from "./radio.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/radio.react-aria.json";
 

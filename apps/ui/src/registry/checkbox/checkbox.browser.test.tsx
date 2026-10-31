@@ -18,7 +18,7 @@ import { describe, expect, it } from "vite-plus/test";
 import ariakit from "@cssints/apg-specs/scenarios/apg/checkbox.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/checkbox.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/checkbox.model.json";
-import { domDriver } from "./dom-driver";
+import { domDriver } from "./checkbox-driver.ts";
 import { mountCheckbox } from "./checkbox.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/checkbox.react-aria.json";
 

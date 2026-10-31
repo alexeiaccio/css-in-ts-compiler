@@ -1,6 +1,6 @@
 import { type RadioGroup as RadioGroupController } from "@cssints/headless";
 import type { Json } from "@cssints/apg-specs/scenario";
-import type { Mounted } from "./dom-driver";
+import type { Mounted } from "./radio-driver.ts";
 import type { RadioConfig } from "@cssints/apg-specs/apg/radio.bridge";
 import { RadioGroup } from "./radio.tsx";
 import { createSignal } from "solid-js";

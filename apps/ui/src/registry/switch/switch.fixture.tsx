@@ -1,7 +1,7 @@
 import { type Switch } from "@cssints/headless";
 import { type Json } from "@cssints/apg-specs/scenario";
 import { type SwitchConfig } from "@cssints/apg-specs/apg/switch.bridge";
-import { type Mounted } from "./dom-driver";
+import { type Mounted } from "./switch-driver.ts";
 import { Switch as StyledSwitch } from "./switch.tsx";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";

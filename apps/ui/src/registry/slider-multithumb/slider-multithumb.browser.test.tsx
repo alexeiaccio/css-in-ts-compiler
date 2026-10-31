@@ -19,7 +19,7 @@ import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 import baseUi from "@cssints/apg-specs/scenarios/apg/slider-multithumb.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/slider-multithumb.model.json";
-import { domDriver } from "./dom-driver";
+import { domDriver } from "./slider-multithumb-driver.ts";
 import { mountSliderMultithumb } from "./slider-multithumb.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/slider-multithumb.react-aria.json";
 import { SliderMultithumb } from "./slider-multithumb.tsx";

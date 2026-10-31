@@ -36,6 +36,29 @@ const items = index.items.map((item) => ({
   tested: item.files.some((file) => (file.target ?? "").endsWith(".browser.test.tsx")),
   files: item.files.map((file) => file.target).filter((target) => typeof target === "string"),
 }));
+// Every item is copied into one directory, so two items that ship the same target with different content silently
+// overwrite each other — the second one wins and the first one's test imports what it did not bring. Identical copies are
+// how a shared file (`render.tsx`, `theme.ts`, the generic `dom-driver.ts`) travels with each item, so only a *difference*
+// is a collision.
+const claims = new Map();
+const collisions = [];
+for (const item of items) {
+  const manifest = JSON.parse(readFileSync(join(registry, `${item.name}.json`), "utf8"));
+  for (const file of manifest.files ?? []) {
+    const target = file.target;
+    if (typeof target !== "string") {
+      continue;
+    }
+    const seen = claims.get(target);
+    if (seen === undefined) {
+      claims.set(target, { name: item.name, content: file.content });
+    } else if (seen.content !== file.content) {
+      collisions.push(`${target}: ${seen.name} and ${item.name} ship different content`);
+    }
+  }
+}
+assert.deepEqual(collisions, [], `two items claim one file: ${collisions.join("; ")}`);
+
 const tested = items.filter((item) => item.tested).map((item) => item.name);
 const plain = items.filter((item) => !item.tested).map((item) => item.name);
 process.stdout.write(

@@ -18,7 +18,7 @@ import { describe, expect, it } from "vite-plus/test";
 import ariakit from "@cssints/apg-specs/scenarios/apg/menubar.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/menubar.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/menu-menubar.model.json";
-import { menubarDriver } from "./dom-driver";
+import { menubarDriver } from "./menubar-driver.ts";
 import { mountBar, mountMenubar } from "./menubar.fixture";
 
 const model = makeReferenceModel(decodeDefinition(definitionJson));

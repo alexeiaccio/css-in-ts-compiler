@@ -2976,3 +2976,11 @@ The item is `apps/ui/src/registry/menubar/`, a skin over it: `Menubar` (`role="m
 `menubar.browser.test.tsx` ships with the item (`tested: true`): the ported scenarios replay with the divergences `packages/headless/test/menu.browser.test.tsx` already pins; the differential walk runs the horizontal, always-wrapping bar (the bridge rejects the other config keys, so vertical, `wrap` and a controlled top menu are skipped with the reason), and the kit's own assertions cover the bar's one tab stop, the anchors, a click opening a menu and Down entering it, Right opening the submenu with the chevron turned and the focus on its first row, Down inside it, Escape closing one level at a time, Right along the bar keeping the focus out of the menu, and the outside press.
 
 **Left.** The plain menu button is still one level: `createMenu` has no submenus and `menu-button.qnt` does not model them. `createMenubar` stores a per-item `disabled` but announces no `aria-disabled` and does not skip it, so the kit paints nothing for it and the declared flag is inert — the checkable menu's `aria-disabled` paint has no menubar counterpart to read. `wrap` is accepted but never read, so the bar always wraps as the spec does. The spec's controlled `openTop` (its value / request pair) is not exposed, so a host cannot own the open menu. `orientation: "vertical"` only changes `aria-orientation`; vertical navigation is not modelled.
+
+**A driver belongs to its item.** Every tested item ships a scenario driver under `src/components/ui/`, and the copy flattens
+them into one directory: the seven identical generic drivers overwrote each other harmlessly (same file, same export), and
+the menubar's — which maps the spec's nested labels (`menuitem:0/1/0`) onto the kit's parts — was a different file with a
+different export, so whichever item was added last won and the other's conformance test failed to import
+(`does not provide an export named 'menubarDriver'`). The driver's target is now `<item>-driver.ts`, so no item can claim
+another's, and `scripts/starter-smoke.mjs` fails before installing when two items ship one target with different content —
+the silent version of the same bug.
