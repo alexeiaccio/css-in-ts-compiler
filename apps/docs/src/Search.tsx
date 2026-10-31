@@ -1,3 +1,4 @@
+import { type Hotkeys } from "@cssints/headless";
 import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
@@ -83,8 +84,9 @@ const empty = css.cn(
   css.fontSize(t.fontSize.sm),
 );
 
-// Search over the headings and terms of the pages. "/" or Ctrl/Cmd+K focuses it; arrows, Enter and Escape drive it.
-export function Search() {
+// Search over the headings and terms of the pages. "/" or Ctrl/Cmd+K focuses it (Shell.tsx holds the one registry); arrows, Enter
+// and Escape drive it.
+export function Search(props: { hotkeys: Hotkeys }) {
   const index = createIndex(useContext(DocsContext).pages);
   const [query, setQuery] = createSignal("");
   const [active, setActive] = createSignal(0);
@@ -113,16 +115,21 @@ export function Search() {
   };
 
   onSettled(() => {
-    const focus = (e: KeyboardEvent) => {
-      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as Element).tagName);
-      if ((e.key === "/" && !typing) || (e.key === "k" && (e.metaKey || e.ctrlKey))) {
-        e.preventDefault();
-        inputEl.focus();
-        inputEl.select();
-      }
+    const focus = () => {
+      inputEl.focus();
+      inputEl.select();
     };
-    window.addEventListener("keydown", focus);
-    return () => window.removeEventListener("keydown", focus);
+    // Cmd/Ctrl+K works while typing too, as a browser's own search shortcut does
+    const unbindSlash = props.hotkeys.bind({ keys: "/", onTrigger: focus });
+    const unbindK = props.hotkeys.bind({
+      keys: "mod+k",
+      onTrigger: focus,
+      allowInEditable: true,
+    });
+    return () => {
+      unbindSlash();
+      unbindK();
+    };
   });
 
   return (

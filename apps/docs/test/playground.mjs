@@ -599,7 +599,7 @@ try {
   await page.keyboard.press("Enter");
   await page.getByRole("tab", { name: "other.ts" }).waitFor();
   assert.equal(await page.getByRole("tab", { name: "extra.ts" }).count(), 0);
-  await page.getByRole("button", { name: "Delete other.ts" }).click();
+  await page.getByRole("button", { name: "Close other.ts" }).click();
   assert.equal(await page.getByRole("tab", { name: "other.ts" }).count(), 0);
   await page.getByRole("tab", { name: ENTRY }).click();
   await compiled();

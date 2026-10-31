@@ -1,3 +1,4 @@
+import { createHotkeys } from "@cssints/headless";
 import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { useLocation } from "@solidjs/router";
@@ -193,6 +194,8 @@ const GROUPS = ["Guide", "Reference", "Packages", "Project"] as const;
 export function Shell(props: { children?: JSX.Element }) {
   const { pages } = useContext(DocsContext);
   const [open, setOpen] = createSignal(false);
+  // one keydown listener for the app: "/" and Cmd/Ctrl+K (Search.tsx), Escape here
+  const hotkeys = createHotkeys();
   const location = useLocation();
   // the landing page is the whole width: no sidebar, no drawer
   const home = () => location.pathname.replace(/\/$/, "") === url("").replace(/\/$/, "");
@@ -203,9 +206,16 @@ export function Shell(props: { children?: JSX.Element }) {
     },
   );
   onSettled(() => {
-    const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+    // the drawer closes on Escape; Search.tsx binds "/" and Cmd/Ctrl+K to the same registry
+    const unbind = hotkeys.bind({
+      keys: "escape",
+      onTrigger: () => setOpen(false),
+      preventDefault: false,
+    });
+    return () => {
+      unbind();
+      hotkeys.dispose();
+    };
   });
   return (
     <div class={root}>
@@ -238,7 +248,7 @@ export function Shell(props: { children?: JSX.Element }) {
             alpha
           </sup>
         </a>
-        <Search />
+        <Search hotkeys={hotkeys} />
         <a href={url("playground")} class={iconButton} aria-label="Playground" title="Playground">
           <span class={playIcon} />
         </a>
