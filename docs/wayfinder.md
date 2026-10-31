@@ -3317,3 +3317,55 @@ primitive only announces `aria-rowcount`/`aria-colcount`/`aria-colindex` for a w
 kit adds no virtualiser or resize handles), a keyboard-only way to scroll the wrapper on a browser that does not make
 scroll containers focusable, and a column offset for a horizontally windowed table, which the kit's selection column would
 otherwise be left out of.
+
+## The kit's command palette, and the dialog it is (apps/ui, 2026-10-31)
+
+`@cssints/headless`'s `createCommandPalette` is a composition over `createDialogModal`, `createTextInput` and
+`createStatus` rather than a new pattern, and the kit's item is a skin over it: `CommandPalette` (the primitive and the live
+region), `CommandPaletteTrigger` (a `Button`, the element with `aria-haspopup="dialog"`, `aria-expanded` and
+`aria-controls`), `CommandPaletteContent` (the layer), `CommandPaletteInput`, `CommandPaletteList`,
+`CommandPaletteItem` and `CommandPaletteEmpty`, every part taking `render`, `data-part` and `class` through `merge()`.
+
+**The primitive owns the behaviour**: the filter (`results()` is a case-insensitive substring match over the label and the
+keywords, in the host's order), the dialog and its Escape, the query and its reset on close, the focus into the field and
+back to whatever had it, the active option (`aria-activedescendant`; `-1` means the field holds the highlight), the
+arrows, Home and End while the field is empty, Enter (`runActive` closes before it runs) and the hotkey. The skin renders
+`results()` and nothing else: it keeps no query, no index and no filter, and it handles no key. A row's `aria-selected` is
+the highlight — the same rule `Select` uses, so the skin paints the announcement and keeps no copy of the active index —
+and a heading is the primitive's `group` as a `role="group"` labelled by the heading it renders.
+
+**A palette is a dialog with a search field, not a combobox**, and the skin follows the primitive:
+`input[type=text][role=searchbox]` with `aria-controls` and `aria-activedescendant`, and no `aria-autocomplete` or
+`aria-haspopup`, because choosing a row runs a command and does not complete the field. Writing `role="combobox"` on the
+input in the skin would announce a popup and an autocomplete the behaviour does not have. The field's name is the dialog's
+title (`aria-labelledby`), and the title is in the panel, visually hidden, because the primitive names both the dialog and
+the listbox by it.
+
+**The skin adds the layer**: the scrim and the panel (`frame()` + `surface()`, as `Dialog` does, so a palette inside a card
+keeps the concentric radius), the field's look (borderless in the panel, the caret as the focus indicator), the grouped list
+that scrolls under the field, the row's highlight and the `role=status` region, which lives in the root and is always
+mounted so the count is announced when it changes. The layer is portalled into `document.body` (`mount` overrides it): a
+`transform`, `filter`, `contain` or `overflow: hidden` ancestor would otherwise clip the layer or become the containing
+block of its `position: fixed`, the same reason `Dialog` portals. The body does not scroll while the palette is open.
+
+**The chord is the host's.** The item takes the primitive's `attach` chord (`hotkey`, `"mod+k"` by default, page-wide) or
+`false` for no binding; the docs demo passes `false` and binds `createHotkeys` scoped to its own box, so a reader's ⌘K on
+the docs page is not taken, and it opens the palette through `onReady`'s primitive. The trigger part is the ordinary way
+in; a host that wants a scoped or a different chord binds its own and calls `openPalette()`.
+
+`command-palette.browser.test.tsx` ships with the item (`tested: true`) and walks the kit's DOM: there is no spec to replay
+(a composition is not a pattern), so `command-palette-driver.ts` is a small DOM driver, not a scenario one. It asserts that
+the trigger opens a `role=dialog` with `aria-modal` (the layer is a child of the body, the title names the dialog and the
+listbox, the field is focused and names the first option with `aria-activedescendant`, four rows say `option` with one
+`aria-selected`), that typing shows the primitive's `results()` and nothing else (`"roll"`, `"production"`,
+`"PREFERENCES"`, `"zzz"` with the empty state and `"No commands"`), that the arrows move `aria-activedescendant` and repaint
+the rows (`-1` at either end, and ↓/↑ from there re-enter), that Enter runs the highlighted command and closes and returns
+the focus to the trigger, that Escape does the same and resets the query, that a click runs a row and keeps the focus in the
+field (the primitive cancels the mouse-down), and that the layer stands outside a `transform` + `overflow: hidden` ancestor
+(`offsetParent` null, the viewport's width) and moves to a host's own `mount`.
+
+**Left**: no controlled `open` — `createCommandPalette` reads its `open` option once when it is created (`value:
+options.open`), so a host that writes a signal afterwards would not move the dialog; the item exposes the request half
+(`onOpenChange` as a notification) and the trigger and hotkey instead. No fuzzy ranking, recents or scopes: the filter is
+the primitive's substring match and ranking is the host's policy. No per-row slot beyond `render` (a command's icon would be
+a `render` on the item, so it is the same for every row), and no `defaultOpen` (the primitive has none).
