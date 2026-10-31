@@ -15,7 +15,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] panzoom
 - [x] diagram
 - [x] hotkeys
-- [ ] carousel
+- [x] carousel
 - [ ] grid
 - [ ] feed
 - [ ] player
@@ -72,3 +72,13 @@ Tests: `apps/ui` 373 passed (11 new for the diagram), `bun run typecheck`, `bun 
 - Added the demo to `src/docs/demos.tsx`; regenerated `r/shortcuts.json`, `r/registry.json` and `public/llms.txt`.
 
 Tests: `apps/ui` 382 passed (9 new for the shortcuts), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
+
+## Carousel (round six)
+
+- Added `apps/ui/src/registry/carousel/`: `Carousel` over `createCarousel`; the skin is the named region, the surface frame and its rounded track, the control row (`‹` / `›` with names), the dots and the "2 of 5" count, the enter animation that honours reduced motion, and the two gestures the primitive leaves to the host: the arrow keys on a focused slide (the focus follows the slide that is shown) and a touch swipe. The primitive owns the shown slide, the next / previous requests, the slide semantics (`aria-roledescription="slide"`, `aria-label="1 of 5"`, `tabindex`), the hover / focus pause and the `aria-live` the frame announces; the skin does not translate the track, because the primitive hides the non-current slides rather than scrolling a strip.
+- Added the fixture (five drawn slides, the sentence about the keys and the swipe, and `mountCarousel`) and the Chromium browser test: the named region and the slide semantics, the controls' `aria-controls`, next / previous and the indicator, wrapping at both ends, a dot click, the arrow keys and the focus that follows, and a touch swipe versus a mouse drag.
+- Added the demo to `src/docs/demos.tsx` and a `.demo-carousel` rule in `docs.css`; regenerated `r/carousel.json`, `r/registry.json` and `public/llms.txt`.
+- Finding: `docs/API.md` has no carousel section and `packages/headless/README.md` only lists the pattern under the prefs table, so the primitive's contract is read from `src/carousel.ts` and its scenario test. Its doc comment calls the platform "hybrid — CSS scroll-snap (widely) scrolls slides", but the implementation hides every slide but the current one (`hidden`, `tabindex` 0/-1), so a scroll-snap skin would fight it; the starter stacks the slides instead.
+
+Tests: `apps/ui` 389 passed (7 new for the carousel), `bun run typecheck`, `bun run build` and `theme:check` pass.
