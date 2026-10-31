@@ -49,8 +49,9 @@ if [ -z "$DRY" ]; then
   # npm wants a one-time password on the first trust call of a session and caches it for a few minutes. That call needs a
   # terminal for the link it prints, so it is made here, on its own, before the loop takes npm's stdout away.
   first=$(echo $PACKAGES | cut -d" " -f1)
-  echo "npm may ask for a one-time password now: open the link it prints, and the run continues" >&2
-  npm trust list "$first" >/dev/null || true
+  echo "npm may ask for a one-time password now: open the link it prints, approve it, and the run continues" >&2
+  # nothing redirected: npm builds the challenge only for a terminal, and a piped call answers EOTP with no id at all
+  npm trust list "$first" || true
 fi
 
 for p in $PACKAGES; do
@@ -68,8 +69,9 @@ for p in $PACKAGES; do
   errors=$(mktemp)
   if ! npm trust list "$p" --json >"$listing" 2>"$errors"; then
     cat "$errors" >&2
+    reason=$(cat "$errors")
     rm -f "$listing" "$errors"
-    case "$(cat "$errors")" in
+    case "$reason" in
       *EOTP* | *"one-time password"* | *authId*)
         echo "  $p: npm wants a one-time password — open the link above (or run \`npm login\`), then re-run this" >&2 ;;
       *E401* | *"logged in"*)
