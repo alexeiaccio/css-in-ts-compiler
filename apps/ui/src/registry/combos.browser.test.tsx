@@ -108,13 +108,17 @@ describe("the kit composes", () => {
   it("puts a modal above the page, names it, keeps focus and gives it back", () => {
     const root = mount(() => <Dialogs />);
     const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
-    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
     // a real pointer click focuses the button first; `click()` does not, and the dialog gives focus back to what had it
     trigger.focus();
     trigger.click();
     flush();
-    const panel = root.querySelector<HTMLElement>('[data-part="dialog"]')!;
-    const backdrop = root.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!;
+    // the layer is portalled out of the view and into the body, so the whole document is where the panel lives
+    const panel = document.querySelector<HTMLElement>('[data-part="dialog"]')!;
+    const backdrop = document.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!;
+    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
+    expect(root.contains(layer)).toBe(false);
+    expect(document.body.contains(layer)).toBe(true);
     // the panel is the dialog: a role and a name from the prop, the description it renders, and the modal state
     expect(panel.getAttribute("role")).toBe("dialog");
     expect(panel.getAttribute("aria-label")).toBe("Rename file");
@@ -124,7 +128,7 @@ describe("the kit composes", () => {
       "dialog-description",
     );
     // above the page, behind a wash, and the page does not scroll under it
-    expect(style(root.querySelector<HTMLElement>('[data-part="dialog-layer"]')!).zIndex).toBe("20");
+    expect(style(layer).zIndex).toBe("20");
     expect(style(panel).position).toBe("relative");
     expect(style(backdrop).position).toBe("absolute");
     expect(style(backdrop).backgroundColor).not.toBe(style(panel).backgroundColor);
@@ -133,16 +137,48 @@ describe("the kit composes", () => {
     expect(document.activeElement).toBe(panel);
     panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     flush();
-    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
-    expect(root.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
     expect(document.activeElement).toBe(trigger);
     expect(document.body.style.overflow).toBe("");
     // and the backdrop is a way out too
     trigger.click();
     flush();
-    root.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!.click();
+    document.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!.click();
     flush();
-    expect(root.querySelector('[data-part="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
+  });
+
+  it("covers the viewport from a transformed, clipped ancestor", () => {
+    // a card with a hover lift (`transform`) and a scroll box (`overflow: hidden`) is both a containing block for
+    // `position: fixed` and a clip: inline, the layer would be as tall as the card and its `top: 0` would be the card's
+    const view = (): JSX.Element => (
+      <div style={{ transform: "translateZ(0)", overflow: "hidden" }}>
+        <Dialogs />
+      </div>
+    );
+    const root = mount(view);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
+    trigger.focus();
+    trigger.click();
+    flush();
+    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
+    const rect = layer.getBoundingClientRect();
+    // the layer is the viewport, not the ancestor: `fixed` resolves against it and no ancestor clips it
+    expect(Math.round(rect.top)).toBe(0);
+    expect(Math.round(rect.left)).toBe(0);
+    expect(Math.round(rect.width)).toBe(window.innerWidth);
+    expect(Math.round(rect.height)).toBe(window.innerHeight);
+    // a fixed box with no containing block above it, and it is a child of the document's body
+    expect(layer.offsetParent).toBeNull();
+    expect(document.body.contains(layer)).toBe(true);
+    expect(root.contains(layer)).toBe(false);
+    document
+      .querySelector<HTMLElement>('[data-part="dialog"]')!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 
   it("lets render replace a part and keeps the props and the state live", () => {
