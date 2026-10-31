@@ -51,7 +51,24 @@ for p in $PACKAGES; do
     echo "  npm trust github $p --file release.yml --repo alexeiaccio/css-in-ts-compiler --allow-publish --yes"
     continue
   fi
-  for id in $(npm trust list "$p" --json | node scripts/trust.mjs ids); do
+  # the listing first, and nothing is revoked or created unless it parses: a stale session answers 401 with an error body,
+  # and creating a connection on top of the one that failed to list would leave two for the same workflow. Where the listing
+  # goes to a file and its errors stay on the terminal, so the one-time-password link npm prints is readable: capturing both
+  # would hide it and the run would look hung.
+  echo "  (npm may ask for a one-time password: open the link it prints, and the run continues)" >&2
+  listing=$(mktemp)
+  if ! npm trust list "$p" --json >"$listing"; then
+    rm -f "$listing"
+    echo "  cannot read the connections of $p — run \`npm login\` first, and approve the one-time password" >&2
+    exit 1
+  fi
+  if ! ids=$(node scripts/trust.mjs ids <"$listing"); then
+    rm -f "$listing"
+    echo "  $p: the listing carries no connection id, nothing was revoked or created" >&2
+    exit 1
+  fi
+  rm -f "$listing"
+  for id in $ids; do
     echo "  revoking $id"
     npm trust revoke "$p" --id="$id"
   done
