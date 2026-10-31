@@ -2187,9 +2187,8 @@ to a missing id is worse than an empty one. `Dialog.Trigger` and `Dialog.Close` 
 control renders an `Input`, so the button keeps `data-part="button"` and the trigger is found by `aria-haspopup="dialog"`.
 Focus goes into the panel on open (it is `tabindex="-1"` and has no ring of its own) and back to what had it on close, with
 the page's scroll locked meanwhile — `combos.browser.test.tsx` covers the name, the description, the stacking, the scroll
-lock, Escape, the backdrop click and the focus. **Left**: no portal — a dialog rendered inside a transformed ancestor is
-trapped by it, which is a host's corner and not yet a case; no nested-layer handle: a popover over a dialog wants the next `z`
-value.
+lock, Escape, the backdrop click and the focus. **Left** (the portal is done since, "The dialog's layer is portalled out
+of the view"): no nested-layer handle: a popover over a dialog wants the next `z` value.
 
 `packages/apg-specs`. **Left**: the frames and the generated C keep their Mac-only check, so a rendering regression on another
 platform is still found by a person; a `libui` on Linux (SDL3 and ThorVG built from source) would change that.
@@ -2547,3 +2546,30 @@ independent request pairs with one `onOpenChange` each, so a host that controls 
 expose the checkable variants); the group's children keep their bare `"0"`/`"1"`/`"2"` ids, so two groups on one page
 collide until that becomes a bug worth the fixture churn; and the parent controller still has no `aria-controls` on its
 children, which the spec's header names but does not model.
+
+## The dialog's layer is portalled out of the view (apps/ui, 2026-10-31)
+
+The kit's first overlay entry left the dialog inline: a caller whose ancestor has `transform`, `filter`, `contain: paint` or
+`overflow: hidden` — a card with a hover lift, a scroll box in a layout — either clipped the layer or became the containing
+block of its `position: fixed`, so the layer was as tall as that ancestor and its `top: 0` was the ancestor's top, and the
+modal was broken through no fault of the caller. `DialogContent` now renders the layer inside `@solidjs/web`'s `Portal`,
+which appends it to `document.body`; `Dialog` gained an optional `mount` for a host that names its own root (a `#modal-root`,
+a shadow root's host), and the context carries it so the `mount` stays live.
+
+Only the layer moved. The trigger, the context, the ids (`dialogProps.id` is still how the panel is found for the focus and
+the Tab cycle), the focus save/restore (`restore?.focus()` reaches the trigger across the portal), the scroll lock on
+`document.body.style.overflow`, Escape on the panel, the backdrop's click and the panel's focus are unchanged; the layer,
+the backdrop and the panel are the same three boxes, and `z-index` still reads `var(--z-dialog)`. `Portal` sits inside
+`DialogContent`'s `Show`, so an unopened dialog renders nothing anywhere and the portal is disposed with its parent scope.
+
+The cost is client-only: `Portal` renders nothing on the server, so an `open` dialog at mount is not in pre-rendered HTML and
+appears once hydration settles — a layer cannot exist in server output without a second implementation of it, and hoisting
+data above the portal is the wrong trade for a dialog. `apps/ui` is a client SPA (`index.html` mounts `Docs` only when
+`import.meta.env.SSR` is false) and `apps/docs` does not import the kit, so neither build changes; a host that prerenders
+and opens a dialog at mount loses only its server paint. `combos.browser.test.tsx` adds "covers the viewport from a
+transformed, clipped ancestor", which mounts the dialog inside `transform: translateZ(0); overflow: hidden` and asserts the
+layer's `getBoundingClientRect` is the viewport, its `offsetParent` is null and `document.body` contains it — inline, the
+`offsetParent` was the transformed ancestor and the rect was the ancestor's box. The existing dialog case reads the panel,
+the backdrop and the layer off the document instead of its mount root, which is where they now live. **Left**: the `mount`
+prop has no case of its own (the geometry case opens the dialog with no `mount`, so the body is the target); a host's own
+modal root is the same portal with one element passed.
