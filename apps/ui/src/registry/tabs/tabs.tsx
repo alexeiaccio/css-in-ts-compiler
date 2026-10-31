@@ -9,11 +9,21 @@ import { t } from "../theme.ts" with { type: "cssints" };
 const rootClass = css.display("flex") + " " + css.flexDirection("column");
 const listClass = css.cn(
   css.display("flex"),
+  // At 320 px and 200 % text four labels do not fit on one line; wrapping is the reflow (G1). The
+  // tabs keep their natural width (a flex item's `min-width` is `auto`), so a label is never clipped.
+  css.flexWrap("wrap"),
   css.gap(t.space._1),
   css.borderBottom("1px solid", t.color.border),
 );
 const tabClass = css.cn(
   css.padding(t.space._2, t.space._3),
+  // 2.5.8: 24 x 24 CSS px, whatever the label. The padding alone gives 33 px of height and 33 px of
+  // width for a one-letter label today, so these only hold the floor if a smaller padding arrives.
+  css.minHeight("24px"),
+  css.minWidth("24px"),
+  // 2.4.12: a browser that reveals the focused tab scrolls it to the top of its scrollport, where a
+  // sticky header sits; this keeps it 40 px clear (the registry test puts a 32 px header above it).
+  css.scrollMarginTop(t.space._10),
   css.bg("transparent"),
   css.border("none"),
   css.borderBottom("2px solid", "transparent"),
@@ -22,9 +32,11 @@ const tabClass = css.cn(
   css.cursor("pointer"),
   css.hover(css.color(t.color.text)),
   css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
+  // The underline is heavier when selected, not only a different colour: 3 px against 2 px is the
+  // non-colour cue 1.4.1 asks for (G4).
   css.attr("aria-selected", "true")(
     css.color(t.color.text),
-    css.borderBottom("2px solid", t.color.highlight),
+    css.borderBottom("3px solid", t.color.highlight),
   ),
   css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
 );
