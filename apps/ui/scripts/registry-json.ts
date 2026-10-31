@@ -117,6 +117,16 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is",
   },
   {
+    name: "shortcuts",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["dialog/dialog.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Shortcuts",
+    description:
+      "A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to",
+    also: ["@cssints/button", "@cssints/input"],
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

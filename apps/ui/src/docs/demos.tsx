@@ -53,6 +53,7 @@ import {
 } from "../registry/panzoom/panzoom.fixture.tsx";
 import { Panzoom } from "../registry/panzoom/panzoom.tsx";
 import { Scrollspy, type ScrollspyEntry } from "../registry/scrollspy/scrollspy.tsx";
+import { ShortcutsExample } from "../registry/shortcuts/shortcuts.fixture.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
@@ -347,6 +348,11 @@ const DiagramDemo = (): JSX.Element => {
     </div>
   );
 };
+
+// The starter is its own demo — a button, a search field, a note with an `s` of its own and the `?` that opens the sheet
+// — because a shortcut sheet is only proved by chords that fire. The fixture exports the component, so the gallery and
+// the browser test show the same wiring.
+const ShortcutsDemo = (): JSX.Element => <ShortcutsExample />;
 
 // The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
 // or Escape closes it, and a pointer outside the anchor is the third way out.
@@ -1180,6 +1186,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   panzoom: PanzoomDemo,
   scrollspy: ScrollspyDemo,
   diagram: DiagramDemo,
+  shortcuts: ShortcutsDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,
