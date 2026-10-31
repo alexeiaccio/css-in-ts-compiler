@@ -17,6 +17,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - field: A label, a control, a hint and an error: the ids and the ARIA are `createField`'s. `add @cssints/field`
 - dialog: APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close. `add @cssints/dialog`
 - drawer: An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return. `add @cssints/drawer`
+- panzoom: One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture. `add @cssints/panzoom`
 - input: A text field on the neutral theme, and the control `Field` puts in by default. `add @cssints/input`
 - toolbar: A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context. `add @cssints/toolbar`
 - button-group: Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's. `add @cssints/button-group`
