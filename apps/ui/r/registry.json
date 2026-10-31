@@ -1269,6 +1269,53 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "resizable-panels",
+      "type": "registry:ui",
+      "title": "Resizable panels",
+      "description": "A group of panes with a separator between each pair: drag or use the arrows, Home and End jump a pair to its bounds, Enter collapses and restores, and the primitive keeps the layout summing to 100%",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "resizable-panels.tsx",
+          "target": "src/components/ui/resizable-panels.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "resizable-panels.fixture.tsx",
+          "target": "src/components/ui/resizable-panels.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "resizable-panels.browser.test.tsx",
+          "target": "src/components/ui/resizable-panels.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "menu",
       "type": "registry:ui",
       "title": "Menu",
