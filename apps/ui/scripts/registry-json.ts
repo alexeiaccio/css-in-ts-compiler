@@ -456,6 +456,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line",
   },
+  {
+    tested: true,
+    // the APG rearrangeable listbox's Quint spec walks the primitive; this starter renders one of its two lists
+    name: "reorder",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Reorderable list",
+    description:
+      "A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
