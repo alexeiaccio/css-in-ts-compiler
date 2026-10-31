@@ -86,15 +86,26 @@ if (left.length === 0) {
 }
 
 process.stdout.write(`publishing ${left.length} of ${packages.length} packages\n`);
+// npm's own lines are the evidence a person reads in the log, so they are kept even though they are captured: a silent
+// success is why a finished release once looked like a step that never ran.
 let output = "";
+let failed = false;
 try {
-  execFileSync("npx", ["changeset", "publish"], { cwd: root, stdio: ["inherit", "pipe", "pipe"] });
+  output = execFileSync("npx", ["changeset", "publish"], {
+    cwd: root,
+    stdio: ["inherit", "pipe", "pipe"],
+    encoding: "utf8",
+  });
 } catch (error) {
+  failed = true;
   output = `${error.stdout ?? ""}${error.stderr ?? ""}`;
-  process.stderr.write(output);
 }
+process.stdout.write(output);
 
-if (output !== "") {
+if (!failed) {
+  process.stdout.write(`published ${left.length} of ${packages.length} packages\n`);
+  execFileSync("git", ["push", "--tags"], { cwd: root, stdio: "inherit" });
+} else {
   const still = await missing();
   if (still.length > 0 && !stagedOnly(output)) {
     process.stderr.write(
