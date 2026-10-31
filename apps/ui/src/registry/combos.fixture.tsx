@@ -133,6 +133,31 @@ export const Dialogs = (): JSX.Element => {
   );
 };
 
+/** The host's own modal root: a dialog can be sent to any element, not only `document.body`. */
+const modalRoot = (): HTMLElement => {
+  const existing = document.getElementById("combos-modal-root");
+  if (existing !== null) {
+    return existing;
+  }
+  const element = document.createElement("div");
+  element.id = "combos-modal-root";
+  document.body.append(element);
+  return element;
+};
+
+export const MountedDialogs = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <Dialog label="Move file" mount={modalRoot()} open={open()} onOpenChange={setOpen}>
+      <DialogTrigger>Move</DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Move</DialogTitle>
+        <DialogClose>Cancel</DialogClose>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const Fields = (): JSX.Element => (
   <>
     <Field id="email" hint="We never share it" error="Enter an address">

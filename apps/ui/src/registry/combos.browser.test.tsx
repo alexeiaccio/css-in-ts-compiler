@@ -19,6 +19,7 @@ import {
   Groups,
   Meters,
   Menus,
+  MountedDialogs,
   Mode,
   Nesting,
   Renders,
@@ -173,6 +174,26 @@ describe("the kit composes", () => {
     expect(Math.round(rect.height)).toBe(window.innerHeight);
     // a fixed box with no containing block above it, and it is a child of the document's body
     expect(layer.offsetParent).toBeNull();
+    expect(document.body.contains(layer)).toBe(true);
+    expect(root.contains(layer)).toBe(false);
+    document
+      .querySelector<HTMLElement>('[data-part="dialog"]')!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flush();
+    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("sends the layer to the host's own modal root", () => {
+    const root = mount(() => <MountedDialogs />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
+    trigger.focus();
+    trigger.click();
+    flush();
+    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
+    // the `mount` prop is the portal's target: the layer's parent is the host's root, not the body
+    const target = document.getElementById("combos-modal-root")!;
+    expect(layer.parentElement).toBe(target);
     expect(document.body.contains(layer)).toBe(true);
     expect(root.contains(layer)).toBe(false);
     document
