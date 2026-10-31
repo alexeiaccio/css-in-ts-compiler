@@ -17,7 +17,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] hotkeys
 - [x] carousel
 - [x] grid — infrastructure, not a starter: the two-dimensional focus and window machine `table` and `treegrid` sit on
-- [ ] feed
+- [x] feed
 - [ ] player
 - [x] treegrid
 - [ ] resizable-panels
@@ -89,6 +89,15 @@ Tests: `apps/ui` 389 passed (7 new for the carousel), `bun run typecheck`, `bun 
 - Added the fixture (a project's three roots and their children, two folders open, `src` / `public` / `tests`, sizes and dates, and `mountTreegrid` with a button after the grid) and the Chromium browser test: the role and label, the header row, levels and `aria-posinset` / `aria-setsize`, Right and Left expanding and collapsing, Down and Up, Home and End, Tab leaving, cell navigation, the selection painted from `aria-selected`, and the expander's name.
 - Added the demo to `src/docs/demos.tsx` and a `.demo-treegrid` rule in `docs.css`; regenerated `r/treegrid.json`, `r/registry.json` and `public/llms.txt`.
 - `grid` is not a starter: it is the infrastructure `table` and `treegrid` sit on, and a skin of it alone would be the focus and window machinery the two starters already demonstrate. The bean's list now says that.
+
+## Feed (round eight)
+
+- Added `apps/ui/src/registry/feed/`: `Feed` over `createFeed`; the skin is the 420 px scrollport on the page colour, the cards on the surface with the kit's border and radius, the 3:2 thumbnail crop (a slot, with the title's first letter when the page has no picture), the "Loading more…" sentinel and its spinner, the status line, and the reduced-motion rule the spinner reads. The primitive owns the loaded count, `aria-posinset` / `aria-setsize`, the focusable article and its keys (Page Up/Down, Control+Home/End), the focus on the article the reading cursor is at, and `aria-busy`; the skin bridges the batch: it calls the host's `loadMore` while the primitive is busy, `loadFinish`es the count that arrived, and `loadFail`s a rejection into the status line.
+- The scroll trigger is the host's, as the spec says: an `IntersectionObserver` on the after sentinel calls `loadStart` when the scrollport reaches it. A batch that lands while the sentinel holds the focus (the Control+End path) moves the focus to the first article that came in instead of dropping it with the sentinel.
+- Added the fixture (nine articles of a drawn journal, six at mount, the loader waiting 180 ms and returning three from the same local array, no network) and the Chromium browser test: the role and label, the position and size of the articles and the ids their headings and summaries carry, the scrollport loading the batch with `aria-busy` and the spinner, the status line and the sentinel at the end, Page Down / Page Up moving the focus, and Control+End keeping it when the sentinel goes.
+- Added the demo to `src/docs/demos.tsx` and a `.demo-feed` rule in `docs.css`; regenerated `r/feed.json`, `r/registry.json` and `public/llms.txt`. The other `r/*.json` were left as committed (several embed a pre-format copy of their sources), so a full regeneration is still owed.
+- Finding: `docs/API.md` has no feed section and `packages/headless/README.md` only lists the pattern in the prefs table, so the contract is read from `src/feed.ts`, `specs/apg/feed.qnt` and `feed.browser.test.tsx`. The spec's deliberate omission ("scroll-position-triggered loading: load_start stands in for it") is exactly the seam this skin fills.
+
 
 ## Engine gaps
 
