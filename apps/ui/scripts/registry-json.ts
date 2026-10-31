@@ -80,6 +80,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "drawer",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Drawer",
+    description:
+      "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return",
+    also: ["@cssints/button"],
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

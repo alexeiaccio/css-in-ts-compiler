@@ -27,6 +27,16 @@ import {
 import { ButtonGroup } from "../registry/button-group/button-group.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
+import {
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../registry/drawer/drawer.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
@@ -65,12 +75,15 @@ import { Slider } from "../registry/slider/slider.tsx";
 import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
-import { createToast } from "@cssints/headless";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Toaster } from "../registry/toast/toast.tsx";
 import { createSignal, For, onSettled } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { type CommandPalette as CommandPaletteController, createHotkeys } from "@cssints/headless";
+import {
+  type CommandPalette as CommandPaletteController,
+  createHotkeys,
+  createToast,
+} from "@cssints/headless";
 
 const SwitchDemo = (): JSX.Element => {
   const [checked, setChecked] = createSignal(true);
@@ -195,6 +208,50 @@ const DialogDemo = (): JSX.Element => {
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const DrawerDemo = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Drawer open={open()} onOpenChange={setOpen}>
+          <DrawerTrigger>Filters</DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Filters</DrawerTitle>
+              <DrawerClose />
+            </DrawerHeader>
+            <DrawerBody>
+              <Input aria-label="Search" placeholder="Search the report" />
+            </DrawerBody>
+            <DrawerFooter>
+              <Button tone="quiet" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button tone="accent" onClick={() => setOpen(false)}>
+                Apply
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+        {/* the same drawer on the bottom edge: full width, its top corners round, and the body scrolls inside its height */}
+        <Drawer side="bottom">
+          <DrawerTrigger>Open the sheet</DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Share</DrawerTitle>
+              <DrawerClose />
+            </DrawerHeader>
+            <DrawerBody>A bottom sheet is a drawer with side="bottom".</DrawerBody>
+            <DrawerFooter>
+              <Button tone="accent">Copy link</Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      </div>
+    </div>
   );
 };
 
@@ -859,6 +916,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   field: FieldDemo,
   input: InputDemo,
   dialog: DialogDemo,
+  drawer: DrawerDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,
