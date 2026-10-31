@@ -114,19 +114,34 @@ assert.equal(
   "a script reaches every target",
 );
 assert.deepEqual(requiresWarnings("t.script", [{ ...runtime, script: "x" }]), [], "covered");
+// a runtime with a script and no polyfills is the plugin's own face: it is not a fallback for any target, so every target
+// needs it (a plugin whose script is the feature: @cssints/reactive, cssints-zrt2)
+for (const ts of [undefined, [["firefox", "127"]], [["chrome", "146"]], [["safari", "26"]]])
+  assert.equal(
+    Effect.runSync(needed({ polyfills: [], script: "x" }, ts)),
+    true,
+    `no polyfills: every target needs the script (${JSON.stringify(ts)})`,
+  );
+assert.equal(
+  Effect.runSync(needed({ polyfills: [] }, [["chrome", "120"]])),
+  false,
+  "no polyfills, no script, no css: nothing to deliver",
+);
 const scriptUse = await code("plug-script-use.ts");
-for (const n of ["ps.a", "ps.b", "ps.c"])
+for (const n of ["ps.a", "ps.b", "ps.c", "ps.d"])
   assert.ok(scriptUse.includes(`virtual:cssints/runtime/${n}`), scriptUse);
 const scriptModule = async (n) =>
   (await client.transformRequest(`virtual:cssints/runtime/${n}`)).code;
-const [sa, sb, sc] = [
+const [sa, sb, sc, sd] = [
   await scriptModule("ps.a"),
   await scriptModule("ps.b"),
   await scriptModule("ps.c"),
+  await scriptModule("ps.d"),
 ];
 assert.equal(sa, 'import "/fixtures/plug-script-run.js";\n', sa);
 assert.equal(sb, sa, "one script, one import: the browser runs it once");
 assert.equal(sc, "export {};", "every target has the feature: nothing ships");
+assert.equal(sd, sa, "no polyfills: the script ships, whatever the targets are");
 
 // a kernel written as styles: the support warning of a declaration is covered like `requires`, and names --sw-g, not --_g
 warnings.length = 0;

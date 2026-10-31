@@ -67,12 +67,19 @@ export interface ParentVar {
   write: `--_${string}`;
   watch?: `--_${string}`;
 }
-/** The browser half, delivered when a target lacks a polyfilled feature (`virtual:cssints/runtime/<scope>.<entry>`); `&` is the marker of the member's first kernel. */
+/**
+ * The browser half, delivered when a target lacks a polyfilled feature (`virtual:cssints/runtime/<scope>.<entry>`); `&` is
+ * the marker of the member's first kernel. A runtime with a `script` (or `css`) and no `polyfills` is the plugin's own
+ * face, not a fallback: every target gets it.
+ */
 export interface RuntimeDef {
   polyfills: BcdKey[];
   parentVars?: ParentVar[];
   css?: string;
-  /** A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a polyfilled feature. */
+  /**
+   * A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a
+   * polyfilled feature, and by every target when `polyfills` is empty.
+   */
   script?: string;
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
@@ -457,15 +464,17 @@ type MemberOf<K extends string, V, A> =
 
 /** What `.export()` gives: the members of the table, typed from it (a `-prefixed` property is camel-cased, an embedded scope nests). */
 export type Members<T> = {
-  [K in keyof T & string as Private<K> extends true
-    ? never
-    : Kind<K, T[K]> extends "chain" | "call" | "value"
-      ? K
-      : Kind<K, T[K]> extends "prop"
-        ? Camel<K>
-        : Kind<K, T[K]> extends "module"
-          ? K
-          : never]: Kind<K, T[K]> extends "module"
+  [
+    K in keyof T & string as Private<K> extends true
+      ? never
+      : Kind<K, T[K]> extends "chain" | "call" | "value"
+        ? K
+        : Kind<K, T[K]> extends "prop"
+          ? Camel<K>
+          : Kind<K, T[K]> extends "module"
+            ? K
+            : never
+  ]: Kind<K, T[K]> extends "module"
     ? T[K] extends { "~scope": string; "~table": infer MT }
       ? Members<MT>
       : never
