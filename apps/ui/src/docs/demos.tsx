@@ -13,6 +13,11 @@ import {
 import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.tsx";
 import { Button } from "../registry/button/button.tsx";
 import {
+  CommandPalette,
+  CommandPaletteContent,
+  CommandPaletteTrigger,
+} from "../registry/command-palette/command-palette.tsx";
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -63,8 +68,9 @@ import { Switch } from "../registry/switch/switch.tsx";
 import { createToast } from "@cssints/headless";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Toaster } from "../registry/toast/toast.tsx";
-import { createSignal, For } from "solid-js";
+import { createSignal, For, onSettled } from "solid-js";
 import type { JSX } from "@solidjs/web";
+import { type CommandPalette as CommandPaletteController, createHotkeys } from "@cssints/headless";
 
 const SwitchDemo = (): JSX.Element => {
   const [checked, setChecked] = createSignal(true);
@@ -762,6 +768,90 @@ const TableDemo = (): JSX.Element => {
     </div>
   );
 };
+
+const CommandPaletteDemo = (): JSX.Element => {
+  const [last, setLast] = createSignal("");
+  let box: HTMLDivElement | undefined;
+  let palette: CommandPaletteController | undefined;
+
+  // The chord is the demo's own, scoped to this box: a page-wide mod+k on a docs page would take the
+  // reader's keys from whatever they were doing. A real app binds it on the page (the item's `hotkey`).
+  onSettled(() => {
+    const hotkeys = createHotkeys();
+    const unbind = hotkeys.bind({
+      keys: "mod+k",
+      scope: box,
+      onTrigger: () => palette?.openPalette(),
+    });
+    return () => {
+      unbind();
+      hotkeys.dispose();
+    };
+  });
+
+  const run = (label: string) => (): void => {
+    setLast(label);
+  };
+
+  return (
+    <div
+      class="demo-column"
+      ref={(element: HTMLDivElement) => {
+        box = element;
+      }}
+    >
+      <CommandPalette
+        hotkey={false}
+        onReady={(created) => {
+          palette = created;
+        }}
+        commands={[
+          {
+            id: "new",
+            label: "New file",
+            group: "File",
+            keywords: ["create"],
+            run: run("New file"),
+          },
+          {
+            id: "open",
+            label: "Open file",
+            group: "File",
+            keywords: ["browse"],
+            run: run("Open file"),
+          },
+          {
+            id: "theme",
+            label: "Toggle theme",
+            group: "View",
+            keywords: ["dark"],
+            run: run("Toggle theme"),
+          },
+          {
+            id: "settings",
+            label: "Open settings",
+            group: "View",
+            keywords: ["preferences"],
+            run: run("Open settings"),
+          },
+        ]}
+      >
+        <div class="demo-row">
+          <CommandPaletteTrigger>Open the palette</CommandPaletteTrigger>
+          <span class="demo-text">
+            or press <kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd> with the focus in this box
+          </span>
+        </div>
+        <CommandPaletteContent />
+      </CommandPalette>
+      <p class="demo-text">
+        {last() === ""
+          ? "No command has run yet: the field filters, the arrows move the highlight, Enter runs it."
+          : `The last command that ran was “${last()}”.`}
+      </p>
+    </div>
+  );
+};
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -791,6 +881,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   popover: PopoverDemo,
   "date-picker": DatePickerDemo,
   select: SelectDemo,
+  "command-palette": CommandPaletteDemo,
   textarea: TextareaDemo,
   slider: SliderDemo,
   "slider-multithumb": SliderMultithumbDemo,

@@ -40,6 +40,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - popover: A non-modal panel anchored to a trigger: a dialog surface that flips at the viewport edge, closes on an outside press or Escape, and returns the focus. `add @cssints/popover`
 - date-picker: A calendar in a popover: a 6x7 month grid with arrows, Home and End, PageUp and PageDown, min and max, and the chosen day on the trigger. `add @cssints/date-picker`
 - select: APG select-only combobox: the button that shows the chosen label is the combobox, a floating listbox follows it with `aria-activedescendant`, and Enter, Tab or a click commits. `add @cssints/select`
+- command-palette: A modal dialog with a search field: the primitive filters the commands, `aria-activedescendant` marks the active row, and arrows, Enter, Escape and a hotkey are its keys. `add @cssints/command-palette`
 - textarea: A multi-line field styled like `Input`, and the control `Field` puts in with `render`. `add @cssints/textarea`
 - slider: APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`. `add @cssints/slider`
 - slider-multithumb: APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill. `add @cssints/slider-multithumb`

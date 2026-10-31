@@ -269,6 +269,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "command-palette",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Command palette",
+    description:
+      "A modal dialog with a search field: the primitive filters the commands, `aria-activedescendant` marks the active row, and arrows, Enter, Escape and a hotkey are its keys",
+    also: ["@cssints/button"],
+  },
+  {
     name: "textarea",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
