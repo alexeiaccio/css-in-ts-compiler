@@ -1,6 +1,6 @@
 {
   "name": "cssints",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "description": "CSS in TypeScript: typed css.* calls compiled to atomic CSS at build time (a Vite plugin)",
   "license": "MIT",
   "repository": {
