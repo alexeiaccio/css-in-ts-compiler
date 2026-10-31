@@ -1,4 +1,9 @@
-import { type Menu as MenuController, type MenuItemInput, createMenu } from "@cssints/headless";
+import {
+  type Menu as MenuController,
+  type MenuItemInput,
+  type MenuVariant,
+  createMenu,
+} from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
 import { createContext, createEffect, merge, omit, onSettled, useContext } from "solid-js";
@@ -7,9 +12,33 @@ import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
 
+/**
+ * The checkable state, readable: checkbox items that are checked, and the chosen radio, by index. The primitive reports the
+ * pair packed into one number (`checkboxItem0 * 5 + radioChoice`); the kit packs and unpacks at its own boundary, so a
+ * caller never writes the encoding. The pack has one checkbox bit, so a controlled menu controls item 0 (the checkbox of
+ * the `mixed` variant); an uncontrolled menu may check any item.
+ */
+export interface MenuChecked {
+  /** The checked checkbox items, by index. */
+  readonly checked: ReadonlyArray<number>;
+  /** The chosen radio item, by index; `-1` or absent means none. */
+  readonly radio?: number;
+}
+
 export interface MenuProps {
   /** The items, declared once: the primitive needs the labels for typeahead, and the ids come from here. */
   readonly items: ReadonlyArray<string | MenuItemInput>;
+  /**
+   * The primitive's variant: `plain` by default; `checkbox-items`, `radio-items` or `mixed` gives each item its role by
+   * index (the primitive's rule, not a `kind` on the item).
+   */
+  readonly variant?: MenuVariant;
+  /** Controlled checked items; leave it out and the menu owns them. */
+  readonly value?: MenuChecked | undefined;
+  /** Uncontrolled checked items at mount; ignored while `value` is set. */
+  readonly defaultValue?: MenuChecked;
+  /** A request to change the checked items. A plain item is `onItemClick`, not this. */
+  readonly onValueChange?: (value: MenuChecked) => void;
   /** Controlled: the host owns the open state and this is the only thing that opens or closes it. */
   readonly open?: boolean;
   /** Open at mount; ignored while `open` is set. */
@@ -37,10 +66,12 @@ export interface MenuContentProps extends Renderable<PartProps, void> {
   readonly children?: JSX.Element;
 }
 
-/** What a row's `render` sees: where the highlight is, and whether the item activates. */
+/** What a row's `render` sees: where the highlight is, whether the item activates, and whether it is checked. */
 export interface MenuItemState {
   readonly highlighted: () => boolean;
   readonly disabled: () => boolean;
+  /** The primitive's `aria-checked` is `true`; always `false` on a plain item. */
+  readonly checked: () => boolean;
 }
 
 export type MenuItemPartProps = PartProps;
@@ -56,6 +87,8 @@ export interface MenuItemProps extends Renderable<MenuItemPartProps, MenuItemSta
 const MenuContext = createContext<{
   readonly menu: MenuController;
   readonly anchor: () => HTMLElement | undefined;
+  /** A checkable variant: every row reserves the mark's column, so a mixed menu's plain rows line up. */
+  readonly checkable: boolean;
 }>();
 
 // The anchor is the decision this component makes about floating: one box around the trigger and the menu, `position:
@@ -85,6 +118,8 @@ const contentClass = css.cn(
 // The highlight is the roving tab stop the primitive announces (`tabindex="0"` on one row), not a second copy of the
 // state: a pointer hover and an arrow key both move it.
 const itemClass = css.cn(
+  // the marker `within()` reads: the row's own `aria-checked` is what the mark follows
+  css.group(),
   css.display("flex"),
   css.alignItems("center"),
   css.padding(t.space._1, t.space._2),
@@ -96,6 +131,25 @@ const itemClass = css.cn(
   css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
   css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
 );
+
+// The check is the primitive's `aria-checked` and nothing else: hidden by default, shown only inside a row that says it is
+// checked, so the kit keeps no copy of the state. Its width is reserved in a checkable menu, so labels do not shift when a
+// box is ticked.
+const markClass = css.cn(
+  css.width("1em"),
+  css.flexShrink(0),
+  css.marginInlineEnd(t.space._1),
+  css.fontSize("0.75rem"),
+  css.color(t.color.muted),
+  css.visibility("hidden"),
+  css.within(css.attr("aria-checked", "true"))(css.visibility("visible")),
+);
+
+// The primitive's controlled value is one number: `checkboxItem0 * 5 + radioChoice` (1-based). The kit's public state is
+// the readable pair, so it packs and unpacks here; only the pack's one checkbox bit survives a controlled round trip.
+const packChecked = (value: MenuChecked): number =>
+  (value.checked.includes(0) ? 5 : 0) +
+  (value.radio === undefined || value.radio < 0 ? 0 : value.radio + 1);
 
 const triggerOf = (root: HTMLElement | undefined): HTMLElement | undefined =>
   root?.querySelector<HTMLElement>('[aria-haspopup="menu"]') ?? undefined;
@@ -112,11 +166,44 @@ const rowsOf = (root: HTMLElement | undefined): HTMLElement[] =>
  * host may ignore, and `open` is the only thing that moves. Without it the primitive owns the state from `defaultOpen`.
  *
  * The items are declared on `Menu`, once: the primitive needs their labels, so a row names its item by `index` instead of
- * repeating the label. One level only — no submenus, no checkbox or radio items, no separators (the primitive has none).
+ * repeating the label. One level only — no submenus, no separators (the primitive has none). `variant` turns the rows into
+ * checkbox and radio items; Space toggles one without closing, Enter toggles and closes, and a radio clears its group.
  */
 export const Menu = (props: MenuProps): JSX.Element => {
-  const menu = createMenu({
+  const menu: MenuController = createMenu({
     items: props.items,
+    variant: props.variant,
+    get value() {
+      return props.value === undefined ? undefined : packChecked(props.value);
+    },
+    get defaultChecked() {
+      return props.defaultValue?.checked;
+    },
+    get defaultChoice() {
+      return props.defaultValue?.radio;
+    },
+    get onCheckedChange() {
+      const change = props.onValueChange;
+      if (change === undefined) {
+        return undefined;
+      }
+      return (checked: boolean, index: number) => {
+        // Uncontrolled the primitive has committed already, controlled it has not: a set makes both the same intent
+        const current = menu.checked();
+        const next = checked
+          ? [...new Set([...current, index])].sort((a, b) => a - b)
+          : current.filter((i) => i !== index);
+        change({ checked: next, radio: menu.choice() });
+      };
+    },
+    get onValueChange() {
+      const change = props.onValueChange;
+      return change === undefined
+        ? undefined
+        : (index: number) => {
+            change({ checked: menu.checked(), radio: index });
+          };
+    },
     get open() {
       return props.open;
     },
@@ -144,7 +231,13 @@ export const Menu = (props: MenuProps): JSX.Element => {
     return () => document.removeEventListener("pointerdown", dismiss);
   });
   return (
-    <MenuContext value={{ menu, anchor: () => anchor }}>
+    <MenuContext
+      value={{
+        menu,
+        anchor: () => anchor,
+        checkable: props.variant !== undefined && props.variant !== "plain",
+      }}
+    >
       <div
         data-part="menu-anchor"
         class={anchorClass}
@@ -209,9 +302,12 @@ export const MenuContent = (props: MenuContentProps): JSX.Element => {
   ));
 };
 
-/** One row: `role="menuitem"`, its id and its tab stop from the primitive, the declared label unless `children` says. */
+/**
+ * One row: its role (`menuitem`, `menuitemcheckbox` or `menuitemradio`), id and tab stop from the primitive, the declared
+ * label unless `children` says. A checkable row paints the check from its announced `aria-checked`, not from a kit copy.
+ */
 export const MenuItem = (props: MenuItemProps): JSX.Element | null => {
-  const { menu } = useContext(MenuContext);
+  const { menu, checkable } = useContext(MenuContext);
   const declared = menu.items[props.index];
   if (declared === undefined) {
     return null;
@@ -225,8 +321,16 @@ export const MenuItem = (props: MenuItemProps): JSX.Element | null => {
   const state: MenuItemState = {
     highlighted: () => menu.focusLevel() === 2 && menu.focusIndex() === props.index,
     disabled: () => declared.disabled,
+    checked: () => menu.itemProps(props.index)["aria-checked"] === "true",
   };
   return renderPart(props, merged, state, (part) => (
-    <div {...part}>{props.children ?? declared.label}</div>
+    <div {...part}>
+      {checkable ? (
+        <span aria-hidden="true" class={markClass}>
+          ✓
+        </span>
+      ) : undefined}
+      {props.children ?? declared.label}
+    </div>
   ));
 };

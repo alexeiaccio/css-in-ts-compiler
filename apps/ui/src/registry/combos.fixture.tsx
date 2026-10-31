@@ -26,7 +26,7 @@ import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
 import { Input } from "./input/input.tsx";
-import { Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
+import { type MenuChecked, Menu, MenuContent, MenuTrigger } from "./menu/menu.tsx";
 import { Select, SelectContent, SelectTrigger } from "./select/select.tsx";
 import { Textarea } from "./textarea/textarea.tsx";
 import { Slider } from "./slider/slider.tsx";
@@ -206,6 +206,28 @@ export const Menus = (): JSX.Element => (
     <MenuContent />
   </Menu>
 );
+
+// The `mixed` variant: item 0 is the checkbox, 1-3 the radio group, the rest plain. Controlled, so the test reads the
+// public pair back: the kit's readable `MenuChecked` (the primitive's packed number never leaves the component).
+export const CheckableMenus = (): JSX.Element => {
+  const [checked, setChecked] = createSignal<MenuChecked>({ checked: [], radio: 1 });
+  return (
+    <>
+      <Menu
+        variant="mixed"
+        items={["Word wrap", "Small", "Medium", "Large", "Reset view"]}
+        value={checked()}
+        onValueChange={setChecked}
+      >
+        <MenuTrigger>View</MenuTrigger>
+        <MenuContent />
+      </Menu>
+      <output data-part="menu-checked">
+        {checked().checked.join(",")}|{checked().radio ?? -1}
+      </output>
+    </>
+  );
+};
 
 export const Tooltips = (): JSX.Element => (
   <Tooltip>

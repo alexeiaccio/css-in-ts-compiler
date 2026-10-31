@@ -10,6 +10,7 @@ import { userEvent } from "vite-plus/test/browser";
 
 import {
   Alerts,
+  CheckableMenus,
   Crumbs,
   CheckboxGroups,
   Dialogs,
@@ -313,6 +314,53 @@ describe("the kit composes", () => {
     document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     flush();
     expect(menu.hidden).toBe(true);
+  });
+
+  it("checks a checkbox item from Space without closing, and moves the radio group's choice", () => {
+    const root = mount(() => <CheckableMenus />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    const menu = root.querySelector<HTMLElement>('[data-part="menu"]')!;
+    const readout = part(root, "menu-checked");
+    trigger.focus();
+    trigger.click();
+    flush();
+    expect(menu.hidden).toBe(false);
+    const rows = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+    // the variant decides each row's role by index: one checkbox, a radio group, then plain items
+    expect(rows.map((row) => row.getAttribute("role"))).toEqual([
+      "menuitemcheckbox",
+      "menuitemradio",
+      "menuitemradio",
+      "menuitemradio",
+      "menuitem",
+    ]);
+    expect(rows.map((row) => row.getAttribute("aria-checked"))).toEqual([
+      "false",
+      "true",
+      "false",
+      "false",
+      null,
+    ]);
+    expect(readout.textContent).toBe("|1");
+    // the check is painted from aria-checked, not from a kit copy of the state
+    const marks = rows.map((row) => row.querySelector<HTMLElement>('span[aria-hidden="true"]')!);
+    expect(style(marks[0]!).visibility).toBe("hidden");
+    expect(style(marks[1]!).visibility).toBe("visible");
+    // Space toggles a checkbox without closing the menu, and the host's readable pair follows
+    rows[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(rows[0]!.getAttribute("aria-checked")).toBe("true");
+    expect(menu.hidden).toBe(false);
+    expect(style(marks[0]!).visibility).toBe("visible");
+    expect(readout.textContent).toBe("0|1");
+    // Space on a radio checks it and clears the one before it
+    rows[3]!.focus();
+    flush();
+    rows[3]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(rows[3]!.getAttribute("aria-checked")).toBe("true");
+    expect(rows[1]!.getAttribute("aria-checked")).toBe("false");
+    expect(readout.textContent).toBe("0|3");
   });
 
   it("describes the trigger with the tooltip's id while the tooltip is shown", () => {

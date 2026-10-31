@@ -2573,3 +2573,28 @@ layer's `getBoundingClientRect` is the viewport, its `offsetParent` is null and 
 the backdrop and the layer off the document instead of its mount root, which is where they now live. **Left**: the `mount`
 prop has no case of its own (the geometry case opens the dialog with no `mount`, so the body is the target); a host's own
 modal root is the same portal with one element passed.
+||||||| parent of 342107b7 (feat(ui): the menu exposes the checkable items)
+
+## The kit's menu has checkbox and radio items (apps/ui, 2026-10-31)
+
+`Menu`'s own comment said "no checkbox or radio items (the primitive has none)". That was half true: `createMenu` has had
+`menuitemcheckbox` / `menuitemradio` since `menu-checkable.qnt` — the packed checked value, the twin-state memory and the
+radio group — and only the kit did not expose it. `Menu` now takes the primitive's `variant` (`plain`, `checkbox-items`,
+`radio-items`, `mixed`, which decides each item's role by index; the `kind` and `checked` fields of `MenuItemInput` are inert
+there), the controlled pair `value` / `defaultValue` and `onValueChange`, all in the readable `MenuChecked` =
+`{ checked: ReadonlyArray<number>; radio?: number }` (`-1` or absent is no radio). A row paints the mark from its own
+announced `aria-checked`: an `aria-hidden` `✓` inside the row, hidden unless `within(attr("aria-checked", "true"))`, with
+`group()` on the row for the `within()` marker; `MenuItem.render` also sees the row's `state.checked()`. Space toggles a
+checkbox or radio without closing, Enter toggles and closes (APG's optional variant, the primitive's reading), and a radio
+clears the others in its group.
+
+**Why the readable view, not the pack.** The primitive's controlled value is one number (`checkboxItem0 * 5 + radioChoice`,
+1-based), and the kit's job is the recognisable surface: as `Select` exposes an option index instead of the primitive's
+string, `MenuChecked` names the indices and the kit packs and unpacks at its boundary. The pack has exactly one checkbox
+bit, so a controlled menu controls item 0 (the `mixed` variant's checkbox) and a `value.checked` beyond 0 does not survive
+the round trip; an uncontrolled menu, whose primitive state is a `Set`, may check any item. Multi-checkbox control would
+need the primitive's value to grow, not the kit's API.
+
+**Stays out:** submenus and separators (`createMenubar` has them, `createMenu` does not), and the split of the events —
+`onItemClick` for a plain item, `onValueChange` for a checkable one. A caller must know the variant decides roles by index
+rather than per item, and that the trigger's open state, the anchor, the focus sync and the outside click are unchanged.
