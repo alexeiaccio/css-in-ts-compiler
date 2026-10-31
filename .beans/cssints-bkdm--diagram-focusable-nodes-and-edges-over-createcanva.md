@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-31T10:25:14Z
+updated_at: 2026-10-31T10:25:46Z
 parent: cssints-65eb
 ---
 
@@ -19,3 +19,5 @@ statechart positions node divs absolutely with no roles, and edges are buttons d
 ## Progress
 
 `createDiagramFocus` in `packages/headless/src/diagram.ts`, exported from `@cssints/headless`; oracle `packages/headless/test/diagram.browser.test.tsx` (15 tests). README `## Diagram`, docs/API.md, minor changeset. Still open: adopt in apps/statechart.
+
+PR: https://github.com/alexeiaccio/css-in-ts-compiler/pull/103
