@@ -16,6 +16,12 @@ export interface TabsOptions {
   /** Uncontrolled starting selection; ignored while `value` is set. */
   readonly defaultSelected?: number;
   readonly orientation?: TabsOrientation;
+  /**
+   * Writing direction (default `ltr`) for a horizontal tablist: `rtl` swaps
+   * ArrowLeft / ArrowRight. A vertical tablist keeps Up / Down, as APG says.
+   * The host sets `dir` on the element; the primitive only maps the keys.
+   */
+  readonly dir?: "ltr" | "rtl" | undefined;
   readonly activation?: TabsActivation;
   /** Tab indices that cannot be selected. */
   readonly disabled?: ReadonlyArray<number>;
@@ -173,6 +179,11 @@ export interface Tabs {
  * to the tab that slid into the closed one's place, or to the previous tab when
  * the last one closed; closing the last remaining tab is refused, as the spec
  * refuses an empty tablist.
+ *
+ * Direction: `dir` (default ltr) swaps ArrowLeft / ArrowRight on a horizontal
+ * tablist, as `radio.ts` does; a vertical tablist keeps Up / Down. `tabs.qnt`
+ * models ltr only, so the ported `direction` scenarios stay `Unsupported` in
+ * the differential walk until the spec grows a direction variable.
  */
 export const createTabs = (options: TabsOptions = {}): Tabs => {
   /** The live count: the host shrinks its list after a close, and the options are read lazily. */
@@ -183,6 +194,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
 
   const activation = (): TabsActivation => options.activation ?? "automatic";
   const orientation = (): TabsOrientation => options.orientation ?? "horizontal";
+  const direction = (): "ltr" | "rtl" => options.dir ?? "ltr";
   const closable = (): boolean => options.closable ?? false;
   const renamable = (): boolean => options.renamable ?? false;
   const labelOf = (index: number): string => options.label?.(index) ?? `tab ${index + 1}`;
@@ -310,8 +322,12 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
     if (current < 0) {
       return;
     }
-    const forward = orientation() === "horizontal" ? "ArrowRight" : "ArrowDown";
-    const backward = orientation() === "horizontal" ? "ArrowLeft" : "ArrowUp";
+    // RTL swaps the horizontal arrows only: in a right-to-left tablist the
+    // previous tab is to the right. A vertical tablist is never affected.
+    const rtl = direction() === "rtl";
+    const horizontal = orientation() === "horizontal";
+    const forward = horizontal ? (rtl ? "ArrowLeft" : "ArrowRight") : "ArrowDown";
+    const backward = horizontal ? (rtl ? "ArrowRight" : "ArrowLeft") : "ArrowUp";
     switch (key) {
       case forward:
         move(step(current, 1));

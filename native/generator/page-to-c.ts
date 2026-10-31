@@ -34,11 +34,18 @@
 // :hover/:active), one frame function a state, the count and names, and the transition table
 // `int <name>_next(int state, uint32_t id, int event)` (event kinds in generator/events.h). A state transition the
 // generator cannot express as a frame of a state states.json names fails here, at build time, not in the host.
+//
+// A state's actions replay the page's input as well as its signals: `{"press": "name"}` focuses a part (its row's
+// onPress, the focus manager), `{"key": "Shift+ArrowLeft"}` presses and releases a key, and `{"text": "Ada"}` types
+// into the focused part — the page's state can be the text a field holds, which is its input's, not a signal the file
+// could name. A text with no focused field fails the build.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { plugin } from "bun";
 import { header } from "cssints/clay";
+
+import type { Input } from "../solid/src/input.ts";
 
 const STATES = [":hover", ":focus", ":active"] as const;
 type State = (typeof STATES)[number];
@@ -179,6 +186,12 @@ interface Action {
   /** The pointer over the element at build time, with the button down or up: a build-time :hover / :active. */
   pointer?: string;
   down?: boolean;
+  /** A named key, pressed and released (`input.down` then `up`): the page's own keys, `main.ts --keys`' names
+   *  ("Tab", "Shift+ArrowLeft"). A page's state can be reached by a key, not only by a signal the file names. */
+  key?: string;
+  /** Typed characters, as SDL's text events deliver them to the focused part (`input.textInput`, `main.ts`'s
+   *  `text:`): the text a field's value holds is the page's state, and a press on its row is how it gets the focus. */
+  text?: string;
 }
 /** The pointer as the frame being emitted sees it: `:hover` when it is over the element, `:active` when it is also down. */
 const pointer: { id?: string; down: boolean } = { down: false };
@@ -188,7 +201,7 @@ const script: Record<string, Action[]> = opts.states
   ? (JSON.parse(readFileSync(resolve(opts.states), "utf8")) as Record<string, Action[]>)
   : {};
 
-function apply(a: Action, root: El, label: string): void {
+function apply(a: Action, root: El, label: string, input: Input): void {
   if (a.click) {
     const el = find(root, a.click);
     if (!el?.props.onClick) fail(`${label}: no element with id "${a.click}" and an onClick`);
@@ -197,6 +210,13 @@ function apply(a: Action, root: El, label: string): void {
     const el = find(root, a.press);
     if (!el?.props.onPress) fail(`${label}: no element with id "${a.press}" and an onPress`);
     el.props.onPress(0, 0);
+  } else if (a.key !== undefined) {
+    // a key is down then up, as `main.ts --keys` gives it (a Space arms on the down and fires on the up)
+    input.down(a.key);
+    input.up(a.key);
+  } else if (a.text !== undefined) {
+    // the text goes to the focused part, which is what the host's SDL_TEXT_INPUT does while a field edits
+    if (!input.textInput(a.text)) fail(`${label}: no text field has focus for ${JSON.stringify(a.text)}`);
   } else if (a.pointer) {
     pointer.id = a.pointer;
     pointer.down = !!a.down;
@@ -205,7 +225,7 @@ function apply(a: Action, root: El, label: string): void {
 }
 
 /** A fresh page, with its signals at their defaults, its props as `--prop` fixed them, and the pointer off it. */
-function openPage(): { root: El; dispose: () => void } {
+function openPage(): { root: El; input: Input; dispose: () => void } {
   const root = new El("root");
   // the page's own input: a page of the headless widgets (the Dialog, the Field) builds its tree from it — the ids, the
   // roles and the handlers of its parts — so a build-time frame needs one, empty of keys and pointer, as its signals
@@ -213,8 +233,9 @@ function openPage(): { root: El; dispose: () => void } {
   // ... and with `--tick` its frame hook: the page wires its track to `motion`, and the loop's `tick` is what the
   // generator then runs (the entry's, the scroll's, whatever the page put there).
   const motion: { tick?: (dt: number) => void } = {};
+  const input = createInput();
   const dispose = render(
-    () => Page!({ input: createInput(), ...(opts.tick ? { motion } : {}), ...opts.props }),
+    () => Page!({ input, ...(opts.tick ? { motion } : {}), ...opts.props }),
     root,
   );
   flush();
@@ -236,7 +257,7 @@ function openPage(): { root: El; dispose: () => void } {
   }
   pointer.id = undefined;
   pointer.down = false;
-  return { root, dispose };
+  return { root, input, dispose };
 }
 
 /** A style's length in px when the style states it exactly, else 0 (a grown or a percentage length is the layout's). */
@@ -244,9 +265,9 @@ const fixed = (axis: Record<string, any> | undefined): number =>
   axis?.type === "FIXED" ? Number(axis.min ?? 0) : 0;
 
 /** A page after replaying a state's actions: the tree that state declares, and the pointer as its actions left it. */
-function renderState(actions: readonly Action[], label: string): { root: El; dispose: () => void } {
+function renderState(actions: readonly Action[], label: string): { root: El; input: Input; dispose: () => void } {
   const page = openPage();
-  for (const a of actions) apply(a, page.root, label);
+  for (const a of actions) apply(a, page.root, label, page.input);
   return page;
 }
 
@@ -804,7 +825,7 @@ if (opts.out) {
   for (const key of opts.state) {
     const actions = script[key];
     if (!actions) fail(`no state "${key}" in ${opts.states}`);
-    for (const a of actions) apply(a, page.root, `state "${key}"`);
+    for (const a of actions) apply(a, page.root, `state "${key}"`, page.input);
   }
   themes = themesOf([page.root]);
 

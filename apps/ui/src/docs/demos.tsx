@@ -27,6 +27,12 @@ import { Select, SelectContent, SelectTrigger } from "../registry/select/select.
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
 import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "../registry/popover/popover.tsx";
+import {
+  DatePicker,
+  DatePickerContent,
+  DatePickerTrigger,
+} from "../registry/date-picker/date-picker.tsx";
 import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
@@ -39,7 +45,9 @@ import { Slider } from "../registry/slider/slider.tsx";
 import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
+import { createToast } from "@cssints/headless";
 import { Tabs } from "../registry/tabs/tabs.tsx";
+import { Toaster } from "../registry/toast/toast.tsx";
 import { createSignal } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
@@ -365,6 +373,58 @@ const AlertDemo = (): JSX.Element => (
   </div>
 );
 
+const ToastDemo = (): JSX.Element => {
+  // the page holds the controller; the stack is portalled, so one <Toaster> follows the queue from wherever it is rendered.
+  // 6 s instead of the default 5, so the hover demo has time to be hovered.
+  const toast = createToast({ timeout: 6000 });
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Button tone="quiet" onClick={() => toast.show({ title: "Draft saved" })}>
+          Info
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() =>
+            toast.show({
+              title: "Published",
+              description: "The post is live for everyone.",
+              tone: "success",
+            })
+          }
+        >
+          Success
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() =>
+            toast.show({
+              title: "Upload failed",
+              description: "The file is larger than 10 MB.",
+              tone: "error",
+            })
+          }
+        >
+          Error
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() =>
+            toast.show({
+              title: "Hover to pause the countdown",
+              description:
+                "The toast waits while the pointer is over it, and resumes where it stopped.",
+            })
+          }
+        >
+          Hover pause
+        </Button>
+      </div>
+      <Toaster toast={toast} />
+    </div>
+  );
+};
+
 const MeterDemo = (): JSX.Element => (
   <div class="demo-column">
     <Meter label="Storage" value={64} />
@@ -482,6 +542,49 @@ const CheckboxGroupDemo = (): JSX.Element => {
     </CheckboxGroup>
   );
 };
+const PopoverDemo = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  const [name, setName] = createSignal("Report Q3");
+  return (
+    <div class="demo-column">
+      {/* a controlled popover: every intent (the trigger, Escape, an outside press) is a request the host accepts */}
+      <Popover label="Rename file" open={open()} onOpenChange={setOpen} placement="bottom-start">
+        <PopoverTrigger>Rename</PopoverTrigger>
+        <PopoverContent>
+          <div class="demo-column">
+            <Input value={name()} onInput={(event) => setName(event.currentTarget.value)} />
+            <div class="demo-row">
+              <Button tone="quiet" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button tone="accent" onClick={() => setOpen(false)}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <p class="demo-text">The name is “{name()}”.</p>
+    </div>
+  );
+};
+
+const DatePickerDemo = (): JSX.Element => {
+  const [date, setDate] = createSignal<string | undefined>(undefined);
+  return (
+    <div class="demo-column">
+      {/* the trigger shows the chosen day; the signal below is the same value the page would submit */}
+      <DatePicker value={date()} onValueChange={setDate}>
+        <DatePickerTrigger />
+        <DatePickerContent />
+      </DatePicker>
+      <p class="demo-text">
+        {date() === undefined ? "No date chosen yet." : `The form would send ${date()}.`}
+      </p>
+    </div>
+  );
+};
+
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -507,10 +610,13 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,
+  popover: PopoverDemo,
+  "date-picker": DatePickerDemo,
   select: SelectDemo,
   textarea: TextareaDemo,
   slider: SliderDemo,
   "slider-multithumb": SliderMultithumbDemo,
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
+  toast: ToastDemo,
 };

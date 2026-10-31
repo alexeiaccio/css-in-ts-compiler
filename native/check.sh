@@ -99,4 +99,60 @@ for f in page_generated.c page_generated_scrolled.c; do
   cc -std=c99 -Wall -Wno-unused-variable -I "$CLAY_H" -c "$OUT/list-gen/$f" -o "$OUT/list-gen/$f.o"
 done
 
+# The Text field page's generated C (solid/app/Field.tsx, its styles in the .tsx): its state is its text field's, which
+# lives behind the page's `input`, so examples/field/states.json is a script of that input — a press on the row (the
+# focus manager), typed text (SDL's TEXT_INPUT) and a key (Shift+ArrowLeft) — and a file is one state: the field focused
+# and empty, `Ada` typed (one run and the caret's 1px box), and `da` selected with the caret at its start. Regenerated
+# here and cmp'd, and the three things the states are for are pinned: a caret in each, the selection's box in the
+# selection frame and not before it.
+F="bun --conditions=development generator/page-to-c.ts solid/app/Field.tsx --states examples/field/states.json"
+mkdir -p "$OUT/field-gen"
+$F --state empty --name app_frame_empty --out "$OUT/field-gen/page_generated.c"
+$F --state typed --name app_frame_typed --out "$OUT/field-gen/page_generated_typed.c"
+$F --state selection --name app_frame_selection --out "$OUT/field-gen/page_generated_selection.c"
+for f in page_generated.c page_generated_typed.c page_generated_selection.c; do
+  cmp "$OUT/field-gen/$f" "examples/field/$f" || { echo "FAIL: examples/field/$f is stale"; exit 1; }
+done
+for f in page_generated.c page_generated_typed.c page_generated_selection.c; do
+  grep -qF 'CLAY_ID("name-line-caret")' "examples/field/$f" ||
+    { echo "FAIL: examples/field/$f has no caret: the field's :focus or its press is not in the state"; exit 1; }
+done
+grep -qF 'CLAY_ID("name-line-selection")' examples/field/page_generated_selection.c ||
+  { echo "FAIL: the selection frame has no selection box (two Shift+ArrowLeft, replayed)"; exit 1; }
+grep -qF 'CLAY_ID("name-line-selection")' examples/field/page_generated_typed.c &&
+  { echo "FAIL: the typed frame has a selection box; nothing was selected there"; exit 1; }
+grep -qF 'CLAY_TEXT(CLAY_STRING("Ada"), style_7_text)' examples/field/page_generated_typed.c ||
+  { echo "FAIL: the typed frame does not declare its run \"Ada\""; exit 1; }
+for f in page_generated.c page_generated_typed.c page_generated_selection.c; do
+  cc -std=c99 -Wall -Wno-unused-variable -I "$CLAY_H" -c "$OUT/field-gen/$f" -o "$OUT/field-gen/$f.o"
+done
+
+# The Widgets page's generated C (solid/app/Widgets.tsx): a `:focus` and a `checked` are the parts' fields, not the
+# page's signals, so a state is the parts' handlers — `{"press": "wifi"}` focuses the row (its onPress), `{"click":
+# "wifi"}` flips the switch (the part's `press`) — and the three files are the page at rest, the switch focused and on,
+# and that with the Details panel open. Its styles are literals in the .tsx, so header() prints them "in tree order":
+# the style numbers are the page's, and the last three greps pin the ring, the checked track and the panel.
+WT="bun --conditions=development generator/page-to-c.ts solid/app/Widgets.tsx --states examples/widgets/states.json"
+mkdir -p "$OUT/widgets-gen"
+$WT --state rest --name app_frame_rest --out "$OUT/widgets-gen/page_generated.c"
+$WT --state switch --name app_frame_switch --out "$OUT/widgets-gen/page_generated_switch.c"
+$WT --state disclosure --name app_frame_disclosure --out "$OUT/widgets-gen/page_generated_disclosure.c"
+for f in page_generated.c page_generated_switch.c page_generated_disclosure.c; do
+  cmp "$OUT/widgets-gen/$f" "examples/widgets/$f" || { echo "FAIL: examples/widgets/$f is stale"; exit 1; }
+done
+grep -qE 'CLAY\(CLAY_ID\("wifi"\), style_[0-9]+_focus\)' examples/widgets/page_generated_switch.c ||
+  { echo "FAIL: the switch frame is not the row's :focus (the ring is a state, not the base style)"; exit 1; }
+grep -qE 'CLAY\(CLAY_ID\("wifi"\), style_[0-9]+\)' examples/widgets/page_generated.c ||
+  { echo "FAIL: the page at rest draws the wifi row with a focus declaration; nothing is focused there"; exit 1; }
+grep -qF '.backgroundColor = { .r = 240, .g = 140, .b = 50, .a = 255 }, .cornerRadius = { .topLeft = 12' \
+  examples/widgets/page_generated_switch.c ||
+  { echo "FAIL: the switch's track is not the on one (the accent, radius 12: trackOn)"; exit 1; }
+grep -qF 'CLAY_ID("more-panel")' examples/widgets/page_generated_disclosure.c ||
+  { echo "FAIL: the disclosure's frame has no panel (its trigger was not toggled)"; exit 1; }
+grep -qF 'CLAY_ID("more-panel")' examples/widgets/page_generated.c &&
+  { echo "FAIL: the page at rest declares the disclosure's panel; it is closed there"; exit 1; }
+for f in page_generated.c page_generated_switch.c page_generated_disclosure.c; do
+  cc -std=c99 -Wall -Wno-unused-variable -I "$CLAY_H" -c "$OUT/widgets-gen/$f" -o "$OUT/widgets-gen/$f.o"
+done
+
 echo "c: the headers, the C against them and the generated pages are current"

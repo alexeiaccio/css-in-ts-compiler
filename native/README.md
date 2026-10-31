@@ -1853,6 +1853,8 @@ bun terminal/solid.ts --ansi out.ansi             # the same cells as truecolour
 bun terminal/solid.ts --keys Tab,ArrowDown --dump out.txt     # the frame after each key, as main.c
 bun terminal/solid.ts --click 40,9 --dump out.txt # a press and a release on the Units pill (the page's own onClick)
 bun terminal/solid.ts --page sky --keys WheelDown,WheelDown --settle 90 --offset --dump out.txt  # the page's wheel, then its rest
+bun terminal/solid.ts --page sky --keys Tab,Tab,Enter --settle 3 --dump out.txt    # the thread (Enter on the feed)
+bun terminal/solid.ts --page sky --click 20,2 --settle 5 --dump out.txt            # the profile (a card's author row)
 bun terminal/solid.ts --theme light --dump out.txt            # the light theme (also THEME=light)
 bun terminal/solid.ts --cols 80 --rows 11 --bench 20          # the frame's ms, and the same cells as ANSI
 sh terminal/test.sh                               # the comparisons below (native/test.sh runs it)
@@ -1896,9 +1898,12 @@ which is where the C page's list would take it; there is no list in `Sensors.tsx
 
 **The Sky feed.** `bun terminal/solid.ts --page sky` renders `solid/app/Sky.tsx` **unmodified**: its props are the
 host's `input` (the headless parts and the focus manager), its `motion` (the page puts its wheel, its pointer and its
-tick there), `theme`/`setTheme` (the host's `t`), and a `load` that is a promise which never settles — the terminal has
-no AppView, so a card's click opens the thread's loading state and nothing lands. The page needed no prop it does not
-have on the desktop. What the host re-cuts, through the value channel, is the length set a cell cannot take as px:
+tick there), `theme`/`setTheme` (the host's `t`), and `load`. The terminal has no AppView, so the host settles `load`'s
+promise with the app's **recorded** thread — apps/csssky's `thread.json`, through the page's own `screenOf`, the fixture
+`solid/thread.test.ts` hands it — one frame after the screen mounts: a card's click draws the loading row and the app's
+rows the frame after it. The page needed no prop it does not have on the desktop. What the host re-cuts, through the
+value channel (written by the walk just before each element opens, so a frame uses a value only for the elements it
+declares: the table is 256 a frame), is the length set a cell cannot take as px:
 
 | the page | px | the cell |
 | --- | --- | --- |
@@ -1913,11 +1918,48 @@ one-row tab is the label's row; the feed's `:focus` ring is the page's own `t.co
 characters around the viewport, and when it is focused it eats the first card's name row (a cell cannot be both a ring
 and that row). The avatar is a `css.image`: the host **skips** the element (a cell has no glyph for it, and its 40x40
 box would be three rows of nothing the C page does not draw). A card's own `onClick` opens the thread; the page's cards
-are not Tab stops, so Enter has no card to open (unlike the C page's list, which has the selection). Tab reaches the
-tablist and then the feed; Left/Right on the tablist switch the feed; Up/Down, PageUp/PageDown and Home/End scroll the
-feed; `j`/`k` are mapped to the page's Down/Up; a wheel event (`WheelDown`/`WheelUp` from termbox2, or a key in the
-headless run) is one 10px notch of the page's own machine. `--settle N` runs frames after the input (the track's spring
-and the band need them) and `--offset` prints the clip's offset, which is how the check states the displacement.
+are not Tab stops, so Enter has no card to open of its own — the host presses the first card's own `onClick` while the
+feed is focused, which is the C page's Enter (it opens the focused post's thread). Tab reaches the tablist and then the
+feed; Left/Right on the tablist switch the feed; Up/Down, PageUp/PageDown and Home/End scroll the feed; `j`/`k` are
+mapped to the page's Down/Up; a wheel event (`WheelDown`/`WheelUp` from termbox2, or a key in the headless run) is one
+10px notch of the page's own machine. `--settle N` runs frames after the input (the track's spring and the band need
+them), a `-` in `--keys` is a frame with no input (a screen measures its content from the last layout, so its first
+scroll key needs one) and `--offset` prints the clip's offset, which is how the check states the displacement.
+
+**The thread and the profile.** They are the page's **screens**, not entries of their own: `Sky.tsx` mounts the thread as
+a root float over the feed, and `Profile.tsx`'s `createProfile` is called by `Sky` and its element is declared in `Sky`'s
+tree, so there is no `--page profile` here (the C `demo --page profile` is a stack entry point its own host has). A
+click on a card (or Enter on the feed) opens the thread; a click on a card's **author row** — the app's link to
+`/profile/handle` — opens the profile; Escape is the page's own back (the Back control takes Enter too). The profile
+needs nothing handed to it: `app/profile.ts` reads apps/csssky's recorded `getProfile` and its three author feeds itself,
+on the first opening, and its tabs (Posts, Replies, Media) are the page's headless tablist, each list a fresh instance of
+the page's scroll machine. Each screen is the feed's re-cut, one row down: the page floats it at 64px (its bar) and
+696px (its window less the bar) and in cells the host's bar is one row, so the float starts on row 1 and takes the rows
+under it; a 44px head is one row; the page's 28px Back control is one row and its 1px border is **dropped** (Clay adds a
+border's command on the way out of an element, after its children, so a one-row control's border would be its word's own
+cells — the C pages have no Back there at all); a card's padding and gap are the feed's card's; the profile's drawn disc
+is two rows and its tabs are the bar's (no padding, a cell after the label, no 2px underline), but its labels have no id
+for the host to recolour, so its focus has no cell of its own (the active tab is its accent label, the style's literal).
+The exit is the page's 0.3s group, which a cell draws as the screen staying and then leaving at once (a group's alpha and
+translate are a cell's to drop), so the back check waits the exit out.
+
+The C thread and profile (`terminal/thread.c`, `profile.c`) are the behaviour's oracles, not the cells': the C thread's
+cards all carry a hand-cut border, its name and meta share a row, its body is clipped to one row, its counts are the
+glyphs `↩ ⟲ ♥` and its bar says `sky · Thread (esc: back)` (the page's bar stays the page's); the C profile has a
+two-row banner band, an accent-pill tab and the app's reason lines (`Pinned`, `Reposted by ...`) above each card, which
+the page draws no counterpart of. At 80x26 (the C pages' size) the measured distances are:
+
+```
+solid, terminal: the thread against terminal/expected-thread.txt (the C thread): 1957 cells, 0 of 26 rows the same, the worst row 1 (80 of 80); rows 21,80,67,79,76,70,80,80,78,79,71,77,80,80,79,78,76,80,80,79,76,74,80,80,80,77
+solid, terminal: the profile against terminal/expected-profile.txt (the C profile): 1837 cells, 0 of 26 rows the same, the worst row 2 (80 of 80); rows 22,77,80,79,79,38,76,78,35,80,80,29,80,77,80,74,80,78,74,79,73,80,80,72,80,77
+```
+
+The thread's worst row is the C card's top border against the page's head row; its nearest rows are the body lines (row
+2 in 67 of 80, the same words at a different inset) and the counts row (71, the same words where the C's are glyphs). The
+profile's worst row is the C banner band (two rows of colour) against the page's head row and drawn disc; its nearest rows
+are the header's (row 5 in 38, the bio's words; row 8 in 35, the counts; row 11 in 29, the tabs). No row of either is
+identical to the C's, and the check stores the Solid frames as its own guards (`terminal/expected-solid-thread.txt`,
+`-profile.txt`) on top of the counted comparison.
 
 **The C feed's cells are not the Solid feed's, and the check does not pretend they are.** The C card
 (`terminal/sky.c`) has a hand-cut border and separator row, its name and meta on one row, its body clipped to one row,
@@ -1975,12 +2017,15 @@ they are the same *page part* drawn by two different programs.
 **The cost**, on this Mac (`--bench 50`, headless; the number moves with the machine's load, so a range over repeated
 runs): the Sensors page's own 80x11 frame is **0.04–0.08 ms** (10 commands, 880 cells) and its 80x20 frame 0.10 in the
 suite's run; the Sky feed's 80x20 frame is **0.08–0.35 ms** (34 commands, 1600 cells), 0.11 in the suite's run — about
-3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a 60fps frame. The same cells as
-ANSI are 0.12–0.17 ms more (3924 bytes for the feed, the file write included). The C page's own frame is ~0.08 ms
-measured as the delta of `demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints
-no frame time, so that delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's implementation, cells.c,
-render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one declaration per element
-and one per text through `bun:ffi`, where the C page calls Clay directly.
+3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a 60fps frame. The thread's
+80x26 frame is **0.13–0.15 ms** (66 commands, 2080 cells) and the profile's the same (**0.15** in the suite's run, 69
+commands): a full screen of rows costs about what the feed does, because the walk is the same per element and Clay's
+layout is a cell grid, not a page. The same cells as ANSI are 0.12–0.17 ms more (3924 bytes for the feed, 5759 for the
+thread, 5056 for the profile, the file write included). The C page's own frame is ~0.08 ms measured as the delta of
+`demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints no frame time, so that
+delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's implementation, cells.c, render.c, measure.c and
+termbox2). The per-element FFI call is what the gap is: a page has one declaration per element and one per text through
+`bun:ffi`, where the C page calls Clay directly.
 
 **What it cannot do in cells.** A text line is one row: the C pages clip a body to one row, and the Solid Sky page
 wraps at words (a long word is still broken nowhere) — neither is the paragraph the desktop draws. An image is a box
@@ -1994,12 +2039,16 @@ corner radius is a square corner; a wide glyph (CJK, most emoji) is one cell and
 makes a page's pixel lengths land between cells — 38px is 2.4 rows and 200px is 25 columns — so a terminal page re-cuts
 them (here through the value channel, in C by hand). The Sky feed shows the ceiling concretely: no card border at rest,
 no drawn avatars, the meta on its own row, the counts in words where the C page has `↩ ⟲ ♥`, and the page's status line
-where the C page has the key hints. The thread, the profile and the notifications of step 6 are still C
-(`terminal/thread.c`, `profile.c`, `notify.c`, with `focus.c` for their focus); the feed runs as Solid too now
-(`terminal/solid.ts --page sky`, `solid/app/Sky.tsx`), and moving the thread (the page's second screen, a root float the
-host already shows in its loading state) or the profile is the next slice. The shape is there (a page declares, Clay
-lays out in cells, termbox2 draws); what a page still lacks is its data — the terminal host's `load` is a promise that
-never settles, and fetching, paging and the app's system theme are not in the terminal yet.
+where the C page has the key hints; its thread shows it again: a body that wraps at words where the C clips one row, an
+avatar the host skips, the counts in words, and a Back control the C pages do not have (escape is their bar's text); its
+profile: a drawn disc of two rows where the app has a picture the page does not draw at all (the C profile keeps a
+two-row band for the app's banner), a tab whose underline is the label's row, and no reason line above a card. Three of
+the Sky page's four screens now run as the page's own — the feed, the thread and the profile (`terminal/solid.ts
+--page sky`, `solid/app/Sky.tsx`, `app/Profile.tsx`); the **notifications stay C** (`terminal/notify.c`, with
+`focus.c` for its focus), the one screen of the four that is: `Sky.tsx` has no notifications screen, so there is nothing
+to run, and the C one is the web app's, hand-carried. The shape is there (a page declares, Clay lays out in cells,
+termbox2 draws); what a page still lacks is the network — the host's `load` is a promise it settles with a recorded
+thread, and fetching, paging and the app's system theme are not in the terminal yet.
 
 ## The sky screens in a terminal
 
@@ -2249,11 +2298,123 @@ and the differ names `command 14 (rectangle) box … -> …` (the declaration's 
 `.floating` from the menu's declaration lays it out in the page's column and the differ names its `box` and `z` (`10 ->
 0`); dropping `.pointerCaptureMode` changes no command and the grep fails naming `floating.pointerCaptureMode`.
 
-Still not emitted: the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a
-static frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now
-proves, but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never
-from a signal of the page. A clip element's offset is not a declaration either, and the List page shows what that means
-for a generated page: the file asks Clay for the container's offset (below).
+Still not emitted: the Widgets toolbar's menu (a float whose opening key is the toolbar's and whose pointer capture is the
+host's; the Dialog's menu proves the float itself), and a page's own scroll *state*, the List's below. `:focus` still
+comes from an element's prop or a part's state, never from a signal of the page. A clip element's offset is not a
+declaration either, and the List page shows what that means for a generated page: the file asks Clay for the container's
+offset (below).
+
+## The Field in a generated page
+
+The Text field page's state is its text field's: the value, the caret and the selection live in `createTextField`, behind
+the page's `input`, not in a signal the page exports. So a state is a script of that input, and `page-to-c.ts`'s
+`states.json` gained the two actions that are not a signal — beyond `click`/`press`/`pointer`:
+
+| action | what it is | the page code it reaches |
+| --- | --- | --- |
+| `{"press": "<id>"}` | the button down over a row | its `onPress`: `input.bind(part)`'s `focus.focus(part.id)` |
+| `{"key": "Shift+ArrowLeft"}` | a key pressed and released | `input.down`/`up` (the focused part's `keyDown`) |
+| `{"text": "Ada"}` | typed characters | `input.textInput` (SDL's TEXT_INPUT, what `main.ts`'s `text:` key stands for) |
+
+A `text` with no focused field fails the build ("no text field has focus"), so a state cannot silently emit an untyped
+frame. `examples/field/states.json` is the three stored frames' own scripts:
+
+```json
+{
+  "empty": [{ "press": "name" }],
+  "typed": [{ "press": "name" }, { "text": "Ada" }],
+  "selection": [
+    { "press": "name" }, { "text": "Ada" },
+    { "key": "Shift+ArrowLeft" }, { "key": "Shift+ArrowLeft" }
+  ]
+}
+```
+
+`examples/field/page_generated.c` is the field focused and empty (20 commands: the caret's 1px box, no run),
+`page_generated_typed.c` is `Ada` typed (21: one run and the caret after it) and `page_generated_selection.c` is two
+Shift+ArrowLeft (23: `A`, the caret, the tinted `da` run). `examples/field/solid-dump.ts` is the reference: the page's own
+loop, 31 frames at rest (`--warm 30`) and the stored frames' keys — Tab,Tab; Tab,Tab,text:Ada; and two Shift+ArrowLeft
+more — dumped through `ui_dump_json`. `examples/field/gen.c` measures with ThorVG (the Solid host's advance sums, so a box
+is exact) and `dump-check.ts` compares the whole frame:
+
+```
+field-empty: 20 commands, identical
+field-typed: 21 commands, identical
+field-selection: 23 commands, identical
+solid/frames/field-empty.png: identical, 20 commands
+solid/frames/field-typed.png: identical, 21 commands
+solid/frames/field-selection.png: identical, 23 commands
+```
+
+The last three are `examples/field/page.c` — one generated file linked at `-DAPP_W=360 -DAPP_H=450`, `FIELD_FRAME` naming
+the frame — on the desktop host's ThorVG raster, against the page's stored pixels: **0 of 162,000 pixels**, all three.
+
+One seam: the field's runs are the page's only `css.whiteSpace("nowrap")` texts, and a text command carries no wrap (the
+dump reads it from a table by node, and a command's node is the text config's `userData`, which the printed literals leave
+NULL). `gen.c` numbers the text commands in tree order and marks the value runs' indices `CLAY_TEXT_WRAP_NONE`; a text
+added above a value shifts an index and the comparison names the wrap difference, so the table cannot go quiet.
+
+Mutations, each reverted (on copies; the repository's generated C never moved): the caret's box dropped from the typed
+frame — `FAIL field-typed: commands: 21 -> 20`, then `command 10 (rectangle) box 80.1640625/210.0625/1/18 ->
+40/197.0625/280/44` and `element "name-line-caret" -> null`.
+
+What a static Field frame is not, honestly: it is one state of the field. Typing is the host's SDL_TEXT_INPUT, a key
+event is the host's keycode, a press places the caret from the pointer's x and the last layout's run width, and maxLength,
+submit and the theme key are the page's behaviour: a generated file shows the state the build scripted, and a board that
+types asks `--events` (which replays clicks and presses, not text) or a page of its own. The three files cover the value,
+the caret and the selection; a fourth state is another `states.json` entry and one more file.
+
+## The Widgets in a generated page
+
+The Widgets page's `:focus` and `checked` are the parts' fields, not the page's signals — the page picks `track` or
+`trackOn` from `wifi.checked()` and the renderer lays `:focus` over the row — so a state is the parts' own handlers, and
+`examples/widgets/states.json` names three with the two actions that already existed:
+
+```json
+{
+  "rest": [],
+  "switch": [{ "press": "wifi" }, { "click": "wifi" }],
+  "disclosure": [
+    { "press": "wifi" }, { "click": "wifi" },
+    { "press": "more-trigger" }, { "click": "more-trigger" }
+  ]
+}
+```
+
+`press` on a row is its `onPress` (`input.bind(part)`'s `focus.focus(part.id)`: the focus ring); `click` is its `onClick`
+(the part's `press`: the switch flips, the disclosure toggles). `examples/widgets/page_generated.c` is the page at rest
+(59 commands), `page_generated_switch.c` the switch focused and on (60: the on track's accent and flex-end move the
+thumb, and the row's 2px ring is a border command) and `page_generated_disclosure.c` that plus the Details panel open
+(63: the panel's box and its one text). `examples/widgets/solid-dump.ts` is the reference at the stored frames' keys — the
+page at rest; Tab,Tab,Space; and that with four Tabs and Enter (`solid/test.sh`'s own) — and `examples/widgets/gen.c`
+dumps the three, measured with ThorVG:
+
+```
+widgets-rest: 59 commands, identical
+widgets-switch: 60 commands, identical
+widgets-disclosure: 63 commands, identical
+solid/frames/widgets-initial.png: identical, 59 commands
+solid/frames/widgets-switch-on.png: identical, 60 commands
+solid/frames/widgets-disclosure.png: identical, 63 commands
+```
+
+The rasters are `examples/widgets/page.c` at `-DAPP_W=360 -DAPP_H=760`, `WIDGETS_FRAME` naming the state: **0 of 273,600
+pixels** on all three.
+
+Mutations, each reverted: the switch's on track drawn as the off one (the accent 240/140/50 as 60/64/78, flex-start
+instead of flex-end) — `FAIL widgets-switch: command 5 (rectangle) colour 240/140/50/255 -> 60/64/78/255` and
+`command 6 (rectangle) box 72/123.5/20/20 -> 52/123.5/20/20`; the Tab stop's `:focus` declaration dropped to the base
+row — `FAIL widgets-switch: commands: 60 -> 59`, then `command 8 (border) box 40/117.5/280/32 -> 50/159.5/20/20`,
+`colour 90/170/255/255 -> 150/155/170/255` (the ring's command is gone and the next border takes its place). `check.sh`
+regenerates the six files and greps the states' own marks: the caret in every Field frame, the selection's box only where
+it was selected, the wifi row's `_focus` declaration and the accent on track in the switch's, the panel only in the
+disclosure's.
+
+What a static Widgets frame is not: 12 Tab stops and the keys between them are the host's — a frame fixes one focus, which
+is what these three do — the slider's drag reads the pointer through `drag.onPointer`, the settings tree's roving focus is
+the focus manager's (one node focused is a state, the arrows between nodes are keys), and the toolbar's menu is left out:
+it is a float whose opening key is the toolbar's third item's and whose pointer capture is the host's (the Dialog's menu
+proves the float, not this page's key path).
 
 ## The List in a generated page
 

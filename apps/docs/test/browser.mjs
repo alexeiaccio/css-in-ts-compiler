@@ -116,6 +116,17 @@ try {
   }));
   assert.ok(cols.side > 200 && cols.outline > 150, JSON.stringify(cols));
   assert.equal(cols.current, "Authoring surface");
+  // the column is not a drawer: a nav (no dialog), no backdrop, no scroll lock, and the drawer's panel is not rendered above 900
+  assert.deepEqual(
+    await home.evaluate(() => ({
+      role: document.querySelector("#sidebar").getAttribute("role"),
+      backdrop: getComputedStyle(document.querySelector("#sidebar-backdrop")).display,
+      lock: document.documentElement.style.overflow,
+      panel: document.querySelector("#sidebar-content"),
+    })),
+    { role: null, backdrop: "none", lock: "", panel: null },
+    "the column beside the page",
+  );
   await home.click("aside a[href='#names']");
   await sleep(300);
   assert.ok((await home.evaluate(() => scrollY)) > 0, "the outline scrolls to the term");
@@ -435,11 +446,39 @@ try {
   await night.close();
   await dark.close();
 
-  // a phone: the sidebar is a drawer behind the menu button, closed by a link
+  // a phone: the sidebar is a drawer behind the menu button (createDrawer): the trigger says it is open, a backdrop covers the page,
+  // Tab stays in the panel, Escape closes it and gives the focus back to the trigger, the page behind does not scroll, an outside
+  // pointerdown dismisses it, and a link closes it on the way to its page
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const mobile = await open(phone, "install");
   await ready(mobile);
-  assert.ok(!(await mobile.isVisible("#sidebar")), "the drawer is closed");
+  // the closed drawer slides out on the first frame (the class lands after the element), so wait for it to settle
+  await mobile.locator("#sidebar-content").waitFor({ state: "hidden" });
+  assert.ok(!(await mobile.isVisible("#sidebar-content")), "the drawer is closed");
+  const state = () =>
+    mobile.evaluate(() => {
+      const trigger = document.querySelector("button[aria-label=Menu]");
+      const panel = document.querySelector("#sidebar-content");
+      const backdrop = document.querySelector("#sidebar-backdrop");
+      return {
+        expanded: trigger.getAttribute("aria-expanded"),
+        controls: trigger.getAttribute("aria-controls"),
+        // the closed panel keeps its slide (visibility), not the hidden attribute: display: none would cut the transition
+        panel: getComputedStyle(panel).visibility,
+        hidden: panel.hasAttribute("hidden"),
+        backdrop: getComputedStyle(backdrop).display,
+        lock: document.documentElement.style.overflow,
+      };
+    });
+  const closed = {
+    expanded: "false",
+    controls: "sidebar-content",
+    panel: "hidden",
+    hidden: false,
+    backdrop: "none",
+    lock: "",
+  };
+  assert.deepEqual(await state(), closed, "the drawer starts closed");
   const wide = await mobile.evaluate(() =>
     [...document.querySelectorAll("body *")]
       .filter(
@@ -455,12 +494,52 @@ try {
   const closedIcon = await menuIcon();
   await mobile.click("button[aria-label=Menu]");
   assert.notEqual(await menuIcon(), closedIcon, "the menu button turns into a cross");
-  await mobile.locator("#sidebar").waitFor({ state: "visible" });
-  await sleep(300);
+  await mobile.locator("#sidebar-content").waitFor({ state: "visible" });
+  assert.deepEqual(
+    await state(),
+    { ...closed, expanded: "true", panel: "visible", backdrop: "block", lock: "hidden" },
+    "the drawer is open over the page",
+  );
+  assert.equal(await mobile.getAttribute("#sidebar-content", "aria-modal"), "true");
+  assert.equal(await mobile.getAttribute("#sidebar-content", "aria-label"), "Pages");
+  // the focus moves into the panel, and Tab and Shift+Tab cycle inside it
+  const inside = () =>
+    mobile.evaluate(() => document.activeElement?.closest("#sidebar-content") != null);
+  await mobile.waitForFunction(() => document.activeElement?.closest("#sidebar-content") != null);
+  const stays = [];
+  for (let i = 0; i < 30; i++) {
+    await mobile.keyboard.press(i % 7 === 0 ? "Shift+Tab" : "Tab");
+    stays.push(await inside());
+  }
+  assert.ok(stays.every(Boolean), "Tab stays in the drawer");
+  // the page behind does not scroll while it is open
+  await mobile.mouse.move(370, 400);
+  await mobile.mouse.wheel(0, 400);
+  await sleep(200);
+  assert.equal(await mobile.evaluate(() => scrollY), 0, "no scroll behind the drawer");
   await mobile.screenshot({ path: join(out, "menu-mobile.png") });
-  await mobile.click(`#sidebar a[href='${prefix}tokens']`);
+  // Escape closes it, and the focus goes back to the trigger
+  await mobile.keyboard.press("Escape");
+  await mobile.locator("#sidebar-content").waitFor({ state: "hidden" });
+  assert.deepEqual(await state(), closed, "Escape closes the drawer");
+  assert.equal(
+    await mobile.evaluate(() => document.activeElement?.getAttribute("aria-label")),
+    "Menu",
+    "the focus is back on the trigger",
+  );
+  // a pointer outside the panel (on the backdrop) dismisses it too
+  await mobile.click("button[aria-label=Menu]");
+  await mobile.locator("#sidebar-content").waitFor({ state: "visible" });
+  await mobile.mouse.click(370, 400);
+  await mobile.locator("#sidebar-content").waitFor({ state: "hidden" });
+  assert.equal((await state()).backdrop, "none", "the backdrop goes with it");
+  // and a link is a page: it closes the drawer behind it
+  await mobile.click("button[aria-label=Menu]");
+  await mobile.locator("#sidebar-content").waitFor({ state: "visible" });
+  await mobile.click(`#sidebar-content a[href='${prefix}tokens']`);
   await mobile.waitForURL(/\/tokens$/);
-  await mobile.locator("#sidebar").waitFor({ state: "hidden" });
+  await mobile.locator("#sidebar-content").waitFor({ state: "hidden" });
+  assert.equal((await state()).lock, "", "the lock is released");
   await phone.close();
 
   await home.goto(`${base}basic-usage`);

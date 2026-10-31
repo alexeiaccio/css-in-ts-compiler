@@ -39,12 +39,15 @@ createGlobalTheme(t, media("(forced-colors: active)"), forcedColorsTheme);
 // The pairs a reader meets on every page: body text, the second level of text, and a link on a card. Both modes and every
 // theme above are checked (the preset too, since it sets the tokens the link is made of), and a ratio under the floor fails
 // the build. 7 for text and 4.5 for the rest are the WCAG 2.x AAA and AA floors.
-check.contrast(t.color.text, t.color.page, { min: 7 });
-check.contrast(t.color.muted, t.color.page, { min: 4.5 });
+check.contrast(t.color.text, t.color.page, { min: 7 }); // the tabs skin's selected label
+check.contrast(t.color.muted, t.color.page, { min: 4.5 }); // its unselected label
 check.contrast(t.color.link, t.color.surface, { min: 4.5 });
 check.contrast(t.color.placeholder, t.color.page, { min: 4.5 });
 check.contrast(t.color.onHighlight, t.color.highlight, { min: 4.5 });
+// The active tab's underline is a graphic against the page: 3 is the WCAG 1.4.11 floor for non-text contrast. The dark
+// mode is the closest (3.55:1 without the preset, 3.17:1 with indigo), so a lighter highlight would break it.
+check.contrast(t.color.highlight, t.color.page, { min: 3 });
 // The focus ring is a graphic, not text: 3 is the WCAG 1.4.11 floor for a non-text contrast.
-check.contrast(t.color.focusRing, t.color.page, { min: 3 });
+check.contrast(t.color.focusRing, t.color.page, { min: 3 }); // the tabs skin's ring
 
 export { t };
