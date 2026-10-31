@@ -55,7 +55,7 @@ describe("Toaster", () => {
       description: "The file is larger than 10 MB.",
       tone: "error",
     });
-    await tick();
+    await waitFor(() => rows().length === 3);
 
     const region = stack();
     expect(region?.getAttribute("role")).toBe("region");
@@ -85,7 +85,7 @@ describe("Toaster", () => {
   it("keeps three at the default ceiling and drops the oldest of four", async () => {
     const mounted = mount({ timeout: 10_000 });
     const ids = ["One", "Two", "Three", "Four"].map((title) => mounted.api.show({ title }));
-    await tick();
+    await waitFor(() => rows().length === 3);
 
     // the primitive's default max is 3: the first shown is gone, the last three are in the stack
     expect(
@@ -97,23 +97,19 @@ describe("Toaster", () => {
   it("dismisses a toast from its close button", async () => {
     const mounted = mount({ timeout: 10_000 });
     mounted.api.show({ title: "Saved" });
-    await tick();
-    expect(rows()).toHaveLength(1);
+    await waitFor(() => rows().length === 1);
 
     const close = rowOf("Saved")?.querySelector<HTMLButtonElement>('[data-part="toast-close"]');
     expect(close?.getAttribute("aria-label")).toBe("Dismiss");
     close?.click();
-    await tick();
-
-    expect(rows()).toHaveLength(0);
+    await waitFor(() => rows().length === 0);
     expect(mounted.dismissed).toHaveLength(1);
   });
 
   it("auto-dismisses after the timeout", async () => {
     const mounted = mount({ timeout: 60 });
     const id = mounted.api.show({ title: "Gone soon" });
-    await tick();
-    expect(rows()).toHaveLength(1);
+    await waitFor(() => rows().length === 1);
 
     await waitFor(() => rows().length === 0);
     expect(mounted.dismissed).toEqual([id]);
@@ -148,7 +144,7 @@ describe("Toaster", () => {
     wrapper.style.overflow = "hidden";
     const mounted = mount({ timeout: 10_000 }, wrapper);
     mounted.api.show({ title: "Still in the corner" });
-    await tick();
+    await waitFor(() => rows().length === 1);
 
     const region = stack();
     expect(region).not.toBeNull();
