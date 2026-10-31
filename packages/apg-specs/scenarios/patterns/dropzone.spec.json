@@ -1,0 +1,360 @@
+{
+  "pattern": "dropzone",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "No APG pattern exists for file dropping (bean: the drop zone's machine). Written from specs/patterns/dropzone.qnt: the drag depth (0 none, 1 the zone, 2 a child), disabled, and the last delivery. The vocabulary is the drag events themselves: dragEnter, dragOver, dragLeave and drop with a value of accepted (one image that fits), rejected (one text file refused by accept: image/*) or empty (no files). The batch is the fixture's; the per-file decision is a property test, not this machine.",
+  "skipped": [
+    {
+      "id": "dropzone.spec.per-file-decision",
+      "reason": "the accept/size/count decision is a pure function of one batch (a property test beside the browser test), so the machine carries only the summary"
+    },
+    {
+      "id": "dropzone.spec.async-upload",
+      "reason": "onFiles is the host's upload; the primitive never sees a result or a failure"
+    },
+    {
+      "id": "dropzone.spec.picker-path",
+      "reason": "the browse button and the hidden input's change call the same deliver with no drag state; drop(x) is the machine's only delivery"
+    },
+    {
+      "id": "dropzone.spec.deeper-nesting",
+      "reason": "a grandchild is the child's column: only depth > 0 is read, and the fixture has one child so a leave is unambiguous"
+    },
+    {
+      "id": "dropzone.spec.no-file-items-and-folders",
+      "reason": "a null dataTransfer, a transfer with no file items and a folder-only drop are DOM details the browser test covers"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "dropzone.spec.initial",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "focus": null,
+            "value": {
+              "dragging": false,
+              "message": null
+            },
+            "attrs": {
+              "zone": {
+                "role": "group",
+                "aria-disabled": null
+              },
+              "status": {
+                "role": "status",
+                "aria-live": "polite",
+                "aria-atomic": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.a-child-leave-keeps-dragging",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "dragEnter",
+          "target": "zone"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": true,
+              "message": null
+            }
+          }
+        },
+        {
+          "event": "dragEnter",
+          "target": "child"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": true,
+              "message": null
+            }
+          }
+        },
+        {
+          "event": "dragLeave",
+          "target": "child"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": true,
+              "message": null
+            }
+          }
+        },
+        {
+          "event": "dragLeave",
+          "target": "zone"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.a-drop-clears-the-depth",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "dragEnter",
+          "target": "zone"
+        },
+        {
+          "event": "dragEnter",
+          "target": "child"
+        },
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "accepted"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": "1 file"
+            }
+          }
+        },
+        {
+          "event": "dragLeave",
+          "target": "child"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": "1 file"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.a-rejected-drop-announces-the-reason",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "rejected"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": "1 file, 1 rejected: unsupported type"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.an-empty-drop-keeps-the-announcement",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "accepted"
+        },
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "empty"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": "1 file"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.a-dragover-changes-nothing",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "dragOver",
+          "target": "zone"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": null
+            }
+          }
+        },
+        {
+          "event": "dragEnter",
+          "target": "zone"
+        },
+        {
+          "event": "dragOver",
+          "target": "zone"
+        },
+        {
+          "event": "dragOver",
+          "target": "child"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": true,
+              "message": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.a-leave-without-an-enter-is-inert",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "dragLeave",
+          "target": "child"
+        },
+        {
+          "event": "dragLeave",
+          "target": "zone"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.disabled-never-delivers",
+      "apg": "extension",
+      "config": {
+        "disabled": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "zone": {
+                "aria-disabled": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "dragEnter",
+          "target": "zone"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": null
+            }
+          }
+        },
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "accepted"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": null
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "disabled",
+          "value": false
+        },
+        {
+          "expect": {
+            "attrs": {
+              "zone": {
+                "aria-disabled": null
+              }
+            }
+          }
+        },
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "accepted"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": "1 file"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dropzone.spec.disabling-keeps-the-announcement",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "rejected"
+        },
+        {
+          "event": "prop",
+          "prop": "disabled",
+          "value": true
+        },
+        {
+          "event": "drop",
+          "target": "zone",
+          "value": "accepted"
+        },
+        {
+          "expect": {
+            "value": {
+              "dragging": false,
+              "message": "1 file, 1 rejected: unsupported type"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

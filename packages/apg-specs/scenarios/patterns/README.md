@@ -13,3 +13,6 @@ does not model, with the reason. `resizable-panels` is a group of window splitte
 `@cssints/reactive` (`specs/patterns/reactive.qnt`, bean cssints-tm9j), and it has
 two files: `reactive.spec.json` for the protocol and `reactive.owners.spec.json`
 for the sequences across the two owners.
+`dropzone` is the next: a file drop target's drag depth and last delivery,
+`specs/patterns/dropzone.qnt` (no APG pattern exists, but the state does change
+over time).

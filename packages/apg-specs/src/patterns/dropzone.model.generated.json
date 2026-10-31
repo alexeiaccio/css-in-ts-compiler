@@ -1,0 +1,1415 @@
+{
+  "generatedFrom": "../../specs/patterns/dropzone.qnt",
+  "specHash": "41fe512af3b2dccfbc489df33a2504e817557b00ba8060e111e258da418cf24b",
+  "module": "patterns_dropzone",
+  "vars": [
+    {
+      "name": "depth",
+      "type": "int"
+    },
+    {
+      "name": "highlight",
+      "type": "bool"
+    },
+    {
+      "name": "disabled",
+      "type": "bool"
+    },
+    {
+      "name": "batch",
+      "type": "str"
+    },
+    {
+      "name": "batches",
+      "type": "int"
+    },
+    {
+      "name": "dropped",
+      "type": "bool"
+    },
+    {
+      "name": "delivered",
+      "type": "bool"
+    },
+    {
+      "name": "exited",
+      "type": "bool"
+    }
+  ],
+  "defs": {
+    "ZERO": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "0"
+      }
+    },
+    "ONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "1"
+      }
+    },
+    "MAXDEPTH": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "2"
+      }
+    },
+    "isDragging": {
+      "kind": "function",
+      "params": [
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "igt",
+        "args": [
+          {
+            "kind": "name",
+            "name": "d"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "bumpUp": {
+      "kind": "function",
+      "params": [
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "name",
+                "name": "MAXDEPTH"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "MAXDEPTH"
+          }
+        ]
+      }
+    },
+    "clampDown": {
+      "kind": "function",
+      "params": [
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "entered": {
+      "kind": "function",
+      "params": [
+        "d",
+        "off"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "off"
+          },
+          {
+            "kind": "name",
+            "name": "d"
+          },
+          {
+            "kind": "app",
+            "opcode": "bumpUp",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "leftDown": {
+      "kind": "function",
+      "params": [
+        "d",
+        "off"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "off"
+          },
+          {
+            "kind": "name",
+            "name": "d"
+          },
+          {
+            "kind": "app",
+            "opcode": "clampDown",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "leftOut": {
+      "kind": "function",
+      "params": [
+        "d",
+        "off"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "off"
+          },
+          {
+            "kind": "name",
+            "name": "d"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "delivers": {
+      "kind": "function",
+      "params": [
+        "off",
+        "kind"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "off"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "kind"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DraggingIffDepth": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "highlight"
+          },
+          {
+            "kind": "app",
+            "opcode": "isDragging",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DepthClearsOnDrop": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "dropped"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DepthClearsOnExit": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "exited"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DisabledNeverDelivers": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "delivered"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "disabled"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OneDropOneBatch": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "delivered"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "dropped"
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "batches"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "batch"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "none"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DepthNeverNegative": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "MAXDEPTH"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AnnouncementOnlyAfterBatch": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "batches"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "batch"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "batches"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "batch"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "enter_zone",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "app",
+            "opcode": "entered",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "disabled"
+              }
+            ]
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "app",
+            "opcode": "isDragging",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "entered",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "depth"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "name",
+            "name": "batch"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "batches"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "enter_child",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "app",
+            "opcode": "entered",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "disabled"
+              }
+            ]
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "app",
+            "opcode": "isDragging",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "entered",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "depth"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "name",
+            "name": "batch"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "batches"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "leave_child",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "app",
+            "opcode": "leftDown",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "disabled"
+              }
+            ]
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "app",
+            "opcode": "isDragging",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "leftDown",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "depth"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "name",
+            "name": "batch"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "batches"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "leave_zone",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "app",
+            "opcode": "leftOut",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "name",
+                "name": "disabled"
+              }
+            ]
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "app",
+            "opcode": "isDragging",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "leftOut",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "depth"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "name",
+            "name": "batch"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "batches"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "disabled"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "drop_accepted",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "delivers",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "accepted"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "accepted"
+              },
+              {
+                "kind": "name",
+                "name": "batch"
+              }
+            ]
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "delivers",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "accepted"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "batches"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "batches"
+              }
+            ]
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "app",
+            "opcode": "delivers",
+            "args": [
+              {
+                "kind": "name",
+                "name": "disabled"
+              },
+              {
+                "kind": "str",
+                "value": "accepted"
+              }
+            ]
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "drop_rejected",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "delivers",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "rejected"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "rejected"
+              },
+              {
+                "kind": "name",
+                "name": "batch"
+              }
+            ]
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "delivers",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "disabled"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "rejected"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "batches"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "batches"
+              }
+            ]
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "app",
+            "opcode": "delivers",
+            "args": [
+              {
+                "kind": "name",
+                "name": "disabled"
+              },
+              {
+                "kind": "str",
+                "value": "rejected"
+              }
+            ]
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "drop_empty",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "disabled"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "name",
+            "name": "batch"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "batches"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_disabled",
+      "nondet": {
+        "name": "off",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "depth"
+          }
+        },
+        {
+          "field": "highlight",
+          "rhs": {
+            "kind": "name",
+            "name": "highlight"
+          }
+        },
+        {
+          "field": "disabled",
+          "rhs": {
+            "kind": "name",
+            "name": "off"
+          }
+        },
+        {
+          "field": "batch",
+          "rhs": {
+            "kind": "name",
+            "name": "batch"
+          }
+        },
+        {
+          "field": "batches",
+          "rhs": {
+            "kind": "name",
+            "name": "batches"
+          }
+        },
+        {
+          "field": "dropped",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "delivered",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "exited",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "enter_zone",
+    "enter_child",
+    "leave_child",
+    "leave_zone",
+    "drop_accepted",
+    "drop_rejected",
+    "drop_empty",
+    "set_disabled"
+  ]
+}
