@@ -8,6 +8,8 @@
 //     light and in dark
 //   - the @cssints/reactive stories hold no JavaScript state and no handler: a click on the disclosure's button flips
 //     aria-expanded and the panel's display, and the tabs' aria-selected is the tab's own binding
+//   - the async boundary: a form's submit leaves CSS through emit(), the app's listen() does the fake save, and the sheet
+//     paints pending, saved and failed from the data-pending / data-state attributes the app writes
 //   - the overlay of @cssints/devtools picks the story's button and names the winner per property with the token it reads,
 //     and the file the classes were written in — the reason a lab exists at all
 //   node test/lab.mjs
@@ -75,6 +77,8 @@ try {
     "Button · Toggle",
     "CSS interactions/Disclosure · Closed",
     "CSS interactions/Disclosure · Open",
+    "CSS interactions/Save form · Failed",
+    "CSS interactions/Save form · Saved",
     "CSS interactions/Tabs · Computed",
     "Tabs · Three",
     "Tabs · WithDisabled",
@@ -120,6 +124,10 @@ try {
   assert.equal(new URL(page.url()).hash, "#tabs--three");
   await page.keyboard.press("ArrowUp");
   assert.equal(await id(), "reactive-tabs--computed");
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await id(), "save-form--saved");
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await id(), "save-form--failed");
   await page.keyboard.press("ArrowUp");
   assert.equal(await id(), "disclosure--open");
   await page.keyboard.press("ArrowUp");
@@ -193,6 +201,79 @@ try {
     ],
     ["none", "block", "none"],
   );
+
+  // The async boundary: a submit leaves the CSS world through emit(), the app does the fake save and writes data-pending
+  // and data-state, and the sheet paints pending, saved and failed from those attributes and nothing else. The hand-off is
+  // counted in the page: exactly one reactive:save per submit.
+  await page.goto(`${base}#save-form--saved`);
+  assert.equal(await id(), "save-form--saved");
+  await page.locator("#save-form[data-reactive-idle=true]").waitFor();
+  const saveForm = page.locator("#save-form");
+  const saveButton = page.locator("#save-submit");
+  const handOffs = () => page.evaluate(() => window.saveEvents);
+  await page.evaluate(() => {
+    window.saveEvents = 0;
+    document
+      .getElementById("save-form")
+      .addEventListener("reactive:save", () => (window.saveEvents += 1));
+  });
+  await saveButton.click();
+  // pending is the app's, written before the await: the marker on the form, the button's own report, and the look
+  assert.equal(await saveForm.getAttribute("data-pending"), "true");
+  assert.equal(await saveButton.getAttribute("aria-busy"), "true");
+  assert.notEqual(await displayOf("#save-spinner"), "none");
+  assert.equal(
+    await page.locator("#save-spinner").evaluate((el) => el.getAnimations().length > 0),
+    true,
+  );
+  // the disabled look is the border token, read off the form's own border rather than written twice
+  assert.equal(
+    await saveButton.evaluate((el) => getComputedStyle(el).backgroundColor),
+    await saveForm.evaluate((el) => getComputedStyle(el).borderTopColor),
+  );
+  assert.deepEqual(
+    [await displayOf("#save-saved"), await displayOf("#save-failed")],
+    ["none", "none"],
+  );
+  // after the fake save: pending cleared, the outcome in data-state, and the message painted from it
+  await page.locator("#save-form[data-state=saved]").waitFor();
+  assert.equal(await saveForm.getAttribute("data-pending"), null);
+  assert.equal(await saveButton.getAttribute("aria-busy"), "false");
+  assert.equal(await displayOf("#save-spinner"), "none");
+  assert.deepEqual(
+    [await displayOf("#save-saved"), await displayOf("#save-failed")],
+    ["block", "none"],
+  );
+  assert.equal(await handOffs(), 1);
+
+  // the failing variant: the same attributes, the other message, and the form submits again — one hand-off each
+  await page.goto(`${base}#save-form--failed`);
+  assert.equal(await id(), "save-form--failed");
+  await page.locator("#save-form[data-reactive-idle=true]").waitFor();
+  await page.evaluate(() => {
+    window.saveEvents = 0;
+    document
+      .getElementById("save-form")
+      .addEventListener("reactive:save", () => (window.saveEvents += 1));
+  });
+  await saveButton.click();
+  assert.equal(await saveForm.getAttribute("data-pending"), "true");
+  await page.locator("#save-form[data-state=failed]").waitFor();
+  assert.equal(await saveForm.getAttribute("data-pending"), null);
+  assert.deepEqual(
+    [await displayOf("#save-saved"), await displayOf("#save-failed")],
+    ["none", "block"],
+  );
+  assert.equal(await handOffs(), 1);
+  await saveButton.click();
+  assert.equal(await saveForm.getAttribute("data-pending"), "true");
+  assert.equal(await saveForm.getAttribute("data-state"), null);
+  await page.locator("#save-form[data-state=failed]").waitFor();
+  assert.deepEqual(
+    [await displayOf("#save-saved"), await displayOf("#save-failed")],
+    ["none", "block"],
+  );
+  assert.equal(await handOffs(), 2);
 
   // The overlay picks the story's button: the properties table names the winner and the token it reads, and the classes by
   // the call that wrote them, in the component's file.
