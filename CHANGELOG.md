@@ -2,6 +2,31 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.22.0 (2026-10-31)
+
+### Minor changes
+
+- The feedback that adopting 0.20.0 produced, in one release.
+  
+  **Lists that arrive later.** `createListbox`'s `items`, `createTable`'s `rows`, `createRadioGroup`'s `values` and `createTimeline`'s rows now take a getter (`() => list()`) and read it at attribute-read time, so an async fetch no longer forces the host to rebuild the widget and lose the active option, the selection and the roving tab stop. `listbox.items` is a getter over the live list; a `defaultValue` chosen before the items arrived now survives them.
+  
+  **Host-owned values.** `createRadioGroup` takes `value: () => checked()`, so `undefined` can be a real controlled state ("nothing checked") instead of meaning "uncontrolled"; its `radioProps` carries `type="button"`, so a radio rendered as a `<button>` no longer submits the form. `createStatus` and `createAlert` take `from: () => text`, and read the host's signal directly instead of asking for an effect that mirrors it into `show()`.
+  
+  **Host-named ids.** `createTabs` takes `tabId(index)` and `panelId(index)`, and `aria-controls` / `aria-labelledby` follow them: a console whose panels are `#traces`, `#logs`, `#metrics` no longer re-implements the two attributes.
+  
+  **Drop zone.** `maxFiles` caps one batch (a new `"count"` reject reason), `labels.labelledby` names the zone by the host's own visible heading, and `formatMessage` returns the announcement in the host's language from the same counts.
+  
+  **Timeline.** Rows mode reports `focusedId()`, the row that holds the roving tab stop.
+  
+  `test/props-later.browser.test.tsx` is the regression net for all of it.
+- `createMenu` takes the checked state as a readable pair as well as the packed number: `checked` (the checked checkbox item indices) and `choice` (the chosen radio index, `-1` for none) with `onCheckedValuesChange(checked, choice)`. The readable pair is the store and the packed `value` / `onCheckedValueChange` (unchanged for existing callers and `menu-checkable.qnt`) is its derived view, so a controlled menu can check any checkbox item, not only item 0; `value()` joins `checked()` / `choice()` as the packed accessor.
+
+### Patch changes
+
+- The evaluation server compiles a dependency's `.jsx` inertly too.
+  
+  A package that ships `.jsx` sources (`@solidjs/router` does, behind its `solid` condition) reached the private Vite server of a build and the app server's `ssr` environment untransformed, where Vite's generic transform asked for `react/jsx-runtime` — which an app on another framework does not install, so the build failed on the first module importing it. A `.jsx` the runner follows into has the same job as the app's own components: its top level must run, its elements are irrelevant.
+
 ## 0.21.0 (2026-10-31)
 
 ### Minor changes
