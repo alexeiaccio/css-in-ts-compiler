@@ -58,7 +58,12 @@ describe("Popover (the kit's DOM)", () => {
     const { content, open, style } = mounted();
     await open();
     const panel = style(content());
-    expect(panel.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    // the surface is the theme's token, not a colour of the skin's own
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = "var(--color-overlay-background)";
+    document.body.append(probe);
+    expect(panel.backgroundColor).toBe(style(probe).backgroundColor);
+    probe.remove();
     expect(panel.borderTopWidth).toBe("1px");
     expect(panel.borderRadius).not.toBe("0px");
     expect(panel.boxShadow).not.toBe("none");

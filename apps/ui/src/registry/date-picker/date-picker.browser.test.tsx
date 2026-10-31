@@ -61,7 +61,12 @@ describe("Date picker (the kit's DOM)", () => {
     const panel = content().getBoundingClientRect();
     expect(Math.round(panel.top - window.scrollY)).toBe(Math.round(anchor.bottom + 4));
     const surface = style(content());
-    expect(surface.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    // the panel is the theme's overlay surface, not a colour of the skin's own
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = "var(--color-overlay-background)";
+    document.body.append(probe);
+    expect(surface.backgroundColor).toBe(style(probe).backgroundColor);
+    probe.remove();
     expect(surface.borderTopWidth).toBe("1px");
     expect(surface.boxShadow).not.toBe("none");
     expect(surface.zIndex).toBe("10");
