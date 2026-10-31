@@ -1592,7 +1592,59 @@ createCommandPalette(options: {
 };
 ```
 
-Focus stays in the field and `aria-activedescendant` names the highlighted option: ↓ on the last and ↑ on the first return the highlight to the field, and ↓/↑ from there re-enter at the first/last row. Home/End move the caret while the field has text and are list keys only while it is empty. Enter runs the highlight, Escape closes through the dialog, Tab is not intercepted. Filtering is a plain case-insensitive substring match over `label` and `keywords` — no fuzzy scoring, because a palette is short and ranking (recents, scopes) is the host's policy. `results()` keeps host order; `group` is what the host groups by; `emptyProps.hidden` and `labels.empty` are the empty state; the count is written to `statusProps` once per query, not on every arrow. The query and highlight reset on close, focus returns to the element that had it, and `runActive()` closes before `run()` so a command may open its own UI. Host's: rendering, grouping and CSS; async commands and their errors; every visible string via `labels`; any close other than Escape or a command. The filterable menu and the date picker are later compositions on the same research.
+Focus stays in the field and `aria-activedescendant` names the highlighted option: ↓ on the last and ↑ on the first return the highlight to the field, and ↓/↑ from there re-enter at the first/last row. Home/End move the caret while the field has text and are list keys only while it is empty. Enter runs the highlight, Escape closes through the dialog, Tab is not intercepted. Filtering is a plain case-insensitive substring match over `label` and `keywords` — no fuzzy scoring, because a palette is short and ranking (recents, scopes) is the host's policy. `results()` keeps host order; `group` is what the host groups by; `emptyProps.hidden` and `labels.empty` are the empty state; the count is written to `statusProps` once per query, not on every arrow. The query and highlight reset on close, focus returns to the element that had it, and `runActive()` closes before `run()` so a command may open its own UI. Host's: rendering, grouping and CSS; async commands and their errors; every visible string via `labels`; any close other than Escape or a command. The date picker is a later composition on the same research; the filterable menu is the next section.
+
+### Headless: `createFilterableMenu` (`@cssints/headless`)
+
+The second **composition**, not a new primitive and not a new spec: `createDialogModal` + `createTextInput` + `createStatus` with one filtered `role=menu`, per Base UI's [Building a filterable menu that works for everyone](https://base-ui.com/blog/building-a-filterable-menu) (settled in `docs/research/compositions-2026-10.md`). Its oracle is `packages/headless/test/filterable-menu.browser.test.tsx`. The structure is a role promise: choosing a row runs a command, so the popup is a `role=dialog` whose trigger says `aria-haspopup="dialog"`, the field is `input[type=text][role=searchbox]` with no `aria-autocomplete`, `aria-haspopup` or `aria-expanded`, and the list is a `role=menu`.
+
+```ts skip
+createFilterableMenu(options: {
+  items:
+    | ReadonlyArray<{
+        id: string;
+        label: string;
+        group?: string | undefined; // the heading the host renders
+        submenu?: ReadonlyArray<{ id: string; label: string; run?(): void | Promise<void> }>;
+        run(): void | Promise<void>;
+      }>
+    | (() => ReadonlyArray<FilterableMenuItem>);
+  open?: boolean | undefined; // controlled: the host owns the open state
+  onOpenChange?(open: boolean): void;
+  labels?: Partial<{
+    placeholder: string; // "Filter actions"
+    empty: string; // "No actions found"; the host renders it
+    count(count: number): string; // "5 actions"
+    clear: string; // "Clear"; the clear button's name
+  }> | undefined;
+  id?: string | undefined;
+}): {
+  open(): boolean;
+  openMenu(): void;
+  closeMenu(): void; // closes every level; Escape pops one first
+  query(): string;
+  setQuery(text: string): void;
+  active(): string | null; // the highlighted row, or null while the field holds it
+  setActive(id: string | null): void;
+  results(submenuId?: string): ReadonlyArray<{
+    id: string;
+    label: string;
+    group: string | undefined;
+    hasSubmenu: boolean;
+  }>;
+  labels: FilterableMenuLabels;
+  status(): string | undefined;
+  // triggerProps (aria-haspopup="dialog", needs nothing from the field),
+  // inputProps, menuProps, groupProps(name), groupLabelProps(name),
+  // itemProps(id), submenuTriggerProps(id), submenuProps(id), emptyProps
+  // ({ hidden, text }), statusProps, clearProps (tabindex -1), dialogProps,
+  // backdropProps and titleProps: the attribute objects.
+};
+```
+
+Focus stays in the field and `aria-activedescendant` names the highlighted row; `data-highlighted` sits on the field while the highlight is there. ↓ on the last row and ↑ on the first return it to the field, and ↓/↑ from the field enter at the first/last row. Home/End are menu keys only while the query is empty **and** a row is highlighted; otherwise they move the caret. Enter runs the row or enters its submenu. **Tab closes and leaves** (not prevented: the dialog is hidden on the next task, after focus moved, so the menu never traps; a native `showModal()` wrapper keeps its own trap and moves first). **Escape pops one submenu level** and closes at the top level; Backspace on an empty submenu field goes back too.
+
+A submenu is a level: each level keeps its query and highlight and there is one field, so Enter on a trigger moves the field to that level at once, hover shows the level without moving focus, and coming back never loses the caret (`submenuProps` is the pointer-into-the-submenu hook; `results(triggerId)` gives a submenu's rows for a panel the host draws). Filtering is a case-insensitive substring on the label; typing inside an IME composition updates the text but filters only on `compositionend` (`event.isComposing` is honoured on the keyboard too). `groupProps` / `groupLabelProps` (`aria-hidden`: the group is already named through `aria-labelledby`) are the groups; `emptyProps.hidden` + `emptyProps.text` are the empty state; the count is one polite write per query change, not per arrow; `clearProps` has `tabindex: -1`, so Clear is a pointer affordance and not a tab stop. The host mounts the dialog and field only while `open()`; `triggerProps` names `aria-haspopup="dialog"` and needs nothing from the field, so the trigger works before it exists. Host's: rendering the groups and the submenu geometry, CSS, async commands and their errors and closing, and every visible string through `labels`.
 
 ### Headless: `createPanZoom` (`@cssints/headless`)
 

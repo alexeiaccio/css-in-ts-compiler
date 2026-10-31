@@ -732,7 +732,60 @@ const groups = () => [...new Set(palette.results().map((result) => result.group 
 - **Groups, empty state, one announcement.** `result.group` (or `undefined`) is what the host groups by; it renders the headings and the CSS. `emptyProps.hidden` is false when nothing matches, and `labels.empty` is the text to show. The count lands in one polite region (`statusProps`, `status()`), written once per query change — moving the highlight does not re-announce it.
 - **Reset on close**: the query and highlight are cleared on close, so the next open starts at the full list (unlike a combobox, which keeps its value). Focus returns to the element that had it when the palette opened.
 - **The host's**: rendering, grouping and CSS; async commands (`run` may return a promise, and moving the highlight to the next command is the host's call); closing on anything but Escape or a command; every visible string through `labels`; and the dialog's title element, which carries `titleProps` (`aria-labelledby` points at it).
-- **Not in this PR**: the filterable menu (`filter: true` on `createMenu`, with the IME guard and the arrow loop to the field) and the date picker are later compositions on the same research; this one is the palette only.
+- **Not in this PR**: the date picker is a later composition on the same research; the filterable menu is the next section.
+
+## Filterable menu
+
+The second **composition**, again no new widget and no new spec: `createFilterableMenu` is `createDialogModal` (the popup, announced as a dialog) + `createTextInput` (the field) + `createStatus` (the count), with one filtered `role=menu` beside the field. It follows Base UI's [Building a filterable menu that works for everyone](https://base-ui.com/blog/building-a-filterable-menu), which [docs/research/compositions-2026-10.md](docs/research/compositions-2026-10.md) settles for us.
+
+```tsx
+const menu = createFilterableMenu({
+  items: actions, // ReadonlyArray<{ id, label, group?, submenu?, run }> or a getter
+  labels: { placeholder: t("filter"), empty: t("noneFound"), clear: t("clear") },
+});
+
+const groups = () => [...new Set(menu.results().map((row) => row.group ?? ""))];
+
+<button {...menu.triggerProps}>Actions</button>
+<Show when={menu.open()}>
+  <div {...menu.backdropProps} />
+  <div {...menu.dialogProps}>
+    <h2 {...menu.titleProps}>{t("actions")}</h2>
+    <input {...menu.inputProps} />
+    <button {...menu.clearProps}>×</button>
+    <div {...menu.menuProps}>
+      <For each={groups()}>
+        {(group) => (
+          <div {...menu.groupProps(group)}>
+            <h3 {...menu.groupLabelProps(group)}>{group}</h3>
+            <For each={menu.results().filter((row) => (row.group ?? "") === group)}>
+              {(row) => (
+                <div
+                  {...(row.hasSubmenu
+                    ? menu.submenuTriggerProps(row.id)
+                    : menu.itemProps(row.id))}
+                >
+                  {row.label}
+                </div>
+              )}
+            </For>
+          </div>
+        )}
+      </For>
+    </div>
+    <p {...menu.emptyProps}>{menu.emptyProps.text}</p>
+    <div {...menu.statusProps}>{menu.status()}</div>
+  </div>
+</Show>;
+```
+
+- **A dialog with a searchbox and a menu, not a combobox.** A choice runs a command; it does not complete the field. The trigger says `aria-haspopup="dialog"` and works before the field mounts (that is why the dialog and field are inside the host's `<Show>`); the field is `input[type=text][role=searchbox]` with **no** `aria-autocomplete`, `aria-haspopup` or `aria-expanded`. `type=search` is deliberately not used: its built-in clear button would be one more thing to undo.
+- **Focus stays in the field.** `aria-activedescendant` names the highlighted row; ↓ past the last and ↑ before the first put the highlight back on the field, which carries `data-highlighted` so the step is visible. ↓/↑ from the field re-enter at the first/last row. Home/End are menu keys (first/last row) only while the query is empty **and** a row is highlighted; with text they move the caret. Enter runs the highlighted row, or enters its submenu.
+- **Tab closes and leaves; Escape pops a level.** Tab is not prevented: the dialog is hidden on the next task, after the browser has moved focus, so the menu never traps it (a touch screen reader leaves with its own cursor). A modal wrapper that traps focus (native `showModal()`) keeps its trap and moves first; this composition adds no second one. Escape goes back one submenu level and closes the dialog at the top level; Backspace on an empty submenu field goes back too.
+- **Submenus are levels.** Each level keeps its own query and highlight, and there is one field, so entering, hovering and returning never lose the caret. Enter on a submenu trigger moves the field to that level at once; hovering the trigger shows the level without moving focus, and focus follows the pointer into the submenu (`submenuProps`). `results(triggerId)` gives a submenu's rows for a host that draws it as a separate panel: the geometry is the host's.
+- **IME.** Typing inside a composition updates the text but not the filter; `compositionend` applies it. `event.isComposing` is honoured on the keyboard as well.
+- **Groups, empty state, one announcement.** `groupProps` / `groupLabelProps` (`aria-hidden`, because the group is already named through `aria-labelledby`) are the grouping; `emptyProps.hidden` and `emptyProps.text` are the empty state ("No actions found"); the count lands in one polite region (`statusProps`, `status()`) once per query change, not on every arrow. `clearProps` has `tabindex: -1`: the Clear button is a pointer affordance, not a tab stop.
+- **The host's**: rendering the groups and the submenu geometry, CSS, async commands (a rejected `run` is the host's to report) and their closing, every visible string through `labels`, and the dialog's title element (`titleProps`).
 
 ## Commands
 
