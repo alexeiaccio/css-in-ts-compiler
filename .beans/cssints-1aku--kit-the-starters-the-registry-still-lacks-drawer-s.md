@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-31T17:44:18Z
-updated_at: 2026-10-31T19:00:06Z
+updated_at: 2026-10-31T19:32:09Z
 ---
 
 Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these starters are still missing.
@@ -20,7 +20,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] feed
 - [x] player
 - [x] treegrid
-- [ ] resizable-panels
+- [x] resizable-panels
 
 The drawer starter was the first round; the panzoom starter is the second.
 
@@ -109,9 +109,24 @@ Tests: `apps/ui` 389 passed (7 new for the carousel), `bun run typecheck`, `bun 
 
 Tests: `apps/ui` 409 passed (6 new for the player), `bun run typecheck`, `bun run build` and `theme:check` pass.
 
+## Resizable panels (round ten)
+
+- Added `apps/ui/src/registry/resizable-panels/`: `ResizablePanels` over `createResizablePanels`; the skin is the grid frame and the surface panes, the bars as the separator itself (no button wrapper), the grab handle that appears on hover, keyboard focus and drag, the focus ring, and the layout transition that honours reduced motion and stops while dragging. The primitive owns the sizes (percent, summing to 100), each pane's `min`/`max`, the `role=separator` and every `aria-*`, the arrows / Home / End / Enter keys, the pointer drag, collapse/restore and `storageKey` persistence.
+- Added the fixture (Files / Editor / Preview, a flexible middle, side minimums, the first pane collapsible, and the sentence about dragging and the arrow keys; no `storageKey`, since persistence is the host's choice) and the Chromium browser test: the named group and the separator semantics (role, orientation, value, `aria-controls`, bounds), Tab reaching a bar, the grip on focus, the arrows and the minimum, Home/End at both pair bounds, Enter collapsing and restoring, a pointer drag following the pointer, and the second separator of three panes moving only its own pair.
+- Added the demo to `src/docs/demos.tsx` and a `.demo-panels` width in `docs.css`; regenerated `r/resizable-panels.json`, `r/registry.json` and `public/llms.txt`, leaving the other `r/*.json` as committed.
+- Finding: `docs/API.md` has no resizable-panels section either; the contract is the primitive's doc comment, `specs/patterns/resizable-panels.qnt` and `packages/headless/README.md`.
+
+Tests: `apps/ui` 416 passed (7 new for the resizable panels), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
 ## Engine gaps
 
 - **The tree was fixed.** `createTreegrid` read the spec's seven-row Email Inbox tree from a module constant, so no host could render its own rows, and a starter could not be a file tree. Added `parents` (the parent of each row, in document order) and `defaultExpanded`, both optional; the spec's tree stays the default, so `treegrid.qnt`, the ported scenarios and the differential walk are unchanged. The custom-tree path is covered by the kit's browser test, not by the machine: a Quint spec parameterised by the tree is the upgrade if a second consumer needs one. `.changeset/treegrid-parents.md` (minor).
 
 Tests: `apps/ui` 398 passed (9 new for the treegrid), `bun run typecheck`, `bun run build` and `theme:check` pass; `@cssints/headless`'s treegrid browser test (7 passed, 86 skipped) passes.
+
+## Summary of the whole list
+
+The registry now has every starter the audit listed: drawer, scrollspy, panzoom, diagram, shortcuts (the bean's "hotkeys"), carousel, feed, player, treegrid and resizable-panels, each as an item with a fixture, a Chromium test and a demo. `grid` is infrastructure, not a starter: it is the two-dimensional focus and window machine that `table` and `treegrid` sit on, and a skin of it alone would demonstrate machinery the two starters already show.
+
+Tests: `apps/ui` 416 passed (the ten starters' fixtures and Chromium tests included); `bun run build:packages`, `bun run typecheck`, `bun run build`, `theme:check` and `vp fmt --check` / `vp lint` on the touched files pass.
 
