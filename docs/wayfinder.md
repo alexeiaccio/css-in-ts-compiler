@@ -2570,9 +2570,9 @@ and opens a dialog at mount loses only its server paint. `combos.browser.test.ts
 transformed, clipped ancestor", which mounts the dialog inside `transform: translateZ(0); overflow: hidden` and asserts the
 layer's `getBoundingClientRect` is the viewport, its `offsetParent` is null and `document.body` contains it — inline, the
 `offsetParent` was the transformed ancestor and the rect was the ancestor's box. The existing dialog case reads the panel,
-the backdrop and the layer off the document instead of its mount root, which is where they now live. **Left**: the `mount`
-prop has no case of its own (the geometry case opens the dialog with no `mount`, so the body is the target); a host's own
-modal root is the same portal with one element passed.
+the backdrop and the layer off the document instead of its mount root, which is where they now live. A second case passes a
+host's own root (`mount`) and asserts the layer's parent is that element, with the focus restored to the trigger across the
+portal as before.
 
 ## The kit's menu has checkbox and radio items (apps/ui, 2026-10-31)
 
@@ -2624,6 +2624,7 @@ omits ids, so no spec change; the kit passes no `id` by default, so its unique b
 `createUniqueId` is not made. Checked by a plain assertion in `checkbox-group.browser.test.tsx` (two groups, distinct ids,
 the named base's exact ids).
 ||||||| 0f00b800
+
 ## CSS-first interactions: `@cssints/reactive` (packages/reactive, 2026-10-31, cssints-zrt2)
 
 The model comes from [Reactive CSS](https://reactivecss.com/): state as custom properties, events and conditions in the
