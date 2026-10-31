@@ -2709,3 +2709,36 @@ thumb and focuses it. `combos.browser.test.tsx` is untouched.
 `Spinbutton`), a rail press measures from the physical left under RTL as the single slider's `trackProps` does, the
 vertical rail is `space.10` tall until a page sets its own, and `aria-valuetext` stays the primitive's low/medium/high
 with no units.
+
+## The checkable menu's readable checked state (packages/headless, 2026-10-31)
+
+The kit round found that a controlled `Menu` could only ever control item 0's checkbox: `createMenu` took the checked
+state as one packed number, `checkboxItem0 * 5 + radioChoice` (1-based), so `MenuChecked.checked` beyond 0 did not survive
+the round trip and `apps/ui` packed and unpacked at its own boundary. The pack is the spec's own shape, not an accident:
+`menu-checkable.qnt`'s `checked(wrap, choice)` is `b2i(wrap) * 5 + choice`, folded with `wrapFrom` / `choiceFrom`.
+
+**The primitive now takes the readable pair additively**: `checked?: ReadonlyArray<number>` + `choice?: number` (the
+checked checkbox indices and the chosen radio, `-1` for none) and `onCheckedValuesChange(checked, choice)`, next to the
+packed `value` / `defaultValue` / `onCheckedValueChange`, which are unchanged. Names follow the package's request pairs
+(`value` / `onValueChange`, `open` / `onOpenChange`); `onCheckedChange` and `onValueChange` were already the per-item
+events, so the pair's request needed its own name. `checked` / `choice` are also the primitive's accessors, matching the
+existing `defaultChecked` / `defaultChoice`.
+
+**One store, two views.** The readable pair is the store and the packed number is derived from it (`Menu.value()` is the
+computed view), because the pack cannot express the new case and the readable pair can express every state the pack can.
+Each field falls back to the packed one, then to the local uncontrolled state, so an old caller with `value` keeps its
+exact behaviour: the local state does not commit, `onCheckedValueChange` carries the intent, and the pair's accessors
+unpack it. A host that owns the readable pair hears `onCheckedValuesChange`; where both views are passed the readable pair
+wins. A write from either side is the same commit (`requestChecked`), so the machine does not fork.
+
+**The spec is unchanged.** `checked(wrap, choice)` is still the oracle: the bit is item 0's checkbox and the modulo is the
+radio, so the readable pair is a view over it and no `specs/` file moved. The model cannot express a second checked
+checkbox (its fixture has one checkbox item), and it does not need to: the readable pair is not new behaviour, only a wider
+name for the same two state variables. **Left**: the packed value stays lossy for a checkbox other than item 0 by
+definition (that is why it is a derived view, not the store), and `defaultValue` still starts only the packed side.
+
+**The kit dropped its packing.** `apps/ui`'s `Menu` passes `checked` / `choice` straight through and forwards
+`onCheckedValuesChange`; `MenuChecked` keeps its shape (`{ checked, radio? }`) and now reads well because the primitive
+takes the same pair. `combos.browser.test.tsx` checks a `checkbox-items` menu's third row — the case the single-bit pack
+could not control — and the headless tests mount a readable host that accepts and one that ignores, asserting both views
+stay consistent.

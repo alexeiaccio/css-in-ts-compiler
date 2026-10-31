@@ -1650,9 +1650,12 @@ createMenu(options: {
   open?: boolean | undefined; // controlled: the host owns the open state
   defaultOpen?: boolean; // uncontrolled starting state
   onOpenChange?(open: boolean): void; // a request the host may ignore
-  value?: number | undefined; // controlled checked items, packed (checkboxItem0 * 5 + radioChoice, 1-based)
-  defaultValue?: number;
-  onCheckedValueChange?(value: number): void;
+  checked?: ReadonlyArray<number> | undefined; // controlled, readable: the checked checkbox item indices
+  choice?: number | undefined; // controlled, readable: the chosen radio item, -1 for none
+  value?: number | undefined; // controlled, packed view of the same state (checkboxItem0 * 5 + radioChoice, 1-based)
+  defaultValue?: number; // the uncontrolled packed state at mount
+  onCheckedValueChange?(value: number): void; // a packed request the host may ignore
+  onCheckedValuesChange?(checked: ReadonlyArray<number>, choice: number): void; // the readable request
   triggerMode?: "outside" | "held" | undefined; // where the focus sits while the menu is closed
   disabled?: ReadonlyArray<number>; // focusable, never activated
   id?: string | undefined;
@@ -1661,12 +1664,17 @@ createMenu(options: {
   open(): boolean;
   focusLevel(): 0 | 1 | 2; // 0 outside, 1 on the trigger, 2 on an item
   focusIndex(): number;
+  checked(): ReadonlyArray<number>; // the readable view of the checked state
+  choice(): number; // the readable view of the radio choice
+  value(): number; // the packed view of the same state
   openMenu(): void; // a request, like every intent
   closeMenu(): void;
   keyDown(key: string): void;
   // …items, triggerProps, menuProps, itemProps(index), type(), setFocusItem()
 };
 ```
+
+**The checked state has one store and two views.** The readable pair (`checked` + `choice`) is the store; `value` is derived from it as `menu-checkable.qnt`'s `checked(wrap, choice)` (one checkbox bit * 5 + the radio). The pack has one checkbox bit, so only the readable pair can name a checkbox beyond item 0. A host may own either view; each has its request (`onCheckedValuesChange(checked, choice)` and `onCheckedValueChange(value)`), and where both views are given the readable pair wins. `defaultChecked` / `defaultChoice` start the pair and `defaultValue` the packed side.
 
 **The open state is a request/commit pair**, like every other controlled primitive: `open` (+ `onOpenChange`) makes the host own it, `defaultOpen` starts it. Every intent that opens or closes — the trigger's click and its keys, Escape, an item's activation, Tab, an outside click in a kit, the programmatic `openMenu` / `closeMenu` — is a request, so a host that holds `open` keeps the menu open and the focus where it was; `menu-button.qnt` reverts the whole transition of a rejected request, focus included. A write the host makes on its own is not a request: it takes the focus to the first item when it opens and to the trigger when it closes, and a write of the value it already has moves nothing (no widget can observe it).
 
