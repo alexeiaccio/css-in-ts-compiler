@@ -51,6 +51,40 @@ sh solid/test.sh                                 # all of it; `bun run test` cal
 bun solid/metamorphic.test.ts                     # the relations with no stored frame: a wrapper, a move, wrap, twice
 ```
 
+## The terminal host (the second page)
+
+`terminal/solid.ts` is the desktop loop's shape over the terminal's cells (`solid/native/term.c`, the same declaration
+surface as `ui.c`, drawn by `terminal/cells.c`/`render.c`/`measure.c`/termbox2): `createInput()`, the page's `Motion`
+hook, `flush()`, the tree walked in order, the value channel for the cell re-cut, Clay's layout and the cells. Two pages
+run there, both **unmodified**: Sensors and Sky.
+
+```sh
+sh solid/native/build.sh                          # libterm.dylib beside libui.dylib
+bun terminal/solid.ts --page sky --dump out.txt   # the feed, one frame (80x20 by default)
+bun terminal/solid.ts --page sky --keys Tab,Tab,ArrowDown --settle 40 --offset --dump out.txt
+bun terminal/solid.ts --page sky --bench 50       # the frame's ms and its cells/commands
+sh terminal/test.sh                               # the stored frames and the C comparison
+```
+
+`Sky.tsx` needed no prop it does not have on the desktop: `input` (the headless parts), `motion` (the page puts its
+wheel, its pointer and its tick there), `theme`/`setTheme`, and `load`, which the terminal hands a promise that never
+settles (a card's click opens the thread's loading state). The host re-cuts the lengths a cell cannot take as pixels
+through the value channel — the bar 1 row, the status line 1 row, a tab no padding and a cell after its label, a card one
+cell of side padding with no vertical padding or gap — and skips the avatar image (no glyph; its 40x40 box would be three
+rows of nothing the C page does not draw). The feed's own 12px padding and 8px gap stay the page's: its scroll arithmetic
+adds the same lengths, and in cells the 12px is the card's gutter and the 8px is the empty row the C page draws as a
+separator. The tablist's focus is the C bar's accent fill (a 2px underline on a one-row tab is the label's row), the
+feed's focus is its own ring token as a cell of box characters. The binding gained four things for it: the clip offset
+read after the element is open, `term_bounds`/`term_scroll_offset/to/put`, float declarations (Clay places them over the
+flow: the feed's thumb and the thread's screen), and a text line height forced to the cell's.
+
+The C feed (`terminal/sky.c`) is **not** reproducible cell for cell, and `terminal/test.sh` says so with numbers: 1251 of
+1600 cells differ at rest, 1397 after the tab switch, 684 after the scroll, no row identical (the worst row, the C card's
+top border, is 80/80) — the C card has a hand-cut border, its name and meta share a row, its body is clipped, its counts
+are glyphs and its footer the key hints. The feed's frame is 0.08-0.35 ms for 34 commands over 1600 cells (~3.4x the
+Sensors page's 10 commands), so Solid on a terminal is viable. The full account, with what a cell cannot carry, is
+`native/README.md`'s "Solid on the terminal".
+
 ## Layout
 
 ```
