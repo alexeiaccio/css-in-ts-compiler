@@ -3,7 +3,7 @@
 // off the elements themselves, through custom properties registered with `@property { syntax: "*"; inherits: false }`:
 //
 //   owner    ._reactive-owner      --reactive-owner: open,tab       --reactive-<name>: <value>   (these inherit)
-//   events   ._reactive-events     --reactive-on: click toggle open,input set tab @value
+//   events   ._reactive-events     --reactive-on: click toggle open,input set tab @value,submit emit save
 //   output   ._reactive-binding    --reactive-binding: aria-expanded open,aria-controls =panel,aria-selected ?tab one
 //                                   (a source, `=` a literal, `?` a comparison, two trailing literals a choice)
 //   storage  ._reactive-persist    --reactive-persist: open:demo-open,tab:demo-tab
@@ -11,7 +11,8 @@
 // On load it initialises each owner (data-reactive-<name> from the declared value, or from localStorage for a persisted
 // one) and writes its bindings; on an event it applies every program of the target and its ancestors (DOM bubbling) to the
 // nearest owner, then updates the bindings of each owner it touched once — one flush, one frame. A set value of `@value` or
-// `@checked` is read off the event's target (a select, an input). Added nodes are initialised as well. No imports, no
+// `@checked` is read off the event's target (a select, an input). Added nodes are initialised as well. `emit` dispatches
+// `reactive:<name>` from the target, the one hand-off to JavaScript, which `listen()` below attaches. No imports, no
 // Effect; tolerant of pages that use none of it, and of storage that throws or is missing (private mode, quota, a page
 // without storage): a state that cannot be stored still works, it just does not survive the reload.
 const OWNER = "_reactive-owner";
@@ -119,17 +120,28 @@ const field = (target: Element | null, token: string): string => {
   return token;
 };
 
-// One program: `click toggle open` and `input set tab two`, the segments of another event skipped. A segment written twice
-// is applied once: the same program twice would toggle twice.
-const apply = (owner: Element, program: string, event: string, target: Element | null): boolean => {
+// emit(): the one hand-off to JavaScript. The event leaves the DOM from the element the native event fired on, so a
+// listen() on any ancestor — the form, the page — catches it; the detail carries that element's nearest owner (the
+// program's element may be an ancestor, which is why the owner is not the one apply() writes) and the native event.
+const emitFrom = (target: Element, name: string, event: Event): void => {
+  target.dispatchEvent(
+    new CustomEvent(SLOT + name, { bubbles: true, detail: { event, owner: ownerOf(target) } }),
+  );
+};
+
+// One program: `click toggle open`, `input set tab two` and `submit emit save`, the segments of another event skipped. A
+// segment written twice is applied once: the same program twice would toggle twice. A hand-off touches no state, so it
+// neither marks the owner nor sends it to the flush.
+const apply = (owner: Element, program: string, event: Event, target: Element | null): boolean => {
   let touched = false;
   for (const segment of new Set(list(program))) {
     const [type, action, name, value] = segment.split(" ");
-    if (type !== event || !name) continue;
+    if (type !== event.type || !name) continue;
     if (action === "toggle") write(owner, name, read(owner, name) === "true" ? "false" : "true");
     else if (action === "set") write(owner, name, field(target, value ?? ""));
+    else if (action === "emit" && target) emitFrom(target, name, event);
     else continue;
-    touched = true;
+    if (action !== "emit") touched = true;
   }
   return touched;
 };
@@ -189,7 +201,7 @@ const run = (event: Event): void => {
   for (let el = target; el; el = el.parentElement) {
     if (!el.classList.contains(EVENTS)) continue;
     const owner = ownerOf(el);
-    if (owner && apply(owner, prop(el, PROGRAM), event.type, target)) owners.add(owner);
+    if (owner && apply(owner, prop(el, PROGRAM), event, target)) owners.add(owner);
   }
   for (const owner of owners) flush(owner);
 };
@@ -225,4 +237,35 @@ if (typeof document !== "undefined") {
   else start();
 }
 
-export {};
+/** What `emit()` puts in the event's `detail`: the native event, and the nearest owner of the element it fired on. */
+export interface EmitDetail {
+  readonly event: Event;
+  readonly owner: Element | null;
+}
+
+/** A `reactive:<name>` event, as `listen()` hands it to its handler. */
+export type EmitEvent = CustomEvent<EmitDetail>;
+
+/**
+ * `listen(form, "save", ({ detail }) => save(detail.owner))`: hears the `reactive:<name>` event that
+ * `on({ submit: emit("save") })` dispatches — `name` is the same string `emit()` was given. The listener sits on `target`,
+ * and the event bubbles from the element the native event fired on, so a form or the page hears a program on any
+ * descendant or ancestor. `detail.event` is the native event (call `preventDefault()` for a submit), `detail.owner` the
+ * nearest reactive owner of that element, or `null`. Dispatched in the event's own turn, so the handler runs before the
+ * browser's default action.
+ *
+ * @param {EventTarget} target the element to listen on (`form`, `document`, ...)
+ * @param {string} name the name `emit()` was given
+ * @param {(event: EmitEvent) => void} handler called with the `CustomEvent`; its `detail` is `{ event, owner }`
+ * @returns {() => void} the disposer, which removes the listener
+ */
+export function listen(
+  target: EventTarget,
+  name: string,
+  handler: (event: EmitEvent) => void,
+): () => void {
+  const type = SLOT + name;
+  const listener = (event: Event) => handler(event as EmitEvent);
+  target.addEventListener(type, listener);
+  return () => target.removeEventListener(type, listener);
+}

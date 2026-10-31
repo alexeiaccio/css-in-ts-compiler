@@ -57,8 +57,15 @@ interface ActionData {
   readonly "~value"?: string;
 }
 
+// What emit() is at build time: the name of the event it hands to JavaScript.
+interface EmitData {
+  readonly "~emit": string;
+}
+
 // A program of on(): one or more actions by event.
-type ProgramData = Readonly<Record<string, ActionData | readonly ActionData[]>>;
+type ProgramData = Readonly<
+  Record<string, ActionData | EmitData | readonly (ActionData | EmitData)[]>
+>;
 
 // What a comparison is at build time: the state's name and the value it is compared with.
 interface CompareData {
@@ -153,6 +160,10 @@ const persistedOf = (value: unknown): PersistData | undefined => {
   return typeof data?.["~persist"] === "string" ? data : undefined;
 };
 
+// Whether a value is emit()'s hand-off: the name it carries.
+const isEmit = (value: unknown): value is EmitData =>
+  typeof (value as EmitData | undefined)?.["~emit"] === "string";
+
 const nameOf = (where: string, source: unknown): string => {
   const name = (source as SourceData | undefined)?.["~source"];
   if (typeof name !== "string" || !NAME.test(name))
@@ -223,9 +234,17 @@ const reactive = scope("reactive", {
         throw fail(
           `${JSON.stringify(event)} is not an event reactive() listens to: ${EVENTS.join(", ")}`,
         );
-      const list: readonly ActionData[] = "~action" in actions ? [actions] : actions;
+      const list: readonly (ActionData | EmitData)[] = Array.isArray(actions) ? actions : [actions];
       if (!list.length) throw fail(`the event "${event}" has no action`);
       for (const action of list) {
+        if (isEmit(action)) {
+          if (!NAME.test(action["~emit"]))
+            throw fail(
+              `the emitted event of "${event}" is not a name: lowercase letters, digits and -, starting with a letter`,
+            );
+          segments.push(`${event} emit ${action["~emit"]}`);
+          continue;
+        }
         const source = nameOf(`the source of the event "${event}"`, action);
         if (action["~action"] === "toggle") segments.push(`${event} toggle ${source}`);
         else if (action["~action"] === "set") {
@@ -235,7 +254,7 @@ const reactive = scope("reactive", {
               ? payload
               : valueOf(`the value of "${source}"`, action["~value"]);
           segments.push(`${event} set ${source} ${value}`);
-        } else throw fail(`the event "${event}" takes a toggle() or a set()`);
+        } else throw fail(`the event "${event}" takes a toggle(), a set() or an emit()`);
       }
     }
     if (!segments.length) throw fail("on() takes at least one event");
@@ -287,8 +306,10 @@ export type Sources<S extends States> = {
 /** What `state()` gives: the owner element's style and one source per state. */
 export type State<S extends States> = { readonly owner: Style } & Sources<S>;
 
-/** A program of `on()`: one event's actions. */
-export type Program = { readonly [E in EventName]?: Action | readonly Action[] };
+/** A program of `on()`: one event's actions, a write or a hand-off. */
+export type Program = {
+  readonly [E in EventName]?: Action | Emit | readonly (Action | Emit)[];
+};
 
 /** What one attribute of `bind()` takes: a source, a comparison, a choice, or a literal to write as is. */
 export type Binding = Source<StateValue> | Comparison<StateValue> | Choice | string;
@@ -331,6 +352,15 @@ declare const actionType: unique symbol;
  */
 export interface Action {
   readonly [actionType]: "write";
+}
+
+declare const emitType: unique symbol;
+/**
+ * `emit("save")`: a hand-off to JavaScript. Opaque, and only `on()` takes it: it writes no state and reads none, and only
+ * `listen()` (`@cssints/reactive/runtime`) hears the `reactive:save` event it dispatches.
+ */
+export interface Emit {
+  readonly [emitType]: string;
 }
 
 declare const payloadType: unique symbol;
@@ -503,6 +533,23 @@ export function checked(): Payload<boolean> {
  */
 export function on(program: Program): Style {
   return members.on(program as unknown as ProgramData);
+}
+
+/**
+ * `on({ submit: emit("save") })`: hand the event to JavaScript, as `reactive:save` — a bubbling `CustomEvent` dispatched
+ * from the element the native event fired on, whose `detail` is the native event and the nearest owner of that element
+ * (`{ event, owner }`). The app hears it with `listen()` from `@cssints/reactive/runtime`, the same string. It writes no
+ * state and reads none: this is the only way out to JavaScript, not a source. Only `on()` takes an `Emit`.
+ *
+ * @param {string} name the event's name, an ident: lowercase letters, digits and -
+ * @returns {Emit} the hand-off
+ */
+export function emit(name: string): Emit {
+  if (!NAME.test(name))
+    throw fail(
+      `the emitted event ${JSON.stringify(name)} is not a name: lowercase letters, digits and -, starting with a letter`,
+    );
+  return { "~emit": name } as unknown as Emit;
 }
 
 /**

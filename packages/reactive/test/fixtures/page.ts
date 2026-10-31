@@ -10,11 +10,14 @@
 //   pr: a persisted disclosure (the key "test-open"): a click stores it, a reload restores it at initialisation
 //   sv: a persisted string declared "one" under the key "test-tab": a stored value wins over the declared one
 //   np: a state without persist(): never written to storage
+//   form: a form whose submit hands the event to the app with emit(), and writes no state
+//   hit-card: a click program on an ancestor, which still emits from the button it fired on
 import { bg, cn, display } from "cssints" with { type: "cssints" };
 import {
   bind,
   checked,
   either,
+  emit,
   equals,
   inside,
   on,
@@ -155,3 +158,15 @@ export const stripPressed = cn(
   on({ click: toggle(strip.pressed) }),
   bind({ "aria-pressed": equals(strip.pressed, true) }),
 );
+
+// emit(): the one hand-off to JavaScript. The form is the owner, and its submit dispatches reactive:save from itself,
+// carrying its nearest owner and the native event; the app hears it with listen(). Nothing is written, and the program
+// twice is one dispatch (the runtime dedupes a segment, as for a toggle).
+const formState = state({ open: false });
+export const form = cn(formState.owner, on({ submit: emit("save") }), on({ submit: emit("save") }));
+export const formButton = cn(bind({ "aria-expanded": formState.open }));
+
+// a program on an ancestor: the card listens for the button's click, and the event leaves from the button it fired on
+const hit = state({ open: false });
+export const hitCard = cn(hit.owner, on({ click: emit("hit") }));
+export const hitButton = cn(bind({ "aria-expanded": hit.open }));

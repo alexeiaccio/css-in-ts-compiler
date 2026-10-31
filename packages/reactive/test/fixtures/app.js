@@ -1,4 +1,5 @@
 import "virtual:cssints.css";
+import { listen } from "@cssints/reactive/runtime";
 import * as page from "./page.ts";
 
 const card = 'style="padding:8px;margin:8px;outline:1px solid #999"';
@@ -69,4 +70,27 @@ document.body.innerHTML = `
   <button id=st3 class="${page.stripThree}">three</button>
   <button id=stp class="${page.stripPressed}">press</button>
 </div>
+<form id=form class="${page.form}" ${card}>
+  <button id=form-go class="${page.formButton}">save</button>
+</form>
+<div id=hit-card class="${page.hitCard}" ${card}>
+  <button id=hit-btn class="${page.hitButton}">hit</button>
+</div>
 `;
+
+// emit(): the app hears the hand-off with listen() from the runtime module, the same name emit() was given. The form's
+// own listener prevents the navigation a submit would cause; the page's proves the event bubbles.
+const log = (window.rxLog = []);
+const note = (from) => (event) =>
+  log.push({
+    from,
+    type: event.type,
+    native: event.detail.event.type,
+    submitEvent: event.detail.event instanceof SubmitEvent,
+    owner: event.detail.owner?.id ?? null,
+    target: event.detail.event.target?.id ?? null,
+  });
+window.rxDetach = listen(document.getElementById("form"), "save", note("form"));
+listen(document.getElementById("form"), "save", (event) => event.detail.event.preventDefault());
+listen(document, "save", note("document"));
+listen(document, "hit", note("hit"));

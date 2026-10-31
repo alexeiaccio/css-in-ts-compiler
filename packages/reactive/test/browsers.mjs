@@ -3,8 +3,9 @@
 // with the cases on one page — two independent disclosures, an owner whose state starts true, tabs on a string state,
 // a nested owner, the flush of one click, a <select> setting a state from value(), a checkbox from checked(), two
 // programs on one element and the same program twice (the owner's attribute and the bound aria-expanded agree at once),
-// and persistence: storage cleared first, a persisted disclosure across a reload, a stored value winning over the
-// declared one, and a state without persist() writing nothing.
+// persistence: storage cleared first, a persisted disclosure across a reload, a stored value winning over the
+// declared one, and a state without persist() writing nothing, and emit(): a form's submit heard by listen() on the form
+// and on the page, disposed, and a click under an ancestor's program leaving from the button it fired on.
 //   node test/browsers.mjs        BROWSERS=chrome,webkit node test/browsers.mjs
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
@@ -404,6 +405,71 @@ const run = async (page) => {
   await page.reload();
   s = await read(page);
   check(s.nOpen === "false" && s.nPanel === "none", "persist: a plain state is not restored", s);
+
+  // emit(): the one hand-off to JavaScript. A submit leaves the CSS world as a bubbling reactive:save, dispatched from the
+  // form (the target), with the native submit and the nearest owner in its detail; the form's own listen() and the page's
+  // both hear it, once per submit. A hand-off writes no state and stores nothing.
+  const stored = await page.evaluate(() => Object.keys(localStorage).sort());
+  await page.evaluate(() => {
+    window.rxLog.length = 0;
+  });
+  await page.locator("#form-go").click();
+  await frames(page);
+  let log = await page.evaluate(() => window.rxLog);
+  check(
+    log.length === 2 &&
+      log[0].from === "form" &&
+      log[1].from === "document" &&
+      log[0].type === "reactive:save" &&
+      log[0].native === "submit" &&
+      log[0].submitEvent &&
+      log[0].owner === "form" &&
+      log[0].target === "form",
+    "emit: the form and the page hear one submit",
+    log,
+  );
+  check(
+    (await page.evaluate(() =>
+      document.getElementById("form").getAttribute("data-reactive-open"),
+    )) === "false",
+    "emit: a hand-off writes no state",
+    log,
+  );
+  check(
+    JSON.stringify(await page.evaluate(() => Object.keys(localStorage).sort())) ===
+      JSON.stringify(stored),
+    "emit: a hand-off stores nothing",
+    log,
+  );
+  // the disposer removes the form's listener, and the page still hears the next submit
+  await page.evaluate(() => window.rxDetach());
+  await page.evaluate(() => {
+    window.rxLog.length = 0;
+  });
+  await page.locator("#form-go").click();
+  await frames(page);
+  log = await page.evaluate(() => window.rxLog);
+  check(
+    log.length === 1 && log[0].from === "document",
+    "emit: the disposer stops the listener",
+    log,
+  );
+  // a program on an ancestor: the click program sits on the card, and the event still leaves from the button it fired on
+  await page.evaluate(() => {
+    window.rxLog.length = 0;
+  });
+  await page.locator("#hit-btn").click();
+  await frames(page);
+  log = await page.evaluate(() => window.rxLog);
+  check(
+    log.length === 1 &&
+      log[0].from === "hit" &&
+      log[0].native === "click" &&
+      log[0].owner === "hit-card" &&
+      log[0].target === "hit-btn",
+    "emit: an ancestor program emits from the target",
+    log,
+  );
   return out.filter(Boolean);
 };
 

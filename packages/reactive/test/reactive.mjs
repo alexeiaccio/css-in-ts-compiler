@@ -1,7 +1,7 @@
 // @cssints/reactive through the engine: the owner's class (kernel markers, _g-reactive and one declaration per state),
-// the protocol declarations of on(), bind() and persist(), the @property rules, the conditions of inside() and when(), the
-// runtime module every target imports (delivery.ts: a script with no polyfills), the build errors, and the same in an
-// all-supported set of targets.
+// the protocol declarations of on(), bind(), persist() and emit(), the @property rules, the conditions of inside() and
+// when(), the runtime module every target imports (delivery.ts: a script with no polyfills), the build errors, and the
+// same in an all-supported set of targets.
 // Run: node test/reactive.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -153,6 +153,19 @@ assert.ok(!out.includes("--reactive-persist"), out);
 assert.ok(!out.includes("@property --reactive-persist"), out);
 // a persisted value is still the state's value: a bad string is the state's error, not a storage one
 
+// emit(): the one hand-off to JavaScript, a program segment beside toggle and set. The build writes `submit emit save`;
+// the app hears `reactive:save` with listen() from the runtime module. It writes no state, so the owner is untouched.
+const emitted = await code("emit.ts");
+const emitOut = sheet("emit.ts");
+assert.match(emitted, /export const form = "[^"]*_reactive-events[^"]*";/, emitted);
+assert.match(emitted, /export const saveAndOpen = "_reactive-events _\w+";/, emitted);
+for (const d of [
+  "--reactive-on:submit emit save",
+  "--reactive-on:submit emit save,submit toggle open",
+])
+  assert.ok(emitOut.includes(`{${d}}`), `${d}\n${emitOut}`);
+assert.ok(!emitOut.includes("--reactive-on:submit toggle open"), emitOut);
+
 // the build errors name the bad name, value, event or attribute, at the call site
 const fails = async (f, text, line) =>
   assert.rejects(code(f), (e) => {
@@ -221,6 +234,23 @@ await assert.rejects(code("bad-persist.ts"), (e) => {
     /^cssints: reactive: persist\(\) is missing a value: persist\(false, "demo-open"\)$/,
   );
   assert.equal(e.loc?.line, 3, "the call site");
+  return true;
+});
+// emit(): a name that is not an ident is the library's error at the call site, and an Emit in a style's place is a value
+// the build cannot use (it is an action, and only on() takes it)
+await assert.rejects(code("bad-emit.ts"), (e) => {
+  assert.equal(e._tag, "MacroError");
+  assert.match(
+    e.message.split("\n")[0],
+    /^cssints: reactive: the emitted event "Save" is not a name: lowercase letters, digits and -, starting with a letter$/,
+  );
+  assert.equal(e.loc?.line, 3, "the call site");
+  return true;
+});
+await assert.rejects(code("bad-emit-style.ts"), (e) => {
+  assert.equal(e._tag, "SiteMissingError");
+  assert.match(e.message.split("\n")[0], /^cssints: site \d+ in .* was not evaluated$/);
+  assert.equal(e.loc?.line, 4, "the call site");
   return true;
 });
 await server.close();

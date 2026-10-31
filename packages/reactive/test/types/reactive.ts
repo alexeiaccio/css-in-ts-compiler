@@ -5,6 +5,8 @@ import {
   bind,
   checked,
   either,
+  emit,
+  type Emit,
   equals,
   inside,
   on,
@@ -17,6 +19,7 @@ import {
   value,
   when,
 } from "../../src/index.ts";
+import { type EmitDetail, type EmitEvent, listen } from "../../src/runtime.ts";
 
 const ui = state({ open: false, tab: "one", count: 0 });
 
@@ -150,3 +153,38 @@ inside(persisted);
 persist();
 // @ts-expect-error persist() takes a state value
 persist({}, "demo-open");
+
+// emit(): a hand-off is a program segment of on(), beside a write; it is not a source, an action, a value or a style, and
+// the listener lives in the runtime module
+export const saved: Emit = emit("save");
+export const handoff = on({ submit: emit("save") });
+export const mixed = on({ submit: [emit("save"), toggle(ui.open)] });
+const detach = listen(document.body, "save", ({ detail }) => {
+  const native: Event = detail.event;
+  const owner: Element | null = detail.owner;
+  return [native, owner];
+});
+export const dispose: () => void = detach;
+const heard = (event: EmitEvent) => event.detail.owner;
+export const heardOwner = (target: Element) => listen(target, "save", heard);
+
+// @ts-expect-error a hand-off is not a source
+toggle(saved);
+// @ts-expect-error a hand-off is not a source of set()
+set(ui.tab, saved);
+// @ts-expect-error a hand-off is not a value of a state
+state({ open: saved });
+// @ts-expect-error a hand-off is not a binding
+bind({ "aria-expanded": saved });
+// @ts-expect-error a hand-off is not a condition
+when(saved);
+// @ts-expect-error a hand-off is not a condition
+inside(saved);
+// @ts-expect-error a hand-off is not a style
+export const emitAsStyle: Style = saved;
+// @ts-expect-error a hand-off is not an action of toggle()
+set(saved, "one");
+// @ts-expect-error emit() takes a name
+emit();
+// @ts-expect-error the detail carries the native event and the owner only
+export const badDetail: EmitDetail = { event: new Event("submit"), owner: null, name: "save" };
