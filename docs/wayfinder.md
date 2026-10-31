@@ -2984,3 +2984,56 @@ different export, so whichever item was added last won and the other's conforman
 (`does not provide an export named 'menubarDriver'`). The driver's target is now `<item>-driver.ts`, so no item can claim
 another's, and `scripts/starter-smoke.mjs` fails before installing when two items ship one target with different content —
 the silent version of the same bug.
+
+
+## `@cssints/reactive`: a Quint model of owners, programs and the flush (packages/reactive, 2026-10-31, cssints-tm9j)
+
+The rules branched in the last three rounds — comparisons and choices in `bind()`, two owners where one is nested in the
+other, and one flush after the event's actions — and the browser test is scenario-shaped but hand-written: it checks the
+sequences somebody thought of (a nested toggle, a tab click, a select, a checkbox) and never two owners driven across each
+other for several steps, a program on an ancestor element, or an event with no program at all. The model is the third oracle
+beside `test/reactive.mjs` (the build's protocol) and `test/browsers.mjs` (the fast hand-written cases).
+
+**The instance.** `specs/patterns/reactive.qnt`, in the `patterns` group as `resizable-panels.qnt`: two owners, the outer
+with an inner nested in it, each declaring `open` ("false" | "true") and `tab` ("one" | "two"), opposite at setup (outer tab
+one, inner tab two) so a value read from the wrong owner shows at once. The outer subtree carries a source binding, a two-tab
+strip with a comparison (`?tab one`), a choice (`?tab one 0 -1`) and a literal (`=panel-1`), a `<select>` whose change sets
+`tab` from `@value`, a `keydown set open true` program on the owner element itself, and an `inside(open)` condition; the
+inner carries the same strip, a click, a checkbox (`@checked`) and its own condition. A step is one event on one element: from
+the target up, every program for that event applies each action to its element's nearest owner, then every binding of each
+touched owner is written once (the flush). Payloads ride in the action name (`changeOuterFieldTwo`, `changeInnerCheckOn`), so
+a step stays deterministic; 14 actions, 30 vars, and the generator's no-collections/no-parameterised-actions gap is met the
+way resizable-panels meets it (fixed owners and elements, every action assigns every var).
+
+**The invariants** are the reason for it: `Nearest` (every binding equals what the nearest owner implies — a source's value, a
+comparison's "true"/"false", a choice's two literals, a literal as written), `Setup` (after the first step each owner carries
+exactly its declared `data-reactive-<name>` attributes), `Isolated` (snapshots of both owners at the step's start: a step
+whose programs sit in the inner subtree leaves the outer alone, and one whose program sits on the outer owner element leaves
+the inner alone), `Deep` (the conditions), `ComparisonReadsNearest` (while the owners' `tab` differ, a comparison and a choice
+follow their own owner — writing "true" from the outer owner fails it), `Atomic` (when a state moved, the owner's attribute
+and its bindings show the new value, not the value the step started from) and `ScopeKnown`. A bounded exploration finds 282
+states at depth 4 and 319 at depth 5 with no violation; `test/patterns/reactive.test.ts` pins the invariant list and gives each
+one a hand-built bad state.
+
+**The replay** is `packages/reactive/test/scenarios.mjs`: it reuses `test/browsers.mjs`'s build and serve harness, maps the
+model's parts to the ids of `test/fixtures/model.js`, and reads every probed attribute and computed `display` after each step.
+The scenarios (`scenarios/patterns/reactive.spec.json` and `reactive.owners.spec.json`, 12 in all) run through
+`@cssints/apg-specs/scenario` with the spec driver checking every invariant after every step, then two seeded differential
+walks send the same random steps to the model and the page. One flush is checked as an observation: the page is read
+immediately after the event and again two frames later, and the two must be identical (a late paint fails), and the first must
+equal the model. Chrome 156, Firefox 157 and WebKit 27.2 pass.
+
+**The model found one thing.** Its first statement of `deep` — a descendant's `inside()` condition reads the nearest owner —
+failed in the replay on the first ancestor case: with the inner owner closed and the outer open, the inner panel showed.
+`inside()` is `within(attr(…), "reactive")`, i.e. `:where(._g-reactive[data-reactive-open="true"]) .el`, an ancestor match,
+so a nested owner that declares the same state as an outer owner is also matched by the outer one (API.md already says
+`within()` reads any ancestor with the group class, not the nearest; the plugin has one group name per scope). The runtime
+writes the attribute on the nearest owner, so bindings are nearest — a comparison is computed off `closest()` — but a CSS
+condition cannot be. The spec now states the union (`insideDisplay(outerOpen, innerOpen)`), `Deep` proves the nearest-owner
+write and the outer match, and the README's Limits say to give nested owners different state names.
+
+**Left unmodelled**: persistence (`persist()`, localStorage, a reload restoring a value), the `MutationObserver` (a binding
+added to an owner that already stands), a sibling owner (the instance is two owners, one nested), the ten events beyond the
+ones used, more than two values per state, and a payload read off anything but the event's own target. Atomicity is a Quint
+step by construction; only the browser replay can show the page paints once, and the hand-written `test/browsers.mjs` stays
+the fast oracle.
