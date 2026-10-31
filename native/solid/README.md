@@ -1282,6 +1282,18 @@ shimmed in `browser/solid/globals.ts`; nothing else of Bun or Node is reached. W
 clipboard, PNG I/O, `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the
 pages it carries, and their cost, are in `native/README.md`'s browser chapter.
 
+**The dev loop, second mode: a hot re-mount.** `bun browser/serve.ts` (its first mode is the reload) pushes `reload` for
+a `.c` save, a `both` save or a page that did not opt in, and `hot` for a bundle-only one — data `{"v","why","ms"}`, the
+version to import the bundle at. A page opts in with `mountPage({ ..., hot: true })` (the Widgets page; `?hot=0` takes
+the reload back) and then nothing navigates: the client calls `window.__hotSwap(v)`, the shell's `import(<bundle>?v=v)`,
+and the new module's `mountPage` finds the page load's **host** on `globalThis` — the canvas, the `WebAssembly.Instance`,
+Clay's state, the font, the DOM listeners and the pointer — instead of building a second one, renders its tree, stops the
+old **session** (`cancelAnimationFrame` and the Solid `render`'s dispose) and starts its own. The modules a page's runtime
+is made of are its own, so the page's state is not carried over: the switch reads unchecked and its `:focus` ring is gone
+after a re-mount, while the pointer, the document's focus and scroll and the wasm's counters are the host's and stay.
+`browser/hot-check.mjs` measures both sides (hot against `?hot=0`), the `.c` case, a broken save, one loop after three
+re-mounts, and the measurements are in `native/README.md`'s browser chapter.
+
 **The pointer in the browser, mouse or finger.** `browser/solid/shell.ts` (the five shell pages) and
 `browser/solid/sky.ts` (its own loop) listen to the mouse (`mousemove`, `mousedown`, `mouseup`, `mouseleave`) and to a
 touchscreen (`pointerdown`, `pointermove`, `pointerup`, `pointercancel` with `pointerType === "touch"`), and both lists

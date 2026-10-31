@@ -12,5 +12,7 @@ await mountPage({
   width: size.width,
   height: size.height,
   input,
+  // a dev server's `hot` event re-mounts this page instead of reloading it (browser/serve.ts; `?hot=0` is the reload)
+  hot: true,
   tree: ({ drag, motion }) => () => Widgets({ input, drag, motion }),
 });
