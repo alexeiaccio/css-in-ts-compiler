@@ -54,7 +54,12 @@ export const Docs = (): JSX.Element => {
   );
 
   const follow = (): void => {
-    setName(selected());
+    // The hash names the page: a hash that is neither an item nor a guide is a fragment link inside a preview (a table of
+    // contents, a breadcrumb), which scrolls the preview and leaves the gallery where it is.
+    const next = selected();
+    if (items.some((entry) => entry.name === next) || GUIDES.some((entry) => entry.name === next)) {
+      setName(next);
+    }
   };
   // one-shot: the listener is attached once, in the component body, and removed with it
   window.addEventListener("hashchange", follow);

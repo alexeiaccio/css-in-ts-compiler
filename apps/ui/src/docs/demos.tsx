@@ -44,6 +44,7 @@ import {
   PANZOOM_WIDTH,
 } from "../registry/panzoom/panzoom.fixture.tsx";
 import { Panzoom } from "../registry/panzoom/panzoom.tsx";
+import { Scrollspy, type ScrollspyEntry } from "../registry/scrollspy/scrollspy.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
@@ -275,6 +276,50 @@ const PanzoomDemo = (): JSX.Element => (
     label="A mountain lake at dusk"
   />
 );
+
+// A table of contents beside the article it follows: the pane scrolls and the page does not, so the whole demo fits the
+// preview card. The links are plain `#id` targets; the section at the top of the pane is the entry the primitive marks.
+const SCROLLSPY_ENTRIES: ReadonlyArray<ScrollspyEntry> = [
+  { id: "demo-scrollspy-start", text: "Start", level: 1 },
+  { id: "demo-scrollspy-install", text: "Install", level: 2 },
+  { id: "demo-scrollspy-theme", text: "Theme", level: 2 },
+  { id: "demo-scrollspy-publish", text: "Publish", level: 1 },
+];
+
+const SCROLLSPY_TEXT: Readonly<Record<string, string>> = {
+  "demo-scrollspy-start": "A table of contents is a list of links to the headings of one article.",
+  "demo-scrollspy-install": "Add the component and the theme it reads its colours from.",
+  "demo-scrollspy-theme":
+    "Light and dark are two values of the same tokens, so the marker follows the mode.",
+  "demo-scrollspy-publish": "The last heading to pass the top of the pane is the current entry.",
+};
+
+const ScrollspyDemo = (): JSX.Element => {
+  let pane: HTMLDivElement | undefined;
+  return (
+    <div class="demo-scrollspy">
+      <div
+        class="demo-scrollspy__pane"
+        ref={(element: HTMLDivElement) => {
+          pane = element;
+        }}
+      >
+        <For each={SCROLLSPY_ENTRIES}>
+          {(entry) => (
+            <section class="demo-scrollspy__section">
+              <h2 id={entry.id}>{entry.text}</h2>
+              <p>{SCROLLSPY_TEXT[entry.id]}</p>
+            </section>
+          )}
+        </For>
+      </div>
+      <div class="demo-scrollspy__toc">
+        <p class="demo-scrollspy__label">On this page</p>
+        <Scrollspy entries={SCROLLSPY_ENTRIES} root={() => pane} />
+      </div>
+    </div>
+  );
+};
 
 // The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
 // or Escape closes it, and a pointer outside the anchor is the third way out.
@@ -1106,6 +1151,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   dialog: DialogDemo,
   drawer: DrawerDemo,
   panzoom: PanzoomDemo,
+  scrollspy: ScrollspyDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,

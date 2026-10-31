@@ -99,6 +99,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "scrollspy",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    title: "Scrollspy",
+    description:
+      "A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`",
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
