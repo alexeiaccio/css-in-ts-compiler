@@ -2201,6 +2201,53 @@ createDiagramFocus(options: {
 - **The lists are getters.** Pass `() => nodes()` and the arrays are read at attribute-read time: an async model arrives without rebuilding the primitive, and the tab stop keeps its node while that node exists (else it falls back to the first). A node id that is not in `nodes` is a no-op in `nodeProps` and `focus`; an edge whose endpoint is missing is ignored everywhere.
 - **The host owns the DOM.** Nothing is measured, nothing is positioned and nothing is focused by the primitive; the host renders the nodes where its layout put them, the edges on its SVG layer, and the `role="status"` paragraph.
 
+### Headless: `createRearrangeableListbox` (`@cssints/headless`)
+
+The APG rearrangeable listbox: two lists that share one option set, with the option's index as its identity. Single-select, selection follows the focus and Alt+Up / Alt+Down reorder the focused list; multi-select adds Space to toggle and Enter / Delete to transfer the selected options to the other list, where they arrive deselected. Its behaviour is `packages/headless/test/listbox-rearrangeable.browser.test.tsx`, a differential walk against `specs/apg/listbox-rearrangeable.qnt` in six configurations (single and multi, uncontrolled, controlled accepting and controlled holding a request).
+
+```ts skip
+createRearrangeableListbox(options: {
+  items: ReadonlyArray<string>; // labels; the option id is the index, and every option starts in list A
+  multi?: boolean; // false: one selection, which follows the focus
+  value?: ReadonlyArray<number> | undefined; // controlled selection (option ids); undefined = uncontrolled
+  defaultValue?: ReadonlyArray<number>; // the selection at mount
+  id?: string; // base of `<id>-option-<i>`; generated when absent
+  labels?: Readonly<Record<"a" | "b", string>>; // each list's aria-label
+  onValueChange?(selected: ReadonlyArray<number>): void; // a request the host may ignore
+}): {
+  items: ReadonlyArray<string>;
+  order(list: "a" | "b"): ReadonlyArray<number>; // the option ids a list holds, in order
+  active(list: "a" | "b"): number | null; // the active option, null when the list is empty
+  focusedList(): "a" | "b" | null;
+  selected(): ReadonlyArray<number>;
+  multi(): boolean;
+  focus(list: "a" | "b"): void;
+  blur(): void;
+  keyDown(key: string, modifiers?: { shift?: boolean; alt?: boolean; ctrl?: boolean; meta?: boolean }): void;
+  move(direction: "up" | "down"): void; // swap the focused list's active option with its neighbour
+  transfer(): void; // move the focused list's selected options to the other list
+  setMulti(flag: boolean): void;
+  listProps(list: "a" | "b"): {
+    role: "listbox";
+    tabindex: 0;
+    "aria-multiselectable": "true" | "false";
+    "aria-activedescendant": string | undefined; // only while this list has the primitive's focus
+    "aria-label": string | undefined;
+    onFocus;
+    onBlur;
+    onKeyDown;
+  };
+  optionProps(optionId: number): { id: string; role: "option"; "aria-selected": "true" | "false"; onClick };
+};
+```
+
+- **One option set, two orders.** `items` is read once; `order("a")` and `order("b")` give the two lists. An option is never copied: a transfer removes it from one order and appends it to the other. A transferred option arrives deselected.
+- **Selection follows the focus in single-select.** Focusing a list makes its active option the selection; ArrowUp / ArrowDown move the active option (and the selection with it), Home / End jump to the ends, and Alt+ArrowUp / Alt+ArrowDown swap the active option with its neighbour. `move` is that swap as a method, for a host's own button or drag.
+- **Multi-select is the APG's second example.** `Space` toggles the active option, Enter or Delete transfers every selected option of the focused list, and the orders survive the move.
+- **Controlled, a transfer waits for the host.** With `value` set, the list surgery is applied only when the `value` prop comes back equal to the request's intent; a host that holds the value moves nothing. Reordering (`move`) is not gated: it changes the primitive's own order arrays, not the selection.
+- **The primitive owns the ARIA of a listbox, not the position or the drag.** It writes `role`, `tabindex`, `aria-multiselectable`, `aria-activedescendant`, `aria-selected` and the handlers; it does not write `aria-posinset` / `aria-setsize` (a listbox's order is implicit), and it has no pointer drag. A host that wants a drag translates it to `move`; the `reorder` starter in `apps/ui` does exactly that, and adds the position attributes itself.
+- **Both lists or one.** A host renders `listProps("a")` and `listProps("b")` for the full pattern, or the first alone for a reorderable list. With one list, Enter and Delete have nowhere to transfer, so the host ignores them.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
