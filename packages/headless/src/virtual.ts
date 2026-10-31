@@ -24,6 +24,11 @@ import { type Accessor, createMemo, createSignal } from "solid-js";
 // element that is not there. The host moves focus with its own keys and calls `scrollToIndex` first, so the item is
 // declared before focus lands; the ARIA indexes stay right while it is.
 //
+// **A measured jump is kept.** `scrollToIndex` can only add up the heights it has, and beyond the measured range those
+// are estimates: the first offset a long jump lands on is off by the estimate error. So the measured mode keeps the
+// target and lands again whenever the heights change, until every height is in; a scroll the host makes by hand cancels
+// it, because the reader has taken over.
+//
 // ponytail: the measured window builds a prefix sum over every index on each call (O(n) a frame; n is a feed, not a
 // dataset). A persistent prefix sum maintained as heights arrive, or a binary search over a running total, is the
 // upgrade if hundreds of thousands of rows ever matter. Horizontal virtualisation is not here, and neither is a sticky
@@ -121,6 +126,10 @@ export interface Virtualizer {
    * The least scroll that shows item `index`: it does not move when the item is
    * already fully visible. The host calls it before moving focus to an item the
    * window may not declare.
+   *
+   * In the measured mode its first offset is only an estimate for a row not
+   * measured yet; the target is kept and landed again as heights arrive, until
+   * every height is in. A scroll the host makes by hand cancels the pending jump.
    */
   readonly scrollToIndex: (index: number) => void;
   /**
@@ -165,6 +174,11 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
   const elementOf = new Map<number, HTMLElement>();
   let observer: ResizeObserver | undefined;
   let cleanup: (() => void) | undefined;
+  // The measured mode's jump: the offset it lands on first is an estimate, so the target is kept and landed again as
+  // the heights arrive. `requested` is the `scrollTop` the last landing wrote, so a scroll that reports another can be
+  // told from the browser echoing our own.
+  let pending: number | undefined;
+  let requested: number | undefined;
 
   const count = (): number => {
     const value = typeof options.count === "function" ? options.count() : options.count;
@@ -187,6 +201,11 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
       }
     }
     cached = total;
+    // the row a pending jump is waiting for may be one the new count no longer names
+    if (pending !== undefined && pending >= total) {
+      pending = undefined;
+      requested = undefined;
+    }
     for (const [element, index] of indexOf) {
       if (!element.isConnected) {
         observer?.unobserve(element);
@@ -320,6 +339,15 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     if (element === undefined) {
       return;
     }
+    // a jump wrote `requested`; a scroll that reports another offset is the host's own and ends the pending jump
+    if (
+      pending !== undefined &&
+      requested !== undefined &&
+      Math.abs(element.scrollTop - requested) > 1
+    ) {
+      pending = undefined;
+      requested = undefined;
+    }
     setOffset(element.scrollTop);
     setViewport(element.clientHeight);
   };
@@ -352,6 +380,7 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     }
     if (changed) {
       setVersion((value) => value + 1);
+      reapply();
     }
   };
 
@@ -386,13 +415,8 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     return { "aria-hidden": "true", style: { height: `${height}px` } };
   };
 
-  const scrollToIndex = (index: number): void => {
-    const element = port();
-    const total = count();
-    if (element === undefined || total <= 0) {
-      return;
-    }
-    const target = clamp(Math.trunc(index), 0, total - 1);
+  /** The least scroll that shows `target`, from the heights and the viewport known now. */
+  const jump = (element: HTMLElement, target: number): void => {
     const size = options.itemSize;
     const g = gap();
     let top: number;
@@ -401,7 +425,7 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
       top = target * (size + g);
       height = size;
     } else {
-      const placed = layout(total);
+      const placed = layout(count());
       top = placed.tops[target]!;
       height = placed.heights[target]!;
     }
@@ -411,11 +435,49 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     if (next !== at) {
       element.scrollTop = Math.max(0, next);
     }
+    requested = element.scrollTop;
     sync();
+  };
+
+  /**
+   * Land on the pending jump again after a measurement. While some height is still
+   * an estimate the offset is too, so every batch lands again; once every height is
+   * in, the landing is exact and the target is dropped.
+   */
+  const reapply = (): void => {
+    const element = port();
+    const total = count();
+    if (pending === undefined || element === undefined || total <= 0 || pending >= total) {
+      pending = undefined;
+      requested = undefined;
+      return;
+    }
+    const settled = !layout(total).unknown;
+    jump(element, pending);
+    if (settled) {
+      pending = undefined;
+      requested = undefined;
+    }
+  };
+
+  const scrollToIndex = (index: number): void => {
+    const element = port();
+    const total = count();
+    if (element === undefined || total <= 0) {
+      return;
+    }
+    const target = clamp(Math.trunc(index), 0, total - 1);
+    // the measured mode's first offset is an estimate only while a height is missing: otherwise it lands once, exactly
+    pending = measures() && layout(total).unknown ? target : undefined;
+    requested = undefined;
+    jump(element, target);
   };
 
   const attach = (element: HTMLElement): (() => void) => {
     cleanup?.();
+    // a new port is a new scroll: a jump that was waiting on the old one no longer applies
+    pending = undefined;
+    requested = undefined;
     setPort(element);
     sync();
     const listener = (): void => sync();

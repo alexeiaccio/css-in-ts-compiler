@@ -244,6 +244,49 @@ describe("createVirtualizer", () => {
     expect(m.port.scrollTop).toBe(9_000 * 44 + 40 - view);
   });
 
+  it("keeps a measured jump's target while the estimates are corrected", async () => {
+    const heightOf = (index: number): number => (index % 2 === 0 ? 40 : 60);
+    const m = mount({ count: 2_000, itemSize: () => 30, gap: 4, rowHeight: heightOf });
+
+    // The measuring pass declares every row at the per-row estimate, so the first
+    // landing is the estimate's: it cannot know the real heights yet.
+    m.api.scrollToIndex(1_900);
+    expect(m.row(1_900)).toBeDefined();
+    const estimate = m.port.scrollTop;
+
+    await settle();
+
+    // The exact top of 1,900: 950 pairs of 40 + 60, and one gap each.
+    const top = 950 * 100 + 1_900 * 4;
+    const height = heightOf(1_900);
+    const view = m.port.clientHeight;
+    // The pending target landed again once the heights were in, so the row's
+    // bottom is on the viewport's, not where the estimate put it.
+    expect(estimate).not.toBe(top + height - view);
+    expect(m.port.scrollTop).toBe(top + height - view);
+    const row = m.row(1_900);
+    expect(row?.offsetTop).toBe(top);
+    expect((row?.offsetTop ?? 0) - m.port.scrollTop).toBe(view - height);
+  });
+
+  it("cancels a pending measured jump when the host scrolls by hand", async () => {
+    const m = mount({
+      count: 2_000,
+      itemSize: () => 30,
+      gap: 4,
+      rowHeight: (index) => (index % 2 === 0 ? 40 : 60),
+    });
+
+    m.api.scrollToIndex(1_900);
+    // The reader takes the scroll back before the heights are in.
+    m.scrollTo(8_000);
+    await settle();
+
+    // The measurement corrected the content, but not the reader's scroll.
+    expect(m.port.scrollTop).toBe(8_000);
+    expect(m.row(1_900)).toBeUndefined();
+  });
+
   it("measures once, then virtualises a feed of two heights", async () => {
     const heightOf = (index: number): number => (index % 2 === 0 ? 40 : 60);
     const m = mount({
