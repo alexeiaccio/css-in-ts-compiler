@@ -3156,3 +3156,40 @@ is the primitive's oracle); it checks the announced region and row roles, the cl
 pause and the corner geometry inside a transformed ancestor. Left: no stacking limit of its own (the primitive's `max`
 is 3), no swipe-dismiss or direction, no exit animation, no F6 binding (the host's, bean cssints-h0d5), and the close
 label is English — a translating host replaces the row with its `render`.
+
+
+## The docs' sidebar drawer (apps/docs, 2026-10-31, cssints-jzwx)
+
+The docs' mobile nav was hand-rolled in `apps/docs/src/Shell.tsx`: an `open` signal, Escape bound in `createHotkeys`, the
+`hidden` attribute for the landing page and a CSS transform with `visibility` for the closed drawer. There was no focus
+trap, no backdrop, no focus return to the trigger and no scroll lock. It is `createDrawer` now: `triggerProps` on the menu
+button (the trigger's `aria-haspopup`, `aria-expanded`, `aria-controls` and the toggle are the primitive's), `contentProps`
+on the panel, `backdropProps` on a backdrop the primitive hides itself, `modal: () => !wide()` from a
+`matchMedia("(width >= 900px)")` the host watches (the primitive has no viewport, so `breakpoint: 900` only documents the
+number), and a controlled `open` so a route change and a crossing of the breakpoint close it. Escape, the Tab cycle, the
+counted scroll lock on `<html>`, the outside `pointerdown` and the focus into and back out of the panel are the shell's,
+shared with `createConfirm` (`packages/headless/src/overlay-shell.ts`).
+
+**The column is a second element.** `contentProps` are a dialog's: `hidden` is `display: none` and `role` is `dialog`. One
+element cannot be a modal below 900 px and the page's plain `<nav>` above it, so the desktop column stays the nav it was
+(`#sidebar`: same width, sticky, no backdrop, no lock, no `role`) and the drawer's panel (`#sidebar-content`) is rendered
+below the breakpoint only; a `Groups` component gives both the same list. Without JavaScript a built page is its static
+copy (`plugin/docs.ts`), whose nav is its own, so neither the drawer nor the column is the document's way into the docs.
+
+**`hidden` is not spread on the panel.** `display: none` would cut the slide the panel had, so the host keeps hiding the
+closed panel with `visibility: hidden` (which already keeps it out of the tab order and the accessibility tree) and gives
+it `hidden` only for the landing page, which has no sidebar. The first attempt kept the old
+`transition: transform 0.2s, visibility 0.2s` and lost the focus: the class lands after the drawer's own effect, and at
+that instant a transitioned `visibility` is still `hidden`, so `focus()` on the first link did nothing (the phone case of
+`apps/docs/test/browser.mjs` timed out on "the focus moves into the panel"). The open variant now says `visibility 0s` and
+the closed one `visibility 0s linear 0.2s`: the panel is visible when the focus arrives and still visible while it slides
+out, and `prefers-reduced-motion` still turns both transitions off.
+
+**What the tests pin.** The phone case of `apps/docs/test/browser.mjs` (390 × 844) opens the drawer and reads the
+trigger's `aria-expanded` and `aria-controls`, `aria-modal`, the backdrop, the scroll lock on `<html>`, Tab and Shift+Tab
+staying in the panel, Escape closing it with the focus back on the trigger, a wheel behind it not scrolling the page, an
+outside pointerdown closing it, and a link navigating and closing it. The desktop case pins the column: no `role`, a hidden
+backdrop, no lock and no panel. No package changed: `packages/headless` and its `createDrawer` are as they were.
+
+**Left.** Kocharin's artwork popup is the drawer's other host and lives in another repository (another session's), so
+`cssints-jzwx`'s adoption item stays half open.
