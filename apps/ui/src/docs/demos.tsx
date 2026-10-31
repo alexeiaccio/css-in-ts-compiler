@@ -39,7 +39,9 @@ import { Slider } from "../registry/slider/slider.tsx";
 import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
+import { createToast } from "@cssints/headless";
 import { Tabs } from "../registry/tabs/tabs.tsx";
+import { Toaster } from "../registry/toast/toast.tsx";
 import { createSignal } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
@@ -365,6 +367,58 @@ const AlertDemo = (): JSX.Element => (
   </div>
 );
 
+const ToastDemo = (): JSX.Element => {
+  // the page holds the controller; the stack is portalled, so one <Toaster> follows the queue from wherever it is rendered.
+  // 6 s instead of the default 5, so the hover demo has time to be hovered.
+  const toast = createToast({ timeout: 6000 });
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Button tone="quiet" onClick={() => toast.show({ title: "Draft saved" })}>
+          Info
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() =>
+            toast.show({
+              title: "Published",
+              description: "The post is live for everyone.",
+              tone: "success",
+            })
+          }
+        >
+          Success
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() =>
+            toast.show({
+              title: "Upload failed",
+              description: "The file is larger than 10 MB.",
+              tone: "error",
+            })
+          }
+        >
+          Error
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() =>
+            toast.show({
+              title: "Hover to pause the countdown",
+              description:
+                "The toast waits while the pointer is over it, and resumes where it stopped.",
+            })
+          }
+        >
+          Hover pause
+        </Button>
+      </div>
+      <Toaster toast={toast} />
+    </div>
+  );
+};
+
 const MeterDemo = (): JSX.Element => (
   <div class="demo-column">
     <Meter label="Storage" value={64} />
@@ -513,4 +567,5 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   "slider-multithumb": SliderMultithumbDemo,
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
+  toast: ToastDemo,
 };

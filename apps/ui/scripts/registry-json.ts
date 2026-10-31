@@ -47,6 +47,11 @@ interface Starter {
   readonly description: string;
   /** The item also ships its conformance test: the fixture, the driver it walks with and the browser config. */
   readonly tested?: boolean;
+  /**
+   * The test walks the item through a scenario driver (default). `false` ships the fixture and the test alone: a widget
+   * with no spec (a toast) is checked by a plain browser test, not by a scenario walk.
+   */
+  readonly driver?: boolean;
   /** Files of the kit a copy of this component needs beside it (relative to `src/registry`). */
   readonly with?: ReadonlyArray<string>;
   /** Other items this one is composed with (their files arrive here too, `with`). */
@@ -282,6 +287,16 @@ const STARTERS: ReadonlyArray<Starter> = [
       "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
     also: ["@cssints/checkbox"],
   },
+  {
+    name: "toast",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    driver: false,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Toast",
+    description:
+      "A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
@@ -299,12 +314,17 @@ const kitFiles = (item: Starter) => [
           `src/registry/${item.name}/${item.name}.fixture.tsx`,
         ),
         // the driver is the item's own: the generic one is byte-identical across patterns, but a nested one (the
-        // menubar's labels a submenu's rows) is not, and a copy that two items write into one file keeps only the last
-        file(
-          target(`${item.name}-driver.ts`),
-          "registry:file",
-          `src/registry/${item.name}/${item.name}-driver.ts`,
-        ),
+        // menubar's labels a submenu's rows) is not, and a copy that two items write into one file keeps only the last.
+        // An item with no spec ships no driver: its test is a plain browser test.
+        ...(item.driver === false
+          ? []
+          : [
+              file(
+                target(`${item.name}-driver.ts`),
+                "registry:file",
+                `src/registry/${item.name}/${item.name}-driver.ts`,
+              ),
+            ]),
         file(
           target(`${item.name}.browser.test.tsx`),
           "registry:file",
@@ -331,8 +351,12 @@ const starter = (item: Starter) => ({
   dependencies: ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
-  // `solid-js` rc, which this item cannot know.
-  devDependencies: item.tested ? ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"] : [],
+  // `solid-js` rc, which this item cannot know. A scenario walk needs the spec packages; a plain
+  // browser test does not.
+  devDependencies:
+    item.tested && item.driver !== false
+      ? ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"]
+      : [],
   registryDependencies: ["@cssints/theme", ...(item.also ?? [])],
   files: kitFiles(item),
 });

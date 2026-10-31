@@ -84,6 +84,7 @@
   --color-scrim: oklch(0 0 0 / 0.35);
   --z-popover: 10;
   --z-dialog: 20;
+  --z-toast: 30;
   --shadow-popover: 0 8px 20px 0 rgb(0 0 0 / 0.12);
   --space-1: var(--space-base);
   --space-2: calc(var(--space-base) * 2);
