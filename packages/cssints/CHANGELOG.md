@@ -1,5 +1,15 @@
 # cssints
 
+## 0.24.0
+
+### Minor Changes
+
+- 2bcbb9e: A declaration can be a list: `append(prop, value)` in `cssints/plugin` joins two declarations of one property in one `cn()` instead of the later replacing the earlier, and a list beside a plain value is a build error.
+
+### Patch Changes
+
+- @cssints/css-grammar@0.24.0
+
 ## 0.23.0
 
 ### Patch Changes

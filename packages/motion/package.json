@@ -1,6 +1,6 @@
 {
   "name": "@cssints/motion",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "Animation presets for cssints: fade, slide, scale and blur in and out as one kernel over keyframes(), with prefers-reduced-motion",
   "license": "MIT",
   "repository": {
@@ -47,7 +47,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.23.0"
+    "cssints": "^0.24.0"
   },
   "engines": {
     "node": ">=22"
