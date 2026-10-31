@@ -3256,3 +3256,29 @@ and the days outside the shown month are not dimmed, because the primitive annou
 will not guess it from the ISO prefix. There is no text date field (a segmented field is a host composition of
 `createField` + `createSpinbutton` over the same day numbers) and no time. The status region is visually hidden with a
 clip path rather than a shared `sr-only` utility, which the kit does not have yet.
+
+## The drop zone in the kit (apps/ui, 2026-10-31)
+
+`createDropZone` already owns the behaviour of a file drop target: the drag depth behind `dragging()`, the last
+batch summary behind `message()`, the `accept`/`maxSize`/`maxFiles` decision, the hidden native input the picker
+opens, and `disabled`. Its machine is `specs/patterns/dropzone.qnt` (the depth and the last delivery), and
+`packages/headless/test/dropzone-spec.browser.test.tsx` replays it in Chromium. The kit's `dropzone` is the skin
+and the copy only: a dashed surface on the surface token whose `role=group`, `aria-disabled` and four drag handlers
+come from `zoneProps`; the visible label (`aria-labelledby`) and an always-present description
+(`aria-describedby`, hidden when absent); `DropzoneBrowse`, which spreads `browseProps` onto the kit's `Button` so
+it clicks the primitive's one input and not a second `<input type=file>`; and the `role=status` region with
+`message()`, rendered by `Dropzone` itself so it is mounted before the first batch and stays the same element.
+
+The active look is a second class computed from `dragging()`. The primitive deliberately has no `data-dragging`:
+`dragging()` is the one hook a skin may read, and a `data-dragging` or a copied depth in the component would be a
+second source of truth that can disagree. The disabled look reads the primitive's real `aria-disabled` with
+`attr()`. Neither the zone nor the status is portalled: the zone is a target in the page's layout, and a live
+region has to be present and stable in the document, so a floating copy would be a region the reader was not
+watching when it filled. The conformance test is a plain browser test (`driver: false` in the registry): the
+primitive's own test already walks the machine, so the kit asserts what a copy can break — a real `DragEvent` with
+a `DataTransfer` paints the computed border and clears it only on the zone's own leave (through a child and on a
+drop), an accepted batch reaches `onFiles` with the sentence in the same status element, a refused one reaches the
+status with its reason, the browse button opens the one hidden input, and a disabled zone takes neither a drop nor
+a click. Left: no preview of the accepted files and no upload progress (the page's `onFiles`), only the summary
+sentence (a page that wants one line per file uses `onReject`), the accept grammar and limits live in the
+primitive rather than in the copy, and the demo's fake-file buttons are the page's, not the component's.
