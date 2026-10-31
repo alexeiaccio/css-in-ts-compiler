@@ -5,7 +5,7 @@ status: completed
 type: task
 priority: normal
 created_at: 2026-10-31T15:11:42Z
-updated_at: 2026-10-31T15:12:06Z
+updated_at: 2026-10-31T15:12:44Z
 ---
 
 Close the last testable gaps in packages/headless/docs/requirements/tabs.md in the skin, and record the AT table protocol.
@@ -29,3 +29,5 @@ Closed G2 and G10 in `packages/headless/docs/requirements/tabs.md`; G12 stays op
 - **G12:** added "How to run the table": the five pairings, a `pass`/`fail` record with what was said (exact words where asked) and a date, a deliberately failing case first, and the rule that a row stays `not run` until a dated `pass`. The gap stays open, now with the protocol.
 
 Verification: `bun install --frozen-lockfile`; apps/ui test 299 passed (8 new); build; typecheck; theme:check; `vp fmt --check` on the touched files; `diff:check --base HEAD` clean; `release:check` passed. Repo-wide `vp lint` still fails on pre-existing errors in untouched files; the touched files have no diagnostics.
+
+PR: https://github.com/alexeiaccio/css-in-ts-compiler/pull/110
