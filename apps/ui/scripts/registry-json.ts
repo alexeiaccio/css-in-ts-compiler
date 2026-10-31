@@ -279,6 +279,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "APG treegrid: a file tree with columns, the expander in the name cell, roving focus across rows and cells, and the selected row painted from `aria-selected`",
   },
   {
+    name: "feed",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Feed",
+    description:
+      "APG feed: articles that load as the end of the list scrolls into view, with the primitive's position and size, a loading sentinel and the status line a screen reader hears",
+  },
+  {
     name: "menu",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

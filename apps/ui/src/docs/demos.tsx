@@ -84,6 +84,7 @@ import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
 import { TreegridExample } from "../registry/treegrid/treegrid.fixture.tsx";
+import { FeedExample } from "../registry/feed/feed.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
@@ -715,6 +716,8 @@ const TreeviewDemo = (): JSX.Element => (
 );
 // The same file tree the browser test mounts: two folders open, the third level one expander away.
 const TreegridDemo = (): JSX.Element => <TreegridExample class="demo-treegrid" />;
+// Six articles of the demo journal at mount; scrolling the pane to the end brings the last three.
+const FeedDemo = (): JSX.Element => <FeedExample class="demo-feed" />;
 const SliderDemo = (): JSX.Element => {
   const [volume, setVolume] = createSignal(4);
   return (
@@ -1212,6 +1215,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
   treegrid: TreegridDemo,
+  feed: FeedDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,

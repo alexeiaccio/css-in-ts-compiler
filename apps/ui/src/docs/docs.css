@@ -257,6 +257,11 @@ code {
   max-width: 38rem;
 }
 
+/* A feed's pane follows the reading column: its own scrollport is 420 px tall, so the preview page does not grow. */
+.demo-feed {
+  max-width: 26rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;
