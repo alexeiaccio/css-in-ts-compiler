@@ -179,8 +179,21 @@ try {
     }
   }
 
-  // One run: every copied conformance test in a real Chromium.
-  await run("npm", ["test"]);
+  // One file at a time, in a real Chromium: sixteen of them in one run took the browser worker down on a loaded machine
+  // (`the iframe did not become ready`, with no test having run), and a file's own failure is easier to read alone.
+  const failed = [];
+  for (const item of items.filter((candidate) => candidate.tested)) {
+    const test = item.files.find((target) => target.endsWith(".browser.test.tsx"));
+    if (test === undefined) {
+      continue;
+    }
+    try {
+      await run("npx", ["vp", "test", "run", "--config", "vitest.browser.config.ts", test]);
+    } catch {
+      failed.push(test);
+    }
+  }
+  assert.deepEqual(failed, [], `these copied tests failed: ${failed.join(", ")}`);
   // The items without a test at least have to type-check; the template's own tsc (from vite-plus)
   // checks the whole `src`, so every copied file is in it.
   await run("npx", ["tsc", "--noEmit"]);

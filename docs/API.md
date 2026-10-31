@@ -1553,6 +1553,40 @@ createScrollspy(options: {
 
 f812d87e (headless: a data table with sortable headers and row selection)
 
+### Headless: `createVirtualizer` (`@cssints/headless`)
+
+A window over a list of thousands: the host renders the visible rows plus an overscan, and two spacer boxes stand in for the rest, so the declared DOM, the content height and the scroll's clamp and thumb are the whole list's. It ports the rules the native renderer had (`native/solid/src/virtual.ts`: `fixedWindow`, `measuredWindow`, `OVERSCAN` and the gap-compensated spacers); the DOM adds the scrollport (`attach`), a `ResizeObserver` (the native renderer reads a row's box from `ui.bounds` after layout, which the DOM has no equivalent of) and the ARIA pair on every declared row. **No APG pattern exists for virtualisation and no Quint machine**: the state is pixels, not items, so `packages/headless/test/virtual.browser.test.tsx` is the oracle.
+
+```ts skip
+createVirtualizer(options: {
+  count: number | (() => number); // the whole list, read on every window calculation
+  itemSize?: number | ((index: number) => number) | undefined; // a fixed px height, or a per-row estimate; omit to measure
+  gap?: number | undefined; // the column's gap, px; 0
+  overscan?: number | undefined; // declared either side of the viewport; OVERSCAN (2)
+  estimate?: number | undefined; // one height for the unmeasured rows; the mean of the measured, else 190
+}): {
+  window(): { first: number; last: number; above: number; below: number; content: number };
+  rangeCount(): number; // last - first + 1, or 0 (nothing to declare)
+  scrollProps: { onScroll(event: Event): void }; // spread on the scrollport; attach already listens
+  itemProps(index: number): {
+    "aria-setsize": number; // the whole count
+    "aria-posinset": number; // index + 1
+    ref(element: HTMLElement): void; // the measured mode's observer wiring; a no-op when fixed
+  };
+  spacerProps(position: "start" | "end"): { "aria-hidden": "true"; style: { height: string } };
+  scrollToIndex(index: number): void; // the least scroll that shows the row
+  attach(element: HTMLElement): () => void; // the scrollport and the observers; returns the teardown
+};
+```
+
+A number `itemSize` is the arithmetic window: every row is that tall and row `n` starts at `n·(itemSize + gap)`. A function, or no `itemSize` at all, is the measured mode: a height per index arrives from the `ResizeObserver` on the declared rows, and an unmeasured row is the per-row estimate, else `estimate`, else the mean of what has been measured, else 190. The measured mode **measures once, then virtualises**: while any row's height is unknown the whole column is declared (one frame pays the whole list's layout), and the frame after it has every height, so the content height, the clamp and the thumb do not move as rows are first seen. `count` shrinking drops only the cached heights past the new count; growing it again leaves the new indexes unknown and the pass runs for them.
+
+The items and the spacers are children of **one gap-spaced column** (`display: flex; flex-direction: column; row-gap: gap`, or a grid with `row-gap`), and a spacer's height is already the gap short (`above = first·(itemSize + gap) - gap`), so the first declared row starts at its real place. At an end there is **no** spacer: a zero-height box would still add the column's gap, so a host renders one only while its height is positive — `window().above > 0` / `window().below > 0`, or the `spacerProps` height.
+
+Every declared row carries `aria-setsize` (the whole count) and `aria-posinset` (index + 1), so a screen reader announces "row 4,321 of 10,000" while only a screenful exists. A table host adds `aria-rowindex` itself: it counts the header row, which this primitive cannot know (and `createTable` already carries `aria-rowcount`). **Focus is the host's**: a focused row that leaves the window unmounts, so the host calls `scrollToIndex` when its keys move focus, before the new row must exist — the list declares the target, the host focuses it. `scrollToIndex` is the least scroll that shows the row (no move when it is already fully visible). In the measured mode its first offset is only an estimate for a row not measured yet, so the primitive keeps the target and lands again as each height arrives, until every height is in; a scroll the host makes by hand cancels the pending jump, because the reader has taken over.
+
+`attach` only records the element, adds a passive `scroll` listener, observes the scrollport's size and (measured mode) the rows' heights, and returns the teardown: it **creates no computation**, so a host may call it from a `ref`, as `createPopover` learned to allow. The measured mode requires it; the fixed mode works from `scrollProps` alone but then a resized scrollport is not seen. `scrollProps.onScroll` is the same sync as a prop, for a host that wires scrolling itself. The scrollport and its column must have no padding (the arithmetic starts at the content's 0), horizontal virtualisation and a sticky header are not here, and the measured window rebuilds a prefix sum per call (fine for a feed, not for a dataset).
+
 ### Headless: `createCommandPalette` (`@cssints/headless`)
 
 The first **composition**, not a new primitive and not a new spec: `createDialogModal` + `createTextInput` + `createStatus` wired into a palette. Its oracle is `packages/headless/test/command-palette.browser.test.tsx`. A palette is a dialog, **not a combobox**: choosing a row runs a command, so the field is `input[type=text][role=searchbox]` (no `aria-autocomplete`, no `aria-haspopup`), the container is `role=dialog` and the list is a `role=listbox`.
@@ -2166,6 +2200,53 @@ createDiagramFocus(options: {
 - **Focus follows the tab stop by itself.** `nodeProps` also carries an element `id` (`<base>-node-<node id>`, the base from `options.id` or generated), so an arrow, Home / End or `focus(id)` focuses the node it landed on: the host spreads the props and needs no effect, and the tab stop and `document.activeElement` cannot disagree. A host that renders a node outside the document (a portal on another document) moves focus itself.
 - **The lists are getters.** Pass `() => nodes()` and the arrays are read at attribute-read time: an async model arrives without rebuilding the primitive, and the tab stop keeps its node while that node exists (else it falls back to the first). A node id that is not in `nodes` is a no-op in `nodeProps` and `focus`; an edge whose endpoint is missing is ignored everywhere.
 - **The host owns the DOM.** Nothing is measured, nothing is positioned and nothing is focused by the primitive; the host renders the nodes where its layout put them, the edges on its SVG layer, and the `role="status"` paragraph.
+
+### Headless: `createRearrangeableListbox` (`@cssints/headless`)
+
+The APG rearrangeable listbox: two lists that share one option set, with the option's index as its identity. Single-select, selection follows the focus and Alt+Up / Alt+Down reorder the focused list; multi-select adds Space to toggle and Enter / Delete to transfer the selected options to the other list, where they arrive deselected. Its behaviour is `packages/headless/test/listbox-rearrangeable.browser.test.tsx`, a differential walk against `specs/apg/listbox-rearrangeable.qnt` in six configurations (single and multi, uncontrolled, controlled accepting and controlled holding a request).
+
+```ts skip
+createRearrangeableListbox(options: {
+  items: ReadonlyArray<string>; // labels; the option id is the index, and every option starts in list A
+  multi?: boolean; // false: one selection, which follows the focus
+  value?: ReadonlyArray<number> | undefined; // controlled selection (option ids); undefined = uncontrolled
+  defaultValue?: ReadonlyArray<number>; // the selection at mount
+  id?: string; // base of `<id>-option-<i>`; generated when absent
+  labels?: Readonly<Record<"a" | "b", string>>; // each list's aria-label
+  onValueChange?(selected: ReadonlyArray<number>): void; // a request the host may ignore
+}): {
+  items: ReadonlyArray<string>;
+  order(list: "a" | "b"): ReadonlyArray<number>; // the option ids a list holds, in order
+  active(list: "a" | "b"): number | null; // the active option, null when the list is empty
+  focusedList(): "a" | "b" | null;
+  selected(): ReadonlyArray<number>;
+  multi(): boolean;
+  focus(list: "a" | "b"): void;
+  blur(): void;
+  keyDown(key: string, modifiers?: { shift?: boolean; alt?: boolean; ctrl?: boolean; meta?: boolean }): void;
+  move(direction: "up" | "down"): void; // swap the focused list's active option with its neighbour
+  transfer(): void; // move the focused list's selected options to the other list
+  setMulti(flag: boolean): void;
+  listProps(list: "a" | "b"): {
+    role: "listbox";
+    tabindex: 0;
+    "aria-multiselectable": "true" | "false";
+    "aria-activedescendant": string | undefined; // only while this list has the primitive's focus
+    "aria-label": string | undefined;
+    onFocus;
+    onBlur;
+    onKeyDown;
+  };
+  optionProps(optionId: number): { id: string; role: "option"; "aria-selected": "true" | "false"; onClick };
+};
+```
+
+- **One option set, two orders.** `items` is read once; `order("a")` and `order("b")` give the two lists. An option is never copied: a transfer removes it from one order and appends it to the other. A transferred option arrives deselected.
+- **Selection follows the focus in single-select.** Focusing a list makes its active option the selection; ArrowUp / ArrowDown move the active option (and the selection with it), Home / End jump to the ends, and Alt+ArrowUp / Alt+ArrowDown swap the active option with its neighbour. `move` is that swap as a method, for a host's own button or drag.
+- **Multi-select is the APG's second example.** `Space` toggles the active option, Enter or Delete transfers every selected option of the focused list, and the orders survive the move.
+- **Controlled, a transfer waits for the host.** With `value` set, the list surgery is applied only when the `value` prop comes back equal to the request's intent; a host that holds the value moves nothing. Reordering (`move`) is not gated: it changes the primitive's own order arrays, not the selection.
+- **The primitive owns the ARIA of a listbox, not the position or the drag.** It writes `role`, `tabindex`, `aria-multiselectable`, `aria-activedescendant`, `aria-selected` and the handlers; it does not write `aria-posinset` / `aria-setsize` (a listbox's order is implicit), and it has no pointer drag. A host that wants a drag translates it to `move`; the `reorder` starter in `apps/ui` does exactly that, and adds the position attributes itself.
+- **Both lists or one.** A host renders `listProps("a")` and `listProps("b")` for the full pattern, or the first alone for a reorderable list. With one list, Enter and Delete have nowhere to transfer, so the host ignores them.
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 

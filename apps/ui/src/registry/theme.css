@@ -81,6 +81,7 @@
   --color-button-background-pressed: var(--color-tint-200);
   --color-overlay-background: var(--color-surface);
   --color-overlay-border: rgb(0 0 0 / 0.06);
+  --color-sheet-background: var(--color-overlay-background);
   --color-scrim: oklch(0 0 0 / 0.35);
   --z-popover: 10;
   --z-dialog: 20;
@@ -158,6 +159,7 @@
     --color-tint-1600: oklch(1 var(--chroma-tint) var(--hue-tint));
     --color-page: #1b1b1b;
     --color-surface: oklch(22% 0 0);
+    --color-sheet-background: oklch(24% 0 0);
     --color-overlay-border: rgb(255 255 255 / 0.2);
     --shadow-popover-color: rgb(0 0 0 / 0.5);
     --shadow-popover-offset-x: 0;
@@ -191,6 +193,7 @@
     --color-button-background: ButtonFace;
     --color-button-background-pressed: ButtonFace;
     --color-overlay-background: Canvas;
+    --color-sheet-background: Canvas;
     --color-overlay-border: ButtonBorder;
   }
 }

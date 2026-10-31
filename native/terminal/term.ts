@@ -31,6 +31,7 @@ const open = () =>
     term_scroll_put: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.f32 },
     term_dump: { args: [T.cstring], returns: T.i32 },
     term_ansi: { args: [T.cstring], returns: T.i32 },
+    term_ask: { args: [T.cstring, T.ptr, T.i32, T.i32], returns: T.i32 },
     term_errors: { args: [], returns: T.i32 },
     term_close: { args: [], returns: T.void },
   }).symbols;
@@ -109,6 +110,10 @@ export const term = {
   dump: (path: string) => lib().term_dump(cstr(path)),
   /** The last frame as ANSI truecolour: "-" is stdout. 0 on success. */
   ansi: (path: string) => lib().term_ansi(cstr(path)),
+  /** Writes a query to /dev/tty and reads the terminal's answer into `out` for at most `ms` (a quiet gap ends a real
+   *  answer sooner); the byte count, 0 without a terminal. */
+  ask: (query: string, out: Uint8Array, ms: number) =>
+    lib().term_ask(cstr(query), ptr(out), out.length, ms),
   errors: () => lib().term_errors(),
   close: () => lib().term_close(),
 };

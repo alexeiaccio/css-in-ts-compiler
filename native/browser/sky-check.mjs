@@ -16,6 +16,9 @@
 //       below its resting bottom edge are the card's, faintly, and inside it the fill is between the page and its tone. A
 //       group ignored (an alpha of 255 and no offset) fails both; the feed's clip, which the group sits in, must still
 //       close where it does, or the status line under it is lost.
+//   (f) the notifications (the page's fourth screen, `n` on the feed, app/Notify.tsx): the header and the five rows in
+//       the frame's own texts, and a click on a row opening its post's thread — the page's loader never settles here, so
+//       that thread is its loading row — with Escape back to the list.
 //
 // The page's own window loop is held (`requestAnimationFrame` never calls back), so every frame here is the one the check
 // asks for: `warm(n)` is n frames at 1/60, the timeline a headless desktop run's `--settle`.
@@ -353,6 +356,31 @@ async function main() {
                 `before: it did not scroll`);
         else ok("the bar and the wheel", `a click on the Science tab switches the feed, and three notches glide its cards ` +
             `${(scrolled[0] - scrolled[1]).toFixed(1)}px up (${scrolled[0]} -> ${scrolled[1]})`);
+
+        // (f) the notifications (the page's fourth screen, `n` on the feed, app/Notify.tsx): the five rows out of the
+        // app's recordings under the app's verbs, and a click on a row opening its post's thread — the page's loader
+        // never settles here, so the thread is its loading state, and Escape is the list again
+        await page.keyboard.press("n");
+        await page.evaluate(() => window.__page.warm(30));
+        const texts = () => page.evaluate(() => window.__page.commands().filter(c => c.type === 3).map(c => c.text.trim()));
+        const want = ["Erik Strub mentioned you", "Titania reposted", "Michael Warburton liked your post",
+            "jlp2024.bsky.social replied", "Mina Kimes followed you"];
+        const rows = await texts();
+        const missing = want.filter(w => !rows.some(t => t.startsWith(w)));
+        await page.mouse.click(rect.x + 180, rect.y + 150); // the first row's line
+        await page.evaluate(() => window.__page.warm(2));
+        const opened = await texts();
+        await page.keyboard.press("Escape");
+        await page.evaluate(() => window.__page.warm(40));
+        const back = await texts();
+        const listed = (list, prefix) => list.some(t => t.startsWith(prefix));
+        if (missing.length) bad("notifications, the rows", `no row for ${missing.join(", ")}: ${rows.join(" | ")}`);
+        else if (!listed(rows, "Notifications")) bad("notifications, the header", `no "Notifications": ${rows.join(" | ")}`);
+        else if (!listed(opened, "Loading the thread")) bad("notifications, a row's press",
+            `a click on the first row opened no thread: ${opened.join(" | ")}`);
+        else if (!listed(back, want[0])) bad("notifications, Escape", `the list is not back: ${back.join(" | ")}`);
+        else ok("notifications", `n on the feed: the header and the five rows ("${want[0]}", ...); a click on the ` +
+            `first row opened the thread's loading row (the page's loader has no answer here), and Escape is the list again`);
 
         const ms = await page.evaluate(() => window.__page.bench(100));
         const bundle = (await stat(BUNDLE)).size;

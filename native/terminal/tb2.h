@@ -29,5 +29,8 @@ Tb2Status term_tb2_poll_ms(TermEvent *ev, int ms);
 void term_tb2_close(void);
 /** The last open's error, for a caller that has to say why termbox2 did not start. */
 const char *term_tb2_error(void);
+/** Writes `query` to /dev/tty and reads its answer for at most `ms` (a 15 ms quiet gap ends it sooner; `ms` < 0 waits
+ *  with no timeout). The bytes into out (NUL-terminated) and their count; 0 without a terminal or an answer. */
+int term_tb2_ask(const char *query, char *out, int cap, int ms);
 
 #endif

@@ -16,6 +16,12 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - card: A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`. `add @cssints/card`
 - field: A label, a control, a hint and an error: the ids and the ARIA are `createField`'s. `add @cssints/field`
 - dialog: APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close. `add @cssints/dialog`
+- drawer: An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return. `add @cssints/drawer`
+- panzoom: One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture. `add @cssints/panzoom`
+- scrollspy: A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`. `add @cssints/scrollspy`
+- diagram: A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is. `add @cssints/diagram`
+- shortcuts: A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to. `add @cssints/shortcuts`
+- carousel: APG carousel: slides in a frame with previous and next, dots and a count as the indicator, arrow keys on a focused slide, a touch swipe, and the live region the primitive asks for. `add @cssints/carousel`
 - input: A text field on the neutral theme, and the control `Field` puts in by default. `add @cssints/input`
 - toolbar: A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context. `add @cssints/toolbar`
 - button-group: Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's. `add @cssints/button-group`
@@ -30,21 +36,34 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - badge: A small label in three tones, a pill at 999px because the theme's steps stop at 16px. `add @cssints/badge`
 - skeleton: A placeholder box that pulses only when the reader has not asked for less motion. `add @cssints/skeleton`
 - alert: APG alert: a title and a body in a live region, with an `invalid` tone. `add @cssints/alert`
+- dropzone: A file drop target: a dashed zone, a browse button over the primitive's hidden input, and a live region for the last batch. `add @cssints/dropzone`
 - meter: APG meter: a track and the fill of the value, on `createMeter`. `add @cssints/meter`
 - breadcrumb: APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it. `add @cssints/breadcrumb`
 - treeview: APG tree view: roving focus, expanded rows and levels on `createTreeview`. `add @cssints/treeview`
+- treegrid: APG treegrid: a file tree with columns, the expander in the name cell, roving focus across rows and cells, and the selected row painted from `aria-selected`. `add @cssints/treegrid`
+- feed: APG feed: articles that load as the end of the list scrolls into view, with the primitive's position and size, a loading sentinel and the status line a screen reader hears. `add @cssints/feed`
+- player: A media player on an injected `PlaybackAdapter`: a video frame or an audio bar, play and pause named from the stage, the m:ss time, a seek slider with the APG keys, and a mute toggle. `add @cssints/player`
+- resizable-panels: A group of panes with a separator between each pair: drag or use the arrows, Home and End jump a pair to its bounds, Enter collapses and restores, and the primitive keeps the layout summing to 100%. `add @cssints/resizable-panels`
 - menu: APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items. `add @cssints/menu`
 - menubar: APG menu and menubar: a roving bar whose menus float under their items, rows with one tab stop, and nested submenus that open beside the parent row. `add @cssints/menubar`
 - tooltip: APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`. `add @cssints/tooltip`
 - popover: A non-modal panel anchored to a trigger: a dialog surface that flips at the viewport edge, closes on an outside press or Escape, and returns the focus. `add @cssints/popover`
 - date-picker: A calendar in a popover: a 6x7 month grid with arrows, Home and End, PageUp and PageDown, min and max, and the chosen day on the trigger. `add @cssints/date-picker`
 - select: APG select-only combobox: the button that shows the chosen label is the combobox, a floating listbox follows it with `aria-activedescendant`, and Enter, Tab or a click commits. `add @cssints/select`
+- command-palette: A modal dialog with a search field: the primitive filters the commands, `aria-activedescendant` marks the active row, and arrows, Enter, Escape and a hotkey are its keys. `add @cssints/command-palette`
 - textarea: A multi-line field styled like `Input`, and the control `Field` puts in with `render`. `add @cssints/textarea`
 - slider: APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`. `add @cssints/slider`
 - slider-multithumb: APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill. `add @cssints/slider-multithumb`
 - spinbutton: APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by. `add @cssints/spinbutton`
 - checkbox-group: APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them. `add @cssints/checkbox-group`
 - toast: A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast. `add @cssints/toast`
+- table: A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, a numeric column right-aligned from the column's hint, and an optional window over 10 000 rows that keeps `aria-rowcount` and every `aria-rowindex`. `add @cssints/table`
+- virtual-list: A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set. `add @cssints/virtual-list`
+- pagination: A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count. `add @cssints/pagination`
+- knob: A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End. `add @cssints/knob`
+- timeline: A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line. `add @cssints/timeline`
+- reorder: A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved. `add @cssints/reorder`
+- combobox: A searchable picker: the field filters a listbox as the reader types, `aria-activedescendant` marks the active option, and Enter, Space or a click chooses it. `add @cssints/combobox`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written

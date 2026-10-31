@@ -3256,3 +3256,164 @@ and the days outside the shown month are not dimmed, because the primitive annou
 will not guess it from the ISO prefix. There is no text date field (a segmented field is a host composition of
 `createField` + `createSpinbutton` over the same day numbers) and no time. The status region is visually hidden with a
 clip path rather than a shared `sr-only` utility, which the kit does not have yet.
+
+## The drop zone in the kit (apps/ui, 2026-10-31)
+
+`createDropZone` already owns the behaviour of a file drop target: the drag depth behind `dragging()`, the last
+batch summary behind `message()`, the `accept`/`maxSize`/`maxFiles` decision, the hidden native input the picker
+opens, and `disabled`. Its machine is `specs/patterns/dropzone.qnt` (the depth and the last delivery), and
+`packages/headless/test/dropzone-spec.browser.test.tsx` replays it in Chromium. The kit's `dropzone` is the skin
+and the copy only: a dashed surface on the surface token whose `role=group`, `aria-disabled` and four drag handlers
+come from `zoneProps`; the visible label (`aria-labelledby`) and an always-present description
+(`aria-describedby`, hidden when absent); `DropzoneBrowse`, which spreads `browseProps` onto the kit's `Button` so
+it clicks the primitive's one input and not a second `<input type=file>`; and the `role=status` region with
+`message()`, rendered by `Dropzone` itself so it is mounted before the first batch and stays the same element.
+
+The active look is a second class computed from `dragging()`. The primitive deliberately has no `data-dragging`:
+`dragging()` is the one hook a skin may read, and a `data-dragging` or a copied depth in the component would be a
+second source of truth that can disagree. The disabled look reads the primitive's real `aria-disabled` with
+`attr()`. Neither the zone nor the status is portalled: the zone is a target in the page's layout, and a live
+region has to be present and stable in the document, so a floating copy would be a region the reader was not
+watching when it filled. The conformance test is a plain browser test (`driver: false` in the registry): the
+primitive's own test already walks the machine, so the kit asserts what a copy can break — a real `DragEvent` with
+a `DataTransfer` paints the computed border and clears it only on the zone's own leave (through a child and on a
+drop), an accepted batch reaches `onFiles` with the sentence in the same status element, a refused one reaches the
+status with its reason, the browse button opens the one hidden input, and a disabled zone takes neither a drop nor
+a click. Left: no preview of the accepted files and no upload progress (the page's `onFiles`), only the summary
+sentence (a page that wants one line per file uses `onReject`), the accept grammar and limits live in the
+primitive rather than in the copy, and the demo's fake-file buttons are the page's, not the component's.
+
+## The table and the pagination in the kit (cssints-03li, cssints-3by9, 2026-10-31)
+
+`createTable` and `createPagination` were the two headless widgets the kit's registry had no styles for. The primitives
+own the state and the ARIA and render nothing: the table carries the sort descriptor, `aria-sort` on the sorted column,
+`aria-selected` per row, a `role=checkbox aria-checked=mixed` select-all, the row ids the host renders, and the labels; it
+never reorders a row. The pagination computes the page list and its elided runs, marks the current page and its item
+`aria-current="page"`, and owns the single `role=status` count. The skins add the elements and the paint, and nothing
+else: `table` is `TableScroll` (a box with `overflow-x: auto`), `Table` (the `<table>` with its caption and the context),
+`TableHead` (the header row and, in multiple selection, the select-all cell), `TableHeaderCell` (a sortable one gets the
+primitive's button; the arrow is a child of the `th`, hidden or turned from the `th`'s `aria-sort` through `within()`, so
+the skin keeps no copy of the sort), `TableBody`, `TableRow` (with the row's control in front), `TableCell`, and the two
+checkboxes, whose boxes and marks are painted from `aria-checked`. A numeric column's `numeric` hint becomes
+`data-numeric`, right alignment and tabular figures on the header and the cells: HTML has no attribute for it, so the
+primitive leaves it to the skin. `pagination` is a nav, its list, the page controls, the edges and the count; the current
+page is painted from `aria-current`, so it cannot disagree with what a screen reader hears, and each target is 24 px
+square at AA. A page control is an `<a>` when `hrefFor` gives it an address and a `<button>` when it does not, so a
+keyboard reaches it either way; the scroll wrapper deliberately has no `tabindex`: a focusable region with no name is a
+tab stop that says nothing, and focusing a control inside the table scrolls it into view.
+
+The two compose on one page signal: the demo sorts its own array from `onSortChange`, slices the page, passes the slice's
+ids as the table's `rows`, and gives the same page to the pagination. No id or label hand-off is missing for that, because
+the table names itself (a caption) and the nav names itself; the one thing the primitives do not offer is an
+`aria-controls` from the nav to the table, which the demo leaves out rather than inventing an id. The selection covers
+exactly the rendered rows, which is the primitive's documented rule for a windowed table, and it survives a page change
+because it is over ids.
+
+One primitive bug came out of the skins: `previousProps` and `nextProps` were built once, with the page at creation, so a
+host that spread them onto an anchor could not step past the first move (the second click on Next targeted the page it was
+already on). They are getters over an offset now and their `onClick` resolves the page when it runs, with a browser test in
+`packages/headless/test/pagination.browser.test.tsx` and a minor changeset. Left: virtualisation and column resizing (the
+primitive only announces `aria-rowcount`/`aria-colcount`/`aria-colindex` for a window the host already computes, and the
+kit adds no virtualiser or resize handles), a keyboard-only way to scroll the wrapper on a browser that does not make
+scroll containers focusable, and a column offset for a horizontally windowed table, which the kit's selection column would
+otherwise be left out of.
+
+## The kit's command palette, and the dialog it is (apps/ui, 2026-10-31)
+
+`@cssints/headless`'s `createCommandPalette` is a composition over `createDialogModal`, `createTextInput` and
+`createStatus` rather than a new pattern, and the kit's item is a skin over it: `CommandPalette` (the primitive and the live
+region), `CommandPaletteTrigger` (a `Button`, the element with `aria-haspopup="dialog"`, `aria-expanded` and
+`aria-controls`), `CommandPaletteContent` (the layer), `CommandPaletteInput`, `CommandPaletteList`,
+`CommandPaletteItem` and `CommandPaletteEmpty`, every part taking `render`, `data-part` and `class` through `merge()`.
+
+**The primitive owns the behaviour**: the filter (`results()` is a case-insensitive substring match over the label and the
+keywords, in the host's order), the dialog and its Escape, the query and its reset on close, the focus into the field and
+back to whatever had it, the active option (`aria-activedescendant`; `-1` means the field holds the highlight), the
+arrows, Home and End while the field is empty, Enter (`runActive` closes before it runs) and the hotkey. The skin renders
+`results()` and nothing else: it keeps no query, no index and no filter, and it handles no key. A row's `aria-selected` is
+the highlight — the same rule `Select` uses, so the skin paints the announcement and keeps no copy of the active index —
+and a heading is the primitive's `group` as a `role="group"` labelled by the heading it renders.
+
+**A palette is a dialog with a search field, not a combobox**, and the skin follows the primitive:
+`input[type=text][role=searchbox]` with `aria-controls` and `aria-activedescendant`, and no `aria-autocomplete` or
+`aria-haspopup`, because choosing a row runs a command and does not complete the field. Writing `role="combobox"` on the
+input in the skin would announce a popup and an autocomplete the behaviour does not have. The field's name is the dialog's
+title (`aria-labelledby`), and the title is in the panel, visually hidden, because the primitive names both the dialog and
+the listbox by it.
+
+**The skin adds the layer**: the scrim and the panel (`frame()` + `surface()`, as `Dialog` does, so a palette inside a card
+keeps the concentric radius), the field's look (borderless in the panel, the caret as the focus indicator), the grouped list
+that scrolls under the field, the row's highlight and the `role=status` region, which lives in the root and is always
+mounted so the count is announced when it changes. The layer is portalled into `document.body` (`mount` overrides it): a
+`transform`, `filter`, `contain` or `overflow: hidden` ancestor would otherwise clip the layer or become the containing
+block of its `position: fixed`, the same reason `Dialog` portals. The body does not scroll while the palette is open.
+
+**The chord is the host's.** The item takes the primitive's `attach` chord (`hotkey`, `"mod+k"` by default, page-wide) or
+`false` for no binding; the docs demo passes `false` and binds `createHotkeys` scoped to its own box, so a reader's ⌘K on
+the docs page is not taken, and it opens the palette through `onReady`'s primitive. The trigger part is the ordinary way
+in; a host that wants a scoped or a different chord binds its own and calls `openPalette()`.
+
+`command-palette.browser.test.tsx` ships with the item (`tested: true`) and walks the kit's DOM: there is no spec to replay
+(a composition is not a pattern), so `command-palette-driver.ts` is a small DOM driver, not a scenario one. It asserts that
+the trigger opens a `role=dialog` with `aria-modal` (the layer is a child of the body, the title names the dialog and the
+listbox, the field is focused and names the first option with `aria-activedescendant`, four rows say `option` with one
+`aria-selected`), that typing shows the primitive's `results()` and nothing else (`"roll"`, `"production"`,
+`"PREFERENCES"`, `"zzz"` with the empty state and `"No commands"`), that the arrows move `aria-activedescendant` and repaint
+the rows (`-1` at either end, and ↓/↑ from there re-enter), that Enter runs the highlighted command and closes and returns
+the focus to the trigger, that Escape does the same and resets the query, that a click runs a row and keeps the focus in the
+field (the primitive cancels the mouse-down), and that the layer stands outside a `transform` + `overflow: hidden` ancestor
+(`offsetParent` null, the viewport's width) and moves to a host's own `mount`.
+
+**Left**: no controlled `open` — `createCommandPalette` reads its `open` option once when it is created (`value:
+options.open`), so a host that writes a signal afterwards would not move the dialog; the item exposes the request half
+(`onOpenChange` as a notification) and the trigger and hotkey instead. No fuzzy ranking, recents or scopes: the filter is
+the primitive's substring match and ranking is the host's policy. No per-row slot beyond `render` (a command's icon would be
+a `render` on the item, so it is the same for every row), and no `defaultOpen` (the primitive has none).
+
+## A DOM virtualiser in `@cssints/headless` (packages/headless, 2026-10-31)
+
+The native renderer already had the rules (`native/solid/src/virtual.ts`): `fixedWindow` is arithmetic over one row
+height and a gap, `measuredWindow` is a height per index with a fallback, both measure once and then virtualise (while
+any height is unknown the whole column is declared, so the frames after the pass have exact heights and the content,
+the clamp and the thumb do not move), the spacers take their own gap out (`above = first·slot − gap`) and an end has
+none, because a zero-height box still adds the gap, and `OVERSCAN` is two. `app/List.tsx` consumes a window as one
+`For` of cells with sentinel spacers, which is why a DOM host renders spacers and rows in one gap-spaced column.
+
+The DOM version (`createVirtualizer`) keeps that arithmetic verbatim and adds what the platform brings. The scrollport
+is the host's element, passed to `attach`: `createScrollspy`'s shape (a passive listener, a teardown) plus a `ResizeObserver`
+for the scrollport's height and, in the measured mode, for each declared row — the native renderer reads a row's box
+from `ui.bounds` after layout, and the DOM has no equivalent read, so the heights must arrive from an observer. `attach`
+creates no computation, and the element goes into a signal, because this repo just paid for the other order:
+`createPopover.attach` was called from a `ref`, Solid 2 runs refs in the effect phase, and the dev build threw
+`PRIMITIVE_IN_EFFECT_CALLBACK` (`popover.ts`'s fixed version is the pattern followed here). ARIA is the accessibility
+floor: every declared row carries `aria-setsize` (the whole count) and `aria-posinset` (index + 1), so a screen reader
+announces "row 4,321 of 10,000" while only a screenful exists; a table host adds `aria-rowindex` itself because it
+counts the header row, which the primitive cannot know. Focus stays the host's: a row that leaves the window unmounts,
+so the host calls `scrollToIndex` when its keys move focus, and the doc says so.
+
+The tests are the oracle (there is no APG pattern and no machine: the state is pixels): `test/virtual.browser.test.tsx`
+drives a 10,000-row list in a 600 px scrollport, checks the content is `count·item + (count − 1)·gap` and that every
+declared row's `offsetTop` is its index's arithmetic at the top, in the middle and at the end (where there is no
+spacer), that `scrollToIndex(9000)` declares the row, that a feed of two heights converges to exact offsets after the
+one measuring frame and drops from 200 declared to a window, and that flipping `count` down keeps the offsets and drops
+only the heights past the new count.
+
+Left: horizontal virtualisation (a second axis, and a column of rows whose widths differ is a different window);
+a sticky header inside the scrollport (the arithmetic starts at the content's 0, so the header is the host's sibling
+above the scrollport); padding on the port or the column (the host uses none); and a persistent prefix sum, which the
+native module's own note already names as the upgrade for hundreds of thousands of rows. The measured pass still
+declares the whole column on one frame — the native note's element-count ceiling applies here as DOM nodes.
+
+## The kit's virtual list, and a table with a window (apps/ui, 2026-10-31)
+
+`@cssints/headless` gained `createVirtualizer` and the kit had no consumer of it. `apps/ui/src/registry/virtual-list/virtual-list.tsx` is one: the primitive owns the arithmetic (fixed `itemSize`, gap-compensated spacers, no spacer at an end), the declared range, the `aria-setsize`/`aria-posinset` pair on every row, `scrollToIndex` and the `attach` wiring; the skin adds the scrollport (`overflow: auto`, the caller's height or 24rem), the `role="list"` column with the column's `row-gap`, the token-coloured surface, `data-part` on every part (`virtual-list`, `virtual-list-column`, `virtual-list-spacer`, `virtual-list-item`), a `render` on the scrollport, the column and each spacer, and `renderItem(index)` for the row content. `renderItem` is the whole point of a virtual list: the item is built per declared index, so 10 000 rows build a few dozen elements. `aria-setsize` is the whole count and `aria-posinset` is `index + 1`, so the place in the whole list is announced while only a screenful exists.
+
+**Focus is the host's, and the jump waits for the declaration.** `scrollToIndex` only scrolls: a row outside the window has no element. The kit exposes the primitive through `onReady` and `useVirtualList()`; the host keeps the focus index, calls `scrollToIndex(index)`, and focuses its own element from an effect whose source includes `window()` — the demo does exactly this for "Jump to 9 000" and for ArrowDown/ArrowUp, and a second jump or a hand scroll that leaves the row out never runs the focus. The item's `ref` and `tabindex` stay the caller's: the skin's wrapper carries the primitive's size and the `listitem` role, not the focus.
+
+**The measured mode's jump was approximate, and the primitive now fixes it.** `scrollToIndex` adds up the heights it has; beyond the measured range they are estimates, so a long jump landed on the estimate and shifted silently once the `ResizeObserver` delivered the real heights. `packages/headless/src/virtual.ts` now keeps the target while any height is unknown and lands again on each measurement, clears it when every height is in, and drops it when a scroll reports an offset the jump did not write (the reader took over). `test/virtual.browser.test.tsx` jumps to row 1 900 of a measured 2 000-row feed and asserts the exact `scrollTop` and `offsetTop` after the pass; without the pending target that assertion fails (64,030 against 102,040). It is a second line in the existing `@cssints/headless` minor changeset.
+
+**The table windows itself.** `Table` takes `virtualized: { height, rowHeight, overscan }` and `renderRow(row, index)`, creates the primitive in the same setup as `createTable`, wraps the `<table>` in a `data-part="table-viewport"` scrollport (the table element and its `render` are untouched), and `TableBody` renders two spacer `<tr aria-hidden="true">` rows and the declared window from `renderRow`. `createTable` still receives the full row ids for `aria-rowcount` but the window's slice as `rows`, which is the primitive's own documented rule: **the select-all covers the rendered window**, never 10 000 rows the reader cannot see, and selection stays by real id, so a row selected before the window moved is still selected when it comes back. `TableRow` reads its index from the window and announces `aria-rowindex = index + 2` (the header is row 1); it also takes the window's `rowHeight` as its own height, because the arithmetic and the rendered rows must agree. The pagination keeps its own demo with the small dataset; the table's demo is 10 000 issues with the sortable header and the selection, no pagination.
+
+The oracle is a plain browser test, not a scenario: there is no APG pattern and no Quint machine for virtualisation (the state is pixels), so `virtual-list.browser.test.tsx` mounts 10 000 rows in a 600 px port and checks the declared count, the `aria-setsize`/`aria-posinset` pair, the whole `scrollHeight`, a middle scroll's different window at exact `offsetTop`s, and `scrollToIndex(9000)`; `table.browser.test.tsx` adds the window: `aria-rowcount` 10 000, `aria-rowindex` per row, a scroll that re-renders another window, and a select-all that covers only it. The registry item is `tested: true` with no `<item>-driver.ts` (nothing to replay), and the generated item now also ships `render.tsx` for the table, which it imported but did not list.
+
+Left: horizontal virtualisation, a sticky header inside the scrollport (the arithmetic starts at the content's 0, so the header is a sibling above the port), a measured table window (a `<tr>` whose height differs per row is the measured mode, and the primitive would need the table's rows to carry its `ref`), and a visible count of the selection outside the window — the demo says "N selected" but the table itself does not announce how many of the whole set are selected. The measured window still rebuilds a prefix sum per call, fine for a feed, not for a dataset.

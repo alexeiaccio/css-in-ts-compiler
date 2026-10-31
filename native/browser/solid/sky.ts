@@ -125,8 +125,9 @@ canvas.addEventListener(
 
 // The keys are DOM names already ("ArrowDown", "Tab", " ", "Escape", "Enter"), which is what the focus manager and the
 // parts take (`createInput`'s own names). Tab, the arrows, Space and PageUp/Down would scroll the page instead.
+// `n` is the page's own key (the feed's notifications, `Sky.tsx`'s fallback), as the desktop's `keyName` gives a letter
 const KEYS = new Set(["Tab", " ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp",
-  "PageDown", "Enter", "Escape", "Backspace"]);
+  "PageDown", "Enter", "Escape", "Backspace", "n"]);
 const keys = (down: boolean) => (e: KeyboardEvent) => {
   const name = e.key;
   if (!KEYS.has(name)) return;

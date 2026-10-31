@@ -6,7 +6,7 @@
 // runs with the same `vitest.browser.config.ts` the theme arrives with.
 //
 //   node scripts/registry-json.ts
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
@@ -47,11 +47,6 @@ interface Starter {
   readonly description: string;
   /** The item also ships its conformance test: the fixture, the driver it walks with and the browser config. */
   readonly tested?: boolean;
-  /**
-   * The test walks the item through a scenario driver (default). `false` ships the fixture and the test alone: a widget
-   * with no spec (a toast) is checked by a plain browser test, not by a scenario walk.
-   */
-  readonly driver?: boolean;
   /** Files of the kit a copy of this component needs beside it (relative to `src/registry`). */
   readonly with?: ReadonlyArray<string>;
   /** Other items this one is composed with (their files arrive here too, `with`). */
@@ -83,6 +78,61 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
     also: ["@cssints/button"],
+  },
+  {
+    name: "drawer",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Drawer",
+    description:
+      "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "panzoom",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    title: "Pan and zoom",
+    description:
+      "One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "scrollspy",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    title: "Scrollspy",
+    description:
+      "A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`",
+  },
+  {
+    name: "diagram",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    title: "Diagram",
+    description:
+      "A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is",
+  },
+  {
+    name: "shortcuts",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["dialog/dialog.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Shortcuts",
+    description:
+      "A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to",
+    also: ["@cssints/button", "@cssints/input"],
+  },
+  {
+    name: "carousel",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Carousel",
+    description:
+      "APG carousel: slides in a frame with previous and next, dots and a count as the indicator, arrow keys on a focused slide, a touch swipe, and the live region the primitive asks for",
   },
   {
     name: "input",
@@ -190,6 +240,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     description: "APG alert: a title and a body in a live region, with an `invalid` tone",
   },
   {
+    name: "dropzone",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Drop zone",
+    description:
+      "A file drop target: a dashed zone, a browse button over the primitive's hidden input, and a live region for the last batch",
+    also: ["@cssints/button"],
+  },
+  {
     name: "meter",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
@@ -210,6 +269,38 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Tree view",
     description: "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
+  },
+  {
+    name: "treegrid",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Tree grid",
+    description:
+      "APG treegrid: a file tree with columns, the expander in the name cell, roving focus across rows and cells, and the selected row painted from `aria-selected`",
+  },
+  {
+    name: "feed",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Feed",
+    description:
+      "APG feed: articles that load as the end of the list scrolls into view, with the primitive's position and size, a loading sentinel and the status line a screen reader hears",
+  },
+  {
+    name: "player",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Player",
+    description:
+      "A media player on an injected `PlaybackAdapter`: a video frame or an audio bar, play and pause named from the stage, the m:ss time, a seek slider with the APG keys, and a mute toggle",
+  },
+  {
+    name: "resizable-panels",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Resizable panels",
+    description:
+      "A group of panes with a separator between each pair: drag or use the arrows, Home and End jump a pair to its bounds, Enter collapses and restores, and the primitive keeps the layout summing to 100%",
   },
   {
     name: "menu",
@@ -265,6 +356,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "command-palette",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Command palette",
+    description:
+      "A modal dialog with a search field: the primitive filters the commands, `aria-activedescendant` marks the active row, and arrows, Enter, Escape and a hotkey are its keys",
+    also: ["@cssints/button"],
+  },
+  {
     name: "textarea",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
@@ -309,11 +409,70 @@ const STARTERS: ReadonlyArray<Starter> = [
     name: "toast",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
-    driver: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Toast",
     description:
       "A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast",
+  },
+  {
+    tested: true,
+    name: "table",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Table",
+    description:
+      "A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, a numeric column right-aligned from the column's hint, and an optional window over 10 000 rows that keeps `aria-rowcount` and every `aria-rowindex`",
+  },
+  {
+    tested: true,
+    name: "virtual-list",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Virtual list",
+    description:
+      "A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set",
+  },
+  {
+    tested: true,
+    name: "pagination",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Pagination",
+    description:
+      "A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count",
+  },
+  {
+    tested: true,
+    // no APG pattern (and no ARIA role for a dial): the fixture and the browser test are the whole oracle
+    name: "knob",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Knob",
+    description:
+      "A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End",
+  },
+  {
+    tested: true,
+    // no APG pattern: a trace waterfall is a list of spans, and the rows mode's fixture and browser test are the oracle
+    name: "timeline",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Timeline",
+    description:
+      "A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line",
+  },
+  {
+    tested: true,
+    // the APG rearrangeable listbox's Quint spec walks the primitive; this starter renders one of its two lists
+    name: "reorder",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Reorderable list",
+    description:
+      "A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved",
+  },
+  {
+    tested: true,
+    // the APG combobox specs walk the primitive; this starter is the autocomplete variant with a listbox popup
+    name: "combobox",
+    with: ["theme.ts", "tokens.ts"],
+    title: "Combobox",
+    description:
+      "A searchable picker: the field filters a listbox as the reader types, `aria-activedescendant` marks the active option, and Enter, Space or a click chooses it",
   },
 ];
 
@@ -326,23 +485,14 @@ const kitFiles = (item: Starter) => [
   ),
   ...(item.tested
     ? [
-        file(
-          target(`${item.name}.fixture.tsx`),
-          "registry:file",
-          `src/registry/${item.name}/${item.name}.fixture.tsx`,
-        ),
-        // the driver is the item's own: the generic one is byte-identical across patterns, but a nested one (the
-        // menubar's labels a submenu's rows) is not, and a copy that two items write into one file keeps only the last.
-        // An item with no spec ships no driver: its test is a plain browser test.
-        ...(item.driver === false
-          ? []
-          : [
-              file(
-                target(`${item.name}-driver.ts`),
-                "registry:file",
-                `src/registry/${item.name}/${item.name}-driver.ts`,
-              ),
-            ]),
+        // What a copy needs beside the component is what the item's own directory holds: a fixture its test mounts, and
+        // the driver that walks a scenario. A widget with no spec ships neither (its test mounts the component itself),
+        // so the two are read off the files rather than declared a second time. The driver is the item's own name: the
+        // generic one is byte-identical across patterns, but a nested one (the menubar's maps a submenu's rows) is not,
+        // and a copy that two items write into one file keeps only the last.
+        ...[`${item.name}.fixture.tsx`, `${item.name}-driver.ts`]
+          .filter((name) => existsSync(join(root, "src/registry", item.name, name)))
+          .map((name) => file(target(name), "registry:file", `src/registry/${item.name}/${name}`)),
         file(
           target(`${item.name}.browser.test.tsx`),
           "registry:file",
@@ -372,7 +522,7 @@ const starter = (item: Starter) => ({
   // `solid-js` rc, which this item cannot know. A scenario walk needs the spec packages; a plain
   // browser test does not.
   devDependencies:
-    item.tested && item.driver !== false
+    item.tested && existsSync(join(root, "src/registry", item.name, `${item.name}-driver.ts`))
       ? ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"]
       : [],
   registryDependencies: ["@cssints/theme", ...(item.also ?? [])],

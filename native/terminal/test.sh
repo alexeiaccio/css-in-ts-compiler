@@ -427,5 +427,181 @@ case "$profilebench" in
   *) echo "FAIL: the profile's --bench printed no frame time or cell count"; exit 1 ;;
 esac
 echo "solid, terminal: the profile's 5 comparisons above; the C profile is the oracle of behaviour, not of cells"
-echo "solid, terminal: three of the Sky page's four screens run as the page's own (the feed, the thread, the profile); the"
-echo "solid, terminal: notifications stay C (terminal/notify.c) — Sky.tsx has no notifications screen to run"
+
+# ---- the notifications, the page's fourth screen ------------------------------------------------------------------
+# `Sky.tsx` mounts the screen (`app/Notify.tsx`) when the feed's `n` opens it, or at the page's start with `--page
+# notify` (the C host's `--page notifications`): the same page's tree, so a row's post opens the thread through the
+# page's own `load` — the host's recorded thread — and that thread's back returns to the list. The rows are
+# `app/notify.ts`'s: the app's five verbs, and each actor, text and time out of apps/csssky's recordings (the app has no
+# notifications fixture, which is why they are hand-carried). The C screen (terminal/notify.c) is the behaviour's
+# oracle, not the cells': its card has a hand-cut border and a separator row, its bar names the screen where the page's
+# bar stays the page's, and its footer is the key hints.
+rm -f "$OUT"/solid-notify*
+$SOLID --page notify --cols 80 --rows 26 --dump "$OUT/solid-notify.txt"
+cmp "$OUT/solid-notify.txt" terminal/expected-solid-notify.txt || {
+  echo "FAIL: the Solid notifications at 80x26 are not terminal/expected-solid-notify.txt"; exit 1; }
+identical "the notifications' frame is terminal/expected-solid-notify.txt (80x26 cells, the page's own guard)"
+for v in "liked your post" "reposted" "followed you" "mentioned you" "replied"; do
+  grep -q "$v" "$OUT/solid-notify.txt" || { echo "FAIL: no notification row has the verb \"$v\""; exit 1; }
+done
+identical "the five rows are the app's five verbs, out of the recordings' actors and posts"
+# the focus order: the row the screen opens on, then the rows in document order (Tab), and the third row's frame is the
+# C's own focus frame's
+$SOLID --page notify --cols 80 --rows 26 --keys Tab,Tab --dump "$OUT/solid-notify-focus.txt"
+cmp "$OUT/solid-notify-focus.txt" terminal/expected-solid-notify-focus.txt || {
+  echo "FAIL: the Solid notifications after Tab,Tab are not terminal/expected-solid-notify-focus.txt"; exit 1; }
+identical "Tab walks the rows in document order: two Tabs ring the third row (Michael Warburton)"
+# past the last row the manager releases the focus and the page presses Tab again: the first row, the frame it opens on
+$SOLID --page notify --cols 80 --rows 26 --keys Tab,Tab,Tab,Tab,Tab --dump "$OUT/solid-notify-wrap.txt"
+cmp "$OUT/solid-notify-wrap.txt" "$OUT/solid-notify.txt" || {
+  echo "FAIL: Tab past the last row did not wrap to the first (the frame is not the one it opens on)"; exit 1; }
+identical "Tab past the last row wraps to the first: the frame is the one the screen opens on"
+# Enter on a row is the page's own openThread, with the host's recorded thread; Escape is the page's back to the list
+$SOLID --page notify --cols 80 --rows 26 --keys Enter --settle 3 --dump "$OUT/solid-notify-thread.txt"
+notify_thread() {
+  grep -q "Mina Kimes" "$1" && grep -q "Talked to @wired.com" "$1" || {
+    echo "FAIL: Enter on a notification did not open its post's thread"; return 1; }
+  grep -q "Back" "$1" || { echo "FAIL: the thread over the notifications has no back control"; return 1; }
+  return 0
+}
+notify_thread "$OUT/solid-notify-thread.txt" || exit 1
+identical "Enter on a row opens its post's thread in the same page (the recorded thread, the thread's back control)"
+$SOLID --page notify --cols 80 --rows 26 --keys Enter,Escape --settle 40 --dump "$OUT/solid-notify-back.txt"
+cmp "$OUT/solid-notify-back.txt" "$OUT/solid-notify.txt" || {
+  echo "FAIL: Escape from a notification's thread did not come back to the list's frame"; exit 1; }
+identical "Escape from that thread returns to the notifications: the same rows and the same ring"
+$SOLID --page notify --cols 80 --rows 26 --keys End,Enter --settle 3 --dump "$OUT/solid-notify-follow.txt"
+grep -q "Talked to @wired.com" "$OUT/solid-notify-follow.txt" && {
+  echo "FAIL: Enter on the follow opened a thread (its notification has no post)"; exit 1; }
+grep -q "Mina Kimes followed you" "$OUT/solid-notify-follow.txt" || {
+  echo "FAIL: End did not reach the follow's row"; exit 1; }
+identical "Enter on the follow opens nothing (no post, no thread), and the list stays"
+# the counted comparison with the C notifications (26 rows, 80 columns)
+base=$(sky_diff terminal/expected-notify.txt "$OUT/solid-notify.txt" 26)
+echo "solid, terminal: the notifications against terminal/expected-notify.txt (the C screen): $base"
+case "$base" in
+  "1564 cells, 0 of 26 rows the same, the worst row 5 (80 of 80);"*) ;;
+  *) echo "FAIL: the notifications' row/cell distance from the C screen changed (expected 1564 cells, row 5 the worst)"; exit 1 ;;
+esac
+focusd=$(sky_diff terminal/expected-notify-focus.txt "$OUT/solid-notify-focus.txt" 26)
+echo "solid, terminal: after Tab,Tab against terminal/expected-notify-focus.txt: $focusd"
+case "$focusd" in
+  "1910 cells, 0 of 26 rows the same, the worst row 2 (80 of 80);"*) ;;
+  *) echo "FAIL: the focused frame's row/cell distance from the C's changed (expected 1910 cells, row 2 the worst)"; exit 1 ;;
+esac
+echo "solid, terminal: the notifications' nearest rows are the header's (row 2: 5 of 80 — the same word, the page's Back"
+echo "solid, terminal: control one cell in) and the first card's snippet (row 4: 9, the same words at a one-cell inset); the"
+echo "solid, terminal: worst rows are the C's card borders and separator rows, which the page's cards at rest have none of,"
+echo "solid, terminal: and its footer row, which the page does not draw. No row is identical."
+# the two mutations this screen has to catch. `--mutate rows` never makes the rows Tab stops (the page's own break):
+# Tab leaves the list, and the focus check's frame is not the third row's. `--mutate verbs` draws one wrong verb on
+# every row: the stored dump is not the frame the screen makes.
+$SOLID --page notify --cols 80 --rows 26 --mutate rows --keys Tab,Tab --dump "$OUT/solid-notify-mut-rows.txt"
+if cmp -s "$OUT/solid-notify-mut-rows.txt" terminal/expected-solid-notify-focus.txt; then
+  echo "FAIL: the rows mutation was not caught by the Tab check"; exit 1; fi
+echo "solid, terminal: mutation (the rows never registered as Tab stops): caught — Tab,Tab is not the third row's frame,"
+echo "solid, terminal: so the Tab check's comparison with expected-solid-notify-focus.txt fails"
+$SOLID --page notify --cols 80 --rows 26 --mutate verbs --dump "$OUT/solid-notify-mut-verbs.txt"
+if cmp -s "$OUT/solid-notify-mut-verbs.txt" terminal/expected-solid-notify.txt; then
+  echo "FAIL: the verbs mutation was not caught by the stored dump"; exit 1; fi
+echo "solid, terminal: mutation (one wrong verb on every row): caught — the dump is not expected-solid-notify.txt, so"
+echo "solid, terminal: the stored-frame check's comparison fails"
+# the cost: the notifications' frame over 2080 cells and 64 commands, and the same cells as ANSI
+notifybench=$($SOLID --page notify --cols 80 --rows 26 --bench 50)
+echo "$notifybench"
+case "$notifybench" in
+  *"ms a frame"*"2080 cells"*) ;;
+  *) echo "FAIL: the notifications' --bench printed no frame time or cell count"; exit 1 ;;
+esac
+echo "solid, terminal: the notifications' 7 comparisons above; the C screen is the oracle of behaviour, not of cells"
+echo "solid, terminal: all four of the Sky page's screens run as the page's own now (the feed, the thread, the profile, the"
+echo "solid, terminal: notifications): $n comparisons, all identical"
+# ---- the system theme: the terminal's own colours -----------------------------------------------------------------
+# `--system-theme` asks the terminal (/dev/tty, terminal/tb2.c's term_tb2_ask) with @cssints/tui/system's QUERY and parses
+# the answer with its `scan` — the tui app's parser, not a second one — then solves the Sky page's nine tokens with
+# `createSystemTheme` (terminal/theme.ts): a surface at the background, its step up, the ink at 7:1, the accent from the
+# terminal's blue. A pty that answers is a script here (terminal/pty-answer.py): the reply is OSC 11 (a light warm
+# background), OSC 10 (a near-black foreground) and two OS 4 entries, the blue and the grey. What the dump proves is the
+# page's own colour table: `# colours: index rgb glyphs fills`, so a line is a colour and its cell counts — the same page
+# (289 fills of the page, 11 glyphs of the accent, 1309 of the panel) painted with the terminal's colours.
+SYSTEM="$OUT/solid-system"
+rm -f "$SYSTEM".*
+printf '\033]11;rgb:f0f0/e0e0/d0d0\033\\\033]10;rgb:1010/1010/1010\033\\\033]4;4;rgb:0000/6060/d0d0\033\\\033]4;8;rgb:8080/8080/8080\033\\' \
+  > "$OUT/system-replies.bin"
+if command -v python3 >/dev/null 2>&1; then
+  python3 terminal/pty-answer.py "$OUT/system-replies.bin" 30 -- \
+    bun terminal/solid.ts --page sky --cols 80 --rows 20 --system-theme --dump "$SYSTEM.txt" > "$SYSTEM.log" 2>&1
+  grep -q "terminal: #101010 on #f0e0d0 (light), 2 of the 16 palette entries" "$SYSTEM.log" || {
+    echo "FAIL: the terminal's answer was not solved (want '#101010 on #f0e0d0 (light), 2 of the 16 palette entries')"; exit 1; }
+  identical "the pty answered OSC 11/10/4, and scan + createSystemTheme made it #101010 on #f0e0d0, light"
+  # the five colours of the page, with the cells they cover: the page fill is the answer's background, the accent glyphs
+  # the answer's OSC 4;4 blue, the ink the answer's OSC 10, and the panel and the muted grey the solver's own steps
+  # (the panel 1.1:1 from the page, the grey 4.5:1 -- its 0x808080 report is not enough on this light page)
+  for line in "2 240,224,208 0 289" "3 0,96,208 11 0" "4 84,84,84 294 2" "5 229,214,198 0 1309" "6 16,16,16 221 0"; do
+    grep -qx "$line" "$SYSTEM.txt" || {
+      echo "FAIL: the system-themed frame has no '$line' in its colour table"; exit 1; }
+  done
+  identical "its cells are the palette: page 240,224,208 (OSC 11) under 289 fills, accent 0,96,208 (OSC 4;4) 11 glyphs"
+  identical "and the solver's steps: panel 229,214,198, muted 84,84,84 (OSC 4;8 at 4.5:1), ink 16,16,16 (OSC 10)"
+  # the terminal's answer changes the theme, not the page: the same counts as the stored dark frame
+  defaults=$(sed -n 's/^\([2-6]\) [0-9,]* \([0-9]* [0-9]*\)$/\2/p' terminal/expected-solid-sky.txt | tr '\n' '|')
+  solved=$(sed -n 's/^\([2-6]\) [0-9,]* \([0-9]* [0-9]*\)$/\2/p' "$SYSTEM.txt" | tr '\n' '|')
+  [ "$solved" = "$defaults" ] || {
+    echo "FAIL: the system theme moved cells ($solved) from the page's own ($defaults)"; exit 1; }
+  identical "the glyph and fill counts are expected-solid-sky.txt's (289/11/0/1309 and 221): the page, repainted"
+  # the live path: the ask comes before termbox2's alternate screen, and the screen it draws is the terminal's palette
+  COLORTERM=truecolor PYTHONUNBUFFERED=1 python3 terminal/pty-answer.py "$OUT/system-replies.bin" 30 -- \
+    bun terminal/solid.ts --page sky --system-theme --frames 2 > "$SYSTEM-live.log" 2>&1
+  grep -q "terminal: 2 frames, 80x24" "$SYSTEM-live.log" || {
+    echo "FAIL: the live system-themed screen drew no frame"; exit 1; }
+  grep -qF "48;2;240;224;208" "$SYSTEM-live.log" || {
+    echo "FAIL: the live screen has no fill of the answer's background (48;2;240;224;208)"; exit 1; }
+  grep -qF "38;2;0;96;208" "$SYSTEM-live.log" || {
+    echo "FAIL: the live screen has no glyph of the answer's blue (38;2;0;96;208)"; exit 1; }
+  identical "the live screen (80x24, truecolour) is the palette: a fill of 240,224,208 and a glyph of 0,96,208"
+  # a terminal that answers nothing: the 120 ms timeout, the fallback and its message, and the stored dark frame
+  python3 terminal/pty-answer.py - 30 -- \
+    bun terminal/solid.ts --page sky --cols 80 --rows 20 --system-theme --dump "$SYSTEM-none.txt" > "$SYSTEM-none.log" 2>&1
+  grep -q "terminal: no colours from the terminal in .* ms (0 bytes); the dark theme" "$SYSTEM-none.log" || {
+    echo "FAIL: a silent pty did not print the fallback's message"; exit 1; }
+  cmp "$SYSTEM-none.txt" terminal/expected-solid-sky.txt || {
+    echo "FAIL: the silent pty's frame is not the dark one (expected-solid-sky.txt)"; exit 1; }
+  identical "a pty that never answers: 'no colours from the terminal in 120.x ms (0 bytes); the dark theme', the dark frame"
+  # the cost: the ask's own wall time and the frame's, on this machine (the timeout is only paid by a silent terminal)
+  sysbench=$(python3 terminal/pty-answer.py "$OUT/system-replies.bin" 40 -- \
+    bun terminal/solid.ts --page sky --cols 80 --rows 20 --system-theme --bench 50 2>/dev/null | tr -d '\r' |
+    grep "ms a frame" | head -1)
+  echo "solid, terminal: the system theme's frame: $sysbench"
+  case "$sysbench" in
+    *"ms a frame"*) ;;
+    *) echo "FAIL: the system theme's --bench printed no frame time"; exit 1 ;;
+  esac
+  # the two mutations. `--mutate channel` reads the answer's foreground as its background: the page is the near-black
+  # where the answer was the light warm colour, so the colour-table check above fails. `--mutate wait` asks with no
+  # timeout: a pty that never answers leaves the host waiting, and the helper kills it after 2 s with its message
+  python3 terminal/pty-answer.py "$OUT/system-replies.bin" 30 -- \
+    bun terminal/solid.ts --page sky --cols 80 --rows 20 --system-theme --mutate channel --dump "$SYSTEM-mut.txt" \
+    > "$SYSTEM-mut.log" 2>&1
+  if grep -qx "2 240,224,208 0 289" "$SYSTEM-mut.txt"; then
+    echo "FAIL: the wrong-channel mutation was not caught (the page is still the answer's light background)"; exit 1; fi
+  grep -qx "2 16,16,16 0 289" "$SYSTEM-mut.txt" || {
+    echo "FAIL: the wrong-channel mutation did not paint the page with the answer's foreground"; exit 1; }
+  echo "solid, terminal: mutation (the answer's foreground read as its background): caught — the page fill is 16,16,16, and the FAIL above is the colour check's message"
+  python3 terminal/pty-answer.py - 2 -- \
+    bun terminal/solid.ts --page sky --cols 80 --rows 20 --system-theme --mutate wait --dump "$SYSTEM-hang.txt" \
+    > "$SYSTEM-hang.log" 2>&1 || true
+  grep -q "pty-answer: the host was still running after 2s; killed" "$SYSTEM-hang.log" || {
+    echo "FAIL: the no-timeout mutation did not hang (the host returned)"; exit 1; }
+  [ ! -s "$SYSTEM-hang.txt" ] || { echo "FAIL: the hung host wrote a frame"; exit 1; }
+  echo "solid, terminal: mutation (the ask with no timeout): caught — 'the host was still running after 2s; killed', no frame"
+else
+  echo "solid, terminal: no python3, the pty's answering-terminal checks skipped"
+fi
+# ... and a dumb terminal costs nothing: the flag is not even asked, and the frame is the dark one
+TERM=dumb $SOLID --page sky --cols 80 --rows 20 --system-theme --dump "$SYSTEM-dumb.txt" 2> "$SYSTEM-dumb.log"
+grep -q "terminal: TERM=dumb, no colours asked; the dark theme" "$SYSTEM-dumb.log" || {
+  echo "FAIL: TERM=dumb did not take the fallback without asking"; exit 1; }
+cmp "$SYSTEM-dumb.txt" terminal/expected-solid-sky.txt || {
+  echo "FAIL: TERM=dumb's frame is not the dark one (expected-solid-sky.txt)"; exit 1; }
+identical "TERM=dumb: no query, 'no colours asked; the dark theme', and the dark frame"
+echo "solid, terminal: the system theme's comparisons above; the terminal's colours, the solver's steps and the fallback"

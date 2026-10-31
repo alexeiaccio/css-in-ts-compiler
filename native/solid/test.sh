@@ -303,3 +303,13 @@ printf '{"values":[{"id":"wifi","field":"radiusX","value":16}]}\n' > "${TMPDIR:-
 if $DEV --warm 1 --tune "${TMPDIR:-/tmp}/cssints-dev-tune-bad.json" --png "${TMPDIR:-/tmp}/cssints-dev-tune-bad.png" >/dev/null 2>&1; then
   echo "FAIL: a session with an unknown field did not fail"; exit 1
 fi
+# The Sky page's fourth screen (app/Notify.tsx over app/notify.ts): the app's notifications, opened with `n` on the feed
+# or by the page's own `notify` entry (the C host's `--page notifications`). apps/csssky has no notifications screen or
+# fixture, so the five rows are the app's recordings hand-carried — the app's five verbs over the recorded actors, posts
+# and times (home-discover-1, home-science-1, thread.json) — and `notify.test.ts` holds each field's provenance, `n`, the
+# rows and the ring, Tab's walk and its wrap, Enter on a post's thread and on a follow's nothing, Escape's frame, the
+# entry and reduced motion, the a11y tree, the stored frame and the two deliberate breaks.
+# `notify-initial.png` is the screen at rest (the feed's entry and the screen's are both over by `--warm 40`); in the
+# browser it is the Sky page's own bundle (browser/solid/sky.ts, `n`), which browser/sky-check.mjs checks.
+bun solid/main.ts notify --warm 40 --expect solid/frames/notify-initial.png
+bun solid/notify.test.ts
