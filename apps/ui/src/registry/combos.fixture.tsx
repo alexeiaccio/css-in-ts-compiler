@@ -248,6 +248,16 @@ export const Selects = (): JSX.Element => {
   );
 };
 
+export const DisabledSelects = (): JSX.Element => {
+  const [value, setValue] = createSignal(0);
+  return (
+    <Select items={FRUIT} value={value()} onValueChange={setValue} label="Frozen fruit" disabled>
+      <SelectTrigger />
+      <SelectContent />
+    </Select>
+  );
+};
+
 export const Textareas = (): JSX.Element => (
   <>
     <Field id="notes" invalid="Say a little more">

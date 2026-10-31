@@ -2613,7 +2613,9 @@ machine has no `disabled` var — adding one would mean a var in every action, a
 disabled, a key, a click, a typeahead character, a filter input and an option click change nothing, no popup opens, and
 the combobox (and the trigger) announce `aria-disabled`". Left: a filter input's DOM text can still change under a
 disabled combobox (the primitive's `query` does not), which is the host's rendering concern; a controlled host's
-`open` / `value` props still write through, as every request pair does.
+`open` / `value` props still write through, as every request pair does. The kit's `Select` passes `disabled` through and
+hands the primitive's `aria-disabled` to its `Button`, whose own rule paints a dimmed, `not-allowed` trigger: a disabled
+select keeps the tab stop the pattern gives it, opens nothing and fires no change; `combos.browser.test.tsx` asserts it.
 
 **`createCheckboxGroup`'s children stop colliding.** They were `"0"`, `"1"`, `"2"`, so two groups on a page shared ids —
 the previous wayfinder entry named it as left over. The group already resolves a base (`id`, else `createUniqueId`) for

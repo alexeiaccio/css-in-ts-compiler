@@ -14,6 +14,7 @@ import {
   Crumbs,
   CheckboxGroups,
   Dialogs,
+  DisabledSelects,
   Fields,
   Groups,
   Meters,
@@ -483,6 +484,29 @@ describe("the kit composes", () => {
     flush();
     expect(listbox.hidden).toBe(true);
     expect(trigger.textContent).toBe("Cherry");
+  });
+
+  it("keeps a disabled select's tab stop and opens nothing", () => {
+    const root = mount(() => <DisabledSelects />);
+    const trigger = root.querySelector<HTMLElement>('[role="combobox"]')!;
+    const listbox = root.querySelector<HTMLElement>('[data-part="select-listbox"]')!;
+    // the pattern's state is `aria-disabled` on a focusable combobox, not the native attribute a button would take
+    expect(trigger.getAttribute("aria-disabled")).toBe("true");
+    expect(trigger.hasAttribute("disabled")).toBe(false);
+    expect(trigger.tabIndex).toBe(0);
+    expect(listbox.hidden).toBe(true);
+    trigger.focus();
+    trigger.click();
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    flush();
+    expect(listbox.hidden).toBe(true);
+    expect(trigger.textContent).toBe("Apple");
+    // the disabled look is the button's own `aria-disabled` rule, not a second one in the select
+    expect(style(trigger).cursor).toBe("not-allowed");
   });
 
   it("gives a textarea the field's id and invalid state", () => {
