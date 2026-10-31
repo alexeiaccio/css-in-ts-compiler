@@ -1,5 +1,17 @@
 # @cssints/reactive
 
+## 0.24.0
+
+### Minor Changes
+
+- 47473cb: `value()` and `checked()` read the field's value in `set()`, and calls of `on()`, `bind()` or `state()` on one element append their programs and lists instead of the later replacing the earlier.
+- 1005657: `persist(value, key)` keeps a state in `localStorage` across a reload: the runtime restores it when the owner is initialised (a stored value wins over the declared one) and stores it on every write, with the keys in a new non-inheriting `--reactive-persist` protocol property.
+
+### Patch Changes
+
+- Updated dependencies [2bcbb9e]
+  - cssints@0.24.0
+
 ## 0.23.0
 
 ### Patch Changes

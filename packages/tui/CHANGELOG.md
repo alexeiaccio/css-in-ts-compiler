@@ -1,5 +1,12 @@
 # @cssints/tui
 
+## 0.24.0
+
+### Patch Changes
+
+- Updated dependencies [2bcbb9e]
+  - cssints@0.24.0
+
 ## 0.23.0
 
 ### Patch Changes
