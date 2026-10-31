@@ -480,6 +480,17 @@
         "cssints": "^0.20.0",
       },
     },
+    "packages/reactive": {
+      "name": "@cssints/reactive",
+      "version": "0.20.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.20.0",
+      },
+    },
     "packages/reset": {
       "name": "@cssints/reset",
       "version": "0.20.0",
@@ -800,6 +811,8 @@
     "@cssints/placeholder": ["@cssints/placeholder@workspace:packages/placeholder"],
 
     "@cssints/ramp": ["@cssints/ramp@workspace:packages/ramp"],
+
+    "@cssints/reactive": ["@cssints/reactive@workspace:packages/reactive"],
 
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
 

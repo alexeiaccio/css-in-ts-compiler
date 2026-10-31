@@ -21,6 +21,7 @@
       "@cssints/motion",
       "@cssints/placeholder",
       "@cssints/ramp",
+      "@cssints/reactive",
       "@cssints/reset",
       "@cssints/reveal",
       "@cssints/rybitten",

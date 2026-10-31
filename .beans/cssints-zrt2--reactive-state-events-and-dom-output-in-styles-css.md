@@ -1,10 +1,10 @@
 ---
 # cssints-zrt2
 title: 'reactive(): state, events and DOM output in styles (CSS-first interactions)'
-status: in-progress
+status: completed
 type: feature
 created_at: 2026-10-31T07:33:01Z
-updated_at: 2026-10-31T07:33:01Z
+updated_at: 2026-10-31T11:10:00Z
 ---
 
 A CSS-first interaction runtime as a new package: state and events declared in styles, conditions and DOM output in plain CSS, a ~2 kB script wires it. The model comes from [Reactive CSS](https://reactivecss.com/) (state as custom properties, events as selectors, conditions in CSS) and its strictness from Solid 2.0's [RULES-FUNDAMENTALS](https://github.com/solidjs/solid/blob/next/packages/signals/docs/RULES-FUNDAMENTALS.md) and [ReactiveScript](https://github.com/ryansolid/reactivescript): sources are the only writable things, writes happen only in imperative scope (an event), state belongs to an owner element, and one flush paints one whole frame.
@@ -37,9 +37,51 @@ Protocol (what the runtime reads, all non-inheriting via @property):
 - delegated listeners for a fixed event set: click, input, change, submit, keydown, keyup, pointerdown, pointerup, focusin, focusout.
 
 ## Todo
-- [ ] Engine: a runtime with a script (or css) and no polyfills is delivered for every target (delivery.ts `needed`), with a test in packages/cssints and the docs
-- [ ] Package `@cssints/reactive` (scope `reactive`): kernels for the markers and @property rules, call members state/on/bind, the public functions, the runtime `./runtime`
-- [ ] Types: Source/Action brands, EventName union, state names checked at build time, `when`/`inside`/`bind`, type tests for every refusal
-- [ ] Fixtures + browser test: two independent disclosures, aria-expanded, initial true state, tabs (string state), nested owner, the flush after one click
-- [ ] Docs: README (model, API, protocol, limits, browsers), API.md row, wayfinder entry with the references, changesets, the 28th package in the fixed group and the counts in AGENTS.md/RELEASING.md
-- [ ] Verified: package test + browsers in Chrome, cssints suite, typecheck, lint/fmt, build:packages, release:check
+- [x] Engine: a runtime with a script (or css) and no polyfills is delivered for every target (delivery.ts `needed`), with a test in packages/cssints and the docs
+- [x] Package `@cssints/reactive` (scope `reactive`): kernels for the markers and @property rules, call members state/on/bind, the public functions, the runtime `./runtime`
+- [x] Types: Source/Action brands, EventName union, state names checked at build time, `when`/`inside`/`bind`, type tests for every refusal
+- [x] Fixtures + browser test: two independent disclosures, aria-expanded, initial true state, tabs (string state), nested owner, the flush after one click
+- [x] Docs: README (model, API, protocol, limits, browsers), API.md row, wayfinder entry with the references, changesets, the 28th package in the fixed group and the counts in AGENTS.md/RELEASING.md
+- [x] Verified: package test + browsers in Chrome, cssints suite, typecheck, lint/fmt, build:packages, release:check
+
+## Summary of Changes
+
+The package `packages/reactive` (`@cssints/reactive`, 0.20.0, the 28th of the `fixed` group): `src/index.ts` is the scope
+`reactive` with the private kernels `#owner`, `#events` and `#binding` (an empty `&{}` each plus its
+`@property { syntax: "*"; inherits: false }`), the runtime `#run` (`polyfills: []`, `script: "@cssints/reactive/runtime"`)
+and the call members `state` (`group: true`), `on` and `bind`, with hand-written types in front: `Source<T>` and `Action`
+branded, `EventName` a union, `State<S>`/`Sources<S>`, `Program`/`Bindings`, and `state`/`toggle`/`set`/`on`/`bind`/`when`/
+`inside`. `src/runtime.ts` is 1.75 kB minified (0.87 kB gzipped): delegated listeners for the ten events, owners and
+bindings read off `getComputedStyle` and gated by the marker classes, initialisation on load and for added nodes
+(`MutationObserver`), one flush per owner touched, and no imports.
+
+The emitted protocol is as designed: `--reactive-owner: open,tab` and one inheriting `--reactive-<name>` per state on
+`._reactive-owner` (with the group marker `_g-reactive`), `--reactive-on: click toggle open,input set tab two` on
+`._reactive-events`, `--reactive-binding: aria-expanded open,data-current tab` on `._reactive-binding`; the three lists
+registered `@property { syntax: "*"; inherits: false }` at the top of the sheet. `when()` is
+`attr("data-reactive-<name>", value ?? "true")`, `inside()` is `within(attr(...), "reactive")`. The runtime writes
+`data-reactive-<name>` on the owner (what the conditions read) and the same value inline as the custom property (what CSS
+derivations read).
+
+**Engine gaps (two).** (1) `delivery.ts` `needed()` returned false for a runtime with no polyfills, so a plugin whose script
+*is* the feature shipped nothing when every target had every CSS feature. A runtime with `script` (or `css`) and no
+`polyfills` is now needed for every target; `docs/API.md` says so, `RuntimeDef`'s comment does too, and
+`packages/cssints/test/plugins.mjs` proves both sides (a new `#d`/`all` entry in the `ps` scope, `needed()` over four target
+sets, and the module text). (2) A site could not return an object, and `state()` must return its owner style and its
+sources: a plain object was a `SiteMissingError` in a client module (the engine writes only class strings). `ship(entries)`
+(`cssints/plugin`, macro.ts `shippedOf`) marks the site's value as an object literal — each `Style` as its class string,
+arrays and objects recursively, the rest as JSON — and at build time the object *is* the entries, so `ui.owner` is the
+style and `ui.open` the source. Tested by `plug-ship.ts`/`plug-ship-use.ts` in `plugins.mjs`.
+
+**Tests.** `node test/reactive.mjs` (fixtures through the engine: class strings, the protocol declarations, the kernels,
+the `@property` rules, the runtime module, the four build errors with their call sites, and an all-supported and a
+Firefox-only target set); `bun run test:browsers` (Chrome 156, Firefox 157, WebKit 27.2: two independent disclosures, an
+initial true state, tabs on a string state, a nested owner, one flush after a click, no console errors);
+`test/types/reactive.ts` (the brands, `set`/`toggle`, `set(open, "yes")`, an unknown event, a checker source, an action as
+a style).
+
+**Docs and release.** The README (model, API, the printed CSS, protocol, limits, browsers, tests), the `docs/API.md` row and
+the runtime/`ship()` bullets, the `docs/wayfinder.md` entry with the three references, changesets for `cssints` and
+`@cssints/reactive` (both minor), `@cssints/reactive` in `.changeset/config.json` `fixed`, and the counts 27 → 28 in
+AGENTS.md and RELEASING.md plus the first-publish-by-hand paragraph. `bun run build:packages` is 28/28 and
+`bun run release:check` stages 28 and passes.
