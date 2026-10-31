@@ -219,6 +219,53 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "scrollspy",
+      "type": "registry:ui",
+      "title": "Scrollspy",
+      "description": "A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "scrollspy.tsx",
+          "target": "src/components/ui/scrollspy.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "scrollspy.fixture.tsx",
+          "target": "src/components/ui/scrollspy.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "scrollspy.browser.test.tsx",
+          "target": "src/components/ui/scrollspy.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "input",
       "type": "registry:ui",
       "title": "Input",
