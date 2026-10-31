@@ -2668,3 +2668,45 @@ decide.
 JavaScript), no async (the Solid async boundaries are the reference for v2), one `state()` and one `on()` per element by
 rule, and a condition on an initial value may paint a frame late because the script writes the attribute. The plugin writes
 attributes, not ARIA behaviour: the author pairs `aria-expanded` (or `aria-current`) with the pattern they are building.
+
+attributes, not ARIA behaviour: the author pairs `aria-expanded` (or `aria-current`) with the pattern they are building.
+
+## A two-thumb range slider in the kit, on the primitive that already models it (apps/ui, 2026-10-31)
+
+The kit's slider entry left multi-thumb out because `createSliderMultiThumb` has no `trackProps`, so the port is not the
+same component. Reading it again, the missing rail press is the whole of that gap: it already owns the whole APG Slider
+(Multi-Thumb) contract — the pair, the neighbour bounds (a thumb's `aria-valuemax` / `aria-valuemin` follow the other, so
+the thumbs cannot cross and equal values are allowed), the constant tab order (lower, then upper), the arrows with the RTL
+flip, PageUp/PageDown, Home/End to the neighbour, the `value` + `onValueChange` request/commit pair, and each thumb's
+`role=slider` with `aria-valuenow` / `aria-valuemin` / `aria-valuemax` / `aria-valuetext` / `aria-orientation`, verified
+against `specs/apg/slider-multithumb.qnt`. The item is therefore a skin: two `data-part="thumb"` divs that take
+`thumbProps(0)` and `thumbProps(1)`, a name per thumb derived from one `label` (`Price lower thumb`, `Price upper thumb`),
+a `data-part="track"` rail and a `data-part="fill"` that the kit alone owns.
+
+The interval is the one thing the primitive does not announce, and it is painted without measuring the DOM: the outer
+announced bounds are the range (the lower thumb's `aria-valuemin` is the range's minimum, the upper thumb's
+`aria-valuemax` is its maximum; the inner two follow the neighbour), so a thumb's position is
+`(now - min) / (max - min)` of the range and the fill spans from the lower thumb's share to the higher one —
+`inset-inline-start` / `width`, or `inset-block-end` / `height` when vertical, the same arithmetic the single `Slider`
+uses for its fill. A thumb's position, the fill's two edges and the value a reader hears are one set of numbers, and no
+rect is read. The rail is the anchor of those percentages: it copies the announced `aria-orientation` to
+`data-orientation` (a box cannot read an attribute of its child), the fill reads it through `within()`, and each thumb
+paints its own from `aria-orientation`.
+
+The primitive deliberately has no rail press (the spec's event names its thumb), so the kit adds one thing: a
+`pointerdown` on the rail measures the rail's rect and the nearer thumb takes the press and the DOM focus. That is the
+only measurement in the component, and only because a pointer has a position while the primitive wants a 0..1 fraction.
+Ties go to the lower thumb, and a press that starts on a thumb is left to the primitive. The tokens are the single
+`Slider`'s, so the two siblings look the same: `buttonBackground` for the rail, `highlight` for the interval, `surface` /
+`border` / `borderHover` for the thumbs and `focusRing` for the focus ring.
+
+`slider-multithumb.browser.test.tsx` ships with the item: the primitive's ported scenarios (all `Unsupported`, since the
+spec fixes values `[3, 7]` over 0..10) and the differential walk over seven configs — plain, vertical, RTL, both, and
+controlled hosts that accept or hold — then the kit's own three points: the fill is 30%..70% for `[3, 7]` and moves with
+the upper thumb's arrow key, the vertical fill grows from `inset-block-end`, and a 90% rail press lands on the upper
+thumb and focuses it. `combos.browser.test.tsx` is untouched.
+
+**Left**: no dragging (the primitive models one press, not pointer move), no `disabled` (the primitive has none, as in
+`Spinbutton`), a rail press measures from the physical left under RTL as the single slider's `trackProps` does, the
+vertical rail is `space.10` tall until a page sets its own, and `aria-valuetext` stays the primitive's low/medium/high
+with no units.
