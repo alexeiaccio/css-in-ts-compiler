@@ -108,6 +108,72 @@ cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-
   -L "$BREW/lib" -lSDL3 -lSDL3_ttf -lSDL3_image -lthorvg-1 -lm -o "$OUT/list/app"
 "$OUT/list/app" --raster thorvg --expect solid/frames/list-top.png
 
+# The Text field page (solid/app/Field.tsx) as generated C: the page's state is its text field's — the value, the caret
+# and the selection live in `createTextField` behind the page's `input`, not in a signal the page exports — so
+# examples/field/states.json is a script of its input (`press` on the row: the focus manager's; `text`: SDL's text
+# event; `key`: Shift+ArrowLeft), the generator replays it, and each file is one frame: the field focused and empty
+# (`Ada` typed), the typed `Ada` (one run and the caret's 1px box) and two Shift+ArrowLeft (`da` selected, the caret at
+# its start). examples/field/gen.c dumps each with ThorVG's measure, as the Solid host measures; the reference is the
+# page's own loop at the same states, the keys the stored frames' own (`examples/field/solid-dump.ts`: Tab,Tab,
+# text:Ada, Shift+ArrowLeft twice). The four texts of the field rows are the page's only `css.whiteSpace("nowrap")`
+# runs, and a text command carries no wrap (its node is the text config's `userData`, which the printed literals leave
+# NULL), so gen.c numbers the text commands and passes the wrap table — the seam is there, and a shifted index fails
+# the comparison. Then the desktop host's raster of the same generated page against the stored frames, pixel for pixel.
+mkdir -p "$OUT/field"
+cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable \
+  -I vendor/clay -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+  -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+  examples/field/gen.c examples/field/page_generated.c examples/field/page_generated_typed.c \
+  examples/field/page_generated_selection.c -L "$BREW/lib" -lthorvg-1 -lm -o "$OUT/field/gen"
+"$OUT/field/gen" "$OUT/field"
+bun examples/field/solid-dump.ts "$OUT/field"
+node dump-check.ts "$OUT/field/solid-empty.json" "$OUT/field/empty.json" --name field-empty
+node dump-check.ts "$OUT/field/solid-typed.json" "$OUT/field/typed.json" --name field-typed
+node dump-check.ts "$OUT/field/solid-selection.json" "$OUT/field/selection.json" --name field-selection
+for state in empty typed selection; do
+  frame=app_frame_empty; gen=page_generated.c
+  [ "$state" = typed ] && frame=app_frame_typed && gen=page_generated_typed.c
+  [ "$state" = selection ] && frame=app_frame_selection && gen=page_generated_selection.c
+  cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable \
+    -DAPP_W=360 -DAPP_H=450 -DFIELD_FRAME=$frame \
+    -I vendor/clay -I generator -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+    -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+    desktop/host.c examples/field/page.c "examples/field/$gen" \
+    -L "$BREW/lib" -lSDL3 -lSDL3_ttf -lSDL3_image -lthorvg-1 -lm -o "$OUT/field/app-$state"
+  "$OUT/field/app-$state" --raster thorvg --expect "solid/frames/field-$state.png"
+done
+
+# The Widgets page (solid/app/Widgets.tsx) as generated C: a `:focus` and a `checked` are the parts' fields, not the
+# page's signals, so a state is the parts' own handlers — a press on a row (its onPress, the focus manager) and a click
+# (its part's `press`, which flips the signal) — and examples/widgets/states.json names three: the page at rest, the
+# switch focused and on, and that plus the Details panel open (the disclosure's trigger, pressed and clicked). The
+# references are the page's own frames at the stored frames' keys (`examples/widgets/solid-dump.ts`: rest; Tab,Tab,Space;
+# that and four Tabs and Enter). The toolbar's menu is left out: it is a float whose opening key is the toolbar's, and its
+# pointer capture is the host's (the Dialog's menu proves the float).
+mkdir -p "$OUT/widgets"
+cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable \
+  -I vendor/clay -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+  -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+  examples/widgets/gen.c examples/widgets/page_generated.c examples/widgets/page_generated_switch.c \
+  examples/widgets/page_generated_disclosure.c -L "$BREW/lib" -lthorvg-1 -lm -o "$OUT/widgets/gen"
+"$OUT/widgets/gen" "$OUT/widgets"
+bun examples/widgets/solid-dump.ts "$OUT/widgets"
+node dump-check.ts "$OUT/widgets/solid-rest.json" "$OUT/widgets/rest.json" --name widgets-rest
+node dump-check.ts "$OUT/widgets/solid-switch.json" "$OUT/widgets/switch.json" --name widgets-switch
+node dump-check.ts "$OUT/widgets/solid-disclosure.json" "$OUT/widgets/disclosure.json" --name widgets-disclosure
+for state in rest switch disclosure; do
+  frame=app_frame_rest; gen=page_generated.c; want=widgets-initial
+  [ "$state" = switch ] && frame=app_frame_switch && gen=page_generated_switch.c && want=widgets-switch-on
+  [ "$state" = disclosure ] && frame=app_frame_disclosure && gen=page_generated_disclosure.c && want=widgets-disclosure
+  cc -std=c11 -O2 -Wall -Wno-unused-function -Wno-missing-field-initializers -Wno-unused-variable \
+    -DAPP_W=360 -DAPP_H=760 -DWIDGETS_FRAME=$frame \
+    -I vendor/clay -I generator -I "$BREW/include" -I "$BREW/include/thorvg-1" \
+    -DFONT_PATH="\"$PWD/vendor/fonts/Roboto-Regular.ttf\"" \
+    desktop/host.c examples/widgets/page.c "examples/widgets/$gen" \
+    -L "$BREW/lib" -lSDL3 -lSDL3_ttf -lSDL3_image -lthorvg-1 -lm -o "$OUT/widgets/app-$state"
+  "$OUT/widgets/app-$state" --raster thorvg --expect "solid/frames/$want.png"
+done
+
 # Headless widgets (button, switch, checkbox, disclosure) on neutral parts: ported scenarios and a walk against the Quint models
 (cd headless && bun run typecheck:native && bun run test:native)
 
