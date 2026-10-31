@@ -2,6 +2,26 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.26.0 (2026-10-31)
+
+### Minor changes
+
+- `createDatePicker` hands the host the popup's placement: `contentStyle()` is the same page-space `position: absolute` box `createPopover` gives. Without it the picker measured and flipped the popup but exposed nothing to put on the element, so a host that portalled the panel had to re-implement the placement or leave the panel at the page's top-left. `date-picker.browser.test.tsx` now asserts the panel starts one gap under the trigger's bottom edge.
+  
+  `createPopover.attach` and `createDatePicker.attach` no longer create a computation. A host calls `attach` from a `ref`,
+  Solid 2 runs refs in the effect phase, and a primitive created there belongs to nobody: the dev build throws
+  `PRIMITIVE_IN_EFFECT_CALLBACK` while the production one stays silent — so the packaged tanstack of this repo's tests passed
+  and the starter smoke (a real `vite dev` build) failed on every popover and date-picker case. The measurement, the focus
+  handover and the roving-day focus now live in effects created at setup, and `attach` only records the elements and adds
+  listeners.
+- A Quint machine for the drop zone (`specs/patterns/dropzone.qnt`) and its bridge, scenarios and spec-only test: the drag depth (0 none, 1 the zone, 2 a child), `disabled` and the last delivery, with the five invariants `DraggingIffDepth`, `DepthClearsOnDrop`, `DepthClearsOnExit`, `DisabledNeverDelivers`, `OneDropOneBatch` and `DepthNeverNegative`. There is no APG pattern for file dropping, so it lives in `specs/patterns/` beside `resizable-panels`, and `@cssints/headless`'s `dropzone-spec.browser.test.tsx` replays it in Chromium.
+  
+  `Probe` gained `value`, off by default: a pattern whose observable state has no attribute of its own (the drop zone's `dragging()` and `message()`) can now have it compared by the differential walk.
+- `emit()` and `listen()`: the one hand-off to JavaScript. `on({ submit: emit("save") })` writes no state and dispatches a bubbling `reactive:save` `CustomEvent` from the element the native event fired on, its `detail` `{ event, owner }` (the native event and the nearest reactive owner); `listen(target, name, handler)` from `@cssints/reactive/runtime` hears it and returns a disposer.
+- `createTabs` takes `dir: "ltr" | "rtl"` (default ltr). A horizontal tablist swaps ArrowLeft / ArrowRight in a right-to-left page, as `radio.ts` does; a vertical tablist keeps Up / Down, and ltr is unchanged. `tabs.qnt` still models ltr only, so the ported `direction` scenarios stay skipped in the differential walk and `test/tabs-requirements.browser.test.tsx` holds the arrow swap.
+  
+  The same file closes four other requirement gaps in `packages/headless/docs/requirements/tabs.md`: roles and names (G3), focus leaving the component with hidden panels out of the tab order (G6), activation on the up event (G8), and RTL (G11). G5 (icons) is documented as a host obligation; the other seven gaps stay open.
+
 ## 0.25.0 (2026-10-31)
 
 ### Minor changes
