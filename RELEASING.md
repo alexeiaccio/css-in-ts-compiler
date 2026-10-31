@@ -95,6 +95,13 @@ npm trust list cssints
 
 The list of names: `cssints`, `@cssints/balance`, `color-names`, `css-grammar`, `devtools`, `fluid`, `fonts`, `gradient`, `gradient-2d`, `icons`, `layout`, `masonry`, `mcp`, `mise-en-mode`, `motion`, `placeholder`, `ramp`, `reset`, `reveal`, `rybitten`, `skeleton`, `squircle`, `stuck`, `tokens`, `tui`, `headless`, `apg-specs` (all but the first under `@cssints/`).
 
+The same thing from a terminal, where the values above are already written down: `sh scripts/trust.sh` adds the connection
+to all 27 (`--dry-run` prints the commands). npm cannot **edit** a connection, so a package whose connection was created
+after 2026-09-03 — those allow `npm stage publish` only, and every publish of theirs waits for a person with 2FA —
+is fixed by `sh scripts/trust.sh --recreate <package>`: it revokes the connections `npm trust list <package> --json` reports
+(`scripts/trust.mjs ids`) and creates one again with **npm publish** allowed. `scripts/publish.mjs` keeps a release green while
+one of those stages is pending; `--recreate` is what removes the cause.
+
 Then, per package, Settings, Publishing access: "Require two-factor authentication and disallow tokens". Trusted publishers keep working; a stolen token does not. Also in the repository: Settings, Actions, General, tick "Allow GitHub Actions to create and approve pull requests" (the version pull request).
 
 ## Later releases, from CI
