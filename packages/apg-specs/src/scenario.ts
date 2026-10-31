@@ -405,6 +405,12 @@ export const specDriver = (
 export interface Probe {
   readonly attrs: ReadonlyArray<readonly [target: string, name: string]>;
   readonly events: ReadonlyArray<string>;
+  /**
+   * Compare the pattern's observable value too. Off by default: not every
+   * pattern's DOM driver exposes one, and a value the spec has but the DOM does
+   * not (or the reverse) would otherwise have to become `Unsupported`.
+   */
+  readonly value?: boolean;
 }
 
 // An observation a target declares unmodelled is excluded from the comparison.
@@ -421,12 +427,21 @@ const observed = <T>(read: () => T): T | "?" => {
 
 type Entry = readonly [label: string, value: Schema.Json | "?"];
 
+// The pattern's observable value, or "?" when the target has none: the probe
+// opt-in is the caller's, a missing value is the target's.
+const valueEntry = (observer: Observer): Entry => {
+  const read = observer.value;
+  return ["value", read === undefined ? "?" : observed(read)];
+};
+
 const snapshot = (observer: Observer, probe: Probe): ReadonlyArray<Entry> => [
   ["focus", observed(() => normalize(observer.focus()))],
   ["visible", observer.visible().map(partName).sort()],
-  ...probe.attrs.map(
-    ([target, name]): Entry => [`${target}[${name}]`, observed(() => observer.attr(target, name))],
-  ),
+  ...probe.attrs.map(([target, name]): Entry => [
+    `${target}[${name}]`,
+    observed(() => observer.attr(target, name)),
+  ]),
+  ...(probe.value === true ? [valueEntry(observer)] : []),
   ...probe.events.map((name): Entry => [`events.${name}`, [...observer.events(name)]]),
 ];
 
