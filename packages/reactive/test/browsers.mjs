@@ -1,7 +1,8 @@
 // @cssints/reactive in real browsers through playwright-core (Chrome is the installed channel, Firefox and WebKit
 // Playwright's builds): fixtures/app.js, built once (the runtime ships for every target, so a target set decides nothing),
-// with five cases on one page — two independent disclosures, an owner whose state starts true, tabs on a string state,
-// a nested owner, and the flush of one click (the owner's attribute and the bound aria-expanded agree at once).
+// with the cases on one page — two independent disclosures, an owner whose state starts true, tabs on a string state,
+// a nested owner, the flush of one click, a <select> setting a state from value(), a checkbox from checked(), two
+// programs on one element and the same program twice (the owner's attribute and the bound aria-expanded agree at once).
 //   node test/browsers.mjs        BROWSERS=chrome,webkit node test/browsers.mjs
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
@@ -110,6 +111,24 @@ const read = (page) =>
       inner: attr("inner", "data-reactive-open"),
       innerExpanded: attr("in-btn", "aria-expanded"),
       innerPanel: display("in-panel"),
+      sTab: attr("s", "data-reactive-tab"),
+      sCurrent: attr("s-field", "data-current"),
+      s1: display("s1"),
+      s2: display("s2"),
+      fOpen: attr("f", "data-reactive-open"),
+      fExpanded: attr("f-field", "aria-expanded"),
+      fPanel: display("f-panel"),
+      mOpen: attr("m", "data-reactive-open"),
+      mTab: attr("m", "data-reactive-tab"),
+      mExpanded: attr("m-field", "aria-expanded"),
+      mCurrent: attr("m-field", "data-current"),
+      mProgram: getComputedStyle(document.getElementById("m-field"))
+        .getPropertyValue("--reactive-on")
+        .trim(),
+      mOpenPanel: display("m-open"),
+      mTwoPanel: display("m-two"),
+      dOpen: attr("d", "data-reactive-open"),
+      dPanel: display("d-panel"),
     };
   });
 
@@ -137,6 +156,22 @@ const run = async (page) => {
     "nested: both closed",
     s,
   );
+  check(
+    s.sTab === "one" && s.sCurrent === "one" && s.s1 === "block" && s.s2 === "none",
+    "select: the first option on load",
+    s,
+  );
+  check(
+    s.fOpen === "false" && s.fExpanded === "false" && s.fPanel === "none",
+    "checkbox: closed on load",
+    s,
+  );
+  check(
+    s.mProgram === "click toggle open,keydown set tab two",
+    "multi: two on()s are one joined program",
+    s,
+  );
+  check(s.dOpen === "false" && s.dPanel === "none", "dup: closed on load", s);
 
   // one click, one flush: the attribute and the binding agree before a frame is painted
   await page.locator("#a-btn").click();
@@ -190,6 +225,55 @@ const run = async (page) => {
     "nested: outer open, inner untouched",
     s,
   );
+
+  // a select: change reads target.value (@value), and both panels follow the string state
+  await page.locator("#s-field").selectOption("two");
+  await frames(page);
+  s = await read(page);
+  check(
+    s.sTab === "two" && s.sCurrent === "two" && s.s1 === "none" && s.s2 === "block",
+    "select: the second panel",
+    s,
+  );
+  await page.locator("#s-field").selectOption("one");
+  await frames(page);
+  s = await read(page);
+  check(s.sTab === "one" && s.s2 === "none", "select: back to the first", s);
+
+  // a checkbox: change reads target.checked (@checked), and the disclosure follows the boolean state
+  await page.locator("#f-field").check();
+  await frames(page);
+  s = await read(page);
+  check(s.fOpen === "true" && s.fExpanded === "true" && s.fPanel === "block", "checkbox: open", s);
+  await page.locator("#f-field").uncheck();
+  await frames(page);
+  s = await read(page);
+  check(s.fOpen === "false" && s.fPanel === "none", "checkbox: closed again", s);
+
+  // two programs on one element: click and keydown both run, one flush each
+  await page.locator("#m-field").click();
+  await frames(page);
+  s = await read(page);
+  check(
+    s.mOpen === "true" && s.mExpanded === "true" && s.mOpenPanel === "block",
+    "multi: click opens",
+    s,
+  );
+  await page.locator("#m-field").focus();
+  await page.keyboard.press("t");
+  await frames(page);
+  s = await read(page);
+  check(
+    s.mTab === "two" && s.mCurrent === "two" && s.mTwoPanel === "block",
+    "multi: keydown sets the tab",
+    s,
+  );
+
+  // the same program twice on one element: one segment, so a click is one toggle
+  await page.locator("#d-btn").click();
+  await frames(page);
+  s = await read(page);
+  check(s.dOpen === "true" && s.dPanel === "block", "dup: one toggle per click", s);
   return out.filter(Boolean);
 };
 

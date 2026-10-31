@@ -95,6 +95,27 @@ assert.match(
 );
 assert.ok(!tabsOut.includes("--reactive-owner:tab,open,tab"), tabsOut);
 
+// the field's value and several programs on one element (cssints-674d): `@value`/`@checked` in a set segment, and two
+// on()s or bind()s in one cn() append instead of the later replacing the earlier
+const fields = await code("fields.ts");
+const fieldsOut = sheet("fields.ts");
+assert.match(
+  fields,
+  /export const select = "_reactive-events _reactive-binding( _\w+){2}";/,
+  fields,
+);
+assert.match(fields, /export const both = "_reactive-events _reactive-binding( _\w+){2}";/, fields);
+for (const d of [
+  "--reactive-on:change set tab @value",
+  "--reactive-on:change set open @checked",
+  "--reactive-on:click toggle open,keydown set tab two",
+  "--reactive-binding:aria-current tab",
+  "--reactive-binding:aria-expanded open,data-current tab",
+])
+  assert.ok(fieldsOut.includes(`{${d}}`), `${d}\n${fieldsOut}`);
+// one atom each: the first on() alone is never a rule of its own
+assert.ok(!fieldsOut.includes("{--reactive-on:click toggle open}"), fieldsOut);
+
 // the build errors name the bad name, value, event or attribute, at the call site
 const fails = async (f, text, line) =>
   assert.rejects(code(f), (e) => {
@@ -120,6 +141,16 @@ await fails(
   4,
 );
 await fails("bad-attribute.ts", /^cssints: reactive: "aria expanded" is not an attribute name$/, 4);
+// set() checks its literal before a program is built, so the error is the library's (a MacroError), at the call site
+await assert.rejects(code("bad-at.ts"), (e) => {
+  assert.equal(e._tag, "MacroError");
+  assert.match(
+    e.message.split("\n")[0],
+    /^cssints: reactive: the value of "tab" is "@value": a value has no @ \(the runtime reads @value and @checked from the field\)$/,
+  );
+  assert.equal(e.loc?.line, 5, "the call site");
+  return true;
+});
 await server.close();
 
 // the same with a target set that has every feature: the runtime still ships (the build's targets are read once per

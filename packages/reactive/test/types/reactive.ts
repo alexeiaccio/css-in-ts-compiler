@@ -3,12 +3,14 @@ import { cn, display, type Style, type Wrap } from "cssints";
 import {
   type Action,
   bind,
+  checked,
   inside,
   on,
   type Source,
   set,
   state,
   toggle,
+  value,
   when,
 } from "../../src/index.ts";
 
@@ -23,6 +25,8 @@ export const card = cn(ui.owner, display("block"));
 export const toggled: Action = toggle(ui.open);
 export const tabbed: Action = set(ui.tab, "two");
 export const counted: Action = set(ui.count, 2);
+export const fromValue: Action = set(ui.tab, value());
+export const fromChecked: Action = set(ui.open, checked());
 export const events = on({ click: toggle(ui.open), input: [set(ui.tab, "two"), set(ui.count, 3)] });
 export const attributes = bind({ "aria-expanded": ui.open, "data-current": ui.tab });
 export const own: Wrap = when(ui.open);
@@ -54,3 +58,19 @@ on({ click: ui.open });
 bind({ "aria-expanded": toggle(ui.open) });
 // @ts-expect-error a number is not a source name
 when(ui);
+// @ts-expect-error a value() is a string field, not a boolean state's
+set(ui.open, value());
+// @ts-expect-error a checked() is a boolean field, not a string state's
+set(ui.tab, checked());
+// @ts-expect-error a payload is not a source
+toggle(checked());
+// @ts-expect-error a payload is not a source of bind()
+bind({ "aria-expanded": value() });
+// @ts-expect-error a payload is not an action
+on({ click: checked() });
+// @ts-expect-error a payload is not a style
+export const payloadAsStyle: Style = value();
+// @ts-expect-error a payload is not a condition
+export const payloadAsWrap: Wrap = checked();
+// @ts-expect-error a payload is not a value of when()
+when(checked());

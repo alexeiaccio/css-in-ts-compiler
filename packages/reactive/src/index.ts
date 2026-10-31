@@ -9,7 +9,7 @@
 // program travels as data in non-inheriting custom properties (`--reactive-on`) that ./runtime.ts reads from a delegated
 // listener. See README.md for the protocol.
 import { attr, type Style, type Wrap, within } from "cssints" with { type: "cssints" };
-import { arg, scope, ship } from "cssints/plugin";
+import { append, arg, scope, ship } from "cssints/plugin";
 
 /** A value a state holds: a boolean (a `toggle()`), a string (a tab) or a number. */
 export type StateValue = boolean | string | number;
@@ -50,7 +50,7 @@ interface SourceData {
   readonly "~source": string;
 }
 
-// What an action is at build time: toggle <state>, or set <state> <value>.
+// What an action is at build time: toggle <state>, or set <state> <value>, the value a literal or a payload token.
 interface ActionData {
   readonly "~action": "toggle" | "set";
   readonly "~source": string;
@@ -69,7 +69,8 @@ const ATTRIBUTE = /^[a-zA-Z_:][a-zA-Z0-9_:.-]*$/;
 
 const fail = (message: string) => new Error(`cssints: reactive: ${message}`);
 
-// A value as the protocol writes it, or the error of one that would break it (commas and spaces split a property list).
+// A value as the protocol writes it, or the error of one that would break it (commas and spaces split a property list, and
+// a value starting with @ would be read as a payload token).
 const valueOf = (where: string, value: StateValue | undefined): string => {
   if (value === undefined) throw fail(`${where} is missing`);
   if (typeof value === "number" && !Number.isFinite(value))
@@ -77,7 +78,17 @@ const valueOf = (where: string, value: StateValue | undefined): string => {
   const text = String(value);
   if (SPACE.test(text))
     throw fail(`${where} is ${JSON.stringify(text)}: a value has no commas and no spaces`);
+  if (text.includes("@"))
+    throw fail(
+      `${where} is ${JSON.stringify(text)}: a value has no @ (the runtime reads @value and @checked from the field)`,
+    );
   return text;
+};
+
+// The payload a set() value carries, if it is one: the token the runtime resolves against the event's target.
+const payloadOf = (value: unknown): "@value" | "@checked" | undefined => {
+  const token = (value as { "~payload"?: unknown } | undefined)?.["~payload"];
+  return token === "@value" || token === "@checked" ? token : undefined;
 };
 
 const nameOf = (where: string, source: unknown): string => {
@@ -108,9 +119,10 @@ const reactive = scope("reactive", {
   // The owner element: --reactive-owner lists the states, one --reactive-<name> holds each value. group: true adds
   // _g-reactive, which inside() reads through within().
   state: { args: [arg<States>()], uses: ["owner", "run"], group: true },
-  // One program per element: --reactive-on is `click toggle open,input set tab two`.
+  // The programs of an element: --reactive-on is `click toggle open,input set tab two`, and two on() calls in one cn()
+  // append their segments (append()).
   on: { args: [arg<ProgramData>()], uses: ["events", "run"] },
-  // One list per element: --reactive-binding is `aria-expanded open,data-current tab`.
+  // The attributes of an element: --reactive-binding is `aria-expanded open,data-current tab`, appended as the programs are.
   bind: { args: [arg<BindData>()], uses: ["binding", "run"] },
 }).build({
   state: (states) => {
@@ -124,7 +136,7 @@ const reactive = scope("reactive", {
         );
       decls.push([`--reactive-${name}`, valueOf(`the state "${name}"`, states[name])]);
     }
-    return { decls: [["--reactive-owner", names.join(",")], ...decls] };
+    return { decls: [append("--reactive-owner", names.join(",")), ...decls] };
   },
   on: (program) => {
     const segments: string[] = [];
@@ -138,15 +150,18 @@ const reactive = scope("reactive", {
       for (const action of list) {
         const source = nameOf(`the source of the event "${event}"`, action);
         if (action["~action"] === "toggle") segments.push(`${event} toggle ${source}`);
-        else if (action["~action"] === "set")
-          segments.push(
-            `${event} set ${source} ${valueOf(`the value of "${source}"`, action["~value"])}`,
-          );
-        else throw fail(`the event "${event}" takes a toggle() or a set()`);
+        else if (action["~action"] === "set") {
+          const payload = action["~value"];
+          const value =
+            payload === "@value" || payload === "@checked"
+              ? payload
+              : valueOf(`the value of "${source}"`, action["~value"]);
+          segments.push(`${event} set ${source} ${value}`);
+        } else throw fail(`the event "${event}" takes a toggle() or a set()`);
       }
     }
     if (!segments.length) throw fail("on() takes at least one event");
-    return { decls: [["--reactive-on", segments.join(",")]] };
+    return { decls: [append("--reactive-on", segments.join(","))] };
   },
   bind: (bindings) => {
     const pairs: string[] = [];
@@ -156,7 +171,7 @@ const reactive = scope("reactive", {
       pairs.push(`${attribute} ${nameOf(`the source of "${attribute}"`, source)}`);
     }
     if (!pairs.length) throw fail("bind() takes at least one attribute");
-    return { decls: [["--reactive-binding", pairs.join(",")]] };
+    return { decls: [append("--reactive-binding", pairs.join(","))] };
   },
 });
 
@@ -201,17 +216,30 @@ export interface Action {
   readonly [actionType]: "write";
 }
 
+declare const payloadType: unique symbol;
+/**
+ * The value of the field the event fired on, from `value()` or `checked()`: `set(ui.tab, value())` writes
+ * `target.value`, `set(ui.open, checked())` writes `target.checked ? "true" : "false"`. Only `set()` takes one: it is not
+ * a state value, a source, an action or a style.
+ */
+export interface Payload<T extends StateValue> {
+  readonly [payloadType]: T;
+}
+
+const payload = <T extends StateValue>(token: "@value" | "@checked"): Payload<T> =>
+  ({ "~payload": token }) as unknown as Payload<T>;
+
 const action = (data: ActionData): Action => data as unknown as Action;
 
 // the owner's class string, from the member with the concrete shape (the sources are added beside it)
 const ownerOf = (states: States): Style => members.state(states);
 
 /**
- * `state({ open: false, tab: "one" })`: the only source of `@cssints/reactive`, one `state()` per owner element. It gives
- * the owner's style (`cn(ui.owner, p(4))`) and one source per state. The initial values are CSS custom properties on the
- * owner, and `./runtime` writes `data-reactive-<name>` on it on load and after an event: a condition on an initial value
- * may paint one frame late. Names are idents (lowercase letters, digits and -), and a string value has no commas or
- * spaces.
+ * `state({ open: false, tab: "one" })`: the only source of `@cssints/reactive`, the states of one owner element (two calls
+ * in one `cn()` are one owner). It gives the owner's style (`cn(ui.owner, p(4))`) and one source per state. The initial
+ * values are CSS custom properties on the owner, and `./runtime` writes `data-reactive-<name>` on it on load and after an
+ * event: a condition on an initial value may paint one frame late. Names are idents (lowercase letters, digits and -), and
+ * a string value has no commas, spaces or `@`.
  *
  * @param {S} states the state names and their initial values
  * @returns {State} the owner's style and the sources
@@ -235,24 +263,46 @@ export function toggle(source: Source<boolean>): Action {
 }
 
 /**
- * `set(ui.tab, "two")`: set a state to a value when the event it is put on runs. Only `on()` takes it.
+ * `set(ui.tab, "two")` / `set(ui.tab, value())`: set a state to a value when the event it is put on runs, a literal or the
+ * value of the field the event fired on (`value()`, `checked()`). Only `on()` takes it.
  *
  * @param {Source<T>} source the state
- * @param {T} value the value, of the state's type
+ * @param {T | Payload<T>} value the value, of the state's type, or a payload of it
  * @returns {Action} the write
  */
-export function set<T extends StateValue>(source: Source<T>, value: T): Action {
+export function set<T extends StateValue>(source: Source<T>, value: T | Payload<T>): Action {
+  const name = nameOf("set()", source);
   return action({
     "~action": "set",
-    "~source": nameOf("set()", source),
-    "~value": String(value),
+    "~source": name,
+    "~value": payloadOf(value) ?? valueOf(`the value of "${name}"`, value as StateValue),
   });
 }
 
 /**
+ * `set(ui.tab, value())`: the value of the field the event fired on (`target.value`, a string). Only `set()` takes it, and
+ * only a string state: a `value()` is not a `checked()`.
+ *
+ * @returns {Payload<string>} the payload
+ */
+export function value(): Payload<string> {
+  return payload("@value");
+}
+
+/**
+ * `set(ui.open, checked())`: whether the field the event fired on is checked (`target.checked`, `"true"` or `"false"`).
+ * Only `set()` takes it, and only a boolean state: a `checked()` is not a `value()`.
+ *
+ * @returns {Payload<boolean>} the payload
+ */
+export function checked(): Payload<boolean> {
+  return payload("@checked");
+}
+
+/**
  * `on({ click: toggle(ui.open) })`: the events of the element it is on, one action or a list each. A delegated listener
- * applies every program of the target and its ancestors, then updates the bindings of each owner once. One `on()` per
- * element: the object form makes an accidental merge visible.
+ * applies every program of the target and its ancestors, then updates the bindings of each owner once. Two `on()` calls in
+ * one `cn()` append their segments, and an identical segment twice is applied once.
  *
  * @param {Program} program one or more actions by event
  * @returns {Style} the element's style, with its program
@@ -263,7 +313,8 @@ export function on(program: Program): Style {
 
 /**
  * `bind({ "aria-expanded": ui.open })`: writes each attribute on the element it is on, from the value its nearest owner
- * holds. The runtime updates it on load and after every event of that owner.
+ * holds. The runtime updates it on load and after every event of that owner. Two `bind()` calls in one `cn()` append their
+ * attributes.
  *
  * @param {Bindings} bindings a source per attribute name
  * @returns {Style} the element's style, with its bindings
