@@ -2623,3 +2623,47 @@ the previous wayfinder entry named it as left over. The group already resolves a
 omits ids, so no spec change; the kit passes no `id` by default, so its unique base keeps both groups apart, and a second
 `createUniqueId` is not made. Checked by a plain assertion in `checkbox-group.browser.test.tsx` (two groups, distinct ids,
 the named base's exact ids).
+||||||| 0f00b800
+## CSS-first interactions: `@cssints/reactive` (packages/reactive, 2026-10-31, cssints-zrt2)
+
+The model comes from [Reactive CSS](https://reactivecss.com/): state as custom properties, events and conditions in the
+stylesheet. The strictness comes from Solid 2.0's
+[RULES-FUNDAMENTALS](https://github.com/solidjs/solid/blob/next/packages/signals/docs/RULES-FUNDAMENTALS.md) and
+[ReactiveScript](https://github.com/ryansolid/reactivescript): only sources are writable (E-1), a write happens in
+imperative scope (W-1/W-2), state belongs to an owner element (O-\*), one flush paints one whole frame (F-1/F-10), and v1
+has no async, so no loading or error boundaries.
+
+`:on(click)` does not port: it is not a valid selector, and cssints ships compiled class strings, so the event program
+travels as data. Three non-inheriting custom properties carry it — `--reactive-owner` (the states), `--reactive-on` (the
+program) and `--reactive-binding` (the DOM output) — each registered with `@property { syntax: "*"; inherits: false }` in
+its kernel, so an element sees only its own program and list. The state values themselves (`--reactive-<name>`) inherit, so
+any descendant can read them in CSS. The runtime writes `data-reactive-<name>` on the owner for the conditions (`when()` is
+`attr()`, `inside()` is `within(attr(), "reactive")` over the owner's `_g-reactive` group marker) and the same value inline
+as the custom property for derivations.
+
+**Two engine gaps.** (1) `needed()` (delivery.ts) answered false for a runtime with no polyfills, so a plugin whose script
+_is_ the feature was never delivered: with a target set that has every CSS feature, `virtual:cssints/runtime/reactive.run`
+was `export {};`. A runtime with `script` (or `css`) and no `polyfills` is now needed for every target; plugins.mjs covers
+both sides (a polyfilled runtime still ships nothing where every target has the feature). (2) A site could be a style, a
+condition, a Typed OM value or a plugin value with no replacement (a definition, `icons()`), but not an object:
+`state()` must return its owner style _and_ its sources, and a plain object was a `SiteMissingError` in a client module,
+because the engine writes only class strings. `ship(entries)` (`cssints/plugin`) marks an object as the site's value: the
+engine writes an object literal, each `Style` as its class string, arrays and objects recursively, the rest as JSON. At
+build time the object _is_ the entries, so `ui.owner` is the style and `ui.open` the source. A marker only, not a general
+serializer: a value that is none of these still fails, so a plugin value cannot silently ship as JSON.
+
+**Decisions.** Actions (`toggle()`, `set()`) are opaque and only `on()` takes them, so a write at module level does not
+typecheck; `Source<T>` is branded and only `state()` makes one, so a derivation has nothing in JavaScript to write to.
+State names are idents and string values have no commas or spaces because the protocol is a comma-separated list; both are
+build errors at the call site, as are an unknown event and an attribute name. `on()` takes an object of events so two
+`on()`s on one element are visible (a merge of class strings would be silent). The event set is the fixed ten that bubble;
+the listener is one per event on `document`, so nothing is retained and no disposal is needed, and it walks from the target
+up so an ancestor's program runs for its descendants (one flush per owner touched). A nested owner's elements bind to the
+nested owner (`closest`), which the browser test checks. The runtime is 1.75 kB minified, 0.87 kB gzipped; with
+`polyfills: []` the engine ships it to every target, so the cost is unconditional and the model has no fallback CSS to
+decide.
+
+**Left.** No persistence, no counters or gestures (`calc()` over a state is CSS, not a source: nothing increments it from
+JavaScript), no async (the Solid async boundaries are the reference for v2), one `state()` and one `on()` per element by
+rule, and a condition on an initial value may paint a frame late because the script writes the attribute. The plugin writes
+attributes, not ARIA behaviour: the author pairs `aria-expanded` (or `aria-current`) with the pattern they are building.

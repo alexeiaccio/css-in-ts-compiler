@@ -9,13 +9,13 @@ import type { Grammar, TokenType } from "@cssints/css-grammar/token";
 import type { ValidSelector } from "@cssints/css-grammar/query";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
-import type { BcdKey, Decl } from "./author-types.ts";
+import type { BcdKey, Decl, Ship } from "./author-types.ts";
 import type { CheckIn, Part, Style } from "./parts.ts";
 import type { CheckOverrides } from "./theme-types.ts";
 import type * as Cssints from "./types.ts";
 
 export type { Part, Style };
-export type { BcdKey, Decl };
+export type { BcdKey, Decl, Ship };
 
 // ───────────────────────────── the entries of a table ─────────────────────────────
 
@@ -67,12 +67,19 @@ export interface ParentVar {
   write: `--_${string}`;
   watch?: `--_${string}`;
 }
-/** The browser half, delivered when a target lacks a polyfilled feature (`virtual:cssints/runtime/<scope>.<entry>`); `&` is the marker of the member's first kernel. */
+/**
+ * The browser half, delivered when a target lacks a polyfilled feature (`virtual:cssints/runtime/<scope>.<entry>`); `&` is
+ * the marker of the member's first kernel. A runtime with a `script` (or `css`) and no `polyfills` is the plugin's own
+ * face, not a fallback: every target gets it.
+ */
 export interface RuntimeDef {
   polyfills: BcdKey[];
   parentVars?: ParentVar[];
   css?: string;
-  /** A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a polyfilled feature. */
+  /**
+   * A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a
+   * polyfilled feature, and by every target when `polyfills` is empty.
+   */
   script?: string;
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
@@ -457,15 +464,17 @@ type MemberOf<K extends string, V, A> =
 
 /** What `.export()` gives: the members of the table, typed from it (a `-prefixed` property is camel-cased, an embedded scope nests). */
 export type Members<T> = {
-  [K in keyof T & string as Private<K> extends true
-    ? never
-    : Kind<K, T[K]> extends "chain" | "call" | "value"
-      ? K
-      : Kind<K, T[K]> extends "prop"
-        ? Camel<K>
-        : Kind<K, T[K]> extends "module"
-          ? K
-          : never]: Kind<K, T[K]> extends "module"
+  [
+    K in keyof T & string as Private<K> extends true
+      ? never
+      : Kind<K, T[K]> extends "chain" | "call" | "value"
+        ? K
+        : Kind<K, T[K]> extends "prop"
+          ? Camel<K>
+          : Kind<K, T[K]> extends "module"
+            ? K
+            : never
+  ]: Kind<K, T[K]> extends "module"
     ? T[K] extends { "~scope": string; "~table": infer MT }
       ? Members<MT>
       : never
@@ -578,3 +587,15 @@ export const dependsOn = (path: string): void => engine().dependsOn(path);
  */
 export const inGroup = (group: string, property: string, value: string): boolean =>
   engine().inGroup(group, property, value);
+
+/**
+ * `ship({ owner, open })`: what a member returns when a site has more to give than a class string — `@cssints/reactive`'s
+ * `state()`, whose `owner` is a style and whose sources are data. The client module gets an object literal: each style is
+ * its class string, an array or an object keeps its shape, and anything else is its JSON. At build time the object is the
+ * entries themselves. Build time, like `scope()`.
+ */
+export const ship = (entries: { readonly [key: string]: unknown }): Ship => {
+  // the marker is not enumerable: the entries are what ships, and a self-reference would be walked
+  Object.defineProperty(entries, "~ship", { value: entries, enumerable: false });
+  return entries as unknown as Ship;
+};
