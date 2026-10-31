@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-31T17:44:18Z
-updated_at: 2026-10-31T18:25:25Z
+updated_at: 2026-10-31T18:35:54Z
 ---
 
 Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these starters are still missing.
@@ -14,7 +14,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] scrollspy
 - [x] panzoom
 - [x] diagram
-- [ ] hotkeys
+- [x] hotkeys
 - [ ] carousel
 - [ ] grid
 - [ ] feed
@@ -63,3 +63,12 @@ Tests: `apps/ui` 362 passed (6 new for the scrollspy), `bun run typecheck`, `bun
 - Regenerated `r/diagram.json`, `r/registry.json` and `public/llms.txt`.
 
 Tests: `apps/ui` 373 passed (11 new for the diagram), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
+
+## Shortcuts (round five)
+
+- Added `apps/ui/src/registry/shortcuts/`: `Kbd`, `Shortcuts` and `createShortcuts` over `createHotkeys`. The skin is the key cap (one `kbd` per `+` part, a visible `+` between them, `mod` as ⌘ or Ctrl) and the trigger-less sheet over the kit's `Dialog` (named "Keyboard shortcuts", a group of rows each, a close control). `createShortcuts` owns the registry and the open state: `?` (`allowInEditable: false`, an optional `scope`) opens the sheet, and the host binds the page's own chords through `controller.hotkeys` and lists them in `Shortcuts`.
+- Added the fixture (a button, `mod+k` scoped to the demo box, a page-wide `s`, and a note with its own scoped `s` over the page's) and the Chromium browser test: `?` on the page, not while a field is focused, Escape and the close control returning the focus, the caps and their `aria-label` in both platforms, Cmd vs Ctrl, the scope shadowing and the disposer.
+- Added the demo to `src/docs/demos.tsx`; regenerated `r/shortcuts.json`, `r/registry.json` and `public/llms.txt`.
+
+Tests: `apps/ui` 382 passed (9 new for the shortcuts), `bun run typecheck`, `bun run build` and `theme:check` pass.
