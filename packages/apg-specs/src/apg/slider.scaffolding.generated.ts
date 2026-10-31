@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/slider.qnt
-// Spec hash (sha256): 7f8cabe937ca10920c10b5bda488a1ab01e76b75b8ffc8ae61a4abf8d0c8131d
+// Spec hash (sha256): 6e049673ecde33517690ebbf2a3396e01717e6a64ae3013eaab5baf2dc65a7da
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
