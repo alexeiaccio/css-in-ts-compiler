@@ -1850,7 +1850,7 @@ createSpinbutton(options?: {
 
 ### Headless: `createSliderMultiThumb` (`@cssints/headless`)
 
-The APG Slider (Multi-Thumb) pattern: two `role="slider"` thumbs on one rail, each bounded by its neighbour, so they cannot pass one another; equal values are allowed. Its behaviour is `packages/apg-specs/specs/apg/slider-multithumb.qnt`, checked against the real DOM by the differential walk in `packages/headless/test/slider-multithumb.browser.test.tsx`. The spec fixes two thumbs and one linked pair: the independent-thumbs variant, N thumbs, dragging, a nearest-thumb rail press and `disabled` are deliberate omissions (a press names its thumb). Options are plain and read lazily; `value` + `onValueChange` make the widget controlled.
+The APG Slider (Multi-Thumb) pattern: two `role="slider"` thumbs on one rail, each bounded by its neighbour, so they cannot pass one another; equal values are allowed. Its behaviour is `packages/apg-specs/specs/apg/slider-multithumb.qnt`, checked against the real DOM by the differential walk in `packages/headless/test/slider-multithumb.browser.test.tsx`. The spec fixes two thumbs and one linked pair: the independent-thumbs variant, N thumbs and per-thumb dragging are not modelled, and the primitive's nearest-thumb rail press, its drag and `disabled` are deliberate extensions of the pattern, with that DOM test as their oracle. Options are plain and read lazily; `value` + `onValueChange` make the widget controlled.
 
 ```ts skip
 createSliderMultiThumb(options?: {
@@ -1861,14 +1861,15 @@ createSliderMultiThumb(options?: {
   value?: readonly [number, number] | undefined; // controlled; undefined = uncontrolled
   defaultValue?: readonly [number, number]; // [3, 7], clamped into the range and ordered
   orientation?: "horizontal" | "vertical"; // "horizontal"
-  direction?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows flip
+  direction?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows and the rail flip
+  disabled?: boolean; // aria-disabled on both thumbs; no key, press or drag changes anything
   id?: string; // base of the thumb ids
   onValueChange?(values: readonly [number, number]): void; // a request the host may ignore
 }): {
   values(): readonly [number, number];
   focused(): 0 | 1 | null;
   setValues(values: readonly [number, number]): void;
-  pointerDown(index: 0 | 1, position: number): void; // a press at a 0..1 fraction of the track
+  pointerDown(index: 0 | 1, position: number): void; // a press or a drag move at a 0..1 fraction of the value axis
   focusThumb(index: 0 | 1): void;
   blur(): void;
   keyDown(key: string): boolean; // true when the key was consumed (preventDefault it)
@@ -1880,15 +1881,28 @@ createSliderMultiThumb(options?: {
     "aria-valuemax"; // the lower thumb: the upper value; the upper thumb: the range's maximum
     "aria-valuetext";
     "aria-orientation";
+    "aria-disabled"; // "true" while disabled, else undefined
     tabindex: 0;
     onFocus;
     onBlur;
     onKeyDown;
+    onPointerDown;
+  };
+  trackProps: {
+    onPointerDown;
+    onPointerMove;
+    onPointerUp;
+    onPointerCancel;
+    onLostPointerCapture;
   };
 };
 ```
 
-Both thumbs are tab stops in a fixed order (lower, then upper), whatever the values are. There is no `trackProps`: the primitive has no rail press, because a press has to name a thumb.
+Both thumbs are tab stops in a fixed order (lower, then upper), whatever the values are.
+
+`trackProps` is a rail press and a drag, like the single slider's: `pointerdown` beside the thumbs names the thumb nearest the pointer (a tie goes to the lower, the pair's floor and first tab stop) and moves it to the pointer's position; a press that starts on a thumb drags that thumb from the value it already has, without a jump. While the pointer is held, every `pointermove` asks for that thumb's value at the pointer's position on the rail, rounded to `step` and clamped to the neighbour, in all four combinations of `orientation` and `direction` (up is more on a vertical rail, and a horizontal rail under `rtl` counts from its right edge, as the arrows do). `pointerup`, `pointercancel` or a lost capture ends the drag. The rail owns the gesture whichever element took the press, so the moves sit on `trackProps`; the thumb must be rendered inside the rail, and pointer capture keeps the drag alive off it. A drag is still a request: it fires `onValueChange` once per distinct pair, a controlled host that ignores it keeps its pair, and a thumb clamps at its neighbour so the two can never cross. `focused()` names the thumb the press took and reads synchronously, so a host can move the DOM focus with it. `trackProps` carries no CSS, so a host that wants a drag instead of a page scroll or a text selection sets `touch-action: none` and `user-select: none` on the rail.
+
+`disabled` follows the single slider: both thumbs keep their tab stops and announce `aria-disabled="true"`, and every key, rail press and drag is dropped before it becomes a request. The spec has no `disabled` var, so `slider-multithumb.browser.test.tsx` is its oracle, as it is for the press's nearest thumb (`NearestThumbTakesPress`) and the drag (`DragFollowsPointer`).
 
 ### Headless: `createKnob` (`@cssints/headless`)
 
