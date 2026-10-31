@@ -6,8 +6,11 @@ import {
   replayScenario,
   specDriver,
 } from "@cssints/apg-specs/scenario";
+import type { JSX } from "@solidjs/web";
+import { createSignal, flush } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { createMenu, createMenubar } from "../src";
+import { type Menu, createMenu, createMenubar } from "../src";
+import { render } from "@solidjs/web";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import {
   menuCheckableBridge,
@@ -119,6 +122,180 @@ describe("createMenu (checkable) x menu-checkable.qnt (differential walk)", () =
       });
     });
   }
+});
+
+// The readable pair is `menu-checkable.qnt`'s packed `checked(wrap, choice)`
+// unfolded: one checkbox bit and the radio. The spec walk drives the packed
+// view; these mount a host that owns the readable one.
+describe("createMenu (checkable) x a host that owns the readable pair", () => {
+  interface Mount {
+    readonly rows: () => HTMLElement[];
+    readonly menu: () => Menu;
+    readonly requests: ReadonlyArray<{ checked: ReadonlyArray<number>; choice: number }>;
+    readonly dispose: () => void;
+  }
+
+  const mount = (
+    accepts: boolean,
+    initial: { checked: ReadonlyArray<number>; choice: number },
+  ): Mount => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const [pair, setPair] = createSignal(initial);
+    const requests: Array<{ checked: ReadonlyArray<number>; choice: number }> = [];
+    let api: Menu | undefined;
+    const dispose = render((): JSX.Element => {
+      const menu = createMenu({
+        items: ["alpha", "bravo", "charlie"],
+        variant: "checkbox-items",
+        triggerMode: "held",
+        defaultOpen: true,
+        get checked() {
+          return pair().checked;
+        },
+        get choice() {
+          return pair().choice;
+        },
+        onCheckedValuesChange: (checked, choice) => {
+          requests.push({ checked, choice });
+          if (accepts) {
+            setPair({ checked, choice });
+          }
+        },
+      });
+      api = menu;
+      return (
+        <>
+          <button data-part="trigger" {...menu.triggerProps}>
+            Menu
+          </button>
+          <div data-part="menu" {...menu.menuProps}>
+            {menu.items.map((item, index) => (
+              <div data-part="menuitem" {...menu.itemProps(index)}>
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </>
+      );
+    }, root);
+    return {
+      rows: () => [...root.querySelectorAll<HTMLElement>('[data-part="menuitem"]')],
+      menu: () => api as Menu,
+      requests,
+      dispose: () => {
+        dispose();
+        root.remove();
+      },
+    };
+  };
+
+  const space = (row: HTMLElement): void => {
+    row.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+  };
+
+  it("keeps both views when the host ignores a request", () => {
+    const mounted = mount(false, { checked: [0], choice: 1 });
+    const [first, second, third] = mounted.rows();
+    expect([first, second, third].map((row) => row?.getAttribute("aria-checked"))).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
+    expect(mounted.menu().checked()).toEqual([0]);
+    expect(mounted.menu().choice()).toBe(1);
+    expect(mounted.menu().value()).toBe(7);
+    mounted.menu().setFocusItem(2);
+    flush();
+    space(third as HTMLElement);
+    expect(mounted.requests).toEqual([{ checked: [0, 2], choice: 1 }]);
+    // rejected: the row and both views stay where the host put them
+    expect(third?.getAttribute("aria-checked")).toBe("false");
+    expect(mounted.menu().checked()).toEqual([0]);
+    expect(mounted.menu().choice()).toBe(1);
+    expect(mounted.menu().value()).toBe(7);
+    mounted.dispose();
+  });
+
+  it("checks a checkbox beyond item 0, which the packed value cannot name", () => {
+    const mounted = mount(true, { checked: [], choice: -1 });
+    const [first, , third] = mounted.rows();
+    mounted.menu().setFocusItem(2);
+    flush();
+    space(third as HTMLElement);
+    expect(mounted.requests).toEqual([{ checked: [2], choice: -1 }]);
+    expect(third?.getAttribute("aria-checked")).toBe("true");
+    expect(mounted.menu().checked()).toEqual([2]);
+    expect(mounted.menu().choice()).toBe(-1);
+    // the packed view is the spec's formula over the same pair: item 0 is
+    // unchecked, so it names no checkbox (its one bit's limit, not a conflict)
+    expect(mounted.menu().value()).toBe(0);
+    // checking item 0 as well moves that view, consistently
+    mounted.menu().setFocusItem(0);
+    flush();
+    space(first as HTMLElement);
+    expect(mounted.menu().checked()).toEqual([0, 2]);
+    expect(mounted.menu().choice()).toBe(-1);
+    expect(mounted.menu().value()).toBe(5);
+    mounted.dispose();
+  });
+
+  it("derives the readable pair from the packed value, the same state", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const [packed, setPacked] = createSignal(7);
+    const requests: number[] = [];
+    let api: Menu | undefined;
+    const dispose = render((): JSX.Element => {
+      const menu = createMenu({
+        items: ["alpha", "bravo", "charlie", "delta"],
+        variant: "mixed",
+        triggerMode: "held",
+        defaultOpen: true,
+        get value() {
+          return packed();
+        },
+        onCheckedValueChange: (value) => {
+          requests.push(value);
+        },
+      });
+      api = menu;
+      return (
+        <>
+          <button data-part="trigger" {...menu.triggerProps}>
+            Menu
+          </button>
+          <div data-part="menu" {...menu.menuProps}>
+            {menu.items.map((item, index) => (
+              <div data-part="menuitem" {...menu.itemProps(index)}>
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </>
+      );
+    }, root);
+    const menu = (): Menu => api as Menu;
+    expect(menu().checked()).toEqual([0]);
+    expect(menu().choice()).toBe(1);
+    expect(menu().value()).toBe(7);
+    // a host write of the packed value moves the readable pair
+    setPacked(9);
+    flush();
+    expect(menu().checked()).toEqual([0]);
+    expect(menu().choice()).toBe(3);
+    // a radio request the packed host ignores is still the packed callback's
+    const rows = () => [...root.querySelectorAll<HTMLElement>('[data-part="menuitem"]')];
+    menu().setFocusItem(1);
+    flush();
+    space(rows()[1] as HTMLElement);
+    expect(requests).toEqual([7]);
+    expect(menu().choice()).toBe(3);
+    expect(menu().value()).toBe(9);
+    dispose();
+    root.remove();
+  });
 });
 
 describe("createMenubar x menu-menubar.qnt (differential walk)", () => {
