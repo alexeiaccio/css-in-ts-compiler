@@ -21,7 +21,14 @@ import ariakit from "@cssints/apg-specs/scenarios/apg/tabs.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/tabs.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/tabs.model.json";
 import { domDriver } from "./tabs-driver.ts";
-import { mountSkin, mountTabs, mountTabsUnderStickyHeader } from "./tabs.fixture";
+import {
+  mountBreakpointTabs,
+  mountSkin,
+  mountStaticFallback,
+  mountTabs,
+  mountTabsUnderStickyHeader,
+  mountTabsWithContent,
+} from "./tabs.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/tabs.react-aria.json";
 import { page, userEvent } from "vite-plus/test/browser";
 
@@ -110,6 +117,42 @@ describe("Tabs x ported scenarios (real DOM)", () => {
 const tabsIn = (root: HTMLElement): HTMLElement[] => [
   ...root.querySelectorAll<HTMLElement>('[data-part="tab"]'),
 ];
+
+const triggersIn = (root: HTMLElement): HTMLElement[] => [
+  ...root.querySelectorAll<HTMLElement>('[data-part="trigger"]'),
+];
+
+const expandedTriggers = (root: HTMLElement): HTMLElement[] =>
+  triggersIn(root).filter((trigger) => trigger.getAttribute("aria-expanded") === "true");
+
+/** The panel a control names through `aria-controls`; both modes emit that attribute. */
+const controlledPanel = (root: HTMLElement, control: HTMLElement): HTMLElement | null => {
+  const id = control.getAttribute("aria-controls");
+  return id === null ? null : root.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+};
+
+/**
+ * The Tab-order path through a mounted skin: start on its first stop, then follow Tab until focus leaves.
+ * A duplicated control (the tablist and the accordion for the same section) shows up here twice.
+ */
+const tabStopsIn = async (root: HTMLElement): Promise<HTMLElement[]> => {
+  const first = root.querySelector<HTMLElement>('button, [tabindex="0"]');
+  const stops: HTMLElement[] = [];
+  if (first === null) {
+    return stops;
+  }
+  first.focus();
+  stops.push(first);
+  for (let step = 0; step < 12; step += 1) {
+    await userEvent.tab();
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !root.contains(active)) {
+      break;
+    }
+    stops.push(active);
+  }
+  return stops;
+};
 
 const partIn = (root: HTMLElement, name: string): HTMLElement => {
   const element = root.querySelector<HTMLElement>(`[data-part="${name}"]`);
@@ -305,6 +348,206 @@ describe("Tabs x requirements (the skin)", () => {
       }
     } finally {
       mounted.dispose();
+    }
+  });
+});
+
+/**
+ * G2: TetraLogical's narrow rule. The breakpoint is the host's — the fixture passes `narrow` from
+ * `matchMedia("(max-width: 799px)")` the way a page would — so the skin composes the accordion, and the
+ * primitive stays a tablist. Only one mode is rendered, so the other cannot be a second Tab stop.
+ */
+describe("Tabs x narrow accordion (G2)", () => {
+  afterEach(async () => {
+    await page.viewport(1280, 1024);
+  });
+
+  it("is a tablist at 800 px and wider, never an accordion", async () => {
+    await page.viewport(800, 800);
+    const mounted = mountBreakpointTabs();
+    try {
+      expect(partIn(mounted.root, "tablist").getAttribute("role")).toBe("tablist");
+      expect(tabsIn(mounted.root)).toHaveLength(4);
+      expect(triggersIn(mounted.root)).toHaveLength(0);
+      await page.viewport(1280, 1024);
+      await settle();
+      expect(partIn(mounted.root, "tablist").getAttribute("role")).toBe("tablist");
+      expect(triggersIn(mounted.root)).toHaveLength(0);
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("is an accordion with one button per section and one open below 800 px", async () => {
+    await page.viewport(799, 800);
+    const mounted = mountBreakpointTabs();
+    try {
+      expect(mounted.root.querySelector('[role="tablist"]')).toBeNull();
+      expect(tabsIn(mounted.root)).toHaveLength(0);
+      const triggers = triggersIn(mounted.root);
+      expect(triggers.map((trigger) => trigger.textContent?.trim())).toEqual([
+        "Section 1",
+        "Section 2",
+        "Section 3",
+        "Section 4",
+      ]);
+      const open = expandedTriggers(mounted.root);
+      expect(open).toHaveLength(1);
+      expect(open[0]).toBe(triggers[0]);
+      expect(controlledPanel(mounted.root, open[0]!)?.hasAttribute("hidden")).toBe(false);
+      // the chevron sits before the label: an aria-hidden mark, then the section's name
+      const [chevron, label] = [...triggers[0]!.children];
+      expect(chevron?.getAttribute("aria-hidden")).toBe("true");
+      expect(label?.textContent).toBe("Section 1");
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("keeps section 3 open when the wide tablist shrinks", async () => {
+    const mounted = mountBreakpointTabs();
+    try {
+      const third = tabsIn(mounted.root)[2]!;
+      third.click();
+      await settle();
+      expect(third.getAttribute("aria-selected")).toBe("true");
+
+      await page.viewport(799, 800);
+      await settle();
+      const triggers = triggersIn(mounted.root);
+      const open = expandedTriggers(mounted.root);
+      expect(open).toHaveLength(1);
+      expect(open[0]).toBe(triggers[2]);
+      expect(open[0]?.textContent).toContain("Section 3");
+      expect(controlledPanel(mounted.root, open[0]!)?.textContent).toContain("Content 3");
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("keeps section 3 selected when the open accordion grows", async () => {
+    await page.viewport(799, 800);
+    const mounted = mountBreakpointTabs();
+    try {
+      triggersIn(mounted.root)[2]!.click();
+      await settle();
+      const open = expandedTriggers(mounted.root);
+      expect(open).toHaveLength(1);
+      expect(open[0]?.textContent).toContain("Section 3");
+
+      await page.viewport(1280, 1024);
+      await settle();
+      const tabs = tabsIn(mounted.root);
+      expect(tabs).toHaveLength(4);
+      expect(tabs.filter((tab) => tab.getAttribute("aria-selected") === "true")).toHaveLength(1);
+      expect(tabs[2]?.getAttribute("aria-selected")).toBe("true");
+      const panel = controlledPanel(mounted.root, tabs[2]!);
+      expect(panel?.hasAttribute("hidden")).toBe(false);
+      expect(panel?.textContent).toContain("Content 3");
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("keeps one Tab stop per section and the hidden mode out of the tab order", async () => {
+    await page.viewport(799, 800);
+    const mounted = mountBreakpointTabs();
+    try {
+      const narrowStops = await tabStopsIn(mounted.root);
+      const narrowTriggers = narrowStops.filter((stop) => stop.matches('[data-part="trigger"]'));
+      expect(narrowTriggers).toHaveLength(4);
+      expect(narrowStops.filter((stop) => stop.matches('[role="tab"]'))).toHaveLength(0);
+      const names = narrowTriggers.map((trigger) => trigger.textContent?.trim());
+      expect(new Set(names).size).toBe(4);
+
+      await page.viewport(1280, 1024);
+      await settle();
+      const wideStops = await tabStopsIn(mounted.root);
+      expect(wideStops.filter((stop) => stop.matches('[role="tab"]'))).toHaveLength(1);
+      expect(wideStops.filter((stop) => stop.matches('[data-part="trigger"]'))).toHaveLength(0);
+    } finally {
+      mounted.dispose();
+    }
+  });
+});
+
+/**
+ * G10: the server's fallback and the script's replacement. The fallback is markup, not a component mount:
+ * `fallbackMarkup()` reads back what `TabsFallback` rendered and injects it into a fresh root, so the test
+ * holds the host's contract — the document without script — not a hydratable copy of it.
+ */
+describe("Tabs x no-JS fallback (G10)", () => {
+  it("reaches all four sections from its links without script", () => {
+    const mounted = mountStaticFallback();
+    try {
+      const links = [...mounted.root.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')];
+      const sections = [...mounted.root.querySelectorAll<HTMLElement>("section")];
+      expect(links).toHaveLength(4);
+      expect(sections).toHaveLength(4);
+      links.forEach((link, index) => {
+        const target = mounted.root.querySelector<HTMLElement>(link.getAttribute("href")!);
+        expect(target).toBe(sections[index]);
+        expect(target?.textContent).toContain(`Section ${index + 1}`);
+        expect(target?.textContent).toContain(`Content ${index + 1}`);
+      });
+      // nothing is hidden: an unscripted reader reaches every section and its content
+      expect(mounted.root.querySelector("[hidden]")).toBeNull();
+      expect(mounted.root.querySelector('[aria-hidden="true"]')).toBeNull();
+      for (const section of sections) {
+        expect(getComputedStyle(section).display).not.toBe("none");
+      }
+      // and it is static: no tablist, no control the script would have to wire
+      expect(mounted.root.querySelector('[role="tablist"]')).toBeNull();
+      expect(mounted.root.querySelector("button")).toBeNull();
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("keeps all four contents when the tabs replace the fallback", async () => {
+    const fallback = mountStaticFallback();
+    expect(fallback.root.querySelectorAll("section")).toHaveLength(4);
+    // the host removes the fallback when the script mounts; the interactive tabs follow
+    fallback.dispose();
+    const mounted = mountTabsWithContent();
+    try {
+      expect(document.querySelector('[data-part="tabs-fallback"]')).toBeNull();
+      const tabs = tabsIn(mounted.root);
+      expect(tabs).toHaveLength(4);
+      const panels = (): HTMLElement[] => [
+        ...mounted.root.querySelectorAll<HTMLElement>('[data-part="tabpanel"]'),
+      ];
+      for (const [index, tab] of tabs.entries()) {
+        tab.click();
+        await settle();
+        const visible = panels().filter((panel) => !panel.hasAttribute("hidden"));
+        expect(visible).toHaveLength(1);
+        expect(visible[0]?.textContent).toContain(`Content ${index + 1}`);
+        expect(tab.getAttribute("aria-selected")).toBe("true");
+      }
+      // no section's content was lost in the replacement
+      for (const index of [4, 3, 2, 1]) {
+        expect(mounted.root.textContent).toContain(`Content ${index}`);
+      }
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("never renders the fallback beside the interactive tabs", () => {
+    const fallback = mountStaticFallback();
+    const mounted = mountTabsWithContent();
+    try {
+      // each mode's document holds one of the two, never both
+      expect(fallback.root.querySelector('[data-part="tabs-fallback"]')).not.toBeNull();
+      expect(fallback.root.querySelector('[role="tablist"]')).toBeNull();
+      expect(fallback.root.querySelectorAll('[role="tab"]')).toHaveLength(0);
+      expect(mounted.root.querySelector('[data-part="tabs-fallback"]')).toBeNull();
+      expect(mounted.root.querySelectorAll('[role="tablist"]')).toHaveLength(1);
+      expect(mounted.root.querySelectorAll('[role="tab"]')).toHaveLength(4);
+    } finally {
+      mounted.dispose();
+      fallback.dispose();
     }
   });
 });

@@ -3,7 +3,7 @@ import type { Json } from "@cssints/apg-specs/scenario";
 import type { JSX } from "@solidjs/web";
 import type { Mounted } from "./tabs-driver.ts";
 import type { TabsConfig } from "@cssints/apg-specs/apg/tabs.bridge";
-import { Tabs } from "./tabs.tsx";
+import { Tabs, TabsFallback } from "./tabs.tsx";
 import { createSignal, flush } from "solid-js";
 import { render } from "@solidjs/web";
 
@@ -163,5 +163,93 @@ export const mountTabsUnderStickyHeader = (): SkinMounted => {
       dispose();
       root.remove();
     },
+  };
+};
+
+const CONTENT_LABEL = (index: number): string => `Section ${index + 1}`;
+const CONTENT_PANEL = (index: number): JSX.Element => <p>Content {index + 1}</p>;
+
+/**
+ * The skin driven by the catalogue's breakpoint, the way a host drives it: `matchMedia("(max-width: 799px)")`
+ * decides `narrow`, so the test only sets the viewport. Wide it is a tablist; narrow the same four sections
+ * are the accordion skin, over the same selection.
+ */
+export const mountBreakpointTabs = (): SkinMounted => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  const query = window.matchMedia("(max-width: 799px)");
+  const [narrow, setNarrow] = createSignal(query.matches);
+  const onChange = (event: MediaQueryListEvent): void => {
+    setNarrow(event.matches);
+  };
+  query.addEventListener("change", onChange);
+  const dispose = render(
+    () => (
+      <Tabs
+        items={4}
+        defaultSelected={0}
+        narrow={narrow()}
+        tab={CONTENT_LABEL}
+        panel={CONTENT_PANEL}
+      />
+    ),
+    root,
+  );
+  flush();
+  return {
+    root,
+    dispose: () => {
+      query.removeEventListener("change", onChange);
+      dispose();
+      root.remove();
+    },
+  };
+};
+
+/** The same four sections as interactive tabs, with their four contents: what must survive the fallback. */
+export const mountTabsWithContent = (): SkinMounted => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  const dispose = render(
+    () => <Tabs items={4} defaultSelected={0} tab={CONTENT_LABEL} panel={CONTENT_PANEL} />,
+    root,
+  );
+  flush();
+  return {
+    root,
+    dispose: () => {
+      dispose();
+      root.remove();
+    },
+  };
+};
+
+/** The server's bytes: `TabsFallback` rendered once, then read back as markup, with no script or listeners. */
+export const fallbackMarkup = (): string => {
+  const holder = document.createElement("div");
+  const dispose = render(
+    () => (
+      <TabsFallback
+        items={4}
+        tab={CONTENT_LABEL}
+        panel={CONTENT_PANEL}
+        sectionId={(index) => `tabs-section-${index}`}
+      />
+    ),
+    holder,
+  );
+  const html = holder.innerHTML;
+  dispose();
+  return html;
+};
+
+/** A static document: the fallback's markup alone, injected, never hydrated. */
+export const mountStaticFallback = (): SkinMounted => {
+  const root = document.createElement("div");
+  root.innerHTML = fallbackMarkup();
+  document.body.append(root);
+  return {
+    root,
+    dispose: () => root.remove(),
   };
 };

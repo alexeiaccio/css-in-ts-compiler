@@ -17,3 +17,14 @@ a page cannot describe an item that was not generated.
 
 The theme (`src/registry/theme.ts`, `tokens.ts`) is tokens-as-code; `scripts/theme-css.ts` compiles the same data to plain
 custom properties for a project that has no cssints plugin.
+
+## The no-JS contract
+
+`src/registry/tabs/tabs.tsx` exports `TabsFallback`: a list of in-page links, then a heading and the full content per
+section, with no script. This site is a Vite SPA and has no prerender step, so the **host's server renders the fallback**
+and removes it when the interactive `Tabs` mounts. `src/registry/tabs/tabs.browser.test.tsx` is the contract: the static
+markup alone reaches all four sections, the tabs keep all four contents, and the fallback never shares the accessibility
+tree with the tabs.
+
+The same skin's `narrow` mode renders those sections as an accordion, one open, below the host's 800 px breakpoint
+(`matchMedia("(max-width: 799px)")` in `tabs.fixture.tsx`); the primitive is untouched.
