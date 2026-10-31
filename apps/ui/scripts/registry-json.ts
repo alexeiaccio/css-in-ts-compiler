@@ -250,6 +250,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
   },
   {
+    name: "slider-multithumb",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Range slider",
+    description:
+      "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
+  },
+  {
     name: "spinbutton",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

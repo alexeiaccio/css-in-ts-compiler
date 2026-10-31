@@ -944,6 +944,63 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "slider-multithumb",
+      "type": "registry:ui",
+      "title": "Range slider",
+      "description": "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "slider-multithumb.tsx",
+          "target": "src/components/ui/slider-multithumb.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "slider-multithumb.fixture.tsx",
+          "target": "src/components/ui/slider-multithumb.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dom-driver.ts",
+          "target": "src/components/ui/dom-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "slider-multithumb.browser.test.tsx",
+          "target": "src/components/ui/slider-multithumb.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "spinbutton",
       "type": "registry:ui",
       "title": "Spinbutton",
