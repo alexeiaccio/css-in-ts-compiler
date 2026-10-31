@@ -1175,6 +1175,53 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "feed",
+      "type": "registry:ui",
+      "title": "Feed",
+      "description": "APG feed: articles that load as the end of the list scrolls into view, with the primitive's position and size, a loading sentinel and the status line a screen reader hears",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "feed.tsx",
+          "target": "src/components/ui/feed.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "feed.fixture.tsx",
+          "target": "src/components/ui/feed.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "feed.browser.test.tsx",
+          "target": "src/components/ui/feed.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "menu",
       "type": "registry:ui",
       "title": "Menu",
