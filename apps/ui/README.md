@@ -10,8 +10,10 @@ a page cannot describe an item that was not generated.
   changes (a component is one `.tsx` that styles itself; `node scripts/theme-css.ts > src/registry/theme.css` recompiles the
   theme for a project without the plugin). Publishing is `apps/registry-host` in effects-of-atmosphere: it builds each item into one signed
   `ing.lexicon.plugin.release`, runs the copied test first, and stages the artifacts.
-- `node scripts/starter-smoke.mjs` — copies `templates/solid-vite` into a temporary project, installs it, adds
-  `@cssints/switch` from the live registry and runs the copied test: the whole chain a reader meets.
+- `node scripts/starter-smoke.mjs` — copies `templates/solid-vite` into a temporary project, installs it with the packages
+  of this checkout (tarballs packed from `packages/`, so a kit change is checked before its release), adds every item of
+  `r/` from a local server, runs the copied conformance tests, type-checks the copy, and adds `@cssints/switch` from the
+  live registry last: the whole chain a reader meets, on this commit.
 
 The theme (`src/registry/theme.ts`, `tokens.ts`) is tokens-as-code; `scripts/theme-css.ts` compiles the same data to plain
 custom properties for a project that has no cssints plugin.
