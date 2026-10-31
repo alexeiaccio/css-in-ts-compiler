@@ -70,8 +70,10 @@ export interface TableOptions {
    * The row ids the host renders, in render order. Ids, not a count: the sort
    * reorders the host's data and a selection must survive that, while an index
    * would then name a different row. The row's visible content stays the host's.
+   * Pass a getter (`() => rows()`) when the rows arrive later: it is read at
+   * attribute-read time, so the sort and the selection survive the change.
    */
-  readonly rows: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<string> | (() => ReadonlyArray<string>);
   readonly selection?: TableSelectionMode | undefined;
   readonly sortCycle?: TableSortCycle | undefined;
   /** Controlled: the host owns the sort and this is the only thing that changes it; `null` is "unsorted". */
@@ -261,7 +263,8 @@ export const createTable = (options: TableOptions): Table => {
 
   // All/none are judged on the rows this table renders; a windowed table's
   // select-all therefore covers its window and keeps the rest of the selection.
-  const rows = (): ReadonlyArray<string> => options.rows;
+  const rows = (): ReadonlyArray<string> =>
+    typeof options.rows === "function" ? options.rows() : options.rows;
   const allSelected = (): boolean => {
     const every = rows();
     return every.length > 0 && every.every(isSelected);

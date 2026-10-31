@@ -44,6 +44,8 @@ Two invariants: **a rejected request leaves state untouched**, and **in controll
 
 Primitive API (the React/Solid convention): `value` + `onValueChange` (a request the host may ignore) for controlled, `defaultValue` for uncontrolled.
 
+**A list that arrives later is still one widget.** The options that are lists — `createListbox`'s `items`, `createTable`'s `rows`, `createRadioGroup`'s `values`, `createTimeline`'s `rows` — also take a getter (`() => list()`), and it is read at attribute-read time. So an async fetch, a filter or a trace that lands after mount changes the list without rebuilding the primitive, and the active option, the selection and the roving tab stop survive. A host that rebuilt the widget inside a memo lost exactly that (the feedback from adopting 0.20.0, bean `cssints-65eb`).
+
 Implemented for `disclosure` (reference: `specs/apg/disclosure.qnt`, `src/disclosure.ts`) and `player` (the four preferences volume / muted / rate / fullscreen; transport stays adapter-driven). The shared core is `src/controllable.ts` (`createControllable`): `value` + `initial` + `onChange` in, `[current, request]` out.
 
 **Template for every other pattern**. A pattern adds, in this order:
@@ -65,7 +67,6 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, command-palette, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, popover, radio, resizable-panels, scrollspy, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, command-palette, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, panzoom, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
@@ -239,9 +240,11 @@ const upload = createDropZone({
   accept: "image/*",
   multiple: true,
   maxSize: 5 * 1024 * 1024,
-  labels: { zone: "Images", browse: "Choose images" },
+  maxFiles: 10,
+  labels: { labelledby: "upload-heading", browse: "Choose images" },
+  formatMessage: ({ total, rejected }) => t("upload.batch", { total, rejected: rejected.length }),
   onFiles: (files) => void add(files),
-  onReject: ({ file, reason }) => toast(`${file.name}: ${reason}`),
+  onReject: ({ file, reason }) => toast(`${file.name}: ${t(`upload.reason.${reason}`)}`),
 });
 
 <div {...upload.zoneProps}>
@@ -254,8 +257,9 @@ const upload = createDropZone({
 
 - **The zone is never drag-only.** `browseProps` goes on a real `<button type="button">` that clicks the hidden input, so the picker is the keyboard path (Enter and Space are the platform's) and a pointer user can click as well as drag. The browse button's text is the host's; `labels.browse` is its accessible name when that text is an icon.
 - **Render the hidden input and the status region always.** `inputProps` carries `hidden`, so it is out of the tab order and the accessibility tree but still the thing the button clicks; the `role="status"` region announces a change of text, which only happens if it was already mounted.
-- **Validation happens once per file**, type then size: `accept` is the HTML grammar (`.png`, `image/png`, `image/*`), `maxSize` is bytes. A refused file reaches `onReject` with `reason: "type" | "size"`; the accepted ones reach `onFiles` in one batch, and a batch with nothing accepted calls neither.
-- **`message()` is a default sentence**, "2 files, 1 rejected: too large", for the status region; the words are the host's, the primitive only tracks the counts of the last batch. It is `undefined` before the first file.
+- **Validation happens once per file**, type then size then count: `accept` is the HTML grammar (`.png`, `image/png`, `image/*`), `maxSize` is bytes, `maxFiles` caps what one batch takes. A refused file reaches `onReject` with `reason: "type" | "size" | "count"`; the accepted ones reach `onFiles` in one batch, and a batch with nothing accepted calls neither.
+- **`message()` is a default sentence**, "2 files, 1 rejected: too large", for the status region; the words are the host's, the primitive only tracks the counts of the last batch. It is `undefined` before the first file. `formatMessage` gets those counts (`total`, `accepted`, `rejected`) and returns the sentence in the host's language, so no app translates a string it did not write.
+- **`labels.labelledby`** names the zone by the host's own visible heading (`aria-labelledby`), which wins over `labels.zone`; use it whenever the zone already has a heading next to it.
 - **A folder or an empty `DataTransfer` is a no-op**: no callback, no rejection, and the previous announcement stays.
 - **`dragleave` counts.** A child's `dragleave` bubbles to the zone, so the state is a depth counter: `dragging()` clears only when the drag leaves the zone itself, or on a drop. `dragging()` is the styling hook — the primitive writes no `data-*`.
 - **`disabled`** marks the zone `aria-disabled`, disables the input natively and the browse button, and drops every drag before it becomes a batch. Options are read when an attribute is read, so a host may flip it on a mounted zone.
@@ -290,7 +294,7 @@ const table = createTable({
     { key: "status", sortable: false },
     { key: "count", numeric: true },
   ],
-  rows, // the host's ids, in the host's order: it sorts its data from the descriptor
+  rows, // the host's ids, in the host's order, or `() => rows()` for a list that arrives later
   selection: "multiple",
   defaultSort: { key: "title", direction: "ascending" },
   labels: { table: "Open issues", selectRow: (id) => `Select ${nameOf(id)}` },
@@ -424,6 +428,7 @@ const tabs = createTabs({
 - **Close.** `closeProps(index)` is the tab's close button: `aria-label` "Close <label>" and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` is that index in the shortened list, and the host focuses it after its removal lands. Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
 - **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits; a label that trims to nothing cancels. An `<input>` cannot live in a `<button>`, so the tab becomes a `role="tab"` element while it is editing. While editing the input owns the keys: the tablist's roving does not move, and an arrow key leaves the caret alone. `begin(index)` is the programmatic start (a tab the host has just added: append it, then `focusTab(index)` and `begin(index)`).
 - **State.** `editing()` is the tab being renamed, `null` when none. `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list.
+- **Ids.** `tabId(index)` and `panelId(index)` replace the generated `${id}-tab-<index>` / `${id}-tabpanel-<index>`, and `aria-controls` / `aria-labelledby` follow them: an o11y console whose panels are `#traces`, `#logs`, `#metrics` no longer has to re-implement the two attributes.
 - The rename and the two callbacks are the extension's own: the spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but no rename and no callbacks, so `test/tabs-close.browser.test.tsx` is the oracle for all of it.
 
 ## Confirm
@@ -500,7 +505,7 @@ const upload = async () => {
 </div>;
 ```
 
-- **A status replaces, it does not stack.** `show(text)` writes the one region and `clear()` empties it; a second message before the first is read replaces it. A status is never for errors: an error is `createAlert` (`role=alert`, assertive), and a titled message with a timeout is a toast.
+- **A status replaces, it does not stack.** `show(text)` writes the one region and `clear()` empties it; a second message before the first is read replaces it. When the text is already a signal, pass `from: () => message()` instead and drop `show`/`clear`: the primitive reads the signal, so nothing has to mirror it with an effect. `createAlert` takes the same option (`from: () => error()`), and an accessor that returns `undefined` unmounts the alert. A status is never for errors: an error is `createAlert` (`role=alert`, assertive), and a titled message with a timeout is a toast.
 - **Toast roles.** `toastProps(id).role` is `"alert"` for `tone: "error"` and `"status"` otherwise, so an error interrupts and the rest wait. The container is `role="region"` with `aria-label` ("Notifications" unless `labels.region`), and each toast is `aria-atomic`, so its title and description are announced as one — the toast's own text is the announcement, a close button's label included, so keep a toast to its title and description. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host.
 - **Timers.** `timeout` defaults to 5000 ms, the five seconds Base UI and React Aria call the minimum for reading a message; shorter values are for tests. One timer per toast, cleared by `dismiss`/`dismissAll` and all of them on dispose.
 - **Pause.** Hovering a toast pauses its countdown and leaving resumes it with the time it had left (the deadline is kept, not restarted); focus always pauses, because a reader who tabbed into the toast must not lose it. `pauseOnHover: false` leaves focus as the only pause.
