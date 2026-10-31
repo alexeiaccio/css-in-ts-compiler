@@ -277,6 +277,11 @@ code {
   max-width: 32rem;
 }
 
+/* A searchable picker: the field and its popup list share one 24 rem anchor. */
+.demo-combobox {
+  max-width: 24rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;

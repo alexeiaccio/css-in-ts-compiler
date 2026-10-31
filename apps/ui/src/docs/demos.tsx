@@ -88,6 +88,7 @@ import { FeedExample } from "../registry/feed/feed.fixture.tsx";
 import { PlayerExample } from "../registry/player/player.fixture.tsx";
 import { ResizablePanelsExample } from "../registry/resizable-panels/resizable-panels.fixture.tsx";
 import { KnobExample } from "../registry/knob/knob.fixture.tsx";
+import { ComboboxExample } from "../registry/combobox/combobox.fixture.tsx";
 import { ReorderExample } from "../registry/reorder/reorder.fixture.tsx";
 import { TimelineExample } from "../registry/timeline/timeline.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
@@ -731,6 +732,8 @@ const KnobDemo = (): JSX.Element => <KnobExample />;
 const TimelineDemo = (): JSX.Element => <TimelineExample class="demo-timeline" />;
 // Six home-screen sections the browser test drags and keys: the handle lifts a row, Alt+↑ / Alt+↓ moves the focused one.
 const ReorderDemo = (): JSX.Element => <ReorderExample class="demo-reorder" />;
+// Twelve component names the browser test types into: the field filters, the popup says "No matches", a pick shows its label.
+const ComboboxDemo = (): JSX.Element => <ComboboxExample class="demo-combobox" />;
 // The Files / Editor / Preview workspace the browser test mounts: the dividers drag, the arrows step, Enter folds.
 const ResizablePanelsDemo = (): JSX.Element => <ResizablePanelsExample class="demo-panels" />;
 const SliderDemo = (): JSX.Element => {
@@ -1236,6 +1239,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   knob: KnobDemo,
   timeline: TimelineDemo,
   reorder: ReorderDemo,
+  combobox: ComboboxDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,
