@@ -14,6 +14,8 @@ import { bg, cn, display } from "cssints" with { type: "cssints" };
 import {
   bind,
   checked,
+  either,
+  equals,
   inside,
   on,
   persist,
@@ -118,3 +120,38 @@ const plain = state({ open: false });
 export const plainCard = cn(plain.owner);
 export const plainButton = cn(on({ click: toggle(plain.open) }));
 export const plainPanel = cn(hidden, inside(plain.open)(display("block")));
+
+// a computed tab strip: one string state, three tabs that compare it (aria-selected), a literal panel id, a roving
+// tabindex from a choice of two literals, and aria-pressed from a boolean comparison
+const strip = state({ tab: "one", pressed: false });
+export const stripList = cn(strip.owner, display("flex"));
+// Written out, not built by a helper: the arguments of on() and bind() are evaluated at build time, so a parameter is a
+// build error (the story's comment says the same).
+export const stripOne = cn(
+  on({ click: set(strip.tab, "one") }),
+  bind({
+    "aria-selected": equals(strip.tab, "one"),
+    "aria-controls": "strip-panel-one",
+    tabindex: either(equals(strip.tab, "one"), "0", "-1"),
+  }),
+);
+export const stripTwo = cn(
+  on({ click: set(strip.tab, "two") }),
+  bind({
+    "aria-selected": equals(strip.tab, "two"),
+    "aria-controls": "strip-panel-two",
+    tabindex: either(equals(strip.tab, "two"), "0", "-1"),
+  }),
+);
+export const stripThree = cn(
+  on({ click: set(strip.tab, "three") }),
+  bind({
+    "aria-selected": equals(strip.tab, "three"),
+    "aria-controls": "strip-panel-three",
+    tabindex: either(equals(strip.tab, "three"), "0", "-1"),
+  }),
+);
+export const stripPressed = cn(
+  on({ click: toggle(strip.pressed) }),
+  bind({ "aria-pressed": equals(strip.pressed, true) }),
+);

@@ -63,4 +63,10 @@ document.body.innerHTML = `
   <button id=np-btn class="${page.plainButton}">plain</button>
   <div id=np-panel class="${page.plainPanel}" ${panel}></div>
 </div>
+<div id=st class="${page.stripList}" ${card}>
+  <button id=st1 class="${page.stripOne}">one</button>
+  <button id=st2 class="${page.stripTwo}">two</button>
+  <button id=st3 class="${page.stripThree}">three</button>
+  <button id=stp class="${page.stripPressed}">press</button>
+</div>
 `;

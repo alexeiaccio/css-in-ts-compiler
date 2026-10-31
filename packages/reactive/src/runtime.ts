@@ -4,7 +4,8 @@
 //
 //   owner    ._reactive-owner      --reactive-owner: open,tab       --reactive-<name>: <value>   (these inherit)
 //   events   ._reactive-events     --reactive-on: click toggle open,input set tab @value
-//   output   ._reactive-binding    --reactive-binding: aria-expanded open,data-current tab
+//   output   ._reactive-binding    --reactive-binding: aria-expanded open,aria-controls =panel,aria-selected ?tab one
+//                                   (a source, `=` a literal, `?` a comparison, two trailing literals a choice)
 //   storage  ._reactive-persist    --reactive-persist: open:demo-open,tab:demo-tab
 //
 // On load it initialises each owner (data-reactive-<name> from the declared value, or from localStorage for a persisted
@@ -133,13 +134,34 @@ const apply = (owner: Element, program: string, event: string, target: Element |
   return touched;
 };
 
-// The attributes of one element, from the owner nearest it.
+// The attributes of one element, from the owner nearest it. A pair is one of four kinds: a source (`aria-expanded open`),
+// a literal (`aria-controls =panel-one`), a comparison (`aria-selected ?tab one`, "true" or "false" by the owner's value)
+// and a choice (`tabindex ?tab one 0 -1`, the first literal while the comparison holds, the second while it does not; the
+// two extra tokens are what tell a choice from a comparison). A comparison is the one expression the runtime evaluates: an
+// attribute on the element itself cannot be computed in CSS. No `!` marker: a custom property value with one does not parse
+// (lightningcss reads it as a broken `!important`).
+const pairs = new WeakMap<Element, readonly string[][]>();
+const pairsOf = (el: Element): readonly string[][] => {
+  let found = pairs.get(el);
+  if (!found) {
+    found = list(prop(el, BINDING)).map((pair) => pair.split(" "));
+    pairs.set(el, found);
+  }
+  return found;
+};
+
 const output = (el: Element, owner: Element): void => {
   if (!el.classList.contains(OUTPUT)) return;
-  for (const pair of list(prop(el, BINDING))) {
-    const space = pair.indexOf(" ");
-    if (space < 0) continue;
-    el.setAttribute(pair.slice(0, space), read(owner, pair.slice(space + 1)));
+  for (const [attribute, kind, value, on, off] of pairsOf(el)) {
+    if (!attribute || !kind) continue;
+    const mark = kind[0];
+    if (mark === "=") el.setAttribute(attribute, kind.slice(1));
+    else if (mark !== "?") el.setAttribute(attribute, read(owner, kind));
+    else {
+      const hit = read(owner, kind.slice(1)) === value;
+      if (off === undefined) el.setAttribute(attribute, String(hit));
+      else el.setAttribute(attribute, hit ? (on ?? "") : off);
+    }
   }
 };
 

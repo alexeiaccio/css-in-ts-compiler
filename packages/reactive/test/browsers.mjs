@@ -139,6 +139,13 @@ const read = (page) =>
       vPanel: display("sv-panel"),
       nOpen: attr("np", "data-reactive-open"),
       nPanel: display("np-panel"),
+      st: attr("st", "data-reactive-tab"),
+      stTabs: ["st1", "st2", "st3"].map((id) => [
+        attr(id, "aria-selected"),
+        attr(id, "aria-controls"),
+        attr(id, "tabindex"),
+      ]),
+      stPressed: attr("stp", "aria-pressed"),
     };
   });
 
@@ -186,6 +193,18 @@ const run = async (page) => {
     s,
   );
   check(s.dOpen === "false" && s.dPanel === "none", "dup: closed on load", s);
+  check(
+    s.st === "one" &&
+      JSON.stringify(s.stTabs) ===
+        JSON.stringify([
+          ["true", "strip-panel-one", "0"],
+          ["false", "strip-panel-two", "-1"],
+          ["false", "strip-panel-three", "-1"],
+        ]) &&
+      s.stPressed === "false",
+    "computed: the four kinds on load",
+    s,
+  );
 
   // one click, one flush: the attribute and the binding agree before a frame is painted
   await page.locator("#a-btn").click();
@@ -288,6 +307,46 @@ const run = async (page) => {
   await frames(page);
   s = await read(page);
   check(s.dOpen === "true" && s.dPanel === "block", "dup: one toggle per click", s);
+
+  // computed attributes: a comparison (aria-selected), a literal (aria-controls) and a choice (roving tabindex) on each tab,
+  // written from the nearest owner in the same flush: read with no frame waited. Nothing here persists, so the storage list
+  // is the same and a reload shows the declared tab again.
+  const storageBefore = await page.evaluate(() => Object.keys(localStorage).sort());
+  await page.locator("#st2").click();
+  s = await read(page);
+  check(
+    s.st === "two" &&
+      JSON.stringify(s.stTabs) ===
+        JSON.stringify([
+          ["false", "strip-panel-one", "-1"],
+          ["true", "strip-panel-two", "0"],
+          ["false", "strip-panel-three", "-1"],
+        ]),
+    "computed: one click rewrites all three tabs",
+    s,
+  );
+  await page.locator("#stp").click();
+  s = await read(page);
+  check(s.stPressed === "true", "computed: aria-pressed from a boolean comparison", s);
+  const storageAfter = await page.evaluate(() => Object.keys(localStorage).sort());
+  check(
+    JSON.stringify(storageAfter) === JSON.stringify(storageBefore),
+    "computed: a comparison is not stored",
+    { storageBefore, storageAfter },
+  );
+  await page.reload();
+  s = await read(page);
+  check(
+    s.st === "one" &&
+      s.stTabs[0][0] === "true" &&
+      s.stTabs[1][0] === "false" &&
+      s.stTabs[2][0] === "false" &&
+      s.stTabs[0][2] === "0" &&
+      s.stTabs[1][2] === "-1" &&
+      s.stPressed === "false",
+    "computed: a reload keeps nothing",
+    s,
+  );
 
   // persistence: closed with no storage; a click stores "true"; a reload restores it at initialisation, read right after
   // load with no frame waited, so the panel is open before the harness gets to look

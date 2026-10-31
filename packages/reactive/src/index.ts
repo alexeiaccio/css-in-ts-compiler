@@ -60,11 +60,24 @@ interface ActionData {
 // A program of on(): one or more actions by event.
 type ProgramData = Readonly<Record<string, ActionData | readonly ActionData[]>>;
 
-// DOM output of bind(): an attribute by source.
-type BindData = Readonly<Record<string, SourceData>>;
+// What a comparison is at build time: the state's name and the value it is compared with.
+interface CompareData {
+  readonly "~compare": string;
+  readonly "~value": string;
+}
+
+// What a choice is at build time: a comparison and the two literals it picks between.
+interface ChoiceData extends CompareData {
+  readonly "~choice": readonly [string, string];
+}
+
+// DOM output of bind(): an attribute by source, comparison, choice or literal.
+type BindData = Readonly<Record<string, SourceData | CompareData | ChoiceData | string>>;
 
 const NAME = /^[a-z][a-z0-9-]*$/;
 const SPACE = /[,\s]/;
+// The markers of the binding protocol: a literal that starts with one would be read as another kind.
+const MARK = /^[=?!]/;
 const ATTRIBUTE = /^[a-zA-Z_:][a-zA-Z0-9_:.-]*$/;
 // A storage key: the protocol is a comma-separated list of `name:key`, so a comma or a space would split it.
 const KEY = /^[a-zA-Z0-9_.:-]+$/;
@@ -110,6 +123,30 @@ const payloadOf = (value: unknown): "@value" | "@checked" | undefined => {
   return token === "@value" || token === "@checked" ? token : undefined;
 };
 
+// What either() built, if the value is a choice.
+const choiceOf = (value: unknown): ChoiceData | undefined => {
+  const data = value as ChoiceData | undefined;
+  return Array.isArray(data?.["~choice"]) ? data : undefined;
+};
+
+// What equals() built, if the value is a comparison (a choice carries a comparison too, and is told apart first).
+const comparisonOf = (value: unknown): CompareData | undefined => {
+  const data = value as CompareData | undefined;
+  return typeof data?.["~compare"] === "string" && !choiceOf(data) ? data : undefined;
+};
+
+// A literal of bind() or either(): the protocol puts it right after a marker, so a comma, a space or a leading marker
+// would split the pair or turn it into another kind. The error names the attribute (or the argument) and the value.
+const literalOf = (where: string, value: string): string => {
+  if (SPACE.test(value))
+    throw fail(`${where} is ${JSON.stringify(value)}: a literal has no commas and no spaces`);
+  if (MARK.test(value))
+    throw fail(
+      `${where} is ${JSON.stringify(value)}: a literal does not start with =, ? or ! (the protocol's markers)`,
+    );
+  return value;
+};
+
 // What persist() wrapped, if the value is one: the state declares its inner value, and the key goes in the protocol.
 const persistedOf = (value: unknown): PersistData | undefined => {
   const data = value as PersistData | undefined;
@@ -152,7 +189,8 @@ const reactive = scope("reactive", {
   // The programs of an element: --reactive-on is `click toggle open,input set tab two`, and two on() calls in one cn()
   // append their segments (append()).
   on: { args: [arg<ProgramData>()], uses: ["events", "run"] },
-  // The attributes of an element: --reactive-binding is `aria-expanded open,data-current tab`, appended as the programs are.
+  // The attributes of an element: --reactive-binding is `aria-expanded open,aria-controls =panel-one`, appended as the
+  // programs are.
   bind: { args: [arg<BindData>()], uses: ["binding", "run"] },
 }).build({
   state: (states) => {
@@ -205,10 +243,22 @@ const reactive = scope("reactive", {
   },
   bind: (bindings) => {
     const pairs: string[] = [];
-    for (const [attribute, source] of Object.entries(bindings)) {
+    for (const [attribute, value] of Object.entries(bindings)) {
       if (!ATTRIBUTE.test(attribute))
         throw fail(`${JSON.stringify(attribute)} is not an attribute name`);
-      pairs.push(`${attribute} ${nameOf(`the source of "${attribute}"`, source)}`);
+      const choice = choiceOf(value);
+      if (choice)
+        pairs.push(
+          `${attribute} ?${choice["~compare"]} ${choice["~value"]} ${choice["~choice"][0]} ${choice["~choice"][1]}`,
+        );
+      else {
+        const comparison = comparisonOf(value);
+        if (comparison)
+          pairs.push(`${attribute} ?${comparison["~compare"]} ${comparison["~value"]}`);
+        else if (typeof value === "string")
+          pairs.push(`${attribute} =${literalOf(`the literal of "${attribute}"`, value)}`);
+        else pairs.push(`${attribute} ${nameOf(`the source of "${attribute}"`, value)}`);
+      }
     }
     if (!pairs.length) throw fail("bind() takes at least one attribute");
     return { decls: [append("--reactive-binding", pairs.join(","))] };
@@ -240,8 +290,11 @@ export type State<S extends States> = { readonly owner: Style } & Sources<S>;
 /** A program of `on()`: one event's actions. */
 export type Program = { readonly [E in EventName]?: Action | readonly Action[] };
 
-/** The attributes of `bind()`: a source per attribute name. */
-export type Bindings = { readonly [attribute: string]: Source<StateValue> };
+/** What one attribute of `bind()` takes: a source, a comparison, a choice, or a literal to write as is. */
+export type Binding = Source<StateValue> | Comparison<StateValue> | Choice | string;
+
+/** The attributes of `bind()`: one binding per attribute name. */
+export type Bindings = { readonly [attribute: string]: Binding };
 
 declare const sourceType: unique symbol;
 /**
@@ -251,6 +304,25 @@ declare const sourceType: unique symbol;
  */
 export interface Source<T extends StateValue = StateValue> {
   readonly [sourceType]: T;
+}
+
+declare const comparisonType: unique symbol;
+/**
+ * `equals(ui.tab, "one")`: an equation between a state and a value, `"true"` or `"false"` in the attribute `bind()` writes
+ * it to. Only `equals()` makes one and only `bind()` takes it, directly or through `either()`. It is not a `Source`: it
+ * cannot be written, stored or used as a condition, because it holds no value of its own.
+ */
+export interface Comparison<T extends StateValue = StateValue> {
+  readonly [comparisonType]: T;
+}
+
+declare const choiceType: unique symbol;
+/**
+ * `either(equals(ui.tab, "one"), "0", "-1")`: one of two literals, picked by a comparison (`"0"` while the equation holds,
+ * `"-1"` otherwise). Only `either()` makes one and only `bind()` takes it.
+ */
+export interface Choice {
+  readonly [choiceType]: readonly [string, string];
 }
 
 declare const actionType: unique symbol;
@@ -356,6 +428,52 @@ export function set<T extends StateValue>(source: Source<T>, value: T | Payload<
 }
 
 /**
+ * `equals(ui.tab, "one")`: a comparison, `"true"` in a `bind()` attribute while the nearest owner's state holds that value
+ * and `"false"` while it does not. The value must be of the source's type (`equals(ui.open, "yes")` is a type error), and
+ * a comparison is not a source: `set()`, `toggle()`, `when()` and `inside()` refuse it, `persist()` does not store it, and
+ * only `bind()` evaluates it. It is an equation, not a state: the runtime reads the comparison off the binding and the
+ * value off the nearest owner.
+ *
+ * @param {Source<T>} source the state
+ * @param {T} value the value to compare with
+ * @returns {Comparison<T>} the comparison
+ */
+export function equals<T extends StateValue>(source: Source<T>, value: T): Comparison<T> {
+  return {
+    "~compare": nameOf("equals()", source),
+    "~value": valueOf("the value of equals()", value),
+  } as unknown as Comparison<T>;
+}
+
+/**
+ * `either(equals(ui.tab, "one"), "0", "-1")`: a choice of two literals, `whenTrue` in a `bind()` attribute while the
+ * comparison holds and `whenFalse` while it does not. The first argument must be a `Comparison` (`either(ui.tab, ...)` is a
+ * type error), and a literal has no commas, no spaces and no leading `=`, `?` or `!` (build errors at the call site). Only
+ * `bind()` takes a choice.
+ *
+ * @param {Comparison<StateValue>} comparison the comparison that picks the literal
+ * @param {string} whenTrue the literal while it holds
+ * @param {string} whenFalse the literal while it does not
+ * @returns {Choice} the choice
+ */
+export function either(
+  comparison: Comparison<StateValue>,
+  whenTrue: string,
+  whenFalse: string,
+): Choice {
+  const data = comparisonOf(comparison);
+  if (!data) throw fail('either() takes a comparison: either(equals(ui.tab, "one"), "0", "-1")');
+  return {
+    "~compare": data["~compare"],
+    "~value": data["~value"],
+    "~choice": [
+      literalOf("the first value of either()", whenTrue),
+      literalOf("the second value of either()", whenFalse),
+    ],
+  } as unknown as Choice;
+}
+
+/**
  * `set(ui.tab, value())`: the value of the field the event fired on (`target.value`, a string). Only `set()` takes it, and
  * only a string state: a `value()` is not a `checked()`.
  *
@@ -388,11 +506,14 @@ export function on(program: Program): Style {
 }
 
 /**
- * `bind({ "aria-expanded": ui.open })`: writes each attribute on the element it is on, from the value its nearest owner
- * holds. The runtime updates it on load and after every event of that owner. Two `bind()` calls in one `cn()` append their
- * attributes.
+ * `bind({ "aria-expanded": ui.open })`: writes each attribute on the element it is on, from its nearest owner. A value is a
+ * source (the state's value, as above), a comparison (`equals(ui.tab, "one")`: `"true"` or `"false"`), a choice
+ * (`either(equals(ui.tab, "one"), "0", "-1")`: one of two literals), or a literal string written as is
+ * (`"aria-controls": "panel-one"`). The runtime writes them on load and on every flush of that owner; a comparison is the
+ * only expression it evaluates, because an attribute on the element itself cannot be computed in CSS. Two `bind()` calls
+ * in one `cn()` append their attributes.
  *
- * @param {Bindings} bindings a source per attribute name
+ * @param {Bindings} bindings a binding per attribute name
  * @returns {Style} the element's style, with its bindings
  */
 export function bind(bindings: Bindings): Style {

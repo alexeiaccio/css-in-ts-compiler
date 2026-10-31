@@ -116,6 +116,17 @@ for (const d of [
 // one atom each: the first on() alone is never a rule of its own
 assert.ok(!fieldsOut.includes("{--reactive-on:click toggle open}"), fieldsOut);
 
+// computed attributes (cssints-ac3o): a source, a comparison, a choice and a literal in one binding list, and the kinds in
+// the client too (the element's marker, never a build-time value: a comparison names the state, and the runtime reads it
+// off the nearest owner)
+const computed = await code("computed.ts");
+const computedOut = sheet("computed.ts");
+assert.match(computed, /export const tab = "_reactive-binding( _\w+)*";/, computed);
+assert.ok(!computed.includes("@cssints/reactive"), computed);
+const binding =
+  "--reactive-binding:aria-selected ?tab one,aria-controls =panel-one,data-open open,tabindex ?tab one 0 -1";
+assert.ok(computedOut.includes(`{${binding}}`), `${binding}\n${computedOut}`);
+
 // persistence (cssints-3ydy): the owner's storage list joins across two state() calls, its own kernel and @property
 // rule, and a state without persist() emits neither
 const persisted = await code("persist.ts");
@@ -167,6 +178,22 @@ await fails(
   4,
 );
 await fails("bad-attribute.ts", /^cssints: reactive: "aria expanded" is not an attribute name$/, 4);
+// a literal has no comma, no space and no leading marker, at the call site and with the attribute named
+await fails(
+  "bad-literal-space.ts",
+  /^cssints: reactive: the literal of "aria-controls" is "panel one": a literal has no commas and no spaces$/,
+  5,
+);
+await fails(
+  "bad-literal-comma.ts",
+  /^cssints: reactive: the literal of "aria-controls" is "panel,one": a literal has no commas and no spaces$/,
+  5,
+);
+await fails(
+  "bad-literal-marker.ts",
+  /^cssints: reactive: the literal of "aria-controls" is "\?panel-one": a literal does not start with =, \? or ! \(the protocol's markers\)$/,
+  5,
+);
 // set() checks its literal before a program is built, so the error is the library's (a MacroError), at the call site
 await assert.rejects(code("bad-at.ts"), (e) => {
   assert.equal(e._tag, "MacroError");

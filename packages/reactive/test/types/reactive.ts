@@ -4,6 +4,8 @@ import {
   type Action,
   bind,
   checked,
+  either,
+  equals,
   inside,
   on,
   type Persisted,
@@ -36,6 +38,17 @@ export const numeral: Wrap = when(ui.count, 0);
 export const panel = inside(ui.open)(display("block"));
 export const one = inside(ui.tab, "two")(display("block"));
 
+// computed attributes: a comparison and a choice are bindings, not sources
+export const comparedOpen = equals(ui.open, true);
+export const comparedTab = equals(ui.tab, "one");
+export const chosen = either(equals(ui.tab, "one"), "0", "-1");
+export const computed = bind({
+  "aria-selected": equals(ui.tab, "one"),
+  "aria-controls": "panel-one",
+  tabindex: either(equals(ui.tab, "one"), "0", "-1"),
+  "data-open": ui.open,
+});
+
 // @ts-expect-error a string state is not a toggle
 toggle(ui.tab);
 // @ts-expect-error a number state is not a toggle
@@ -48,8 +61,6 @@ set(ui.count, "one");
 on({ keypress: toggle(ui.open) });
 // @ts-expect-error an event takes an action, not a source
 on({ click: ui.open });
-// @ts-expect-error a string is not a source
-bind({ "aria-expanded": "yes" });
 // @ts-expect-error an action is not a style (writes happen only in on())
 export const actionAsStyle: Style = toggle(ui.open);
 // @ts-expect-error a source is not a style
@@ -76,6 +87,36 @@ export const payloadAsStyle: Style = value();
 export const payloadAsWrap: Wrap = checked();
 // @ts-expect-error a payload is not a value of when()
 when(checked());
+
+// computed attributes: a comparison and a choice are equations, not sources, actions, values or conditions
+// @ts-expect-error not a value of that source
+equals(ui.open, "yes");
+// @ts-expect-error not a value of that source
+equals(ui.tab, 1);
+// @ts-expect-error either() takes a comparison, not a bare source
+either(ui.tab, "0", "-1");
+// @ts-expect-error a Comparison is not a Source of toggle()
+toggle(equals(ui.open, true));
+// @ts-expect-error a Comparison is not a value of set()
+set(ui.tab, equals(ui.tab, "one"));
+// @ts-expect-error a Comparison is not a condition
+when(equals(ui.open, true));
+// @ts-expect-error a Comparison is not a condition
+inside(equals(ui.tab, "one"));
+// @ts-expect-error a Comparison is not an action
+on({ click: equals(ui.open, true) });
+// @ts-expect-error a Comparison is not a style
+export const comparisonAsStyle: Style = equals(ui.open, true);
+// @ts-expect-error a Choice is not a Source
+toggle(either(equals(ui.open, true), "0", "-1"));
+// @ts-expect-error a Choice is not a value of a state
+set(ui.tab, either(equals(ui.tab, "one"), "0", "-1"));
+// @ts-expect-error a Choice is not a condition
+when(either(equals(ui.tab, "one"), "0", "-1"));
+// @ts-expect-error a Choice is not an action
+on({ click: either(equals(ui.open, true), "0", "-1") });
+// @ts-expect-error a Choice is not a style
+export const choiceAsStyle: Style = either(equals(ui.open, true), "0", "-1");
 
 // persistence: a persisted value is a state() value, and the source keeps the value's type
 const stored = state({
