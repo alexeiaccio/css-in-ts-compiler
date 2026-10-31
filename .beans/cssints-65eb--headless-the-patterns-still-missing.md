@@ -1,11 +1,11 @@
 ---
 # cssints-65eb
 title: 'headless: the patterns still missing'
-status: todo
+status: completed
 type: epic
 priority: normal
 created_at: 2026-10-30T10:50:48Z
-updated_at: 2026-10-30T10:51:32Z
+updated_at: 2026-10-31T11:40:14Z
 ---
 
 What @cssints/headless does not have yet, from the coverage map in effects-of-atmosphere (docs/plans/ui-cssints-coverage.md, bean g8mc) and the references (TetraLogical's eight components; Base UI / Ariakit / React Aria compositions; the GarageBand knob).
@@ -35,3 +35,9 @@ Missing, one bean per item below. Ordering: the TetraLogical set first (paginati
 - cssints-mt0b the requirement catalogue (TetraLogical model, Quint where it is behaviour)
 
 Where each came from: TetraLogical's eight components (pagination, text input, textarea are the gap), the coverage map in effects-of-atmosphere (g8mc), bottom-sheet.md (drawer), and the two references added 2026-10-30 (Base UI filterable menu, GarageBand knobs).
+
+## Closed 2026-10-31
+
+All twenty beans are completed: pagination, text input/textarea, popover, drawer, toast/status, hotkeys, scrollspy, pan-zoom, closable tabs, table, drop zone, timeline span data, diagram focus, the three compositions (command palette, filterable menu, date picker), the research note, the knob and the requirement catalogue.
+
+What ships after this epic is still open elsewhere: the twelve gaps the catalogue found in tabs (`packages/headless/docs/requirements/tabs.md`), the AT table runs, and the adoption work in the apps (beans in effects-of-atmosphere).
