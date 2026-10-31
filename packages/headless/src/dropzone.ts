@@ -1,7 +1,7 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
 
-/** Why a file was refused: the `accept` grammar, or `maxSize`. */
-export type DropZoneRejectReason = "type" | "size";
+/** Why a file was refused: the `accept` grammar, `maxSize`, or `maxFiles`. */
+export type DropZoneRejectReason = "type" | "size" | "count";
 
 export interface DropZoneReject {
   readonly file: File;
@@ -11,6 +11,11 @@ export interface DropZoneReject {
 export interface DropZoneLabels {
   /** The zone's accessible name (`aria-label` on the `role=group` zone). */
   readonly zone?: string | undefined;
+  /**
+   * The id of the host's own heading: `aria-labelledby` on the zone, which
+   * takes precedence over `zone`. Use it to name the zone with visible text.
+   */
+  readonly labelledby?: string | undefined;
   /** The browse button's accessible name; render it visibly, or use it for an icon-only button. */
   readonly browse?: string | undefined;
 }
@@ -21,12 +26,20 @@ export interface DropZoneOptions {
   readonly multiple?: boolean | undefined;
   /** Bytes; a larger file is rejected with `"size"`. */
   readonly maxSize?: number | undefined;
+  /** Files taken from one batch; the rest are rejected with `"count"`. */
+  readonly maxFiles?: number | undefined;
   readonly disabled?: boolean | undefined;
   /** The files that passed, one call per batch; not called when the batch has none. */
   readonly onFiles: (files: File[]) => void;
   /** Each refused file, once, with the reason the host shows. */
   readonly onReject?: ((reject: DropZoneReject) => void) | undefined;
   readonly labels?: DropZoneLabels | undefined;
+  /**
+   * The announcement sentence in the host's language, from the same counts the
+   * default sentence uses. Absent, `message()` is English built from
+   * `labels.browse`-less words; a host with a locale always passes this.
+   */
+  readonly formatMessage?: ((message: DropZoneMessage) => string | undefined) | undefined;
 }
 
 /** Spread onto the hidden `<input type=file>`; render it, always. */
@@ -45,6 +58,7 @@ export interface DropZoneInputProps {
 export interface DropZoneZoneProps {
   readonly role: "group";
   readonly "aria-label": string | undefined;
+  readonly "aria-labelledby": string | undefined;
   readonly "aria-disabled": "true" | undefined;
   readonly onDragEnter: (event: DragEvent) => void;
   readonly onDragOver: (event: DragEvent) => void;
@@ -83,14 +97,23 @@ export interface DropZone {
   readonly statusProps: DropZoneStatusProps;
 }
 
+export interface DropZoneMessage {
+  /** Files in the batch, accepted and refused. */
+  readonly total: number;
+  readonly accepted: number;
+  readonly rejected: readonly DropZoneRejectReason[];
+}
+
 interface Batch {
   readonly total: number;
   readonly rejected: readonly DropZoneRejectReason[];
+  readonly accepted: number;
 }
 
 const REASON_TEXT: Readonly<Record<DropZoneRejectReason, string>> = {
   type: "unsupported type",
   size: "too large",
+  count: "too many files",
 };
 
 const tokensOf = (accept: string | undefined): readonly string[] =>
@@ -165,6 +188,12 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
   const id = createUniqueId();
   const [depth, setDepth] = createSignal(0);
   const [batch, setBatch] = createSignal<Batch | undefined>();
+  const messageState = (): DropZoneMessage => {
+    const current = batch();
+    return current === undefined
+      ? { total: 0, accepted: 0, rejected: [] }
+      : { total: current.total, accepted: current.accepted, rejected: current.rejected };
+  };
 
   const disabled = (): boolean => options.disabled === true;
 
@@ -174,8 +203,12 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
     }
     const accepted: File[] = [];
     const rejected: DropZoneRejectReason[] = [];
+    const limit = options.maxFiles ?? Number.POSITIVE_INFINITY;
     for (const file of files) {
-      const reason = refusal(options, file);
+      let reason = refusal(options, file);
+      if (reason === undefined && accepted.length >= limit) {
+        reason = "count";
+      }
       if (reason === undefined) {
         accepted.push(file);
       } else {
@@ -183,7 +216,7 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
         options.onReject?.({ file, reason });
       }
     }
-    setBatch({ total: files.length, rejected });
+    setBatch({ total: files.length, rejected, accepted: accepted.length });
     if (accepted.length > 0) {
       options.onFiles(accepted);
     }
@@ -228,7 +261,7 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
 
   return {
     dragging: () => depth() > 0,
-    message: () => messageOf(batch()),
+    message: () => options.formatMessage?.(messageState()) ?? messageOf(batch()),
     inputProps: {
       id,
       type: "file",
@@ -248,6 +281,9 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
       role: "group",
       get "aria-label"() {
         return options.labels?.zone;
+      },
+      get "aria-labelledby"() {
+        return options.labels?.labelledby;
       },
       get "aria-disabled"() {
         return disabled() ? "true" : undefined;

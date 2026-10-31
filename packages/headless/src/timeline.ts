@@ -131,7 +131,8 @@ export interface TimelineAxis {
 
 /** The rows mode: real span data, read lazily like every other option. */
 export interface TimelineRowsOptions {
-  readonly rows: ReadonlyArray<TimelineSpan>;
+  /** The spans, read at attribute-read time; a getter lets a trace arrive after mount. */
+  readonly rows: ReadonlyArray<TimelineSpan> | (() => ReadonlyArray<TimelineSpan>);
   readonly axis?: TimelineAxis | undefined;
   /** Controlled: the host owns the selection. */
   readonly selected?: string | undefined;
@@ -196,6 +197,8 @@ export interface TimelineRows {
   /** Programmatic selection request; a controlled host may ignore it. */
   readonly select: (id: string) => void;
   readonly selectedId: Accessor<string | undefined>;
+  /** The row that holds the roving tab stop: the last one focused, else the first. */
+  readonly focusedId: Accessor<string | undefined>;
 }
 
 const LAST_NODE = 5;
@@ -492,7 +495,8 @@ const formatTick = (value: number, step: number, unit: string): string => {
  * arrive after mount.
  */
 const createRowsTimeline = (options: TimelineRowsOptions): TimelineRows => {
-  const rows = (): ReadonlyArray<TimelineSpan> => options.rows;
+  const rows = (): ReadonlyArray<TimelineSpan> =>
+    typeof options.rows === "function" ? options.rows() : options.rows;
   // ponytail: a linear scan per attribute read; a Map over a thousand-span
   // trace if that ever shows up in a profile.
   const rowOf = (id: string): TimelineSpan => {
@@ -637,6 +641,7 @@ const createRowsTimeline = (options: TimelineRowsOptions): TimelineRows => {
     },
     select,
     selectedId,
+    focusedId: currentFocus,
   };
 };
 

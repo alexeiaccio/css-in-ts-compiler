@@ -24,6 +24,17 @@ export interface TabsOptions {
   /** Base for the generated ids. */
   readonly id?: string;
   /**
+   * A tab's own `id` (default `${id}-tab-<index>`). Use it when the host or a
+   * link from outside already names the tab, so `aria-controls` follows.
+   */
+  readonly tabId?: ((index: number) => string | undefined) | undefined;
+  /**
+   * A tabpanel's own `id` (default `${id}-tabpanel-<index>`): a host whose
+   * markup or deep links name the panel (an `#logs` anchor) sets it, and
+   * `aria-controls` / `aria-labelledby` follow.
+   */
+  readonly panelId?: ((index: number) => string | undefined) | undefined;
+  /**
    * A request to change the selection, called when the intent differs from the
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.
    */
@@ -175,6 +186,9 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
   const closable = (): boolean => options.closable ?? false;
   const renamable = (): boolean => options.renamable ?? false;
   const labelOf = (index: number): string => options.label?.(index) ?? `tab ${index + 1}`;
+  const tabIdOf = (index: number): string => options.tabId?.(index) ?? `${base}-tab-${index}`;
+  const panelIdOf = (index: number): string =>
+    options.panelId?.(index) ?? `${base}-tabpanel-${index}`;
 
   const firstEnabled = (): number => {
     for (let index = 0; index < count(); index += 1) {
@@ -356,12 +370,16 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       },
     },
     tabProps: (index) => ({
-      id: `${base}-tab-${index}`,
+      get id() {
+        return tabIdOf(index);
+      },
       role: "tab",
       get "aria-selected"() {
         return selected() === index ? "true" : "false";
       },
-      "aria-controls": `${base}-tabpanel-${index}`,
+      get "aria-controls"() {
+        return panelIdOf(index);
+      },
       get "aria-disabled"() {
         return disabled.has(index) ? "true" : undefined;
       },
@@ -401,9 +419,13 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       },
     }),
     tabpanelProps: (index) => ({
-      id: `${base}-tabpanel-${index}`,
+      get id() {
+        return panelIdOf(index);
+      },
       role: "tabpanel",
-      "aria-labelledby": `${base}-tab-${index}`,
+      get "aria-labelledby"() {
+        return tabIdOf(index);
+      },
       get tabindex() {
         return focusablePanels.has(index) ? undefined : 0;
       },

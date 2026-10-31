@@ -3,6 +3,12 @@ import { type Accessor, createSignal } from "solid-js";
 export interface AlertOptions {
   /** Rendered at mount; `undefined` starts with no live region. */
   readonly message?: string | undefined;
+  /**
+   * Controlled: the text is read from this accessor on every read, so a host
+   * with a signal passes `() => error()` and clears it in `onDismiss`. Absent,
+   * the alert is uncontrolled and `show` writes it.
+   */
+  readonly from?: (() => string | undefined) | undefined;
   /** The user closed the alert; the host may unmount it. */
   readonly onDismiss?: () => void;
 }
@@ -36,17 +42,18 @@ export interface Alert {
  * region is live; the primitive keeps the region mounted and unhides it.
  */
 export const createAlert = (options: AlertOptions = {}): Alert => {
-  const [message, setMessage] = createSignal<string | undefined>(options.message);
+  const [local, setLocal] = createSignal<string | undefined>(options.message);
+  const message = (): string | undefined => options.from?.() ?? local();
   const mounted = (): boolean => message() !== undefined;
 
   const show = (next: string): void => {
-    setMessage(next);
+    setLocal(next);
   };
   const dismiss = (): void => {
     if (!mounted()) {
       return;
     }
-    setMessage(undefined);
+    setLocal(undefined);
     options.onDismiss?.();
   };
 

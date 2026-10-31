@@ -28,7 +28,12 @@ export interface ListboxModifiers {
 }
 
 export interface ListboxOptions {
-  readonly items: ReadonlyArray<ListboxItemInput>;
+  /**
+   * The options, in order. Pass a getter (`() => items()`) when the list
+   * arrives later or changes: the primitive reads it at attribute-read time and
+   * keeps its active option and selection across the change.
+   */
+  readonly items: ReadonlyArray<ListboxItemInput> | (() => ReadonlyArray<ListboxItemInput>);
   readonly selectionMode?: ListboxSelectionMode;
   /** Single-select only: moving the active option moves the selection with it. */
   readonly followsFocus?: boolean;
@@ -123,26 +128,39 @@ const sameSelection = (a: ReadonlyArray<number>, b: ReadonlyArray<number>): bool
  */
 export const createListbox = (options: ListboxOptions): Listbox => {
   const base = options.id ?? createUniqueId();
-  const items: ReadonlyArray<ListboxItem> = options.items.map((input, index) => {
-    const label = typeof input === "string" ? input : input.label;
-    const textValue = typeof input === "string" ? input : (input.textValue ?? input.label);
-    const disabled = typeof input === "string" ? false : (input.disabled ?? false);
-    const id =
-      typeof input === "string"
-        ? `${base}-option-${index}`
-        : (input.id ?? `${base}-option-${index}`);
-    return { id, label, textValue, disabled };
-  });
-  const count = items.length;
+  const source = (): ReadonlyArray<ListboxItemInput> =>
+    typeof options.items === "function" ? options.items() : options.items;
+  // The host re-renders one option at a time and each read walks every item, so
+  // the normalized list is cached by the identity of the array it came from.
+  let cachedSource: ReadonlyArray<ListboxItemInput> | undefined;
+  let cachedItems: ReadonlyArray<ListboxItem> = [];
+  const itemList = (): ReadonlyArray<ListboxItem> => {
+    const next = source();
+    if (next === cachedSource) {
+      return cachedItems;
+    }
+    cachedSource = next;
+    cachedItems = next.map((input, index) => {
+      const label = typeof input === "string" ? input : input.label;
+      const textValue = typeof input === "string" ? input : (input.textValue ?? input.label);
+      const disabled = typeof input === "string" ? false : (input.disabled ?? false);
+      const id =
+        typeof input === "string"
+          ? `${base}-option-${index}`
+          : (input.id ?? `${base}-option-${index}`);
+      return { id, label, textValue, disabled };
+    });
+    return cachedItems;
+  };
+  const count = (): number => itemList().length;
   const mode = options.selectionMode ?? "single";
   const focusOnHover = options.focusOnHover ?? false;
+  /** `options.disabled` (fixed indices) or an item that says so itself. */
   const disabledIndices = new Set<number>(options.disabled ?? []);
-  for (const [index, item] of items.entries()) {
-    if (item.disabled) {
-      disabledIndices.add(index);
-    }
-  }
-  const clamp = (index: number): number => Math.max(0, Math.min(index, Math.max(count - 1, 0)));
+  const isDisabled = (index: number): boolean =>
+    disabledIndices.has(index) || (itemList()[index]?.disabled ?? false);
+  const clamp = (index: number): number =>
+    Math.max(0, Math.min(index, Math.max(count() - 1, 0)));
 
   const [active, requestActive] = createControllable<number>({
     value: () => options.activeValue,
@@ -151,11 +169,13 @@ export const createListbox = (options: ListboxOptions): Listbox => {
   });
   const [rawSelected, requestSelection] = createControllable<ReadonlyArray<number>>({
     value: () => options.value,
-    initial: normalizeSelected(options.defaultValue ?? options.defaultSelected ?? [], count),
+    // Kept as given: `selected()` normalizes against the live count, so a
+    // default chosen before the items arrived still lands once they do.
+    initial: options.defaultValue ?? options.defaultSelected ?? [],
     onChange: () => options.onValueChange ?? options.onSelectionChange,
   });
   // The controlled host may hand back any order; the selection is a set.
-  const selected = (): ReadonlyArray<number> => normalizeSelected(rawSelected(), count);
+  const selected = (): ReadonlyArray<number> => normalizeSelected(rawSelected(), count());
   let focusedFlag = false;
   let followsFlag = options.followsFocus ?? false;
   let anchorIndex: number | null = null;
@@ -166,7 +186,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     setFocused(value);
   };
 
-  const optionId = (index: number): string => items[index]?.id ?? `${base}-option-${index}`;
+  const optionId = (index: number): string => itemList()[index]?.id ?? `${base}-option-${index}`;
 
   function clampActive(index: number): void {
     requestActive(clamp(index));
@@ -174,15 +194,15 @@ export const createListbox = (options: ListboxOptions): Listbox => {
 
   function firstEnabled(): number {
     let index = 0;
-    while (index < count && disabledIndices.has(index)) {
+    while (index < count() && isDisabled(index)) {
       index += 1;
     }
-    return index < count ? index : 0;
+    return index < count() ? index : 0;
   }
 
   function lastEnabled(): number {
-    let index = count - 1;
-    while (index >= 0 && disabledIndices.has(index)) {
+    let index = count() - 1;
+    while (index >= 0 && isDisabled(index)) {
       index -= 1;
     }
     return index >= 0 ? index : 0;
@@ -192,11 +212,11 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     let index = from;
     for (;;) {
       const next = index + delta;
-      if (next < 0 || next >= count) {
+      if (next < 0 || next >= count()) {
         return from;
       }
       index = next;
-      if (!disabledIndices.has(index)) {
+      if (!isDisabled(index)) {
         return index;
       }
     }
@@ -207,7 +227,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
   }
 
   function commit(next: ReadonlyArray<number>): void {
-    const sorted = normalizeSelected(next, count);
+    const sorted = normalizeSelected(next, count());
     if (sameSelection(selected(), sorted)) {
       return;
     }
@@ -243,7 +263,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
   function rangeToEdge(edge: number): void {
     const current = active();
     const lo = edge === 0 ? 0 : current;
-    const hi = edge === 0 ? current : count - 1;
+    const hi = edge === 0 ? current : count() - 1;
     const next = new Set(selected());
     for (let index = lo; index <= hi; index += 1) {
       next.add(index);
@@ -274,18 +294,18 @@ export const createListbox = (options: ListboxOptions): Listbox => {
   }
 
   function selectAllOrClear(): void {
-    if (selected().length === count) {
+    if (selected().length === count()) {
       commit([]);
       return;
     }
-    commit(items.map((_, index) => index));
+    commit(itemList().map((_, index) => index));
   }
 
   function findMatch(start: number, text: string): number | null {
     const needle = text.toLowerCase();
-    for (let offset = 0; offset < count; offset += 1) {
-      const index = (start + offset) % count;
-      const item = items[index];
+    for (let offset = 0; offset < count(); offset += 1) {
+      const index = (start + offset) % count();
+      const item = itemList()[index];
       if (item !== undefined && item.textValue.toLowerCase().startsWith(needle)) {
         return index;
       }
@@ -300,7 +320,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     const fresh = buffer.length === 0;
     const next = buffer + text;
     buffer = next;
-    const start = fresh ? (active() + 1) % count : active();
+    const start = fresh ? (active() + 1) % count() : active();
     const match = findMatch(start, next);
     if (match !== null) {
       clampActive(match);
@@ -362,7 +382,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
         return true;
       }
       if (key === "End") {
-        rangeToEdge(count - 1);
+        rangeToEdge(count() - 1);
         return true;
       }
       return false;
@@ -413,7 +433,9 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     active,
     selected,
     focused,
-    items,
+    get items() {
+      return itemList();
+    },
     selectionMode: mode,
     focus: () => {
       if (focusedFlag) {
@@ -443,7 +465,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     type,
     clearTypeahead,
     clickOption: (index) => {
-      if (disabledIndices.has(index)) {
+      if (isDisabled(index)) {
         return;
       }
       setFocusedValue(true);
@@ -455,7 +477,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       }
     },
     hoverOption: (index) => {
-      if (!focusOnHover || disabledIndices.has(index)) {
+      if (!focusOnHover || isDisabled(index)) {
         return;
       }
       setFocusedValue(true);
@@ -511,15 +533,17 @@ export const createListbox = (options: ListboxOptions): Listbox => {
         return selected().includes(index) ? "true" : "false";
       },
       get "aria-disabled"() {
-        return disabledIndices.has(index) ? "true" : undefined;
+        return isDisabled(index) ? "true" : undefined;
       },
       "aria-posinset": index + 1,
-      "aria-setsize": count,
+      get "aria-setsize"() {
+        return count();
+      },
       get tabindex() {
         return active() === index ? 0 : -1;
       },
       onClick: () => {
-        if (disabledIndices.has(index)) {
+        if (isDisabled(index)) {
           return;
         }
         setFocusedValue(true);
@@ -535,7 +559,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
         clampActive(index);
       },
       onMouseEnter: () => {
-        if (!focusOnHover || disabledIndices.has(index)) {
+        if (!focusOnHover || isDisabled(index)) {
           return;
         }
         setFocusedValue(true);

@@ -3,6 +3,12 @@ import { type Accessor, createSignal, createUniqueId } from "solid-js";
 export interface StatusOptions {
   /** Rendered on `statusProps`; generated when absent. */
   readonly id?: string | undefined;
+  /**
+   * Controlled: the text is read from this accessor on every read, so a host
+   * with a signal passes `{ from: () => message() }` and drops `show`/`clear`.
+   * Absent, the region is uncontrolled and `show` writes it.
+   */
+  readonly from?: (() => string | undefined) | undefined;
 }
 
 /** Spread onto the `role=status` live region. Render it once, always. */
@@ -14,7 +20,10 @@ export interface StatusProps {
 }
 
 export interface Status {
-  /** The text currently shown, or `undefined` before the first `show`. */
+  /**
+   * The text currently shown: `from()` when the host controls it, else the last
+   * `show` (or `undefined` before the first).
+   */
   readonly message: Accessor<string | undefined>;
   /** Writes the message, replacing the previous one; nothing is queued. */
   readonly show: (text: string) => void;
@@ -35,15 +44,16 @@ export interface Status {
  */
 export const createStatus = (options: StatusOptions = {}): Status => {
   const id = options.id ?? createUniqueId();
-  const [message, setMessage] = createSignal<string | undefined>();
+  const [local, setLocal] = createSignal<string | undefined>();
+  const message = (): string | undefined => options.from?.() ?? local();
 
   return {
     message,
     show: (text) => {
-      setMessage(text);
+      setLocal(text);
     },
     clear: () => {
-      setMessage(undefined);
+      setLocal(undefined);
     },
     statusProps: {
       id,

@@ -1298,8 +1298,8 @@ createConfirm(options?: { id?: string | undefined; onOpenChange?(open: boolean):
 Two live regions with no APG pattern and no Quint spec: `createStatus` is one polite message whose text is replaced, `createToast` queues toasts whose countdown pauses. Their oracle is `packages/headless/test/toast.browser.test.tsx`.
 
 ```ts skip
-createStatus(options?: { id?: string | undefined }): {
-  message(): string | undefined;
+createStatus(options?: { id?: string | undefined; from?: (() => string | undefined) | undefined }): {
+  message(): string | undefined; // from() when the host controls the text, else the last show
   show(text: string): void; // replaces the text; nothing is queued
   clear(): void;
   statusProps: { id; role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
@@ -1332,7 +1332,7 @@ createToast(options?: {
 };
 ```
 
-`createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast.
+`createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast. Both take `from: () => text`, which makes the text the host's own signal (`createAlert({ from: () => error() })`): no effect mirrors it into `show()`, and clearing the signal unmounts the alert.
 
 A toast is its own live region inside the `role=region` landmark: `role=alert` for `tone: "error"` (assertive) and `role=status` otherwise (polite). The host renders the `title` and `description` handed to `show` inside that element, so the toast's own text is the announcement — `aria-atomic` reads all of it, a close button's label included, so keep a toast to its title and description and give a close button no more than an icon with a label. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host. One timer per toast honours `timeout`; hover pauses it when `pauseOnHover` is true and focus always pauses, and both resume with the time that was left rather than restarting the deadline. `max` drops the oldest toast past the ceiling, and `onDismiss` fires for every toast that leaves. F6 into the region is the host's handler (hotkeys are a separate bean, cssints-h0d5): give `regionProps` an element with `tabindex="-1"` and focus it, remembering where focus was.
 
@@ -1432,7 +1432,7 @@ A data table on a **native `<table>`**: sortable column headers and row selectio
 ```ts skip
 createTable(options: {
   columns: ReadonlyArray<{ key: string; sortable?: boolean; numeric?: boolean; abbr?: string | undefined }>; // sortable defaults true
-  rows: ReadonlyArray<string>; // row ids in render order; the host sorts its own data
+  rows: ReadonlyArray<string> | (() => ReadonlyArray<string>); // row ids in render order; a getter is read lazily
   selection?: "none" | "single" | "multiple" | undefined; // "none"
   sortCycle?: "tri-state" | "toggle" | undefined; // "tri-state": ascending -> descending -> unsorted
   sort?: TableSort | null | undefined; // controlled; null = unsorted, undefined = uncontrolled
@@ -1465,7 +1465,7 @@ createTable(options: {
 
 `aria-sort` is carried by the sorted column only; a sortable header that is not sorted has none (ARIA's "not sorted" default), and a `sortable: false` column gets no button from `headerButtonProps` at all, so it is not a tab stop. The header button cycles `ascending` -> `descending` -> unsorted by default (so the table can be put back in its own order) and `ascending` <-> `descending` with `sortCycle: "toggle"` (what the APG grid example does); a new column always starts `ascending`, and only one is sorted. Sorting is the host's data: the primitive carries the descriptor and announces it, it never reorders a row.
 
-Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
+`rows` may be a getter (`() => rows()`): it is read at attribute-read time, so a table whose rows arrive later keeps its sort and its selection instead of being rebuilt, and a selection made before the rows landed applies once they do. Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
 ### Headless: `createTabs` (`@cssints/headless`)
 
@@ -1477,7 +1477,7 @@ Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground'
 
 ```ts skip
 createTabs(options?: {
-  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, onValueChange
+  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
   closable?: boolean; // false: closeProps and the Delete key; the host removes from onClose
   renamable?: boolean; // false: a double click edits the label inline; the host renames from onRename
   label?(index: number): string | undefined; // the tab's name: the buttons' labels and the rename draft
@@ -1501,6 +1501,7 @@ createTabs(options?: {
 
 - **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
 - **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tablist's roving does not move. `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
+- **Ids.** `tabId(index)` and `panelId(index)` replace the generated `${id}-tab-<index>` / `${id}-tabpanel-<index>`, and `aria-controls` / `aria-labelledby` follow them. Use them when the host's markup or a deep link already names a panel (`#logs`): the alternative is a second id on the same element, which no attribute can carry.
 - **The host's list.** `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list. `label` is read lazily too, so a renamed tab renames its buttons with it.
 - The spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but neither a rename nor the callbacks, so the browser test, not the model, holds the extension.
 
@@ -1932,8 +1933,10 @@ createDropZone(options: {
   maxSize?: number | undefined; // bytes; a larger file is rejected with "size"
   disabled?: boolean | undefined; // zone aria-disabled, native disabled input and button, drops ignored
   onFiles(files: File[]): void; // the accepted files of one batch; not called when none passed
-  onReject?({ file, reason }: { file: File; reason: "type" | "size" }): void; // once per refused file
-  labels?: { zone?: string | undefined; browse?: string | undefined };
+  maxFiles?: number | undefined; // files taken from one batch; the rest are rejected with "count"
+  onReject?({ file, reason }: { file: File; reason: "type" | "size" | "count" }): void; // once per refused file
+  labels?: { zone?: string | undefined; labelledby?: string | undefined; browse?: string | undefined };
+  formatMessage?(message: { total: number; accepted: number; rejected: ReadonlyArray<"type" | "size" | "count"> }): string | undefined; // the announcement in the host's language
 }): {
   dragging(): boolean; // a drag is over the zone; a child's dragleave does not clear it
   message(): string | undefined; // "2 files, 1 rejected: too large"; undefined before the first batch
@@ -1949,6 +1952,7 @@ createDropZone(options: {
   zoneProps: {
     role: "group";
     "aria-label": string | undefined;
+    "aria-labelledby": string | undefined; // labels.labelledby: the host's own heading wins over aria-label
     "aria-disabled": "true" | undefined;
     onDragEnter;
     onDragOver;
@@ -1963,10 +1967,10 @@ createDropZone(options: {
 Principles:
 
 - **The zone is never drag-only.** `browseProps` spreads onto a real `<button type="button">` that clicks the hidden input, so the picker is the keyboard path (Enter and Space are the platform's) and a pointer user can click too. The drop handlers add nothing the button cannot do.
-- **Validation happens once per file**, in the order type then size, with a reason the host can show: `onReject` gets the file and `"type" | "size"`, and `onFiles` gets the rest in one batch. A batch with nothing accepted calls `onFiles` not at all — not with an empty array.
+- **Validation happens once per file**, in the order type then size then count, with a reason the host can show: `onReject` gets the file and `"type" | "size" | "count"` (`maxFiles` limits what one batch takes), and `onFiles` gets the rest in one batch. A batch with nothing accepted calls `onFiles` not at all — not with an empty array.
 - **A folder or an empty `DataTransfer` is a no-op** (Chromium marks a dropped directory as a `file` item whose `webkitGetAsEntry().isDirectory` is true): no callback, no rejection, and `message()` keeps the previous sentence.
 - **`dragleave` counts.** A child's `dragleave` bubbles to the zone, so `dragging()` is a depth counter: it clears when the drag leaves the zone, or on a drop. It is the styling hook; the primitive writes no `data-dragging`.
-- **`message()` is a default sentence for the host's status region** ("2 files, 1 rejected: too large", `undefined` before the first batch): the primitive tracks the counts of the last batch, the host decides the words. Render `statusProps` once and keep it mounted, or a change of its text is not announced.
+- **`message()` is a default sentence for the host's status region** ("2 files, 1 rejected: too large", `undefined` before the first batch): the primitive tracks the counts of the last batch, the host decides the words. An app with a locale passes `formatMessage`, which gets the same counts (`total`, `accepted`, `rejected`) and returns the sentence to announce. Render `statusProps` once and keep it mounted, or a change of its text is not announced.
 - Picking through the input is the same path as a drop and clears `input.value` afterwards, so choosing the same file twice fires `change` again.
 
 ### Headless: `createTimeline` (`@cssints/headless`)
@@ -1975,7 +1979,7 @@ Two modes over one axis. Without `rows` it is the package's demo tree of five fi
 
 ```ts skip
 createTimeline(options: {
-  rows: ReadonlyArray<{ id: string; label: string; start: number; end: number; depth?: number; status?: "ok" | "error" | "unset" }>; // in display order
+  rows: ReadonlyArray<{ id: string; label: string; start: number; end: number; depth?: number; status?: "ok" | "error" | "unset" }> | (() => ...); // in display order; a getter lets a trace arrive after mount
   axis?: { unit?: "ms" | "us" | "s" } | undefined; // "ms": the ruler's labels
   selected?: string | undefined; // controlled; undefined = uncontrolled
   onSelect?(id: string): void; // a request the host may ignore
@@ -1989,6 +1993,7 @@ createTimeline(options: {
   rulerProps: { role: "presentation"; "aria-hidden": "true"; ticks: ReadonlyArray<{ value: number; left: number; label: string }> };
   select(id: string): void;
   selectedId(): string | undefined;
+  focusedId(): string | undefined; // the row with the roving tab stop: the last one focused, else the first
 };
 ```
 
