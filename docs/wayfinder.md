@@ -2742,3 +2742,55 @@ definition (that is why it is a derived view, not the store), and `defaultValue`
 takes the same pair. `combos.browser.test.tsx` checks a `checkbox-items` menu's third row — the case the single-bit pack
 could not control — and the headless tests mount a readable host that accepts and one that ignores, asserting both views
 stay consistent.
+
+## The slider drags (cssints-headless, 2026-10-31)
+
+`createSlider` modelled a rail press — pointer down jumps the value to where it landed — and nothing after it, so the kit's
+`Slider` told people to click and the two earlier entries recorded dragging as Left. A real slider follows the thumb while
+the pointer is held, and a rail 300 px wide that only jumps is a control a user drags and thinks is broken (the thumb stays
+where it was pressed). The primitive now starts a drag on `pointerdown` at the rail **or the thumb** and follows the pointer
+until `pointerup`, `pointercancel` or a lost capture.
+
+**One mapping, reused.** The press already turned a pointer into a value; the drag calls that same `positionOf` /
+`pointerDown(position)` pair per move, so a drag cannot land where a press would not, and the four orientation/direction
+combinations have one definition. That definition now reads `flipped()` — the key rule (horizontal under rtl) — which it did
+not before: a rail press on an `rtl` horizontal slider landed on the mirrored value of the one it should, and no test could
+see it because the differential walk hands `pointer` a 0..1 fraction and never the geometry. Up is more on a vertical rail;
+direction flips only the horizontal axis, as the arrows do.
+
+**Who owns the drag.** The rail does, whichever element took the press: the thumb's press bubbles to it, and the rail is the
+box both the capture and the rect come from. So `trackProps` carries `onPointerDown` / `onPointerMove` / `onPointerUp` /
+`onPointerCancel` / `onLostPointerCapture`, and the thumb's own `onPointerDown` only marks the press so the rail does not
+jump (the thumb is already at the value). Weighed: a `ref` or an id in `trackProps` so a thumb press could find the rail —
+more contract for the same answer, and a thumb that is not inside the rail is not a slider a host can lay out anyway (the
+kit's is a child of the rail). Weighed too: a document listener with `onSettled` — pointer capture already retargets the
+moves off the rail, so there is no listener and nothing to dispose; `lostpointercapture` ends the drag when the browser takes
+the capture away.
+
+A drag is a request, not a write: every move goes through `createControllable`, so a controlled host that ignores
+`onValueChange` keeps its value, and `request`'s equality check makes one request per distinct value — three moves inside one
+step are one call. `disabled` is checked before the capture, so a disabled rail captures nothing, moves nothing and asks
+nothing.
+
+**What the spec cannot carry.** `specs/apg/slider.qnt` fixes a discrete press and has no pointer position var; carrying a
+drag would mean a position var and a `setPointer` event in every action that assigns every var (the generator's shape), a
+second machine rather than a line. So the spec's header records the extension and names the invariant it does not carry —
+**DragFollowsPointer**: while the pointer is held, `aria-valuenow` is the value of the pointer's current position (not an
+accumulation, so a move back to the press position returns the value), and a move after the release changes nothing — and
+`packages/headless/test/slider.browser.test.tsx` is its oracle, as it already is for `disabled`. The model still holds:
+`ValueOnStepGrid` and the clamp are the same rule the drag uses, `ControlledFollowsProp` and `RejectedRequestUntouched` are
+what the drag's request path goes through.
+
+**Tests.** Seven new cases in the real DOM: a press and drag to the middle moves `aria-valuenow` and asks for one value per
+step (three moves inside a step are one request), a drag past either end clamps to `0` / `10`, a vertical rail increases
+upward under `ltr` and `rtl` alike, a horizontal `rtl` rail counts from its right edge, a press on the thumb does not jump and
+still drags, a controlled host that rejects the requests keeps `5` while the callbacks arrive, and a lost capture or a
+`pointercancel` ends the drag so a later move changes nothing. The disabled case now also drags after its press.
+
+**The kit** gained two declarations and a comment: `touch-action: none` so a touch drag moves the thumb instead of scrolling
+the page, and `user-select: none` so a mouse drag does not select the text it crosses. The primitive carries no CSS, so this
+is the host's decision; the handlers and the geometry are the primitive's and the kit's `Slider` was otherwise unchanged.
+
+**Left**: no `dragging()` accessor (a host that wants to hide a tooltip while dragging has no read), the multi-thumb slider
+still has no drag and no rail (its own entry's reason), a thumb that is not inside the rail starts no drag (documented, not
+checked), and a pointer that leaves the window without a `pointerup` relies on the browser's capture release.

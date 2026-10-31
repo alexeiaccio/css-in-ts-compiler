@@ -1768,7 +1768,7 @@ createSlider(options?: {
   focus(): void;
   blur(): void;
   keyDown(key: string): boolean; // true when the key was consumed (preventDefault it)
-  pointerDown(position: number): void; // a rail press at a 0..1 fraction of the track
+  pointerDown(position: number): void; // a rail press or a drag move at a 0..1 fraction of the rail
   thumbProps: {
     id;
     role: "slider";
@@ -1782,8 +1782,9 @@ createSlider(options?: {
     onFocus;
     onBlur;
     onKeyDown;
+    onPointerDown;
   };
-  trackProps: { onPointerDown };
+  trackProps: { onPointerDown; onPointerMove; onPointerUp; onPointerCancel; onLostPointerCapture };
 };
 ```
 
@@ -1839,9 +1840,13 @@ createSpinbutton(options?: {
 
 `disabled` is **a widget-level extension of the APG patterns**, and the specs say so: `slider.qnt` lists it under its deliberate omissions, and `spinbutton.qnt` models the steppers' at-bound state only (`DisabledOnlyAtBound`). Neither machine has a `disabled` var, so the DOM tests, not the model, hold the primitive to these rules:
 
-- a disabled slider **keeps the thumb as its tab stop** (`tabindex="0"`, the same choice `createButton` makes with `aria-disabled`) and announces `aria-disabled="true"` on the thumb; every key and every rail press is dropped before it becomes a request, so `onValueChange` never fires and `keyDown` returns `false` (nothing to preventDefault);
+- a disabled slider **keeps the thumb as its tab stop** (`tabindex="0"`, the same choice `createButton` makes with `aria-disabled`) and announces `aria-disabled="true"` on the thumb; every key, rail press and drag is dropped before it becomes a request, so `onValueChange` never fires and `keyDown` returns `false` (nothing to preventDefault);
 - a disabled spinbutton's field announces `aria-disabled` **and carries the native `disabled`** (the field is an `<input>`, so the platform's own form-control rule applies); the spin keys, the typed draft (Enter and blur included) and both steppers change nothing, and **both** steppers announce `aria-disabled="true"` — the at-bound rule of the spec stays, and a disabled widget adds the other side;
 - both read the option on every attribute read, so a host may flip `disabled` on a mounted widget and the attributes and the guards follow in the same tick.
+
+**Dragging** is the rail press repeated: `pointerdown` on the rail jumps the value to where it landed and starts a drag, and a press on the thumb starts the drag where the value already is (no jump, the thumb is there). While the pointer is held, every `pointermove` asks for the value of the pointer's position on the rail, rounded to `step` and clamped to `min`/`max`, in all four combinations of `orientation` and `direction`: up is more on a vertical rail, and a horizontal rail under `rtl` counts from its right edge, the same reflection the arrow keys use. `pointerup`, `pointercancel` or a lost capture ends the drag. The rail owns the gesture whichever element took the press, so the moves sit on `trackProps` and pointer capture keeps the drag alive off the rail: no document listener, and nothing to clean up on disposal. The thumb must be rendered inside the rail, because that is how its press reaches it. A drag is still a request: it fires `onValueChange` once per distinct value, and a controlled host that ignores the request keeps its value. `trackProps` carries no CSS, so a host that wants a drag instead of a text selection or a page scroll sets `touch-action: none` and `user-select: none` on the rail.
+
+`specs/apg/slider.qnt` fixes a discrete rail press only, so the drag is a second deliberate extension and `slider.browser.test.tsx` is its oracle. The invariant the machine does not carry is **DragFollowsPointer**: while the pointer is held, `aria-valuenow` is the value of the pointer's current position (not an accumulation of moves, so returning the pointer to the press position returns the value), and no move after the release changes anything. The step grid and the clamp the drag shares with the press are the model's; the geometry is the DOM's, and the bridge hands the model a 0..1 fraction.
 
 ### Headless: `createSliderMultiThumb` (`@cssints/headless`)
 
