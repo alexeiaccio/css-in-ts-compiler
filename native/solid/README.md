@@ -34,6 +34,7 @@ bun solid/main.ts list --warm 30 --wheel 32 --expect solid/frames/list-wheel.png
 bun solid/main.ts list --settle 3 --png out.png       # headless: four frames into the page's entry (frames/list-entry.png)
 bun solid/main.ts sky --warm 40 --drag-feed 180,300,-2,-2,-2,-2,-2 --settle 60 --png out.png   # headless: a drag on the feed, then its fling
 bun solid/main.ts sky --click 180 32 --wheel 8 --wheel-over sky-feed --png out.png   # headless: Science, its feed 8 notches down
+bun solid/main.ts notify                                          # the Sky page started on its notifications screen (the feed's `n` does the same)
 bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # headless: a hover, three frames into its fade, at a page at rest
 bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
@@ -78,18 +79,23 @@ bun terminal/solid.ts --page sky --dump out.txt   # the feed, one frame (80x20 b
 bun terminal/solid.ts --page sky --keys Tab,Tab,ArrowDown --settle 40 --offset --dump out.txt
 bun terminal/solid.ts --page sky --keys Tab,Tab,Enter --settle 3 --dump out.txt   # the thread, opened by Enter
 bun terminal/solid.ts --page sky --click 20,2 --settle 5 --dump out.txt           # the profile (the author's row)
+bun terminal/solid.ts --page notify --keys Enter --settle 3 --dump out.txt         # the notifications, a row's thread
 bun terminal/solid.ts --page sky --bench 50       # the frame's ms and its cells/commands
 sh terminal/test.sh                               # the stored frames and the C comparisons
 ```
 
 `Sky.tsx` needed no prop it does not have on the desktop: `input` (the headless parts), `motion` (the page puts its
-wheel, its pointer and its tick there), `theme`/`setTheme`, and `load`. The terminal settles `load`'s promise with the
-app's **recorded** thread (apps/csssky's `thread.json` through the page's own `screenOf`) one frame after the screen
-mounts, so a card's click draws the loading row and then the app's rows; the profile needs nothing handed to it
-(`app/profile.ts` reads the recordings itself). The thread and the profile are the page's **screens**, not entries of
-their own (`Sky.tsx` mounts the thread as a root float and calls `Profile.tsx`'s `createProfile` in its own tree), so
-there is no `--page profile`: Enter on the feed presses the first card's own onClick (the page's cards are not Tab
-stops), a click on a card's author row opens the profile, Escape is the page's back. The host re-cuts the lengths a cell
+wheel, its pointer and its tick there), `theme`/`setTheme`, and `load` — and two of the terminal host's (the desktop's
+too): `screen` (`notify`: the page started on its notifications) and `mutate` (the mutation lines below). The terminal
+settles `load`'s promise with the app's **recorded** thread (apps/csssky's `thread.json` through the page's own
+`screenOf`) one frame after the screen mounts, so a card's click draws the loading row and then the app's rows; the
+profile needs nothing handed to it (`app/profile.ts` reads the recordings itself), and neither do the notifications
+(`app/notify.ts`'s five rows are the app's recordings hand-carried — the app has no notifications screen or fixture).
+The thread, the profile and the notifications are the page's **screens**, not entries of their own (`Sky.tsx` mounts
+the thread as a root float and calls `Profile.tsx`'s `createProfile` and `Notify.tsx`'s `createNotify` in its own tree),
+so `--page notify` is the sky page with its own `screen` prop, not a page: Enter on the feed presses the first card's
+own onClick (the page's cards are not Tab stops), a click on a card's author row opens the profile, `n` opens the
+notifications, Escape is the page's back. The host re-cuts the lengths a cell
 cannot take as pixels through the value channel — the bar 1 row, the status line 1 row, a tab no padding and a cell after
 its label, a card one cell of side padding with no vertical padding or gap — and skips the avatar image (no glyph; its
 40x40 box would be three rows of nothing the C page does not draw). The feed's own 12px padding and 8px gap stay the
@@ -103,15 +109,19 @@ bar's. The binding gained four things for the feed: the clip offset read after t
 screens), and a text line height forced to the cell's; the re-cut is written by the walk just before an element opens, so
 a frame writes a value only for the elements it declares (the table is 256).
 
-The C screens (`terminal/sky.c`, `thread.c`, `profile.c`) are **not** reproducible cell for cell, and `terminal/test.sh`
-says so with numbers: the feed 1251 of 1600 cells differ at rest, 1397 after the tab switch, 684 after the scroll; the
-thread 1957 of 2080 at 80x26; the profile 1837 of 2080; no row identical (the worst rows are the C card's top border,
-80/80, and the C profile's banner band, 80/80) — the C card has a hand-cut border, its name and meta share a row, its
-body is clipped, its counts are glyphs and its footer the key hints, and the C profile has a banner band, an accent-pill
-tab and the app's reason lines. The frames are 0.08-0.35 ms for the feed (34 commands over 1600 cells) and 0.13-0.15 ms
-for the thread and the profile (66 and 69 commands over 2080), so Solid on a terminal is viable. That is three of the
-Sky page's four screens (the feed, the thread, the profile); the notifications stay C, because `Sky.tsx` has no
-notifications screen. The full account, with what a cell cannot carry, is `native/README.md`'s "Solid on the terminal".
+The C screens (`terminal/sky.c`, `thread.c`, `profile.c`, `notify.c`) are **not** reproducible cell for cell, and
+`terminal/test.sh` says so with numbers: the feed 1251 of 1600 cells differ at rest, 1397 after the tab switch, 684
+after the scroll; the thread 1957 of 2080 at 80x26; the profile 1837 of 2080; the notifications 1564 at rest and 1910
+after `Tab,Tab`; no row identical (the worst rows are the C card's top border, 80/80, the C profile's banner band, 80/80,
+and the notifications' card borders and footer, 80/80) — the C card has a hand-cut border, its name and meta share a
+row, its body is clipped, its counts are glyphs and its footer the key hints, and the C profile has a banner band, an
+accent-pill tab and the app's reason lines; the notifications' C page names the screen in its bar and draws a separator
+row at rest. The frames are 0.08-0.35 ms for the feed (34 commands over 1600 cells), 0.13-0.15 ms for the thread and the
+profile (66 and 69 commands over 2080) and 0.19 ms for the notifications (64 commands over 2080), so Solid on a
+terminal is viable. **All four** of the Sky page's screens are the page's own now (the feed, the thread, the profile and
+the notifications — the last one's rows are the app's recordings hand-carried, `app/notify.ts`, because the app has no
+notifications screen or fixture). The full account, with what a cell cannot carry, is `native/README.md`'s "Solid on the
+terminal".
 
 ## Layout
 
@@ -142,6 +152,10 @@ app/Profile.tsx    the Sky page's third screen: a card's author opens the record
                    counts, the app's Posts/Replies/Media tabs and their lists on the page's own machine)
 app/profile.ts     the profile's data (no cssints, no Solid): the app's recorded head and three author feeds mapped into the
                    page's records, read at run time from apps/csssky/test/fixtures/
+app/Notify.tsx     the page's fourth screen: the notifications (`n` on the feed), the five rows in document order with the
+                   page's card, the ring, the arrows/Tab and a row's post opening the page's own thread
+app/notify.ts      the notifications' data: the app's five verbs over the recordings' actors, posts and times (a JSON module
+                   each of home-discover-1, home-science-1 and thread.json), the one screen the app has no fixture for
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
 frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
                    its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
@@ -149,7 +163,7 @@ scenes/            the record of four stored frames: widgets-switch-on, list-sel
                    page's typed events with times, replayed by scene.test.ts (and by main.ts --scene)
 main.ts            the host (window and headless)
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, profile.test.ts,
-text.test.ts, scene.test.ts      the checks the stored frames cannot make
+notify.test.ts, text.test.ts, scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 

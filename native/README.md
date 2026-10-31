@@ -754,6 +754,30 @@ Not here: a fetch of a profile (one recording, shown for whichever author is pre
 recording's), a follow button, the app's paging (each tab is its one recorded page; no cursor and no Sentinel), and a
 card of the profile's list opening its own post's thread.
 
+**The notifications screen: the page's fourth.** `n` on the feed opens it — the app's nav has no notifications item and
+its bar is the three feed tabs, so the key is the page's, as the C shell's `n` is — and `bun solid/main.ts notify` starts
+the page on it (its `screen` prop). It is the page's one screen the app has no source for: apps/csssky has no
+`notifications/`, no route and no `listNotifications` fixture, so `solid/app/notify.ts` **hand-carries** the five kinds —
+the app's own verbs, `mentioned you`, `reposted`, `liked your post`, `replied` and `followed you` — over the recordings'
+actors, posts and times: `home-science-1`'s [11] (Erik Strub), `home-discover-1`'s [23] and [20] (Titania, Michael
+Warburton), `thread.json`'s first reply (jlp2024.bsky.social) and its parent (Mina Kimes, whose follow has no post, so no
+snippet and no at-uri). The three recordings are JSON modules (`with { type: "json" }`, ~166 KB) in the page's build
+rather than a run-time read, because the browser's own Sky bundle carries the screen too; a row is mapped from them on
+the first opening, with the page's `postOf`, so its actor, text and time are what a card would draw. A card is the feed's
+(`s.card`): the actor and the verb with the time on one line, the post's first line under them, and the focused row in
+`s.cardOn` — the next panel tone and the accent border, which is the C page's ring. The C page's kind glyphs (`✦ ⟲ ♥ ↩`)
+are not here: Roboto carries none of them (a cell prints them only because the terminal's font does). The rows are the
+page's first **row stops** (`input.add` each, the ring through its `focused` prop): the arrows, j/k and Home/End rove
+them without leaving the list, Tab walks them in document order and past the last row wraps to the first (the manager
+releases the focus there, and a terminal has nowhere to hand Tab to). Enter or Space opens the row's post through the
+page's own `openThread` and `load` — the recorded thread in an offline frame, the AppView's in the window — so a
+notification's thread is a card's thread, drawn over the list (both floats at z 2, the thread declared after it), and
+that thread's Escape returns to the row it left: the list's frame, the same bytes. A follow opens nothing. Numbers
+(`solid/notify.test.ts`, `frames/notify-initial.png`): the screen 696 under the bar, the head 44, the clip 652, the five
+cards 94, 74, 74, 114 and 46 (458 of content, so the list fits and its machine never leaves 0, its thumb 0 tall); the
+frame's ms (`solid/main.ts notify --png --bench 200`): **events+flush 0.19, declare 0.16, layout 0.06, draw 13.6** (the
+360x760 ThorVG raster is 13.6 of it); back from a row's thread 0 bytes of 1,094,400.
+
 **The settings screen: the page's third.** A gear at the bar's right end opens it — the app's own Settings nav item, its
 glyph three 16x2 boxes (Roboto has no gear glyph and Clay has no icons) in a 40x28 box that ends at the bar's content
 edge — and the screen is built like the thread's: a root float over the content area one z above the thread's, so it
@@ -1134,6 +1158,7 @@ sh desktop/build-thorvg-gpu.sh examples/sensors               # ThorVG built fro
 ./build/sensors/app-gpu --raster thorvg-gpu --bench 500       # the same page on Metal through wgpu-native; needs brew meson ninja pkgconf wgpu-native
 sh desktop/build-wg-window.sh && ./build/sensors/wg-window --capture out.png   # ThorVG into the window's own WebGPU surface, no readback; --capture checks the frame
 bun solid/main.ts widgets                                     # Solid: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar; Tab, arrows, Space work
+bun solid/main.ts notify                                      # the Sky page started on its notifications screen (the feed's `n`)
 bun solid/main.ts sky --settle 60 --idle 600                  # the page at rest: 0 draws of 600, and the ms the tick takes
 bun solid/main.ts sky --settle 60 --idle 600 --idle-keys 10   # ... and 60 keys, each drawing its own frame (60 draws)
 bun solid/main.ts sky --touch 0.5 0.5 --png out.png           # headless: a finger's tap at the window's middle (ui_touch_map: 0.5,0.5 -> 180,380)
@@ -1855,6 +1880,7 @@ bun terminal/solid.ts --click 40,9 --dump out.txt # a press and a release on the
 bun terminal/solid.ts --page sky --keys WheelDown,WheelDown --settle 90 --offset --dump out.txt  # the page's wheel, then its rest
 bun terminal/solid.ts --page sky --keys Tab,Tab,Enter --settle 3 --dump out.txt    # the thread (Enter on the feed)
 bun terminal/solid.ts --page sky --click 20,2 --settle 5 --dump out.txt            # the profile (a card's author row)
+bun terminal/solid.ts --page notify --keys Enter --settle 3 --dump out.txt          # the notifications, and a row's thread
 bun terminal/solid.ts --theme light --dump out.txt            # the light theme (also THEME=light)
 bun terminal/solid.ts --cols 80 --rows 11 --bench 20          # the frame's ms, and the same cells as ANSI
 sh terminal/test.sh                               # the comparisons below (native/test.sh runs it)
@@ -1961,6 +1987,29 @@ are the header's (row 5 in 38, the bio's words; row 8 in 35, the counts; row 11 
 identical to the C's, and the check stores the Solid frames as its own guards (`terminal/expected-solid-thread.txt`,
 `-profile.txt`) on top of the counted comparison.
 
+**The notifications.** The page's **fourth** screen: `--page notify` is `Sky.tsx` with `Notify.tsx`'s screen open (the
+page's own `screen` prop — the page `n` leaves the feed on, not an entry of its own), and `n` on the feed opens it in a
+`--page sky` run, as the C shell's `n` does. Its rows are `app/notify.ts`'s five: the app's recordings hand-carried (the
+app has no notifications screen or fixture — the one screen of the four that is), with the app's five verbs. They are real
+Tab stops (`input.add`), so a cell's ring is the card's own border; Tab past the last row wraps to the first (the page's
+fallback); Enter on a row opens its post's thread through the page's `load`, the host's recorded thread, and Escape there
+returns to the list's frame. The C screen (`terminal/notify.c`) is the behaviour's oracle, not the cells': its bar names
+the screen, its card has a hand-cut border and a separator row at rest, and its footer is the key hints. At 80x26 the
+measured distances are:
+
+```
+solid, terminal: the notifications against terminal/expected-notify.txt (the C screen): 1564 cells, 0 of 26 rows the same, the worst row 5 (80 of 80); rows 26,79,5,36,9,80,5,22,77,80,80,75,41,80,80,78,77,80,80,29,80,80,80,80,80,45
+solid, terminal: after Tab,Tab against terminal/expected-notify-focus.txt: 1910 cells, 0 of 26 rows the same, the worst row 2 (80 of 80); rows 26,79,80,71,78,80,80,77,79,80,80,80,71,80,80,78,77,80,80,29,80,80,80,80,80,45
+```
+
+The nearest rows are the header's (row 2 in 5 of 80: the same word, the page's Back control one cell in) and the first
+card's snippet (row 4 in 9, the same words at a one-cell inset); the worst are the C card's border and separator rows,
+which the page's cards at rest have none of, and its footer. The stored guards are
+`terminal/expected-solid-notify.txt` and `-focus.txt` (the ring on the third row after Tab,Tab, as the C's focus frame
+has it), and the two mutations are the page's: `--mutate verbs` draws one wrong verb on every row (the stored dump fails)
+and `--mutate rows` never registers the rows (Tab,Tab is not the third row's frame). The frame is **0.19 ms** (64
+commands, 2080 cells) and its ANSI 0.18 ms (4956 bytes).
+
 **The C feed's cells are not the Solid feed's, and the check does not pretend they are.** The C card
 (`terminal/sky.c`) has a hand-cut border and separator row, its name and meta on one row, its body clipped to one row,
 its counts as the glyphs `↩ ⟲ ♥`, no avatar and a footer of key hints; the Solid card has one cell of side padding and
@@ -2042,13 +2091,14 @@ no drawn avatars, the meta on its own row, the counts in words where the C page 
 where the C page has the key hints; its thread shows it again: a body that wraps at words where the C clips one row, an
 avatar the host skips, the counts in words, and a Back control the C pages do not have (escape is their bar's text); its
 profile: a drawn disc of two rows where the app has a picture the page does not draw at all (the C profile keeps a
-two-row band for the app's banner), a tab whose underline is the label's row, and no reason line above a card. Three of
-the Sky page's four screens now run as the page's own — the feed, the thread and the profile (`terminal/solid.ts
---page sky`, `solid/app/Sky.tsx`, `app/Profile.tsx`); the **notifications stay C** (`terminal/notify.c`, with
-`focus.c` for its focus), the one screen of the four that is: `Sky.tsx` has no notifications screen, so there is nothing
-to run, and the C one is the web app's, hand-carried. The shape is there (a page declares, Clay lays out in cells,
-termbox2 draws); what a page still lacks is the network — the host's `load` is a promise it settles with a recorded
-thread, and fetching, paging and the app's system theme are not in the terminal yet.
+two-row band for the app's banner), a tab whose underline is the label's row, and no reason line above a card; the
+notifications: no kind glyph (Roboto has none) and cards with no border at rest where the C keeps a hand-cut one. **All
+four of the Sky page's screens now run as the page's own** — the feed, the thread, the profile and the notifications
+(`terminal/solid.ts --page sky|notify`, `solid/app/Sky.tsx`, `app/Profile.tsx`, `app/Notify.tsx`); the C pages stay in
+the tree as the behaviour's oracles (`terminal/sky.c`, `thread.c`, `profile.c`, `notify.c`, and `test.sh` still checks
+them, their dumps byte for byte). The shape is there (a page declares, Clay lays out in cells, termbox2 draws); what a
+page still lacks is the network — the host's `load` is a promise it settles with a recorded thread, and fetching, paging
+and the app's system theme are not in the terminal yet.
 
 ## The sky screens in a terminal
 

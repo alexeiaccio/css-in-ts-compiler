@@ -42,6 +42,7 @@ import type { threadScreen, ThreadNode } from "../../../apps/csssky/src/api.ts";
 import { embedParts } from "../../../apps/csssky/src/post/model.ts";
 import { mediaText, rowsOf } from "../../../apps/csssky-tui/src/model.ts";
 import { createProfile } from "./Profile.tsx";
+import { createNotify } from "./Notify.tsx";
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
 // the sky palette (the page, the card one tonal step above it, the hover step, the muted step and the accent blue) is
@@ -639,7 +640,9 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
 
 /**
  * The page (`posts` replaces Discover's fixture, which is what the page shows by default; Science and News stay the
- * app's). Two Tab stops: the tablist (one stop on the active tab, arrows move and switch) and the feed. The feed's keys
+ * app's). Two Tab stops of its own: the tablist (one stop on the active tab, arrows move and switch) and the feed, and
+ * each screen's once it is up. `n` on the feed opens the notifications (`Notify.tsx`), Esc or the back control returns.
+ * The feed's keys
  * scroll it: Down and Up 40px, PageDown and PageUp a viewport, Home and End to the ends. The wheel adds 10px a notch and
  * a flick keeps going (a decay) to its projection, clamped to the content; both are one motion track (src/motion.ts) the
  * page owns, retargeted from the presented (x, v), and `ui.scrollTo` puts the value on Clay's clip element each frame.
@@ -681,6 +684,12 @@ export function Sky(props: {
   /** The thread's data: a post's at-uri in, its screen out (the AppView's call by default; a test's promise, or the
    *  recorded fixture of an offline frame, replaces it). */
   load?: Loader;
+  /** The screen the page starts on: the feed, or the notifications (`bun solid/main.ts notify`, `terminal/solid.ts
+   *  --page notify` — the page `n` leaves the feed on, as the C shell starts its stack at a page). */
+  screen?: "notifications";
+  /** A deliberately broken run for the terminal host's mutation lines (`Notify.tsx`): `verbs` draws one wrong verb on
+   *  every notification row, `rows` makes the rows no Tab stops. */
+  mutate?: string;
 }) {
   const { input } = props;
   // The page's theme: the host's (`main.ts`'s `t` key, `THEME=light`) or the settings screen's pick, which is written back
@@ -905,6 +914,9 @@ export function Sky(props: {
     setParent(from);
     setThreadOpen(true);
     ask(uri);
+    // its stops at once: the frame the screen opens on is still the one the tick reads the last committed state in, and a
+    // key on that frame (Escape, a notification row's Enter) is the thread's, its back control's, not the list's under it
+    stops(true);
   };
   /** Back: one step of the one-deep history, else the feed. The thread it came from is restored as the answer it already
    *  had (no second request) and an answer still on its way is dropped (`ask`'s token). */
@@ -979,35 +991,44 @@ export function Sky(props: {
       input.focus.blur();
     }
   };
-  // ... and the profile screen's cover: while it is up the feed's stop is disabled (the profile's own screen registers it)
-  // and the thread's two stops leave the Tab order, the thread still declared under the profile; its back takes the focus
-  // again when the profile closes onto it, and the feed's screen blurs when anything over it goes.
+  // ... and the screens' cover: the feed's stop is out of the Tab order while any screen is up, the thread's two stops
+  // leave it while the profile is over them, and a thread opened from a notification hands the focus back to its row.
+  // The notifications' own stops are `notify.enable`'s, each frame (a screen may open over them).
   let covered = "";
   const cover = () => {
     const thread = threadOpen();
     const up = profile.isOpen();
-    const key = thread ? (up ? "under" : "thread") : up ? "profile" : "feed";
+    const notes = notify.isOpen();
+    const key = up ? (thread ? "under" : "profile") : thread ? "thread" : notes ? "notify" : "feed";
     if (key === covered) return;
     const was = covered;
     covered = key;
-    if (key === "profile") input.focus.register(VIEW, { disabled: true });
-    else if (key === "feed") input.focus.register(VIEW, { disabled: false });
+    input.focus.register(VIEW, { disabled: key !== "feed" });
     if (thread) {
       input.focus.register(backPart.id, { disabled: up });
       input.focus.register(regionPart.id, { disabled: up });
     }
     if (key === "thread") input.focus.focus(backPart.id);
+    else if (key === "notify" && was === "thread") notify.refocus();
     else if (key === "feed" && was !== "") input.focus.blur();
   };
   // Escape anywhere else (the bar's tablist) is the page's last resort, with the host's own fallback beside it: the top
-  // screen first (the profile over the thread), then the thread
+  // screen first (the profile, then a notification's thread, then the notifications), then the thread. `n` is the
+  // notifications' key — the app's nav has no item for one, so the page carries it as the C shell does — and Tab past the
+  // notifications' last row wraps the list.
   const hostFallback = input.fallback;
   input.fallback = (name) =>
     name === "Escape" && profile.isOpen()
       ? (profile.close(), true)
       : name === "Escape" && threadOpen()
         ? (leaveThread(), true)
-        : (hostFallback?.(name) ?? false);
+        : name === "Escape" && notify.isOpen()
+          ? (notify.close(), true)
+          : name === "n" && !notify.isOpen() && !threadOpen() && !profile.isOpen() && !settings.open()
+            ? (notify.open(), true)
+            : name === "Tab" && notify.isOpen()
+              ? notify.wrap()
+              : (hostFallback?.(name) ?? false);
   onCleanup(() => (input.fallback = hostFallback));
 
   /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
@@ -1189,6 +1210,9 @@ export function Sky(props: {
     // the node has left: the data it showed is no longer needed
     if (!mounted && state() !== null) setState(null);
     stops(open);
+    // the notifications' rows are stops only while the screen is the page's top one: a thread, the profile or the settings
+    // screen may be over it (each has the Tab order then)
+    notify.enable(notify.isOpen() && !open && !profile.isOpen() && !settings.open());
     cover();
     if (mounted) {
       // the rows' real content from the last frame's layout (the last row's bottom, the clip's own offset added back, and
@@ -1203,12 +1227,16 @@ export function Sky(props: {
     }
     // the profile screen's own frame: its entry (or exit), its list's content and its machine
     profile.tick(dt);
+    // ... and the notifications': the same, over the feed
+    notify.tick(dt);
   };
   // The wheel is the screen's under the pointer: the profile's clip and thumb while it is up (over the thread), then the
-  // thread's, and the feed's everywhere else, as it always was (a wheel over the status line scrolls it).
+  // thread's, then the notifications', and the feed's everywhere else, as it always was (a wheel over the status line
+  // scrolls it).
   const wheel = (dx: number, dy: number) => {
     if (profile.isOpen()) return profile.wheel(dx, dy);
     if (settings.open()) return settings.wheel(dx, dy);
+    if (notify.isOpen() && !threadOpen()) return notify.wheel(dx, dy);
     if (!threadOpen()) return feedScroll.wheel(dx, dy);
     if (ui.over(threadViewId) || ui.over(threadBarId)) threadScroll.wheel(dx, dy);
   };
@@ -1217,6 +1245,7 @@ export function Sky(props: {
     if (profile.isOpen()) profile.pointer(x, y, down, touch);
     else if (settings.open()) settings.pointer(x, y, down, touch);
     else if (threadOpen()) threadScroll.pointer(x, y, down, touch);
+    else if (notify.isOpen()) notify.pointer(x, y, down, touch);
     else feedScroll.pointer(x, y, down, touch);
   };
   if (props.motion)
@@ -1254,6 +1283,22 @@ export function Sky(props: {
   // keeps its state, its motion and its element.
   const profile = createProfile({ input, styles: s, postOf, ago, num });
 
+  // The page's fourth screen (app/Notify.tsx): the feed's `n` opens the notifications. Set up after the profile's, so its
+  // stops (the back control and the five rows) come after the page's in the Tab order; its posts open the same thread the
+  // feed's cards do (`openThread`, the page's `load`). The host's own entry — `terminal/solid.ts --page notify`,
+  // `solid/main.ts notify` — is the page as `n` leaves it.
+  const notify = createNotify({
+    input,
+    styles: s,
+    postOf,
+    ago,
+    mutate: props.mutate,
+    openPost: (uri) => openThread(uri, null),
+    // its own node is the one under a thread: a notification's thread, the profile and the settings draw over it
+    covered: () => threadShown() || profile.shown() || settings.shown(),
+  });
+  if (props.screen === "notifications") notify.open();
+
   const statusOf = () => {
     const f = feed();
     const sel = selected();
@@ -1280,6 +1325,7 @@ export function Sky(props: {
                 binds[i]!.onClick?.();
                 if (profile.isOpen()) profile.close();
                 if (threadOpen()) closeThread();
+                if (notify.isOpen()) notify.close();
                 settings.close();
               }}
             >
@@ -1306,7 +1352,7 @@ export function Sky(props: {
           the selection); the covered screen is out of the a11y tree while a screen is up */}
       <box
         {...bind}
-        hidden={threadShown() || profile.shown() || settings.shown()}
+        hidden={threadShown() || profile.shown() || settings.shown() || notify.shown()}
         onPress={() => (bind.onPress(), feedScroll.press())}
         style={s.view}
       >
@@ -1369,9 +1415,13 @@ export function Sky(props: {
       </box>
       {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
       <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
-      <box id="sky-status" hidden={threadShown() || profile.shown() || settings.shown()} style={s.status}>
+      <box id="sky-status" hidden={threadShown() || profile.shown() || settings.shown() || notify.shown()} style={s.status}>
         <text style={s.statusText}>{statusOf()}</text>
       </box>
+      {/* the notifications screen: declared before the thread and the profile, so their root floats (the same z) draw over
+          it — the thread a notification opens is over the list, as the C shell's stack has it; the node is the presence's,
+          so it stays mounted for its 0.3s exit */}
+      {notify.screen()}
       {/* the thread screen: a root float over the content area, its header (the back control and the title) above its own
           clip element. The region is named by the root's author; the rows are the app's: the posts at their depths, a
           tombstone's words as a note, a "Show N more replies" row as a button, and — while the loader has no answer — the
