@@ -1478,7 +1478,7 @@ Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground'
 
 ```ts skip
 createTabs(options?: {
-  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
+  ...; // the plain tabs: items, value, defaultSelected, orientation, dir, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
   closable?: boolean; // false: closeProps and the Delete key; the host removes from onClose
   renamable?: boolean; // false: a double click edits the label inline; the host renames from onRename
   label?(index: number): string | undefined; // the tab's name: the buttons' labels and the rename draft
@@ -1503,6 +1503,7 @@ createTabs(options?: {
 - **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
 - **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tablist's roving does not move. `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
 - **Ids.** `tabId(index)` and `panelId(index)` replace the generated `${id}-tab-<index>` / `${id}-tabpanel-<index>`, and `aria-controls` / `aria-labelledby` follow them. Use them when the host's markup or a deep link already names a panel (`#logs`): the alternative is a second id on the same element, which no attribute can carry.
+- **Direction.** `dir: "rtl"` swaps ArrowLeft / ArrowRight on a horizontal tablist (a vertical one keeps Up / Down); the host still sets `dir` on its element for the visual order. The model `tabs.qnt` is ltr only, so the ported `direction` scenarios stay skipped; `packages/headless/test/tabs-requirements.browser.test.tsx` holds the swap.
 - **The host's list.** `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list. `label` is read lazily too, so a renamed tab renames its buttons with it.
 - The spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but neither a rename nor the callbacks, so the browser test, not the model, holds the extension.
 
