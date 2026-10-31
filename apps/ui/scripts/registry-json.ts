@@ -216,6 +216,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "menubar",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Menubar",
+    description:
+      "APG menu and menubar: a roving bar whose menus float under their items, rows with one tab stop, and nested submenus that open beside the parent row",
+  },
+  {
     name: "tooltip",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

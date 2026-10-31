@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectTrigger } from "../registry/select/select.
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
 import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
+import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
@@ -181,6 +182,23 @@ const MenuDemo = (): JSX.Element => (
       <MenuContent />
     </Menu>
   </div>
+);
+
+const MenubarDemo = (): JSX.Element => (
+  <Menubar
+    items={[
+      {
+        label: "File",
+        menu: [
+          { label: "New" },
+          { label: "Export", submenu: [{ label: "PDF" }, { label: "PNG" }] },
+          { label: "Close" },
+        ],
+      },
+      { label: "Edit", menu: [{ label: "Undo" }, { label: "Redo" }] },
+      { label: "Help" },
+    ]}
+  />
 );
 
 const TooltipDemo = (): JSX.Element => (
@@ -487,6 +505,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
   menu: MenuDemo,
+  menubar: MenubarDemo,
   tooltip: TooltipDemo,
   select: SelectDemo,
   textarea: TextareaDemo,
