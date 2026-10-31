@@ -21,6 +21,7 @@ import {
   Menus,
   MountedDialogs,
   Mode,
+  MultiCheckboxMenus,
   Nesting,
   Renders,
   Selects,
@@ -383,6 +384,35 @@ describe("the kit composes", () => {
     expect(rows[3]!.getAttribute("aria-checked")).toBe("true");
     expect(rows[1]!.getAttribute("aria-checked")).toBe("false");
     expect(readout.textContent).toBe("0|3");
+  });
+
+  it("checks a checkbox beyond item 0 in a controlled menu", () => {
+    const root = mount(() => <MultiCheckboxMenus />);
+    const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
+    const readout = part(root, "menu-checked");
+    trigger.focus();
+    trigger.click();
+    flush();
+    const rows = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+    expect(rows.map((row) => row.getAttribute("role"))).toEqual([
+      "menuitemcheckbox",
+      "menuitemcheckbox",
+      "menuitemcheckbox",
+    ]);
+    expect(readout.textContent).toBe("|-1");
+    // the third row, not item 0: the primitive's packed value had one checkbox bit, so this could never round trip
+    rows[2]!.focus();
+    flush();
+    rows[2]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(rows[2]!.getAttribute("aria-checked")).toBe("true");
+    expect(readout.textContent).toBe("2|-1");
+    // a second checkbox is kept alongside it
+    rows[0]!.focus();
+    flush();
+    rows[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    flush();
+    expect(readout.textContent).toBe("0,2|-1");
   });
 
   it("describes the trigger with the tooltip's id while the tooltip is shown", () => {

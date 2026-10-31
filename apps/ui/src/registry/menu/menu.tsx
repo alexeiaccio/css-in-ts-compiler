@@ -13,10 +13,9 @@ import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 /**
- * The checkable state, readable: checkbox items that are checked, and the chosen radio, by index. The primitive reports the
- * pair packed into one number (`checkboxItem0 * 5 + radioChoice`); the kit packs and unpacks at its own boundary, so a
- * caller never writes the encoding. The pack has one checkbox bit, so a controlled menu controls item 0 (the checkbox of
- * the `mixed` variant); an uncontrolled menu may check any item.
+ * The checkable state, readable: checkbox items that are checked, and the chosen radio, by index. The primitive takes
+ * the same pair (`checked` / `choice`), so the kit passes it straight through and a caller never writes an encoding; any
+ * checkbox item can be controlled, not just item 0.
  */
 export interface MenuChecked {
   /** The checked checkbox items, by index. */
@@ -145,12 +144,6 @@ const markClass = css.cn(
   css.within(css.attr("aria-checked", "true"))(css.visibility("visible")),
 );
 
-// The primitive's controlled value is one number: `checkboxItem0 * 5 + radioChoice` (1-based). The kit's public state is
-// the readable pair, so it packs and unpacks here; only the pack's one checkbox bit survives a controlled round trip.
-const packChecked = (value: MenuChecked): number =>
-  (value.checked.includes(0) ? 5 : 0) +
-  (value.radio === undefined || value.radio < 0 ? 0 : value.radio + 1);
-
 const triggerOf = (root: HTMLElement | undefined): HTMLElement | undefined =>
   root?.querySelector<HTMLElement>('[aria-haspopup="menu"]') ?? undefined;
 
@@ -173,8 +166,11 @@ export const Menu = (props: MenuProps): JSX.Element => {
   const menu: MenuController = createMenu({
     items: props.items,
     variant: props.variant,
-    get value() {
-      return props.value === undefined ? undefined : packChecked(props.value);
+    get checked() {
+      return props.value?.checked;
+    },
+    get choice() {
+      return props.value === undefined ? undefined : (props.value.radio ?? -1);
     },
     get defaultChecked() {
       return props.defaultValue?.checked;
@@ -182,26 +178,12 @@ export const Menu = (props: MenuProps): JSX.Element => {
     get defaultChoice() {
       return props.defaultValue?.radio;
     },
-    get onCheckedChange() {
-      const change = props.onValueChange;
-      if (change === undefined) {
-        return undefined;
-      }
-      return (checked: boolean, index: number) => {
-        // Uncontrolled the primitive has committed already, controlled it has not: a set makes both the same intent
-        const current = menu.checked();
-        const next = checked
-          ? [...new Set([...current, index])].sort((a, b) => a - b)
-          : current.filter((i) => i !== index);
-        change({ checked: next, radio: menu.choice() });
-      };
-    },
-    get onValueChange() {
+    get onCheckedValuesChange() {
       const change = props.onValueChange;
       return change === undefined
         ? undefined
-        : (index: number) => {
-            change({ checked: menu.checked(), radio: index });
+        : (checked: ReadonlyArray<number>, choice: number) => {
+            change({ checked, radio: choice });
           };
     },
     get open() {

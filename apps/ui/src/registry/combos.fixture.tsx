@@ -254,6 +254,27 @@ export const CheckableMenus = (): JSX.Element => {
   );
 };
 
+// `checkbox-items`: every row is a checkbox, so a controlled host can check one whose index is not 0.
+export const MultiCheckboxMenus = (): JSX.Element => {
+  const [checked, setChecked] = createSignal<MenuChecked>({ checked: [], radio: -1 });
+  return (
+    <>
+      <Menu
+        variant="checkbox-items"
+        items={["Bold", "Italic", "Underline"]}
+        value={checked()}
+        onValueChange={setChecked}
+      >
+        <MenuTrigger>Format</MenuTrigger>
+        <MenuContent />
+      </Menu>
+      <output data-part="menu-checked">
+        {checked().checked.join(",")}|{checked().radio ?? -1}
+      </output>
+    </>
+  );
+};
+
 export const Tooltips = (): JSX.Element => (
   <Tooltip>
     <TooltipTrigger>Delete</TooltipTrigger>
