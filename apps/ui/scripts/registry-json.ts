@@ -271,6 +271,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     description: "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
   },
   {
+    name: "treegrid",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Tree grid",
+    description:
+      "APG treegrid: a file tree with columns, the expander in the name cell, roving focus across rows and cells, and the selected row painted from `aria-selected`",
+  },
+  {
     name: "menu",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

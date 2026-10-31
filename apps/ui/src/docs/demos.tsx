@@ -83,6 +83,7 @@ import {
 import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
+import { TreegridExample } from "../registry/treegrid/treegrid.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
@@ -712,6 +713,8 @@ const TREEVIEW_NODES = [
 const TreeviewDemo = (): JSX.Element => (
   <Treeview nodes={TREEVIEW_NODES} defaultValue={[2]} defaultExpanded={[1, 2]} label="Files" />
 );
+// The same file tree the browser test mounts: two folders open, the third level one expander away.
+const TreegridDemo = (): JSX.Element => <TreegridExample class="demo-treegrid" />;
 const SliderDemo = (): JSX.Element => {
   const [volume, setVolume] = createSignal(4);
   return (
@@ -1208,6 +1211,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   meter: MeterDemo,
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
+  treegrid: TreegridDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,

@@ -252,6 +252,11 @@ code {
   max-width: 30rem;
 }
 
+/* A treegrid's three columns follow the reading column; the frame scrolls nowhere, the name cell gives way. */
+.demo-treegrid {
+  max-width: 38rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;
