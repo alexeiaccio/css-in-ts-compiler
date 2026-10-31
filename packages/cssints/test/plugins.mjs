@@ -143,6 +143,23 @@ assert.equal(sb, sa, "one script, one import: the browser runs it once");
 assert.equal(sc, "export {};", "every target has the feature: nothing ships");
 assert.equal(sd, sa, "no polyfills: the script ships, whatever the targets are");
 
+// ship(): a site that returns more than a class string ships an object literal, each style as its class string and the
+// rest as JSON, so `state()`'s owner and its sources reach the browser as an object (cssints-zrt2)
+const shipUse = await code("plug-ship-use.ts");
+assert.match(
+  shipUse,
+  /^const ui = \{\n\s*"owner": "_pship-k _\w+ _\w+",\n\s*"name": "x",\n\s*"list": \["x"\],\n\s*"nested": \{ "n": "x" \}\n\};/,
+  shipUse,
+);
+assert.match(
+  shipUse,
+  /export const a = "_pship-k _\w+ _\w+";/,
+  "the owner is a style, in a cn() too",
+);
+assert.match(shipUse, /export const b = ui\.name;/, "the data is the client's");
+const shipCss = sheet("plug-ship-use.ts");
+assert.ok(shipCss.includes("._pship-k{color:red}"), shipCss);
+
 // a kernel written as styles: the support warning of a declaration is covered like `requires`, and names --sw-g, not --_g
 warnings.length = 0;
 await code("plug-styles-use.ts");

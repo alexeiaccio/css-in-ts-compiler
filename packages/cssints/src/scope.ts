@@ -9,13 +9,13 @@ import type { Grammar, TokenType } from "@cssints/css-grammar/token";
 import type { ValidSelector } from "@cssints/css-grammar/query";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
-import type { BcdKey, Decl } from "./author-types.ts";
+import type { BcdKey, Decl, Ship } from "./author-types.ts";
 import type { CheckIn, Part, Style } from "./parts.ts";
 import type { CheckOverrides } from "./theme-types.ts";
 import type * as Cssints from "./types.ts";
 
 export type { Part, Style };
-export type { BcdKey, Decl };
+export type { BcdKey, Decl, Ship };
 
 // ───────────────────────────── the entries of a table ─────────────────────────────
 
@@ -587,3 +587,15 @@ export const dependsOn = (path: string): void => engine().dependsOn(path);
  */
 export const inGroup = (group: string, property: string, value: string): boolean =>
   engine().inGroup(group, property, value);
+
+/**
+ * `ship({ owner, open })`: what a member returns when a site has more to give than a class string — `@cssints/reactive`'s
+ * `state()`, whose `owner` is a style and whose sources are data. The client module gets an object literal: each style is
+ * its class string, an array or an object keeps its shape, and anything else is its JSON. At build time the object is the
+ * entries themselves. Build time, like `scope()`.
+ */
+export const ship = (entries: { readonly [key: string]: unknown }): Ship => {
+  // the marker is not enumerable: the entries are what ships, and a self-reference would be walked
+  Object.defineProperty(entries, "~ship", { value: entries, enumerable: false });
+  return entries as unknown as Ship;
+};
