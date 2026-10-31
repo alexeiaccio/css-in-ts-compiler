@@ -313,6 +313,63 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "shortcuts",
+      "type": "registry:ui",
+      "title": "Shortcuts",
+      "description": "A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme", "@cssints/button", "@cssints/input"],
+      "files": [
+        {
+          "path": "shortcuts.tsx",
+          "target": "src/components/ui/shortcuts.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "dialog.tsx",
+          "target": "src/components/ui/dialog.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "shortcuts.fixture.tsx",
+          "target": "src/components/ui/shortcuts.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "shortcuts.browser.test.tsx",
+          "target": "src/components/ui/shortcuts.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "input",
       "type": "registry:ui",
       "title": "Input",
