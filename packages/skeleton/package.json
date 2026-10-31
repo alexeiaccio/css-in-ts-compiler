@@ -1,6 +1,6 @@
 {
   "name": "@cssints/skeleton",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "Skeleton loaders for cssints whose shimmer is in phase across the page: one animation on :root, read by every skeleton",
   "license": "MIT",
   "repository": {
@@ -48,7 +48,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.22.0"
+    "cssints": "^0.23.0"
   },
   "engines": {
     "node": ">=22"

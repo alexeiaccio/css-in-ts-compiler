@@ -1,5 +1,11 @@
 # @cssints/reactive
 
+## 0.23.0
+
+### Patch Changes
+
+- cssints@0.23.0
+
 ## 0.22.0
 
 ### Patch Changes
