@@ -44,7 +44,10 @@ import {
   comboboxTreeSteps,
 } from "@cssints/apg-specs/apg/combobox-tree.bridge";
 import { describe, expect, it } from "vite-plus/test";
+import { For, createSignal } from "solid-js";
+import { type Combobox, createCombobox } from "../src/combobox";
 import type { Mounted } from "./dom-driver";
+import { render } from "@solidjs/web";
 import ariakit from "@cssints/apg-specs/scenarios/apg/combobox.ariakit.json";
 import autocompleteDefinition from "@cssints/apg-specs/apg/combobox-autocomplete.model.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/combobox.base-ui.json";
@@ -340,5 +343,109 @@ describe("createCombobox (filtering)", () => {
     expect(driver.observer.value?.()).toBe("Delaware");
     expect(visible()).toEqual([]);
     driver.dispose?.();
+  });
+});
+
+// Solid 2 delivers events through its delegated listener on a later turn, and applies setters on its flush.
+const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+// `disabled` is a widget-level extension of the pattern (the spec lists it under
+// its deliberate omissions): the combobox keeps its tab stop, announces
+// `aria-disabled` (the trigger does too), and drops every key, click, typeahead
+// character, filter input and option click before it becomes a request.
+describe("createCombobox disabled", () => {
+  const renderCombo = () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const [disabled, setDisabled] = createSignal(true);
+    const calls: string[] = [];
+    let api: Combobox | undefined;
+    const dispose = render(() => {
+      const combobox = createCombobox({
+        options: [...COMBOBOX_SELECT_ONLY_ITEMS],
+        filter: true,
+        get disabled() {
+          return disabled();
+        },
+        onOpenChange: (open) => calls.push(`opened:${open}`),
+        onValueChange: (value) => calls.push(`value:${value}`),
+      });
+      api = combobox;
+      return (
+        <div>
+          <input data-part="input" {...combobox.comboboxProps} />
+          <button data-part="trigger" {...combobox.triggerProps} />
+          <ul data-part="popup" {...combobox.listboxProps}>
+            <For each={combobox.options()}>
+              {(option) => (
+                <li data-part="option" {...option.props}>
+                  {option.label}
+                </li>
+              )}
+            </For>
+          </ul>
+        </div>
+      );
+    }, root);
+    const part = (name: string) => root.querySelector<HTMLElement>(`[data-part="${name}"]`)!;
+    return {
+      setDisabled,
+      calls,
+      api: () => api!,
+      input: () => root.querySelector<HTMLInputElement>('[data-part="input"]')!,
+      trigger: () => part("trigger"),
+      option: (index: number) => root.querySelectorAll<HTMLElement>('[data-part="option"]')[index]!,
+      dispose: () => {
+        dispose();
+        root.remove();
+      },
+    };
+  };
+
+  it("keeps its tab stop, announces aria-disabled and refuses a key, a click and a typed character", async () => {
+    const { setDisabled, calls, api, input, trigger, option, dispose } = renderCombo();
+    expect(input().getAttribute("aria-disabled")).toBe("true");
+    expect(trigger().getAttribute("aria-disabled")).toBe("true");
+    // the combobox is the pattern's tab stop either way (no tabindex is set on it)
+    expect(input().hasAttribute("tabindex")).toBe(false);
+    input().focus();
+    await tick();
+    expect(document.activeElement).toBe(input());
+
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    await tick();
+    expect(input().getAttribute("aria-expanded")).toBe("false");
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await tick();
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "b", bubbles: true }));
+    await tick();
+    expect(api().query()).toBe("");
+    expect(input().getAttribute("aria-expanded")).toBe("false");
+
+    input().click();
+    trigger().click();
+    await tick();
+    expect(input().getAttribute("aria-expanded")).toBe("false");
+
+    // the filter input's `onInput` is dropped too
+    input().value = "b";
+    input().dispatchEvent(new InputEvent("input", { bubbles: true }));
+    await tick();
+    expect(api().query()).toBe("");
+    expect(calls).toEqual([]);
+
+    // the getters are live: enabling the combobox enables its keys, its clicks and its commits
+    setDisabled(false);
+    await tick();
+    expect(input().hasAttribute("aria-disabled")).toBe(false);
+    expect(trigger().hasAttribute("aria-disabled")).toBe(false);
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    await tick();
+    expect(input().getAttribute("aria-expanded")).toBe("true");
+    option(1).click();
+    await tick();
+    expect(api().value()).toBe("Banana");
+    expect(calls).toEqual(["opened:true", "value:Banana", "opened:false"]);
+    dispose();
   });
 });

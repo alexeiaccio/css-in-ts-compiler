@@ -1667,6 +1667,42 @@ createMenu(options: {
 
 **The open state is a request/commit pair**, like every other controlled primitive: `open` (+ `onOpenChange`) makes the host own it, `defaultOpen` starts it. Every intent that opens or closes — the trigger's click and its keys, Escape, an item's activation, Tab, an outside click in a kit, the programmatic `openMenu` / `closeMenu` — is a request, so a host that holds `open` keeps the menu open and the focus where it was; `menu-button.qnt` reverts the whole transition of a rejected request, focus included. A write the host makes on its own is not a request: it takes the focus to the first item when it opens and to the trigger when it closes, and a write of the value it already has moves nothing (no widget can observe it).
 
+### Headless: `createCombobox` (`@cssints/headless`)
+
+The APG combobox as state and attribute objects: the select-only variant of `specs/apg/combobox-select-only.qnt`, with a listbox popup; `filter: true` turns typing into the autocomplete variant's prefix filter. The grid, tree and dialog popups the other combobox specs model are not this primitive (their models are walked against themselves). Its behaviour is `packages/headless/test/combobox.browser.test.tsx`: DOM focus never leaves the combobox, the popup's active option is announced through `aria-activedescendant`, and navigating never commits — Enter, Space, Tab, blur, Alt+ArrowUp, an option click or `setValue` do.
+
+```ts skip
+createCombobox(options: {
+  options: ReadonlyArray<ComboboxOption | string>; // `{ value, label }`, or a string that is both
+  value?: string | null | undefined; // controlled selection
+  defaultSelectedValue?: string | null; // uncontrolled start (`defaultValue` is its alias)
+  open?: boolean | undefined; // controlled popup
+  defaultOpen?: boolean;
+  autoComplete?: "none" | "list" | "both"; // "list"
+  filter?: boolean; // false: single-letter typeahead; true: a prefix filter
+  disabled?: boolean; // aria-disabled on the combobox and the trigger; a key, click, typed character, filter input and option click change nothing, no popup opens
+  placeholder?: string;
+  id?: string; // base of `<id>-input`, `-trigger`, `-listbox`, `-option-<i>`
+  onOpenChange?(open: boolean): void; // a request the host may ignore
+  onValueChange?(value: string | null): void; // a request the host may ignore
+  onFocusRelease?(): void; // Tab: the host may blur its own DOM
+}): {
+  open(): boolean;
+  activeIndex(): number; // index into `options()`; -1 = the visual focus on the combobox
+  value(): string | null;
+  focused(): boolean;
+  query(): string; // the typeahead / filter text
+  options(): ReadonlyArray<{ value; label; selected; id; props }>;
+  setOpen(open: boolean): void; // a request
+  setValue(value: string | null): void;
+  comboboxProps: { id; role: "combobox"; value; "aria-autocomplete"; "aria-haspopup"; "aria-expanded"; "aria-controls"; "aria-activedescendant"; "aria-disabled"; onInput; onKeyDown; onFocus; onBlur; onClick };
+  triggerProps: { id; type: "button"; tabindex: -1; "aria-haspopup"; "aria-expanded"; "aria-controls"; "aria-disabled"; onClick; onMouseDown };
+  listboxProps: { id; role: "listbox"; hidden };
+};
+```
+
+**`disabled` is a widget-level extension** (`combobox-select-only.qnt` lists it under its deliberate omissions and has no `disabled` var, so the DOM test is its oracle): a key, a click, a typeahead character, a filter input and an option click are dropped before they become a request, and no popup opens. It announces `aria-disabled` — not the native `disabled` — because the pattern puts the state on a `role="combobox"` element that is a button in the select-only example; the combobox keeps its tab stop (the pattern's focus contract), as `createButton` and `createSlider`'s thumb do. The trigger announces `aria-disabled` too. `setOpen` / `setValue` stay host requests, so a programmatic write still applies.
+
 ### Headless: `createCheckboxGroup` (`@cssints/headless`)
 
 The APG Checkbox pattern's tri-state group controller: exactly three child values, a controller whose `aria-checked` is derived from them (all / none / mixed) with the optional "remember the last mixed combination" cycle, checked against `specs/apg/checkbox-group.qnt`. Its name, description and error are `createField`'s contract on the `role="group"` element, which the model leaves out on purpose (its header omits labelling), so `packages/headless/test/checkbox-group.browser.test.tsx` is their oracle.
