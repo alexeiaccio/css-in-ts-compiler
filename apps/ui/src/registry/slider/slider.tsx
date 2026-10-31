@@ -24,9 +24,11 @@ export interface SliderProps extends Omit<SliderOptions, "id">, Renderable<Slide
 }
 
 // The rail is the box, the fill and the thumb are decoration over it: the thumb is the announced `role=slider`, and the
-// primitive owns its value, bounds, orientation and keys. The rail copies the announced orientation to `data-orientation`
-// because a box cannot read an attribute of its child: the fill and the thumb paint the vertical geometry from it, and the
-// thumb paints its own from `aria-orientation` — one source, the primitive's `orientation`, so the two cannot disagree.
+// primitive owns its value, bounds, orientation, keys and the drag. The rail copies the announced orientation to
+// `data-orientation` because a box cannot read an attribute of its child: the fill and the thumb paint the vertical geometry
+// from it, and the thumb paints its own from `aria-orientation` — one source, the primitive's `orientation`, so the two cannot
+// disagree. `touch-action` and `user-select` are the one thing the drag needs from CSS (the primitive carries none): a press
+// on a touch rail must move the thumb instead of scrolling the page, and a mouse drag must not select the text it crosses.
 const rail = css.cn(
   css.boxSizing("border-box"),
   css.position("relative"),
@@ -36,6 +38,8 @@ const rail = css.cn(
   css.bg(t.color.buttonBackground),
   css.borderRadius("999px"),
   css.cursor("pointer"),
+  css.touchAction("none"),
+  css.userSelect("none"),
   css.transition("background-color 120ms"),
   css.attr("data-orientation", "vertical")(css.width(t.space._2), css.height(t.space._10)),
   css.attr("aria-disabled", "true")(css.bg(t.color.borderDisabled), css.cursor("not-allowed")),
@@ -83,13 +87,13 @@ const thumb = css.cn(
 
 /**
  * APG slider, styled: a rail, the fill of the value and the thumb. `createSlider` owns the value, the bounds, the
- * orientation, the arrow/Home/End keys and the rail press; the one thing CSS cannot read off `aria-valuenow` is the fill's
- * share of the rail (an arithmetic turn of `attr()` inside `calc()`), so the width is an inline percentage of the same
+ * orientation, the arrow/Home/End keys, the rail press and the drag; the one thing CSS cannot read off `aria-valuenow` is the
+ * fill's share of the rail (an arithmetic turn of `attr()` inside `calc()`), so the width is an inline percentage of the same
  * attributes the thumb announces, as `Meter` does. Vertical, the rail is as tall as `space.10` and a page sets its own.
  *
  * `value` makes it controlled; without it the slider owns the value. `onValueChange` is a request the host may ignore.
- * `disabled` is the primitive's: it announces `aria-disabled` on the thumb and drops every key and rail press, so the kit
- * only copies that announced state onto the rail and the fill (a box cannot read an attribute of its child).
+ * `disabled` is the primitive's: it announces `aria-disabled` on the thumb and drops every key, rail press and drag, so the
+ * kit only copies that announced state onto the rail and the fill (a box cannot read an attribute of its child).
  */
 export const Slider = (props: SliderProps): JSX.Element => {
   const slider = createSlider({
