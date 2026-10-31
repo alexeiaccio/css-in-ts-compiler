@@ -7,7 +7,13 @@
 const WORKFLOW = /release\.yml/i;
 const GITHUB = /github/i;
 
-/** Every object in the tree that carries an id, flattened (the CLI's shape is not a contract). */
+/**
+ * Every object in the tree that carries an id, flattened (the CLI's shape is not a contract).
+ *
+ * @param {unknown} node the parsed JSON to walk
+ * @param {object[]} out the accumulator a recursive call appends to
+ * @returns {object[]} the objects that carry an id, in the tree's order
+ */
 const objects = (node, out = []) => {
   if (Array.isArray(node)) {
     for (const item of node) objects(item, out);
