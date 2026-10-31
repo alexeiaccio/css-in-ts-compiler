@@ -2794,3 +2794,39 @@ is the host's decision; the handlers and the geometry are the primitive's and th
 **Left**: no `dragging()` accessor (a host that wants to hide a tooltip while dragging has no read), the multi-thumb slider
 still has no drag and no rail (its own entry's reason), a thumb that is not inside the rail starts no drag (documented, not
 checked), and a pointer that leaves the window without a `pointerup` relies on the browser's capture release.
+
+## Reactive round two: the field's value, and programs that append (packages/reactive, 2026-10-31, cssints-674d)
+
+The round-one note left two limits: one `on()` and one `state()` per element, and a `set()` with a literal only. Both
+blocked the obvious widget — a `<select>` or a checkbox driving a panel, a button that answers a click and a key — so this
+round removes them, with one engine change.
+
+**The engine: a declaration that is a list.** `merged()` (lib.ts) kept the later of a same-property declaration, which is
+right for `p(4), p(2)` and wrong for two `on()`s: both set `--reactive-on`, and the first program vanished without a word.
+`Decl` gains a fifth element, `join`, and `append(prop, value)` (`cssints/plugin`) makes a declaration a list: two lists of
+one property under the same conditions join with the separator, a third still appends, and a list beside a plain value is a
+build error — appending would be wrong, replacing would drop a program. A list with `firstThatWorks()` is an error too (a
+list has no alternatives). The separator is part of no printed or hashed form: the sheet prints the joined value, and
+`hashClass`, clay, tui and the devtools read the four elements they always did. `cv()` is deliberately not changed: a
+variant is an alternative, so a list declared there replaces the base's as any declaration does.
+
+**The protocol: `@value` and `@checked`.** `value()` and `checked()` are branded `Payload<T>` values, and only `set()`
+takes one: `set(open, value())` and `set(tab, checked())` are type errors, as are a payload in `bind()`, `toggle()`,
+`when()`, `on()` or where a `Style` goes. The build writes the token into the set segment (`change set tab @value`), and
+the runtime resolves it against the event's target: `String(target.value ?? "")`, `target.checked ? "true" : "false"`. A
+literal is written as it was. A literal value now has no `@`, a build error at the `set()` call, so a string can never be
+mistaken for a payload.
+
+**One element, several programs.** `state()`, `on()` and `bind()` emit their properties with `append()`, so two `on()`s in
+one `cn()` are one `--reactive-on` (`click toggle open,keydown set tab two`), two `bind()`s one `--reactive-binding`, and
+two `state()`s one owner's list. The runtime splits the list and drops an identical segment before applying it: a program
+written twice would otherwise toggle twice. No JavaScript event handler, no source of its own: still one delegated listener
+per event, one flush per owner.
+
+**Cost.** No type budget change (the payload brand is one interface), no runtime bytes of note (the dedupe is a `Set` over
+the segments of one program; `field()` is two branches). The browser suite grew from five cases to nine on one page
+(select, checkbox, two programs, a repeated program); Chrome 156, Firefox 157 and WebKit 27.2 pass.
+
+**Left.** Persistence, counters, gestures, async and `event()` callbacks stay out. A list is a build-time join of string
+values, not a general list type: the protocol is still a comma-separated string on one element, and a payload is read only
+off the event's own target, never an ancestor's.
