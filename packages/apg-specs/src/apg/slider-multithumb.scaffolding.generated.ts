@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/slider-multithumb.qnt
-// Spec hash (sha256): 9d113656249981f1ef2ab84e53a1e4eed24aa9bbfa905d29715d426449453088
+// Spec hash (sha256): 829be4ba593cc2dbb09f67b6ef8bcaf4e13aeb17be3383e9c8abc6adade8dafd
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
