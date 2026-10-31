@@ -419,6 +419,17 @@ const ToastDemo = (): JSX.Element => {
         >
           Hover pause
         </Button>
+        <Button
+          tone="quiet"
+          onClick={() => {
+            // the queue keeps three: the first of the four is dropped as the fourth arrives, so the stack ends on the last three
+            for (const title of ["First toast", "Second toast", "Third toast", "Fourth toast"]) {
+              toast.show({ title });
+            }
+          }}
+        >
+          Queue four
+        </Button>
       </div>
       <Toaster toast={toast} />
     </div>
