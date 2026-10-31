@@ -410,6 +410,15 @@ const SliderMultithumbDemo = (): JSX.Element => {
         value={price()}
         onValueChange={setPrice}
       />
+      {/* disabled: both thumbs keep their tab stops, announce it, and no key or press changes the pair */}
+      <SliderMultithumb
+        label="Price (unavailable)"
+        min={0}
+        max={100}
+        step={10}
+        defaultValue={[30, 70]}
+        disabled
+      />
     </div>
   );
 };
