@@ -79,6 +79,7 @@ const mount = (options: MountOptions = {}): Mounted => {
         <div
           data-part="popover"
           {...created.popoverProps}
+          style={created.contentStyle()}
           ref={(element) => {
             contentEl = element;
             attachOnce();
@@ -229,6 +230,18 @@ describe("createDatePicker (real DOM)", () => {
     expect(part(root, "weekday").getAttribute("role")).toBe("columnheader");
     expect(part(root, "weekday").getAttribute("abbr")).toBe("Mon");
     expect(document.activeElement).toBe(cell(root, OCTOBER));
+  });
+
+  it("hands the host the popup's placement, measured from the trigger", async () => {
+    const { root } = mounted({ value: OCTOBER });
+    await open(root);
+    await tick();
+    const popup = part(root, "popover");
+    expect(popup.style.position).toBe("absolute");
+    const anchor = triggerOf(root).getBoundingClientRect();
+    const panel = popup.getBoundingClientRect();
+    // the default placement is bottom with a 4 px gap, measured in client space and written in page space
+    expect(Math.round(panel.top - window.scrollY)).toBe(Math.round(anchor.bottom + 4));
   });
 
   it("moves the roving day and the focus by a day and a week", async () => {

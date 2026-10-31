@@ -70,9 +70,10 @@ const firstEnabled = (mask: number): number => {
 
 /**
  * Scenario `config` -> what both targets are mounted with. The spec models a
- * fixed four-tab tablist: RTL (`direction`), non-wrapping (`loopFocus`), forced
- * mount, programmatic labels and tab counts beyond four are not modelled and
- * make the scenario `Unsupported`.
+ * fixed four-tab tablist: RTL (`direction` — the primitive's `dir` swaps the
+ * arrows, but the walk has no direction variable to compare it against),
+ * non-wrapping (`loopFocus`), forced mount, programmatic labels and tab counts
+ * beyond four are not modelled and make the scenario `Unsupported`.
  */
 export const tabsConfig = (config: ScenarioConfig): TabsConfig => {
   let items = TABS;

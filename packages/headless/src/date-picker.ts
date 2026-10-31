@@ -1,7 +1,7 @@
 import { type Accessor, createEffect, createMemo, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
 import { type GridProps, createGrid } from "./grid";
-import { type PopoverContentProps, createPopover } from "./popover";
+import { type PopoverContentProps, type PopoverStyle, createPopover } from "./popover";
 import { type StatusProps, createStatus } from "./status";
 
 /**
@@ -141,6 +141,8 @@ export interface DatePicker {
   readonly statusProps: StatusProps;
   readonly triggerProps: DatePickerTriggerProps;
   readonly popoverProps: DatePickerPopoverProps;
+  /** `style` for the popup element: the popover's last measure, in page space. */
+  readonly contentStyle: Accessor<PopoverStyle>;
   readonly headerProps: DatePickerHeaderProps;
   readonly previousProps: DatePickerNavProps;
   readonly nextProps: DatePickerNavProps;
@@ -425,13 +427,22 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
   };
 
   // The popup element, set by `attach`: a key moves the cursor and then the
-  // focus, on the microtask that applies the new `tabindex` (or the month).
-  let content: HTMLElement | undefined;
+  // focus, on the microtask that applies the new `tabindex` (or the month). A signal, because opening focuses the roving
+  // day and that reaction has to run again when a host attaches after the panel is already open.
+  const [popup, setPopup] = createSignal<HTMLElement | undefined>(undefined);
   const focusRoving = (): void => {
     queueMicrotask(() => {
-      content?.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]')?.focus();
+      popup()?.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]')?.focus();
     });
   };
+  createEffect(
+    () => [open(), popup()] as const,
+    ([isOpen, element]) => {
+      if (isOpen && element !== undefined) {
+        focusRoving();
+      }
+    },
+  );
 
   const onKeyDown = (event: KeyboardEvent): void => {
     const iso = cursor();
@@ -555,6 +566,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
       },
       "aria-labelledby": headerId,
     },
+    contentStyle: popover.contentStyle,
     headerProps: {
       id: headerId,
       get text() {
@@ -610,19 +622,14 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
         onKeyDown,
       };
     },
-    attach: (trigger, popup) => {
-      content = popup;
-      const detach = popover.attach(trigger, popup);
-      createEffect(
-        () => open(),
-        (isOpen) => {
-          if (isOpen) {
-            focusRoving();
-          }
-        },
-      );
+    // Nothing reactive is created here: a host calls `attach` from a `ref`, and Solid 2 runs refs in the effect phase,
+    // where creating a primitive belongs to nobody (see the note in `popover.ts`). The reactions to opening live at
+    // setup instead, above.
+    attach: (trigger, element) => {
+      setPopup(element);
+      const detach = popover.attach(trigger, element);
       return () => {
-        content = undefined;
+        setPopup(undefined);
         detach();
       };
     },

@@ -1,11 +1,11 @@
 ---
 # cssints-vk1y
 title: Non-modal popover
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:10Z
-updated_at: 2026-10-30T15:52:30Z
+updated_at: 2026-10-31T14:52:53Z
 parent: cssints-65eb
 ---
 
@@ -14,7 +14,7 @@ Anchored, light-dismiss, focus return, no inert background. dialog-modal is moda
 - [x] anchor + placement (bottom-start|bottom|bottom-end and their top flips; flip at the viewport edge, horizontal shift; no left/right side placements and no RTL mirroring yet — start/end are the trigger's left/right edges)
 - [x] open/close on trigger click, Escape, outside pointerdown; focus stays where the host puts it (focus moves into the content on open and back to the trigger, except a close from an outside pointerdown, which leaves the focus outside)
 - [x] not a menu: no roving focus. It is the base for menu-in-popover and the filterable menu
-- [x] adopt in apps/docs SettingsPanel (docs/popover: trigger + content props, attach in a portal, controlled open for the document Escape)
+- [x] adopt in apps/docs SettingsPanel (docs/popover: trigger + content props, attach in a portal, controlled open for the document Escape) — `createPopover` + `attach` in `apps/docs/src/SettingsPanel.tsx`, pinned by `apps/docs/test/browser.mjs`
 
 ## Summary of Changes
 
@@ -32,7 +32,7 @@ No APG pattern exists for a popover, so there is no Quint spec: `test/popover.br
 (9 tests in Chromium) is the oracle. README section, `docs/API.md` entry, and
 `.changeset/popover.md` (minor).
 
-Still open: adopting it in the docs SettingsPanel (last item).
+Adopted: `createPopover({ id: "settings", placement: "bottom-end", open, onOpenChange })` with `triggerProps` on the header button, `contentProps` on the panel in a `Portal`, and `attach(trigger, content)` from the refs, in `apps/docs/src/SettingsPanel.tsx`; `apps/docs/test/browser.mjs` reads it back (the panel under its trigger, Tab into it, Escape out with the focus on the trigger, the state kept across a reload).
 
 
 ## Adoption in apps/docs

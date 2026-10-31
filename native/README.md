@@ -1803,6 +1803,8 @@ bun terminal/solid.ts --ansi out.ansi             # the same cells as truecolour
 bun terminal/solid.ts --keys Tab,ArrowDown --dump out.txt     # the frame after each key, as main.c
 bun terminal/solid.ts --click 40,9 --dump out.txt # a press and a release on the Units pill (the page's own onClick)
 bun terminal/solid.ts --page sky --keys WheelDown,WheelDown --settle 90 --offset --dump out.txt  # the page's wheel, then its rest
+bun terminal/solid.ts --page sky --keys Tab,Tab,Enter --settle 3 --dump out.txt    # the thread (Enter on the feed)
+bun terminal/solid.ts --page sky --click 20,2 --settle 5 --dump out.txt            # the profile (a card's author row)
 bun terminal/solid.ts --theme light --dump out.txt            # the light theme (also THEME=light)
 bun terminal/solid.ts --cols 80 --rows 11 --bench 20          # the frame's ms, and the same cells as ANSI
 sh terminal/test.sh                               # the comparisons below (native/test.sh runs it)
@@ -1846,9 +1848,12 @@ which is where the C page's list would take it; there is no list in `Sensors.tsx
 
 **The Sky feed.** `bun terminal/solid.ts --page sky` renders `solid/app/Sky.tsx` **unmodified**: its props are the
 host's `input` (the headless parts and the focus manager), its `motion` (the page puts its wheel, its pointer and its
-tick there), `theme`/`setTheme` (the host's `t`), and a `load` that is a promise which never settles — the terminal has
-no AppView, so a card's click opens the thread's loading state and nothing lands. The page needed no prop it does not
-have on the desktop. What the host re-cuts, through the value channel, is the length set a cell cannot take as px:
+tick there), `theme`/`setTheme` (the host's `t`), and `load`. The terminal has no AppView, so the host settles `load`'s
+promise with the app's **recorded** thread — apps/csssky's `thread.json`, through the page's own `screenOf`, the fixture
+`solid/thread.test.ts` hands it — one frame after the screen mounts: a card's click draws the loading row and the app's
+rows the frame after it. The page needed no prop it does not have on the desktop. What the host re-cuts, through the
+value channel (written by the walk just before each element opens, so a frame uses a value only for the elements it
+declares: the table is 256 a frame), is the length set a cell cannot take as px:
 
 | the page | px | the cell |
 | --- | --- | --- |
@@ -1863,11 +1868,48 @@ one-row tab is the label's row; the feed's `:focus` ring is the page's own `t.co
 characters around the viewport, and when it is focused it eats the first card's name row (a cell cannot be both a ring
 and that row). The avatar is a `css.image`: the host **skips** the element (a cell has no glyph for it, and its 40x40
 box would be three rows of nothing the C page does not draw). A card's own `onClick` opens the thread; the page's cards
-are not Tab stops, so Enter has no card to open (unlike the C page's list, which has the selection). Tab reaches the
-tablist and then the feed; Left/Right on the tablist switch the feed; Up/Down, PageUp/PageDown and Home/End scroll the
-feed; `j`/`k` are mapped to the page's Down/Up; a wheel event (`WheelDown`/`WheelUp` from termbox2, or a key in the
-headless run) is one 10px notch of the page's own machine. `--settle N` runs frames after the input (the track's spring
-and the band need them) and `--offset` prints the clip's offset, which is how the check states the displacement.
+are not Tab stops, so Enter has no card to open of its own — the host presses the first card's own `onClick` while the
+feed is focused, which is the C page's Enter (it opens the focused post's thread). Tab reaches the tablist and then the
+feed; Left/Right on the tablist switch the feed; Up/Down, PageUp/PageDown and Home/End scroll the feed; `j`/`k` are
+mapped to the page's Down/Up; a wheel event (`WheelDown`/`WheelUp` from termbox2, or a key in the headless run) is one
+10px notch of the page's own machine. `--settle N` runs frames after the input (the track's spring and the band need
+them), a `-` in `--keys` is a frame with no input (a screen measures its content from the last layout, so its first
+scroll key needs one) and `--offset` prints the clip's offset, which is how the check states the displacement.
+
+**The thread and the profile.** They are the page's **screens**, not entries of their own: `Sky.tsx` mounts the thread as
+a root float over the feed, and `Profile.tsx`'s `createProfile` is called by `Sky` and its element is declared in `Sky`'s
+tree, so there is no `--page profile` here (the C `demo --page profile` is a stack entry point its own host has). A
+click on a card (or Enter on the feed) opens the thread; a click on a card's **author row** — the app's link to
+`/profile/handle` — opens the profile; Escape is the page's own back (the Back control takes Enter too). The profile
+needs nothing handed to it: `app/profile.ts` reads apps/csssky's recorded `getProfile` and its three author feeds itself,
+on the first opening, and its tabs (Posts, Replies, Media) are the page's headless tablist, each list a fresh instance of
+the page's scroll machine. Each screen is the feed's re-cut, one row down: the page floats it at 64px (its bar) and
+696px (its window less the bar) and in cells the host's bar is one row, so the float starts on row 1 and takes the rows
+under it; a 44px head is one row; the page's 28px Back control is one row and its 1px border is **dropped** (Clay adds a
+border's command on the way out of an element, after its children, so a one-row control's border would be its word's own
+cells — the C pages have no Back there at all); a card's padding and gap are the feed's card's; the profile's drawn disc
+is two rows and its tabs are the bar's (no padding, a cell after the label, no 2px underline), but its labels have no id
+for the host to recolour, so its focus has no cell of its own (the active tab is its accent label, the style's literal).
+The exit is the page's 0.3s group, which a cell draws as the screen staying and then leaving at once (a group's alpha and
+translate are a cell's to drop), so the back check waits the exit out.
+
+The C thread and profile (`terminal/thread.c`, `profile.c`) are the behaviour's oracles, not the cells': the C thread's
+cards all carry a hand-cut border, its name and meta share a row, its body is clipped to one row, its counts are the
+glyphs `↩ ⟲ ♥` and its bar says `sky · Thread (esc: back)` (the page's bar stays the page's); the C profile has a
+two-row banner band, an accent-pill tab and the app's reason lines (`Pinned`, `Reposted by ...`) above each card, which
+the page draws no counterpart of. At 80x26 (the C pages' size) the measured distances are:
+
+```
+solid, terminal: the thread against terminal/expected-thread.txt (the C thread): 1957 cells, 0 of 26 rows the same, the worst row 1 (80 of 80); rows 21,80,67,79,76,70,80,80,78,79,71,77,80,80,79,78,76,80,80,79,76,74,80,80,80,77
+solid, terminal: the profile against terminal/expected-profile.txt (the C profile): 1837 cells, 0 of 26 rows the same, the worst row 2 (80 of 80); rows 22,77,80,79,79,38,76,78,35,80,80,29,80,77,80,74,80,78,74,79,73,80,80,72,80,77
+```
+
+The thread's worst row is the C card's top border against the page's head row; its nearest rows are the body lines (row
+2 in 67 of 80, the same words at a different inset) and the counts row (71, the same words where the C's are glyphs). The
+profile's worst row is the C banner band (two rows of colour) against the page's head row and drawn disc; its nearest rows
+are the header's (row 5 in 38, the bio's words; row 8 in 35, the counts; row 11 in 29, the tabs). No row of either is
+identical to the C's, and the check stores the Solid frames as its own guards (`terminal/expected-solid-thread.txt`,
+`-profile.txt`) on top of the counted comparison.
 
 **The C feed's cells are not the Solid feed's, and the check does not pretend they are.** The C card
 (`terminal/sky.c`) has a hand-cut border and separator row, its name and meta on one row, its body clipped to one row,
@@ -1925,12 +1967,15 @@ they are the same *page part* drawn by two different programs.
 **The cost**, on this Mac (`--bench 50`, headless; the number moves with the machine's load, so a range over repeated
 runs): the Sensors page's own 80x11 frame is **0.04–0.08 ms** (10 commands, 880 cells) and its 80x20 frame 0.10 in the
 suite's run; the Sky feed's 80x20 frame is **0.08–0.35 ms** (34 commands, 1600 cells), 0.11 in the suite's run — about
-3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a 60fps frame. The same cells as
-ANSI are 0.12–0.17 ms more (3924 bytes for the feed, the file write included). The C page's own frame is ~0.08 ms
-measured as the delta of `demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints
-no frame time, so that delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's implementation, cells.c,
-render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one declaration per element
-and one per text through `bun:ffi`, where the C page calls Clay directly.
+3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a 60fps frame. The thread's
+80x26 frame is **0.13–0.15 ms** (66 commands, 2080 cells) and the profile's the same (**0.15** in the suite's run, 69
+commands): a full screen of rows costs about what the feed does, because the walk is the same per element and Clay's
+layout is a cell grid, not a page. The same cells as ANSI are 0.12–0.17 ms more (3924 bytes for the feed, 5759 for the
+thread, 5056 for the profile, the file write included). The C page's own frame is ~0.08 ms measured as the delta of
+`demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints no frame time, so that
+delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's implementation, cells.c, render.c, measure.c and
+termbox2). The per-element FFI call is what the gap is: a page has one declaration per element and one per text through
+`bun:ffi`, where the C page calls Clay directly.
 
 **What it cannot do in cells.** A text line is one row: the C pages clip a body to one row, and the Solid Sky page
 wraps at words (a long word is still broken nowhere) — neither is the paragraph the desktop draws. An image is a box
@@ -1944,12 +1989,16 @@ corner radius is a square corner; a wide glyph (CJK, most emoji) is one cell and
 makes a page's pixel lengths land between cells — 38px is 2.4 rows and 200px is 25 columns — so a terminal page re-cuts
 them (here through the value channel, in C by hand). The Sky feed shows the ceiling concretely: no card border at rest,
 no drawn avatars, the meta on its own row, the counts in words where the C page has `↩ ⟲ ♥`, and the page's status line
-where the C page has the key hints. The thread, the profile and the notifications of step 6 are still C
-(`terminal/thread.c`, `profile.c`, `notify.c`, with `focus.c` for their focus); the feed runs as Solid too now
-(`terminal/solid.ts --page sky`, `solid/app/Sky.tsx`), and moving the thread (the page's second screen, a root float the
-host already shows in its loading state) or the profile is the next slice. The shape is there (a page declares, Clay
-lays out in cells, termbox2 draws); what a page still lacks is its data — the terminal host's `load` is a promise that
-never settles, and fetching, paging and the app's system theme are not in the terminal yet.
+where the C page has the key hints; its thread shows it again: a body that wraps at words where the C clips one row, an
+avatar the host skips, the counts in words, and a Back control the C pages do not have (escape is their bar's text); its
+profile: a drawn disc of two rows where the app has a picture the page does not draw at all (the C profile keeps a
+two-row band for the app's banner), a tab whose underline is the label's row, and no reason line above a card. Three of
+the Sky page's four screens now run as the page's own — the feed, the thread and the profile (`terminal/solid.ts
+--page sky`, `solid/app/Sky.tsx`, `app/Profile.tsx`); the **notifications stay C** (`terminal/notify.c`, with
+`focus.c` for its focus), the one screen of the four that is: `Sky.tsx` has no notifications screen, so there is nothing
+to run, and the C one is the web app's, hand-carried. The shape is there (a page declares, Clay lays out in cells,
+termbox2 draws); what a page still lacks is the network — the host's `load` is a promise it settles with a recorded
+thread, and fetching, paging and the app's system theme are not in the terminal yet.
 
 ## The sky screens in a terminal
 

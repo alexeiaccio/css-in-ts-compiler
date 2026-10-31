@@ -719,7 +719,21 @@ Each step ends in a check that fails when it breaks.
      no glyph; the tablist's focus the C bar's accent fill (a 2px underline is a one-row tab's label), the feed's
      focus the page's ring token as a cell of box characters; `Tab`/arrows/clicks drive the page's own tablist and
      scroll machine (`src/vscroll.ts`), `j`/`k` and the wheel (a termbox2 notch) too, and a card's click opens the
-     thread's loading state (the host's `load` never settles).
+     thread.
+   - the thread and the profile, the page's other two screens — not entries of their own: `Sky.tsx` mounts the thread
+     as a root float and calls `Profile.tsx`'s `createProfile` inside its own tree, so there is no `--page profile`
+     (the C `demo --page profile` is a stack entry point its own host has). Enter on the feed presses the first card's
+     own onClick (the page's cards are not Tab stops; the C page's Enter opens the focused post), a click on a card's
+     author row opens the profile. The host's `load` is a promise it settles with the app's **recorded** thread
+     (apps/csssky's fixture through the page's own `screenOf`): the loading row is a frame the run draws, the app's
+     rows the next. The profile needs nothing handed to it (`app/profile.ts` reads the recordings itself). Each screen
+     is the feed's re-cut: the root float one row down (the host's bar is one row) and the rows under it, a one-row
+     head with the page's Back (its 1px border dropped — Clay draws a border after the children, and on a one-row
+     control the border would be the word's own cells), a card's lines one row each, the clip keeping the page's 12px
+     (its scroll arithmetic adds it). The profile's drawn disc is two rows; its tabs are the bar's (no padding, a cell
+     after the label, no 2px underline — a one-row tab's row), and its labels have no id to recolour, so its focus has
+     no cell of its own. Escape (the page's own back) leaves either; the exit's 0.3s is drawn as the screen staying,
+     because a group's alpha and translate are a cell's to drop.
    - The binding gained what the feed needed: the clip offset read after the element is open (it was the parent's),
      `term_bounds`, `term_scroll_offset/to/put`, floats declared with their attach/offset/z/capture (Clay places them
      over the flow), a text's line height forced to the cell's, and a 256-entry value table.
@@ -727,24 +741,30 @@ Each step ends in a check that fails when it breaks.
    walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to the terminal's binding, which is
    how a page's own `pageEntry`/tick motion lands in libterm and why its group fields (opacity, translate) are dropped by
    a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh` runs it), 9 Sensors `identical`
-   lines (the stored frames above, the click on the pill, termbox2 under a pty) and 8 for the feed: the stored
-   `expected-solid-sky.txt`/`-focus.txt`, the focus order (Tab the tablist's accent fill, Tab the feed's ring), the tab
-   switch, the key and the wheel on the same -24px end, the scroll to the third post at 80x12, a card's click opening
-   the thread, and two mutations (the page's offset dropped before Clay -> the feed stays at row 0; no flush after the
-   tab key -> the bar's active tab stays Discover; each prints the check's own FAIL message). The C feed is not
-   reproducible cell for cell: the measured distance is **1251 cells, 0 of 20 rows identical, the worst row 1 (80/80)**
-   at rest, **1397** after the tab switch and **684** after the scroll; its bar's `1/2/3`, its six separator rows, its
-   hand-cut card heights, its one-row body clips and its key-hint footer have no counterpart, and the nearest rows are
-   the body lines (31 and 6 of 80). Cost: 0.08-0.35 ms a frame for the feed (34 commands, 1600 cells), ~3.4x the
-   Sensors page's 10 commands, against the C page's ~0.08 ms; the dylib is 236 KB. What the Solid pages cannot do in
-   cells is the cell's limit as the C pages' is: text is one row (the Solid feed wraps at words, the C pages clip),
-   an image is a skipped box, a float sits over the flow but its shadow/backdrop/alpha fade do not, there is no shadow,
-   backdrop, gradient, group opacity or scale, and a hover or a drag exists only where the last press was (termbox2
-   reports no motion). The thread, the profile and the notifications are still C (`terminal/thread.c`, `profile.c`,
-   `notify.c`); the feed now has its Solid half. **Left for the feed's own screen:** its thread (the page declares it
-   as a root float and the host shows it in its loading state), its data (the host's `load` is a promise that never
-   settles: no fetching, no paging), images, the page's system theme of `src/system.ts`, the wheel's *set* bounds and
-   the thread's thumb, and the C `sky.c` as the oracle it already is.
+   lines (the stored frames above, the click on the pill, termbox2 under a pty), 8 for the feed (the stored
+   `expected-solid-sky.txt`/`-focus.txt`, the focus order, the tab switch, the key and the wheel on the same -24px end,
+   the scroll to the third post at 80x12, a card's click opening the thread, two mutations), and 5 for the thread and 5
+   for the profile: the stored `expected-solid-thread.txt`/`-profile.txt` (80x26), Enter's loading frame and the landed
+   rows, the thread's -40px and the profile's (its tabs and its header staying put), Escape back, and three mutations
+   (the page's offset dropped before Clay -> the feed stays at row 0; no flush after the tab key -> the bar's active tab
+   stays Discover; a card's or an author row's onClick dropped -> the screen does not open; no Escape -> the screen
+   stays; each prints the check's own FAIL message). The C screens are not reproducible cell for cell: the measured
+   distance is **1251 cells, 0 of 20 rows identical, the worst row 1 (80/80)** for the feed at rest, **1397** after the
+   tab switch and **684** after the scroll; the thread **1957 cells, 0 of 26 rows, the worst row 1 (80/80)**; the
+   profile **1837 cells, 0 of 26, the worst row 2 (80/80)**. The C's `1/2/3` bar labels, its separator rows, its
+   hand-cut card borders and heights, its one-row body clips, its `↩ ⟲ ♥` counts, its banner band and its reason lines
+   have no counterpart; the nearest rows are the body lines (31 and 6 of 80 for the feed, 67 for the thread) and the
+   profile's header (38, the bio's words). Cost: 0.08-0.35 ms a frame for the feed (34 commands, 1600 cells), 0.13-0.15
+   ms for the thread and the profile (66 and 69 commands, 2080 cells), against the C pages' ~0.08 ms; the dylib is 236
+   KB. What the Solid pages cannot do in cells is the cell's limit as the C pages' is: text is one row (the Solid feed
+   and thread wrap at words, the C pages clip), an image is a skipped box, a float sits over the flow but its
+   shadow/backdrop/alpha fade do not, there is no shadow, backdrop, gradient, group opacity or scale, and a hover or a
+   drag exists only where the last press was (termbox2 reports no motion). Three of the Sky page's four screens now run
+   as the page's own (the feed, the thread, the profile); the notifications stay C (`terminal/notify.c`) — `Sky.tsx`
+   has no notifications screen, so that one is hand-carried. **Left:** the notifications' Solid screen (it would have
+   to be invented, not ported), images (the thread's avatars), the thread's wrapped bodies against the C's one-row clip
+   (a cell's limit, not a gap), the app's banner picture (the page has none; the C draws a band), the page's system
+   theme of `src/system.ts`, the wheel's *set* bounds, and the C `sky.c` as the oracle it already is.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors

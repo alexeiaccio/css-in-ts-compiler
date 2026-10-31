@@ -177,30 +177,59 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
     };
   };
 
-  const attach = (trigger: HTMLElement, content: HTMLElement): (() => void) => {
-    let restoreFocus = true;
-    let wasOpen = false;
+  // The pair `attach` is given, as a signal: the effect below has to run again when a host attaches (and when it detaches),
+  // and it cannot be created inside `attach` itself. A host calls `attach` from a `ref`, Solid 2 runs refs in the effect
+  // phase, and creating a primitive there belongs to nobody — its dev build throws `PRIMITIVE_IN_EFFECT_CALLBACK` while
+  // the production one stays silent, which is how this shipped: this repo's tests and the kit's ran the production build
+  // and only a `vite dev` app (and the starter smoke) saw it.
+  const [attached, setAttached] = createSignal<
+    { trigger: HTMLElement; content: HTMLElement } | undefined
+  >(undefined);
+  let restoreFocus = true;
+  let wasOpen = false;
 
-    const measure = (): void => {
-      if (!open()) {
+  const measure = (): void => {
+    const pair = attached();
+    if (!open() || pair === undefined) {
+      return;
+    }
+    const t = pair.trigger.getBoundingClientRect();
+    const c = pair.content.getBoundingClientRect();
+    const at = position(
+      { top: t.top, left: t.left, width: t.width, height: t.height },
+      { top: 0, left: 0, width: c.width, height: c.height },
+      { width: window.innerWidth, height: window.innerHeight },
+    );
+    // measured in client space (that is what the viewport is), written in page space, which is what `position: absolute`
+    // on the content means
+    setMeasured({
+      top: at.top + window.scrollY,
+      left: at.left + window.scrollX,
+      placement: at.placement,
+    });
+  };
+
+  createEffect(
+    () => [open(), attached()] as const,
+    ([isOpen, pair]) => {
+      if (pair === undefined) {
         return;
       }
-      const t = trigger.getBoundingClientRect();
-      const c = content.getBoundingClientRect();
-      const at = position(
-        { top: t.top, left: t.left, width: t.width, height: t.height },
-        { top: 0, left: 0, width: c.width, height: c.height },
-        { width: window.innerWidth, height: window.innerHeight },
-      );
-      // measured in client space (that is what the viewport is), written in
-      // page space, which is what `position: absolute` on the content means
-      setMeasured({
-        top: at.top + window.scrollY,
-        left: at.left + window.scrollX,
-        placement: at.placement,
-      });
-    };
+      if (isOpen) {
+        restoreFocus = true;
+        wasOpen = true;
+        measure();
+        (firstFocusable(pair.content) ?? pair.content).focus();
+      } else if (wasOpen) {
+        wasOpen = false;
+        if (restoreFocus && pair.trigger.isConnected) {
+          pair.trigger.focus();
+        }
+      }
+    },
+  );
 
+  const attach = (trigger: HTMLElement, content: HTMLElement): (() => void) => {
     const onPointerDown = (event: PointerEvent): void => {
       const target = event.target;
       if (!(target instanceof Node) || trigger.contains(target) || content.contains(target)) {
@@ -211,35 +240,20 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
       requestOpen(false);
     };
 
-    createEffect(
-      () => open(),
-      (isOpen) => {
-        if (isOpen) {
-          restoreFocus = true;
-          wasOpen = true;
-          measure();
-          (firstFocusable(content) ?? content).focus();
-        } else if (wasOpen) {
-          wasOpen = false;
-          if (restoreFocus && trigger.isConnected) {
-            trigger.focus();
-          }
-        }
-      },
-    );
-
     document.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
     const observer = new ResizeObserver(measure);
     observer.observe(trigger);
     observer.observe(content);
+    setAttached({ trigger, content });
 
     return () => {
       observer.disconnect();
       document.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
+      setAttached(undefined);
     };
   };
 

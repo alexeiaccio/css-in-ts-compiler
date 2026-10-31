@@ -1478,7 +1478,7 @@ Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground'
 
 ```ts skip
 createTabs(options?: {
-  ...; // the plain tabs: items, value, defaultSelected, orientation, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
+  ...; // the plain tabs: items, value, defaultSelected, orientation, dir, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
   closable?: boolean; // false: closeProps and the Delete key; the host removes from onClose
   renamable?: boolean; // false: a double click edits the label inline; the host renames from onRename
   label?(index: number): string | undefined; // the tab's name: the buttons' labels and the rename draft
@@ -1503,6 +1503,7 @@ createTabs(options?: {
 - **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
 - **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tablist's roving does not move. `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
 - **Ids.** `tabId(index)` and `panelId(index)` replace the generated `${id}-tab-<index>` / `${id}-tabpanel-<index>`, and `aria-controls` / `aria-labelledby` follow them. Use them when the host's markup or a deep link already names a panel (`#logs`): the alternative is a second id on the same element, which no attribute can carry.
+- **Direction.** `dir: "rtl"` swaps ArrowLeft / ArrowRight on a horizontal tablist (a vertical one keeps Up / Down); the host still sets `dir` on its element for the visual order. The model `tabs.qnt` is ltr only, so the ported `direction` scenarios stay skipped; `packages/headless/test/tabs-requirements.browser.test.tsx` holds the swap.
 - **The host's list.** `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list. `label` is read lazily too, so a renamed tab renames its buttons with it.
 - The spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but neither a rename nor the callbacks, so the browser test, not the model, holds the extension.
 
@@ -1683,13 +1684,14 @@ createDatePicker(options: {
   monthDays(): ReadonlyArray<ReadonlyArray<string>>; // 6 rows of 7 ISO dates, neighbours included
   labels: DatePickerLabels;
   status(): string | undefined;
+  contentStyle(): { position: "absolute"; top: string; left: string }; // the popup's last measure, in page space
   // statusProps, triggerProps, popoverProps, headerProps, previousProps,
   // nextProps, gridProps, weekdayProps(index) and cellProps(iso): the attribute objects.
   attach(trigger: HTMLElement, content: HTMLElement): () => void; // the popover wiring; returns the teardown
 };
 ```
 
-Every date is an ISO `YYYY-MM-DD`, read as a UTC midnight; `month()` and `labels.month` use 0-11. `monthDays()` is **six weeks around the shown month**, so a row can start in the previous month and end in the next one: every cell is a real focusable date (a blank cannot hold the roving focus), and a cursor that leaves the month pages the grid to where it landed. `cellProps(iso)` marks the chosen day `aria-selected`, `today` `aria-current="date"`, a day outside `min`/`max` `aria-disabled`, and gives `tabindex=0` to the roving day only: the selected day, else today when it is in the shown month, else the first day the bounds allow. Keys on the focused day: ←/→ a day, ↑/↓ a week, Home/End the week's first/last day, PageUp/PageDown a month, Shift+PageUp/PageDown a year (the day clamps, 29 February included), Enter/Space selects and closes, Escape closes without changing the value, Tab leaves. The month arrows move real DOM focus. `attach()` is the popover's positioning, light dismissal and focus return, plus focus into the roving day on open. The host renders the cells, the CSS and the trigger's visible text; a segmented text field is a host composition of `createField` + `createSpinbutton` over the same day numbers, not part of this API.
+Every date is an ISO `YYYY-MM-DD`, read as a UTC midnight; `month()` and `labels.month` use 0-11. `monthDays()` is **six weeks around the shown month**, so a row can start in the previous month and end in the next one: every cell is a real focusable date (a blank cannot hold the roving focus), and a cursor that leaves the month pages the grid to where it landed. `cellProps(iso)` marks the chosen day `aria-selected`, `today` `aria-current="date"`, a day outside `min`/`max` `aria-disabled`, and gives `tabindex=0` to the roving day only: the selected day, else today when it is in the shown month, else the first day the bounds allow. Keys on the focused day: ←/→ a day, ↑/↓ a week, Home/End the week's first/last day, PageUp/PageDown a month, Shift+PageUp/PageDown a year (the day clamps, 29 February included), Enter/Space selects and closes, Escape closes without changing the value, Tab leaves. The month arrows page the month and move the roving tab stop; the DOM focus stays on the arrow, so a host that wants the next key to land on a day moves it after the cells re-rendered (the kit's nav buttons do). `attach()` is the popover's light dismissal and focus return, plus focus into the roving day on open; `contentStyle()` is its placement — the same page-space `position: absolute` box `createPopover` gives, so a popup that escapes a positioned or clipping ancestor is placed by the initial containing block, not by the trigger's parent. The host renders the cells, the CSS and the trigger's visible text; a segmented text field is a host composition of `createField` + `createSpinbutton` over the same day numbers, not part of this API.
 
 ### Headless: `createPanZoom` (`@cssints/headless`)
 

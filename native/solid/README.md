@@ -76,28 +76,42 @@ run there, both **unmodified**: Sensors and Sky.
 sh solid/native/build.sh                          # libterm.dylib beside libui.dylib
 bun terminal/solid.ts --page sky --dump out.txt   # the feed, one frame (80x20 by default)
 bun terminal/solid.ts --page sky --keys Tab,Tab,ArrowDown --settle 40 --offset --dump out.txt
+bun terminal/solid.ts --page sky --keys Tab,Tab,Enter --settle 3 --dump out.txt   # the thread, opened by Enter
+bun terminal/solid.ts --page sky --click 20,2 --settle 5 --dump out.txt           # the profile (the author's row)
 bun terminal/solid.ts --page sky --bench 50       # the frame's ms and its cells/commands
-sh terminal/test.sh                               # the stored frames and the C comparison
+sh terminal/test.sh                               # the stored frames and the C comparisons
 ```
 
 `Sky.tsx` needed no prop it does not have on the desktop: `input` (the headless parts), `motion` (the page puts its
-wheel, its pointer and its tick there), `theme`/`setTheme`, and `load`, which the terminal hands a promise that never
-settles (a card's click opens the thread's loading state). The host re-cuts the lengths a cell cannot take as pixels
-through the value channel — the bar 1 row, the status line 1 row, a tab no padding and a cell after its label, a card one
-cell of side padding with no vertical padding or gap — and skips the avatar image (no glyph; its 40x40 box would be three
-rows of nothing the C page does not draw). The feed's own 12px padding and 8px gap stay the page's: its scroll arithmetic
-adds the same lengths, and in cells the 12px is the card's gutter and the 8px is the empty row the C page draws as a
-separator. The tablist's focus is the C bar's accent fill (a 2px underline on a one-row tab is the label's row), the
-feed's focus is its own ring token as a cell of box characters. The binding gained four things for it: the clip offset
-read after the element is open, `term_bounds`/`term_scroll_offset/to/put`, float declarations (Clay places them over the
-flow: the feed's thumb and the thread's screen), and a text line height forced to the cell's.
+wheel, its pointer and its tick there), `theme`/`setTheme`, and `load`. The terminal settles `load`'s promise with the
+app's **recorded** thread (apps/csssky's `thread.json` through the page's own `screenOf`) one frame after the screen
+mounts, so a card's click draws the loading row and then the app's rows; the profile needs nothing handed to it
+(`app/profile.ts` reads the recordings itself). The thread and the profile are the page's **screens**, not entries of
+their own (`Sky.tsx` mounts the thread as a root float and calls `Profile.tsx`'s `createProfile` in its own tree), so
+there is no `--page profile`: Enter on the feed presses the first card's own onClick (the page's cards are not Tab
+stops), a click on a card's author row opens the profile, Escape is the page's back. The host re-cuts the lengths a cell
+cannot take as pixels through the value channel — the bar 1 row, the status line 1 row, a tab no padding and a cell after
+its label, a card one cell of side padding with no vertical padding or gap — and skips the avatar image (no glyph; its
+40x40 box would be three rows of nothing the C page does not draw). The feed's own 12px padding and 8px gap stay the
+page's: its scroll arithmetic adds the same lengths, and in cells the 12px is the card's gutter and the 8px is the empty
+row the C page draws as a separator. The tablist's focus is the C bar's accent fill (a 2px underline on a one-row tab is
+the label's row), the feed's focus is its own ring token as a cell of box characters. Each screen is the feed's re-cut: the
+float one row down (the host's bar is one row) and the rows under it, a one-row head whose Back keeps its word (a 1px
+border is drawn after the text in a cell, so it is dropped), and the profile's drawn disc two rows and its tabs the
+bar's. The binding gained four things for the feed: the clip offset read after the element is open,
+`term_bounds`/`term_scroll_offset/to/put`, float declarations (Clay places them over the flow: the feed's thumb and the
+screens), and a text line height forced to the cell's; the re-cut is written by the walk just before an element opens, so
+a frame writes a value only for the elements it declares (the table is 256).
 
-The C feed (`terminal/sky.c`) is **not** reproducible cell for cell, and `terminal/test.sh` says so with numbers: 1251 of
-1600 cells differ at rest, 1397 after the tab switch, 684 after the scroll, no row identical (the worst row, the C card's
-top border, is 80/80) — the C card has a hand-cut border, its name and meta share a row, its body is clipped, its counts
-are glyphs and its footer the key hints. The feed's frame is 0.08-0.35 ms for 34 commands over 1600 cells (~3.4x the
-Sensors page's 10 commands), so Solid on a terminal is viable. The full account, with what a cell cannot carry, is
-`native/README.md`'s "Solid on the terminal".
+The C screens (`terminal/sky.c`, `thread.c`, `profile.c`) are **not** reproducible cell for cell, and `terminal/test.sh`
+says so with numbers: the feed 1251 of 1600 cells differ at rest, 1397 after the tab switch, 684 after the scroll; the
+thread 1957 of 2080 at 80x26; the profile 1837 of 2080; no row identical (the worst rows are the C card's top border,
+80/80, and the C profile's banner band, 80/80) — the C card has a hand-cut border, its name and meta share a row, its
+body is clipped, its counts are glyphs and its footer the key hints, and the C profile has a banner band, an accent-pill
+tab and the app's reason lines. The frames are 0.08-0.35 ms for the feed (34 commands over 1600 cells) and 0.13-0.15 ms
+for the thread and the profile (66 and 69 commands over 2080), so Solid on a terminal is viable. That is three of the
+Sky page's four screens (the feed, the thread, the profile); the notifications stay C, because `Sky.tsx` has no
+notifications screen. The full account, with what a cell cannot carry, is `native/README.md`'s "Solid on the terminal".
 
 ## Layout
 

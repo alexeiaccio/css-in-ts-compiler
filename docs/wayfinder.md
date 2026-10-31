@@ -3125,3 +3125,134 @@ way to, on purpose. No async or `preventDefault` helper (the native event is in 
 style position reports `SiteMissingError` ("site N in X was not evaluated") rather than naming the mismatch, because the
 engine reads any plain object at a site as a definition with nothing to ship; the type error is the real guard, and a build
 that ignores it still fails at the site.
+
+## The kit's toast, and what the live region already owns (apps/ui, 2026-10-31)
+
+`createToast` already decides everything about a queue: one timer per toast, `timeout` and `max`, a pause on hover and
+focus that resumes with the time that was left rather than restarting, `onDismiss` for every departure, and the live
+region — a `role="region"` landmark in which each row is its own `role="status"` (`role="alert"` for `tone: "error"`)
+with `aria-atomic="true"`. The skin therefore owns no timer and no copy of the queue: `Toaster` is the landmark, `Toast`
+is one row, and both read `toast.toasts()`, `regionProps` and `toastProps(id)`. The row writes the tone the primitive
+queued (`item.tone`) as `data-tone`: the primitive announces no `data-tone` of its own, and `role="alert"` is the only
+tone it announces, so `error` is painted from its own `data-tone` and its title from the same attribute through
+`within()`. The theme has one accent and one invalid colour, so `success` takes the accent, `info` the plain border, and
+the row's leading edge is the only thing the tone moves.
+
+The stack is `position: fixed` in the viewport's bottom inline-end corner with `z-index: var(--z-toast)`, a new token
+(`z.toast`, 30) that sorts over `z.dialog` (20): a toast can arrive while a modal is open and must still be read. A fixed
+box is still trapped by an ancestor with `transform`, `filter`, `contain` or `overflow: hidden`, which becomes its
+containing block or clips it, so the stack is portalled with `Portal` into `document.body` (or `Toaster`'s `mount`), the
+same decision as the dialog's layer. The landmark is always in the DOM and empty when there is nothing to say; it is
+`pointer-events: none` and `tabindex="-1"` (the F6 target the primitive's docs describe) so an empty stack over the page
+takes neither a click nor a tab stop, and a row turns the pointer back on.
+
+The skin paints no paused or leaving state, because the primitive announces neither: a paused countdown is not an
+attribute (the row's `:hover` / `:focus-within` is what a page can style), and a leaving toast is removed from the queue
+in the same commit, so there is no exit to animate. Only the entry is painted (an opacity fade under
+`prefers-reduced-motion: no-preference`), and the close button is a labelled glyph, since `aria-atomic` reads the row's
+whole text. `apps/ui/src/registry/toast/toast.browser.test.tsx` is the conformance test — a plain browser test, no
+scenario driver, because a toast has no APG pattern and no Quint spec (`packages/headless/test/toast.browser.test.tsx`
+is the primitive's oracle); it checks the announced region and row roles, the close button, the auto-dismiss, the hover
+pause and the corner geometry inside a transformed ancestor. Left: no stacking limit of its own (the primitive's `max`
+is 3), no swipe-dismiss or direction, no exit animation, no F6 binding (the host's, bean cssints-h0d5), and the close
+label is English — a translating host replaces the row with its `render`.
+
+## The docs' sidebar drawer (apps/docs, 2026-10-31, cssints-jzwx)
+
+The docs' mobile nav was hand-rolled in `apps/docs/src/Shell.tsx`: an `open` signal, Escape bound in `createHotkeys`, the
+`hidden` attribute for the landing page and a CSS transform with `visibility` for the closed drawer. There was no focus
+trap, no backdrop, no focus return to the trigger and no scroll lock. It is `createDrawer` now: `triggerProps` on the menu
+button (the trigger's `aria-haspopup`, `aria-expanded`, `aria-controls` and the toggle are the primitive's), `contentProps`
+on the panel, `backdropProps` on a backdrop the primitive hides itself, `modal: () => !wide()` from a
+`matchMedia("(width >= 900px)")` the host watches (the primitive has no viewport, so `breakpoint: 900` only documents the
+number), and a controlled `open` so a route change and a crossing of the breakpoint close it. Escape, the Tab cycle, the
+counted scroll lock on `<html>`, the outside `pointerdown` and the focus into and back out of the panel are the shell's,
+shared with `createConfirm` (`packages/headless/src/overlay-shell.ts`).
+
+**The column is a second element.** `contentProps` are a dialog's: `hidden` is `display: none` and `role` is `dialog`. One
+element cannot be a modal below 900 px and the page's plain `<nav>` above it, so the desktop column stays the nav it was
+(`#sidebar`: same width, sticky, no backdrop, no lock, no `role`) and the drawer's panel (`#sidebar-content`) is rendered
+below the breakpoint only; a `Groups` component gives both the same list. Without JavaScript a built page is its static
+copy (`plugin/docs.ts`), whose nav is its own, so neither the drawer nor the column is the document's way into the docs.
+
+**`hidden` is not spread on the panel.** `display: none` would cut the slide the panel had, so the host keeps hiding the
+closed panel with `visibility: hidden` (which already keeps it out of the tab order and the accessibility tree) and gives
+it `hidden` only for the landing page, which has no sidebar. The first attempt kept the old
+`transition: transform 0.2s, visibility 0.2s` and lost the focus: the class lands after the drawer's own effect, and at
+that instant a transitioned `visibility` is still `hidden`, so `focus()` on the first link did nothing (the phone case of
+`apps/docs/test/browser.mjs` timed out on "the focus moves into the panel"). The open variant now says `visibility 0s` and
+the closed one `visibility 0s linear 0.2s`: the panel is visible when the focus arrives and still visible while it slides
+out, and `prefers-reduced-motion` still turns both transitions off.
+
+**What the tests pin.** The phone case of `apps/docs/test/browser.mjs` (390 × 844) opens the drawer and reads the
+trigger's `aria-expanded` and `aria-controls`, `aria-modal`, the backdrop, the scroll lock on `<html>`, Tab and Shift+Tab
+staying in the panel, Escape closing it with the focus back on the trigger, a wheel behind it not scrolling the page, an
+outside pointerdown closing it, and a link navigating and closing it. The desktop case pins the column: no `role`, a hidden
+backdrop, no lock and no panel. No package changed: `packages/headless` and its `createDrawer` are as they were.
+
+**Left.** Kocharin's artwork popup is the drawer's other host and lives in another repository (another session's), so
+`cssints-jzwx`'s adoption item stays half open.
+
+## A popover and a date picker: the primitive places, the skin portalls (apps/ui, 2026-10-31)
+
+`@cssints/headless` already had both widgets and no skin. `createPopover` owns the open state (controlled or not), the
+trigger's `aria-haspopup` / `aria-expanded` / `aria-controls`, Enter, Space and ArrowDown to open, Escape to close, a
+`role="dialog"` with no `aria-modal`, the placement with its flip and shift at the viewport's edge, focus into the panel
+and back to the trigger on close, and light dismissal on an outside `pointerdown` that leaves the page's focus where it
+was; there is no APG pattern for it, so its own browser test is the oracle. `createDatePicker` composes that popover with
+`createGrid` and `createStatus`: the day-number calendar, the six weeks around the month (neighbouring days are real cells
+because a blank cannot hold the roving focus), the keys (arrows, Home and End, PageUp and PageDown, Enter and Space,
+Escape), `min` / `max`, the roving stop and the polite announcement of a chosen day.
+
+The two starters are `apps/ui/src/registry/popover/` and `.../date-picker/`. `Popover` has `Popover.Trigger` (the kit's
+`Button`, which owns `data-part="button"`) and `Popover.Content`; the latter takes the accessible name (`label`), because
+the primitive's `role="dialog"` has none of its own. `DatePicker` has `DatePicker.Trigger` (the chosen day's text, the
+month's name while nothing is chosen), `DatePicker.Content`, `DatePicker.Header` with `DatePicker.Title`,
+`DatePicker.Previous` / `DatePicker.Next`, `DatePicker.Grid`, `DatePicker.Week`, `DatePicker.Weekday`, `DatePicker.Day`
+and `DatePicker.Status`; the grid and the header render themselves by default, so a demo is the trigger and the content.
+Every part takes `render`, `class`, `data-part` and the primitive's props through `merge()`. State is painted from the
+announcements: the chosen day from `aria-selected`, today from `aria-current="date"`, a day outside the bounds from
+`aria-disabled`, the trigger from `aria-expanded`; the status region is the primitive's `role="status"` made visually
+hidden instead of absent, since a hidden live region is not announced.
+
+**Where it floats, and the cost.** Both panels are portalled to `document.body`, not placed in a `position: relative`
+anchor as the menu, the select and the tooltip are. The reason is the primitive: `attach` measures the trigger against the
+viewport, adds the scroll and writes page-space `top` / `left` for a `position: absolute` element, which is only true in
+the initial containing block. A relative anchor would make the panel absolute in that box and put it at the page's
+top-left. The portal also keeps the panel out of an ancestor's `overflow: hidden` or `transform`, which breaks every
+inline layer. The costs are the ones the dialog already pays: the panel is a client-only island (nothing in server HTML),
+it leaves the trigger's DOM subtree (the test reads it off the document), and the trigger is measured once per open and
+again on resize, scroll and a `ResizeObserver`. `ref` travels inside the parts' props, so a `render` that spreads them
+still wires `attach`, and the teardown runs with the root.
+
+**The date picker carries its own parts.** It does not reuse the kit's `Popover`: `createDatePicker` owns a popover
+instance inside itself, so a skin over both would run two controllers on one id. One primitive gap had to close first:
+the picker measured and flipped its popup but exposed no `contentStyle`, so a host could put the panel nowhere — the
+primitive's own browser test rendered no style at all. `DatePicker.contentStyle()` is now the popover's accessor (an
+additive change with a changeset and a test that the panel starts one gap under the trigger), which is what lets the
+calendar use the portal and the flip instead of a second, inline anchoring rule. The skin also finishes the nav's focus:
+a click on the month arrows moves the roving tab stop but the primitive leaves the DOM focus on the button, so the nav
+parts move it to the roving day on the next task, after the cells re-rendered; without it the arrows only work after a
+day has been clicked.
+
+`popover.browser.test.tsx` and `date-picker.browser.test.tsx` ship with their items (`tested: true`) and each has its own
+`<item>-driver.ts`. There is no APG spec and no Quint model for either, so the tests assert what the skin adds rather
+than replaying behaviour: the panel is a portal outside a clipping, transformed ancestor, its real
+`getBoundingClientRect` sits one 4 px gap under the trigger's bottom edge and aligned to its left edge
+(`placement="bottom-start"`), the surface is opaque with a 1 px border, a radius, a shadow and `z-index: 10`;
+`aria-modal` is absent and `aria-label` names the dialog; a closed panel is `display: none`; opening focuses the first
+control and Escape closes and returns the focus, while an outside press closes and leaves the page's focus alone. The
+date picker's test adds the dialog around a `role="grid"` named by the month with 6 rows and 7 columns, one
+`role="row"` per week plus the weekday row of `role="columnheader"` cells, 42 real cells, the roving `tabindex` on today
+and the DOM focus on it, ArrowRight / ArrowDown moving both, Enter choosing the focused day, closing, writing the ISO day
+on the trigger and announcing it, the nav buttons paging October to November and back with the focus on the new roving
+day, `aria-selected` / `aria-current` painting differently from a plain cell, and `aria-disabled` days outside `min` /
+`max` taking neither a click nor a selection.
+
+**Left.** The popover is not a menu: `Menu` owns a menu's roving focus and can sit inside the panel; there is no arrow-key
+navigation between the panel's controls beyond the browser's own Tab. The date picker is one month: no multi-month view,
+no week numbers, no time zone or versioned calendar (a host with real calendars passes ISO strings and its own labels),
+and the days outside the shown month are not dimmed, because the primitive announces no "outside" state and the skin
+will not guess it from the ISO prefix. There is no text date field (a segmented field is a host composition of
+`createField` + `createSpinbutton` over the same day numbers) and no time. The status region is visually hidden with a
+clip path rather than a shared `sr-only` utility, which the kit does not have yet.

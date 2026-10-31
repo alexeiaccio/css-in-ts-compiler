@@ -385,7 +385,9 @@ const timeline = createTimeline({
 
 ## Tabs
 
-`createTabs` is the APG tablist: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). The plain widget is checked against `specs/apg/tabs.qnt` by the scenario bridge and the differential walk in `test/tabs.browser.test.tsx`.
+`createTabs` is the APG tablist: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). The plain widget is checked against `specs/apg/tabs.qnt` by the scenario bridge and the differential walk in `test/tabs.browser.test.tsx`; its roles, names, focus order and direction are held by `test/tabs-requirements.browser.test.tsx`.
+
+`dir` (default `ltr`) swaps ArrowLeft / ArrowRight on a horizontal tablist, the way `radio.ts` does; a vertical tablist keeps Up / Down. `tabs.qnt` models ltr only, so the ported `direction` scenarios stay skipped in the differential walk: the primitive's arrow swap is proven by the browser test, not by the model.
 
 Its accessibility requirements — one row per requirement, each naming the Quint invariant, browser test or manual AT row that holds it, and the gaps still open — are `docs/requirements/tabs.md`, written on the model in `docs/requirements/README.md`: a behaviour goes to the spec and its walk, a DOM attribute or a layout value to a browser test, and what a screen reader says to the assistive-technology table.
 
