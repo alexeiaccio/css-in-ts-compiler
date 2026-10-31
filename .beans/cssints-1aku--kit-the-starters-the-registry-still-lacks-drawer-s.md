@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-31T17:44:18Z
-updated_at: 2026-10-31T18:35:54Z
+updated_at: 2026-10-31T19:00:06Z
 ---
 
 Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these starters are still missing.
@@ -16,10 +16,10 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] diagram
 - [x] hotkeys
 - [x] carousel
-- [ ] grid
+- [x] grid — infrastructure, not a starter: the two-dimensional focus and window machine `table` and `treegrid` sit on
 - [ ] feed
 - [ ] player
-- [ ] treegrid
+- [x] treegrid
 - [ ] resizable-panels
 
 The drawer starter was the first round; the panzoom starter is the second.
@@ -82,3 +82,17 @@ Tests: `apps/ui` 382 passed (9 new for the shortcuts), `bun run typecheck`, `bun
 - Finding: `docs/API.md` has no carousel section and `packages/headless/README.md` only lists the pattern under the prefs table, so the primitive's contract is read from `src/carousel.ts` and its scenario test. Its doc comment calls the platform "hybrid — CSS scroll-snap (widely) scrolls slides", but the implementation hides every slide but the current one (`hidden`, `tabindex` 0/-1), so a scroll-snap skin would fight it; the starter stacks the slides instead.
 
 Tests: `apps/ui` 389 passed (7 new for the carousel), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
+## Treegrid (round seven)
+
+- Added `apps/ui/src/registry/treegrid/`: `Treegrid` over `createTreegrid`; the skin is the surface frame and its radius, the header row, the zebra, the hover and selected looks, the indent by the level the primitive announces, the expander and the chevron it turns with `aria-expanded`, and the focus ring on the row or cell the primitive made its tab stop. The primitive owns the tree (visible rows, levels, sizes, positions), the expanders, the roving focus across rows and columns, the selection and every `aria-*`.
+- Added the fixture (a project's three roots and their children, two folders open, `src` / `public` / `tests`, sizes and dates, and `mountTreegrid` with a button after the grid) and the Chromium browser test: the role and label, the header row, levels and `aria-posinset` / `aria-setsize`, Right and Left expanding and collapsing, Down and Up, Home and End, Tab leaving, cell navigation, the selection painted from `aria-selected`, and the expander's name.
+- Added the demo to `src/docs/demos.tsx` and a `.demo-treegrid` rule in `docs.css`; regenerated `r/treegrid.json`, `r/registry.json` and `public/llms.txt`.
+- `grid` is not a starter: it is the infrastructure `table` and `treegrid` sit on, and a skin of it alone would be the focus and window machinery the two starters already demonstrate. The bean's list now says that.
+
+## Engine gaps
+
+- **The tree was fixed.** `createTreegrid` read the spec's seven-row Email Inbox tree from a module constant, so no host could render its own rows, and a starter could not be a file tree. Added `parents` (the parent of each row, in document order) and `defaultExpanded`, both optional; the spec's tree stays the default, so `treegrid.qnt`, the ported scenarios and the differential walk are unchanged. The custom-tree path is covered by the kit's browser test, not by the machine: a Quint spec parameterised by the tree is the upgrade if a second consumer needs one. `.changeset/treegrid-parents.md` (minor).
+
+Tests: `apps/ui` 398 passed (9 new for the treegrid), `bun run typecheck`, `bun run build` and `theme:check` pass; `@cssints/headless`'s treegrid browser test (7 passed, 86 skipped) passes.
+
