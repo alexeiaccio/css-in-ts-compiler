@@ -195,8 +195,8 @@ const nearestIn = (
 
 /**
  * Nothing lies that way, so wrap to the opposite end: the extreme of the axis
- * the direction runs along (right/left wrap along x, down/up along y), ties by
- * id. The active node wins its own tie, which is what a one-node diagram does.
+ * the direction runs along (right/left wrap along x, down/up along y), the
+ * smallest id winning a tie — which in a one-node diagram is the node itself.
  */
 const oppositeEnd = (
   nodes: ReadonlyArray<DiagramNodeInput>,
