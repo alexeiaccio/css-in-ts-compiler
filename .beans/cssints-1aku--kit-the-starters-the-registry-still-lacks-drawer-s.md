@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-31T17:44:18Z
-updated_at: 2026-10-31T18:15:23Z
+updated_at: 2026-10-31T18:25:25Z
 ---
 
 Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these starters are still missing.
@@ -13,7 +13,7 @@ Audited `@cssints/headless` against `apps/ui/src/registry` on 2026-10-31: these 
 - [x] drawer
 - [x] scrollspy
 - [x] panzoom
-- [ ] diagram
+- [x] diagram
 - [ ] hotkeys
 - [ ] carousel
 - [ ] grid
@@ -53,3 +53,13 @@ Tests: `apps/ui` 350 passed (7 new for the panzoom), `bun run typecheck`, `bun r
 - Regenerated `r/scrollspy.json`, `r/registry.json` and `public/llms.txt`.
 
 Tests: `apps/ui` 362 passed (6 new for the scrollspy), `bun run typecheck`, `bun run build` and `theme:check` pass.
+
+
+## Diagram (round four)
+
+- Added `apps/ui/src/registry/diagram/`: `Diagram` over `createDiagramFocus`; the skin is the named group, the SVG lines behind the nodes (one per edge, trimmed to the node borders, with an arrow head and the label), the positioned node buttons, the tokens, the focus ring and the active look it paints from `tabindex="0"`. The primitive owns the roving tab stop, the layout arrows, Home / End, the edge cursor and the live region.
+- Added the fixture (a payment flow of four nodes and five edges, the sentence about the keys, the line that says what the host got, and a button after the diagram that Tab reaches) and the Chromium browser test: the named group and the one tab stop, the active look, the arrows following the layout, Home / End, Enter on a node, the outgoing edges and their cursor firing `onEdge`, a click on an edge's line, the live region, a node with no edges, Tab leaving, and the drawn geometry.
+- Added the demo to `src/docs/demos.tsx` and a `.demo-diagram` rule in `docs.css`.
+- Regenerated `r/diagram.json`, `r/registry.json` and `public/llms.txt`.
+
+Tests: `apps/ui` 373 passed (11 new for the diagram), `bun run typecheck`, `bun run build` and `theme:check` pass.
