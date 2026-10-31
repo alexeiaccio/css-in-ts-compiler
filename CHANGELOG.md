@@ -2,6 +2,18 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.21.0 (2026-10-31)
+
+### Minor changes
+
+- CSS-first interactions: `state()` gives an owner element and one source per state, `toggle()`/`set()` write only inside `on()` (click, input, change, submit, key, pointer and focus events), `bind()` writes attributes from the nearest owner, and `when()`/`inside()` are plain CSS conditions on its `data-reactive-*` attributes. The DOM runtime ships to every target (1.75 kB minified, 0.87 kB gzipped).
+- `createCombobox` takes `disabled`: the combobox and its trigger announce `aria-disabled`, the combobox keeps its tab
+  stop, and a key, a click, a typeahead character, a filter input and an option click change nothing, so no popup opens;
+  `setOpen` / `setValue` stay host requests. The spec records it as a deliberate extension (no model var), so
+  `combobox.browser.test.tsx` is its oracle. `createCheckboxGroup`'s children take `<base>-0`..`-2` instead of `"0"`,
+  `"1"`, `"2"`, so two groups on one page no longer share ids.
+- A plugin runtime with a `script` (or `css`) and no `polyfills` is delivered for every target, not only where a target lacks a feature: a plugin whose own script is the feature (`@cssints/reactive`) ships it in every build. `ship({ owner, open })` (from `cssints/plugin`) is a site that returns more than a class string: each style becomes its class string and the rest its JSON, so `state()`'s owner and its sources reach the browser as an object.
+
 ## 0.20.0 (2026-10-30)
 
 ### Minor changes

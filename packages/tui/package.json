@@ -1,6 +1,6 @@
 {
   "name": "@cssints/tui",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Deprecated: the terminal target in the cssints repository's native/ replaces this. Kept for existing apps: the runtime of cssints/tui styles (states, cursors, themes) and its OpenTUI and @bomb.sh/tty adapters",
   "license": "MIT",
   "repository": {
@@ -92,7 +92,7 @@
   "peerDependencies": {
     "@bomb.sh/tty": ">=0.9.0",
     "@opentui/core": ">=0.5.17",
-    "cssints": "^0.20.0"
+    "cssints": "^0.21.0"
   },
   "peerDependenciesMeta": {
     "@bomb.sh/tty": {
