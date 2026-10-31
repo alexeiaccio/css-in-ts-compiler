@@ -87,6 +87,7 @@ import { TreegridExample } from "../registry/treegrid/treegrid.fixture.tsx";
 import { FeedExample } from "../registry/feed/feed.fixture.tsx";
 import { PlayerExample } from "../registry/player/player.fixture.tsx";
 import { ResizablePanelsExample } from "../registry/resizable-panels/resizable-panels.fixture.tsx";
+import { KnobExample } from "../registry/knob/knob.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
@@ -722,6 +723,8 @@ const TreegridDemo = (): JSX.Element => <TreegridExample class="demo-treegrid" /
 const FeedDemo = (): JSX.Element => <FeedExample class="demo-feed" />;
 // A made-up film whose adapter runs a clock: Play moves the seek, the time and the fill without a media file.
 const PlayerDemo = (): JSX.Element => <PlayerExample />;
+// The two dials the browser test drives: a volume with a percentage and a pan whose centre is its own word.
+const KnobDemo = (): JSX.Element => <KnobExample />;
 // The Files / Editor / Preview workspace the browser test mounts: the dividers drag, the arrows step, Enter folds.
 const ResizablePanelsDemo = (): JSX.Element => <ResizablePanelsExample class="demo-panels" />;
 const SliderDemo = (): JSX.Element => {
@@ -1224,6 +1227,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   feed: FeedDemo,
   player: PlayerDemo,
   "resizable-panels": ResizablePanelsDemo,
+  knob: KnobDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,
