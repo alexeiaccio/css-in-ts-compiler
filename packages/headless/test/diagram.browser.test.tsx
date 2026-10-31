@@ -40,10 +40,20 @@ const press = async (element: HTMLElement, key: string): Promise<void> => {
   await settled();
 };
 
+/** The user's key goes to whatever has focus, as a real one does. */
+const pressFocused = async (key: string): Promise<void> => {
+  const element = document.activeElement;
+  if (!(element instanceof HTMLElement)) {
+    throw new Error("nothing has focus");
+  }
+  await press(element, key);
+};
+
 const mount = (options: {
   readonly nodes: ReadonlyArray<DiagramNodeInput>;
   readonly edges: ReadonlyArray<DiagramEdgeInput>;
   readonly labels?: DiagramLabels | undefined;
+  readonly id?: string | undefined;
 }): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
@@ -55,6 +65,7 @@ const mount = (options: {
       nodes: options.nodes,
       edges: options.edges,
       labels: options.labels,
+      id: options.id,
       onActivate: (id) => activated.push(id),
       onEdgeActivate: (id) => edgeActivated.push(id),
     });
@@ -167,6 +178,77 @@ describe("createDiagramFocus", () => {
     await settled();
     expect(api.active()).toBe("b2");
     expect(tabStops().map((element) => element.dataset.node)).toEqual(["b2"]);
+  });
+
+  it("a keyboard move takes DOM focus with it", async () => {
+    const { api, node, tabStops } = mount({ nodes: GRID, edges: [] });
+    await settled();
+    expect(node("a1").id).toMatch(/-node-a1$/);
+    node("a1").focus();
+    await settled();
+    await pressFocused("ArrowRight");
+    expect(api.active()).toBe("b1");
+    expect(document.activeElement).toBe(node("b1"));
+    expect(tabStops()[0]).toBe(document.activeElement);
+    await pressFocused("ArrowDown");
+    expect(api.active()).toBe("b2");
+    expect(document.activeElement).toBe(node("b2"));
+    expect(tabStops()[0]).toBe(document.activeElement);
+  });
+
+  it("a wrap and Home / End take DOM focus too", async () => {
+    const { api, node } = mount({ nodes: GRID, edges: [] });
+    await settled();
+    node("a1").focus();
+    await settled();
+    await pressFocused("ArrowUp");
+    expect(api.active()).toBe("a3");
+    expect(document.activeElement).toBe(node("a3"));
+    await pressFocused("End");
+    expect(api.active()).toBe("c3");
+    expect(document.activeElement).toBe(node("c3"));
+    await pressFocused("Home");
+    expect(api.active()).toBe("a1");
+    expect(document.activeElement).toBe(node("a1"));
+  });
+
+  it("focus(id) moves DOM focus, and an unknown id moves nothing", async () => {
+    const { api, node } = mount({ nodes: STATE, edges: TRANSITIONS });
+    await settled();
+    node("payment").focus();
+    await settled();
+    expect(api.focus("nowhere")).toBe("payment");
+    expect(document.activeElement).toBe(node("payment"));
+    expect(api.focus("failed")).toBe("failed");
+    await settled();
+    expect(document.activeElement).toBe(node("failed"));
+    expect(node("failed").getAttribute("tabindex")).toBe("0");
+    expect(node("payment").getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("an explicit id base names the node elements", async () => {
+    const { node } = mount({ nodes: STATE, edges: TRANSITIONS, id: "chart" });
+    await settled();
+    expect(node("payment").id).toBe("chart-node-payment");
+    expect(node("failed").id).toBe("chart-node-failed");
+  });
+
+  it("the edge cursor leaves DOM focus where it was", async () => {
+    const { api, node } = mount({ nodes: STATE, edges: TRANSITIONS });
+    await settled();
+    node("payment").focus();
+    await settled();
+    await pressFocused("e");
+    expect(api.edgeCursor()).toBe(0);
+    expect(document.activeElement).toBe(node("payment"));
+    await pressFocused("ArrowDown");
+    expect(api.edgeCursor()).toBe(1);
+    expect(document.activeElement).toBe(node("payment"));
+    await pressFocused("Enter");
+    expect(document.activeElement).toBe(node("payment"));
+    await pressFocused("Escape");
+    expect(api.edgeCursor()).toBe(-1);
+    expect(document.activeElement).toBe(node("payment"));
   });
 
   it("follows the layout: the arrows land on the nearest node in that direction", async () => {
@@ -327,15 +409,15 @@ describe("createDiagramFocus", () => {
   it("never puts two nodes in the tab order", async () => {
     const { api, node, tabStops } = mount({ nodes: GRID, edges: [] });
     await settled();
+    node("a1").focus();
+    await settled();
     for (const key of ["ArrowRight", "ArrowDown", "ArrowRight", "End", "Home", "ArrowUp"]) {
-      const current = api.active();
-      if (current === undefined) {
-        throw new Error("no active node");
-      }
-      await press(node(current), key);
+      await pressFocused(key);
+      expect(api.active()).toBeDefined();
       const stops = tabStops();
       expect(stops).toHaveLength(1);
       expect(stops[0]?.dataset.node).toBe(api.active());
+      expect(stops[0]).toBe(document.activeElement);
     }
   });
 });

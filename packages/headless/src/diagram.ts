@@ -1,4 +1,4 @@
-import { type Accessor, createSignal } from "solid-js";
+import { type Accessor, createSignal, createUniqueId } from "solid-js";
 
 /**
  * A diagram of nodes and edges on Solid 2: one roving tab stop over the nodes,
@@ -17,11 +17,14 @@ import { type Accessor, createSignal } from "solid-js";
  * its edges with a pointer; a keyboard user gets the same graph through the
  * arrows (geometrically nearest node in that direction, wrapping when nothing
  * lies that way), Home / End, and `e` for the active node's outgoing edges.
+ * A move also focuses the node it lands on, through the `id` `nodeProps` puts
+ * on each element, so the tab stop and the focused element always agree.
  *
  * Geometry is owned by the host and is read, not written: `x`/`y` are the
  * node's top-left in diagram space, `width`/`height` only size its centre. The
  * host renders the nodes and the edges wherever it likes; this primitive only
- * computes what to focus and what to announce.
+ * computes what to focus and what to announce, and focuses the element it lands
+ * on (the host's own document; a portal elsewhere is the host's to focus).
  *
  * ponytail: nodes are buttons, not a tree; a nested diagram, multi-select and
  * zoom/pan announcement are not modelled. Add them when a consumer needs them.
@@ -72,10 +75,18 @@ export interface DiagramOptions {
   /** Enter on the edge cursor, or a click on an edge. */
   readonly onEdgeActivate?: ((edgeId: string) => void) | undefined;
   readonly labels?: DiagramLabels | undefined;
+  /**
+   * Base for the nodes' element ids (`<id>-node-<node id>`), which is how a
+   * keyboard move focuses the node it landed on. Generated when absent; give
+   * one when the host needs a stable id across a remount.
+   */
+  readonly id?: string | undefined;
 }
 
 /** Spread onto the element that draws one node. */
 export interface DiagramNodeProps {
+  /** The element id a keyboard move focuses; set it by spreading, never by hand. */
+  readonly id: string;
   readonly role: "button";
   readonly "aria-roledescription": "node";
   readonly "aria-label": string;
@@ -102,7 +113,7 @@ export interface DiagramStatusProps {
 export interface DiagramFocus {
   /** The node holding the roving tab stop; `undefined` when the diagram is empty. */
   readonly active: Accessor<string | undefined>;
-  /** Move the tab stop; a node that is not in `nodes` is a no-op. Returns where it landed. */
+  /** Move the tab stop and focus that node; a node that is not in `nodes` is a no-op. Returns where it landed. */
   readonly focus: (id: string) => string | undefined;
   readonly nodeProps: (id: string) => DiagramNodeProps;
   readonly edgeProps: (id: string) => DiagramEdgeProps;
@@ -220,6 +231,22 @@ const oppositeEnd = (
 const ARROW = "\u2192";
 
 export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
+  const base = options.id ?? createUniqueId();
+  const elementId = (nodeId: string): string => `${base}-node-${nodeId}`;
+  /**
+   * The tab stop moved, so focus follows it: the host spreads `nodeProps`, so
+   * the element exists under the id the primitive just gave it. A node rendered
+   * outside this document (a portal) is the host's to focus.
+   */
+  const focusElement = (nodeId: string): void => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const element = document.getElementById(elementId(nodeId));
+    if (element instanceof HTMLElement) {
+      element.focus();
+    }
+  };
   const nodeSource = (): ReadonlyArray<DiagramNodeInput> =>
     typeof options.nodes === "function" ? options.nodes() : options.nodes;
   const edgeSource = (): ReadonlyArray<DiagramEdgeInput> =>
@@ -307,6 +334,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     const target = nearestIn(nodes, from, direction) ?? oppositeEnd(nodes, direction);
     if (target !== undefined) {
       setStored(target.id);
+      focusElement(target.id);
     }
   };
 
@@ -316,6 +344,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     }
     setStored(id);
     setCursor(-1);
+    focusElement(id);
     return id;
   };
 
@@ -384,6 +413,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
       const target = key === "Home" ? nodes[0] : nodes[nodes.length - 1];
       if (target !== undefined) {
         setStored(target.id);
+        focusElement(target.id);
       }
       return;
     }
@@ -405,6 +435,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
       const node = nodeOf(id);
       if (node === undefined) {
         return {
+          id: elementId(id),
           role: "button",
           "aria-roledescription": "node",
           "aria-label": "",
@@ -415,6 +446,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
         };
       }
       return {
+        id: elementId(id),
         role: "button",
         "aria-roledescription": "node",
         "aria-label": node.label,
