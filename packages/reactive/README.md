@@ -58,6 +58,13 @@ const own = when(ui.open)(display("block")); // the element itself
 - **No async in v1.** No fetching, so no loading or error boundaries; the async fundamentals of Solid 2 are the reference
   for a later version.
 
+A Quint model of the protocol lives in
+[`packages/apg-specs/specs/patterns/reactive.qnt`](../apg-specs/specs/patterns/reactive.qnt) (bean cssints-tm9j): two
+owners, one nested, each with the four kinds of binding, the nearest-owner read and the one flush as invariants. `test/scenarios.mjs`
+replays its scenarios and two seeded differential walks on `test/fixtures/model.js` in Chrome, Firefox and WebKit, and checks
+the page against the model after every step — including that one event paints once (the page is read before and after a frame
+and must not change).
+
 ## API
 
 | Member                              | What it does                                                                                                    |
@@ -204,7 +211,10 @@ value cannot inject anything.
 - A write must be reachable from the element's program: the event bubbles to `<document>`, so a program on an ancestor runs
   for its descendants' events, but a button outside the owner has no owner to write.
 - A bound attribute and a condition read the nearest owner of the element they are on, so they must sit inside the owner's
-  subtree.
+  subtree. A condition is CSS, though: `inside()` is `:where(._g-reactive[data-reactive-<name>=<value>]) .el`, an ancestor
+  match, so a nested owner that declares the same state as an outer owner shows its descendants' conditions while the outer
+  owner matches too. The runtime writes the attribute on the nearest owner, but CSS cannot express "nearest"; give the owners
+  different state names (the model in `specs/patterns/reactive.qnt` states this and the replay checks it).
 - A comparison names a state, not an owner: `equals(outer.tab, "one")` on an element inside an inner owner compares the
   inner owner's `tab`, because the runtime reads the nearest owner like a source. A comparison is equality only: no
   ordering and no arithmetic. `equals(ui.count, 2)` is a comparison, but `count > 2` needs a derived expression the runtime
@@ -239,4 +249,10 @@ cd packages/reactive && bun run test:browsers   # Chrome, Firefox, WebKit: two d
                                                 # a <select> from value(), a checkbox from checked(), two programs on one
                                                 # element, a repeated one, a persisted disclosure across a reload, a stored
                                                 # value winning, a state that is not persisted (BROWSERS=chrome)
+# the model's traces (needs the packages built: node reads their dist/):
+bun run build:packages && cd packages/reactive && bun run test:scenarios
+                                                # specs/patterns/reactive.qnt replayed on test/fixtures/model.js in
+                                                # Chrome, Firefox and WebKit: the two scenario sets and two seeded
+                                                # differential walks, every probed attribute and computed display
+                                                # compared with the model after every step
 ```

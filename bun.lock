@@ -485,6 +485,8 @@
       "name": "@cssints/reactive",
       "version": "0.24.0",
       "devDependencies": {
+        "@cssints/apg-specs": "workspace:*",
+        "@quint-machine/core": "^0.1.0",
         "cssints": "workspace:*",
         "vite": "catalog:",
       },
