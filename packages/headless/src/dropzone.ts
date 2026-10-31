@@ -162,9 +162,11 @@ const messageOf = (batch: Batch | undefined): string | undefined => {
 };
 
 /**
- * A file drop zone. There is no APG pattern and no Quint spec for one: the
- * contract is HTML's file input plus WAI-ARIA's live region, and
- * `test/dropzone.browser.test.tsx` is its oracle.
+ * A file drop zone. There is no APG pattern for one: the contract is HTML's
+ * file input plus WAI-ARIA's live region. The drag state and the last delivery
+ * have a machine (`specs/patterns/dropzone.qnt`), `test/dropzone-spec.browser.test.tsx`
+ * replays it, and `test/dropzone.browser.test.tsx` is the DOM oracle for the
+ * picker, the `DataTransfer` details and the attributes the machine omits.
  *
  * Decisions:
  * - **The zone is never drag-only.** `browseProps` spreads onto a real

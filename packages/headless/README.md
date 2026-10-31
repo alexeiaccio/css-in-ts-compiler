@@ -233,7 +233,7 @@ const email = createTextInput({ type: "email", autoComplete: "email", inputMode:
 
 ## Drop zone
 
-`createDropZone` is a file drop target on a **hidden native `<input type="file">`**: the picker, the `accept` filter and `multiple` are the platform's, and the primitive adds a drag target, the validation and a status line. **There is no APG pattern for a drop zone**, so there is no Quint spec: `test/dropzone.browser.test.tsx` is its oracle. The same primitive replaces the bare file inputs of cms-admin's image field and kocharin's dashboard upload.
+`createDropZone` is a file drop target on a **hidden native `<input type="file">`**: the picker, the `accept` filter and `multiple` are the platform's, and the primitive adds a drag target, the validation and a status line. **There is no APG pattern for a drop zone**; the drag state and the last delivery still change over time, so they have a machine (`specs/patterns/dropzone.qnt`: the depth, `disabled`, the batch, and the invariant that a drop or a leave clears the highlight). `test/dropzone.browser.test.tsx` is the DOM oracle (the picker, the `DataTransfer` details, the attributes), `test/dropzone-spec.browser.test.tsx` replays the spec's scenarios and the differential walk in Chromium, and the per-file decision (`accept`, `maxSize`, `maxFiles`) is a property test there. The same primitive replaces the bare file inputs of cms-admin's image field and kocharin's dashboard upload.
 
 ```tsx
 const upload = createDropZone({

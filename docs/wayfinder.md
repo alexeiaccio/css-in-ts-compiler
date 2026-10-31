@@ -2985,7 +2985,6 @@ different export, so whichever item was added last won and the other's conforman
 another's, and `scripts/starter-smoke.mjs` fails before installing when two items ship one target with different content —
 the silent version of the same bug.
 
-
 ## `@cssints/reactive`: a Quint model of owners, programs and the flush (packages/reactive, 2026-10-31, cssints-tm9j)
 
 The rules branched in the last three rounds — comparisons and choices in `bind()`, two owners where one is nested in the
@@ -3037,3 +3036,43 @@ added to an owner that already stands), a sibling owner (the instance is two own
 ones used, more than two values per state, and a payload read off anything but the event's own target. Atomicity is a Quint
 step by construction; only the browser replay can show the page paints once, and the hand-written `test/browsers.mjs` stays
 the fast oracle.
+
+## A Quint machine for the drop zone (packages/apg-specs, 2026-10-31)
+
+`createDropZone` was the one widget in `@cssints/headless` with no machine, and `dropzone.browser.test.tsx` was its
+only oracle. The rule of `specs/apg/STATIC.md` (a machine exists where state changes over time) does not close the
+case: a knob's value is one arithmetic decision per pointer event, a toast's announcement is `alert.qnt`'s live
+region, and panzoom's camera is `canvas/camera.qnt`; the drop zone keeps two pieces of state that only exist over
+time and that a browser test can reach only one path at a time. The first is the hover depth: `dragenter` and
+`dragleave` bubble, so the zone counts every nesting level and clears only when the drag leaves the zone itself (or
+on a drop). The second is the last delivery's summary (`total`, `accepted`, the refused reasons), which drives the
+live announcement and must not change on an empty drop, a folder-only drop or a drop while disabled. Both are the
+known bug class: a highlight stuck on after a child's `dragleave` or a drop, and an announcement for a batch that
+never arrived.
+
+`specs/patterns/dropzone.qnt` (not `specs/apg/`: there is no WAI-ARIA APG pattern for file dropping, the accessible
+contract is a `role=group` zone plus a `role=status` region, and the patterns family is where a non-APG machine
+goes — the same reasoning as `resizable-panels`, recorded at line 1854). The source of truth is the HTML
+drag-and-drop model and MDN's `DataTransfer`. It models depth 0..2 (none, the zone, a child; a grandchild is the
+same column because only `depth > 0` is read), `dragging()` as its own variable so `DraggingIffDepth` has teeth,
+`disabled`, the summary (`batch`, `batches`) and three per-action flags (`dropped`, `delivered`, `exited`) that make
+the transition invariants checkable: `DepthClearsOnDrop`, `DepthClearsOnExit`, `DisabledNeverDelivers`,
+`OneDropOneBatch`, `DepthNeverNegative`, `AnnouncementOnlyAfterBatch`. Leaving the zone clears the depth in one
+model step, which is what the browser does across two events (the inner element's leave, then the zone's); a zone
+disabled mid-drag keeps a highlight the handlers ignore until the next drop — that is the primitive's behaviour, and
+`DepthClearsOnExit` speaks about the leaves the zone honours. The machine cannot see the per-file decision (`accept`
+grammar, `maxSize`, `maxFiles`; a property test in `dropzone-spec.browser.test.tsx` checks the arithmetic — every
+file accounted for once, one reason each, `accepted <= maxFiles`, a fitting file never refused) or the async upload
+(`onFiles` is the host's). The picker path, a null `dataTransfer`, a transfer with no file items, a folder-only
+drop and the deeper nesting are DOM details the existing browser test keeps.
+
+The differential walk needed one engine change: a probe compared `attrs` and `events`, and neither exists for
+`dragging()` or `message()` (the primitive deliberately has no `data-dragging`). `Probe` gained an opt-in `value`
+flag, on only for this pattern, so the walk compares the primitive's two observables against the model's after
+every step. That surfaced a driver detail worth keeping: Solid 2 lands a signal write per turn, so the two
+`dragleave` dispatches of "leave the zone from inside the child" must be a tick apart or the second one reads the
+old depth and leaves the highlight on. Checked: 45 specs typecheck with Quint; `test/patterns/dropzone.test.ts`
+(invariants, their teeth on hand-built bad states, a bounded exploration and the scenarios against the spec),
+`packages/apg-specs` 925 tests; nine scenarios and two walks (plain, disabled) plus the property test in real
+Chromium. Left: the primitive's disabled-mid-drag highlight (the machine models it rather than fixing the
+primitive), a persisted announcement, and porting the machine to `native/headless`.

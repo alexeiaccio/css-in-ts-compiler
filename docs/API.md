@@ -2049,7 +2049,7 @@ createKnob(options?: {
 
 ### Headless: `createDropZone` (`@cssints/headless`)
 
-A file drop target. **There is no APG pattern and no Quint spec for a drop zone** — the contract is HTML's file input plus WAI-ARIA's live region — so `packages/headless/test/dropzone.browser.test.tsx` (real Chromium) is its oracle. It is the replacement for the bare `<input type="file">` fields of cms-admin's image field and kocharin's dashboard upload.
+A file drop target. **There is no APG pattern for a drop zone** — the contract is HTML's file input plus WAI-ARIA's live region — but the drag depth and the last delivery change over time, so they have a machine (`packages/apg-specs/specs/patterns/dropzone.qnt`). `packages/headless/test/dropzone.browser.test.tsx` (real Chromium) is the DOM oracle; `dropzone-spec.browser.test.tsx` replays the spec's scenarios and the differential walk, and a property test checks the per-file decision (`accept`, `maxSize`, `maxFiles`). It is the replacement for the bare `<input type="file">` fields of cms-admin's image field and kocharin's dashboard upload.
 
 ```ts skip
 createDropZone(options: {
