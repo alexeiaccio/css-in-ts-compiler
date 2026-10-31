@@ -998,9 +998,13 @@ Each step ends in a check that fails when it breaks.
    not reaching `ui_begin` — "the panel has 0 lines naming the button"; `stats` not handed to the frame — no
    `draws N presents M` line at all; a panel that reprints every frame — "30 frames at rest: draws 50 -> 80".
    Limits: a real IME was not driven (Playwright cannot: the composition's events are dispatched, so no candidate
-   window, no dead key, none of an IME's own keydowns, no several-clause `textformatupdate`), the EditContext carries no
-   mirror of the field's text (`updateText` is not called, so an IME sees an empty context), the clipboard's read is the
-   page's permission (the check grants `clipboard-read`/`clipboard-write`; an insecure context has no `navigator.clipboard`),
+   window, no dead key, none of an IME's own keydowns, no several-clause `textformatupdate`), and where a platform puts
+   that window is not observed even though the EditContext now carries the field's own string, caret and boxes
+   (`updateText`/`updateSelection`/`updateControlBounds`/`updateSelectionBounds` from `Input.field()` once a frame, the
+   IME's `textupdate` written to the view and the model's only at `compositionend`): the check reads the mirror back — the
+   context's text, its selection against the model's, and the character bounds at the drawn caret — not the window itself;
+   the clipboard's read is the page's permission (the check grants `clipboard-read`/`clipboard-write`; an insecure context
+   has no `navigator.clipboard`),
    no pinch or long-press, no real touchscreen on this machine (the finger's path is Chromium's own touch
    through the DevTools protocol), no HMR; and the panel's live
    values edit through `ui.value`, but its `s` and the host's `--tune` are file paths and Bun's browser bundle stubs

@@ -1683,14 +1683,35 @@ composition's. `?ime=input` forces the fallback, which is how `browser/ime-check
 Chromium takes the EditContext, and the forced page is the textarea's (no `canvas.editContext`, the TEXTAREA focused).
 
 **What a composition does to the model: one insertion, at its end.** The desktop has no composition at all — SDL hands it
-committed characters — so the draft an IME presents never reaches the page: it stays in the module's buffer, and nothing is
-inserted, declared or drawn while it is being composed (the candidate window is the browser's; a canvas gets no inline
-preview). `compositionend`'s string goes through `Input.textInput`, the call the desktop's SDL_TEXTINPUT makes, and only
+committed characters — so the draft an IME presents never reaches the page's model, only the context's view of it (the
+paragraph below), and nothing is inserted, declared or drawn while it is being composed (the candidate window is the
+browser's; a canvas gets no inline preview). `compositionend`'s string goes through `Input.textInput`, the call the desktop's SDL_TEXTINPUT makes, and only
 while a text field has the focus (`textInput` answers false otherwise), then one frame. A keydown inside a composition is
 the IME's, and the page's character path drops it (`text.composing()`). Measured: the draft "Ada" (three `textupdate`s)
 leaves the value `""`, the frame's 20 commands and its 18 px of caret ink exactly as they were; `compositionend` with
 "Ada" gives `Value: "Ada" (3)`, the caret at x **80.16** and **192 px** of ink in **52..80 × 212..229** — the numbers
 `input-check.mjs` measures for the same run typed key by key.
+
+**The mirror an IME reads.** The context is a view of the field, not a second model: `browser/solid/text.ts` keeps
+`Input.field()`'s `{ id, value, caret, selection }` in it with `updateText(0, length, value)`, `updateSelection(anchor,
+caret)`, `updateControlBounds` (the field's row) and `updateSelectionBounds` (the 1px caret box the page already draws),
+and answers `characterboundsupdate` from the row's width over its length — one advance a character, the approximation
+`press` makes, because the page draws runs and not per-glyph boxes. The sync runs **once a frame**, in the page's tick
+before the tree is declared, and writes only what moved: a typed character, Backspace, an arrow, a selection chord, a
+paste, a cut, select-all and a click's caret all land in the model and are mirrored by the next frame, so there is one
+site instead of ten (and the model has no change notification a page could subscribe to); the boxes are the frame just
+laid out, one frame — 16ms — behind the edit that moved the caret. **While a composition runs the sync is skipped**: the
+IME's `textupdate` is applied to the context instead (the spec's own flow), so its text is the field's with the draft in
+it, and the model takes the committed string only at `compositionend`, one insertion at its caret; the end re-syncs, so a
+cancelled composition puts the field's string back. Measured: "Ada" typed then "na" composed gives the context
+`"Adana"` at 5 while the model is still `"Ada"` at 3, and the commit `"Adana"` at the caret 5 with the typed path's
+**305 px** of ink in **52..98 × 212..229**; a composition over the selected "da" replaces it (`"Ane"`, the caret 3,
+**201 px**); `characterboundsupdate` 3..5 answers at x **121.00** against the drawn caret's **120.16** (y **520.00**
+against **520.81**), not at the canvas's corner; the context's caret equals the model's after Backspace, Home, End and
+both arrows (**4, 0, 4, 3, 4**), and a backwards Shift+Home keeps the direction (**4..0**). The fallback is the same
+code path — one `Mirror` with two writings: the hidden textarea *is* its own mirror (`value`, `setSelectionRange`, and its
+1px box moved to the caret's pixel), so `?ime=input` holds the same numbers (`"Adana"` at 5, **305 px**; `"Ane"` at 3,
+**201 px**) and a composition on it composes into the field's string rather than into an empty line.
 
 **The clipboard.** Cmd/Ctrl+C, X, V and A on a focused field, over `navigator.clipboard` and the page's own model: copy is
 `Input.clipboard("copy")` into `writeText`; cut is `Input.clipboard("cut")` — the field's own copy and backspace rule, the
@@ -1703,22 +1724,23 @@ at **80.16**, the **192 px**); Shift+Home + Ctrl+X empties the field and keeps `
 and a key replaces the whole value (`"B"`). A chord on a page with no field focused is the browser's, as `keyName` decides
 for the desktop's.
 
-**Cost.** `field.js` **248,670 B** (**57,075 B** gzip) — **3,386 B** over the page without the text path (245,284 B) —
-`field.html` **1,865 B**, on the same `ui.wasm` (141,104 B). The path costs no frame: at rest the page still
-draws nothing, and a frame with the field focused and a composition open is **0.12–0.19 ms** against **0.14–0.27** at rest
-(100 frames each: the same, and the noise between them). The text is a buffer until `compositionend` and one `textInput` call;
-the clipboard is two DOM calls on the event and a promise on a paste.
+**Cost.** `field.js` **255,515 B** (**59,455 B** gzip) — **3,533 B** over the page before the mirror (251,982 B) —
+`field.html` **1,865 B**, on the same `ui.wasm` (141,104 B). The mirror costs the frame nothing measurable: **0.13–0.14 ms**
+at rest (the diff: one read of the model and four comparisons), **0.11–0.13 ms** with a composition open and
+**0.09–0.11 ms** on an edit's frame, where the mirror is rewritten (a typed character and a Backspace, 120 frames; 100
+for the benches, three runs) — the same band the page measured before it (0.14 and 0.12). The text is the model's until
+`compositionend` and one `textInput` call; the clipboard is two DOM calls on the event and a promise on a paste.
 
 **What genuinely remains.** A real input method was not driven: Playwright cannot, so the check dispatches the sequence a
 composition produces (`compositionstart`, the `textupdate`s, `compositionend`) — no candidate window, no dead key, none of
 an IME's own keydowns (Chromium's keyCode 229/"Process") — and what the tests hold is the string's way into the model, the
 caret and the pixels it leaves, not the IME's. A script whose IME sends several clauses with `textformatupdate` (a
 Japanese conversion, an autocomplete) is not driven either: the format is ignored and the committed `data` is what is
-inserted. The EditContext carries no mirror of the field's value (`updateText` is not called), so an IME sees an empty
-context and composes its string as one insertion, without the surrounding text a native field would give it. The
-clipboard's permission is the page's: an insecure context has no `navigator.clipboard`, so the chords fall through to the
-browser's own (a no-op on a canvas), and the check grants `clipboard-read`/`clipboard-write` to its context rather than
-letting the browser ask. And the fallback's textarea takes the DOM's focus, so `document.activeElement` is the textarea
+inserted. The EditContext now carries the field's string, caret and boxes, but a real IME's candidate window is still the
+browser's and is not driven: the check dispatches the context's side of the protocol and reads back what the mirror would
+hand an IME, not where a platform puts its window. The clipboard's permission is the page's: an insecure context has no
+`navigator.clipboard`, so the chords fall through to the browser's own (a no-op on a canvas), and the check grants
+`clipboard-read`/`clipboard-write` to its context rather than letting the browser ask. And the fallback's textarea takes the DOM's focus, so `document.activeElement` is the textarea
 there and the canvas here (the canvas keeps the page's own ring and `aria-label` either way).
 
 ### The Dev page and the Text sheet in the browser
