@@ -1834,6 +1834,48 @@ createSpinbutton(options?: {
 - a disabled spinbutton's field announces `aria-disabled` **and carries the native `disabled`** (the field is an `<input>`, so the platform's own form-control rule applies); the spin keys, the typed draft (Enter and blur included) and both steppers change nothing, and **both** steppers announce `aria-disabled="true"` — the at-bound rule of the spec stays, and a disabled widget adds the other side;
 - both read the option on every attribute read, so a host may flip `disabled` on a mounted widget and the attributes and the guards follow in the same tick.
 
+### Headless: `createSliderMultiThumb` (`@cssints/headless`)
+
+The APG Slider (Multi-Thumb) pattern: two `role="slider"` thumbs on one rail, each bounded by its neighbour, so they cannot pass one another; equal values are allowed. Its behaviour is `packages/apg-specs/specs/apg/slider-multithumb.qnt`, checked against the real DOM by the differential walk in `packages/headless/test/slider-multithumb.browser.test.tsx`. The spec fixes two thumbs and one linked pair: the independent-thumbs variant, N thumbs, dragging, a nearest-thumb rail press and `disabled` are deliberate omissions (a press names its thumb). Options are plain and read lazily; `value` + `onValueChange` make the widget controlled.
+
+```ts skip
+createSliderMultiThumb(options?: {
+  min?: number; // 0
+  max?: number; // 10
+  step?: number; // 1
+  largeStep?: number; // 3: the jump of PageUp / PageDown
+  value?: readonly [number, number] | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: readonly [number, number]; // [3, 7], clamped into the range and ordered
+  orientation?: "horizontal" | "vertical"; // "horizontal"
+  direction?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows flip
+  id?: string; // base of the thumb ids
+  onValueChange?(values: readonly [number, number]): void; // a request the host may ignore
+}): {
+  values(): readonly [number, number];
+  focused(): 0 | 1 | null;
+  setValues(values: readonly [number, number]): void;
+  pointerDown(index: 0 | 1, position: number): void; // a press at a 0..1 fraction of the track
+  focusThumb(index: 0 | 1): void;
+  blur(): void;
+  keyDown(key: string): boolean; // true when the key was consumed (preventDefault it)
+  thumbProps(index: 0 | 1): {
+    id;
+    role: "slider";
+    "aria-valuenow"; // the thumb's value
+    "aria-valuemin"; // the lower thumb: the range's minimum; the upper thumb: the lower value
+    "aria-valuemax"; // the lower thumb: the upper value; the upper thumb: the range's maximum
+    "aria-valuetext";
+    "aria-orientation";
+    tabindex: 0;
+    onFocus;
+    onBlur;
+    onKeyDown;
+  };
+};
+```
+
+Both thumbs are tab stops in a fixed order (lower, then upper), whatever the values are. There is no `trackProps`: the primitive has no rail press, because a press has to name a thumb.
+
 ### Headless: `createKnob` (`@cssints/headless`)
 
 A virtual knob after GarageBand's ([How Apple Designs a Virtual Knob](https://jherrm.github.io/knobs/)): spin around the centre, or slide vertically / horizontally, with one gesture locked per drag. **No APG pattern and no ARIA role exist for a dial**, so there is no Quint spec and no ported scenarios: `packages/headless/test/knob.browser.test.tsx` (real Chromium) is the oracle. The knob is a `role=slider` — the closest role WAI-ARIA has — with a polite live value; a numeric field must sit next to it, because a dial is never the only control. Options are plain and read lazily; `value` + `onValueChange` make the widget controlled.
