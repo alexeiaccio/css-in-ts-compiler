@@ -2830,3 +2830,49 @@ the segments of one program; `field()` is two branches). The browser suite grew 
 **Left.** Persistence, counters, gestures, async and `event()` callbacks stay out. A list is a build-time join of string
 values, not a general list type: the protocol is still a comma-separated string on one element, and a payload is read only
 off the event's own target, never an ancestor's.
+
+## Persistence: a state that survives a reload (packages/reactive, 2026-10-31, cssints-3ydy)
+
+The round-two note left persistence out, and a disclosure that reopens every visit is the obvious request for a state
+that already lives on one element. This round adds the constructor, not a store: `persist(value, key)` wraps a state's value
+
+```ts
+const ui = state({ open: persist(false, "demo-open"), tab: persist("one", "demo-tab") });
+```
+
+and returns a branded `Persisted<T>`. Only `state()` accepts it: `set()`, `toggle()`, `bind()`, `when()`, `on()` and a
+`Style` position refuse it (a `Persisted` is none of a source, a value, an action or a style), so a write still goes
+through the source, and `persist()` without a value is a type error too. The key is a build error at the call site when it
+is empty or has anything but letters, digits, `-`, `_`, `.` and `:`: the protocol is a comma-separated list, so a comma or a
+space would split it. Two states may share a key on purpose (one slot, kept in sync), and the docs ask an app to prefix its
+keys (`demo-open`).
+
+**Protocol.** A fourth non-inheriting property on the owner, `--reactive-persist: open:demo-open,tab:demo-tab`, from a
+kernel `#persist` (the same empty `&{}` plus `@property { syntax: "*"; inherits: false }` as `#owner`, `#events` and
+`#binding`). `state()` emits it with `append()`, so two `state()` calls in one `cn()` join their states, and a state without
+`persist()` never appears: the property, the kernel and its `@property` rule are all left out of a file that persists
+nothing.
+
+**Runtime.** The value lives under `"reactive:" + key` in `localStorage`. When an owner is initialised (the same `setup()`
+that writes the declared value, one `MutationObserver` pass for added nodes), a stored value replaces the declared one, so
+`data-reactive-<name>` and the inline `--reactive-<name>` already hold it by the time the harness reads the page after
+`load`; the module still runs after parsing, so a persisted state has the same frame-late caveat the initial value has. Every
+`write()` of a persisted state stores it, including the setup write, so a click needs no extra call. The parsed protocol is
+cached on a `WeakMap` per owner: a write would otherwise call `getComputedStyle` on every event. `localStorage` may be
+missing or throw (private mode, quota, a page without storage); `load()` and `save()` swallow it, so the state stays
+interactive and simply does not survive. A stored value reaches the page only through `setAttribute` and
+`style.setProperty`, never as a string of CSS or HTML, so it cannot inject anything — the note is in `write()`.
+
+**Cost and tests.** The runtime grew from 1.75 kB to 2.48 kB minified (0.87 to 1.16 kB gzipped): the cache, a colon split,
+two `try` guards and one map per initialisation. No engine change, no type budget change (one brand interface, `Sources` maps
+through `ValueOf`). `test/reactive.mjs` checks the property and its kernel in the sheet, the joined list of two `state()`
+calls, a file without persistence leaving both out, and the key and missing-value errors at the call site;
+`test/types/reactive.ts` checks the refusals; `test/browsers.mjs` clears storage at the start, clicks a persisted
+disclosure and reloads (open before the harness reads it after `load`), writes `reactive:test-tab` and sees the stored
+value win over the declared `"one"`, clicks a state without `persist()` and finds the key list unchanged (and the state
+back to its declared value after a reload), and fails on a console error. Chrome 156, Firefox 157 and WebKit 27.2 pass.
+
+**Left.** No cross-tab sync (a second tab keeps its own copy until it reloads), no versioning or expiry (a stored value is
+a string the current build may no longer expect), no `sessionStorage` choice, and no JavaScript read of a stored value: it is
+still a state, not a store. Storage failures stay silent by design. Counters, gestures, async and `event()` callbacks remain
+out as before.
