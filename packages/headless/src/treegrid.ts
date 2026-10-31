@@ -18,6 +18,14 @@ export interface TreegridOptions {
   readonly selection?: TreegridSelection;
   /** Column count; the spec fixes three. */
   readonly cols?: number;
+  /**
+   * The tree, as the parent of each row in document order: `-1` is a root, any
+   * other number is the index of that row's parent. Read once, at creation.
+   * Defaults to the spec's Email Inbox tree.
+   */
+  readonly parents?: ReadonlyArray<number>;
+  /** The rows expanded at mount, by index (uncontrolled). */
+  readonly defaultExpanded?: ReadonlyArray<number>;
   /** Controlled: the host owns the selected rows and this is the only thing that changes them. */
   readonly value?: ReadonlyArray<number> | undefined;
   /** Uncontrolled starting selected rows; ignored while `value` is set. */
@@ -96,27 +104,28 @@ export interface Treegrid {
 }
 
 // The spec's parent map (module apg_treegrid): only the tree data.
-const PARENTS: ReadonlyArray<number> = [-1, 0, 0, 2, -1, 4, 4];
+const SPEC_PARENTS: ReadonlyArray<number> = [-1, 0, 0, 2, -1, 4, 4];
 
 const minI = (a: number, b: number): number => (a < b ? a : b);
 
 const maskOfRows = (rows: ReadonlyArray<number>): number =>
   rows.reduce((mask, row) => mask | (1 << row), 0);
-const rowsOfMask = (mask: number): ReadonlyArray<number> => {
-  const rows: number[] = [];
-  for (let row = 0; row < PARENTS.length; row += 1) {
+const rowsOfMask = (mask: number, rows: number): ReadonlyArray<number> => {
+  const selected: number[] = [];
+  for (let row = 0; row < rows; row += 1) {
     if ((mask & (1 << row)) !== 0) {
-      rows.push(row);
+      selected.push(row);
     }
   }
-  return rows;
+  return selected;
 };
 
 export const treegridRowPart = (row: number): string => `row:${row}`;
 export const treegridCellPart = (row: number, col: number): string => `cell:${row},${col}`;
 
 export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
-  const totalRows = PARENTS.length;
+  const parents = options.parents ?? SPEC_PARENTS;
+  const totalRows = parents.length;
   const totalCols = Math.max(1, options.cols ?? 3);
 
   const [nav, setNav] = createSignal<TreegridNav>(options.nav ?? "rowsFirst");
@@ -130,15 +139,17 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
   const [selectedMask, requestSelected] = createControllable<number>({
     value: () => (options.value === undefined ? undefined : maskOfRows(options.value)),
     initial: maskOfRows(options.defaultValue ?? []),
-    onChange: () => (next) => options.onValueChange?.(rowsOfMask(next)),
+    onChange: () => (next) => options.onValueChange?.(rowsOfMask(next, totalRows)),
   });
-  const [expanded, setExpandedSet] = createSignal<ReadonlySet<number>>(new Set());
+  const [expanded, setExpandedSet] = createSignal<ReadonlySet<number>>(
+    new Set(options.defaultExpanded ?? []),
+  );
 
   const base = options.id ?? createUniqueId();
 
-  const parentOf = (row: number): number => PARENTS[row] ?? -1;
-  const hasChildren = (row: number): boolean => PARENTS.some((parent) => parent === row);
-  const childCount = (parent: number): number => PARENTS.filter((p) => p === parent).length;
+  const parentOf = (row: number): number => parents[row] ?? -1;
+  const hasChildren = (row: number): boolean => parents.some((parent) => parent === row);
+  const childCount = (parent: number): number => parents.filter((p) => p === parent).length;
   const isExpanded = (row: number): boolean => expanded().has(row);
   const visible = (row: number): boolean => {
     if (row < 0 || row >= totalRows) {
@@ -183,7 +194,7 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
   };
   const ariaSetSize = (row: number): number => {
     const p = parentOf(row);
-    return p < 0 ? PARENTS.filter((x) => x < 0).length : childCount(p);
+    return p < 0 ? parents.filter((x) => x < 0).length : childCount(p);
   };
   const ariaPosInSet = (row: number): number => {
     const p = parentOf(row);
@@ -208,7 +219,7 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
     }
   };
   const setRow = (row: number, value: boolean): void => {
-    const next = new Set(rowsOfMask(selectedMask()));
+    const next = new Set(rowsOfMask(selectedMask(), totalRows));
     if (value) {
       next.add(row);
     } else {
@@ -424,14 +435,14 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
   };
   const selectAll = (): void => {
     if (inGrid() && selection() === "multi") {
-      requestRows(PARENTS.map((_, index) => index));
+      requestRows(parents.map((_, index) => index));
     }
   };
   const extend = (row: number): void => {
     if (inGrid() && selection() === "multi" && kind() === "row") {
       const previous = focusedRow();
       setFocusedRow(row);
-      const next = new Set(rowsOfMask(selectedMask()));
+      const next = new Set(rowsOfMask(selectedMask(), totalRows));
       next.add(previous);
       next.add(row);
       requestRows([...next].sort((a, b) => a - b));
