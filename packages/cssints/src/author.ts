@@ -7,7 +7,7 @@
 // engine is scope-engine.ts.
 import type { Part, Style } from "./parts.ts";
 
-export { arg, dependsOn, fn, inGroup, lacking, scope, ship } from "./scope.ts";
+export { append, arg, dependsOn, fn, inGroup, lacking, scope, ship } from "./scope.ts";
 export type {
   ArgsDef,
   Chain,

@@ -160,6 +160,22 @@ assert.match(shipUse, /export const b = ui\.name;/, "the data is the client's");
 const shipCss = sheet("plug-ship-use.ts");
 assert.ok(shipCss.includes("._pship-k{color:red}"), shipCss);
 
+// a declaration can be a list (`append()`, cssints-674d): two of one property in one cn() are one class whose value is the
+// joined list, a third still appends, and two different conditions keep both (an alternative, not an appendix)
+const listUse = await code("plug-list-use.ts");
+assert.match(listUse, /export const one = "_plist-k _\w+";/, "two lists, one atom");
+assert.match(listUse, /export const three = "_plist-k _\w+";/, "a third still appends");
+assert.match(listUse, /export const apart = "_plist-k _\w+ _\w+";/, "another condition keeps both");
+const listCss = sheet("plug-list-use.ts");
+for (const rule of ["--plist-x:a,b", "--plist-x:a,b,c"]) {
+  const found = listCss.match(new RegExp(`\\._\\w+\\{${rule}\\}`, "g")) ?? [];
+  assert.equal(found.length, 1, `${rule} is one rule\n${listCss}`);
+}
+assert.ok(
+  listCss.includes("{--plist-x:a}") && listCss.includes("{--plist-x:b}"),
+  `the two conditions are apart\n${listCss}`,
+);
+
 // a kernel written as styles: the support warning of a declaration is covered like `requires`, and names --sw-g, not --_g
 warnings.length = 0;
 await code("plug-styles-use.ts");
@@ -205,6 +221,23 @@ await fails(
   5,
   "frame",
 );
+// a list beside a plain value of the property, and a list with firstThatWorks(), are build errors at the call site
+await assert.rejects(code("plug-list-mixed.ts"), (e) => {
+  assert.match(
+    e.message.split("\n")[0],
+    /^cssints: --plist-x is a list "a" and a value "b": they cannot be merged$/,
+  );
+  assert.equal(e.loc?.line, 5, "the call site");
+  return true;
+});
+await assert.rejects(code("plug-list-fallback.ts"), (e) => {
+  assert.match(
+    e.message.split("\n")[0],
+    /^cssints: --plist-y is a list \("a"\) with firstThatWorks\(\): a list has no alternatives$/,
+  );
+  assert.equal(e.loc?.line, 5, "the call site");
+  return true;
+});
 
 // a value member: the result is inlined where the call is (a Typed OM value or a string), nothing ships
 const fnUse = await code("plug-fn.ts");

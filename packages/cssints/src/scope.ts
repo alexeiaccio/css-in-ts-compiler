@@ -112,6 +112,24 @@ export interface Typed<T> {
 /** `arg<T>()`: one value of the TypeScript type `T`. */
 export const arg = <T>(): Typed<T> => ({ "~arg": 1 }) as never;
 
+/**
+ * `append("--_x", "a")`: a declaration that is a list. Two declarations of the property that meet in one `cn()` under the
+ * same conditions join their values with `,` instead of the later replacing the earlier (`@cssints/reactive`'s protocol
+ * properties: two `on()`s on one element are one program list). A list beside a plain value of the property is a build
+ * error, and so is a list with `firstThatWorks()`: a list has no alternatives.
+ *
+ * @param {string} prop the property, a custom property for a plugin's own (`--_x` is `--<scope>-x`)
+ * @param {string} value the value of this declaration alone
+ * @returns {Decl} the declaration, its values joined with `,` when another list of the property follows
+ */
+export const append = (prop: string, value: string): Decl => [
+  prop,
+  value,
+  undefined,
+  undefined,
+  ",",
+];
+
 /** One argument: a grammar (aliases of the table allowed), `"$tokens"` (a token set), `"$overrides"` (values for the paths of the `$tokens` before it), `"$selector"` (a CSS selector list) or `arg<T>()`. */
 export type Leaf = string | Typed<unknown>;
 /** An object argument of named leaves (`"key?"` is optional). */

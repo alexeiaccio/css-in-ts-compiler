@@ -292,12 +292,12 @@ const wrapper = (cond: Cond): Wrapper =>
       return node(
         merged(
           styles.flatMap((n) =>
-            n.__cssints.map(([p, v, inner = [], fallbacks]): Decl => {
+            n.__cssints.map(([p, v, inner = [], fallbacks, join]): Decl => {
               if (inner.length >= MAX_CONDS)
                 throw fail(
                   `cssints: a style takes at most ${MAX_CONDS} conditions (layers ${LAYER[0]} to ${LAYER[MAX_CONDS]}); this one has ${inner.length + 1}: ${[cond, ...inner].map((c) => c.text).join(" > ")}`,
                 );
-              return [p, v, [cond, ...inner], fallbacks];
+              return [p, v, [cond, ...inner], fallbacks, join];
             }),
           ),
         ),

@@ -249,23 +249,40 @@ export function carried(nodes: CssNode[]): Carry {
 
 // The declarations of one class string, as the author meant them: under one condition, a property set again replaces the
 // earlier one (cn(p(4), p(2)) is p(2)), and two properties that overlap without one containing the other are an error,
-// since the sheet cannot order them by the arguments. A longhand inside a shorthand is fine: the sheet puts it after.
+// since the sheet cannot order them by the arguments. A declaration with a `join` is a list: two lists of one property
+// under the same conditions join their values (a third still appends), a list beside a plain value is an error, and a
+// list has no firstThatWorks() alternatives. A longhand inside a shorthand is fine: the sheet puts it after.
 export function merged(decls: Decl[]): Decl[] {
   const out: Decl[] = [];
   const at = (d: Decl) => (d[2] ?? []).map((c) => c.text).join(" > ");
   for (const d of decls) {
+    if (d[4] && d[3])
+      throw fail(
+        `cssints: ${d[0]} is a list (${JSON.stringify(d[1])}) with firstThatWorks(): a list has no alternatives`,
+      );
     const where = at(d);
+    let decl = d;
     for (let i = out.length - 1; i >= 0; i--) {
       const o = out[i]!;
       if (at(o) !== where) continue;
       const r = relation(o[0], d[0]);
-      if (r === "same") out.splice(i, 1);
-      else if (r === "overlap")
+      if (r === "same") {
+        if (o[4] || d[4]) {
+          if (o[4] !== d[4])
+            throw fail(
+              `cssints: ${d[0]} is a list ${JSON.stringify(o[4] ? o[1] : d[1])} and a value ${JSON.stringify(o[4] ? d[1] : o[1])}: they cannot be merged${where ? ` (under ${where})` : ""}`,
+            );
+          out.splice(i, 1);
+          decl = [d[0], `${o[1]}${o[4]}${decl[1]}`, d[2], undefined, o[4]];
+          continue;
+        }
+        out.splice(i, 1);
+      } else if (r === "overlap")
         throw fail(
           `cssints: ${o[0]} and ${d[0]} overlap without one containing the other${where ? ` (under ${where})` : ""}, so the sheet cannot order them by the arguments: set one of them, or the longhands`,
         );
     }
-    out.push(d);
+    out.push(decl);
   }
   return out;
 }
@@ -278,7 +295,8 @@ export function merged(decls: Decl[]): Decl[] {
 // the base and a variant or between things that can be active together (variants of different keys, a compound and a
 // variant of another key, two compounds that share no key with different values), are an error as in cn(); so is the
 // same property in two of them, where nothing says which one wins. A longhand inside a shorthand is fine: the sheet puts
-// it after.
+// it after. A list declaration (`append()`) is not joined here: a variant is an alternative to the base, so its list
+// replaces the base's as any declaration does.
 export function settled(
   base: Decl[],
   variants: Record<string, Record<string, Decl[]>>,
