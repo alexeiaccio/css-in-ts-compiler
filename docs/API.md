@@ -1553,6 +1553,40 @@ createScrollspy(options: {
 
 f812d87e (headless: a data table with sortable headers and row selection)
 
+### Headless: `createVirtualizer` (`@cssints/headless`)
+
+A window over a list of thousands: the host renders the visible rows plus an overscan, and two spacer boxes stand in for the rest, so the declared DOM, the content height and the scroll's clamp and thumb are the whole list's. It ports the rules the native renderer had (`native/solid/src/virtual.ts`: `fixedWindow`, `measuredWindow`, `OVERSCAN` and the gap-compensated spacers); the DOM adds the scrollport (`attach`), a `ResizeObserver` (the native renderer reads a row's box from `ui.bounds` after layout, which the DOM has no equivalent of) and the ARIA pair on every declared row. **No APG pattern exists for virtualisation and no Quint machine**: the state is pixels, not items, so `packages/headless/test/virtual.browser.test.tsx` is the oracle.
+
+```ts skip
+createVirtualizer(options: {
+  count: number | (() => number); // the whole list, read on every window calculation
+  itemSize?: number | ((index: number) => number) | undefined; // a fixed px height, or a per-row estimate; omit to measure
+  gap?: number | undefined; // the column's gap, px; 0
+  overscan?: number | undefined; // declared either side of the viewport; OVERSCAN (2)
+  estimate?: number | undefined; // one height for the unmeasured rows; the mean of the measured, else 190
+}): {
+  window(): { first: number; last: number; above: number; below: number; content: number };
+  rangeCount(): number; // last - first + 1, or 0 (nothing to declare)
+  scrollProps: { onScroll(event: Event): void }; // spread on the scrollport; attach already listens
+  itemProps(index: number): {
+    "aria-setsize": number; // the whole count
+    "aria-posinset": number; // index + 1
+    ref(element: HTMLElement): void; // the measured mode's observer wiring; a no-op when fixed
+  };
+  spacerProps(position: "start" | "end"): { "aria-hidden": "true"; style: { height: string } };
+  scrollToIndex(index: number): void; // the least scroll that shows the row
+  attach(element: HTMLElement): () => void; // the scrollport and the observers; returns the teardown
+};
+```
+
+A number `itemSize` is the arithmetic window: every row is that tall and row `n` starts at `n·(itemSize + gap)`. A function, or no `itemSize` at all, is the measured mode: a height per index arrives from the `ResizeObserver` on the declared rows, and an unmeasured row is the per-row estimate, else `estimate`, else the mean of what has been measured, else 190. The measured mode **measures once, then virtualises**: while any row's height is unknown the whole column is declared (one frame pays the whole list's layout), and the frame after it has every height, so the content height, the clamp and the thumb do not move as rows are first seen. `count` shrinking drops only the cached heights past the new count; growing it again leaves the new indexes unknown and the pass runs for them.
+
+The items and the spacers are children of **one gap-spaced column** (`display: flex; flex-direction: column; row-gap: gap`, or a grid with `row-gap`), and a spacer's height is already the gap short (`above = first·(itemSize + gap) - gap`), so the first declared row starts at its real place. At an end there is **no** spacer: a zero-height box would still add the column's gap, so a host renders one only while its height is positive — `window().above > 0` / `window().below > 0`, or the `spacerProps` height.
+
+Every declared row carries `aria-setsize` (the whole count) and `aria-posinset` (index + 1), so a screen reader announces "row 4,321 of 10,000" while only a screenful exists. A table host adds `aria-rowindex` itself: it counts the header row, which this primitive cannot know (and `createTable` already carries `aria-rowcount`). **Focus is the host's**: a focused row that leaves the window unmounts, so the host calls `scrollToIndex` when its keys move focus, before the new row must exist — the list declares the target, the host focuses it. `scrollToIndex` is the least scroll that shows the row (no move when it is already fully visible). In the measured mode its first offset is only an estimate for a row not measured yet, so the primitive keeps the target and lands again as each height arrives, until every height is in; a scroll the host makes by hand cancels the pending jump, because the reader has taken over.
+
+`attach` only records the element, adds a passive `scroll` listener, observes the scrollport's size and (measured mode) the rows' heights, and returns the teardown: it **creates no computation**, so a host may call it from a `ref`, as `createPopover` learned to allow. The measured mode requires it; the fixed mode works from `scrollProps` alone but then a resized scrollport is not seen. `scrollProps.onScroll` is the same sync as a prop, for a host that wires scrolling itself. The scrollport and its column must have no padding (the arithmetic starts at the content's 0), horizontal virtualisation and a sticky header are not here, and the measured window rebuilds a prefix sum per call (fine for a feed, not for a dataset).
+
 ### Headless: `createCommandPalette` (`@cssints/headless`)
 
 The first **composition**, not a new primitive and not a new spec: `createDialogModal` + `createTextInput` + `createStatus` wired into a palette. Its oracle is `packages/headless/test/command-palette.browser.test.tsx`. A palette is a dialog, **not a combobox**: choosing a row runs a command, so the field is `input[type=text][role=searchbox]` (no `aria-autocomplete`, no `aria-haspopup`), the container is `role=dialog` and the list is a `role=listbox`.

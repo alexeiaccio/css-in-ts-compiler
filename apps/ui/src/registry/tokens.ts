@@ -104,6 +104,8 @@ export const lightTokens = {
     buttonBackgroundPressed: { $value: "{color.tint.200}" },
     overlayBackground: { $value: "{color.surface}" },
     overlayBorder: { $value: "rgb(0 0 0 / 0.06)" },
+    // The bottom sheet's surface: the overlay colour by default, a token of its own so a host can lift the sheet off the page.
+    sheetBackground: { $value: "{color.overlayBackground}" },
     // The wash under a modal: the page stays visible, and no text of the page can be read through it.
     scrim: { $value: "oklch(0 0 0 / 0.35)" },
   },
@@ -222,6 +224,8 @@ export const darkTheme = {
     },
     page: "#1b1b1b",
     surface: "oklch(22% 0 0)",
+    // a step over the dark surface, so the sheet reads as a layer above the page
+    sheetBackground: "oklch(24% 0 0)",
     overlayBorder: "rgb(255 255 255 / 0.2)",
   },
   shadow: {
@@ -259,6 +263,7 @@ export const forcedColorsTheme = {
     buttonBackground: "ButtonFace",
     buttonBackgroundPressed: "ButtonFace",
     overlayBackground: "Canvas",
+    sheetBackground: "Canvas",
     overlayBorder: "ButtonBorder",
   },
 } as const;

@@ -761,13 +761,21 @@ Each step ends in a check that fails when it breaks.
    KB. What the Solid pages cannot do in cells is the cell's limit as the C pages' is: text is one row (the Solid feed
    and thread wrap at words, the C pages clip), an image is a skipped box, a float sits over the flow but its
    shadow/backdrop/alpha fade do not, there is no shadow, backdrop, gradient, group opacity or scale, and a hover or a
-   drag exists only where the last press was (termbox2 reports no motion). Three of the Sky page's four screens now run
-   as the page's own (the feed, the thread, the profile); the notifications stay C (`terminal/notify.c`) — `Sky.tsx`
-   has no notifications screen, so that one is hand-carried. **Left:** the notifications' Solid screen (it would have
-   to be invented, not ported), images (the thread's avatars), the thread's wrapped bodies against the C's one-row clip
-   (a cell's limit, not a gap), the app's banner picture (the page has none; the C draws a band), the Sensors page's
-   system theme (its tokens have no roles; the Sky page's are read from the terminal), the wheel's *set* bounds, and the
-   C `sky.c` as the oracle it already is.
+   drag exists only where the last press was (termbox2 reports no motion). **All four of the Sky page's screens are the
+   page's own now** (the feed, the thread, the profile, and the notifications: `solid/app/Notify.tsx` over
+   `app/notify.ts`, `terminal/solid.ts --page notify` or `n` on the feed, and the desktop's `bun solid/main.ts notify`).
+   The notifications are still **hand-carried** — the app has no notifications screen, model or fixture — but they are
+   the app's recordings mapped through the page's own `postOf` (the actors, posts and times of `home-discover-1`,
+   `home-science-1` and `thread.json`) under the app's five verbs, and a row's Enter opens its post's thread through the
+   same `load` the feed uses; the C `terminal/notify.c` stays the behaviour's oracle: **1564 cells, 0 of 26 rows, the
+   worst row 5 (80/80)** at rest and **1910, row 2** after `Tab,Tab`, 0.19 ms a frame (64 commands, 2080 cells). What
+   remains is the notifications' **data** — fetching `listNotifications` (no fixture was recorded, which is why the rows
+   are carried), paging, the unread counts and their badge, the app's `All`/`Mentions` grouping and its "and 3 others
+   liked your post" — and the cell's limits as above: images (the thread's avatars, the actors' in the notifications),
+   the thread's wrapped bodies against the C's one-row clip, the app's banner picture (the page has none; the C draws a
+   band), the Sensors page's system theme (its tokens have no roles; the Sky page's are read from the
+   terminal's OSC answer through `src/system.ts`'s own solver), the wheel's *set* bounds, and the C `sky.c` as the oracle it
+   already is.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors

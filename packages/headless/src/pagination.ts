@@ -67,7 +67,9 @@ export interface Pagination {
   readonly listProps: PaginationListProps;
   readonly itemProps: (page: number) => PaginationItemProps;
   readonly linkProps: (page: number) => PaginationLinkProps;
+  /** The previous page's control; a getter, so read it again after the page moves. */
   readonly previousProps: PaginationLinkProps;
+  /** The next page's control; a getter, so read it again after the page moves. */
   readonly nextProps: PaginationLinkProps;
   /** The count, announced once here rather than in every link. */
   readonly status: () => string;
@@ -150,14 +152,17 @@ export const createPagination = (options: PaginationOptions): Pagination => {
     },
   });
 
-  const endProps = (page: number, name: string, rel: "prev" | "next"): PaginationLinkProps => ({
+  // An end is an offset from the current page, not a page captured when the host read the object:
+  // a host that spreads it onto an anchor once still moves past the first step.
+  const endProps = (offset: -1 | 1, name: string, rel: "prev" | "next"): PaginationLinkProps => ({
     get href() {
-      return options.hrefFor?.(page);
+      return options.hrefFor?.(current() + offset);
     },
     get "aria-current"() {
       return undefined;
     },
     get "aria-disabled"() {
+      const page = current() + offset;
       const outside = page < 1 || page > options.pageCount;
       return options.disabled === true || outside ? ("true" as const) : undefined;
     },
@@ -167,7 +172,7 @@ export const createPagination = (options: PaginationOptions): Pagination => {
     },
     onClick: (event) => {
       event.preventDefault();
-      navigate(page);
+      navigate(current() + offset);
     },
   });
 
@@ -187,8 +192,12 @@ export const createPagination = (options: PaginationOptions): Pagination => {
       },
     }),
     linkProps,
-    previousProps: endProps(current() - 1, label("previous", "Previous page"), "prev"),
-    nextProps: endProps(current() + 1, label("next", "Next page"), "next"),
+    get previousProps() {
+      return endProps(-1, label("previous", "Previous page"), "prev");
+    },
+    get nextProps() {
+      return endProps(1, label("next", "Next page"), "next");
+    },
     status: () =>
       options.labels?.status?.(current(), options.pageCount) ??
       `Page ${current()} of ${options.pageCount}`,

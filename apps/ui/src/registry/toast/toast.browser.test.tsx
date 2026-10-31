@@ -49,26 +49,31 @@ describe("Toaster", () => {
   it("renders a pushed toast in the region with the live-region role it announces", async () => {
     const mounted = mount({ labels: { region: "Toasts" } });
     mounted.api.show({ title: "Draft saved" });
+    mounted.api.show({ title: "Published", tone: "success" });
     mounted.api.show({
       title: "Upload failed",
       description: "The file is larger than 10 MB.",
       tone: "error",
     });
-    await tick();
+    await waitFor(() => rows().length === 3);
 
     const region = stack();
     expect(region?.getAttribute("role")).toBe("region");
     expect(region?.getAttribute("aria-label")).toBe("Toasts");
     // the F6 target the primitive's docs describe: focusable by a host handler, out of the page's tab order
     expect(region?.getAttribute("tabindex")).toBe("-1");
-    expect(rows()).toHaveLength(2);
+    expect(rows()).toHaveLength(3);
 
     const info = rowOf("Draft saved");
+    const success = rowOf("Published");
     const error = rowOf("Upload failed");
     expect(info?.getAttribute("role")).toBe("status");
     expect(info?.getAttribute("aria-atomic")).toBe("true");
     expect(info?.getAttribute("data-tone")).toBe("info");
     expect(info?.querySelector('[data-part="toast-description"]')).toBeNull();
+    // a success is polite too: only the error tone is assertive
+    expect(success?.getAttribute("role")).toBe("status");
+    expect(success?.getAttribute("data-tone")).toBe("success");
     expect(error?.getAttribute("role")).toBe("alert");
     expect(error?.getAttribute("aria-atomic")).toBe("true");
     expect(error?.getAttribute("data-tone")).toBe("error");
@@ -77,24 +82,34 @@ describe("Toaster", () => {
     );
   });
 
+  it("keeps three at the default ceiling and drops the oldest of four", async () => {
+    const mounted = mount({ timeout: 10_000 });
+    const ids = ["One", "Two", "Three", "Four"].map((title) => mounted.api.show({ title }));
+    await waitFor(() => rows().length === 3);
+
+    // the primitive's default max is 3: the first shown is gone, the last three are in the stack
+    expect(
+      rows().map((row) => row.querySelector('[data-part="toast-title"]')?.textContent),
+    ).toEqual(["Two", "Three", "Four"]);
+    expect(mounted.dismissed).toEqual([ids[0]]);
+  });
+
   it("dismisses a toast from its close button", async () => {
     const mounted = mount({ timeout: 10_000 });
     mounted.api.show({ title: "Saved" });
-    await tick();
-    expect(rows()).toHaveLength(1);
+    await waitFor(() => rows().length === 1);
 
-    rowOf("Saved")?.querySelector<HTMLButtonElement>('[data-part="toast-close"]')?.click();
-    await tick();
-
-    expect(rows()).toHaveLength(0);
+    const close = rowOf("Saved")?.querySelector<HTMLButtonElement>('[data-part="toast-close"]');
+    expect(close?.getAttribute("aria-label")).toBe("Dismiss");
+    close?.click();
+    await waitFor(() => rows().length === 0);
     expect(mounted.dismissed).toHaveLength(1);
   });
 
   it("auto-dismisses after the timeout", async () => {
-    const mounted = mount({ timeout: 200 });
+    const mounted = mount({ timeout: 60 });
     const id = mounted.api.show({ title: "Gone soon" });
-    await tick();
-    expect(rows()).toHaveLength(1);
+    await waitFor(() => rows().length === 1);
 
     await waitFor(() => rows().length === 0);
     expect(mounted.dismissed).toEqual([id]);
@@ -129,7 +144,7 @@ describe("Toaster", () => {
     wrapper.style.overflow = "hidden";
     const mounted = mount({ timeout: 10_000 }, wrapper);
     mounted.api.show({ title: "Still in the corner" });
-    await tick();
+    await waitFor(() => rows().length === 1);
 
     const region = stack();
     expect(region).not.toBeNull();

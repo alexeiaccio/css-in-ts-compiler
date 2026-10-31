@@ -95,6 +95,20 @@ describe("createPagination", () => {
     dispose();
   });
 
+  it("steps past the first move: the ends follow the current page", async () => {
+    const { root, page, dispose } = mount({ page: 1, pageCount: 5 });
+    const next = root.querySelector<HTMLAnchorElement>("a[rel=next]");
+    next?.click();
+    await tick();
+    next?.click();
+    await tick();
+    expect(page()).toBe(3);
+    root.querySelector<HTMLAnchorElement>("a[rel=prev]")?.click();
+    await tick();
+    expect(page()).toBe(2);
+    dispose();
+  });
+
   it("announces the count once, in a polite status region", () => {
     const { root, dispose } = mount({ page: 2, pageCount: 9 });
     const status = root.querySelector('[role="status"]');

@@ -2,6 +2,7 @@
 // way a page would drive it: what a reader copies is what they see here.
 import { Accordion } from "../registry/accordion/accordion.tsx";
 import { Alert, AlertBody, AlertTitle } from "../registry/alert/alert.tsx";
+import { Dropzone, DropzoneBrowse } from "../registry/dropzone/dropzone.tsx";
 import { Badge } from "../registry/badge/badge.tsx";
 import {
   Breadcrumb,
@@ -12,6 +13,11 @@ import {
 import { Card, CardBody, CardFooter, CardHeader } from "../registry/card/card.tsx";
 import { Button } from "../registry/button/button.tsx";
 import {
+  CommandPalette,
+  CommandPaletteContent,
+  CommandPaletteTrigger,
+} from "../registry/command-palette/command-palette.tsx";
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -21,10 +27,51 @@ import {
 import { ButtonGroup } from "../registry/button-group/button-group.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "../registry/field/field.tsx";
 import { Input } from "../registry/input/input.tsx";
+import {
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../registry/drawer/drawer.tsx";
+import { CarouselExample } from "../registry/carousel/carousel.fixture.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
+import {
+  DIAGRAM_HINT,
+  edgeLabel,
+  nodeLabel,
+  PAYMENT_EDGES,
+  PAYMENT_NODES,
+} from "../registry/diagram/diagram.fixture.tsx";
+import { Diagram } from "../registry/diagram/diagram.tsx";
+import {
+  PANZOOM_HEIGHT,
+  PANZOOM_IMAGE,
+  PANZOOM_WIDTH,
+} from "../registry/panzoom/panzoom.fixture.tsx";
+import { Panzoom } from "../registry/panzoom/panzoom.tsx";
+import { Scrollspy, type ScrollspyEntry } from "../registry/scrollspy/scrollspy.tsx";
+import { ShortcutsExample } from "../registry/shortcuts/shortcuts.fixture.tsx";
 import { Separator } from "../registry/separator/separator.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+  TableScroll,
+} from "../registry/table/table.tsx";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationStatus,
+} from "../registry/pagination/pagination.tsx";
 import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "../registry/popover/popover.tsx";
@@ -36,6 +83,12 @@ import {
 import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
+import { TreegridExample } from "../registry/treegrid/treegrid.fixture.tsx";
+import { FeedExample } from "../registry/feed/feed.fixture.tsx";
+import { PlayerExample } from "../registry/player/player.fixture.tsx";
+import { ResizablePanelsExample } from "../registry/resizable-panels/resizable-panels.fixture.tsx";
+import { KnobExample } from "../registry/knob/knob.fixture.tsx";
+import { TimelineExample } from "../registry/timeline/timeline.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
@@ -45,11 +98,18 @@ import { Slider } from "../registry/slider/slider.tsx";
 import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
 import { Spinbutton } from "../registry/spinbutton/spinbutton.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
-import { createToast } from "@cssints/headless";
+
+import { VirtualList } from "../registry/virtual-list/virtual-list.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Toaster } from "../registry/toast/toast.tsx";
-import { createSignal } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onSettled } from "solid-js";
 import type { JSX } from "@solidjs/web";
+import {
+  type CommandPalette as CommandPaletteController,
+  createHotkeys,
+  createToast,
+  type Virtualizer,
+} from "@cssints/headless";
 
 const SwitchDemo = (): JSX.Element => {
   const [checked, setChecked] = createSignal(true);
@@ -176,6 +236,133 @@ const DialogDemo = (): JSX.Element => {
     </Dialog>
   );
 };
+
+const DrawerDemo = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Drawer open={open()} onOpenChange={setOpen}>
+          <DrawerTrigger>Filters</DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Filters</DrawerTitle>
+              <DrawerClose />
+            </DrawerHeader>
+            <DrawerBody>
+              <Input aria-label="Search" placeholder="Search the report" />
+            </DrawerBody>
+            <DrawerFooter>
+              <Button tone="quiet" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button tone="accent" onClick={() => setOpen(false)}>
+                Apply
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+        {/* the same drawer on the bottom edge: full width, its top corners round, and the body scrolls inside its height */}
+        <Drawer side="bottom">
+          <DrawerTrigger>Open the sheet</DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Share</DrawerTitle>
+              <DrawerClose />
+            </DrawerHeader>
+            <DrawerBody>A bottom sheet is a drawer with side="bottom".</DrawerBody>
+            <DrawerFooter>
+              <Button tone="accent">Copy link</Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      </div>
+    </div>
+  );
+};
+
+// The frame is as wide as the preview card allows; its height follows the image's shape. The value and the three buttons
+// are the skin; the drag, the wheel, the pinch, the double click and the keys are the primitive's.
+const PanzoomDemo = (): JSX.Element => (
+  <Panzoom
+    src={PANZOOM_IMAGE}
+    alt="A mountain lake at dusk"
+    width={PANZOOM_WIDTH}
+    height={PANZOOM_HEIGHT}
+    label="A mountain lake at dusk"
+  />
+);
+
+// A table of contents beside the article it follows: the pane scrolls and the page does not, so the whole demo fits the
+// preview card. The links are plain `#id` targets; the section at the top of the pane is the entry the primitive marks.
+const SCROLLSPY_ENTRIES: ReadonlyArray<ScrollspyEntry> = [
+  { id: "demo-scrollspy-start", text: "Start", level: 1 },
+  { id: "demo-scrollspy-install", text: "Install", level: 2 },
+  { id: "demo-scrollspy-theme", text: "Theme", level: 2 },
+  { id: "demo-scrollspy-publish", text: "Publish", level: 1 },
+];
+
+const SCROLLSPY_TEXT: Readonly<Record<string, string>> = {
+  "demo-scrollspy-start": "A table of contents is a list of links to the headings of one article.",
+  "demo-scrollspy-install": "Add the component and the theme it reads its colours from.",
+  "demo-scrollspy-theme":
+    "Light and dark are two values of the same tokens, so the marker follows the mode.",
+  "demo-scrollspy-publish": "The last heading to pass the top of the pane is the current entry.",
+};
+
+const ScrollspyDemo = (): JSX.Element => {
+  let pane: HTMLDivElement | undefined;
+  return (
+    <div class="demo-scrollspy">
+      <div
+        class="demo-scrollspy__pane"
+        ref={(element: HTMLDivElement) => {
+          pane = element;
+        }}
+      >
+        <For each={SCROLLSPY_ENTRIES}>
+          {(entry) => (
+            <section class="demo-scrollspy__section">
+              <h2 id={entry.id}>{entry.text}</h2>
+              <p>{SCROLLSPY_TEXT[entry.id]}</p>
+            </section>
+          )}
+        </For>
+      </div>
+      <div class="demo-scrollspy__toc">
+        <p class="demo-scrollspy__label">On this page</p>
+        <Scrollspy entries={SCROLLSPY_ENTRIES} root={() => pane} />
+      </div>
+    </div>
+  );
+};
+
+// The diagram is a payment flow: four steps and five edges. The keys are the primitive's; the line under it shows what an
+// activation sends to the host, because a graph drawn from a model is useless if a click cannot be read.
+const DiagramDemo = (): JSX.Element => {
+  const [log, setLog] = createSignal("Nothing activated yet: click a node, or press Enter on it.");
+  return (
+    <div class="demo-column demo-diagram">
+      <Diagram
+        nodes={PAYMENT_NODES}
+        edges={PAYMENT_EDGES}
+        labels={{ diagram: "Payment flow" }}
+        onActivate={(id) => setLog(`Node “${nodeLabel(id)}” activated.`)}
+        onEdge={(id) => setLog(edgeLabel(id))}
+      />
+      <p class="demo-text">{DIAGRAM_HINT}</p>
+      <p class="demo-text">{log()}</p>
+    </div>
+  );
+};
+
+// The starter is its own demo — a button, a search field, a note with an `s` of its own and the `?` that opens the sheet
+// — because a shortcut sheet is only proved by chords that fire. The fixture exports the component, so the gallery and
+// the browser test show the same wiring.
+const ShortcutsDemo = (): JSX.Element => <ShortcutsExample />;
+
+// Five drawn slides, the control row and the dots: the same example the browser test mounts.
+const CarouselDemo = (): JSX.Element => <CarouselExample class="demo-carousel" />;
 
 // The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
 // or Escape closes it, and a pointer outside the anchor is the third way out.
@@ -419,6 +606,17 @@ const ToastDemo = (): JSX.Element => {
         >
           Hover pause
         </Button>
+        <Button
+          tone="quiet"
+          onClick={() => {
+            // the queue keeps three: the first of the four is dropped as the fourth arrives, so the stack ends on the last three
+            for (const title of ["First toast", "Second toast", "Third toast", "Fourth toast"]) {
+              toast.show({ title });
+            }
+          }}
+        >
+          Queue four
+        </Button>
       </div>
       <Toaster toast={toast} />
     </div>
@@ -431,6 +629,64 @@ const MeterDemo = (): JSX.Element => (
     <Meter label="Upload" value={92} valueText="92% of the file sent" />
   </div>
 );
+
+// The page cannot drag a file in a screenshot, so the demo drops a synthetic one: the same `DataTransfer` and `DragEvent` a
+// real drop makes, through the zone's own handler. The real drop works as well; the point is that a reader sees the
+// accepted list and the announcement without preparing a file.
+const FAKE_DROP_FILES = [
+  { name: "photo.png", type: "image/png", bytes: 8 },
+  { name: "cover.png", type: "image/png", bytes: 8 },
+  { name: "notes.txt", type: "text/plain", bytes: 8 },
+  { name: "scan.png", type: "image/png", bytes: 1024 * 1024 + 1 },
+] as const;
+
+const DropzoneDemo = (): JSX.Element => {
+  const [accepted, setAccepted] = createSignal<ReadonlyArray<string>>([]);
+  let host: HTMLDivElement | undefined;
+  const drop = (fake: (typeof FAKE_DROP_FILES)[number]): void => {
+    const zone = host?.querySelector<HTMLElement>('[data-part="dropzone"]');
+    if (zone === undefined || zone === null) {
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([new Uint8Array(fake.bytes)], fake.name, { type: fake.type }));
+    zone.dispatchEvent(
+      new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }),
+    );
+  };
+  return (
+    <div
+      class="demo-column"
+      ref={(element: HTMLDivElement) => {
+        host = element;
+      }}
+    >
+      <Dropzone
+        label="Upload an image"
+        description="PNG or JPEG, up to 1 MB, two files per batch."
+        accept="image/*"
+        maxSize={1024 * 1024}
+        maxFiles={2}
+        multiple
+        onFiles={(files) => setAccepted(files.map((file) => file.name))}
+      >
+        <DropzoneBrowse>Browse files</DropzoneBrowse>
+      </Dropzone>
+      <div class="demo-row">
+        <For each={FAKE_DROP_FILES}>
+          {(fake) => (
+            <Button size="sm" tone="quiet" onClick={() => drop(fake)}>
+              Drop {fake.name}
+            </Button>
+          )}
+        </For>
+      </div>
+      <p class="demo-text">
+        Accepted: {accepted().length === 0 ? "nothing yet" : accepted().join(", ")}
+      </p>
+    </div>
+  );
+};
 
 const BREADCRUMB_ITEMS = [
   { label: "Home", href: "#home" },
@@ -462,6 +718,18 @@ const TREEVIEW_NODES = [
 const TreeviewDemo = (): JSX.Element => (
   <Treeview nodes={TREEVIEW_NODES} defaultValue={[2]} defaultExpanded={[1, 2]} label="Files" />
 );
+// The same file tree the browser test mounts: two folders open, the third level one expander away.
+const TreegridDemo = (): JSX.Element => <TreegridExample class="demo-treegrid" />;
+// Six articles of the demo journal at mount; scrolling the pane to the end brings the last three.
+const FeedDemo = (): JSX.Element => <FeedExample class="demo-feed" />;
+// A made-up film whose adapter runs a clock: Play moves the seek, the time and the fill without a media file.
+const PlayerDemo = (): JSX.Element => <PlayerExample />;
+// The two dials the browser test drives: a volume with a percentage and a pan whose centre is its own word.
+const KnobDemo = (): JSX.Element => <KnobExample />;
+// The checkout trace the browser test drives: a root, two branches and a nested database span on a 0 to 1 ruler.
+const TimelineDemo = (): JSX.Element => <TimelineExample class="demo-timeline" />;
+// The Files / Editor / Preview workspace the browser test mounts: the dividers drag, the arrows step, Enter folds.
+const ResizablePanelsDemo = (): JSX.Element => <ResizablePanelsExample class="demo-panels" />;
 const SliderDemo = (): JSX.Element => {
   const [volume, setVolume] = createSignal(4);
   return (
@@ -585,6 +853,350 @@ const DatePickerDemo = (): JSX.Element => {
   );
 };
 
+// The table and the pagination on one dataset. The table windows it: the primitive announces a sort descriptor and this
+// page reorders its own 10 000 issues, `renderRow` builds only the rows the window declares, and `aria-rowcount` stays
+// 10 000. The pagination shows the same idea with a page slice; it is a composition, not a second table.
+const TABLE_COLUMNS = [
+  { key: "title", label: "Issue" },
+  { key: "owner", label: "Owner", sortable: false },
+  { key: "count", label: "Open", numeric: true },
+] as const;
+
+interface Issue {
+  readonly id: string;
+  readonly title: string;
+  readonly owner: string;
+  readonly count: number;
+}
+
+const TABLE_ROWS: ReadonlyArray<Issue> = [
+  { id: "cs-101", title: "Focus ring on the slider", owner: "Ada", count: 3 },
+  { id: "cs-102", title: "Tooltip stays on Escape", owner: "Grace", count: 1 },
+  { id: "cs-103", title: "Menu clips in a card", owner: "Linus", count: 2 },
+  { id: "cs-104", title: "Roving tab stop in tabs", owner: "Ada", count: 1 },
+  { id: "cs-105", title: "Select announces the count", owner: "Margaret", count: 2 },
+  { id: "cs-106", title: "Checkbox mixed state", owner: "Grace", count: 1 },
+  { id: "cs-107", title: "Accordion keeps its panel", owner: "Linus", count: 2 },
+  { id: "cs-108", title: "Dialog returns focus", owner: "Ada", count: 1 },
+  { id: "cs-109", title: "Table sorts by a click", owner: "Margaret", count: 1 },
+  { id: "cs-110", title: "Tree view typeahead", owner: "Grace", count: 2 },
+  { id: "cs-111", title: "Pagination on a page slice", owner: "Linus", count: 1 },
+  { id: "cs-112", title: "Switch paints its label", owner: "Ada", count: 1 },
+];
+
+const PAGE_SIZE = 2;
+
+const issueValue = (row: Issue, key: string): string | number =>
+  key === "count" ? row.count : key === "owner" ? row.owner : row.title;
+
+const sortIssues = (
+  rows: ReadonlyArray<Issue>,
+  sort: { readonly key: string; readonly direction: "ascending" | "descending" } | null,
+): ReadonlyArray<Issue> => {
+  if (sort === null) {
+    return rows;
+  }
+  const sign = sort.direction === "ascending" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const left = issueValue(a, sort.key);
+    const right = issueValue(b, sort.key);
+    return sign * (left < right ? -1 : left > right ? 1 : 0);
+  });
+};
+
+const ISSUE_TITLES = [
+  "Focus ring on the slider",
+  "Tooltip stays on Escape",
+  "Menu clips in a card",
+  "Roving tab stop in tabs",
+  "Select announces the count",
+  "Checkbox mixed state",
+  "Accordion keeps its panel",
+  "Dialog returns focus",
+] as const;
+const ISSUE_OWNERS = ["Ada", "Grace", "Linus", "Margaret"] as const;
+
+// 10 000 issues, made once: the table builds only the 20-a-screen rows, never 10 000.
+const ISSUES: ReadonlyArray<Issue> = Array.from({ length: 10_000 }, (_, index) => ({
+  id: `cs-${index + 1}`,
+  title: ISSUE_TITLES[index % ISSUE_TITLES.length] ?? "An issue",
+  owner: ISSUE_OWNERS[index % ISSUE_OWNERS.length] ?? "Ada",
+  count: (index % 5) + 1,
+}));
+const ISSUE_BY_ID = new Map(ISSUES.map((issue) => [issue.id, issue]));
+
+const TableDemo = (): JSX.Element => {
+  const [sort, setSort] = createSignal<{
+    key: string;
+    direction: "ascending" | "descending";
+  } | null>(null);
+  const [selected, setSelected] = createSignal<ReadonlyArray<string>>([]);
+  const ordered = createMemo(() => sortIssues(ISSUES, sort()));
+  const ids = createMemo(() => ordered().map((issue) => issue.id));
+  return (
+    <div class="demo-column">
+      <Table
+        columns={TABLE_COLUMNS}
+        rows={ids}
+        sort={sort()}
+        onSortChange={(next) => setSort(next ?? null)}
+        selection="multiple"
+        selected={selected()}
+        onSelectionChange={setSelected}
+        caption="Open issues"
+        labels={{ selectRow: (id) => `Select ${id}` }}
+        virtualized={{ height: 480, rowHeight: 44 }}
+        renderRow={(id) => {
+          const issue = ISSUE_BY_ID.get(id);
+          return (
+            <TableRow row={id}>
+              <TableCell column="title">{issue?.title}</TableCell>
+              <TableCell column="owner">{issue?.owner}</TableCell>
+              <TableCell column="count">{issue?.count}</TableCell>
+            </TableRow>
+          );
+        }}
+      >
+        <TableHead>
+          {TABLE_COLUMNS.map((column) => (
+            <TableHeaderCell column={column.key}>{column.label}</TableHeaderCell>
+          ))}
+        </TableHead>
+        {/* The window renders itself: `renderRow` builds each declared row, from the row's real id. */}
+        <TableBody />
+      </Table>
+      <p class="demo-text">
+        10 000 issues, {selected().length} selected. The select-all covers the rendered window — the
+        rows the reader can see — not the whole set; a row outside the window that was selected
+        before stays selected.
+      </p>
+    </div>
+  );
+};
+
+// The pagination keeps the small dataset: a page is the host's slice, and the table's select-all covers the slice.
+const PaginationDemo = (): JSX.Element => {
+  const [page, setPage] = createSignal(1);
+  const pageCount = Math.ceil(TABLE_ROWS.length / PAGE_SIZE);
+  const visible = (): ReadonlyArray<Issue> =>
+    TABLE_ROWS.slice((page() - 1) * PAGE_SIZE, page() * PAGE_SIZE);
+  return (
+    <div class="demo-column">
+      <TableScroll>
+        <Table
+          columns={TABLE_COLUMNS}
+          rows={() => visible().map((issue) => issue.id)}
+          selection="multiple"
+          caption="Open issues"
+          labels={{ selectRow: (id) => `Select ${id}` }}
+        >
+          <TableHead>
+            {TABLE_COLUMNS.map((column) => (
+              <TableHeaderCell column={column.key}>{column.label}</TableHeaderCell>
+            ))}
+          </TableHead>
+          <TableBody>
+            {visible().map((issue) => (
+              <TableRow row={issue.id}>
+                <TableCell column="title">{issue.title}</TableCell>
+                <TableCell column="owner">{issue.owner}</TableCell>
+                <TableCell column="count">{issue.count}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableScroll>
+      {/* the same page signal: the table renders the slice, the pagination moves it */}
+      <Pagination
+        page={page()}
+        pageCount={pageCount}
+        onPageChange={setPage}
+        labels={{ nav: "Open issues pages" }}
+      >
+        <PaginationContent />
+        <PaginationStatus />
+      </Pagination>
+    </div>
+  );
+};
+
+// 10 000 names, made once: the list builds only the declared rows, never 10 000.
+const AGENTS: ReadonlyArray<string> = Array.from(
+  { length: 10_000 },
+  (_, index) => `Agent ${String(index + 1).padStart(5, "0")}`,
+);
+
+const VirtualListDemo = (): JSX.Element => {
+  let list: Virtualizer | undefined;
+  const [focus, setFocus] = createSignal(0);
+  const [pending, setPending] = createSignal<number | undefined>(undefined);
+  const elements = new Map<number, HTMLElement>();
+
+  // The list declares the target, the host focuses it. `scrollToIndex` only scrolls: a row outside the window is not in
+  // the DOM, so the effect waits until `window()` contains the index, then focuses the caller's element. A jump elsewhere
+  // (or a hand scroll that leaves the row out) never runs it, and the row's `ref` is the only handle the host needs.
+  createEffect(
+    () => `${pending()}|${list?.window().first}|${list?.window().last}`,
+    () => {
+      const index = pending();
+      const at = list?.window();
+      if (index === undefined || at === undefined || index < at.first || index > at.last) {
+        return;
+      }
+      const element = elements.get(index);
+      if (element === undefined || !element.isConnected) {
+        return;
+      }
+      setPending(undefined);
+      element.focus();
+    },
+  );
+
+  const jump = (index: number): void => {
+    const target = Math.min(AGENTS.length - 1, Math.max(0, index));
+    setFocus(target);
+    setPending(target);
+    list?.scrollToIndex(target);
+  };
+
+  const onKeyDown =
+    (index: number) =>
+    (event: KeyboardEvent): void => {
+      const step = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+      if (step === 0) {
+        return;
+      }
+      event.preventDefault();
+      jump(index + step);
+    };
+
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Button size="sm" tone="quiet" onClick={() => jump(0)}>
+          First
+        </Button>
+        <Button size="sm" tone="quiet" onClick={() => jump(9_000)}>
+          Jump to 9 000
+        </Button>
+        <Button size="sm" tone="quiet" onClick={() => jump(9_999)}>
+          Last
+        </Button>
+      </div>
+      <VirtualList
+        count={AGENTS.length}
+        itemSize={36}
+        gap={4}
+        height={320}
+        onReady={(ready) => {
+          list = ready;
+        }}
+        renderItem={(index) => (
+          <button
+            class="demo-vlist-item"
+            tabindex={index === focus() ? 0 : -1}
+            ref={(element) => {
+              elements.set(index, element);
+            }}
+            onKeyDown={onKeyDown(index)}
+            onClick={() => jump(index)}
+          >
+            {AGENTS[index]}
+          </button>
+        )}
+      />
+      <p class="demo-text">
+        10 000 agents, one screenful of rows: “Jump to 9 000” calls the primitive's `scrollToIndex`,
+        and the row is focused only once the window declares it — the list declares the target, the
+        host focuses it. Up and down move the host's focus index and scroll before focusing.
+      </p>
+    </div>
+  );
+};
+
+const CommandPaletteDemo = (): JSX.Element => {
+  const [last, setLast] = createSignal("");
+  let box: HTMLDivElement | undefined;
+  let palette: CommandPaletteController | undefined;
+
+  // The chord is the demo's own, scoped to this box: a page-wide mod+k on a docs page would take the
+  // reader's keys from whatever they were doing. A real app binds it on the page (the item's `hotkey`).
+  onSettled(() => {
+    const hotkeys = createHotkeys();
+    const unbind = hotkeys.bind({
+      keys: "mod+k",
+      scope: box,
+      onTrigger: () => palette?.openPalette(),
+    });
+    return () => {
+      unbind();
+      hotkeys.dispose();
+    };
+  });
+
+  const run = (label: string) => (): void => {
+    setLast(label);
+  };
+
+  return (
+    <div
+      class="demo-column"
+      ref={(element: HTMLDivElement) => {
+        box = element;
+      }}
+    >
+      <CommandPalette
+        hotkey={false}
+        onReady={(created) => {
+          palette = created;
+        }}
+        commands={[
+          {
+            id: "new",
+            label: "New file",
+            group: "File",
+            keywords: ["create"],
+            run: run("New file"),
+          },
+          {
+            id: "open",
+            label: "Open file",
+            group: "File",
+            keywords: ["browse"],
+            run: run("Open file"),
+          },
+          {
+            id: "theme",
+            label: "Toggle theme",
+            group: "View",
+            keywords: ["dark"],
+            run: run("Toggle theme"),
+          },
+          {
+            id: "settings",
+            label: "Open settings",
+            group: "View",
+            keywords: ["preferences"],
+            run: run("Open settings"),
+          },
+        ]}
+      >
+        <div class="demo-row">
+          <CommandPaletteTrigger>Open the palette</CommandPaletteTrigger>
+          <span class="demo-text">
+            or press <kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd> with the focus in this box
+          </span>
+        </div>
+        <CommandPaletteContent />
+      </CommandPalette>
+      <p class="demo-text">
+        {last() === ""
+          ? "No command has run yet: the field filters, the arrows move the highlight, Enter runs it."
+          : `The last command that ran was “${last()}”.`}
+      </p>
+    </div>
+  );
+};
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -592,6 +1204,12 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   field: FieldDemo,
   input: InputDemo,
   dialog: DialogDemo,
+  drawer: DrawerDemo,
+  panzoom: PanzoomDemo,
+  scrollspy: ScrollspyDemo,
+  diagram: DiagramDemo,
+  shortcuts: ShortcutsDemo,
+  carousel: CarouselDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,
@@ -604,19 +1222,30 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   badge: BadgeDemo,
   skeleton: SkeletonDemo,
   alert: AlertDemo,
+  dropzone: DropzoneDemo,
   meter: MeterDemo,
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
+  treegrid: TreegridDemo,
+  feed: FeedDemo,
+  player: PlayerDemo,
+  "resizable-panels": ResizablePanelsDemo,
+  knob: KnobDemo,
+  timeline: TimelineDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,
   popover: PopoverDemo,
   "date-picker": DatePickerDemo,
   select: SelectDemo,
+  "command-palette": CommandPaletteDemo,
   textarea: TextareaDemo,
   slider: SliderDemo,
   "slider-multithumb": SliderMultithumbDemo,
   spinbutton: SpinbuttonDemo,
   "checkbox-group": CheckboxGroupDemo,
+  table: TableDemo,
+  pagination: PaginationDemo,
+  "virtual-list": VirtualListDemo,
   toast: ToastDemo,
 };

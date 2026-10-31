@@ -28,6 +28,12 @@ export default defineConfig({
       headless: true,
       viewport: { width: 1280, height: 1024 },
       instances: [{ browser: "chromium" }],
+      // The default waits 60 s for a worker's iframe to come up, which a busy machine (or a CI runner with a dozen other
+      // jobs) misses: the run then fails as `the iframe did not become ready` with no test having run. Nothing about a
+      // test gets longer; this is the browser starting.
+      connectTimeout: 120_000,
+      // the iframe ready timeout is read from the config's own env, not from the process that started the run
+      env: { VITEST_BROWSER_IFRAME_TIMEOUT: "120000" },
     },
   },
 });
