@@ -96,7 +96,7 @@ PR [#10674](https://github.com/adobe/react-spectrum/pull/10674)) introduces **`S
 What it is, precisely:
 
 - A swipeable overlay that slides in from **any** edge: `position` = `bottom | top | left |
-right | start | end | center`, with `start`/`end` mirrored in RTL.
+  right | start | end | center`, with `start`/`end` mirrored in RTL.
 - Built on **native CSS scroll snapping and view timelines, on top of their existing `Modal`**
   — the same technique as `pure-web-bottom-sheet` (blog: "entirely built using native CSS scroll
   snapping and view timelines, on top of our existing Modal component"). Swipe runs off the main

@@ -159,8 +159,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
   const disabledIndices = new Set<number>(options.disabled ?? []);
   const isDisabled = (index: number): boolean =>
     disabledIndices.has(index) || (itemList()[index]?.disabled ?? false);
-  const clamp = (index: number): number =>
-    Math.max(0, Math.min(index, Math.max(count() - 1, 0)));
+  const clamp = (index: number): number => Math.max(0, Math.min(index, Math.max(count() - 1, 0)));
 
   const [active, requestActive] = createControllable<number>({
     value: () => options.activeValue,
