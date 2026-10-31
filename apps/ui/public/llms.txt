@@ -30,6 +30,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - badge: A small label in three tones, a pill at 999px because the theme's steps stop at 16px. `add @cssints/badge`
 - skeleton: A placeholder box that pulses only when the reader has not asked for less motion. `add @cssints/skeleton`
 - alert: APG alert: a title and a body in a live region, with an `invalid` tone. `add @cssints/alert`
+- dropzone: A file drop target: a dashed zone, a browse button over the primitive's hidden input, and a live region for the last batch. `add @cssints/dropzone`
 - meter: APG meter: a track and the fill of the value, on `createMeter`. `add @cssints/meter`
 - breadcrumb: APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it. `add @cssints/breadcrumb`
 - treeview: APG tree view: roving focus, expanded rows and levels on `createTreeview`. `add @cssints/treeview`

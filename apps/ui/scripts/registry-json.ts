@@ -6,7 +6,7 @@
 // runs with the same `vitest.browser.config.ts` the theme arrives with.
 //
 //   node scripts/registry-json.ts
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
@@ -47,11 +47,6 @@ interface Starter {
   readonly description: string;
   /** The item also ships its conformance test: the fixture, the driver it walks with and the browser config. */
   readonly tested?: boolean;
-  /**
-   * The test walks the item through a scenario driver (default). `false` ships the fixture and the test alone: a widget
-   * with no spec (a toast) is checked by a plain browser test, not by a scenario walk.
-   */
-  readonly driver?: boolean;
   /** Files of the kit a copy of this component needs beside it (relative to `src/registry`). */
   readonly with?: ReadonlyArray<string>;
   /** Other items this one is composed with (their files arrive here too, `with`). */
@@ -190,6 +185,15 @@ const STARTERS: ReadonlyArray<Starter> = [
     description: "APG alert: a title and a body in a live region, with an `invalid` tone",
   },
   {
+    name: "dropzone",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Drop zone",
+    description:
+      "A file drop target: a dashed zone, a browse button over the primitive's hidden input, and a live region for the last batch",
+    also: ["@cssints/button"],
+  },
+  {
     name: "meter",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
@@ -309,7 +313,6 @@ const STARTERS: ReadonlyArray<Starter> = [
     name: "toast",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
-    driver: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Toast",
     description:
@@ -326,23 +329,14 @@ const kitFiles = (item: Starter) => [
   ),
   ...(item.tested
     ? [
-        file(
-          target(`${item.name}.fixture.tsx`),
-          "registry:file",
-          `src/registry/${item.name}/${item.name}.fixture.tsx`,
-        ),
-        // the driver is the item's own: the generic one is byte-identical across patterns, but a nested one (the
-        // menubar's labels a submenu's rows) is not, and a copy that two items write into one file keeps only the last.
-        // An item with no spec ships no driver: its test is a plain browser test.
-        ...(item.driver === false
-          ? []
-          : [
-              file(
-                target(`${item.name}-driver.ts`),
-                "registry:file",
-                `src/registry/${item.name}/${item.name}-driver.ts`,
-              ),
-            ]),
+        // What a copy needs beside the component is what the item's own directory holds: a fixture its test mounts, and
+        // the driver that walks a scenario. A widget with no spec ships neither (its test mounts the component itself),
+        // so the two are read off the files rather than declared a second time. The driver is the item's own name: the
+        // generic one is byte-identical across patterns, but a nested one (the menubar's maps a submenu's rows) is not,
+        // and a copy that two items write into one file keeps only the last.
+        ...[`${item.name}.fixture.tsx`, `${item.name}-driver.ts`]
+          .filter((name) => existsSync(join(root, "src/registry", item.name, name)))
+          .map((name) => file(target(name), "registry:file", `src/registry/${item.name}/${name}`)),
         file(
           target(`${item.name}.browser.test.tsx`),
           "registry:file",
@@ -372,7 +366,7 @@ const starter = (item: Starter) => ({
   // `solid-js` rc, which this item cannot know. A scenario walk needs the spec packages; a plain
   // browser test does not.
   devDependencies:
-    item.tested && item.driver !== false
+    item.tested && existsSync(join(root, "src/registry", item.name, `${item.name}-driver.ts`))
       ? ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"]
       : [],
   registryDependencies: ["@cssints/theme", ...(item.also ?? [])],

@@ -2,6 +2,7 @@
 // way a page would drive it: what a reader copies is what they see here.
 import { Accordion } from "../registry/accordion/accordion.tsx";
 import { Alert, AlertBody, AlertTitle } from "../registry/alert/alert.tsx";
+import { Dropzone, DropzoneBrowse } from "../registry/dropzone/dropzone.tsx";
 import { Badge } from "../registry/badge/badge.tsx";
 import {
   Breadcrumb,
@@ -48,7 +49,7 @@ import { Switch } from "../registry/switch/switch.tsx";
 import { createToast } from "@cssints/headless";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Toaster } from "../registry/toast/toast.tsx";
-import { createSignal } from "solid-js";
+import { createSignal, For } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
 const SwitchDemo = (): JSX.Element => {
@@ -443,6 +444,64 @@ const MeterDemo = (): JSX.Element => (
   </div>
 );
 
+// The page cannot drag a file in a screenshot, so the demo drops a synthetic one: the same `DataTransfer` and `DragEvent` a
+// real drop makes, through the zone's own handler. The real drop works as well; the point is that a reader sees the
+// accepted list and the announcement without preparing a file.
+const FAKE_DROP_FILES = [
+  { name: "photo.png", type: "image/png", bytes: 8 },
+  { name: "cover.png", type: "image/png", bytes: 8 },
+  { name: "notes.txt", type: "text/plain", bytes: 8 },
+  { name: "scan.png", type: "image/png", bytes: 1024 * 1024 + 1 },
+] as const;
+
+const DropzoneDemo = (): JSX.Element => {
+  const [accepted, setAccepted] = createSignal<ReadonlyArray<string>>([]);
+  let host: HTMLDivElement | undefined;
+  const drop = (fake: (typeof FAKE_DROP_FILES)[number]): void => {
+    const zone = host?.querySelector<HTMLElement>('[data-part="dropzone"]');
+    if (zone === undefined || zone === null) {
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([new Uint8Array(fake.bytes)], fake.name, { type: fake.type }));
+    zone.dispatchEvent(
+      new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }),
+    );
+  };
+  return (
+    <div
+      class="demo-column"
+      ref={(element: HTMLDivElement) => {
+        host = element;
+      }}
+    >
+      <Dropzone
+        label="Upload an image"
+        description="PNG or JPEG, up to 1 MB, two files per batch."
+        accept="image/*"
+        maxSize={1024 * 1024}
+        maxFiles={2}
+        multiple
+        onFiles={(files) => setAccepted(files.map((file) => file.name))}
+      >
+        <DropzoneBrowse>Browse files</DropzoneBrowse>
+      </Dropzone>
+      <div class="demo-row">
+        <For each={FAKE_DROP_FILES}>
+          {(fake) => (
+            <Button size="sm" tone="quiet" onClick={() => drop(fake)}>
+              Drop {fake.name}
+            </Button>
+          )}
+        </For>
+      </div>
+      <p class="demo-text">
+        Accepted: {accepted().length === 0 ? "nothing yet" : accepted().join(", ")}
+      </p>
+    </div>
+  );
+};
+
 const BREADCRUMB_ITEMS = [
   { label: "Home", href: "#home" },
   { label: "Projects", href: "#projects" },
@@ -615,6 +674,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   badge: BadgeDemo,
   skeleton: SkeletonDemo,
   alert: AlertDemo,
+  dropzone: DropzoneDemo,
   meter: MeterDemo,
   breadcrumb: BreadcrumbDemo,
   treeview: TreeviewDemo,
