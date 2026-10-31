@@ -3076,3 +3076,52 @@ old depth and leaves the highlight on. Checked: 45 specs typecheck with Quint; `
 `packages/apg-specs` 925 tests; nine scenarios and two walks (plain, disabled) plus the property test in real
 Chromium. Left: the primitive's disabled-mid-drag highlight (the machine models it rather than fixing the
 primitive), a persisted announcement, and porting the machine to `native/headless`.
+
+## The one hand-off: `emit()` and `listen()` (packages/reactive, 2026-10-31, cssints-4s8d)
+
+The plugin's thesis is that a state is CSS and JavaScript never reads it, and four rounds kept it: a write is an `Action`,
+a comparison is an equation, a value is a custom property. The thesis meets a wall at the first form that must submit:
+`on({ submit: set(ui.sent, "true") })` can write a state, but the app never hears that a save was asked for, and no state
+may be read out to tell it. The round adds one hand-off and only one — the event leaves the CSS world through the DOM,
+already carrying the nearest owner.
+
+**The API.** `emit(name)` is an action of `on()`, as `toggle()` and `set()` are, and returns a branded `Emit` that only
+`on()` takes: `set()`, `toggle()`, `bind()`, `when()`, `inside()`, `state()` and a `Style` position refuse it at the type
+level, and the name is an ident checked at build time with the call site. It writes no state and reads none, so it is not
+an `Action` and does not appear in the owner's protocol. The app hears it with `listen(target, name, handler)` from
+`@cssints/reactive/runtime` (the module the engine ships — the package's build-time entry imports `cssints/plugin` and
+cannot be imported by client code), the same string `emit()` was given; it returns a disposer.
+
+**The event.** `reactive:<name>`, a `CustomEvent` with `bubbles: true` and `detail: { event, owner }`, where `event` is the
+native event and `owner` the nearest reactive owner of the element it fired on (or `null`). It is dispatched from that
+element — the native event's target, not the element whose program ran — for two reasons: a listener sits on the form or
+the page, and the owner in `detail` must be the one nearest the control that fired, not the nearest the program. An
+ancestor program is the case that proves both: a click program on a panel still emits from the button, so the form hears
+it and `detail.owner` is the button's owner. The dispatch happens in the native event's own turn, so a `submit` listener
+can call `detail.event.preventDefault()` before the browser navigates.
+
+**Why nothing recurses.** The runtime listens to a fixed ten events, and `reactive:<name>` is not one of them, so a
+hand-off cannot trigger a program. No state is in the event: a program cannot answer it, and `emit()` is not a write, so
+the runtime neither flushes the owner nor stores anything. `detail.event` exposes the native event as it is, which is what
+makes `preventDefault()` possible; it is also the only value in the event that is not a string or an element.
+
+**Cost.** The runtime grew from 2.73 kB to 2.99 kB minified (1.26 to 1.38 kB gzipped): a three-line dispatch, the
+`listen()` wrapper and two exported types. No engine change and no type budget change (one brand interface, `Program`
+widens to a union). `test/reactive.mjs` checks the `submit emit save` segment in the sheet and the class string, a program
+with a hand-off and a write in order, a bad name at the call site, and an `Emit` in a style's place; `test/types/reactive.ts`
+checks every refusal and types `listen` from the runtime module; `test/browsers.mjs` submits a form whose program is written
+twice (one dispatch), hears it on the form and on `document` with `detail.owner` the form and `detail.event` a
+`SubmitEvent`, disposes the form's listener and hears the page's again, and clicks a button under an ancestor's program to
+see the hand-off leave from the button. Chrome 156, Firefox 157 and WebKit 27.2 pass.
+
+**The Quint model does not see it, on purpose.** `specs/patterns/reactive.qnt` models states, bindings and the flush; a
+hand-off changes none of them, so every invariant would pass whether or not it is modelled, and a var for it would be a var
+the actions all assign unchanged. The spec's NOT MODELLED list says so, and `test/browsers.mjs` is the check — the same
+division as persistence. A comment-only change leaves the generated model byte-identical, so nothing was regenerated.
+
+**Left.** No return value, no acknowledgement and no state written from JavaScript: an app that must change a state has no
+way to, on purpose. No async or `preventDefault` helper (the native event is in the detail), no custom `detail` payload
+(a name is the whole protocol), and no bubbling control (it always bubbles). One engine gap, recorded: a plugin value in a
+style position reports `SiteMissingError` ("site N in X was not evaluated") rather than naming the mismatch, because the
+engine reads any plain object at a site as a definition with nothing to ship; the type error is the real guard, and a build
+that ignores it still fails at the site.

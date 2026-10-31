@@ -57,6 +57,8 @@ const own = when(ui.open)(display("block")); // the element itself
   touched. CSS paints once; no intermediate state is visible.
 - **No async in v1.** No fetching, so no loading or error boundaries; the async fundamentals of Solid 2 are the reference
   for a later version.
+- **One hand-off.** `emit()` lets an event leave the CSS world for JavaScript (`listen()` in the app); it writes no state,
+  nothing comes back, and a state is still never read from JS.
 
 A Quint model of the protocol lives in
 [`packages/apg-specs/specs/patterns/reactive.qnt`](../apg-specs/specs/patterns/reactive.qnt) (bean cssints-tm9j): two
@@ -78,6 +80,7 @@ and must not change).
 | `equals(source, value)`             | A comparison: `"true"` in a `bind()` attribute while the state has that value, `"false"` otherwise.             |
 | `either(comparison, a, b)`          | A choice of two literals, picked by a comparison. Only `bind()` takes it.                                       |
 | `on({ event: action \| action[] })` | The element's program: click, input, change, submit, keydown, keyup, pointerdown, pointerup, focusin, focusout. |
+| `emit(name)`                        | The hand-off: dispatches `reactive:<name>` for the app to hear. Only `on()` takes it; it writes no state.       |
 | `bind({ attribute: binding })`      | Writes each attribute on the element it is on: a source, a comparison, a choice, or a literal.                  |
 | `when(source, value?)`              | A condition on the element itself (`data-reactive-<name>`), `"true"` when the value is left out.                |
 | `inside(source, value?)`            | A condition on a descendant of the owner (`within()` over its `data-reactive-<name>`).                          |
@@ -106,6 +109,32 @@ it may paint a frame late where the browser paints before the script runs). A st
 declares. Every write of the state stores it, so a click needs no extra call. Two states may share a key on purpose: one
 storage slot, kept in sync by their writes. Prefix an app's keys with its name (`demo-open`, not `open`), so two
 applications on one origin do not meet.
+
+**The one hand-off to JavaScript is `emit()`.** A form must eventually reach the app, and a state never leaves CSS; the
+event does. `emit()` is an action of `on()` like `toggle()` and `set()`, but it writes nothing: the runtime dispatches
+`reactive:<name>` from the element the native event fired on, and `listen()` hears it:
+
+```ts
+// the style
+const form = cn(ui.owner, on({ submit: emit("save") }));
+```
+
+```ts
+// the app: listen from the runtime module, not the build-time one
+import { listen } from "@cssints/reactive/runtime";
+
+listen(document.querySelector("form")!, "save", ({ detail }) => {
+  detail.event.preventDefault(); // detail.event is the native submit
+  save(detail.owner); // the nearest owner of the element the event fired on
+});
+```
+
+`listen()` is imported from `@cssints/reactive/runtime` — the module the engine ships to the browser; `@cssints/reactive`
+itself is build-time only. It returns a disposer. The name is the same string `emit()` was given, and an ident (lowercase
+letters, digits and `-`) checked at build time with the call site. The event bubbles, so the listener may sit on the form,
+on the page, or anywhere above the element; `detail` is `{ event, owner }`, the native event and the nearest reactive owner
+of the element it fired on (or `null` outside any owner). A `reactive:` event is not one the runtime listens to, so a
+program cannot answer it and nothing recurses.
 
 The CSS of the example above (the class names are hashes):
 
@@ -179,7 +208,7 @@ What the build emits, and what `./runtime` reads (for debugging):
 | -------------------- | -------------------- | -------------------------------------------------------------------- |
 | `--reactive-owner`   | `._reactive-owner`   | the states, `open,tab`                                               |
 | `--reactive-<name>`  | the owner            | the state's value (`false`, `one`, `2`)                              |
-| `--reactive-on`      | `._reactive-events`  | `click toggle open,change set tab @value`                            |
+| `--reactive-on`      | `._reactive-events`  | `click toggle open,change set tab @value,submit emit save`           |
 | `--reactive-binding` | `._reactive-binding` | `aria-expanded open,aria-controls =panel-one,tabindex ?tab one 0 -1` |
 | `--reactive-persist` | `._reactive-persist` | the stored states, `open:demo-open,tab:demo-tab`                     |
 
@@ -194,7 +223,9 @@ a comparison has three tokens of its list, a choice five). No marker prefixes a 
 with a `!` does not parse (it reads as a broken `!important`), so the two trailing tokens carry it. A set segment's value
 is a literal, or `@value`/`@checked`: the runtime reads `target.value` (a string) or `target.checked` (`"true"`, `"false"`)
 off the element the event fired on. An identical segment written twice is applied once, so a program twice is still one
-toggle. A persisted state is stored on every write, and its stored value replaces the declared one at initialisation.
+toggle. A `submit emit save` segment writes no state: it dispatches `reactive:save` from the element the event fired on,
+bubbling, with `{ event, owner }` in its detail — the one hand-off, which `listen()` attaches to and which no program can
+answer. A persisted state is stored on every write, and its stored value replaces the declared one at initialisation.
 Values reach the page only through `setAttribute` and `style.setProperty`, never as a string of HTML or CSS, so a stored
 value cannot inject anything.
 
@@ -225,6 +256,9 @@ value cannot inject anything.
 - A state is build-time data: the client gets the owner's class string and the sources' names, never a readable value. A
   component cannot read `ui.open` in JavaScript — that is the point, the state is CSS; a value JavaScript needs is the
   framework's own state.
+- `emit()` is the only way out to JavaScript: it hands the event to the app (`listen()`, from
+  `@cssints/reactive/runtime`), not a state, and a state is still never read from JS. Nothing comes back: no return value,
+  no acknowledgement, and no state is written from JavaScript.
 - No counters, gestures, async or `event()` callbacks in v1: a state is a string, a number or a boolean, written by a
   click, a key or a form event. `calc()` over a state value is CSS, not a source: nothing increments it from JavaScript.
 - Persistence is `localStorage` only: no cross-tab sync (a second tab keeps its own copy until it reloads), no versioning
@@ -233,7 +267,7 @@ value cannot inject anything.
 
 ## Browsers
 
-Every browser: the runtime is a script with no polyfills, so it ships to every target of a build (2.7 kB minified, 1.3 kB
+Every browser: the runtime is a script with no polyfills, so it ships to every target of a build (2.9 kB minified, 1.4 kB
 gzipped), and it reads custom properties registered with `@property` (`syntax: "*"; inherits: false`; Chrome 85, Safari
 16.4, Firefox 128). Where `@property` is missing the lists inherit, but the marker classes still keep an element to its own
 program and storage. Persistence needs `localStorage`; where it is missing or refuses a write, the state works and does not
@@ -248,7 +282,8 @@ cd packages/reactive && bun run test:browsers   # Chrome, Firefox, WebKit: two d
                                                 # roving tabindex, aria-pressed), a nested owner, the flush of one click,
                                                 # a <select> from value(), a checkbox from checked(), two programs on one
                                                 # element, a repeated one, a persisted disclosure across a reload, a stored
-                                                # value winning, a state that is not persisted (BROWSERS=chrome)
+                                                # value winning, a state that is not persisted, and a form submit heard by
+                                                # listen() on the form and on the page (BROWSERS=chrome)
 # the model's traces (needs the packages built: node reads their dist/):
 bun run build:packages && cd packages/reactive && bun run test:scenarios
                                                 # specs/patterns/reactive.qnt replayed on test/fixtures/model.js in

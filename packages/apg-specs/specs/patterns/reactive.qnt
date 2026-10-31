@@ -47,8 +47,9 @@
 // action is the flush; packages/reactive/test/scenarios.mjs proves the page
 // paints once).
 //
-// NOT MODELLED: persistence (`persist()`, localStorage and the reload), a
-// binding added to an owner that already stands (the MutationObserver), more
+// NOT MODELLED: persistence (`persist()`, localStorage and the reload), `emit()`/`listen()` (a hand-off changes no state,
+// so every invariant here would pass whether or not it is modelled; `packages/reactive/test/browsers.mjs` is the check),
+// a binding added to an owner that already stands (the MutationObserver), more
 // than two owners (so no sibling owner), more than two values per state, the
 // ten events beyond the ones used here, `@value`/`@checked` read off anything
 // but the event's own target, and dynamic attributes beyond
