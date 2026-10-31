@@ -2930,3 +2930,39 @@ back to its declared value after a reload), and fails on a console error. Chrome
 a string the current build may no longer expect), no `sessionStorage` choice, and no JavaScript read of a stored value: it is
 still a state, not a store. Storage failures stay silent by design. Counters, gestures, async and `event()` callbacks remain
 out as before.
+
+## Computed attributes in `bind()` (packages/reactive, 2026-10-31, cssints-ac3o)
+
+The lab's adoption of `@cssints/reactive` found the one thing the plugin could not say. On a tab strip, `bind()` writes a
+state's value, so `aria-selected` could only be one boolean per tab (three writes a click); a string state would write
+`aria-selected="one"`, which is invalid HTML and read as false; `aria-controls` is a constant and had no way in at all; and
+the APG roving `tabindex` (`"0"` for the selected tab, `"-1"` for the rest) was out of reach. `attr()` is a selector
+condition, not a declaration, so `when(ui.tab, "one")(attr("aria-selected", "true"))` writes nothing.
+
+**Four kinds of binding.** `bind()` now takes a source (the state's value, as before), a `Comparison` from
+`equals(source, value)`, a `Choice` from `either(comparison, whenTrue, whenFalse)`, or a literal string. `equals` refuses a
+value that is not of the source's type and `either` refuses a bare source (type errors); a comparison is not a `Source`, so
+`set()`, `toggle()`, `when()` and `inside()` refuse it and `persist()` does not store it. A literal is a build error at the
+call site for a comma, a space or a leading `=`/`?`/`!`, with the attribute and the value in the message. The protocol keeps
+one property, `--reactive-binding`, now with a kind per pair: `aria-expanded open` (a source), `aria-controls =panel-one`
+(a literal), `aria-selected ?tab one` (a comparison) and `tabindex ?tab one 0 -1` (a choice). The planned `!` before each
+literal of a choice does not parse in a custom property: lightningcss reads it as a broken `!important` and rejects the
+sheet, so the five-token form carries the choice instead. The runtime splits each pair once and caches the list per element
+on a `WeakMap`; a comparison reads the nearest owner, like a source, so the pair names a state, not an owner.
+
+**Why the runtime computes.** Every other derivation in the plugin is CSS (`calc(var(--reactive-count) * 2)`, `inside()`,
+`within()`). An attribute on the element itself cannot be: `attr()` reads, it does not compute, and a comparison holds no
+value of its own. Sources stay the only writable things; a comparison is an equation, and a binding is the only place the
+runtime evaluates one, on the flush of that owner.
+
+**Cost and tests.** The runtime grew from 2.48 kB to 2.73 kB minified (1.16 to 1.26 kB gzipped): a `WeakMap` cache, a
+`split(" ")` per pair and two branches. No engine change and no type budget change (two brand interfaces, `Bindings` widens
+to a union). `test/reactive.mjs` checks the four kinds in one `--reactive-binding`, the client class list, and the three
+literal errors at the call site; `test/types/reactive.ts` checks the refusals; `test/browsers.mjs` drives a tab strip
+(three tabs, `aria-selected`, a literal `aria-controls`, roving `tabindex`, `aria-pressed` from a boolean comparison): one
+click rewrites all three attributes before a frame, nothing is stored, and a reload shows the declared tab. Chrome 156,
+Firefox 157 and WebKit 27.2 pass. The lab's tabs story is now one string state with three comparisons (and its caveats are
+gone); the disclosure writes its literal `aria-controls`.
+
+**Left.** No ordering or arithmetic: `equals()` is equality and `either()` picks two literals, so `count > 2` waits for a
+real derived expression. The runtime still evaluates one comparison per binding, not a general expression tree.

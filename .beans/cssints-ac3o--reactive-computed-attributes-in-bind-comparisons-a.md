@@ -1,7 +1,7 @@
 ---
 # cssints-ac3o
 title: 'reactive: computed attributes in bind() (comparisons and literals)'
-status: todo
+status: completed
 type: feature
 created_at: 2026-10-31T10:12:50Z
 updated_at: 2026-10-31T10:12:50Z
@@ -29,3 +29,13 @@ bind({ "aria-selected": equals(ui.tab, "one"),   // "true" / "false"
 ## Why not a CSS derivation
 
 Every other derivation in the plugin is CSS (`calc(var(--reactive-count) * 2)`, `inside()`, `within()`). An attribute cannot: `attr()` reads, it does not compute, and `aria-selected`/tabs sit on the element itself. That is why this is the one comparison the runtime evaluates, and the reason it is a separate round: it is the first computation in a design that had none.
+
+## Summary of Changes
+
+- `packages/reactive/src/index.ts`: `Comparison<T>` and `Choice` brands, `equals(source, value)` and `either(comparison, whenTrue, whenFalse)`; `bind()` takes a source, a comparison, a choice or a literal, and a literal is a build error at the call site for a comma, a space or a leading `=`/`?`/`!`.
+- Protocol: one `--reactive-binding` with a kind per pair — `aria-expanded open`, `aria-controls =panel-one`, `aria-selected ?tab one`, `tabindex ?tab one 0 -1`. The planned `!` before a choice's literals is dropped: lightningcss rejects `!` in a custom property value (a broken `!important`), so the two trailing tokens mark the choice.
+- `packages/reactive/src/runtime.ts`: parses the pairs once per element (a `WeakMap`), writes a source's value, a literal, "true"/"false" for a comparison, or one of a choice's two literals; the comparison reads the nearest owner. Runtime 2.48 kB -> 2.73 kB minified (1.16 -> 1.26 kB gzipped).
+- Tests: `test/reactive.mjs` (the four kinds in the emitted list and the client class list, the three literal errors), `test/types/reactive.ts` (the refusals, `Comparison`/`Choice` accepted only by `bind()`), `test/browsers.mjs` (a computed tab strip: `aria-selected`, literal `aria-controls`, roving `tabindex`, `aria-pressed`; one click, no storage, a reload keeps nothing).
+- `apps/lab`: the tabs story is one string state with `equals()`/`either()`/a literal, the disclosure writes its `aria-controls`; `test/lab.mjs` asserts `aria-selected` and `tabindex` on the three tabs after a click.
+- Docs: the reactive README (the four kinds, why the runtime computes, the protocol rows, the limits), the `docs/API.md` row, a wayfinder entry. Changeset `@cssints/reactive` minor.
+- Verified: `node test/reactive.mjs`, all three browser engines (Chrome 156, Firefox 157, WebKit 27.2), `bun run typecheck`, `apps/lab`'s `test:browser`, `build:packages`, `docs.mjs`, lint and format, `release:check`.
