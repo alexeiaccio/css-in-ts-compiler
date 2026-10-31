@@ -272,6 +272,11 @@ code {
   max-width: 44rem;
 }
 
+/* A reorderable list follows the reading column: six rows with a description each stay 32 rem wide. */
+.demo-reorder {
+  max-width: 32rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;
