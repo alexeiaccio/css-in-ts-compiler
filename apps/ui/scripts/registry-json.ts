@@ -212,7 +212,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Menu",
     description:
-      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close",
+      "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
     also: ["@cssints/button"],
   },
   {

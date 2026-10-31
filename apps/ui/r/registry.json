@@ -787,7 +787,7 @@
       "name": "menu",
       "type": "registry:ui",
       "title": "Menu",
-      "description": "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close",
+      "description": "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
