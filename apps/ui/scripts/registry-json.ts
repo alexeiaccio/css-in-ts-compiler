@@ -238,6 +238,24 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "popover",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Popover",
+    description:
+      "A non-modal panel anchored to a trigger: a dialog surface that flips at the viewport edge, closes on an outside press or Escape, and returns the focus",
+    also: ["@cssints/button"],
+  },
+  {
+    name: "date-picker",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Date picker",
+    description:
+      "A calendar in a popover: a 6x7 month grid with arrows, Home and End, PageUp and PageDown, min and max, and the chosen day on the trigger",
+    also: ["@cssints/button"],
+  },
+  {
     name: "select",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

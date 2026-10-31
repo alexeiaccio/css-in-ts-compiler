@@ -27,6 +27,12 @@ import { Select, SelectContent, SelectTrigger } from "../registry/select/select.
 import { Skeleton } from "../registry/skeleton/skeleton.tsx";
 import { Textarea } from "../registry/textarea/textarea.tsx";
 import { Menu, MenuContent, MenuTrigger } from "../registry/menu/menu.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "../registry/popover/popover.tsx";
+import {
+  DatePicker,
+  DatePickerContent,
+  DatePickerTrigger,
+} from "../registry/date-picker/date-picker.tsx";
 import { Menubar } from "../registry/menubar/menubar.tsx";
 import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
@@ -536,6 +542,49 @@ const CheckboxGroupDemo = (): JSX.Element => {
     </CheckboxGroup>
   );
 };
+const PopoverDemo = (): JSX.Element => {
+  const [open, setOpen] = createSignal(false);
+  const [name, setName] = createSignal("Report Q3");
+  return (
+    <div class="demo-column">
+      {/* a controlled popover: every intent (the trigger, Escape, an outside press) is a request the host accepts */}
+      <Popover label="Rename file" open={open()} onOpenChange={setOpen} placement="bottom-start">
+        <PopoverTrigger>Rename</PopoverTrigger>
+        <PopoverContent>
+          <div class="demo-column">
+            <Input value={name()} onInput={(event) => setName(event.currentTarget.value)} />
+            <div class="demo-row">
+              <Button tone="quiet" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button tone="accent" onClick={() => setOpen(false)}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <p class="demo-text">The name is “{name()}”.</p>
+    </div>
+  );
+};
+
+const DatePickerDemo = (): JSX.Element => {
+  const [date, setDate] = createSignal<string | undefined>(undefined);
+  return (
+    <div class="demo-column">
+      {/* the trigger shows the chosen day; the signal below is the same value the page would submit */}
+      <DatePicker value={date()} onValueChange={setDate}>
+        <DatePickerTrigger />
+        <DatePickerContent />
+      </DatePicker>
+      <p class="demo-text">
+        {date() === undefined ? "No date chosen yet." : `The form would send ${date()}.`}
+      </p>
+    </div>
+  );
+};
+
 /** The demo for an item; a new starter adds one line here. */
 export const demos: Readonly<Record<string, () => JSX.Element>> = {
   switch: SwitchDemo,
@@ -561,6 +610,8 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,
+  popover: PopoverDemo,
+  "date-picker": DatePickerDemo,
   select: SelectDemo,
   textarea: TextareaDemo,
   slider: SliderDemo,
