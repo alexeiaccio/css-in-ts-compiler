@@ -244,6 +244,10 @@ bun solid/settings.test.ts
 # bounds, a colour's fill, the clamps at 255 and 0, `r` and `Shift+R` byte for byte, the `*`, the row window, and the
 # cost with five rows overridden (0.050 ms of declare and 0.033 of layout at rest, 0.048/0.038 with five: the noise).
 bun solid/tune.test.ts
+# the desktop's dev loop (solid/watch.ts): a style save restarts the page it keeps, a broken save prints the compiler's
+# error and keeps the last good frame, a .c save rebuilds libui.dylib and a .tsx-only save builds nothing. On a temp copy
+# of the repo (--root), so the check writes no file of this tree; needs the dylib build.sh just made and brew's SDL_image
+bun solid/watch-check.mjs
 
 # The same page in a browser, on these modules: the desktop's src/frame.ts and src/renderer.ts over Clay in wasm
 # (browser/ui.c), the command array and the renderer's tables drawn by browser/draw.js, the pointer from the page's

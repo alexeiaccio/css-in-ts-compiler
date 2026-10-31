@@ -49,7 +49,21 @@ bun solid/main.ts --png out.png --bench 1000     # ms a frame by phase
 bun solid/main.ts sky --settle 60 --idle 600     # the page at rest: 0 draws of 600, and the ms the tick takes
 sh solid/test.sh                                 # all of it; `bun run test` calls it last
 bun solid/metamorphic.test.ts                     # the relations with no stored frame: a wrapper, a move, wrap, twice
+bun solid/watch.ts sky                           # the dev loop: the page in a child, restarted when a save changed it (below)
 ```
+
+### The dev loop
+
+`bun solid/watch.ts <page>` (from `native/`) runs `bun solid/main.ts <page>` in a child, watches the page's and the
+engine's inputs, and restarts the page when a save changed one: a `.c`/`.h`/`.sh` save under `solid/native/` (or a
+`vendor/clay/` header) rebuilds `build/solid/libui.dylib` first, a `packages/cssints/src` save builds the engine, and a
+`.ts`/`.tsx` save needs nothing but the restart. The flags pass through (`--frames`, `--png`, `--warm`, `--bench`); a
+headless run is still one shot, so the suite keeps calling `bun solid/main.ts`. `--hold` stays up for a headless save
+loop. The old window is kept until the new process has a window of its own, so a save that fails to compile leaves the
+last good page on screen and prints the compiler's error. There is no reload in place: the page's modules are read once
+per process and a `.c` save is a new `dlopen`, so the restart is the loop's unit — what it watches, the measured ms and
+the terminal's host are in `native/README.md`'s "The desktop's dev loop". The check is `solid/watch-check.mjs`, on a
+temp copy of the tree, in `solid/test.sh`.
 
 ## The terminal host (the second page)
 
@@ -1079,7 +1093,7 @@ panel field`.
 - `plugin.ts` runs the cssints plugin in a Node child (Vite, and `cssints/clay` as sources with the `development`
   condition), so a `styles.ts` costs about a second at start. A file is a style module by its name: `styles.ts` or
   `*.styles.ts`.
-- Not here yet: reload on save, JSX types for `box` and `text`,
+- Not here yet: JSX types for `box` and `text`,
   a click quicker than one poll (the window's 16 ms loop
   keeps the last button state, so a press and a release inside one poll are lost), a menubar on a page (the headless
   `createMenubar` is ported and checked, but no page uses it: the toolbar's menu button is `createMenu`), a vertical
