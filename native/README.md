@@ -2248,11 +2248,123 @@ and the differ names `command 14 (rectangle) box … -> …` (the declaration's 
 `.floating` from the menu's declaration lays it out in the page's column and the differ names its `box` and `z` (`10 ->
 0`); dropping `.pointerCaptureMode` changes no command and the grep fails naming `floating.pointerCaptureMode`.
 
-Still not emitted: the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a
-static frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now
-proves, but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never
-from a signal of the page. A clip element's offset is not a declaration either, and the List page shows what that means
-for a generated page: the file asks Clay for the container's offset (below).
+Still not emitted: the Widgets toolbar's menu (a float whose opening key is the toolbar's and whose pointer capture is the
+host's; the Dialog's menu proves the float itself), and a page's own scroll *state*, the List's below. `:focus` still
+comes from an element's prop or a part's state, never from a signal of the page. A clip element's offset is not a
+declaration either, and the List page shows what that means for a generated page: the file asks Clay for the container's
+offset (below).
+
+## The Field in a generated page
+
+The Text field page's state is its text field's: the value, the caret and the selection live in `createTextField`, behind
+the page's `input`, not in a signal the page exports. So a state is a script of that input, and `page-to-c.ts`'s
+`states.json` gained the two actions that are not a signal — beyond `click`/`press`/`pointer`:
+
+| action | what it is | the page code it reaches |
+| --- | --- | --- |
+| `{"press": "<id>"}` | the button down over a row | its `onPress`: `input.bind(part)`'s `focus.focus(part.id)` |
+| `{"key": "Shift+ArrowLeft"}` | a key pressed and released | `input.down`/`up` (the focused part's `keyDown`) |
+| `{"text": "Ada"}` | typed characters | `input.textInput` (SDL's TEXT_INPUT, what `main.ts`'s `text:` key stands for) |
+
+A `text` with no focused field fails the build ("no text field has focus"), so a state cannot silently emit an untyped
+frame. `examples/field/states.json` is the three stored frames' own scripts:
+
+```json
+{
+  "empty": [{ "press": "name" }],
+  "typed": [{ "press": "name" }, { "text": "Ada" }],
+  "selection": [
+    { "press": "name" }, { "text": "Ada" },
+    { "key": "Shift+ArrowLeft" }, { "key": "Shift+ArrowLeft" }
+  ]
+}
+```
+
+`examples/field/page_generated.c` is the field focused and empty (20 commands: the caret's 1px box, no run),
+`page_generated_typed.c` is `Ada` typed (21: one run and the caret after it) and `page_generated_selection.c` is two
+Shift+ArrowLeft (23: `A`, the caret, the tinted `da` run). `examples/field/solid-dump.ts` is the reference: the page's own
+loop, 31 frames at rest (`--warm 30`) and the stored frames' keys — Tab,Tab; Tab,Tab,text:Ada; and two Shift+ArrowLeft
+more — dumped through `ui_dump_json`. `examples/field/gen.c` measures with ThorVG (the Solid host's advance sums, so a box
+is exact) and `dump-check.ts` compares the whole frame:
+
+```
+field-empty: 20 commands, identical
+field-typed: 21 commands, identical
+field-selection: 23 commands, identical
+solid/frames/field-empty.png: identical, 20 commands
+solid/frames/field-typed.png: identical, 21 commands
+solid/frames/field-selection.png: identical, 23 commands
+```
+
+The last three are `examples/field/page.c` — one generated file linked at `-DAPP_W=360 -DAPP_H=450`, `FIELD_FRAME` naming
+the frame — on the desktop host's ThorVG raster, against the page's stored pixels: **0 of 162,000 pixels**, all three.
+
+One seam: the field's runs are the page's only `css.whiteSpace("nowrap")` texts, and a text command carries no wrap (the
+dump reads it from a table by node, and a command's node is the text config's `userData`, which the printed literals leave
+NULL). `gen.c` numbers the text commands in tree order and marks the value runs' indices `CLAY_TEXT_WRAP_NONE`; a text
+added above a value shifts an index and the comparison names the wrap difference, so the table cannot go quiet.
+
+Mutations, each reverted (on copies; the repository's generated C never moved): the caret's box dropped from the typed
+frame — `FAIL field-typed: commands: 21 -> 20`, then `command 10 (rectangle) box 80.1640625/210.0625/1/18 ->
+40/197.0625/280/44` and `element "name-line-caret" -> null`.
+
+What a static Field frame is not, honestly: it is one state of the field. Typing is the host's SDL_TEXT_INPUT, a key
+event is the host's keycode, a press places the caret from the pointer's x and the last layout's run width, and maxLength,
+submit and the theme key are the page's behaviour: a generated file shows the state the build scripted, and a board that
+types asks `--events` (which replays clicks and presses, not text) or a page of its own. The three files cover the value,
+the caret and the selection; a fourth state is another `states.json` entry and one more file.
+
+## The Widgets in a generated page
+
+The Widgets page's `:focus` and `checked` are the parts' fields, not the page's signals — the page picks `track` or
+`trackOn` from `wifi.checked()` and the renderer lays `:focus` over the row — so a state is the parts' own handlers, and
+`examples/widgets/states.json` names three with the two actions that already existed:
+
+```json
+{
+  "rest": [],
+  "switch": [{ "press": "wifi" }, { "click": "wifi" }],
+  "disclosure": [
+    { "press": "wifi" }, { "click": "wifi" },
+    { "press": "more-trigger" }, { "click": "more-trigger" }
+  ]
+}
+```
+
+`press` on a row is its `onPress` (`input.bind(part)`'s `focus.focus(part.id)`: the focus ring); `click` is its `onClick`
+(the part's `press`: the switch flips, the disclosure toggles). `examples/widgets/page_generated.c` is the page at rest
+(59 commands), `page_generated_switch.c` the switch focused and on (60: the on track's accent and flex-end move the
+thumb, and the row's 2px ring is a border command) and `page_generated_disclosure.c` that plus the Details panel open
+(63: the panel's box and its one text). `examples/widgets/solid-dump.ts` is the reference at the stored frames' keys — the
+page at rest; Tab,Tab,Space; and that with four Tabs and Enter (`solid/test.sh`'s own) — and `examples/widgets/gen.c`
+dumps the three, measured with ThorVG:
+
+```
+widgets-rest: 59 commands, identical
+widgets-switch: 60 commands, identical
+widgets-disclosure: 63 commands, identical
+solid/frames/widgets-initial.png: identical, 59 commands
+solid/frames/widgets-switch-on.png: identical, 60 commands
+solid/frames/widgets-disclosure.png: identical, 63 commands
+```
+
+The rasters are `examples/widgets/page.c` at `-DAPP_W=360 -DAPP_H=760`, `WIDGETS_FRAME` naming the state: **0 of 273,600
+pixels** on all three.
+
+Mutations, each reverted: the switch's on track drawn as the off one (the accent 240/140/50 as 60/64/78, flex-start
+instead of flex-end) — `FAIL widgets-switch: command 5 (rectangle) colour 240/140/50/255 -> 60/64/78/255` and
+`command 6 (rectangle) box 72/123.5/20/20 -> 52/123.5/20/20`; the Tab stop's `:focus` declaration dropped to the base
+row — `FAIL widgets-switch: commands: 60 -> 59`, then `command 8 (border) box 40/117.5/280/32 -> 50/159.5/20/20`,
+`colour 90/170/255/255 -> 150/155/170/255` (the ring's command is gone and the next border takes its place). `check.sh`
+regenerates the six files and greps the states' own marks: the caret in every Field frame, the selection's box only where
+it was selected, the wifi row's `_focus` declaration and the accent on track in the switch's, the panel only in the
+disclosure's.
+
+What a static Widgets frame is not: 12 Tab stops and the keys between them are the host's — a frame fixes one focus, which
+is what these three do — the slider's drag reads the pointer through `drag.onPointer`, the settings tree's roving focus is
+the focus manager's (one node focused is a state, the arrows between nodes are keys), and the toolbar's menu is left out:
+it is a float whose opening key is the toolbar's third item's and whose pointer capture is the host's (the Dialog's menu
+proves the float, not this page's key path).
 
 ## The List in a generated page
 

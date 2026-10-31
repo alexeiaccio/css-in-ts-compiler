@@ -627,11 +627,31 @@ Each step ends in a check that fails when it breaks.
    `capture` cannot do) is identical, 36 and 39 commands; the rest frame is `solid/goldens/list.json` too, and the desktop
    host's raster of the generated page is `solid/frames/list-top.png` pixel for pixel. Mutations: no `clip_scroll` → the
    rows stay at row 0 while the reference is 10px down; no `.clip` → `gen.c` finds no container.
-   Still not emitted: Field (typing is SDL's text events), Widgets itself (12 Tab stops and keys; a static frame is
-   possible but unproven) and Widgets' toolbar menu (the same float the Dialog's menu proves, but its page's keys are the
-   Widgets page's); and a page's own scroll *state* is the host's still — the List's file is one offset, its track
-   (`vscroll.ts`'s notch, fling, band and reveal) is the desktop's. `:focus` comes from a prop or a part's state, not a
-   signal, so only a page rendered over it gets it. The fonts
+   **Done: the Field and the Widgets** (`examples/field/`, `examples/widgets/`). Their state is not a signal of the page:
+   the field's value, caret and selection are `createTextField`'s, behind the page's `input`, and the Widgets' `:focus`
+   and `checked` are the parts' fields. So `page-to-c.ts`'s states gained the two input actions —
+   `{"key": "Shift+ArrowLeft"}` (`input.down`/`up`) and `{"text": "Ada"}` (`input.textInput`, SDL's TEXT_INPUT; a text
+   with no focused field fails the build) — and a state is a script of the parts' handlers: `{"press": "name"}` focuses
+   the row (its `onPress`), `{"click": "wifi"}` flips the switch (the part's `press`). Field: empty (20 commands; the
+   caret's 1px box, no run), typed `Ada` (21: the run and the caret after it) and two Shift+ArrowLeft (23: `A`, the
+   caret, the tinted `da`); Widgets: rest (59), the switch focused and on (60: the accent track's flex-end and the row's
+   2px ring) and that with Details open (63: the panel's box and its text). Each is `dump-check.ts`-identical to the Solid
+   page's own frame at the stored frames' keys (`examples/*/solid-dump.ts`: 31 rest frames then Tab,Tab[,text:Ada]
+   [,Shift+ArrowLeft ×2]; rest; Tab,Tab,Space; that and four Tabs and Enter), and the desktop host's raster of each is
+   **0 of 162,000** pixels (the Field, 360x450) and **0 of 273,600** (the Widgets, 360x760) against
+   `solid/frames/field-{empty,typed,selection}.png` and `widgets-{initial,switch-on,disclosure}.png`. The seam the field
+   needed: its runs are the page's only nowrap texts and a command carries no wrap, so `examples/field/gen.c` numbers the
+   text commands and marks the value runs' indices; a shifted index fails the compare. Mutations (each reverted, on
+   copies): the caret's box dropped → `commands: 21 -> 20` and `element "name-line-caret" -> null`; the switch's on
+   track as the off one → `colour 240/140/50/255 -> 60/64/78/255` and the thumb `72 -> 52`; the Tab stop's focus
+   declaration dropped → `commands: 60 -> 59`, the ring's border command gone (`command 8 (border) …
+   90/170/255/255 -> 150/155/170/255`).
+   Still not emitted: the Widgets' toolbar menu (a float whose opening key is the toolbar's and whose pointer capture is
+   the host's; the Dialog's menu proves the float itself); and a page's own scroll *state* is the host's still — the
+   List's file is one offset, its track (`vscroll.ts`'s notch, fling, band and reveal) is the desktop's. `:focus` comes
+   from a prop or a part's state, not a signal, so only a page rendered over it gets it. Typing, a key between Tab stops,
+   the slider's drag and the tree's roving focus are the host's too: a frame fixes one state, and the six files are the
+   six that were proven. The fonts
    enum (`font_Roboto = 0`) is the header's; the C page carries no font array, and text measure stays the host's
    (gen.c fixes one to compare layout). Text without a style is the renderer's white 14, printed as `white_14_text`.
 6. **Done: the terminal renderer.** `terminal/`: Clay's commands into a grid of character cells (`cells.c`: a
