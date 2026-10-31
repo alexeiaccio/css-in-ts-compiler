@@ -247,6 +247,11 @@ code {
   overflow-x: auto;
 }
 
+/* A carousel's frame follows the reading column, and the slides keep a 3:2 drawing at the top of it. */
+.demo-carousel {
+  max-width: 30rem;
+}
+
 /* A virtual list row: the caller's element inside the kit's sized wrapper (the wrapper owns the height the window measures). */
 .demo-vlist-item {
   display: block;

@@ -37,6 +37,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "../registry/drawer/drawer.tsx";
+import { CarouselExample } from "../registry/carousel/carousel.fixture.tsx";
 import { Meter } from "../registry/meter/meter.tsx";
 import {
   DIAGRAM_HINT,
@@ -353,6 +354,9 @@ const DiagramDemo = (): JSX.Element => {
 // — because a shortcut sheet is only proved by chords that fire. The fixture exports the component, so the gallery and
 // the browser test show the same wiring.
 const ShortcutsDemo = (): JSX.Element => <ShortcutsExample />;
+
+// Five drawn slides, the control row and the dots: the same example the browser test mounts.
+const CarouselDemo = (): JSX.Element => <CarouselExample class="demo-carousel" />;
 
 // The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
 // or Escape closes it, and a pointer outside the anchor is the third way out.
@@ -1187,6 +1191,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   scrollspy: ScrollspyDemo,
   diagram: DiagramDemo,
   shortcuts: ShortcutsDemo,
+  carousel: CarouselDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
   button: ButtonDemo,

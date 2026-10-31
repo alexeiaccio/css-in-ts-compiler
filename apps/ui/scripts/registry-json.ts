@@ -127,6 +127,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button", "@cssints/input"],
   },
   {
+    name: "carousel",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Carousel",
+    description:
+      "APG carousel: slides in a frame with previous and next, dots and a count as the indicator, arrow keys on a focused slide, a touch swipe, and the live region the primitive asks for",
+  },
+  {
     name: "input",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
