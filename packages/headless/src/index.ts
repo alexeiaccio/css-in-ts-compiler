@@ -67,6 +67,7 @@ export * from "./drawer";
 export * from "./dropzone";
 export * from "./feed";
 export * from "./field";
+export * from "./filterable-menu";
 export * from "./pagination";
 export * from "./panzoom";
 export * from "./popover";
