@@ -241,6 +241,22 @@ describe("createMenu (checkable) x a host that owns the readable pair", () => {
     mounted.dispose();
   });
 
+  it("fires the readable request uncontrolled too", () => {
+    const pairs: Array<{ checked: ReadonlyArray<number>; choice: number }> = [];
+    const menu = createMenu({
+      items: ["alpha", "bravo", "charlie"],
+      variant: "checkbox-items",
+      defaultOpen: true,
+      onCheckedValuesChange: (checked, choice) => {
+        pairs.push({ checked: [...checked], choice });
+      },
+    });
+    menu.setFocusItem(2);
+    menu.keyDown(" ");
+    expect(pairs).toEqual([{ checked: [2], choice: -1 }]);
+    expect(menu.checked()).toEqual([2]);
+  });
+
   it("derives the readable pair from the packed value, the same state", () => {
     const root = document.createElement("div");
     document.body.append(root);

@@ -80,7 +80,11 @@ export interface MenuOptions {
   readonly defaultValue?: number;
   /** A request to change the checked items (a packed `value` the host may ignore). */
   readonly onCheckedValueChange?: (value: number) => void;
-  /** A request to change the readable pair: the packed `onCheckedValueChange`'s twin. */
+  /**
+   * A request to change the readable pair: the packed `onCheckedValueChange`'s
+   * readable twin. Uncontrolled it is accepted (the state has committed when it
+   * is called); controlled with `checked` / `choice` the host may ignore it.
+   */
   readonly onCheckedValuesChange?: (checked: ReadonlyArray<number>, choice: number) => void;
   /** Item indices disabled (focusable, not activatable). */
   readonly disabled?: ReadonlyArray<number>;
@@ -273,7 +277,8 @@ export const createMenu = (options: MenuOptions): Menu => {
   const packed = (): number => packChecked(currentChecked(), currentChoice());
 
   // A write from either view is the same commit: the fields the host does not
-  // own commit here, and each view the host owns hears a request.
+  // own commit here, the packed request stays controlled-only (as it was), and
+  // the readable one fires always.
   const requestChecked = (next: Set<number>, nextChoice: number): void => {
     const checkedOwned = options.checked !== undefined || options.value !== undefined;
     const choiceOwned = options.choice !== undefined || options.value !== undefined;
@@ -289,12 +294,12 @@ export const createMenu = (options: MenuOptions): Menu => {
     if (options.value !== undefined) {
       options.onCheckedValueChange?.(packChecked(next, nextChoice));
     }
-    if (options.checked !== undefined || options.choice !== undefined) {
-      options.onCheckedValuesChange?.(
-        [...next].sort((a, b) => a - b),
-        nextChoice,
-      );
-    }
+    // Readable requests fire uncontrolled too, like `onOpenChange`: the state
+    // has committed, and a host that only listens still hears the change.
+    options.onCheckedValuesChange?.(
+      [...next].sort((a, b) => a - b),
+      nextChoice,
+    );
   };
   let buffer = "";
   let bufferTimer: ReturnType<typeof setTimeout> | undefined;
