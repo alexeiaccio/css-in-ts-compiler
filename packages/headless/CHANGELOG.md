@@ -1,5 +1,12 @@
 # @cssints/headless
 
+## 0.25.0
+
+### Minor Changes
+
+- 05a0a83: `@cssints/headless`: the second composition, a date picker. `createDatePicker` is `createPopover` + `createGrid` + `createStatus`, not a new primitive: a trigger with `aria-haspopup="dialog"` opens a **non-modal** popup (Tab leaves it, nothing behind it is `inert`) holding a `role="grid"` month of six rows, with `aria-selected` on the chosen day, `aria-current="date"` on today and `aria-disabled` outside `min`/`max`. The calendar maths is integer day numbers — a UTC day index, no locale arithmetic and no `@internationalized/date` — so leap years and month lengths are one `Date` read. `monthDays()` paints the neighbouring days rather than blanks so every cell can hold the roving focus; arrows move a day or a week, Home/End the week, PageUp/PageDown the month, Shift+PageUp/PageDown the year, Enter/Space selects and closes, Escape closes without changing the value. `firstDayOfWeek`, an injectable `today`, localised `labels` (including a day formatter for the polite announcement) and the controlled `value`/`open` pair are part of the API; a segmented date field stays a host composition of `createField` + `createSpinbutton`.
+- 5fe46c7: `createFilterableMenu`: the filterable menu as a composition of `createDialogModal`, `createTextInput` and `createStatus` — a dialog whose trigger says `aria-haspopup="dialog"`, a `searchbox` field with no combobox affordances, and a filtered `role=menu` with groups, an empty state, one polite count, submenu levels, the arrow loop back to the field, the Home/End rule, the IME guard, and Tab/Escape leaving in Base UI's order. The host renders the groups, the submenu geometry and mounts the dialog only while open.
+
 ## 0.24.0
 
 ### Minor Changes
