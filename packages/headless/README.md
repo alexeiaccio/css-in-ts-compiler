@@ -786,6 +786,54 @@ const groups = () => [...new Set(menu.results().map((row) => row.group ?? ""))];
 - **IME.** Typing inside a composition updates the text but not the filter; `compositionend` applies it. `event.isComposing` is honoured on the keyboard as well.
 - **Groups, empty state, one announcement.** `groupProps` / `groupLabelProps` (`aria-hidden`, because the group is already named through `aria-labelledby`) are the grouping; `emptyProps.hidden` and `emptyProps.text` are the empty state ("No actions found"); the count lands in one polite region (`statusProps`, `status()`) once per query change, not on every arrow. `clearProps` has `tabindex: -1`: the Clear button is a pointer affordance, not a tab stop.
 - **The host's**: rendering the groups and the submenu geometry, CSS, async commands (a rejected `run` is the host's to report) and their closing, every visible string through `labels`, and the dialog's title element (`titleProps`).
+- **Not in this PR**: the filterable menu (`filter: true` on `createMenu`, with the IME guard and the arrow loop to the field) is a later composition on the same research.
+
+## Date picker
+
+The second **composition** — no new primitive and no new spec: `createDatePicker` is `createPopover` (a non-modal trigger and popup) around a `createGrid` month (6 rows of 7 days), with `createStatus` for the selected day. The research ([docs/research/compositions-2026-10.md](docs/research/compositions-2026-10.md), "Date picker") settles the shape; `test/date-picker.browser.test.tsx` is the oracle.
+
+```tsx
+const picker = createDatePicker({
+  value: iso, // controlled ISO YYYY-MM-DD; or defaultValue
+  onValueChange: (next) => save(next), // a request: a controlled host may ignore it
+  min: "2026-01-01", // inclusive, ISO
+  max: "2026-12-31",
+  today: "2026-10-15", // injectable; the local date by default, so a test never reads the clock
+  firstDayOfWeek: 1, // Monday; 0 = Sunday
+  labels: { trigger: "Choose date", month: (year, month) => formatMonth(year, month) },
+});
+
+onSettled(() => picker.attach(triggerEl, popoverEl)); // the popover wiring + focus; returns the teardown
+
+<button {...picker.triggerProps}>{formatDate(picker.value())}</button>
+<div {...picker.popoverProps}>
+  <button {...picker.previousProps}>‹</button>
+  <h2 {...picker.headerProps}>{picker.headerProps.text}</h2>
+  <button {...picker.nextProps}>›</button>
+  <div {...picker.gridProps}>
+    <div role="row">
+      <For each={[0, 1, 2, 3, 4, 5, 6]}>{(index) => <div {...picker.weekdayProps(index)} />}</For>
+    </div>
+    <For each={picker.monthDays()}>
+      {(week) => (
+        <div role="row">
+          <For each={week}>{(day) => <div {...picker.cellProps(day)}>{day.slice(8)}</div>}</For>
+        </div>
+      )}
+    </For>
+  </div>
+</div>
+<div {...picker.statusProps}>{picker.status()}</div>;
+```
+
+- **Not modal, deliberately.** The picker is `createPopover`, not `createDialogModal`: nothing behind it becomes `inert`, there is no scroll lock, and Tab leaves the popup. The keyboard contract says Tab leaves, so a focus trap would contradict it; a date picker is one field, not a surface that keeps the user until they answer. The popup is `role="dialog"` with `aria-modal` absent, the trigger says `aria-haspopup="dialog"`, and focus moves to the roving day on open and back to the trigger on close.
+- **Day numbers, not a date library.** A date is its index in days since 1970-01-01 in UTC (`Date.UTC(year, month, day) / 86_400_000`). Leap years and month lengths are one `Date` read (`2024-02-29` and `2023-02-28` are tests); a day, a week and a year are integer additions. No locale arithmetic and no `@internationalized/date`: a host with real calendars (Hebrew, Islamic, Buddhist eras) brings its own library and passes its ISO strings here. The trade is that a `YYYY-MM-DD` is read as a UTC midnight, which is the honest model for a civil date with no time and no zone.
+- **The grid paints the neighbouring days, not blanks.** `monthDays()` is six weeks of ISO dates around the shown month, so the first row can start in the previous month and the last row can end in the next one. Every cell is a real, focusable date (a blank cell cannot hold the roving focus), and a cursor that leaves the month pages the grid to the month it landed in: ← on the 1st is the last day of the previous month and the title follows.
+- **One selected day, one "today".** `cellProps(iso)` gives `aria-selected` to the chosen date, `aria-current="date"` to `today`, `aria-disabled` outside `min`/`max` (inclusive) and `tabindex=0` to the roving day only. The roving stop is the selected day, else today when it is in the shown month, else the first day the bounds allow. A disabled day cannot be selected and never carries the tab stop.
+- **Keyboard, on the focused day**: ← / → the previous / next day, ↑ / ↓ the previous / next week, Home / End the first / last day of the week, PageUp / PageDown the previous / next month, Shift+PageUp / Shift+PageDown the previous / next year (the day clamps: 29 February in a common year is the 28th), Enter / Space selects and closes, Escape closes without changing the value, Tab leaves. The month arrows move real DOM focus, because a `tabindex` that changes under a stationary caret is no use to a screen reader.
+- **`aria-selected` is per cell, not the grid's rectangle.** The grid primitive has a range selection for a data grid; a calendar has exactly one value, so the picker writes its own `aria-selected` on the day and leaves the grid's selection unused. That is the one browser test the research left open ("does the grid reuse cover the value cell vs today") — the answer is that the grid's chrome is reused and the marks are the calendar's.
+- **The host's**: rendering, the CSS (including hiding the status region visually, never with `hidden`), the trigger's visible text (`value()` formatted), and any close other than Escape, a selected day or a click outside. `labels.month` and `labels.weekdays` localise the title and the column heads (the latter in `getUTCDay()` order, Sunday first); `labels.day` names a day for the polite announcement.
+- **Not in this PR**: a segmented text field. That is a host composition of `createField` + `createSpinbutton` over the same day numbers, with the trigger showing the formatted value — not a new primitive, and not part of this change.
 
 ## Commands
 

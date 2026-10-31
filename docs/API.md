@@ -1645,6 +1645,51 @@ createFilterableMenu(options: {
 Focus stays in the field and `aria-activedescendant` names the highlighted row; `data-highlighted` sits on the field while the highlight is there. ↓ on the last row and ↑ on the first return it to the field, and ↓/↑ from the field enter at the first/last row. Home/End are menu keys only while the query is empty **and** a row is highlighted; otherwise they move the caret. Enter runs the row or enters its submenu. **Tab closes and leaves** (not prevented: the dialog is hidden on the next task, after focus moved, so the menu never traps; a native `showModal()` wrapper keeps its own trap and moves first). **Escape pops one submenu level** and closes at the top level; Backspace on an empty submenu field goes back too.
 
 A submenu is a level: each level keeps its query and highlight and there is one field, so Enter on a trigger moves the field to that level at once, hover shows the level without moving focus, and coming back never loses the caret (`submenuProps` is the pointer-into-the-submenu hook; `results(triggerId)` gives a submenu's rows for a panel the host draws). Filtering is a case-insensitive substring on the label; typing inside an IME composition updates the text but filters only on `compositionend` (`event.isComposing` is honoured on the keyboard too). `groupProps` / `groupLabelProps` (`aria-hidden`: the group is already named through `aria-labelledby`) are the groups; `emptyProps.hidden` + `emptyProps.text` are the empty state; the count is one polite write per query change, not per arrow; `clearProps` has `tabindex: -1`, so Clear is a pointer affordance and not a tab stop. The host mounts the dialog and field only while `open()`; `triggerProps` names `aria-haspopup="dialog"` and needs nothing from the field, so the trigger works before it exists. Host's: rendering the groups and the submenu geometry, CSS, async commands and their errors and closing, and every visible string through `labels`.
+Focus stays in the field and `aria-activedescendant` names the highlighted option: ↓ on the last and ↑ on the first return the highlight to the field, and ↓/↑ from there re-enter at the first/last row. Home/End move the caret while the field has text and are list keys only while it is empty. Enter runs the highlight, Escape closes through the dialog, Tab is not intercepted. Filtering is a plain case-insensitive substring match over `label` and `keywords` — no fuzzy scoring, because a palette is short and ranking (recents, scopes) is the host's policy. `results()` keeps host order; `group` is what the host groups by; `emptyProps.hidden` and `labels.empty` are the empty state; the count is written to `statusProps` once per query, not on every arrow. The query and highlight reset on close, focus returns to the element that had it, and `runActive()` closes before `run()` so a command may open its own UI. Host's: rendering, grouping and CSS; async commands and their errors; every visible string via `labels`; any close other than Escape or a command. The filterable menu is a later composition on the same research.
+
+### Headless: `createDatePicker` (`@cssints/headless`)
+
+The second **composition**, not a new primitive and not a new spec: `createPopover` (a non-modal trigger and popup) + `createGrid` (a 6x7 month) + `createStatus` (the selected day). Its oracle is `packages/headless/test/date-picker.browser.test.tsx`. The popup is not modal on purpose — Tab leaves it, nothing behind it is `inert` — and the calendar maths is integer day numbers (`Date.UTC(y, m, d) / 86_400_000`), not a date library.
+
+```ts skip
+createDatePicker(options: {
+  value?: string | undefined; // controlled, ISO YYYY-MM-DD
+  defaultValue?: string | undefined;
+  onValueChange?(iso: string): void; // a request; a controlled host may ignore it
+  min?: string | undefined; // inclusive
+  max?: string | undefined;
+  today?: string | undefined; // injected; the local date by default
+  open?: boolean | undefined; // controlled
+  onOpenChange?(open: boolean): void;
+  labels?: Partial<{
+    trigger: string; // "Choose date"
+    previousMonth: string; // "Previous month"
+    nextMonth: string; // "Next month"
+    month(year: number, month: number): string; // 0-11; "October 2026"
+    weekdays: ReadonlyArray<string>; // 7, Sunday first (getUTCDay order)
+    day(iso: string): string; // the announcement; the ISO string by default
+  }> | undefined;
+  id?: string | undefined;
+  firstDayOfWeek?: number | undefined; // 0 = Sunday .. 6 = Saturday; 1
+}): {
+  value(): string | undefined;
+  open(): boolean;
+  openPicker(): void;
+  closePicker(): void;
+  month(): { year: number; month: number }; // 0-11
+  setMonth(year: number, month: number): void; // the roving day at the value, today or the 1st
+  today(): string;
+  select(iso: string): void; // a no-op outside min/max; the host closes
+  monthDays(): ReadonlyArray<ReadonlyArray<string>>; // 6 rows of 7 ISO dates, neighbours included
+  labels: DatePickerLabels;
+  status(): string | undefined;
+  // statusProps, triggerProps, popoverProps, headerProps, previousProps,
+  // nextProps, gridProps, weekdayProps(index) and cellProps(iso): the attribute objects.
+  attach(trigger: HTMLElement, content: HTMLElement): () => void; // the popover wiring; returns the teardown
+};
+```
+
+Every date is an ISO `YYYY-MM-DD`, read as a UTC midnight; `month()` and `labels.month` use 0-11. `monthDays()` is **six weeks around the shown month**, so a row can start in the previous month and end in the next one: every cell is a real focusable date (a blank cannot hold the roving focus), and a cursor that leaves the month pages the grid to where it landed. `cellProps(iso)` marks the chosen day `aria-selected`, `today` `aria-current="date"`, a day outside `min`/`max` `aria-disabled`, and gives `tabindex=0` to the roving day only: the selected day, else today when it is in the shown month, else the first day the bounds allow. Keys on the focused day: ←/→ a day, ↑/↓ a week, Home/End the week's first/last day, PageUp/PageDown a month, Shift+PageUp/PageDown a year (the day clamps, 29 February included), Enter/Space selects and closes, Escape closes without changing the value, Tab leaves. The month arrows move real DOM focus. `attach()` is the popover's positioning, light dismissal and focus return, plus focus into the roving day on open. The host renders the cells, the CSS and the trigger's visible text; a segmented text field is a host composition of `createField` + `createSpinbutton` over the same day numbers, not part of this API.
 
 ### Headless: `createPanZoom` (`@cssints/headless`)
 
