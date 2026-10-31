@@ -85,6 +85,7 @@ import { Toolbar } from "../registry/toolbar/toolbar.tsx";
 import { Treeview } from "../registry/treeview/treeview.tsx";
 import { TreegridExample } from "../registry/treegrid/treegrid.fixture.tsx";
 import { FeedExample } from "../registry/feed/feed.fixture.tsx";
+import { PlayerExample } from "../registry/player/player.fixture.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/tooltip.tsx";
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
@@ -718,6 +719,8 @@ const TreeviewDemo = (): JSX.Element => (
 const TreegridDemo = (): JSX.Element => <TreegridExample class="demo-treegrid" />;
 // Six articles of the demo journal at mount; scrolling the pane to the end brings the last three.
 const FeedDemo = (): JSX.Element => <FeedExample class="demo-feed" />;
+// A made-up film whose adapter runs a clock: Play moves the seek, the time and the fill without a media file.
+const PlayerDemo = (): JSX.Element => <PlayerExample />;
 const SliderDemo = (): JSX.Element => {
   const [volume, setVolume] = createSignal(4);
   return (
@@ -1216,6 +1219,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   treeview: TreeviewDemo,
   treegrid: TreegridDemo,
   feed: FeedDemo,
+  player: PlayerDemo,
   menu: MenuDemo,
   menubar: MenubarDemo,
   tooltip: TooltipDemo,

@@ -287,6 +287,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "APG feed: articles that load as the end of the list scrolls into view, with the primitive's position and size, a loading sentinel and the status line a screen reader hears",
   },
   {
+    name: "player",
+    tested: true,
+    with: ["theme.ts", "tokens.ts"],
+    title: "Player",
+    description:
+      "A media player on an injected `PlaybackAdapter`: a video frame or an audio bar, play and pause named from the stage, the m:ss time, a seek slider with the APG keys, and a mute toggle",
+  },
+  {
     name: "menu",
     tested: false,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
