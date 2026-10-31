@@ -1,5 +1,16 @@
 # @cssints/reactive
 
+## 0.25.0
+
+### Minor Changes
+
+- 93a8509: `bind()` takes a comparison (`equals()`), a choice of two literals (`either()`) or a literal beside a source: the runtime derives `aria-selected`, roving `tabindex` and literal attributes like `aria-controls` from the nearest owner in the same flush, through three new kinds of `--reactive-binding`.
+
+### Patch Changes
+
+- a8e92ae: A Quint model of `@cssints/reactive`'s owners, programs and flush (`specs/patterns/reactive.qnt`, `src/patterns/reactive.bridge.ts` and two scenario sets in `scenarios/patterns/`), replayed on a page in `packages/reactive/test/scenarios.mjs` with the scenario engine and two seeded differential walks. The model states that `inside()` is a CSS ancestor match, not nearest-scoped, for a nested owner that declares the same state as an outer one.
+- cssints@0.25.0
+
 ## 0.24.0
 
 ### Minor Changes
