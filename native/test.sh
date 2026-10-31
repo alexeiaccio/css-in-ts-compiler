@@ -384,9 +384,9 @@ else
   echo "terminal: no script(1), termbox2's pty checks skipped"
 fi
 # ... and the pages as Solid over the same cells (solid/native/term.c -> build/solid/libterm.dylib, terminal/solid.ts):
-# Sensors.tsx unmodified, its frames against the C page's own, then Sky.tsx's feed, thread and profile against
-# terminal/sky.c's, thread.c's and profile.c's behaviour (the row/cell distance, not a golden). terminal/test.sh prints
-# its comparisons.
+# Sensors.tsx unmodified, its frames against the C page's own, then Sky.tsx's four screens — the feed, the thread, the
+# profile and the notifications — against terminal/sky.c's, thread.c's, profile.c's and notify.c's behaviour (the
+# row/cell distance, not a golden). terminal/test.sh prints its comparisons.
 NATIVE_OUT="$OUT" sh terminal/test.sh
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no

@@ -21,14 +21,17 @@
 //   bun terminal/solid.ts                  live: termbox2's alternate screen, the page's frame each 16ms, q/Ctrl+C/Escape
 //                                          quits; a click toggles the Units pill (the page's own onClick), Tab moves the
 //                                          focus off the pill, Space/Enter press it, `t` flips the theme
-//   bun terminal/solid.ts --page sky       live: the Sky page — the feed, its thread and its profile (and the settings
-//                                          screen), as the desktop has them. Tab reaches the tablist then the feed,
-//                                          Left/Right switch the feed, Up/Down, PageUp/PageDown, Home/End scroll it,
-//                                          `j`/`k` are the C page's Down/Up, the wheel is a notch, a click on a tab
-//                                          switches the feed, one on a card opens its thread (the page's own onClick, in
+//   bun terminal/solid.ts --page sky       live: the Sky page — the feed, its thread, its profile and its notifications
+//                                          (and the settings screen), as the desktop has them. Tab reaches the tablist
+//                                          then the feed, Left/Right switch the feed, Up/Down, PageUp/PageDown, Home/End
+//                                          scroll it, `j`/`k` are the C page's Down/Up, the wheel is a notch, a click on a
+//                                          tab switches the feed, one on a card opens its thread (the page's own onClick, in
 //                                          its loading state, then the app's recorded thread: `load`'s promise below),
-//                                          one on the card's author row opens the profile; Escape (or Enter on Back)
-//                                          returns; `t` flips the theme
+//                                          one on the card's author row opens the profile; `n` opens the notifications (the
+//                                          C shell's key) and Enter on a row opens its post's thread; Escape (or Enter on
+//                                          Back) returns; `t` flips the theme
+//   bun terminal/solid.ts --page notify    the same page started on its notifications screen (the C host's
+//                                          `--page notifications`, the page `n` leaves the feed on)
 //   bun terminal/solid.ts --dump [file]    one frame headless, as plain text (cells_dump: '.' is a fill); no file: stdout
 //   bun terminal/solid.ts --ansi [file]    the same frame as ANSI truecolour (SGR runs merged)
 //   --keys Tab,ArrowDown                   headless: the frame, then each key with a frame after it, as main.c. A `-`
@@ -43,14 +46,18 @@
 //                                          drops the page's offset before Clay (the feed stays at row 0), `tab` never
 //                                          flushes the frame a tab switch lands on (the bar's active tab stays), `open`
 //                                          drops a card's own onClick (a click and Enter leave the feed), `back` never
-//                                          hands the page an Escape (a thread or a profile stays up)
+//                                          hands the page an Escape (a thread or a profile stays up). `verbs` and `rows`
+//                                          are the page's own (`Sky.tsx`'s prop, `Notify.tsx`): one wrong verb on every
+//                                          notification row, and the rows no Tab stops
 //
-// The thread and the profile are the page's **screens**, not pages of their own: `Sky.tsx` mounts the thread as a root
-// float over the feed and `Profile.tsx`'s `createProfile` is called by `Sky` and its element declared in `Sky`'s tree, so
-// there is no `--page profile` here (the C `demo --page profile` is a stack entry point its own host has). They are
-// driven as the page drives them: a card's click (or, as the C feed's Enter, the host pressing the first card's onClick
-// while the feed is focused) opens the thread, a click on the card's author row opens the profile, Escape is the page's
-// back. The thread's `load` is handed a promise the host settles with the app's **recorded** thread
+// The thread, the profile and the notifications are the page's **screens**, not pages of their own: `Sky.tsx` mounts the
+// thread as a root float over the feed and `Profile.tsx`'s `createProfile` and `Notify.tsx`'s `createNotify` are called
+// by `Sky` and their elements declared in `Sky`'s tree, so `--page notify` is that page with the notifications screen
+// open (`Sky`'s `screen` prop), not a page of its own (the C `demo --page notifications` is a stack entry point its own
+// host has). They are driven as the page drives them: a card's click (or, as the C feed's Enter, the host pressing the
+// first card's onClick while the feed is focused) opens the thread, a click on the card's author row opens the profile,
+// `n` the notifications, and Escape is the page's back — a notification's row opens its post's thread, and that thread's
+// back returns to the list. The thread's `load` is handed a promise the host settles with the app's **recorded** thread
 // (apps/csssky/test/fixtures/thread.json through the page's own screenOf, which is the fixture solid/thread.test.ts hands
 // it) a frame after the screen mounts: the loading row gets that frame, the app's rows the next. The profile needs
 // nothing: `profile.ts` reads the app's recordings itself, on the first opening.
@@ -101,9 +108,10 @@ const settle = Number(arg("--settle")?.[0] ?? 0);
 // headless: print the Sky feed's own scroll offset (the clip's, written by vscroll.ts) with the frame, so a test can
 // compare the displacement the page moved its rows by
 const showOffset = arg("--offset") !== undefined;
-// the page: the desktop's names and the terminal's aliases (`main.c`: sensors, sky)
+// the page: the desktop's names and the terminal's aliases (`main.c`: sensors, sky, notify — the last the Sky page on its
+// notifications screen, as `main.c`'s `--page notifications` starts its stack there)
 const page = arg("--page")?.[0] ?? "sensors";
-const skyPage = page === "sky";
+const skyPage = page === "sky" || page === "notify";
 // a deliberately broken host for the test's mutation lines: `scroll` drops the page's clip offset, `tab` never flushes
 // the frame a tab switch lands on, so the tree (the bar's active tab) stays as it was
 const mutate = arg("--mutate")?.[0] ?? "";
@@ -124,7 +132,7 @@ const { createInput } = await import("../solid/src/input.ts");
 const { El, Txt, render } = await import("../solid/src/renderer.ts");
 const { FIELDS, hasStates, packText, variant } = await import("../solid/src/pack.ts");
 if (page !== "sensors" && !skyPage) {
-  console.error(`terminal: unknown page "${page}" (sensors, sky)`);
+  console.error(`terminal: unknown page "${page}" (sensors, sky, notify)`);
   process.exit(2);
 }
 const { Sensors } = skyPage ? { Sensors: undefined } : await import("../solid/app/Sensors.tsx");
@@ -188,6 +196,10 @@ const dispose = skyPage
               landThread = () => resolve(SCREEN!);
               landWait = 1;
             }),
+          // `--page notify`: the page the feed's `n` leaves it on (the C host's `--page notifications`)
+          screen: page === "notify" ? "notifications" : undefined,
+          // `--mutate verbs|rows`: the page's own broken runs (the other three are the host's)
+          mutate,
         }),
       root,
     )
@@ -284,8 +296,8 @@ function cellStyle() {
 }
 
 /** A card's re-cut, the feed's and a screen's alike: one cell of side padding, no sub-cell vertical padding or gap, so
- *  its lines are rows (terminal/sky.c's card_style, thread.c's and profile.c's). */
-const CARD = /^sky-(?:thread-|profile-)?card-\d+$/;
+ *  its lines are rows (terminal/sky.c's card_style, thread.c's, profile.c's and notify.c's). */
+const CARD = /^sky-(?:thread-|profile-|notify-)?card-\d+$/;
 const cardCut = (id: string) => (
   put(id, FIELDS.PADDING, CELL_W),
   put(id, FIELDS.PADDING + 1, CELL_W),
@@ -305,8 +317,9 @@ const cardCut = (id: string) => (
  * that the C page draws as its separator. The C pages cut the same lengths by hand; the page's pixels are only touched
  * here.
  *
- * The thread and the profile are the page's **screens**, both the same shape (a root float at the page's 64px — the bar
- * — and 696px — the window less the bar — over the content area, a 44px head with the Back control, a clip of cards): in
+ * The thread, the profile and the notifications are the page's **screens**, all the same shape (a root float at the page's
+ * 64px — the bar — and 696px — the window less the bar — over the content area, a 44px head with the Back control, a clip
+ * of cards): in
  * cells the float sits one row down (the host's bar is one row) and takes the rows under it, the head and the 28px Back
  * are one row each (a 2px border on a one-row control is the row's own cells, box characters), and a card is the feed's.
  */
@@ -348,17 +361,18 @@ function recut(id: string): void {
     put(id, FIELDS.PADDING + 1, CELL_W);
     return;
   }
-  if (id.startsWith("sky-card-") || id.startsWith("sky-thread-card-") || id.startsWith("sky-profile-card-"))
+  if (id.startsWith("sky-card-") || id.startsWith("sky-thread-card-") || id.startsWith("sky-profile-card-") ||
+      id.startsWith("sky-notify-card-"))
     return void cardCut(id);
-  if (id === "sky-thread" || id === "sky-profile") {
+  if (id === "sky-thread" || id === "sky-profile" || id === "sky-notify") {
     put(id, FIELDS.OFFSET_Y, CELL_H);
     return void fixedHeight(id, (gridRows() - 1) * CELL_H);
   }
-  if (id === "sky-thread-head" || id === "sky-profile-head") return void fixedHeight(id, CELL_H);
+  if (id === "sky-thread-head" || id === "sky-profile-head" || id === "sky-notify-head") return void fixedHeight(id, CELL_H);
   // the Back control: its 1px border is drawn after the text (Clay adds a border's command on the way out of the
   // element, after its children) and would be its own row's cells, eating the word; a cell's Back is the panel fill and
   // the word. The C pages have no control here (escape is their bar's text); this one is the page's own button.
-  if (id === "sky-back" || id === "sky-profile-back") {
+  if (id === "sky-back" || id === "sky-profile-back" || id === "sky-notify-back") {
     fixedHeight(id, CELL_H);
     for (let f = FIELDS.BORDER - 4; f < FIELDS.BORDER; f++) put(id, f, 0);
     return;
@@ -550,6 +564,7 @@ if (headless) {
     for (const [id, name] of [
       ["sky-thread-view", "thread"],
       ["sky-profile-view", "profile"],
+      ["sky-notify-view", "notify"],
     ] as const) {
       if (term.bounds(idBytes(id)) === undefined) continue;
       const s = term.scrollOffset(id);

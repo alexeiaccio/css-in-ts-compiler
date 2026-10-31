@@ -1,14 +1,15 @@
 // The Solid host, the counterpart of desktop/host.c. Run with Bun:
 //
-//   bun solid/main.ts [sensors|widgets|dialog|form|list|sky|sheet]  a window; the mouse or a finger is the pointer (one
-//                                        pointer: SDL's touch events go through the same state), `t` flips the theme;
-//                                        on widgets Tab, Shift+Tab, Space and Enter drive the widgets; on dialog Enter
-//                                        opens the settings dialog and Space opens the menu; on form Tab reaches the
+//   bun solid/main.ts [sensors|widgets|dialog|form|list|sky|notify|sheet]  a window; the mouse or a finger is the pointer
+//                                        (one pointer: SDL's touch events go through the same state), `t` flips the
+//                                        theme; on widgets Tab, Shift+Tab, Space and Enter drive the widgets; on dialog
+//                                        Enter opens the settings dialog and Space opens the menu; on form Tab reaches the
 //                                        text field, typing fills it, Enter submits, Escape blurs (and `t` flips the
 //                                        theme again once no field has focus); on list Tab reaches the list, Up/Down,
 //                                        PageUp/PageDown and Home/End move the selection and the wheel scrolls it; on
-//                                        sky Tab reaches the tablist then the feed, the arrows switch feeds, and on the
-//                                        feed Up/Down, PageUp/PageDown and Home/End scroll it
+//                                        sky Tab reaches the tablist then the feed, the arrows switch feeds, `n` opens
+//                                        the notifications (Escape back), and on the feed Up/Down, PageUp/PageDown and
+//                                        Home/End scroll it; notify is that page started on its notifications screen
 //   bun solid/main.ts --png out.png      one frame headless, written to out.png
 //   bun solid/main.ts --expect ref.png   the same frame compared with ref.png pixel for pixel; exit 1 and write
 //                                        ref.png.actual.png on a difference
@@ -73,10 +74,11 @@ if (
   page !== "form" &&
   page !== "list" &&
   page !== "sky" &&
+  page !== "notify" &&
   page !== "sheet" &&
   page !== "dev"
 ) {
-  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky, sheet or dev`);
+  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky, notify, sheet or dev`);
   process.exit(1);
 }
 const arg = (name: string, n = 1) => {
@@ -161,7 +163,7 @@ const H =
         ? fieldSize.height
         : page === "list"
           ? listSize.height
-          : page === "sky"
+          : page === "sky" || page === "notify"
             ? skySize.height
             : page === "sheet"
               ? sheetSize.height
@@ -193,7 +195,7 @@ const dispose = render(
         ? () => Field({ input, motion })
         : page === "list"
           ? () => List({ input, motion, count, wide })
-          : page === "sky"
+          : page === "sky" || page === "notify"
             ? () =>
                 Sky({
                   input,
@@ -204,6 +206,8 @@ const dispose = render(
                   setTheme: (next) => (theme = next),
                   posts: posts ? synthetic(posts) : undefined,
                   load: loadSky(process.argv),
+                  // `notify`: the page the feed's `n` opens, so `bun solid/main.ts notify` is its screen at rest
+                  screen: page === "notify" ? "notifications" : undefined,
                 })
             : page === "sheet"
               ? () => Sheet()
