@@ -3282,3 +3282,38 @@ status with its reason, the browse button opens the one hidden input, and a disa
 a click. Left: no preview of the accepted files and no upload progress (the page's `onFiles`), only the summary
 sentence (a page that wants one line per file uses `onReject`), the accept grammar and limits live in the
 primitive rather than in the copy, and the demo's fake-file buttons are the page's, not the component's.
+
+## The table and the pagination in the kit (cssints-03li, cssints-3by9, 2026-10-31)
+
+`createTable` and `createPagination` were the two headless widgets the kit's registry had no styles for. The primitives
+own the state and the ARIA and render nothing: the table carries the sort descriptor, `aria-sort` on the sorted column,
+`aria-selected` per row, a `role=checkbox aria-checked=mixed` select-all, the row ids the host renders, and the labels; it
+never reorders a row. The pagination computes the page list and its elided runs, marks the current page and its item
+`aria-current="page"`, and owns the single `role=status` count. The skins add the elements and the paint, and nothing
+else: `table` is `TableScroll` (a box with `overflow-x: auto`), `Table` (the `<table>` with its caption and the context),
+`TableHead` (the header row and, in multiple selection, the select-all cell), `TableHeaderCell` (a sortable one gets the
+primitive's button; the arrow is a child of the `th`, hidden or turned from the `th`'s `aria-sort` through `within()`, so
+the skin keeps no copy of the sort), `TableBody`, `TableRow` (with the row's control in front), `TableCell`, and the two
+checkboxes, whose boxes and marks are painted from `aria-checked`. A numeric column's `numeric` hint becomes
+`data-numeric`, right alignment and tabular figures on the header and the cells: HTML has no attribute for it, so the
+primitive leaves it to the skin. `pagination` is a nav, its list, the page controls, the edges and the count; the current
+page is painted from `aria-current`, so it cannot disagree with what a screen reader hears, and each target is 24 px
+square at AA. A page control is an `<a>` when `hrefFor` gives it an address and a `<button>` when it does not, so a
+keyboard reaches it either way; the scroll wrapper deliberately has no `tabindex`: a focusable region with no name is a
+tab stop that says nothing, and focusing a control inside the table scrolls it into view.
+
+The two compose on one page signal: the demo sorts its own array from `onSortChange`, slices the page, passes the slice's
+ids as the table's `rows`, and gives the same page to the pagination. No id or label hand-off is missing for that, because
+the table names itself (a caption) and the nav names itself; the one thing the primitives do not offer is an
+`aria-controls` from the nav to the table, which the demo leaves out rather than inventing an id. The selection covers
+exactly the rendered rows, which is the primitive's documented rule for a windowed table, and it survives a page change
+because it is over ids.
+
+One primitive bug came out of the skins: `previousProps` and `nextProps` were built once, with the page at creation, so a
+host that spread them onto an anchor could not step past the first move (the second click on Next targeted the page it was
+already on). They are getters over an offset now and their `onClick` resolves the page when it runs, with a browser test in
+`packages/headless/test/pagination.browser.test.tsx` and a minor changeset. Left: virtualisation and column resizing (the
+primitive only announces `aria-rowcount`/`aria-colcount`/`aria-colindex` for a window the host already computes, and the
+kit adds no virtualiser or resize handles), a keyboard-only way to scroll the wrapper on a browser that does not make
+scroll containers focusable, and a column offset for a horizontally windowed table, which the kit's selection column would
+otherwise be left out of.
