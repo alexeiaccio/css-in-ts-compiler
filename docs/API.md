@@ -1642,7 +1642,7 @@ The host owns the box and the look: the viewport's size and `overflow: hidden`, 
 
 ### Headless: `createMenu` (`@cssints/headless`)
 
-The APG menu family (`createMenu` for the menu button and the checkable menus, `createMenubar` for the roving bar) as state and attribute objects. Its behaviour is `specs/apg/menu-button.qnt` and `menu-checkable.qnt`, and `packages/headless/test/menu-button.browser.test.tsx` replays the generated models, ported scenarios and seeded differential walks against it.
+The APG menu family (`createMenu` for the menu button and the checkable menus, `createMenubar` for the roving bar) as state and attribute objects. Its behaviour is `specs/apg/menu-button.qnt`, `menu-checkable.qnt` and `menu-menubar.qnt`, and `packages/headless/test/menu-button.browser.test.tsx` and `packages/headless/test/menu.browser.test.tsx` replay the generated models, ported scenarios and seeded differential walks against it.
 
 ```ts skip
 createMenu(options: {
