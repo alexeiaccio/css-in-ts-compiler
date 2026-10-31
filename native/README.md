@@ -2060,10 +2060,10 @@ one byte of the path fails `FAIL dark, image: command 2 (image) differs at rende
 style at all (`{}`) fails `FAIL dark, image: 10 generated commands, 11 hand-written` (an element with no box emits no
 command).
 
-What a generated page still does not carry: a clip's `childOffset` (the scroll is the host's, as on the List), and
-`:focus` (a prop of an *element*, not a page, and `--prop` sets only the page's). The image variant is a file of its own
+What a generated page still does not carry: `:focus` (a prop of an *element*, not a page, and `--prop` sets only the
+page's). The image variant is a file of its own
 and not a state of `--events` for the same reason: a prop is not a signal the table can dispatch. A float is a
-declaration and the generator prints it (below).
+declaration and the generator prints it, and a clip element's `childOffset` is read from the host (the List, below).
 
 ## The floats in a generated page
 
@@ -2147,11 +2147,108 @@ and the differ names `command 14 (rectangle) box … -> …` (the declaration's 
 `.floating` from the menu's declaration lays it out in the page's column and the differ names its `box` and `z` (`10 ->
 0`); dropping `.pointerCaptureMode` changes no command and the grep fails naming `floating.pointerCaptureMode`.
 
-Still not emitted: a clip's `childOffset` and the List's scroll offset (Clay asks the host, `Clay_GetScrollOffset()`, not
-a declaration), the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a static
-frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now proves,
-but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never from a
-signal of the page.
+Still not emitted: the Field's typed text (SDL's text events, the host's), the Widgets page (12 Tab stops and keys: a
+static frame is possible but unproven) and the Widgets toolbar's menu (the same float and capture the Dialog's menu now
+proves, but its page's keys are the Widgets page's). `:focus` still comes from an element's prop or a part's state, never
+from a signal of the page. A clip element's offset is not a declaration either, and the List page shows what that means
+for a generated page: the file asks Clay for the container's offset (below).
+
+## The List in a generated page
+
+The List page (`solid/app/List.tsx`) is the first generated page whose tree is not the page's literals alone: its
+viewport declares what the screen shows (a window of rows, `solid/src/virtual.ts`), its scrollbar's thumb is five numbers
+the page writes every frame through the value channel, and its offset is the host's. Three things had to follow, and none
+of them is a new field of a declaration:
+
+**The page's frame hook ran at build time** (`--tick <n>`). The window is the page's tick's: it reads the viewport's
+height from `ui.bounds` and the offset from `ui.scrollOffset`, and without a tick the tree is an empty viewport and its
+opaque thumb (9 commands, against the golden's 36). So the generator gives the page its `motion` and runs the hook n frames at 1/60 before
+every frame it emits, exactly as `main.ts` does. There is no host to ask, so `generator/ui-build.ts` — resolved in place of
+`solid/src/ffi.ts` before the page is imported — answers the two reads a build can answer: the box an element's *own
+style* states (the viewport's `css.height(240)`) and the offset the host will scroll it to (`--scroll`). Every other call
+of the `ui` surface is a no-op: nothing is drawn, uploaded or scrolled at build time.
+
+**The value channel was baked.** The rows are the tick's, but so are the spacers' heights (FIXED min and max), the
+thumb's height, its offset, its fade and its capture: the page writes them with `ui.value`, and a static page has no
+channel. `ui-build.ts` records the writes and the generator applies them the way `ui_open` does — `packBox` of the
+resolved shape, the page's fields over it, the declaration back — and prints the element as `values_<n>`. At rest that is
+the below spacer (628px) and the thumb (64.14 tall, 0 opacity: the golden's frame has no thumb command and this file has
+none either). A write past the 45 packed floats (a group's alpha, a shadow's blur, a text's colour) is dropped, as
+`header()` drops the effects: a static C page keeps none of those tables. One seam: the page's *track* is at 0 at build
+time, so the thumb's baked top is the rest one, while `--scroll` is the offset the host will put in the container; both
+frames have the bar faded out (it never rose: no wheel was delivered at build time), so no command carries the number —
+a visible thumb would want the page's own wheel instead, which is a stub `ui.over` and a notch away.
+
+**The offset is the host's, and the declaration reads it.** `header()` prints the viewport's
+`.clip = { .horizontal = 1, .vertical = 1 }` — Clay's `Clay_ClipElementConfig`, which is also its scroll container — and
+never a `childOffset`, because a file-scope constant cannot call Clay. The generator therefore declares a clipped element
+through `clip_scroll`, which reads it where the element is open:
+
+```c
+static Clay_ElementDeclaration clip_scroll(Clay_ElementDeclaration d)
+{
+    d.clip.childOffset = Clay_GetScrollOffset();
+    return d;
+}
+...
+CLAY(CLAY_ID("list"), clip_scroll(style_4)) {
+```
+
+the same call `solid/native/ui.c`'s `ui_open` makes (and the browser's `ui.c`), so the C frame draws whatever offset the
+host put in the container. The host puts it there exactly as the Solid page's `ui.scrollTo` does:
+`Clay_GetScrollContainerData(...).scrollPosition->y`. The window, though, is the *offset's* — one notch down is one more
+row in the overscan — so a generated file is one offset, as the Dialog's is one state:
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/List.tsx \
+  --tick 31 --name app_frame_list --out examples/list/page_generated.c
+bun --conditions=development generator/page-to-c.ts solid/app/List.tsx \
+  --tick 31 --scroll list=10 --name app_frame_list_scrolled --out examples/list/page_generated_scrolled.c
+```
+
+`page_generated.c` is the page at rest (rows 0..8, 36 commands), `page_generated_scrolled.c` at 10px (rows 0..9, 39:
+the tenth is the overscan and is drawn outside the scissor).
+
+**The check** (`examples/list/gen.c`) compiles both with Clay and `desktop/clay_dump.c`, measures with ThorVG as the
+Solid host does, and lays the page out twice: the first frame creates the container, the host writes the offset, the
+second is the frame the declaration's `Clay_GetScrollOffset()` makes. The reference is the Solid page's own frame at the
+same two states — `examples/list/solid-dump.ts` is the page's loop with `motion.onWheel`, because `solid/dump.ts`'s
+`capture` has no wheel field: 31 frames at rest, the pointer onto the viewport (the page's wheel is gated on `ui.over`),
+one notch down, 90 frames of settle (the offset lands on exactly 10 and the thumb has faded) — and `dump-check.ts`
+compares them field by field:
+
+```
+rest: 36 commands, viewport offset 0
+scrolled: 39 commands, viewport offset -10
+list-golden: 36 commands, identical
+list-rest: 36 commands, identical
+list-scrolled: 39 commands, identical
+solid/frames/list-top.png: identical, 36 commands
+```
+
+The golden's line holds `solid-dump.ts` to `solid/goldens/list.json` (the page at rest, which is what the stored frame
+is); `list-rest` holds the *generated* frame to the same golden, whole — no tolerance, its measure is the Solid host's;
+`list-scrolled` holds the generated frame to the page 10px down. The last line is the desktop host's own raster of the
+generated page (`examples/list/page.c`, `-DAPP_W=360 -DAPP_H=400`, the page's own size: `desktop/build.sh` has no size
+flag) against the Solid page's stored `solid/frames/list-top.png`, **pixel for pixel, 0 of 144,000 pixels**: the same
+ThorVG renderer, the same measure, the same tree.
+
+Mutations, each reverted (on a copy of the committed file, so the repository's generated C never moved): declaring the
+viewport without `clip_scroll` — the offset not read — leaves the rows at row 0 while the reference is 10px down:
+`FAIL list-scrolled (no noclipscroll): command 5 (rectangle) box 40/91.5/280/28 -> 40/101.5/280/28`, and the same for
+every row and its three texts; dropping the clip element's axes sends the host to `the page has no scroll container
+"list": the viewport's css.overflow("hidden") was not declared as a clip element`, and a dump of the same file loses the
+scissor (`commands: 39 -> 37`, `command 3 (scissor-start) axes horizontal/vertical -> (absent)`); dropping the value bake
+leaves the thumb's opaque style in the frame (`FAIL list-rest (no value bake): commands: 36 -> 37`: the golden has no
+thumb at all); and dropping `--tick` loses the window itself (`rest: 9 commands`, `FAIL list-rest (no --tick): commands:
+36 -> 9`: the empty viewport and its opaque thumb).
+
+What it does not close: the page's own scroll *state*. The List's Solid page animates its offset with a track; a
+generated file is one offset, chosen at build time, and the C host is what moves it — the machine (`vscroll.ts`'s 10px
+notch, the fling, the band, the reveal) is the desktop's, not the board's. So a board page shows a scrolled viewport;
+it does not scroll itself. The thumb is a sibling float over the content (a float has no `childOffset`, which is why it
+does not travel): its numbers are the page's value channel, baked for the frame the file is.
+
 
 ## The generated page's events: a state machine
 
