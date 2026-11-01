@@ -415,3 +415,6 @@ if command -v zig >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
 else
   echo "browser: no zig, node or Playwright chromium, skipped (sh browser/build.sh && node browser/check.mjs)"
 fi
+
+# Not here: spike/hershey/run.sh (a monoline stroke font against the raster path). It is a measurement — 300 runs a
+# frame for 90 seconds — and not a gate; the number it produced is in docs/map.md (checked, not adopted) and README.md.
