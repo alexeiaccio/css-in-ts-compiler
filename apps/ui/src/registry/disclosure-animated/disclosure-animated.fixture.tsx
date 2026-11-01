@@ -19,6 +19,11 @@ import { type Mounted } from "./disclosure-animated-driver.ts";
  */
 export const mountDisclosureAnimated = (config: AnimationConfig): Mounted => {
   const root = document.createElement("div");
+  // The walk reads attributes and animation time, never hit-testing. Parking the fixture outside the viewport keeps a real
+  // pointer left by another test file's `user-event` from firing an unasked `pointerenter` at the trigger when it mounts.
+  root.style.position = "fixed";
+  root.style.insetBlockStart = "0";
+  root.style.insetInlineStart = "-10000px";
   document.body.append(root);
   const clock = createFakeClock();
   const [reduced, setReduced] = createSignal(config.reducedMotion);

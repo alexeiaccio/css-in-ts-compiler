@@ -3563,8 +3563,10 @@ those two deliver on the next microtask; event handlers and animation completion
 The test is the spec. The 15 ported scenarios replay through the DOM, and a differential walk over `{ reducedMotion:
 false }` and `{ reducedMotion: true }` compares every probed attribute and the value against the generated model after
 every step; both configs are driveable, so there is no `Unsupported` entry. The driver's `click` is synthetic
-(`element.click()`), not a pointer: a real pointer left over the next fixture's trigger by `userEvent` fires an unasked
-`pointerenter` at it, and the fresh fixture then opens from a pending hover the scenario never asked for. `debounce`
+(`element.click()`), not a pointer, and the fixture is parked outside the viewport: a real pointer left by another test
+file's `user-event` fires an unasked `pointerenter` at a newly mounted trigger, and the fresh fixture then opens from a
+pending hover the scenario never asked for (alone the file passed; the whole suite failed, which is what found it).
+`debounce`
 advances the fixture's fake clock, `finish` calls `finish()` on the real `Animation`, and `frame` advances a paused
 animation exactly one grid point using the `from:to` the host writes into `animation.id`; the fixture's `onAnimate`
 pauses every animation, so the walk is deterministic without faking `currentTime`. A zero-distance reversal (the box is
