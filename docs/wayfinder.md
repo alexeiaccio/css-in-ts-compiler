@@ -3570,7 +3570,10 @@ pending hover the scenario never asked for (alone the file passed; the whole sui
 advances the fixture's fake clock, `finish` calls `finish()` on the real `Animation`, and `frame` advances a paused
 animation exactly one grid point using the `from:to` the host writes into `animation.id`; the fixture's `onAnimate`
 pauses every animation, so the walk is deterministic without faking `currentTime`. A zero-distance reversal (the box is
-already at the end it heads to) has no point to advance, and the model's saturated tick says the same.
+already at the end it heads to) has no point to advance, and the model's saturated tick says the same. The kit also turns
+the motion preference back off, which the spec latches on; one DOM-only test checks that the next animation starts at
+the settled end rather than at the fraction where the settle interrupted the box (it failed on the first version of the
+carry, which is why it is there).
 
 Cost: no type budget and no dist; the item adds `@cssints/machine` to the kit's dependency list and to `apps/ui`, and
 regenerating the registry reformatted 25 other items because the template's browser config gained the iframe timeout on
