@@ -3636,3 +3636,56 @@ one more than the visible stack suggests. The stack does not animate as a whole 
 gap), there is no swipe or drag dismissal, the enter and leave durations are constants rather than tokens, the motion
 preference is read once per row rather than followed live, and the leave starts from the computed opacity — a paused enter
 (`animation.pause()` by a host) keeps that value, but nothing in the kit pauses one.
+
+## The modal overlays close on a machine: the Escape-during-close race (apps/ui, 2026-11-01)
+
+`specs/patterns/animation.qnt` landed with one host, the animated disclosure. A dialog has the same five problems the
+moment it animates, and one more that the disclosure does not: the layer must stay in the page while the panel leaves,
+which is a second reader of the same state. `Dialog` and `Drawer` now take `animated` (read once), and
+`apps/ui/src/registry/overlay-motion.ts` is the box they share: `closed`, `entering`, `open`, `leaving`, the context
+`{ logical, committed, reduced }`, and the events `open`, `close`, `finish { id }`, `motion { reduced }`.
+
+**Two questions, two owners.** `specs/apg/dialog-modal.qnt` is the primitive's and it is unchanged: whether any dialog is
+open, the request/commit split (`createControllable`), the stack, focus in and back to the invoker, the Tab cycle,
+Escape, the backdrop, `aria-modal`, the counted scroll lock. `specs/patterns/animation.qnt` is the machine's: the box,
+its one effect per state, reversal, the stale completion, reduced motion and the optimistic split. `data-state` is the
+box's phase and the layer's presence is the same store's other field, so neither is a second copy of `open()`; a reader
+of `phase` does not re-run when `logical` or `reduced` changes, which the browser test asserts with a counter: a real
+`createMachineStore` under `createRoot`, one reader per field, and the preference moving while the box is still.
+
+**The machine follows the primitive, not the intent.** The disclosure animates from an intent; a modal cannot. A
+controlled host may refuse a close, and an optimistic close would slide the panel out and back for a request the host
+answered no. So the box's `open` and `close` events come from `open()` changing, delivered on a microtask (an effect runs
+in an owned scope, where a Solid store refuses a write). One consequence is visible: for the one flush that mounts the
+layer, the machine has not followed yet, so `data-state` shows where the box is heading — `entering`, or `open` at once
+under reduced motion — and a mounted layer is never shown at the `closed` end. The layer mounts on `open() || not
+closed` for the same reason: the primitive moves the focus into the panel in its own effect, and a panel that is not in
+the page cannot take it.
+
+**Each race.** An Escape during the close is a superseded intent: `leaving` has no `close` transition, so the machine
+takes nothing, issues no second effect and the focus returns once (it returned at the start of `leaving`, as before). An
+`open` during the close reverses from the box's own position: `onCancel` reads the running animation's `currentTime`
+before it cancels it, the replacement starts at that fraction, and the panel is never unmounted on the way (`closed` is
+the only state without a layer). A backdrop click and an Escape in the same frame are one dismissal — a superseded
+intent, not a debounce: `leaving` drops the second `close`, and `@cssints/headless`'s `createControllable` now asks the
+host once for an intent it is still waiting on (`queueMicrotask`, because a controlled host's value is applied on the
+flush; a later, separate intent is asked again). A cancelled animation's own completion carries the dead handle's id and
+the machine drops it before looking at a transition, so the phase after a reversal stays `entering` instead of landing
+at `closed`. Reduced motion lands an intent in one step — no `leaving`, no animation, the layer gone at once — and the
+same preference turning on mid-flight cancels the effect and settles the box. `Atomic` is the layer's rule: a leaving
+panel keeps no `hidden` attribute (the primitive's `hidden` is `!open()`, which is exactly that frame) and the leaving
+layer takes no clicks (`pointer-events: none`), so no frame paints an invisible panel over a live one.
+
+**Cost.** `@cssints/machine` is a dependency of the dialog, drawer and shortcuts items (the drawer's copy runs the
+animated test; the dialog's item is not `tested: true`, so its box is covered by the drawer's copy and by this repo's
+test). One `@cssints/headless` minor changeset for the `createControllable` frame window. The static drawer keeps its
+CSS transition and its always-mounted panel: `animated` is a second, opt-in presentation, and without it nothing about
+either component changed.
+
+**Left.** A refused request still moves nothing, which means a controlled host that refuses a close shows no feedback
+the box could give; the close is not led optimistically, by design. Drag-to-dismiss on the sheet is still the host's
+`scroll-snap` (`packages/headless/docs/bottom-sheet.md`) and is not the machine's business: a gesture that the platform
+runs off the main thread is not a transition. Nested modals animate independently and each layer is unmounted on its own
+`closed`, so the scroll lock is the primitive's count, not the machine's. The dialog's own kit still has no cleanup for
+the scroll lock when a host unmounts an open dialog (the drawer's primitive does), which the animation makes easier to
+hit but does not cause.

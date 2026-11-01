@@ -251,24 +251,32 @@ const ButtonGroupDemo = (): JSX.Element => (
 const DialogDemo = (): JSX.Element => {
   const [open, setOpen] = createSignal(false);
   return (
-    <Dialog
-      label="Rename file"
-      description="The new name shows up in the list and in every link to it."
-      open={open()}
-      onOpenChange={setOpen}
-    >
-      <DialogTrigger>Rename</DialogTrigger>
-      <DialogContent>
-        <DialogTitle>Rename</DialogTitle>
-        <Input value="Report Q3" />
-        <div class="demo-row">
-          <DialogClose>Cancel</DialogClose>
-          <Button tone="accent" onClick={() => setOpen(false)}>
-            Save
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div class="demo-column">
+      <Dialog
+        label="Rename file"
+        description="The new name shows up in the list and in every link to it."
+        animated
+        open={open()}
+        onOpenChange={setOpen}
+      >
+        <DialogTrigger>Rename</DialogTrigger>
+        <DialogContent>
+          <DialogTitle>Rename</DialogTitle>
+          <Input value="Report Q3" />
+          <div class="demo-row">
+            <DialogClose>Cancel</DialogClose>
+            <Button tone="accent" onClick={() => setOpen(false)}>
+              Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <p class="docs__note">
+        Interrupt it: close the panel and open it again before it finishes. It reverses from where
+        it is, the cancelled close's own completion is ignored, and a second Escape during the close
+        is the same dismissal.
+      </p>
+    </div>
   );
 };
 
@@ -277,7 +285,7 @@ const DrawerDemo = (): JSX.Element => {
   return (
     <div class="demo-column">
       <div class="demo-row">
-        <Drawer open={open()} onOpenChange={setOpen}>
+        <Drawer animated open={open()} onOpenChange={setOpen}>
           <DrawerTrigger>Filters</DrawerTrigger>
           <DrawerContent>
             <DrawerHeader>
@@ -312,6 +320,10 @@ const DrawerDemo = (): JSX.Element => {
           </DrawerContent>
         </Drawer>
       </div>
+      <p class="docs__note">
+        Interrupt it: close the rail and open it again before the slide ends. It turns back from
+        where it is; the panel leaves the page only once the close has finished.
+      </p>
     </div>
   );
 };

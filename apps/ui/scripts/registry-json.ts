@@ -75,19 +75,21 @@ const STARTERS: ReadonlyArray<Starter> = [
   {
     name: "dialog",
     tested: false,
-    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    with: ["overlay-motion.ts", "render.tsx", "theme.ts", "tokens.ts"],
+    deps: ["@cssints/machine"],
     title: "Dialog",
     description:
-      "APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close",
+      "APG modal dialog: a scrim, a panel on the surface, focus in and back, Escape or the backdrop to close, and an `animated` panel that reverses from where it is when it is interrupted",
     also: ["@cssints/button"],
   },
   {
     name: "drawer",
     tested: true,
-    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    with: ["overlay-motion.ts", "render.tsx", "theme.ts", "tokens.ts"],
+    deps: ["@cssints/machine"],
     title: "Drawer",
     description:
-      "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return",
+      "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return — and an `animated` slide that leaves the page only when it has finished",
     also: ["@cssints/button"],
   },
   {
@@ -122,7 +124,8 @@ const STARTERS: ReadonlyArray<Starter> = [
     name: "shortcuts",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
-    with: ["dialog/dialog.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    with: ["dialog/dialog.tsx", "overlay-motion.ts", "render.tsx", "theme.ts", "tokens.ts"],
+    deps: ["@cssints/machine"],
     title: "Shortcuts",
     description:
       "A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to",

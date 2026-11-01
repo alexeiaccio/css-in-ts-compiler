@@ -15,8 +15,8 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 
 - card: A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`. `add @cssints/card`
 - field: A label, a control, a hint and an error: the ids and the ARIA are `createField`'s. `add @cssints/field`
-- dialog: APG modal dialog: a scrim, a panel on the surface, focus in and back, and Escape or the backdrop to close. `add @cssints/dialog`
-- drawer: An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return. `add @cssints/drawer`
+- dialog: APG modal dialog: a scrim, a panel on the surface, focus in and back, Escape or the backdrop to close, and an `animated` panel that reverses from where it is when it is interrupted. `add @cssints/dialog`
+- drawer: An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return — and an `animated` slide that leaves the page only when it has finished. `add @cssints/drawer`
 - panzoom: One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture. `add @cssints/panzoom`
 - scrollspy: A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`. `add @cssints/scrollspy`
 - diagram: A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is. `add @cssints/diagram`
