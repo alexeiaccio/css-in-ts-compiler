@@ -119,6 +119,9 @@ const plainCode = [
   "packages/balance/src/**",
   // tier 2: the DOM runtime of CSS-first interactions (state, events, bindings), shipped to every browser
   "packages/reactive/src/**",
+  // @cssints/machine: a dependency-free state machine for UI protocols and its harness; plain code by design (no Effect
+  // runtime in a package whose point is having no dependencies). ./solid imports solid-js, its optional peer.
+  "packages/machine/src/**",
   // its maths (grid.ts) is shared with the runtime, which draws on a canvas: plain code, no Effect
   "packages/gradient-2d/src/**",
   "packages/masonry/src/**",
@@ -231,6 +234,16 @@ export default defineConfig({
           ...Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
           "typescript/no-redundant-type-constituents": "off",
           "typescript/no-unnecessary-type-assertion": "off",
+        },
+      },
+      // @cssints/machine documents by prose (README, docs/API.md and the API comments), not by JSDoc tags; the store
+      // bridge's intent waits on a promise it resolves when the machine settles.
+      {
+        files: ["packages/machine/**"],
+        rules: {
+          "jsdoc/require-param": "off",
+          "jsdoc/require-returns": "off",
+          "promise/avoid-new": "off",
         },
       },
       // The tool is checked by its own tests and tsgo; its rules read AST nodes typed `any`, its tests are vitest (not Playwright).

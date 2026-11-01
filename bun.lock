@@ -396,6 +396,20 @@
         "cssints": "^0.26.0",
       },
     },
+    "packages/machine": {
+      "name": "@cssints/machine",
+      "version": "0.25.0",
+      "devDependencies": {
+        "solid-js": "2.0.0-rc.13",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "solid-js": "^2.0.0-rc.13",
+      },
+      "optionalPeers": [
+        "solid-js",
+      ],
+    },
     "packages/masonry": {
       "name": "@cssints/masonry",
       "version": "0.26.0",
@@ -802,6 +816,8 @@
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
 
     "@cssints/layout": ["@cssints/layout@workspace:packages/layout"],
+
+    "@cssints/machine": ["@cssints/machine@workspace:packages/machine"],
 
     "@cssints/masonry": ["@cssints/masonry@workspace:packages/masonry"],
 
