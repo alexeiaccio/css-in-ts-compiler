@@ -3582,3 +3582,57 @@ intent is implemented but the demo does not advertise hover-to-open; the machine
 completion is the settle, and a host that never gets one can cancel); focus and `inert` on the closed panel are not
 managed; and the kit reads the committed store, leaving the bridge's optimistic lead to a host that wants to expose the
 intent even earlier than `aria-expanded` already does.
+
+## The toast's row lifecycle, and what stays in the queue (apps/ui, 2026-11-01)
+
+The kit's toast painted one state — `visible` — and left the DOM the moment the primitive dropped it. The row is a phase
+machine now (`apps/ui/src/registry/toast/toast.tsx`): `entering` runs an `element.animate` opacity fade, `visible` is the
+rest, `leaving` runs the fade out, and `gone` is the step past the animation in which the stack removes the row. The
+machine is per row, so a second toast cannot cancel the first one's animation, and its `data-state` and `hidden` read its
+own `createMachineStore`, so a reader of one row is never re-run by another row's phase (the test counts the re-runs, as
+`packages/machine/test/store.mjs` does).
+
+**The queue did not move.** `max`, the timeout, the pause on hover and focus with the remaining time, `dismiss`,
+`dismissAll`, and the live regions are `createToast`'s, and the skin asks nothing of them. Only one thing had to change
+there: the countdown used to remove the toast itself, which unmounted the row before any exit could paint. Its expiry now
+calls the `onDismissRequest` handlers and waits for the renderer's `dismiss(id)`; with no handler it removes at once, as
+before, so the primitive's own oracle is unchanged. `requestDismiss(id)` is the same ask for a page that dismisses
+imperatively (the demo's "Dismiss while entering" button), and `dismiss`, `dismissAll` and the ceiling still remove
+immediately — the ceiling replaces the dropped row with the new one, so animating it would only delay the replacement.
+That is the whole reason for the minor changeset on `@cssints/headless`: the primitive gained a channel, not a policy.
+
+**Reversal, stale finishes, bursts.** A `dismiss` in `entering` transitions to `leaving`, which cancels the enter effect;
+the host reads the box's own computed opacity before it cancels the animation, so the leave starts where the box is
+instead of snapping it to visible. The cancelled animation's `finished` promise rejects, and its completion is a `finish`
+carrying the enter's handle id, which the machine has already dropped — the state does not move. A second `dismiss` in
+`leaving` is not a transition at all: `leaving` declares no `dismiss` handler, so the close button after the timeout (or
+two close clicks in one frame) produce one leave effect and one `onDismiss`, and the running leave is never restarted.
+That is why there is no `debounce` on this machine: the state the first intent entered is the coalescer, the second intent
+is already decided, and a debounce window would only delay a leave that has begun. `prefers-reduced-motion` builds the
+machine at `visible`, so a dismissal goes straight to `gone` and there is no effect to run or skip.
+
+**The harness proves it in the same file**, with no browser and no real time (`harness(toastRowMachine(false))`): a dismiss
+during `entering` cancels the enter handle and issues exactly one leave ending `gone`; the cancelled enter's `finish`
+leaves the state and the live handle alone and is logged as a dropped delivery; two dismisses in one frame produce one
+effect and one departure; the timeout's dismiss and a close click in the same frame are that one dismissal; and the
+reduced machine starts at `visible`, logs no effect, and reaches `gone` in one step. The DOM tests check what only a
+browser can: the row enters and settles at `visible`, a close during the enter reverses (the leave's first keyframe is
+below the enter's end, and the row is never `visible`), `hidden` is never set while the row is in the document, a second
+close leaves the same `Animation` object running, and reduced motion removes the row with no `data-state="leaving"` and no
+animation.
+
+**Why the animation spec's bridge does not fit.** `specs/patterns/animation.qnt` is a disclosure: its protocol opens on a
+trigger, its bridge names that trigger, and its DOM driver clicks a `data-part="trigger"` and reads a `data-part="content"`.
+A toast has no trigger, no `aria-expanded`, no closed panel to keep in the DOM, and its exit is chosen by a queue the
+spec does not model (a ceiling, a countdown, a close button). Driving it through that bridge would mean inventing a fake
+trigger and a `Unsupported` for every fourth of the spec's alphabet, so this row keeps the machine and the harness and no
+second bridge. The protocol properties it does share — reversal, a stale completion, one effect per state, reduced motion,
+`Atomic`'s "never hidden while painted" — are the ones asserted above.
+
+**Left.** `dismissAll` and the ceiling remove rows without an exit (the primitive's policy, and the replacement reason
+above); a host that calls `dismiss(id)` itself skips the animation too, and `requestDismiss(id)` is the animated path. The
+queue still counts a leaving row against `max` until `dismiss(id)` lands, so a burst of pushes while a row leaves drops
+one more than the visible stack suggests. The stack does not animate as a whole (the remaining rows do not slide into the
+gap), there is no swipe or drag dismissal, the enter and leave durations are constants rather than tokens, the motion
+preference is read once per row rather than followed live, and the leave starts from the computed opacity — a paused enter
+(`animation.pause()` by a host) keeps that value, but nothing in the kit pauses one.
