@@ -988,6 +988,36 @@ The verdict is in `../README.md` ("Text: the oracles"): ThorVG's text weighs **1
 at 0; the browser target's Canvas2D is **1.37x** our ink and is recorded, not matched; and the one real defect is that
 ThorVG has no fallback font (the ⅓ of the sheet's quote line is an empty box, SSIM 0.459 — asserted, not hidden).
 
+## The Figure page: one spec, drawn
+
+`app/Figure.tsx` (and `app/Figure.styles.ts`, its palette and roles) is the tenth page and the one that is not an app:
+it takes `{ spec }`, a glyph-kit spec in the shape `src/figure/spec.ts` checks, and declares the layout `src/figure/kinds.ts`
+makes of it — a title, the rows (a label, a bar or a row of boxes, the number as text), the source and the `►` focus line.
+No state, no input, no entry: the page at rest is the frame its literals and its widths make.
+
+```
+bun solid/main.ts figure --spec solid/specs/bars.json     a window (the size is the layout's: 400x112 here)
+bun solid/main.ts figure --spec solid/specs/funnel.json --png out.png
+bun solid/main.ts figure --spec solid/specs/compare.json --warm 30 --png out.png
+bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/frames/figure-bars.png
+```
+
+An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
+growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
+width), prints them and exits 1, so no PNG is written. The four specs are `solid/specs/bars.json` (this repository's own
+`--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`; `invalid-funnel.json` is the refusal the
+test uses.
+
+The layout speaks **cells** (8x16 px, the terminal's), so a length here is `cells * 8` across and a line is one cell down;
+a width is data and a style is a literal, so every item's width — and a bar's fill — is written through the value channel
+in `tick`, before the tree is declared, as the List's spacers are. The terminal host and the browser page import this
+component **unmodified**: the terminal's cells are the layout's own unit (no re-cut), and the browser fetches the same
+`solid/specs/<name>.json` with `?spec=`. `solid/figure.test.ts` reads the geometry back from the frame (each fill's box
+against its track's, within half a cell; over the four specs the worst is 0.49), each number's text, the rows' order, the
+funnel's ratios and `check`'s sentences, then the same spec's rows on the terminal (`terminal/solid.ts --page figure
+--spec ... --dump`) word for word. `solid/goldens/figure.json` is the bars frame's command golden, and
+`browser/figure-check.mjs` holds the browser's copy to it within 4 px, with a click that changes nothing.
+
 ## The accessibility tree
 
 `solid/a11y.ts` is the tree a screen reader would walk: `snapshot(root, { parts, containers })` returns

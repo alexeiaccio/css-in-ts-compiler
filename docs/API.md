@@ -1245,6 +1245,45 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/skeleton`](../packages/skeleton/README.md)       | `skeleton().radius().color().highlight()`                                                                                                     | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | [`@cssints/reactive`](../packages/reactive/README.md)       | `state()`, `toggle()`, `set()`, `value()`, `checked()`, `persist()`, `equals()`, `either()`, `on()`, `emit()`, `bind()`, `when()`, `inside()` | State as custom properties, events as data on the element: writes only in events, conditions and DOM output in plain CSS, wired by a 1.4 kB runtime shipped to every target; `value()`/`checked()` take the field's value, calls of `on()`, `bind()` or `state()` in one `cn()` append, `persist(value, key)` keeps a state across a reload, and `bind()` takes a source, a comparison (`equals()`), a choice of two literals (`either()`) or a literal — the one expression the runtime evaluates, because an attribute on the element cannot be computed in CSS (2026-10-31, cssints-ac3o). `emit(name)` is the one hand-off to JavaScript: `on({ submit: emit("save") })` writes no state and dispatches a bubbling `reactive:save` from the element the native event fired on, with `{ event, owner }` in its detail, which `listen(target, name, handler)` from `@cssints/reactive/runtime` hears and whose disposer it returns (2026-10-31, cssints-4s8d) |
 
+### A state machine for UI protocols: `@cssints/machine` (cssints-im52)
+
+A signal holds state, not a protocol. `@cssints/machine` is the protocol: a state machine for the behaviour a component grows the moment it animates — a `closing` and an `opening` in one frame, a cancelled animation that still reports back, an interrupted close that reverses from where the box is, a burst of pointer events, a debounce that must not swallow the last intent. It has no dependencies; `./solid` is the only file that imports anything, and solid-js is its optional peer. The README has the animated-disclosure example and the five properties; `test/machine.mjs` asserts them in plain node.
+
+```ts skip
+defineMachine(config: {
+  initial: Context;                 // the context, inferred from this object
+  states: { [name]: {
+    on?: { [event]: transition | transition[] };   // the event union; the first guard that passes wins
+    after?: { [ms]: transition };                   // cleared when the state is left
+    effect?: EffectSpec[];                          // issued on entry, cancelled on exit
+  }};
+  start?: StateName;                // the first key of states by default
+  debounce?: { [event]: ms };
+}): MachineDefinition;
+
+defineMachine<Payloads>()(config)   // typed payloads: { close: undefined; finish: { id: number } }
+createMachine(definition, { clock?, autoStart?, onEffect?, onCancel?, onTransition? }): Machine
+
+transition = StateName | { target, guard?(context, event), effect?, assign? }
+
+Machine: getState() · subscribe(listener) · subscribe(selector, listener) · send(event, { debounce? }) ·
+  flush() · cancel(type?) · effects() · onEffect/onCancel/onTransition · start() · destroy()
+
+harness(definition): { machine, clock, log, send, enqueue, deliver, deliverAll, advance, race, interleave,
+  pendingEffects, flushEffects, cancelled }
+
+createMachineStore(machine, { settled?, intent? }): { state, optimistic, projection, send }   // ./solid
+```
+
+- **Events are a union derived from the `on` keys**, the context is inferred from `initial`, and a `send` the states do not accept is a type error (`test/types/machine.ts`). A payload map, declared once as the type argument, types the payloads; a guard or an `assign` narrows on `event.type`.
+- **Effects are data**, not callbacks: `{ type: "animate", ... }`. The machine issues a handle per effect (`{ id, type, spec, state }`) and cancels it when the state is left or the transition is superseded. A completion is an event carrying the handle's numeric `id`: a stale id is dropped, a live one completes without a cancellation. `effects()` is what the host should be running now.
+- **Debounce** coalesces a burst by event type; `flush()` delivers the final intent, `cancel(type)` drops a superseded one. The same clock drives `after` and a transition's timestamp.
+- **The clock is injected** (`systemClock` is the default); the harness's fake clock moves only on `advance(ms)`, and the harness logs `{ at, event, from, to, effect, context, cancelled }` per delivery (and per effect it issued).
+- **The state is an external store**: `getState()`, `subscribe(listener)` and `subscribe(selector, listener)`, the last one firing only when the slice changes.
+- **`./solid`**: `state` is a `createStore` of `{ ...context, phase }` written once per transition, mutating only the changed fields; `optimistic` is a derived `createOptimisticStore` whose intent, written inside a Solid `action`, reverts to the committed snapshot at settle (a superseded intent rolls back); `projection` is a `createProjection` over `state`, so a reader of a view's field does not re-run when another field changes. A projection reads the committed frame, not an optimistic override, so the visual phase is read off `optimistic` directly. One store write per transition is the atomicity the reactive runtime gets from its one flush (cssints-tm9j).
+
+Limits: one state at a time (no parallel states, history states or nested machines), effects are data the host runs, and a numeric event `id` is reserved for an effect handle. There is no Quint spec for this runtime yet; the harness is the oracle.
+
 ### Headless: `createField` and `createConfirm` (`@cssints/headless`)
 
 Two primitives with no APG pattern behind them, so no Quint spec: `createField` is the ARIA contract of a form field, `createConfirm` a promise over `createDialogModal({ role: "alertdialog" })`. Like the rest of the package they return state and attribute objects, no elements, no styling; the README has the examples.

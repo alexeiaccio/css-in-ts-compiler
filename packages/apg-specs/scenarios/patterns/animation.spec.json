@@ -1,0 +1,979 @@
+{
+  "pattern": "animation",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "No APG pattern and no CSS specification: the source of truth is the protocol of an animated disclosure (specs/patterns/animation.qnt), the five things its `open` signal cannot hold — the race of two intents in one frame, the cancellation of a superseded effect and the ignored completion of it, the reversal that keeps the box where it is, one effect per transition, and the debounce window whose last intent always wins — plus the optimistic split between the state the host exposes (`aria-expanded`, set at the intent) and the state the machine has committed (moved only by a settle). The vocabulary is the protocol's own: `click` on the trigger toggles; `pointerEnter`/`pointerLeave` add an intent to the debounce window and `debounce` is its timer firing; `finish` is the live effect's completion and `finishStale` a cancelled effect's late one; `frame` is one animation frame; a `prop` write of `open` is a controlled host's intent and `prop reducedMotion` the media preference. Values are the spec's five-point sample of the box (`progress` 0 closed .. 4 open), not a duration.",
+  "skipped": [
+    {
+      "id": "animation.spec.real-timing",
+      "reason": "durations, easing and frame pacing: `frame` is one arbitrary frame, the grid saturates at five points, and every debounce delay is the same machine"
+    },
+    {
+      "id": "animation.spec.waapi-completion-ordering",
+      "reason": "WAAPI's own ordering — `Animation.finished` resolving after `cancel()`, a rejected promise, `transitionend` for one property of several — is the browser's; `finish`/`finishStale` are its reduced form"
+    },
+    {
+      "id": "animation.spec.css-properties",
+      "reason": "grid-template-rows, opacity, translate, @starting-style and transition-behavior are the sheet's; the model knows `hidden`, not how the content paints"
+    },
+    {
+      "id": "animation.spec.hover-plumbing",
+      "reason": "pointerenter/pointerleave capture, touch and a hover that is really a focus arrive as hover_in/hover_out; the primitive's listeners are the DOM test's"
+    },
+    {
+      "id": "animation.spec.focus-and-nesting",
+      "reason": "focus and inert on the closed content, aria-controls (fixed here), nested disclosures and the host's createOptimisticStore calls are other layers"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "animation.spec.initial",
+      "apg": "extension",
+      "config": {},
+      "notes": "before any intent: closed, committed closed, hidden, no effect",
+      "steps": [
+        {
+          "expect": {
+            "focus": null,
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false"
+              },
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.race-open-then-close",
+      "apg": "extension",
+      "config": {},
+      "notes": "LastIntentWins and OneEffectPerState: two intents in one frame end at the last one; the second replaces the first effect's handle, so one effect runs, and the box never left progress 0",
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": true
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "true"
+              },
+              "content": {
+                "data-state": "opening",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false"
+              },
+              "content": {
+                "data-state": "closing",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.race-close-then-open",
+      "apg": "extension",
+      "config": {},
+      "notes": "LastIntentWins the other way round: from open, a close and then an open in one frame settle open again, from the box's end (progress 4), not from closed",
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": true
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "true"
+              },
+              "content": {
+                "data-state": "opening",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.cancelled-finish-is-ignored",
+      "apg": "extension",
+      "config": {},
+      "notes": "CancelledFinishIgnored and StaleCarriesCancelled: the opening effect is cancelled by a close, and its late completion carries the cancelled handle (1) and moves nothing; only the live effect's completion settles",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "event": "finishStale"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closing",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.reversal-keeps-position",
+      "apg": "extension",
+      "config": {},
+      "notes": "ReversalKeepsPosition: after two frames the box is at 2; the close starts from 2, not from 4 (it does not finish the opening) and not from 0 (it does not start over), and the next frame walks down from there",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "closed",
+              "progress": 2,
+              "optimistic": true
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "closed",
+              "progress": 2,
+              "optimistic": false
+            }
+          }
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "closed",
+              "progress": 1,
+              "optimistic": false
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.reversal-flips-direction",
+      "apg": "extension",
+      "config": {},
+      "notes": "ReversalKeepsPosition and NoStaleOptimistic: a close interrupted at progress 2 by an open flips the direction to opening (the box is at 2, not at the committed end) and the live effect settles at open",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "open",
+              "progress": 2,
+              "optimistic": true
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false"
+              },
+              "content": {
+                "data-state": "closing",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "open",
+              "progress": 2,
+              "optimistic": false
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "open",
+                "hidden": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.debounce-keeps-the-last-intent",
+      "apg": "extension",
+      "config": {},
+      "notes": "CoalescingHolds and DebounceKeepsLast: a burst that ends on pointerEnter holds its intent (the box never moves while the window is open) and the commit is the burst's last intent, so the disclosure opens",
+      "steps": [
+        {
+          "event": "pointerEnter",
+          "target": "trigger"
+        },
+        {
+          "event": "pointerLeave",
+          "target": "trigger"
+        },
+        {
+          "event": "pointerEnter",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "debounce"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": true
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.a-burst-ending-in-leave",
+      "apg": "extension",
+      "config": {},
+      "notes": "DebounceKeepsLast from open: the burst's last intent is a leave, so the coalesced commit closes, not opens (the first enter of the burst is not the one that lands)",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "event": "pointerLeave",
+          "target": "trigger"
+        },
+        {
+          "event": "pointerEnter",
+          "target": "trigger"
+        },
+        {
+          "event": "pointerLeave",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            }
+          }
+        },
+        {
+          "event": "debounce"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": true
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false"
+              },
+              "content": {
+                "data-state": "closing",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.a-click-clears-the-window",
+      "apg": "extension",
+      "config": {},
+      "notes": "the direct intent cancels the window: a pending hover intent cannot be committed after a click, so the timer that fires later has nothing to undo the click with",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "event": "pointerLeave",
+          "target": "trigger"
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": true
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.reduced-motion-skips-the-transition",
+      "apg": "extension",
+      "config": {
+        "reducedMotion": true
+      },
+      "notes": "ReducedMotionSkips and OptimisticReconcilesOnSettle: with the preference on, the click lands at open in one step — no opening state, no effect, nothing to settle",
+      "steps": [
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "true"
+              },
+              "content": {
+                "data-state": "open",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.reduced-motion-settles-a-running-effect",
+      "apg": "extension",
+      "config": {},
+      "notes": "ReducedMotionSkips when the preference turns on mid-flight: the running effect is cancelled, the box lands at the intent at once, and nothing is left to finish",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "closed",
+              "progress": 2,
+              "optimistic": true
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "reducedMotion",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "open",
+                "hidden": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.a-frame-without-an-effect",
+      "apg": "extension",
+      "config": {},
+      "notes": "OneEffectPerState: with no effect running there is no frame to advance, so the box stays at 0",
+      "steps": [
+        {
+          "event": "frame"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.optimistic-leads-then-settles",
+      "apg": "extension",
+      "config": {},
+      "notes": "intent then settle: OptimisticLeadsOnIntent (aria-expanded and `open` are already true while the machine has committed closed) then OptimisticReconcilesOnSettle (the finish commits open, the split closes, Atomic holds the attributes in the same step)",
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": true
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "true"
+              },
+              "content": {
+                "data-state": "opening",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "open",
+                "hidden": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.optimistic-opposite-intent-then-settle",
+      "apg": "extension",
+      "config": {},
+      "notes": "intent then the opposite intent then settle: OptimisticRollsBackOnCancel — the close commits nothing while the open arrives, the split closes back onto the committed state, and the settle reconciles at open",
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": true
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": true
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "true"
+              },
+              "content": {
+                "data-state": "opening",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "open",
+              "committed": "open",
+              "progress": 4,
+              "optimistic": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "animation.spec.optimistic-cancel-leaves-no-trace",
+      "apg": "extension",
+      "config": {},
+      "notes": "intent then cancel: OptimisticRollsBackOnCancel, CancelledFinishIgnored and NoStaleOptimistic — the aborted opening commits nothing (committed stays closed) and exposes nothing (aria-expanded false), its late completion at the cancelled handle moves nothing, and the box keeps only its own continuity (progress 2) on the way out",
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "event": "frame"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": true,
+              "state": "opening",
+              "committed": "closed",
+              "progress": 2,
+              "optimistic": true
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "open",
+          "value": false
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "closed",
+              "progress": 2,
+              "optimistic": false
+            },
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false"
+              },
+              "content": {
+                "data-state": "closing",
+                "hidden": null
+              }
+            }
+          }
+        },
+        {
+          "event": "finishStale"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closing",
+              "committed": "closed",
+              "progress": 2,
+              "optimistic": false
+            }
+          }
+        },
+        {
+          "event": "finish"
+        },
+        {
+          "expect": {
+            "value": {
+              "open": false,
+              "state": "closed",
+              "committed": "closed",
+              "progress": 0,
+              "optimistic": false
+            },
+            "attrs": {
+              "content": {
+                "data-state": "closed",
+                "hidden": "true"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

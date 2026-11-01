@@ -3417,3 +3417,168 @@ declares the whole column on one frame — the native note's element-count ceili
 The oracle is a plain browser test, not a scenario: there is no APG pattern and no Quint machine for virtualisation (the state is pixels), so `virtual-list.browser.test.tsx` mounts 10 000 rows in a 600 px port and checks the declared count, the `aria-setsize`/`aria-posinset` pair, the whole `scrollHeight`, a middle scroll's different window at exact `offsetTop`s, and `scrollToIndex(9000)`; `table.browser.test.tsx` adds the window: `aria-rowcount` 10 000, `aria-rowindex` per row, a scroll that re-renders another window, and a select-all that covers only it. The registry item is `tested: true` with no `<item>-driver.ts` (nothing to replay), and the generated item now also ships `render.tsx` for the table, which it imported but did not list.
 
 Left: horizontal virtualisation, a sticky header inside the scrollport (the arithmetic starts at the content's 0, so the header is a sibling above the port), a measured table window (a `<tr>` whose height differs per row is the measured mode, and the primitive would need the table's rows to carry its `ref`), and a visible count of the selection outside the window — the demo says "N selected" but the table itself does not announce how many of the whole set are selected. The measured window still rebuilds a prefix sum per call, fine for a feed, not for a dataset.
+
+## A Quint machine for an animated disclosure (packages/apg-specs, 2026-11-01)
+
+The repo's primitives keep their logical state in a signal (`open`), and a signal is enough until the component
+animates. Then five things appear that no signal can hold, and each is a known bug: two intents arriving in one
+frame (`open` then `close`, or the reverse) must end at the last one with one live effect, not two; leaving a
+transition must cancel its effect and the cancelled effect's late `finish` must move nothing; an interrupted close
+must continue from where the box is, not from `open`; a transition that supersedes another must replace the effect
+handle; and a burst of `pointerenter`/`pointerleave` must coalesce into its last intent without losing it. A signal
+also cannot express the split that makes the pattern: `aria-expanded` follows the intent at once, the box animates,
+and the machine's own state settles one effect later.
+
+`specs/patterns/animation.qnt`. Not `specs/apg/` — there is no WAI-ARIA APG page for "animate the disclosure", and
+the patterns family is where a non-APG machine goes (the same reasoning as `resizable-panels` and `dropzone`). No
+CSS specification is the model either: the source of truth is the protocol itself, the five properties above, and
+the spec says so plainly. A real implementation runs `Element.animate` (WAAPI), settles on the animation's
+`finished` promise or a `transitionend`, cancels the old animation before starting the new one, and short-circuits
+on `prefers-reduced-motion: reduce`; that is the protocol, and the browser detail is the DOM test's.
+
+Four states (`visual`: `closed`, `opening`, `open`, `closing`) and no `direction` variable: `opening`/`closing` are
+the direction, and a reversal is a `visual` change that keeps `progress`, so a second variable would only be a name
+the invariants have to keep in sync. `progress` is the box's position on a five-point grid (0 closed .. 4 open);
+`logical` is the exposed intent (`aria-expanded`), `committed` the state the machine has settled at, `optimistic`
+the split between them, `visible` the content's `hidden`. `handle` is the live effect's id (0 none), `last` the id
+of the effect the live one replaced, `live` the count of running effects (0 or 1), `pending` the debounce window.
+An intent that arrives at rest starts an effect; one that arrives during the opposite effect reverses it, keeps
+`progress`, and replaces the handle (`last` keeps the cancelled id, which is what a stale `finish` carries and what
+`CancelledFinishIgnored` and `StaleCarriesCancelled` reject).
+
+Fifteen invariants, each with the bug it rules out: `LastIntentWins` (a settle that landed anywhere but the intent),
+`OneEffectPerState` (two live effects), `OptimisticIsSplit` (an `optimistic` flag that disagrees with the exposed
+and committed states), `OptimisticLeadsOnIntent` (an intent whose effect moved the committed state before settling),
+`OptimisticReconcilesOnSettle` (a settle that left the split open), `OptimisticRollsBackOnCancel` (a superseded
+intent that committed anyway; the aborted intent leaves nothing in `committed` and nothing in `aria-expanded`, only
+the box's own continuity), `NoStaleOptimistic` (a box animating towards an intent the machine no longer holds, or an
+optimistic exposure with no live effect to reconcile it), `CancelledFinishIgnored` (a late completion that moved the
+box or the handle), `StaleCarriesCancelled` (a stale completion carrying the live id), `ReversalKeepsPosition` (a
+reversal that restarted from an end, did not flip the direction, or kept the cancelled handle), `NoStuckState` (an
+in-flight box with no handle that can finish it — the test walks from every reachable state to closed or open
+rather than trusting the local witness), `DebounceKeepsLast` (a commit that took an earlier intent of the burst, or
+left the window open), `CoalescingHolds` (a pointer intent that moved the box), `ReducedMotionSkips` (a transition
+entered with the preference on) and `Atomic` (a `hidden` that disagrees with the box — a close cut from the
+accessibility tree while it is still painted). A Quint step is already one flush, so the model cannot carry the
+"two frames" half of `reactive.qnt`'s `Atomic`: `Atomic` here states what a step can state (the host's attributes
+are this state's own values) and the header says so; the real two-write hazard is the reactive spec's for its
+owners, and the browser replay's.
+
+**The optimistic half is the runtime package's.** `@cssints/reactive`'s Solid bridge exposes `createOptimistic` /
+`createOptimisticStore`: a value that leads a committed one and reconciles when the async work settles. An animated
+disclosure is that store with an animation as the work, and `animation.qnt` is its oracle — the intent leads, the
+settle commits, a superseded intent rolls back and a cancelled completion cannot commit. `REQUEST VS COMMIT` is
+that split with the effect's settle as the commit, not a host's acceptance: the machine starts after an intent is
+accepted, and a host that rejects one is the reactive spec's business.
+
+Checked: `bun run generate:all` regenerated 47 specs byte-identically apart from the new model and scaffolding (46
+stood before this branch; AGENTS.md's count still says 45, already one behind, and that line is the coordinator's
+to bump with the parallel `packages/machine` work). Quint's own typechecker accepts all 47; `test/patterns/animation.test.ts`
+carries the invariant list, teeth for every invariant on hand-built bad states (including the multi-invariant ones,
+stated as such), the reachable-state checks for the race, the reversal, the stale handle, the window and the split,
+the liveness walk over the explored states, and the 15 scenarios through `specDriver`; `packages/apg-specs` 973
+tests. **What it cannot see**: real timing (durations, easing, frame pacing — `tick` is one arbitrary frame),
+WAAPI's own completion ordering (`finished` after `cancel()`, a rejected promise, `transitionend` per property),
+the CSS (`grid-template-rows`, `opacity`, `translate`, `@starting-style`), the hover plumbing and `display: none`.
+**Left**: no runtime — `packages/headless` has no disclosure yet, so there is no implementation for a differential
+walk, and the machine is the oracle a `createDisclosure` would be written against; the `createOptimisticStore` call
+site in the Solid bridge; and the port to `native/headless`.
+
+## @cssints/machine: a state machine for UI protocols (cssints-im52, 2026-11-01)
+
+The repository hit the same class of bug often enough to name it: a signal holds a value, not a protocol. An animated
+disclosure has a `closing` and an `opening` in one frame, a cancelled animation that still fires its completion, an
+interrupted close that must reverse from where the box is, a burst of `pointerenter`/`pointerleave` that must not
+produce five effects, and a debounce that must not swallow the last intent. Each is an invariant over state and time,
+and `@cssints/headless` already answers questions of that shape with Quint (`packages/apg-specs`), but a Quint model
+proves the protocol, it does not run it. `@cssints/machine` is the runtime half: `defineMachine` (states, events,
+guards, `assign`, effects, `after`), `createMachine` (an instance on an injected clock), and a harness that drives a
+fake clock and asserts the five properties in plain node. Events are a union derived from the states, a payload map
+types the payloads, the context is inferred from `initial`; a send no state accepts is a type error.
+
+No dependency is deliberate. The package is the small piece a host composes with its own animation and DOM, and
+`effect` would be a runtime to learn (and a megabyte) for data the host already has; `solid-js` is only an optional peer
+of `./solid`. So its files are plain code in the root `vite.config.ts` `plainCode` list, with a reason, as with
+`packages/reactive` and the browser runtimes. Effects are data with handles: `{ type: "animate", to: "closed" }` is
+issued as `{ id, spec, state }`, a `finish` carries the id back, and leaving the state (or a superseding transition)
+cancels the handle, so a stale completion is dropped rather than applied to the new state. The harness records
+`{ at, event, from, to, effect, context, cancelled }`, delivers queued events in any order (`race` at one instant,
+`interleave` round-robin), and `flushEffects()` returns only the handles still live, so "two events in one frame produce
+at most one effect per state" is a count.
+
+The Solid bridge taught two things that changed the design. Its first version used `createSignal`-style selector
+subscriptions and a hand-rolled pending flag; Solid 2 rc.13 has the vocabulary (`createStore`, `createProjection`,
+`createOptimistic`/`createOptimisticStore`) and mixing the two would be a second store layer that does not share the
+transaction. The bridge now writes one `createStore` per transition, mutating only the fields that changed, so a reader
+of `state.phase` does not re-run when `progress` changes; `createProjection` gives a derived view with the same
+granularity. The optimistic view is the derived `createOptimisticStore` form: its authoritative value follows the
+committed store, and an intent written inside a Solid `action` is an override that reverts at settle — a superseded
+intent rolls back to the committed state instead of sticking, and a settle reconciles by construction. One thing it
+cannot do: a `createProjection` reads the committed frame, not an optimistic override (Solid holds the frame whole for a
+projection), so the visual phase is read off `optimistic` directly and a projection is the logical view. The bridge
+writes in one store update per transition, the same atomicity `packages/reactive` gets from its one flush and the
+`Atomic` invariant of `specs/patterns/reactive.qnt` states for CSS writes; `test/store.mjs` collects every pair the
+store delivered and asserts each is a snapshot the machine actually held. That test runs in plain node with
+`--conditions=browser --conditions=development`: Solid's store layer needs no DOM, but the node default is the SSR build,
+where an action's optimistic override has no client transaction to live in. No browser test was needed.
+
+The cost: one package in the fixed group (29), no type-instantiation budget of its own (it is dependency-free and
+small), and one release by hand for its first version, like the other new packages. Left: parallel and history states
+are not modelled (two regions are two machines), an `invoke` that owns a promise is the host's job, there is no Quint
+spec for this runtime (the harness's five assertions are the oracle), and no host adapter for the Web Animations API —
+the README's example is the shape, not a package.
+
+## The animated disclosure in the kit: the machine's first real user (apps/ui, 2026-11-01)
+
+`@cssints/machine` and `specs/patterns/animation.qnt` landed without a host: the spec's own entry said "no runtime —
+`packages/headless` has no disclosure yet, so there is no implementation for a differential walk". The kit's
+`disclosure-animated` is that host, and the first component whose conformance test is a protocol rather than an APG
+pattern. It is a new item; the static `disclosure` is untouched.
+
+The machine is in the component: `closed`/`opening`/`open`/`closing`, a context of `logical` (the intent), `committed`
+(what a settle landed on) and `reduced`, and six events — `open`, `close`, `toggle`, `hover { open }`, `finish { id }`,
+`motion { reduced }`. The transitions are per state, so a same-direction intent has no transition at all and the running
+effect is not cancelled and restarted; the opposite one reverses. Leaving a state cancels its handle, which is what
+makes the animation's late completion stale: `Animation.finished` rejects after `cancel()`, and the rejection handler
+sends `{ type: "finish", id }` with the dead handle's id, which the machine drops before it looks at a transition. On
+`onCancel` the host reads the running animation's `currentTime` first (a cancelled animation's `currentTime` is null)
+and starts the replacement at that fraction, with a duration proportional to the distance left, so the spec's `progress`
+— `floor(fraction * 4)` — keeps its position through the reversal and moves one grid point per quarter of a full
+duration. A burst of `pointerenter`/`pointerleave` is the machine's own debounce (`hover`, 120 ms), and a click cancels
+the window before its toggle. `prefers-reduced-motion` is the machine's initial context (a reduced page never enters a
+transition, even for its first intent) and a `motion` event settles an effect that was already running. The animation is
+linear on purpose: the five-point grid is a sample of real `currentTime`, and easing would make it a non-linear read of
+time; `fill: "none"` with the panel's `data-state` styling as the end of either direction, so a finished animation can
+be cancelled in the same task that writes the next state without a frame at the wrong end.
+
+The Solid bridge exposed one thing the package's own README does not say: `store.send` with an `intent` starts an
+optimistic action, and the open action holds the committed store until the machine settles. The panel's `data-state` is
+the machine's transient phase (`opening`, not the intent's `open`), so the kit reads the **committed** store and passes
+no `intent`; the spec's optimistic split is the context's `logical` against `committed`, which is exact without the
+action, and `createMachineStore(machine)` still gives one `setState` per transition with only the changed fields written
+— a reader of `phase` does not re-run when `logical` changes, and `hidden` is a `createProjection` over `phase`. A write
+from a Solid `createEffect` (the `open` and `reducedMotion` props) is refused as `REACTIVE_WRITE_IN_OWNED_SCOPE`, so
+those two deliver on the next microtask; event handlers and animation completions write directly.
+
+The test is the spec. The 15 ported scenarios replay through the DOM, and a differential walk over `{ reducedMotion:
+false }` and `{ reducedMotion: true }` compares every probed attribute and the value against the generated model after
+every step; both configs are driveable, so there is no `Unsupported` entry. The driver's `click` is synthetic
+(`element.click()`), not a pointer, and the fixture is parked outside the viewport: a real pointer left by another test
+file's `user-event` fires an unasked `pointerenter` at a newly mounted trigger, and the fresh fixture then opens from a
+pending hover the scenario never asked for (alone the file passed; the whole suite failed, which is what found it).
+`debounce`
+advances the fixture's fake clock, `finish` calls `finish()` on the real `Animation`, and `frame` advances a paused
+animation exactly one grid point using the `from:to` the host writes into `animation.id`; the fixture's `onAnimate`
+pauses every animation, so the walk is deterministic without faking `currentTime`. A zero-distance reversal (the box is
+already at the end it heads to) has no point to advance, and the model's saturated tick says the same. The kit also turns
+the motion preference back off, which the spec latches on; one DOM-only test checks that the next animation starts at
+the settled end rather than at the fraction where the settle interrupted the box (it failed on the first version of the
+carry, which is why it is there).
+
+Cost: no type budget and no dist; the item adds `@cssints/machine` to the kit's dependency list and to `apps/ui`, and
+regenerating the registry reformatted 25 other items because the template's browser config gained the iframe timeout on
+master. Left: durations and easing are the component's constants, not tokens; there is no nested disclosure; the hover
+intent is implemented but the demo does not advertise hover-to-open; the machine definition has no `after` fallback (a
+completion is the settle, and a host that never gets one can cancel); focus and `inert` on the closed panel are not
+managed; and the kit reads the committed store, leaving the bridge's optimistic lead to a host that wants to expose the
+intent even earlier than `aria-expanded` already does.

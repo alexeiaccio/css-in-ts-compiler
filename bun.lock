@@ -140,6 +140,7 @@
       "name": "cssints-ui",
       "dependencies": {
         "@cssints/headless": "workspace:*",
+        "@cssints/machine": "workspace:*",
         "@cssints/mise-en-mode": "workspace:*",
         "@cssints/reset": "workspace:*",
         "@solidjs/web": "2.0.0-rc.13",
@@ -395,6 +396,20 @@
       "peerDependencies": {
         "cssints": "^0.26.0",
       },
+    },
+    "packages/machine": {
+      "name": "@cssints/machine",
+      "version": "0.25.0",
+      "devDependencies": {
+        "solid-js": "2.0.0-rc.13",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "solid-js": "^2.0.0-rc.13",
+      },
+      "optionalPeers": [
+        "solid-js",
+      ],
     },
     "packages/masonry": {
       "name": "@cssints/masonry",
@@ -802,6 +817,8 @@
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
 
     "@cssints/layout": ["@cssints/layout@workspace:packages/layout"],
+
+    "@cssints/machine": ["@cssints/machine@workspace:packages/machine"],
 
     "@cssints/masonry": ["@cssints/masonry@workspace:packages/masonry"],
 

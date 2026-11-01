@@ -27,6 +27,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - button-group: Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's. `add @cssints/button-group`
 - switch: APG switch on @cssints/headless, on the neutral theme, with its scenario test. `add @cssints/switch`
 - disclosure: APG disclosure on @cssints/headless, on the neutral theme, with its scenario test. `add @cssints/disclosure`
+- disclosure-animated: A disclosure whose panel animates on `@cssints/machine`: an interrupted animation reverses from where the box is, a cancelled one's completion is ignored, a hover burst is debounced, and reduced motion skips the transition. `add @cssints/disclosure-animated`
 - button: APG button and toggle button: `tone` and `size` variants, and `render` for a link. `add @cssints/button`
 - checkbox: APG checkbox, including the mixed tri-state, on @cssints/headless. `add @cssints/checkbox`
 - radio: APG radio group with roving tabindex or aria-activedescendant focus. `add @cssints/radio`

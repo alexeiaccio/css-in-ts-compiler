@@ -617,6 +617,63 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "disclosure-animated",
+      "type": "registry:ui",
+      "title": "Animated disclosure",
+      "description": "A disclosure whose panel animates on `@cssints/machine`: an interrupted animation reverses from where the box is, a cancelled one's completion is ignored, a hover burst is debounced, and reduced motion skips the transition",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/machine"],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "disclosure-animated.tsx",
+          "target": "src/components/ui/disclosure-animated.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "disclosure-animated.fixture.tsx",
+          "target": "src/components/ui/disclosure-animated.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "disclosure-animated-driver.ts",
+          "target": "src/components/ui/disclosure-animated-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "disclosure-animated.browser.test.tsx",
+          "target": "src/components/ui/disclosure-animated.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "button",
       "type": "registry:ui",
       "title": "Button",

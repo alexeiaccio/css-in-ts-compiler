@@ -15,6 +15,7 @@
       "@cssints/gradient-2d",
       "@cssints/icons",
       "@cssints/layout",
+      "@cssints/machine",
       "@cssints/masonry",
       "@cssints/mcp",
       "@cssints/mise-en-mode",

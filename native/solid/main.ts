@@ -10,6 +10,9 @@
 //                                        sky Tab reaches the tablist then the feed, the arrows switch feeds, `n` opens
 //                                        the notifications (Escape back), and on the feed Up/Down, PageUp/PageDown and
 //                                        Home/End scroll it; notify is that page started on its notifications screen
+//   bun solid/main.ts figure --spec solid/specs/bars.json   the Figure page: one glyph-kit spec (solid/specs/*.json),
+//                                        declared as Clay boxes and texts — a bar's fill is a box whose width is its value.
+//                                        An invalid spec fails with its sentences before a frame (exit 1)
 //   bun solid/main.ts --png out.png      one frame headless, written to out.png
 //   bun solid/main.ts --expect ref.png   the same frame compared with ref.png pixel for pixel; exit 1 and write
 //                                        ref.png.actual.png on a difference
@@ -63,6 +66,8 @@
 //                                        that leaves unmounts on the frame it closes (also REDUCED_MOTION=1)
 //   THEME=light                          the light theme
 import "./plugin.ts";
+import { readFileSync } from "node:fs";
+
 import type { Motion } from "./src/entry.ts";
 import type { Drag } from "./app/Widgets.tsx";
 
@@ -76,9 +81,10 @@ if (
   page !== "sky" &&
   page !== "notify" &&
   page !== "sheet" &&
+  page !== "figure" &&
   page !== "dev"
 ) {
-  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky, notify, sheet or dev`);
+  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky, notify, sheet, figure or dev`);
   process.exit(1);
 }
 const arg = (name: string, n = 1) => {
@@ -135,6 +141,23 @@ const density = Number(arg("--density")?.[0] ?? 1);
 // reduced motion is the platform's ask, not a page's: one flag, read here and by the window alike
 const reducedMotion = process.argv.includes("--reduced-motion") || process.env.REDUCED_MOTION === "1";
 let theme = process.env.THEME === "light" ? "light" : undefined;
+// the Figure page's spec: a file, read and checked before the window or a frame — an invalid one exits with every
+// sentence it has, so a figure is never drawn from data the kit's own rules refuse
+const specPath = arg("--spec")?.[0];
+let figureSpec: import("./src/figure/spec.ts").Spec | undefined;
+if (page === "figure") {
+  if (!specPath) {
+    console.error("figure: --spec <file.json> (solid/specs/bars.json, funnel.json, compare.json, pipeline.json)");
+    process.exit(2);
+  }
+  const { parse } = await import("./src/figure/spec.ts");
+  const { spec, problems } = parse(readFileSync(specPath, "utf8"));
+  if (!spec) {
+    for (const problem of problems) console.error(`figure: ${problem}`);
+    process.exit(1);
+  }
+  figureSpec = spec;
+}
 
 const { ui } = await import("./src/ffi.ts");
 const { createFrame, createDrawer } = await import("./src/frame.ts");
@@ -150,10 +173,19 @@ const { List, size: listSize } = await import("./app/List.tsx");
 const { Sky, size: skySize, synthetic } = await import("./app/Sky.tsx");
 const { loadSky } = await import("./src/skyload.ts");
 const { Sheet, size: sheetSize } = await import("./app/Sheet.tsx");
+const { Figure, size: figureSize } = await import("./app/Figure.tsx");
 const { Dev, size: devSize, stats: devStats } = await import("./app/Dev.tsx");
 
-// the sheet is the one page wider than 360: the oracle draws a page, not a window group
-const W = page === "sheet" ? sheetSize.width : page === "dev" ? devSize.width : 360;
+// the sheet is the one page wider than 360: the oracle draws a page, not a window group. The Figure page's size is its
+// layout's, from the spec: cells times the cell, and the padding
+const W =
+  page === "sheet"
+    ? sheetSize.width
+    : page === "figure"
+      ? figureSize(figureSpec!).width
+      : page === "dev"
+        ? devSize.width
+        : 360;
 const H =
   page === "widgets"
     ? size.height
@@ -167,9 +199,11 @@ const H =
             ? skySize.height
             : page === "sheet"
               ? sheetSize.height
-              : page === "dev"
-                ? devSize.height
-                : 360;
+              : page === "figure"
+                ? figureSize(figureSpec!).height
+                : page === "dev"
+                  ? devSize.height
+                  : 360;
 
 if (
   (gpu ? ui.initGpu(W, H) : ui.init(W, H)) ||
@@ -211,9 +245,11 @@ const dispose = render(
                 })
             : page === "sheet"
               ? () => Sheet()
-              : page === "dev"
-                ? () => Dev({ input, motion, drag: dragState, theme: () => theme, tune: arg("--tune")?.[0] })
-                : () => Sensors({ motion }),
+              : page === "figure"
+                ? () => Figure({ spec: figureSpec!, motion })
+                : page === "dev"
+                  ? () => Dev({ input, motion, drag: dragState, theme: () => theme, tune: arg("--tune")?.[0] })
+                  : () => Sensors({ motion }),
   root,
 );
 // the dev page's panel reads the frames' phases (solid/app/Dev.tsx): its own array, so what the panel prints is what the

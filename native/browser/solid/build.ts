@@ -72,8 +72,10 @@ const result = await Bun.build({
     join(here, "dialog.ts"),
     join(here, "dev.ts"),
     join(here, "sheet.ts"),
+    join(here, "figure.ts"),
   ],
   target: "browser",
+  root: here, // [dir] names nothing, so the bundles are flat in outdir whatever directory the build started in
   // the bundler's `development` condition would pick @solidjs/signals/dist/dev.js, whose diagnostics refuse the writes a
   // page makes in its component body (Sky.tsx's cells); the desktop runs the production signals, so the page is the same
   conditions: ["browser"],

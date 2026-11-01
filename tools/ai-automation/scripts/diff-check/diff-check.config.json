@@ -35,6 +35,7 @@
     "packages/icons/src/",
     "packages/mise-en-mode/src/",
     "packages/headless/",
+    "packages/machine/",
     "packages/apg-specs/"
   ],
   "changedFileRules": [

@@ -11,7 +11,7 @@
 // load solid-js's server build, where signals never update (the reason `main.ts` is shaped the same way).
 import "./plugin.ts";
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import type { Drag } from "./app/Widgets.tsx";
 import type { A11yNode } from "./a11y.ts";
@@ -19,6 +19,8 @@ import type { Motion } from "./src/entry.ts";
 import type { Input } from "./src/input.ts";
 import type { El } from "./src/renderer.ts";
 import type { PageDump } from "./src/dump.ts";
+import { sizeOf } from "./src/figure/kinds.ts";
+import { parse, type Spec } from "./src/figure/spec.ts";
 
 /** One page of the table: its layout's size, the frames it runs to rest, and the keys it takes before them. */
 interface Page {
@@ -30,6 +32,8 @@ interface Page {
   keys?: readonly string[];
   /** Frames at rest after the keys, for a page whose motion has to be caught on the way (`main.ts --settle`). */
   settle?: number;
+  /** The Figure page's spec, a file in solid/specs: its layout is the page's size. */
+  figure?: string;
 }
 
 /** The pages a golden covers, with the frames at rest their stored pixel frame is taken at: `--warm 30` is 30 rest
@@ -45,22 +49,33 @@ export const PAGES = {
   dialog: { width: 360, height: 480, warm: 1, keys: ["Tab", "Tab", "Enter"], settle: 2 },
   // the text sheet is static: one frame is the page (and the oracle's rows at their own boxes)
   sheet: { width: 440, height: 564, warm: 1 },
+  // the figure's size is its layout's (the spec's cells times the cell), so these are placeholders `capture` replaces
+  figure: { width: 0, height: 0, warm: 1, figure: "bars.json" },
 } satisfies Record<string, Page>;
 
 export type PageName = keyof typeof PAGES;
 
 /** The pages, imported once per process (the plugin compiles them on the way in). */
 const apps: Record<string, unknown> = {};
-const EXPORT = { sensors: "Sensors", widgets: "Widgets", list: "List", sky: "Sky", dialog: "Dialog", sheet: "Sheet" } as const;
+const EXPORT = {
+  sensors: "Sensors",
+  widgets: "Widgets",
+  list: "List",
+  sky: "Sky",
+  dialog: "Dialog",
+  sheet: "Sheet",
+  figure: "Figure",
+} as const;
 async function app(name: PageName): Promise<unknown> {
   if (!apps.Sensors) {
-    const [sensors, widgets, list, sky, dialog, sheet] = await Promise.all([
+    const [sensors, widgets, list, sky, dialog, sheet, figure] = await Promise.all([
       import("./app/Sensors.tsx"),
       import("./app/Widgets.tsx"),
       import("./app/List.tsx"),
       import("./app/Sky.tsx"),
       import("./app/Dialog.tsx"),
       import("./app/Sheet.tsx"),
+      import("./app/Figure.tsx"),
     ]);
     apps.Sensors = sensors.Sensors;
     apps.Widgets = widgets.Widgets;
@@ -68,6 +83,7 @@ async function app(name: PageName): Promise<unknown> {
     apps.Sky = sky.Sky;
     apps.Dialog = dialog.Dialog;
     apps.Sheet = sheet.Sheet;
+    apps.Figure = figure.Figure;
   }
   return apps[EXPORT[name]];
 }
@@ -83,6 +99,15 @@ export interface Rest {
   readonly warm?: number;
   readonly keys?: readonly string[];
   readonly settle?: number;
+  /** The Figure page's spec, when it is not the stored one (`PAGES.figure` reads bars.json). */
+  readonly spec?: Spec;
+}
+
+/** A spec file of solid/specs, checked: a figure whose spec is refused cannot be captured. */
+function readSpec(name: string): Spec {
+  const { spec, problems } = parse(readFileSync(new URL(`./specs/${name}`, import.meta.url), "utf8"));
+  if (!spec) throw new Error(`solid/specs/${name}: ${problems.join(" ")}`);
+  return spec;
 }
 
 /**
@@ -97,7 +122,13 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
   const { createInput } = await import("./src/input.ts");
   const { El, render } = await import("./src/renderer.ts");
   const { dumpPage } = await import("./src/dump.ts");
-  const { width, height, warm, keys, settle = 0 } = { ...PAGES[name], ...rest };
+  const stored = PAGES[name] as Page;
+  const { warm, keys, settle = 0 } = { ...stored, ...rest };
+  // the Figure page's size is its spec's layout, not a number in the table: the placeholder is replaced here so a caller
+  // may pass another spec (figure.test.ts does, for all four)
+  const spec = rest.spec ?? (stored.figure ? readSpec(stored.figure) : undefined);
+  const size = spec ? sizeOf(spec) : { width: stored.width, height: stored.height };
+  const { width, height } = size;
   if (!started) {
     const font = new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname;
     if (ui.init(width, height) || ui.font(font) < 0) throw new Error("ui_init or ui_font failed (thorvg? build/solid)");
@@ -107,7 +138,7 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
   // the same `View` hooks `main.ts` wires: the pages' tick (their entry and their tracks), the pointer and the wheel
   const hooks: Hooks = { input: createInput(), motion: {}, drag: {} };
   const root = new El("root");
-  const page = pageOf(component, hooks);
+  const page = pageOf(component, hooks, spec);
   const dispose = render(page, root);
   const frame = createFrame(root, {
     get theme() {
@@ -132,10 +163,10 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
 }
 
 /** A page as a tree, as `main.ts` builds it: every page takes a subset of these props and ignores the rest, and the
- *  Sky's theme is a getter because the page reads it each frame. */
-function pageOf(module: unknown, hooks: Hooks): () => El {
+ *  Sky's theme is a getter because the page reads it each frame. The Figure page takes `spec`. */
+function pageOf(module: unknown, hooks: Hooks, spec?: Spec): () => El {
   const component = module as (props: object) => El;
-  return () => component({ input: hooks.input, motion: hooks.motion, drag: hooks.drag, theme: () => hooks.theme });
+  return () => component({ input: hooks.input, motion: hooks.motion, drag: hooks.drag, theme: () => hooks.theme, spec });
 }
 
 /** The nodes of a snapshot, the document not counted (the count a page's line prints). */

@@ -11,6 +11,10 @@ packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/tw
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 tools/ai-automation    the oxlint plugin `automation/*` (Effect, core and anti-slop rules), the added-lines diff-check, vendor/anti-slop (MIT, UPSTREAM.md); its tests run through `vp test run`
 packages/icons         @cssints/icons: icons() on cssints/plugin scope() (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
+packages/machine        @cssints/machine: a dependency-free state machine for UI protocols (defineMachine, createMachine,
+                       effects as data with handles, debounce with flush/cancel, an injectable clock, a selector store, a
+                       harness with a fake clock) and ./solid, the store bridge (createMachineStore: createStore,
+                       createProjection, createOptimisticStore); test/: machine.mjs, store.mjs, types/
 packages/mise-en-mode  @cssints/mise-en-mode: look(tokens, expression, source, overrides, { scope? }), a scope() call member (no types file), looks as themes in the layers app < author < viewer on data-mode scopes; test/: fixtures, mise-en-mode.mjs, types/
 packages/fluid, layout, fonts, reset, gradient, gradient-2d, motion, squircle, reveal, stuck, balance, color-names, masonry, placeholder, ramp, rybitten, skeleton, reactive
                        plugin packages on scope() (docs/API.md "Plugin packages"), each laid out as mise-en-mode: src/index.ts, README.md, test/<name>.mjs, fixtures/, types/
@@ -47,13 +51,13 @@ apps/docs              the documentation site (Solid 2, cssints, Shiki + twoslas
                        test/search.mjs, settings.mjs (the store and the pre-paint script), contrast.mjs (every palette, hue and mode), build.mjs (sheet, chunks, a hover on every block docs.mjs checks, a result frame and a Code tab on every example page), browser.mjs (every page in Chrome, screenshots in test/out/), frames.mjs (every example frame in light and dark, two palettes: no text below 3:1 against its background, the canvas follows the site, the Code tab), playground.mjs (the browser engine against the Node plugin on the README example, the fixtures of cssints and of the plugin packages, projects of several files and every example project, a page for each docs page or its reason not to, then the page in Chrome: csssky by default, the reset, the picker, the link of a docs page, Monaco, a hover, a type error, files), tui.mjs (/tui in Chrome: the feed from the fixtures read back from ghostty-web's buffer, j/k and the focused border, tab, enter/esc, hover and pointer, a palette and a mode of the settings recolouring the cells)
 native/                cssints-native, a private bun workspace (`cssints` is `workspace:*`): cssints/clay styles on Clay in C, with generator/ (styles.ts -> styles.h, a Solid page to C), desktop/ (SDL3, ThorVG), solid/ (Solid 2 renderer over Clay, bun:ffi), terminal/ (cells on termbox2, replaces @cssints/tui), browser/ (wasm on a canvas, zig), focus/, headless/ (APG widgets against the Quint specs of packages/apg-specs, resolved through its `bun` export condition to src/; a workspace with `typecheck:native` and `test:native` scripts), vendor/ (clay.h, fonts), examples/, test.sh; README.md, docs/map.md (the plan)
 README.md              what cssints is, setup, a short example
-CHANGELOG.md           one entry per release of the 28 packages (a page of the docs site, /changelog): written by scripts/changelog.mjs from the changesets at `bun run version-packages`; breaking changes get a migration by hand
-RELEASING.md           how the 28 packages reach npm: the decisions, the first release by hand, trusted publishing, the CI flow; scripts/ (stage.mjs, release.mjs, pack.mjs), .changeset/, .github/workflows/release.yml
+CHANGELOG.md           one entry per release of the 29 packages (a page of the docs site, /changelog): written by scripts/changelog.mjs from the changesets at `bun run version-packages`; breaking changes get a migration by hand
+RELEASING.md           how the 29 packages reach npm: the decisions, the first release by hand, trusted publishing, the CI flow; scripts/ (stage.mjs, release.mjs, pack.mjs), .changeset/, .github/workflows/release.yml
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
 ```
 
-No package's `dist/` is in git: `bun run build:packages` builds the 28 packages, and everything that bundles one
+No package's `dist/` is in git: `bun run build:packages` builds the 29 packages, and everything that bundles one
 (the docs deploy, `bun run release:check`, an app's production build) runs it first; development resolves the sources
 through the `development` export condition.
 
@@ -87,7 +91,7 @@ cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surfa
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 bun run changeset                             # add a changeset (the packages, patch or minor, one line); commit it with the change. The 28 packages are a fixed group: one version. RELEASING.md
-bun run release:check                         # build the 28 packages, stage them into .publish and check the manifests and files; publishes nothing. `node scripts/release.mjs --install` also installs all tarballs into a fresh project
+bun run release:check                         # build the 29 packages, stage them into .publish and check the manifests and files; publishes nothing. `node scripts/release.mjs --install` also installs all tarballs into a fresh project
 cd apps/demo && bun run build                # vp build
 cd apps/lab && bun run dev                   # the lab: a rail of src/stories/*.stories.tsx and the picked one, with the devtools overlay
 cd apps/lab && bun run test:browser          # the lab's shell, the story ids and the overlay in Chrome on its dev server (not in `test`)

@@ -49,6 +49,8 @@ interface Starter {
   readonly tested?: boolean;
   /** Files of the kit a copy of this component needs beside it (relative to `src/registry`). */
   readonly with?: ReadonlyArray<string>;
+  /** Packages this item needs beyond the kit's own (`@cssints/headless`, `@cssints/mise-en-mode`, `cssints`). */
+  readonly deps?: ReadonlyArray<string>;
   /** Other items this one is composed with (their files arrive here too, `with`). */
   readonly also?: ReadonlyArray<string>;
 }
@@ -172,6 +174,16 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Disclosure",
     description:
       "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
+  },
+  {
+    tested: true,
+    // the animation spec (specs/patterns/animation.qnt) walks the machine; this item is its DOM implementation
+    name: "disclosure-animated",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    deps: ["@cssints/machine"],
+    title: "Animated disclosure",
+    description:
+      "A disclosure whose panel animates on `@cssints/machine`: an interrupted animation reverses from where the box is, a cancelled one's completion is ignored, a hover burst is debounced, and reduced motion skips the transition",
   },
   {
     name: "button",
@@ -516,7 +528,7 @@ const starter = (item: Starter) => ({
   type: "registry:ui",
   title: item.title,
   description: item.description,
-  dependencies: ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+  dependencies: ["@cssints/headless", "@cssints/mise-en-mode", "cssints", ...(item.deps ?? [])],
   // Only what the copied test imports. The runner itself (Vite+ with its browser provider, and
   // the Solid 2 plugin) is the project's: its versions have to agree with the project's
   // `solid-js` rc, which this item cannot know. A scenario walk needs the spec packages; a plain

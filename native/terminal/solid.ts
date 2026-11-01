@@ -35,6 +35,10 @@
 //                                          the loading, end and error states
 //   bun terminal/solid.ts --page notify    the same page started on its notifications screen (the C host's
 //                                          `--page notifications`, the page `n` leaves the feed on)
+//   bun terminal/solid.ts --page figure --spec solid/specs/bars.json
+//                                          the Figure page: the desktop's spec as cells. The layout already speaks
+//                                          cells (solid/src/figure/kinds.ts), so the host re-cuts nothing; a spec that
+//                                          `check` refuses fails with its sentences before a frame, as solid/main.ts does
 //   bun terminal/solid.ts --dump [file]    one frame headless, as plain text (cells_dump: '.' is a fill); no file: stdout
 //   bun terminal/solid.ts --ansi [file]    the same frame as ANSI truecolour (SGR runs merged)
 //   --keys Tab,ArrowDown                   headless: the frame, then each key with a frame after it, as main.c. A `-`
@@ -81,6 +85,7 @@
 // cells, and termbox2 reports no motion, so a hover is only where the last press was.
 import "../solid/plugin.ts";
 import { plugin } from "bun";
+import { readFileSync } from "node:fs";
 import type { ClayShape } from "cssints/clay";
 
 import type { Motion } from "../solid/src/entry.ts";
@@ -126,9 +131,27 @@ const settle = Number(arg("--settle")?.[0] ?? 0);
 // compare the displacement the page moved its rows by
 const showOffset = arg("--offset") !== undefined;
 // the page: the desktop's names and the terminal's aliases (`main.c`: sensors, sky, notify — the last the Sky page on its
-// notifications screen, as `main.c`'s `--page notifications` starts its stack there)
+// notifications screen, as `main.c`'s `--page notifications` starts its stack there), and the Figure page with a spec
 const page = arg("--page")?.[0] ?? "sensors";
 const skyPage = page === "sky" || page === "notify";
+const figurePage = page === "figure";
+const sensorsPage = page === "sensors";
+// the figure's spec: read and checked before the grid, so an invalid one exits with its sentences and no cells
+const specPath = arg("--spec")?.[0];
+let figureSpec: import("../solid/src/figure/spec.ts").Spec | undefined;
+if (figurePage) {
+  if (!specPath) {
+    console.error("terminal: --page figure needs --spec <file.json> (solid/specs/bars.json)");
+    process.exit(2);
+  }
+  const { parse } = await import("../solid/src/figure/spec.ts");
+  const { spec, problems } = parse(readFileSync(specPath, "utf8"));
+  if (!spec) {
+    for (const problem of problems) console.error(`figure: ${problem}`);
+    process.exit(1);
+  }
+  figureSpec = spec;
+}
 // a deliberately broken host for the test's mutation lines: `scroll` drops the page's clip offset, `tab` never flushes
 // the frame a tab switch lands on, so the tree (the bar's active tab) stays as it was
 const mutate = arg("--mutate")?.[0] ?? "";
@@ -151,14 +174,15 @@ const { flush } = await import("solid-js");
 const { createInput } = await import("../solid/src/input.ts");
 const { El, Txt, render } = await import("../solid/src/renderer.ts");
 const { FIELDS, hasStates, packText, variant } = await import("../solid/src/pack.ts");
-if (page !== "sensors" && !skyPage) {
-  console.error(`terminal: unknown page "${page}" (sensors, sky, notify)`);
+if (page !== "sensors" && page !== "figure" && !skyPage) {
+  console.error(`terminal: unknown page "${page}" (sensors, figure, sky, notify)`);
   process.exit(2);
 }
-const { Sensors } = skyPage ? { Sensors: undefined } : await import("../solid/app/Sensors.tsx");
-const { Sky, s: skyStyles } =
-  skyPage ? await import("../solid/app/Sky.tsx") : { Sky: undefined, s: undefined };
-const styles = skyPage ? undefined : await import("../examples/sensors/styles.ts");
+const { Sensors } = sensorsPage ? await import("../solid/app/Sensors.tsx") : { Sensors: undefined };
+const { Figure } = figurePage ? await import("../solid/app/Figure.tsx") : { Figure: undefined };
+const { Sky, s: skyStyles, screenOf } =
+  skyPage ? await import("../solid/app/Sky.tsx") : { Sky: undefined, s: undefined, screenOf: undefined };
+const styles = sensorsPage ? await import("../examples/sensors/styles.ts") : undefined;
 
 // The terminal's AppView: apps/csssky/src/api.ts's calls, answered from its recorded fixtures (./data.ts: the feed's
 // pages and a post's thread; nothing for `listNotifications`, which no fixtures recorded). Imported for the sky page only,
@@ -304,7 +328,9 @@ const dispose = skyPage
         }),
       root,
     )
-  : render(() => Sensors!({ motion }), root);
+  : figurePage
+    ? render(() => Figure!({ spec: figureSpec!, motion }), root)
+    : render(() => Sensors!({ motion }), root);
 
 // The page's one control, as terminal/page.c's focus is two ints: 0 the Units pill, 1 nothing (the C page's list, which
 // Sensors.tsx does not have). Tab moves off the pill and there is nowhere to go, so the ring goes with it.
@@ -509,8 +535,8 @@ function frame(px: number, py: number, down: boolean, dt = 1 / 60): number {
     pressed = new Set(hit);
     for (const el of hit) el.props.onPress?.(px, py);
     // a press gives the pill the focus when it lands on it, and takes it away anywhere else (the Sensors page's own
-    // focus; the Sky page's is the headless manager's, through `input`)
-    if (!skyPage) focus = hit.some((el) => el.props.id === "Units") ? 0 : 1;
+    // focus; the Sky page's is the headless manager's, through `input`; the Figure page has no control)
+    if (sensorsPage) focus = hit.some((el) => el.props.id === "Units") ? 0 : 1;
   } else if (!down && wasDown) {
     const hit = clickable.filter((el) => pressed.has(el) && over(el));
     pressed.clear();
@@ -524,7 +550,7 @@ function frame(px: number, py: number, down: boolean, dt = 1 / 60): number {
   motion.tick?.(dt);
   // a mutation for terminal/test.sh: the page's offset never reaches Clay's clip, so the feed stays at row 0
   if (mutate === "scroll" && skyPage) term.scrollTo("sky-feed", 0);
-  if (!skyPage) cellStyle();
+  if (sensorsPage) cellStyle();
   // ... and the tab switch that never re-renders: the tree is not flushed after the key, so the bar's active tab stays
   if (!frozen) flush();
   clickable = [];
@@ -534,6 +560,7 @@ function frame(px: number, py: number, down: boolean, dt = 1 / 60): number {
 
 /** One key as termbox2's name (the desktop's, with Space as the parts take it). */
 function press(name: string) {
+  if (figurePage) return;
   if (skyPage) {
     // the page's own keys: the wheel is one notch of its machine (as `--keys WheelDown`), `j`/`k` are the C page's
     // Down/Up, and everything else is the name the page's parts and focus manager already take

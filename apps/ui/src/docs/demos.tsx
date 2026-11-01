@@ -95,6 +95,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../registry/tooltip/too
 import { Checkbox } from "../registry/checkbox/checkbox.tsx";
 import { CheckboxGroup } from "../registry/checkbox-group/checkbox-group.tsx";
 import { Disclosure } from "../registry/disclosure/disclosure.tsx";
+import {
+  DisclosureAnimated,
+  DisclosureAnimatedContent,
+  DisclosureAnimatedTrigger,
+} from "../registry/disclosure-animated/disclosure-animated.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
 import { Slider } from "../registry/slider/slider.tsx";
 import { SliderMultithumb } from "../registry/slider-multithumb/slider-multithumb.tsx";
@@ -127,6 +132,34 @@ const DisclosureDemo = (): JSX.Element => (
     A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`.
   </Disclosure>
 );
+
+const DisclosureAnimatedDemo = (): JSX.Element => {
+  const [reduced, setReduced] = createSignal(
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  return (
+    <div class="demo-column">
+      <div class="demo-row">
+        <Switch value={reduced()} onValueChange={setReduced}>
+          Reduce motion
+        </Switch>
+      </div>
+      <DisclosureAnimated reducedMotion={reduced()}>
+        <DisclosureAnimatedTrigger>Shipping, returns and refunds</DisclosureAnimatedTrigger>
+        <DisclosureAnimatedContent>
+          <p class="demo-text">
+            A machine opens this panel: a click, a controlled host's write and a debounced hover are
+            the same intent. A click while it moves reverses the animation from where the box is,
+            and the cancelled animation's late completion moves nothing.
+          </p>
+        </DisclosureAnimatedContent>
+      </DisclosureAnimated>
+      <p class="demo-text">
+        With reduced motion on, an intent lands in one step and no animation is started.
+      </p>
+    </div>
+  );
+};
 
 const ButtonDemo = (): JSX.Element => {
   const [pressed, setPressed] = createSignal(true);
@@ -1218,6 +1251,7 @@ export const demos: Readonly<Record<string, () => JSX.Element>> = {
   carousel: CarouselDemo,
   toolbar: ToolbarDemo,
   disclosure: DisclosureDemo,
+  "disclosure-animated": DisclosureAnimatedDemo,
   button: ButtonDemo,
   "button-group": ButtonGroupDemo,
   checkbox: CheckboxDemo,

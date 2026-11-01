@@ -16,3 +16,8 @@ for the sequences across the two owners.
 `dropzone` is the next: a file drop target's drag depth and last delivery,
 `specs/patterns/dropzone.qnt` (no APG pattern exists, but the state does change
 over time).
+
+`animation` is the last: an animated disclosure's intent, effect handle, box
+position and the optimistic split between what the host exposes and what the
+machine has committed, `specs/patterns/animation.qnt` (no APG pattern and no CSS
+specification — the source of truth is the protocol itself).
