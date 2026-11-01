@@ -1465,6 +1465,35 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    Also later: style reload without a restart (our "reload on save"); and a static first frame shown
    by the window before Bun and the first layout are ready.
 
+8. **Checked, not adopted: a monoline stroke font (Hershey, 2026-11-01).** The question came from Gorton (the engraving
+   face at the top of the Manhattan list) and Hershey's straight-line vector fonts, which are the same idea with the
+   data published: could text be strokes, and kilobytes, instead of a 168 KB TTF or a megabyte of atlas? The spike is
+   `spike/hershey/` (`sh spike/hershey/run.sh` prints every number below): the sheet's rows at 14, 40 and 96 px on one
+   software canvas and one page, drawn three ways — Hershey's `futural` strokes as one ThorVG shape a run (round cap and
+   join, a stroke 7.8% of the size, its cap matched to Roboto's), the same strokes at Roboto's advances (the shapes
+   without the metrics), and Roboto through the renderer's own text path — measured by `solid/src/textmetric.ts`
+   against CoreText's oracle, plus 300 runs a frame and an A8 atlas of the same 96 glyphs.
+   **Bytes: strokes win outright, and only there.** The `.jhf` parses to a **3,122-byte** table for 96 glyphs at every
+   size (8,486 with the Cyrillic set), against `Roboto-Regular.ttf`'s **168,260** and an A8 atlas built with ThorVG:
+   **12,544 + 77,056 + 373,504 = 463,104** bytes for 14, 40 and 96 px, plus a 4,032-byte index. 54x smaller than the TTF
+   and 148x smaller than three atlas sizes.
+   **Milliseconds: strokes lose everywhere.** 300 runs a frame, median of 5 runs (200/100/20 frames a run), page clear +
+   scene build + draw + sync, on an 8-core M-series Mac at load average 2.9 (a run at 4.7 was within 3%): **16.6 vs
+   8.8 ms** at 14 px (1.90x), **48.4 vs 39.2** at 40 (1.24x), **110.4 vs 84.8** at 96 (1.30x). The path and its fill
+   alone are 0.6-1.6 ms of that, so it is ThorVG's stroke tessellation and not our path building — a cache of the glyph
+   geometry would not pay, the stroke's own expansion is the cost.
+   **How it reads: another typeface, not a cheap copy of this one.** Ink weight is 1.04-1.07 of CoreText's (a dial, not
+   a fact), but the lines are 10-40% wider — Hershey's advances are not Roboto's — and even at Roboto's advances the
+   SSIM is **0.64** at 14 px, **0.53** at 40, **0.36** at 96, against the 0.95 the suite holds the renderer to and
+   0.708 for a one-pixel move. At 96 px it is visibly another face (a larger cap, a smaller x-height: 0.667 of the cap
+   against Roboto's 0.743); at 12-14 px it is closer, and still not the platform's text. The TTF control in the same
+   harness reproduces the oracle (weight 1.00-1.01, SSIM 0.97-0.99), so the harness is the renderer's own.
+   **The rule.** Strokes are for a display-only size: a board whose ROM is the binding constraint, whose text is signage
+   at one size, in a face drawn for that size. Not for UI text at 11-17 px, where the platform's raster is both faster
+   (1.9x at 14 px) and the face the app is designed in. A hybrid is not worth it today: the 14 px atlas is 12.5 KB and
+   the TTF serves every size, so the bytes saved only matter at 96 px — where the strokes cost 1.3x the raster and read
+   0.36 SSIM. Checked, not adopted.
+
 Not taking: Rust, Taffy, wgpu, Parley, AccessKit, their per-OS shells, split-process development, subsecond
 hot-patching, and animation owned by a render thread (we have no render thread). Their verdict on GPU-evaluated
 springs — keep it opt-in, CPU stays the default — is independent confirmation of our own WebGPU probe.
