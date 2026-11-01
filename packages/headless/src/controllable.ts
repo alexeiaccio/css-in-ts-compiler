@@ -29,10 +29,25 @@ export const createControllable = <T>(
     return options.value() ?? local;
   };
   const same = options.same ?? Object.is;
+  // The intent the host has not answered yet. A controlled host's `value` still
+  // reads its old state until the flush, so `current()` cannot tell a repeated
+  // request from a new one: a backdrop click and an Escape in the same frame
+  // would ask the host for the state it was already asked for. One frame is one
+  // intent; after the flush the host's value decides again.
+  let inFlight: T | undefined;
   const request = (next: T): void => {
     if (same(next, current())) {
       return;
     }
+    if (inFlight !== undefined && same(inFlight, next)) {
+      return;
+    }
+    inFlight = next;
+    queueMicrotask(() => {
+      if (inFlight !== undefined && same(inFlight, next)) {
+        inFlight = undefined;
+      }
+    });
     if (options.value() === undefined) {
       local = next;
       setVersion((count) => count + 1);

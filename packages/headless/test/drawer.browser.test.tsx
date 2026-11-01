@@ -323,6 +323,28 @@ describe("createDrawer", () => {
     expect(part("content").hidden).toBe(false);
   });
 
+  it("asks once for two dismissals in the same frame", async () => {
+    // A controlled host's value is applied on the flush, so a second Escape (or a backdrop click) in the same tick would
+    // read the old state and ask again: two dismissals, one intent.
+    const { part, changes, setHost } = mount({ controlled: true });
+    part("trigger").click();
+    await tick();
+    setHost(true);
+    await tick();
+    expect(changes).toEqual([true]);
+
+    key(part("first"), "Escape");
+    key(part("first"), "Escape");
+    part("backdrop").click();
+    await tick();
+    expect(changes).toEqual([true, false]);
+
+    // the host answered no: a later dismissal is a new intent, and it is asked again
+    key(part("first"), "Escape");
+    await tick();
+    expect(changes).toEqual([true, false, false]);
+  });
+
   it("releases the lock when the owner is disposed open", async () => {
     const root = document.documentElement;
     const { part } = mount();
