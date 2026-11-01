@@ -2,9 +2,10 @@ import { createDrawer, type Drawer as DrawerController, type DrawerSide } from "
 import { Portal } from "@solidjs/web";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createContext, createUniqueId, merge, omit, useContext } from "solid-js";
+import { createContext, createUniqueId, merge, omit, Show, untrack, useContext } from "solid-js";
 
 import { Button } from "../button/button.tsx";
+import { createOverlayMotion, type OverlayMotion } from "../overlay-motion.ts";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
 
@@ -21,6 +22,15 @@ export interface DrawerProps {
   readonly modal?: boolean;
   /** A backdrop click or an outside press closes it (default `true`). */
   readonly dismissable?: boolean;
+  /**
+   * The panel enters and leaves on `@cssints/machine` (`closed`, `entering`, `open`, `leaving`) and the layer is
+   * unmounted only at `closed`. The primitive still owns the open state and the whole APG contract; read once.
+   */
+  readonly animated?: boolean;
+  /** The motion preference; left out, `prefers-reduced-motion: reduce` is read once. */
+  readonly reducedMotion?: boolean;
+  /** Every animation the layer starts, once, after `animate()`: a test pauses it and steps the timeline. */
+  readonly onAnimate?: (animation: Animation) => void;
   readonly id?: string;
   /** The element the layer is portalled into (default `document.body`), for a host with its own overlay root. */
   readonly mount?: Element;
@@ -69,6 +79,8 @@ const DrawerContext = createContext<{
   /** The title's id: the primitive puts it on `aria-labelledby`, so the panel is named by its heading. */
   readonly titleId: string;
   readonly mount: () => Element | undefined;
+  readonly animated: boolean;
+  readonly motion: OverlayMotion;
 }>();
 
 // One positioned layer for the backdrop and the panel, out of the page's flow and over everything but a toast. It never takes
@@ -171,6 +183,46 @@ const panelMotion = css.cn(
   ),
 );
 
+// The animated panel: the box's own ends and no CSS transition (the machine's animation covers the way between them).
+// `closed` is the edge the panel is anchored to and is out of the page's hit area; `leaving` paints at the same end while
+// the animation slides it there, and takes no clicks (a dismissed panel swallows none); `entering` and `open` are in
+// place, which is the panel's own base.
+const panelPhases = css.cn(
+  css.attr("data-state", "left-closed")(
+    css.visibility("hidden"),
+    css.transform("translateX(-100%)"),
+  ),
+  css.attr("data-state", "right-closed")(
+    css.visibility("hidden"),
+    css.transform("translateX(100%)"),
+  ),
+  css.attr("data-state", "bottom-closed")(
+    css.visibility("hidden"),
+    css.transform("translateY(100%)"),
+  ),
+  css.attr("data-state", "left-leaving")(
+    css.transform("translateX(-100%)"),
+    css.pointerEvents("none"),
+  ),
+  css.attr("data-state", "right-leaving")(
+    css.transform("translateX(100%)"),
+    css.pointerEvents("none"),
+  ),
+  css.attr("data-state", "bottom-leaving")(
+    css.transform("translateY(100%)"),
+    css.pointerEvents("none"),
+  ),
+);
+
+// The panel's track: `fraction` 0 is off the panel's own edge, 1 is in place, and a partial one is where a cancelled
+// slide stopped.
+const drawerFrame = (side: DrawerSide, fraction: number): Keyframe => {
+  const out = (1 - fraction) * 100;
+  const x = side === "left" ? -out : side === "right" ? out : 0;
+  const y = side === "bottom" ? out : 0;
+  return { transform: `translate(${x}%, ${y}%)` };
+};
+
 const headerClass = css.cn(
   css.display("flex"),
   css.alignItems("start"),
@@ -260,7 +312,23 @@ export const Drawer = (props: DrawerProps): JSX.Element => {
     },
   });
   const mount = () => props.mount;
-  return <DrawerContext value={{ drawer, titleId, mount }}>{props.children}</DrawerContext>;
+  const animated = untrack(() => props.animated) === true;
+  const motion = createOverlayMotion({
+    animated,
+    open: () => drawer.open(),
+    frame: (fraction) => drawerFrame(drawer.side(), fraction),
+    get reducedMotion() {
+      return props.reducedMotion;
+    },
+    get onAnimate() {
+      return props.onAnimate;
+    },
+  });
+  return (
+    <DrawerContext value={{ drawer, titleId, mount, animated, motion }}>
+      {props.children}
+    </DrawerContext>
+  );
 };
 
 /** The button that opens the drawer: `Button` unless `render` says otherwise. It is the element with `aria-haspopup`. */
@@ -281,33 +349,51 @@ export const DrawerTrigger = (props: DrawerTriggerProps): JSX.Element => {
 /**
  * The panel and the wash under it, portalled into `document.body` (or `mount`) so an ancestor's `transform`, `filter`,
  * `contain` or `overflow` can neither clip the layer nor become the containing block of its `position: fixed`.
+ *
+ * With `animated` the layer is mounted only while the box is not `closed` (or while the primitive is open and the box has
+ * yet to follow it), so the slide out is played before the panel leaves the page; `data-state` is the box's phase, and
+ * the panel keeps no `hidden` attribute (a panel cut from the page mid-slide is the frame `Atomic` rules out). Without
+ * it, the panel stays mounted and the CSS transition follows the primitive's open state.
  */
 export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
-  const { drawer, mount } = useContext(DrawerContext);
+  const { drawer, mount, animated, motion } = useContext(DrawerContext);
   const merged = merge(omit(props, "render", "class", "children"), drawer.contentProps, () => ({
     "data-part": "drawer",
     get "data-side"() {
       return drawer.side();
     },
     get "data-state"() {
-      return `${drawer.side()}-${drawer.open() ? "open" : "closed"}`;
+      return `${drawer.side()}-${animated ? motion.phase() : drawer.open() ? "open" : "closed"}`;
     },
-    // the panel hides with `visibility` (panelMotion), not with `hidden`: the primitive's attribute would cut the slide and
-    // make the panel unfocusable at the moment the focus moves into it
+    // the panel hides with `visibility` (panelMotion, panelPhases), not with `hidden`: the primitive's attribute would cut
+    // the slide, make the panel unfocusable at the moment the focus moves into it, and take a leaving panel off the page
     hidden: false,
     get class() {
-      return css.cn(panel({ side: drawer.side() }), panelMotion, props.class);
+      return css.cn(
+        panel({ side: drawer.side() }),
+        animated ? panelPhases : panelMotion,
+        props.class,
+      );
     },
   }));
   return (
-    <Portal mount={mount()}>
-      <div data-part="drawer-layer" class={layerClass}>
-        <div {...drawer.backdropProps} data-part="drawer-backdrop" class={backdropClass} />
-        {renderPart(props, merged, undefined, (part) => (
-          <div {...part}>{props.children}</div>
-        ))}
-      </div>
-    </Portal>
+    <Show when={!animated || motion.visible()}>
+      <Portal mount={mount()}>
+        <div data-part="drawer-layer" class={layerClass}>
+          <div {...drawer.backdropProps} data-part="drawer-backdrop" class={backdropClass} />
+          {renderPart(props, merged, undefined, (part) => (
+            <div
+              {...part}
+              ref={(element: HTMLDivElement) => {
+                motion.attach(element);
+              }}
+            >
+              {props.children}
+            </div>
+          ))}
+        </div>
+      </Portal>
+    </Show>
   );
 };
 
