@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/patterns/reactive.qnt
-// Spec hash (sha256): 2fa4d417f54e7245af5df512bd22488a8a348b802acb756a002691d062bac472
+// Spec hash (sha256): b50a9fbbc64d167821ceb87fe181ca2dd0d1a355185b4336ca7026a1aba844c1
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
