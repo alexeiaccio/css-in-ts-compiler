@@ -2,8 +2,11 @@
 // wordmark and the three feeds as a headless tablist (roving focus, arrows switch the feed), the feed is one Clay clip
 // element that the wheel scrolls (as on the List page), and each post is a card with a drawn avatar, a name and handle, a
 // wrapped body, the media line and the counts. The data is the app's recorded fixtures, verbatim (the same six posts
-// terminal/sky.c carries): times are the app's ago() with the clock pinned to the fixtures' capture moment, so a frame
-// reads the same today as it did when recorded, and News has no fixture, so its feed is the app's empty case.
+// terminal/sky.c carries) — or, when the host hands the page a `pages` source, the app's own feed at a cursor (the
+// terminal's recordings, terminal/data.ts): its first page on mount, the next at the feed's end, appended under the
+// reader, the loading/end/error states on the status line. Times are the app's ago() with the clock pinned to the
+// fixtures' capture moment, so a frame reads the same today as it did when recorded; News has no fixture, so its feed
+// is the app's empty case.
 //
 // The palette is terminal/sky_styles.ts's (apps/csssky-tui's styles.ts, read only): the sky palette in the dark theme here,
 // the light one under THEME=light.
@@ -38,7 +41,7 @@ import { skySettings } from "./Settings.tsx";
 // rows and the terminal's cells do, and the words (goneText, moreLabel), the sort (topFirst) and the depth cut
 // (MAX_DEPTH) are the app's, imported rather than copied. Its PostView becomes this page's card in `postOf` below.
 import { topFirst } from "../../../apps/csssky/src/api.ts";
-import type { threadScreen, ThreadNode } from "../../../apps/csssky/src/api.ts";
+import type { Page, threadScreen, ThreadNode } from "../../../apps/csssky/src/api.ts";
 import { embedParts } from "../../../apps/csssky/src/post/model.ts";
 import { mediaText, rowsOf } from "../../../apps/csssky-tui/src/model.ts";
 import { createProfile } from "./Profile.tsx";
@@ -356,6 +359,17 @@ export interface Post {
 interface Feed {
   readonly name: string;
   readonly posts: readonly Post[];
+}
+
+/** A feed's pages when the host hands the page a source: the cards the pages added, the cursor the next one is asked
+ *  with (`undefined` at the end), and what the status line says while they arrive. */
+interface FeedPages {
+  readonly posts: readonly Post[];
+  readonly cursor: string | undefined;
+  readonly asked: boolean; // a page has been asked: an empty first page is a feed that has nothing, not one still to come
+  readonly loading: boolean; // a page is on its way
+  readonly end: boolean; // the source answered, and nothing more is coming
+  readonly failed: boolean; // the source rejected
 }
 
 // apps/csssky/test/fixtures/home-discover-1.json (feed[20], [23], [9])
@@ -681,6 +695,14 @@ export function Sky(props: {
    *  style's variant is picked by — is the page's too (`main.ts` sets its own `theme` variable, which its frame reads). */
   setTheme?: (theme: string | undefined) => void;
   posts?: readonly Post[];
+  /** The feed's pages: the app's `homeScreen` (a `Page` of FeedViewPosts at a cursor), which the terminal host answers
+   *  from the recorded fixtures (`terminal/data.ts`). A source makes the feed the data's: its first page when the feed
+   *  opens, the next when the scroll reaches the feed's end, the cards appended below the reader — never a jump, so a
+   *  page arrives under the row the reader is on. What has no card of its own (a page on its way, the feed's end, a
+   *  rejection) is the page's **status line**, because a row inside the clip would be out of view exactly at the end:
+   *  the page's content end is the window's, not the declared rows'. With no source the page is the fixtures below, as
+   *  the desktop and the browser have it. */
+  pages?: (feed: string, cursor?: string) => Promise<Page<AppBskyFeedDefs.FeedViewPost>>;
   /** The thread's data: a post's at-uri in, its screen out (the AppView's call by default; a test's promise, or the
    *  recorded fixture of an offline frame, replaces it). */
   load?: Loader;
@@ -714,6 +736,8 @@ export function Sky(props: {
   const heights: (number | undefined)[] = [];
   // the feed's real content this frame, paddings included: what the clamp and the thumb read
   let content = 0;
+  // the rows the last frame counted: a page that arrived changed it, and the offset does not follow that growth
+  let counted = 0;
 
   // the feed scrolls itself: Clay's own wheel scrolling is off for this page, and the scroll (src/vscroll.ts) takes the
   // wheel, the pointer's drag and the band on a track of its own. The offset is positive-down (Clay's is negative-down).
@@ -790,13 +814,69 @@ export function Sky(props: {
   const active = () => tabs.selected();
   const feed = () => feeds[active()]!;
 
+  // ---- the feed's pages, when the host hands the page a source ------------------------------------------------
+  // One state a feed: the cards its pages have added, the cursor the next page is asked with, and the states the status
+  // line says. All three start empty; the first page is asked on the first frame (the tick below), so a source's feed is
+  // never the fixture's, and the empty feed a source answers stays empty.
+  const [loaded, setLoaded] = createSignal<readonly FeedPages[]>(
+    FEEDS.map(() => ({ posts: [], cursor: undefined, asked: false, loading: false, end: false, failed: false })),
+  );
+  const stateOf = (i: number) => loaded()[i]!;
+  /** The feed is waiting for the source: a page in flight, or a feed whose first page has not been asked yet (the mount
+   *  frame). The status line and the empty feed both read it, so neither flashes "Nothing here yet" before the ask. */
+  const awaiting = (i: number) => {
+    const s = stateOf(i);
+    return s.loading || (!s.asked && !s.failed);
+  };
+  /** The rows the active feed draws this frame: the source's pages, or the fixtures' (no source: the desktop, the browser). */
+  const feedPosts = (): readonly Post[] => (props.pages ? stateOf(active()).posts : feed().posts);
+  /**
+   * Asks the source for the feed's next page — its first when none has been asked — and appends the cards the feed has
+   * not got yet: a card is its post's at-uri, so a page the source repeated adds nothing (and a source that repeated a
+   * page would otherwise be asked again every frame at the end). No cursor, or nothing new, is the feed's end; a
+   * rejection is its error state, which the status line says and the page does not retry (the host's `--offline`).
+   */
+  const askPage = (i: number): void => {
+    const ask = props.pages;
+    const s = stateOf(i);
+    if (!ask || s.loading || s.end || s.failed) return;
+    // the broken run for terminal/test.sh (`--mutate end`): the feed never asks past its first page
+    if (props.mutate === "end" && s.asked) return;
+    const settle = (next: Partial<FeedPages>) =>
+      setLoaded((all) => all.map((x, j) => (j === i ? { ...x, ...next } : x)));
+    settle({ loading: true, asked: true });
+    let answer: Promise<Page<AppBskyFeedDefs.FeedViewPost>>;
+    try {
+      answer = ask(FEEDS[i]!.name, s.cursor);
+    } catch {
+      // a source that throws instead of rejecting (a broken fixture, `--offline`) is the error state too, as the
+      // thread's own `ask` takes a loader that throws
+      return settle({ loading: false, failed: true });
+    }
+    answer.then(
+      (page) => {
+        const have = new Set(stateOf(i).posts.map((p) => p.uri));
+        const fresh = page.items.map((item) => postOf(item.post)).filter((p) => !have.has(p.uri));
+        settle({
+          posts: [...stateOf(i).posts, ...fresh],
+          cursor: page.cursor,
+          loading: false,
+          // a page with nothing new (a source that repeated one) is the end: the feed would ask it again every frame
+          end: fresh.length === 0 || page.cursor === undefined,
+          failed: false,
+        });
+      },
+      () => settle({ loading: false, failed: true }),
+    );
+  };
+
   // the first screenful's cards, so their mount entry starts on the first frame; and the column the tree shows before the
   // first tick: with no height measured yet the window declares the whole feed (the measuring pass)
-  for (let i = 0; i < Math.min(ENTRY_CARDS, feed().posts.length); i++) cardFx(i);
+  for (let i = 0; i < Math.min(ENTRY_CARDS, feedPosts().length); i++) cardFx(i);
   const firstWin = measuredWindow({
     offset: 0,
     view: 0,
-    count: feed().posts.length,
+    count: feedPosts().length,
     heights: [],
     gap: GAP,
     overscan: OVERSCAN,
@@ -1149,11 +1229,19 @@ export function Sky(props: {
     // new one while the pass is running (its frames read the mean's estimate), and a key's End must still land on the
     // real end.
     const oldMax = Math.max(0, content - viewH());
-    const atEnd = oldMax > 0 && Math.abs(feedScroll.target() - oldMax) <= 0.5;
-    const count = feed().posts.length;
+    const count = feedPosts().length;
+    // a track at the old end follows the content's new one while the feed is measuring itself; a page that arrived is not
+    // a re-measure (the count says which), and its cards go under the reader, not under the offset's old end. The
+    // measuring frames' content is the mean's estimate, so it can be short *or* long: the end moves either way.
+    const atEnd = oldMax > 0 && count === counted && Math.abs(feedScroll.target() - oldMax) <= 0.5;
     content = measuredWindow({ offset: 0, view: 0, count, heights, gap: GAP, overscan: OVERSCAN }).content + 2 * PAD;
     const max = Math.max(0, content - viewH());
-    if (atEnd && max > oldMax + 0.5) feedScroll.seek(max);
+    if (atEnd && Math.abs(max - oldMax) > 0.5) feedScroll.seek(max);
+    // the feed's end is the source's next page, as the app's sentinel at the list's end is: the scroll's own target is
+    // where a key's End, the wheel's clamp and a drag's release arrive. A feed that fits the viewport asks its first page
+    // on the frame it opens, which is the app's sentinel in view too.
+    if (feedScroll.target() >= Math.max(0, max - 0.5)) askPage(sel);
+    counted = count;
     feedScroll.tick(dt);
     const w = measuredWindow({
       // the feed's padding is above the first card and below the last: the children's visible range starts that much
@@ -1299,14 +1387,26 @@ export function Sky(props: {
   });
   if (props.screen === "notifications") notify.open();
 
+  /** The status line's words: the selected card's place, else the feed's — and, with a source, what its pages are doing.
+   *  A row inside the clip cannot say it (the page's content end is the window's, so an end row would be out of view
+   *  exactly at the end); the line below the feed is always on screen, and it is the page's own, not the host's. */
   const statusOf = () => {
     const f = feed();
+    const rows = feedPosts();
     const sel = selected();
     if (sel && sel.feed === active()) {
-      const p = f.posts[sel.i]!;
-      return `${p.name || p.handle} — ${sel.i + 1} of ${f.posts.length}`;
+      const p = rows[sel.i]!;
+      return `${p.name || p.handle} — ${sel.i + 1} of ${rows.length}`;
     }
-    return `${f.name} — ${f.posts.length} ${f.posts.length === 1 ? "post" : "posts"}`;
+    const posts = `${rows.length} ${rows.length === 1 ? "post" : "posts"}`;
+    if (props.pages) {
+      const s = stateOf(active());
+      if (s.failed) return `${f.name} — could not load the feed`;
+      if (awaiting(active()))
+        return s.asked && rows.length > 0 ? `${f.name} — ${posts} — loading more…` : `${f.name} — loading…`;
+      if (s.end) return `${f.name} — ${posts} — that's all for now`;
+    }
+    return `${f.name} — ${posts}`;
   };
 
   return (
@@ -1364,7 +1464,7 @@ export function Sky(props: {
             if (cell === TOP) return <box id={ABOVE} style={s.spacer} />;
             if (cell === BOTTOM) return <box id={BELOW} style={s.spacer} />;
             const i = Number(cell.slice(cell.indexOf(":") + 1));
-            const post = (): Post => feed().posts[i] ?? BLANK;
+            const post = (): Post => feedPosts()[i] ?? BLANK;
             return (
               <box
                 id={`sky-card-${i}`}
@@ -1377,7 +1477,7 @@ export function Sky(props: {
                   // record's own at-uri (no uri, no thread)
                   if (feedScroll.dragged) return;
                   if (ui.over(Buffer.from(`sky-author-${i}`))) return;
-                  const p = feed().posts[i];
+                  const p = feedPosts()[i];
                   if (!p?.uri) return;
                   setSelected({ feed: active(), i });
                   openThread(p.uri, null);
@@ -1407,7 +1507,9 @@ export function Sky(props: {
             );
           }}
         </For>
-        {feed().posts.length === 0 ? (
+        {/* the app's empty feed: the page's own words, and not while a source is still answering or has failed (then the
+            status line has the state, and "Nothing here yet" would be a lie) */}
+        {feedPosts().length === 0 && !(props.pages && (awaiting(active()) || stateOf(active()).failed)) ? (
           <box id="sky-empty" style={s.empty}>
             <text style={s.emptyText}>Nothing here yet</text>
           </box>

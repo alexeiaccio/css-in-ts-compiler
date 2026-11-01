@@ -710,10 +710,13 @@ Each step ends in a check that fails when it breaks.
    wrap, or its leave, fails both a unit test and a page test; swapping a verb's text fails the stored notifications
    dump, and taking the rows out of the Tab order fails its focus-order check (`Tab: the ring is 0 rows, want 4`).
    Left: **termbox2 is in** (`terminal/vendor/termbox2.h`, upstream master, MIT, sha256 `e019abb9`; `terminal/tb2.c`: truecolour or 256, keys and the mouse, checked through a pty in
-   `test.sh`), and so are clicks; what a click cannot do is hover — termbox2 reports no motion events. Still left:
-   `csssky-tui`'s own profile screen (the one here is the web app's), notifications in the tui itself (the terminal
-   shows the web app's, hand-carried), its data fetching and paging (every frame is one recorded fixture; the Solid
-   feed's thread is the page's screen in its loading state, with a loader that never settles), unread counts and their
+   `test.sh`), and so are clicks; what a click cannot do is hover — termbox2 reports no motion events. **Done: the feed's
+   data and paging** (`terminal/data.ts` is the app's own calls over apps/csssky's recordings: `homeScreen` with page 1,
+   page 2 at the cursor and an empty page for the end, `threadScreen` for the page's `load`; the loading, end and error
+   states are the page's status line, `--offline` and a repeated cursor are its mutations, and `terminal/test.sh` counts
+   the rows against `home-discover-1`). Still left: `csssky-tui`'s own profile screen (the one here is the web app's),
+   notifications in the tui itself (the terminal shows the web app's, hand-carried), the real network the recordings
+   stand in for (a terminal with a login and an AppView of its own), unread counts and their
    badge, the notifications' grouping and the actor's avatar, images (a media line; counted and reported, not drawn),
    quote boxes, a body that wraps in the C pages (one clipped row; the Solid feed wraps at words, a long word still is
    not broken), the system theme in the C pages (they keep the static dark/light ones; the Solid Sky page reads the
@@ -786,9 +789,12 @@ Each step ends in a check that fails when it breaks.
    the app's recordings mapped through the page's own `postOf` (the actors, posts and times of `home-discover-1`,
    `home-science-1` and `thread.json`) under the app's five verbs, and a row's Enter opens its post's thread through the
    same `load` the feed uses; the C `terminal/notify.c` stays the behaviour's oracle: **1564 cells, 0 of 26 rows, the
-   worst row 5 (80/80)** at rest and **1910, row 2** after `Tab,Tab`, 0.19 ms a frame (64 commands, 2080 cells). What
+   worst row 5 (80/80)** at rest and **1910, row 2** after `Tab,Tab`, 0.16 ms a frame (70 commands, 2080 cells). The
+   feed's data is the app's calls over the recordings now (`terminal/data.ts`: the first page, the next at the end and an
+   empty page for the end, the page's loading/end/error on its status line, and the thread), so what
    remains is the notifications' **data** — fetching `listNotifications` (no fixture was recorded, which is why the rows
-   are carried), paging, the unread counts and their badge, the app's `All`/`Mentions` grouping and its "and 3 others
+   are carried; the feed's paging is in, theirs is not), the real network behind both, the unread counts and their badge,
+   the app's `All`/`Mentions` grouping and its "and 3 others
    liked your post" — and the cell's limits as above: images (the thread's avatars, the actors' in the notifications),
    the thread's wrapped bodies against the C's one-row clip, the app's banner picture (the page has none; the C draws a
    band), the Sensors page's system theme (its tokens have no roles; the Sky page's are read from the

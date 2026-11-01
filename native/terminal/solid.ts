@@ -29,7 +29,10 @@
 //                                          its loading state, then the app's recorded thread: `load`'s promise below),
 //                                          one on the card's author row opens the profile; `n` opens the notifications (the
 //                                          C shell's key) and Enter on a row opens its post's thread; Escape (or Enter on
-//                                          Back) returns; `t` flips the theme
+//                                          Back) returns; `t` flips the theme. The feed's data is the app's: `data.ts`'s
+//                                          `homeScreen` over apps/csssky's recordings — its first page on the page's first
+//                                          frame, the next when the scroll reaches the feed's end, the status line saying
+//                                          the loading, end and error states
 //   bun terminal/solid.ts --page notify    the same page started on its notifications screen (the C host's
 //                                          `--page notifications`, the page `n` leaves the feed on)
 //   bun terminal/solid.ts --page figure --spec solid/specs/bars.json
@@ -54,7 +57,12 @@
 //                                          drops a card's own onClick (a click and Enter leave the feed), `back` never
 //                                          hands the page an Escape (a thread or a profile stays up). `verbs` and `rows`
 //                                          are the page's own (`Sky.tsx`'s prop, `Notify.tsx`): one wrong verb on every
-//                                          notification row, and the rows no Tab stops
+//                                          notification row, and the rows no Tab stops. `end` is the page's too: it never
+//                                          asks the next feed page (the feed stays at page 1)
+//   --mutate cursor                        the source's (data.ts): every page is page 1, so the second request repeats
+//                                          the first and the page's dedupe finds nothing new
+//   --offline                              nothing is answered: the feed's and a thread's error states (data.ts fails
+//                                          both calls)
 //   --mutate channel|wait                  the system theme's two: `channel` reads the answer's foreground as its
 //                                          background (a light terminal's frame goes dark), `wait` asks with no timeout (a
 //                                          terminal that never answers hangs the host)
@@ -68,7 +76,8 @@
 // `n` the notifications, and Escape is the page's back — a notification's row opens its post's thread, and that thread's
 // back returns to the list. The thread's `load` is handed a promise the host settles with the app's **recorded** thread
 // (apps/csssky/test/fixtures/thread.json through the page's own screenOf, which is the fixture solid/thread.test.ts hands
-// it) a frame after the screen mounts: the loading row gets that frame, the app's rows the next. The profile needs
+// it — `data.ts`'s `threadScreen`) a frame after the screen mounts: the loading row gets that frame, the app's rows the
+// next. The profile needs
 // nothing: `profile.ts` reads the app's recordings itself, on the first opening.
 
 // What it cannot do is a cell's limit, and said in native/README.md: text is one row (a body wraps at words, but a line
@@ -175,6 +184,17 @@ const { Sky, s: skyStyles, screenOf } =
   skyPage ? await import("../solid/app/Sky.tsx") : { Sky: undefined, s: undefined, screenOf: undefined };
 const styles = sensorsPage ? await import("../examples/sensors/styles.ts") : undefined;
 
+// The terminal's AppView: apps/csssky/src/api.ts's calls, answered from its recorded fixtures (./data.ts: the feed's
+// pages and a post's thread; nothing for `listNotifications`, which no fixtures recorded). Imported for the sky page only,
+// so the Sensors host never reads the recordings. `--offline` makes both calls fail (the page's error state) and
+// `--mutate cursor` answers page 1 for page 2 (the page's dedupe's own test); both are terminal/test.sh's.
+const data = skyPage
+  ? (await import("./data.ts")).source({
+      offline: arg("--offline") !== undefined,
+      cursor: mutate === "cursor",
+    })
+  : undefined;
+
 // The system theme is the tui package's, not a second copy of it: `scan` takes OSC 10/11/4 and `CSI ? 997 n` out of a
 // chunk of input, and `createSystemTheme` (./theme.ts) solves the page's tokens from what it found. The package prints a
 // deprecation notice from its index (this host is the target it points at); the flag is that file's own, set first.
@@ -250,19 +270,11 @@ const idBytes = (id: string) => ids.get(id) ?? (ids.set(id, encoder.encode(id)),
 
 /**
  * The thread's data: the app's recorded `getPostThread` answer (apps/csssky/test/fixtures/thread.json), shaped by the
- * page's own `screenOf` — the same fixture `solid/thread.test.ts` hands the page. Read once, for the sky page only, and
- * never fetched: the terminal has no AppView, and thread.c shows the same fixture for whichever post opened it (the
- * app's test stub's answer).
+ * page's own `screenOf` — through `terminal/data.ts`, the terminal's AppView over the app's recordings (the same object
+ * the feed's pages come from). It is read for the sky page only, and never fetched: the terminal has no AppView, and
+ * thread.c shows the same fixture for whichever post opened it (the app's test stub's answer).
  */
-const SCREEN = skyPage
-  ? screenOf!(
-      (
-        JSON.parse(
-          readFileSync(new URL("../../apps/csssky/test/fixtures/thread.json", import.meta.url), "utf8"),
-        ) as { thread: unknown }
-      ).thread,
-    )
-  : undefined;
+const SCREEN = (uri: string) => data!.threadScreen(uri);
 /** The resolver of the `load` promise the page is waiting on, if any: `land` is the host settling it, and `landWait`
  *  the frames still to draw before it does (the screen's node mounts one frame after the ask, so the loading row's own
  *  frame is the one after that). */
@@ -294,12 +306,19 @@ const dispose = skyPage
           // the settings screen's theme radio writes the host's own `theme`: its frame's getter is what every style's
           // variant is picked by, so the palette follows the page
           setTheme: (next) => (theme = next),
+          // the feed's data: the app's `homeScreen` over the recordings — its first page on the page's first frame, the
+          // next when the feed's scroll reaches its end (apps/csssky's own sentinel), the status line's loading, end and
+          // error states between them
+          pages: (feed, cursor) => data!.homeScreen(feed, cursor),
           // the thread's loader: no network in the host. A card's click opens the loading state, and the host settles
-          // this promise a frame after the screen mounts with the app's recorded thread (SCREEN): the loading row is a
-          // frame the run really draws, and the rows land on the one after it
-          load: () =>
+          // this promise a frame after the screen mounts with the app's recorded thread (data.ts's `threadScreen`): the
+          // loading row is a frame the run really draws, and the rows land on the one after it. `--offline` throws, so
+          // the screen is its error state.
+          load: (uri) =>
             new Promise((resolve) => {
-              landThread = () => resolve(SCREEN!);
+              // a throw (`--offline`) rejects the page's promise, which is the screen's error state
+              const answer = SCREEN(uri);
+              landThread = () => resolve(answer);
               landWait = 1;
             }),
           // `--page notify`: the page the feed's `n` leaves it on (the C host's `--page notifications`)
@@ -343,7 +362,11 @@ function emit(el: El, down: boolean) {
   if (el.tag === "text") {
     const tid = el.props.id ? idBytes(el.props.id) : undefined;
     if (skyPage && el.props.id) recut(el.props.id);
-    term.text(tid, bytesOf(el), (style && skin(style).text) || WHITE_14);
+    const bytes = bytesOf(el);
+    // a text with nothing in it is no command at all: a post with no words (its media line is its card) still declares
+    // its body, and Bun's FFI refuses a zero-length pointer
+    if (bytes.length === 0) return;
+    term.text(tid, bytes, (style && skin(style).text) || WHITE_14);
     return;
   }
   const id = el.props.id ? idBytes(el.props.id) : undefined;
@@ -613,8 +636,13 @@ if (headless) {
     term.dump(`${framesOut}.${frameNo}.txt`);
     term.ansi(`${framesOut}.${frameNo}.ansi`);
   };
-  // the page at rest: the Sky window's measuring frame and its card entry are over before the run's first frame
-  for (let i = 0; i < warm; i++) frame(-1, -1, false);
+  // the page at rest: the Sky window's measuring frame and its card entry are over before the run's first frame. Each one
+  // yields to the microtask queue after drawing, so a page whose data the page asked for (the Sky feed's first page) has
+  // answered by the frame after the ask — the frame's own state, as the live loop's `await land()` gives it
+  for (let i = 0; i < warm; i++) {
+    frame(-1, -1, false);
+    await land();
+  }
   frame(-1, -1, false);
   keep();
   frameNo++;

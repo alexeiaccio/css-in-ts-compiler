@@ -130,27 +130,56 @@ echo "solid, terminal: $((dylib / 1024)) KB of libterm.dylib (Clay, cells.c, ren
 echo "solid, terminal: $n comparisons, all identical, and the two numbers above"
 
 # ---- the Sky feed, the terminal host's second page ---------------------------------------------------------------
-# `solid/app/Sky.tsx` unmodified: the bar with the tablist, the feed the page scrolls itself, the status line. The C feed
-# (terminal/sky.c) is the behaviour's oracle, not the cells': the C card has a hand-cut border and separator, its name and
-# meta share one row, its body is one clipped row, its counts are the glyphs `↩ ⟲ ♥`, it draws no avatar and its footer is
-# the key hints; the Solid card has one cell of side padding and no border at rest, its meta is its own row, its body wraps
-# at words, its counts are words, its avatar is an image the host skips, and its footer is the page's status line. So the
-# two frames are not identical: this block stores the Solid frame as its own guard and counts the distance.
-WHEELS="WheelDown,WheelDown,WheelDown,WheelDown,WheelDown,WheelDown,WheelDown,WheelDown"
+# `solid/app/Sky.tsx`: the bar with the tablist, the feed the page scrolls itself, the status line. Its data is the app's
+# **recordings**, handed to the page as the app's own calls (`terminal/data.ts`: `homeScreen` at a cursor, the recorded
+# thread for a card's `load`), so the feed is the app's pages — `home-discover-1`/`2` and `home-science-1` — and not a
+# fixture transcribed in the page. This block is the frame, its focus and its scroll; the next one is the data, the
+# paging and the states. The C feed (terminal/sky.c) is the behaviour's oracle, not the cells': the C card has a hand-cut
+# border and separator, its name and meta share one row, its body is one clipped row, its counts are the glyphs `↩ ⟲ ♥`,
+# it draws no avatar and its footer is the key hints; the Solid card has one cell of side padding and no border at rest,
+# its meta is its own row, its body wraps at words, its counts are words, its avatar is an image the host skips, and its
+# footer is the page's status line. So the two frames are not identical: this block stores the Solid frame as its own
+# guard and counts the distance.
 rm -f "$OUT"/solid-sky* "$OUT"/c-sky*
 $SOLID --page sky --cols 80 --rows 20 --dump "$OUT/solid-sky.txt"
 cmp "$OUT/solid-sky.txt" terminal/expected-solid-sky.txt || {
   echo "FAIL: the Solid Sky feed at 80x20 is not terminal/expected-solid-sky.txt"; exit 1; }
-identical "the Sky feed's frame is terminal/expected-solid-sky.txt (80x20 cells, the page's own guard)"
-$SOLID --page sky --cols 80 --rows 20 --keys Tab,ArrowRight --dump "$OUT/solid-sky-focus.txt"
+identical "the Sky feed's frame is terminal/expected-solid-sky.txt (80x20 cells, the page's own guard, page 1)"
+# the rows are the recording's, in the app's order: the app's own moderation rule (`postVerdict`) picks the page's posts
+# and the page maps each through its `postOf`, so the labels a cell carries are the recording's authors. Printed: the
+# label and the row it landed on, and the recording's visible count — which is the status line's number.
+feed_rows() {
+  bun -e '
+import { postVerdict } from "../apps/csssky/src/api.ts";
+import { readFileSync } from "node:fs";
+const [fixture, dump, n] = process.argv.slice(1);
+const answer = JSON.parse(readFileSync(fixture, "utf8"));
+const rows = readFileSync(dump, "utf8").split("\n");
+const cards = answer.feed.filter((i) => postVerdict(i.post) !== "hide")
+  .map((i) => i.post.author.displayName || i.post.author.handle);
+const shown = cards.slice(0, +n);
+const at = shown.map((name) => rows.findIndex((r) => r.includes(name)));
+if (at.some((y, i) => y < 0 || (i > 0 && y <= at[i - 1]))) {
+  console.error("FAIL: the frame rows are not the recording order: " + shown.join(", ") + " at " + at.join(","));
+  process.exit(1);
+}
+console.log(shown.map((name, i) => name + " (row " + at[i] + ")").join(" | ") + "; " + cards.length + " visible");
+' "$1" "$2" "$3"
+}
+feed_rows ../apps/csssky/test/fixtures/home-discover-1.json "$OUT/solid-sky.txt" 3
+grep -q "Discover — 28 posts" "$OUT/solid-sky.txt" || {
+  echo "FAIL: the feed's count is not the recording's 28 visible posts"; exit 1; }
+identical "the first page's rows are home-discover-1's: the recording's authors, in order, and its 28 visible posts"
+$SOLID --page sky --cols 80 --rows 20 --keys Tab,ArrowRight --settle 4 --dump "$OUT/solid-sky-focus.txt"
 cmp "$OUT/solid-sky-focus.txt" terminal/expected-solid-sky-focus.txt || {
   echo "FAIL: the Solid Sky feed after Tab,ArrowRight is not terminal/expected-solid-sky-focus.txt"; exit 1; }
 identical "after Tab and ArrowRight (the bar focused, Science) it is expected-solid-sky-focus.txt, the C focus frame's twin"
-grep -q "Erik Strub" "$OUT/solid-sky-focus.txt" || {
-  echo "FAIL: ArrowRight on the tablist did not switch the feed (the bar's active tab is still Discover)"; exit 1; }
+grep -q "Science — 25 posts" "$OUT/solid-sky-focus.txt" || {
+  echo "FAIL: ArrowRight on the tablist did not switch the feed (the status line is not Science's 25 posts)"; exit 1; }
 grep -q "Michael Warburton" "$OUT/solid-sky-focus.txt" && {
   echo "FAIL: the tab switch showed Science but left Discover's first post"; exit 1; }
-identical "and the tab switch is the page's: the tablist's ArrowRight shows Science, Discover's first post gone"
+feed_rows ../apps/csssky/test/fixtures/home-science-1.json "$OUT/solid-sky-focus.txt" 1
+identical "and the tab switch is the page's: ArrowRight shows Science's own page 1 (25 of its 30 recorded), Discover's gone"
 
 # the focus order: the tablist is the first stop, on the active tab, and a cell's tab focus is the C bar's active tab (the
 # accent fill and an on-accent label), because a 2px border on a one-row tab is the label's own row; the feed is the second
@@ -168,36 +197,40 @@ grep -qF "${ESC}[38;2;92;176;255m" "$OUT/solid-sky-feed.ansi" || {
 grep -q "┌" "$OUT/solid-sky-feed.txt" || { echo "FAIL: the feed's ring is not drawn in box characters"; exit 1; }
 identical "Tab again is the feed: its focus ring is the page's 92,176,255 border, one cell around the viewport"
 
-# the feed's own scroll (solid/src/vscroll.ts): ArrowDown 40px, the wheel a 10px notch. At 80x20 the feed's end is 24px
-# (its content is 312: the cards plus the page's 12px paddings and 8px gaps, less the 288px viewport), so a key and a wheel
-# flick land on the same clamp; at 80x12 the wheel runs to the 152px end.
+# the feed's own scroll (solid/src/vscroll.ts): ArrowDown 40px, PageDown a viewport, the wheel a 10px notch. With the
+# recording's page the feed is long (28 cards, 6184px of scroll at 80x20), so nothing here lands on an end by accident:
+# a key moves its own step, and the end is an `End` (and the next page) away — the data block below.
 $SOLID --page sky --cols 80 --rows 20 --keys Tab,Tab,ArrowDown --settle 40 --offset --dump "$OUT/solid-sky-20down.txt" |
   tee "$OUT/solid-sky-20down.log"
-grep -q "offset -24 px (-1.50 rows)" "$OUT/solid-sky-20down.log" || {
-  echo "FAIL: ArrowDown did not reach the feed's 24px end at 80x20"; exit 1; }
-$SOLID --page sky --cols 80 --rows 20 --keys "$WHEELS" --settle 90 --offset --dump "$OUT/solid-sky-20wheel.txt" |
+grep -q "offset -40 px (-2.50 rows)" "$OUT/solid-sky-20down.log" || {
+  echo "FAIL: ArrowDown did not move the feed 40px at 80x20"; exit 1; }
+$SOLID --page sky --cols 80 --rows 20 --keys Tab,Tab,PageDown --settle 40 --offset --dump "$OUT/solid-sky-20page.txt" |
+  tee "$OUT/solid-sky-20page.log"
+grep -q "offset -288 px (-18.00 rows)" "$OUT/solid-sky-20page.log" || {
+  echo "FAIL: PageDown did not move the feed one viewport (288px) at 80x20"; exit 1; }
+$SOLID --page sky --cols 80 --rows 20 --keys Tab,Tab,WheelDown --settle 40 --offset --dump "$OUT/solid-sky-20wheel.txt" |
   tee "$OUT/solid-sky-20wheel.log"
-grep -q "offset -24 px (-1.50 rows)" "$OUT/solid-sky-20wheel.log" || {
-  echo "FAIL: the wheel did not land on the key's -24px at 80x20"; exit 1; }
-identical "ArrowDown (40px) and eight WheelDown notches land on the same clamp, -24px (-1.5 rows) at 80x20"
+grep -q "offset -10 px (-0.63 rows)" "$OUT/solid-sky-20wheel.log" || {
+  echo "FAIL: one wheel notch did not move the feed 10px at 80x20"; exit 1; }
+identical "ArrowDown is 40px, PageDown a viewport (288px) and the wheel a 10px notch, on the long recorded feed"
 
-# the scroll the C page can compare: at 80x12 both pages scroll to the end. The C page's list holds no offset — scroll_into
-# re-declares from the selected card — and the Solid page's track moves 9.5 rows; the states and the row/cell count below
-# are the comparison.
+# the scroll the C page can compare: at 80x12 both pages scroll to their third post. The C page's list holds no offset —
+# scroll_into re-declares from the selected card — and the Solid page's track moves one viewport (160px, 10 rows); the
+# states and the row/cell count below are the comparison.
 ./terminal/demo --page sky --cols 80 --rows 12 --keys ArrowDown,ArrowDown --dump "$OUT/c-sky-12-down.txt"
 grep -q "Michael Warburton" "$OUT/c-sky-12-down.txt" && {
   echo "FAIL: the C page's list did not scroll past its first post"; exit 1; }
 grep -q "alexjungle" "$OUT/c-sky-12-down.txt" || {
   echo "FAIL: the C page's list did not show its third post"; exit 1; }
-$SOLID --page sky --cols 80 --rows 12 --keys "$WHEELS" --settle 90 --offset --dump "$OUT/solid-sky-12.txt" |
+$SOLID --page sky --cols 80 --rows 12 --keys Tab,Tab,PageDown --settle 60 --offset --dump "$OUT/solid-sky-12.txt" |
   tee "$OUT/solid-sky-12.log"
-grep -q "offset -152 px (-9.50 rows)" "$OUT/solid-sky-12.log" || {
-  echo "FAIL: the wheel did not run to the feed's 152px end at 80x12"; exit 1; }
-grep -q "Michael Warburton" "$OUT/solid-sky-12.txt" && {
-  echo "FAIL: the Solid feed did not scroll past its first post (Michael Warburton is still visible)"; exit 1; }
-grep -q "357 likes" "$OUT/solid-sky-12.txt" || {
-  echo "FAIL: the Solid feed did not scroll to its third post's counts"; exit 1; }
-identical "the feed scrolls to its end at 80x12 (9.5 rows), as the C list scrolls to its third post (one card at a time)"
+grep -q "offset -160 px (-10.00 rows)" "$OUT/solid-sky-12.log" || {
+  echo "FAIL: PageDown did not move the feed one 10-row viewport (160px) at 80x12"; exit 1; }
+grep -q "Ron Filipkowski" "$OUT/solid-sky-12.txt" && {
+  echo "FAIL: the Solid feed did not scroll past its first post (Ron Filipkowski is still visible)"; exit 1; }
+grep -q "Molecular Jackhammer" "$OUT/solid-sky-12.txt" || {
+  echo "FAIL: the Solid feed did not scroll to a later post's body"; exit 1; }
+identical "the feed scrolls one viewport at 80x12 (10 rows), as the C list scrolls to its third post (one card at a time)"
 
 # a card's own onClick: a click on the body opens the thread screen (Enter on the feed presses the first card's own onClick
 # in the thread's block below; the page's cards are not Tab stops, so Enter has no card of its own). The host's `load`
@@ -239,36 +272,36 @@ sky_diff() {
 base=$(sky_diff terminal/expected-sky.txt "$OUT/solid-sky.txt" 20)
 echo "solid, terminal: the Sky feed against terminal/expected-sky.txt (the C feed): $base"
 case "$base" in
-  "1251 cells, 0 of 20 rows the same, the worst row 1 (80 of 80);"*) ;;
-  *) echo "FAIL: the Sky feed's row/cell distance from the C feed changed (expected 1251 cells, row 1 the worst)"; exit 1 ;;
+  "1475 cells, 0 of 20 rows the same, the worst row 1 (80 of 80);"*) ;;
+  *) echo "FAIL: the Sky feed's row/cell distance from the C feed changed (expected 1475 cells, row 1 the worst)"; exit 1 ;;
 esac
 science=$(sky_diff terminal/expected-sky-focus.txt "$OUT/solid-sky-focus.txt" 20)
 echo "solid, terminal: after the tab switch against terminal/expected-sky-focus.txt: $science"
 case "$science" in
-  "1397 cells, 0 of 20 rows the same, the worst row 1 (80 of 80);"*) ;;
-  *) echo "FAIL: the Science frame's row/cell distance from the C feed changed (expected 1397 cells)"; exit 1 ;;
+  "1399 cells, 0 of 20 rows the same, the worst row 1 (80 of 80);"*) ;;
+  *) echo "FAIL: the Science frame's row/cell distance from the C feed changed (expected 1399 cells)"; exit 1 ;;
 esac
 scrolled=$(sky_diff "$OUT/c-sky-12-down.txt" "$OUT/solid-sky-12.txt" 12)
 echo "solid, terminal: after the scroll against the C list's scrolled frame (80x12): $scrolled"
 case "$scrolled" in
-  "684 cells, 0 of 12 rows the same, the worst row 1 (80 of 80);"*) ;;
-  *) echo "FAIL: the scrolled frame's row/cell distance from the C list changed (expected 684 cells)"; exit 1 ;;
+  "684 cells, 0 of 12 rows the same, the worst row 6 (80 of 80);"*) ;;
+  *) echo "FAIL: the scrolled frame's row/cell distance from the C list changed (expected 684 cells, row 6 the worst)"; exit 1 ;;
 esac
 echo "solid, terminal: no row is identical to the C feed's: its bar labels carry '1/2/3' and its padding, its six separator"
 echo "solid, terminal: rows (the card borders) and its key-hint footer have no counterpart, and its body rows are one clipped"
-echo "solid, terminal: row where the page wraps. The nearest rows are the body lines (row 3: 31 of 80 cells, row 15: 6 of 80:"
-echo "solid, terminal: the same words at a one-cell inset), not a match."
+echo "solid, terminal: row where the page wraps. The nearest rows are the bar (row 0: 32 of 80), a body line at the same"
+echo "solid, terminal: words and a one-cell inset (Science's row 5 and row 10: 8 of 80) and the counts' words (row 4: 67)."
 
 # the two mutations this slice has to catch. `--mutate scroll` drops the page's offset before Clay (term_scroll_to 0): the
 # feed stays at row 0, and the scrolling check's own message fails. `--mutate tab` never flushes the frame the tab key lands
 # on: the feed switches inside the page but the bar's active tab stays Discover, and the switch check's message fails.
 sky_scrolled() {
-  grep -q "Michael Warburton" "$1" && {
-    echo "FAIL: the Solid feed did not scroll past its first post (Michael Warburton is still visible)"; return 1; }
-  grep -q "357 likes" "$1" || { echo "FAIL: the Solid feed did not scroll to its third post's counts"; return 1; }
+  grep -q "Ron Filipkowski" "$1" && {
+    echo "FAIL: the Solid feed did not scroll past its first post (Ron Filipkowski is still visible)"; return 1; }
+  grep -q "Molecular Jackhammer" "$1" || { echo "FAIL: the Solid feed did not scroll to a later post's body"; return 1; }
   return 0
 }
-$SOLID --page sky --cols 80 --rows 12 --mutate scroll --keys "$WHEELS" --settle 90 --offset \
+$SOLID --page sky --cols 80 --rows 12 --mutate scroll --keys Tab,Tab,PageDown --settle 60 --offset \
   --dump "$OUT/solid-sky-mut-scroll.txt" > "$OUT/solid-sky-mut-scroll.log"
 grep -q "offset 0 px" "$OUT/solid-sky-mut-scroll.log" || {
   echo "FAIL: the scroll mutation did not keep the feed at row 0"; exit 1; }
@@ -276,14 +309,21 @@ if sky_scrolled "$OUT/solid-sky-mut-scroll.txt"; then
   echo "FAIL: the scroll mutation was not caught by the scrolling check"; exit 1; fi
 echo "solid, terminal: mutation (the page's offset dropped before Clay): caught — the feed stays at row 0, and the FAIL above is the check's message"
 sky_switched() {
-  grep -q "Erik Strub" "$1" || {
-    echo "FAIL: ArrowRight on the tablist did not switch the feed (the bar's active tab is still Discover)"; return 1; }
+  grep -q "Science — loading…" "$1" || {
+    echo "FAIL: ArrowRight on the tablist did not switch the feed (the frame still says Discover's)"; return 1; }
   return 0
 }
-$SOLID --page sky --cols 80 --rows 20 --mutate tab --keys Tab,ArrowRight --dump "$OUT/solid-sky-mut-tab.txt"
-if sky_switched "$OUT/solid-sky-mut-tab.txt"; then
+# the frame the key lands on is the page's switched tree: the bar's active tab moved and Science's first page is being
+# asked. (The answer lands a frame later, so the frame is the loading state's, not the rows'.)
+rm -f "$OUT"/solid-sky-switch.*
+$SOLID --page sky --cols 80 --rows 20 --keys Tab,ArrowRight --frames-out "$OUT/solid-sky-switch"
+sky_switched "$OUT/solid-sky-switch.2.txt" || exit 1
+identical "ArrowRight's own frame is the switched tree: the tab moved and Science's first page is being asked"
+rm -f "$OUT"/solid-sky-mut-tab.*
+$SOLID --page sky --cols 80 --rows 20 --mutate tab --keys Tab,ArrowRight --frames-out "$OUT/solid-sky-mut-tab"
+if sky_switched "$OUT/solid-sky-mut-tab.2.txt"; then
   echo "FAIL: the tab-switch mutation was not caught by the switch check"; exit 1; fi
-echo "solid, terminal: mutation (no flush after the tab key): caught — the bar's active tab stays Discover, and the FAIL above is the check's message"
+echo "solid, terminal: mutation (no flush after the tab key): caught — the frame still says Discover's, and the FAIL above is the switch check's message"
 
 # the cost: the feed's frame over 1600 cells and 34 commands, and the same cells as ANSI
 skybench=$($SOLID --page sky --cols 80 --rows 20 --bench 50)
@@ -293,6 +333,111 @@ case "$skybench" in
   *) echo "FAIL: the Sky --bench printed no frame time or cell count"; exit 1 ;;
 esac
 echo "solid, terminal: the Sky feed's 8 comparisons above; the C feed is the oracle of behaviour, not of cells"
+
+# ---- the feed's data: the app's recordings, its pages, and the three states ------------------------------------------
+# `terminal/data.ts` is the terminal's AppView: apps/csssky's own calls answered from its recorded fixtures —
+# `homeScreen` (Discover's two pages, Science's one; News has no recording, so it is the app's empty feed) and
+# `threadScreen` (one thread, shown for whichever post opened it). `Sky.tsx` asks for them as it asks the AppView
+# (`pages`, and the thread's `load`), and draws the answers as its own cards: page 1 when the feed opens, the next when
+# the scroll reaches the feed's end (the app's sentinel at the list's end), appended under the reader, never a jump. The
+# loading, end and error states are the page's **status line**: a row inside the clip would be out of view exactly at the
+# end, because the page's content end is the window's and not the declared rows'.
+#
+# (a) the first page's rows are the recording's: the `feed_rows` print above (28 of its 30 posts, the app's own
+#     moderation rule dropping two), and the status line's count is that number.
+# (b) the end asks for the second page: 28 posts to 51, and page 2's rows are drawn (the stored frames).
+# (c) a third page (no recording) is the feed's end: the page's words, and its frame stored.
+# (d) `--offline` is the error state: the page's words, and no card.
+# (e) a page-2 row's Enter opens the recorded thread: the same frame as the thread's own, byte for byte.
+# (f) `cmp` of the two stored frames, before and after the second page, and the C feed's count above unchanged in kind.
+#
+# the page's own state lands a frame after the answer (Solid writes it in the host's flush), so the keys leave a frame
+# between the ask and the End that reads the new content: `-` is that frame
+feed_paged() {
+  grep -q "Discover — 51 posts" "$1" || {
+    echo "FAIL: the feed's end did not ask for the second page (want 51 posts: 28 + home-discover-2's 23)"; return 1; }
+  return 0
+}
+$SOLID --page sky --cols 80 --rows 20 --keys Tab,Tab,End --settle 60 --dump "$OUT/solid-feed-page2.txt"
+feed_paged "$OUT/solid-feed-page2.txt" || exit 1
+cmp "$OUT/solid-feed-page2.txt" terminal/expected-solid-sky-page2.txt || {
+  echo "FAIL: the frame after the second page's request is not terminal/expected-solid-sky-page2.txt"; exit 1; }
+identical "the feed's end asks the second page: 28 posts to 51 (page 2's 23 appended); the reader stays at page 1's end"
+$SOLID --page sky --cols 80 --rows 20 --keys Tab,Tab,End,-,-,-,End --settle 60 --dump "$OUT/solid-feed-end.txt"
+grep -q "Discover — 51 posts — that's all for now" "$OUT/solid-feed-end.txt" || {
+  echo "FAIL: the empty third page did not draw the page's end state"; exit 1; }
+grep -q "Marcos Nogueira" "$OUT/solid-feed-end.txt" || {
+  echo "FAIL: the end frame does not show page 2's rows (home-discover-2's last card)"; exit 1; }
+cmp "$OUT/solid-feed-end.txt" terminal/expected-solid-sky-end.txt || {
+  echo "FAIL: the feed's end frame is not terminal/expected-solid-sky-end.txt"; exit 1; }
+identical "the empty third page is the page's end, 'Discover — 51 posts — that's all for now', page 2's rows drawn under it"
+# the loading state, and its frame really appears: with no warm frames the first drawn frame is the one the ask is made
+# on, and the answer is the next (the page starts empty, and says so rather than drawing the empty feed's words)
+$SOLID --page sky --cols 80 --rows 20 --warm 0 --keys - --dump "$OUT/solid-feed-loading.txt"
+grep -q "Discover — loading…" "$OUT/solid-feed-loading.txt" || {
+  echo "FAIL: the feed's first frame is not its loading state"; exit 1; }
+grep -q "Nothing here yet" "$OUT/solid-feed-loading.txt" && {
+  echo "FAIL: the loading state drew the empty feed's words"; exit 1; }
+identical "and the loading state is a frame the run draws: 'Discover — loading…', before the first page's answer"
+# the knob that fails: `--offline` makes both calls fail, so the feed is the page's error state and a notification's row
+# opens the thread's (the page's own words, no host text)
+$SOLID --page sky --cols 80 --rows 20 --offline --dump "$OUT/solid-feed-offline.txt"
+grep -q "Discover — could not load the feed" "$OUT/solid-feed-offline.txt" || {
+  echo "FAIL: --offline did not draw the feed's error state"; exit 1; }
+grep -q "Ron Filipkowski" "$OUT/solid-feed-offline.txt" && {
+  echo "FAIL: --offline still drew a card (the feed is not empty)"; exit 1; }
+identical "--offline is the error state: 'Discover — could not load the feed', and no card"
+# ... and the same knob is the thread's: a notification's row opens its post through the page's own `load`, which fails
+# too (the feed has no card to open offline, so the row is the way in)
+$SOLID --page notify --cols 80 --rows 26 --offline --keys Enter --settle 3 --dump "$OUT/solid-feed-offline-thread.txt"
+grep -q "The thread could not be loaded" "$OUT/solid-feed-offline-thread.txt" || {
+  echo "FAIL: --offline left the thread's error state unpainted"; exit 1; }
+identical "and the same knob is the thread's: 'The thread could not be loaded' over the list"
+# (e) a row of the second page opens the recorded thread — the same frame the thread's own block stores, byte for byte,
+# the recorded first reply in it (Mina Kimes, 226 likes; the parent above the post is another card)
+$SOLID --page sky --cols 80 --rows 26 --keys Tab,Tab,End,-,-,-,End,-,-,Enter --settle 3 \
+  --dump "$OUT/solid-feed-thread.txt"
+cmp "$OUT/solid-feed-thread.txt" terminal/expected-solid-thread.txt || {
+  echo "FAIL: a page-2 row's thread is not the recorded thread's frame (expected-solid-thread.txt)"; exit 1; }
+grep -q "226 likes" "$OUT/solid-feed-thread.txt" || {
+  echo "FAIL: the thread from a page-2 row did not draw the recording's first reply"; exit 1; }
+identical "Enter on a page-2 row opens the recording's thread: expected-solid-thread.txt byte for byte, its first reply in it"
+# the feed's two mutations. `--mutate end`: the page never asks past its first page, and the paging check's message is
+# the FAIL. `--mutate cursor`: the source answers page 1 for page 2, and the page's dedupe (a card is its at-uri) adds
+# nothing and calls it the end: 28 posts and "that's all for now", not 56 cards of page 1 twice
+$SOLID --page sky --cols 80 --rows 20 --mutate end --keys Tab,Tab,End,-,-,-,End --settle 60 \
+  --dump "$OUT/solid-feed-mut-end.txt"
+if feed_paged "$OUT/solid-feed-mut-end.txt"; then
+  echo "FAIL: the end mutation was not caught by the paging check"; exit 1; fi
+grep -q "Discover — 28 posts" "$OUT/solid-feed-mut-end.txt" || {
+  echo "FAIL: the end mutation did not stay at page 1"; exit 1; }
+echo "solid, terminal: mutation (the page never asks past its first page): caught — the feed stays at 28 posts, and the FAIL above is the paging check's message"
+feed_deduped() {
+  grep -q "Discover — 28 posts — that's all for now" "$1" || {
+    echo "FAIL: the repeated page was not deduped to the feed's end (want 28 posts and the end)"; return 1; }
+  grep -q "Discover — 51 posts" "$1" && { echo "FAIL: the repeated page was added twice"; return 1; }
+  return 0
+}
+$SOLID --page sky --cols 80 --rows 20 --mutate cursor --keys Tab,Tab,End,-,-,-,End --settle 60 \
+  --dump "$OUT/solid-feed-mut-cursor.txt"
+feed_deduped "$OUT/solid-feed-mut-cursor.txt" || {
+  echo "FAIL: the cursor mutation was not deduped as the page's end"; exit 1; }
+echo "solid, terminal: mutation (the source answers page 1 for page 2): caught — 28 posts, the repeats deduped to nothing,"
+echo "solid, terminal: and the page says 'that's all for now' instead of asking the same page every frame"
+# the cost with the full second page: the end frame over 1600 cells, and the same cells as ANSI
+feedbench=$($SOLID --page sky --cols 80 --rows 20 --keys Tab,Tab,End,-,-,-,End --settle 60 --bench 50)
+echo "$feedbench"
+case "$feedbench" in
+  *"ms a frame"*"1600 cells"*) ;;
+  *) echo "FAIL: the feed's --bench with the second page printed no frame time or cell count"; exit 1 ;;
+esac
+# the payload: the recordings are module data (`with { type: "json" }`), inlined into the host's module graph — the four
+# files, and nothing for the Sensors host, which imports `data.ts` only when it starts the Sky page
+bytes=$(wc -c ../apps/csssky/test/fixtures/home-discover-1.json ../apps/csssky/test/fixtures/home-discover-2.json \
+  ../apps/csssky/test/fixtures/home-science-1.json ../apps/csssky/test/fixtures/thread.json | tail -1 | awk '{ print $1 }')
+echo "solid, terminal: the feed's recordings are $bytes bytes of JSON in the host's build (53,113 + 54,624 + 93,964 + 23,059),"
+echo "solid, terminal: imported by terminal/data.ts as JSON modules; the Sensors host imports none of them"
+echo "solid, terminal: the feed's data: 6 comparisons above (the pages, the end, the loading and error states, the thread)"
 
 # ---- the thread, the page's second screen -------------------------------------------------------------------------
 # `Sky.tsx` mounts the thread as a root float over the feed when a card is opened: its own onClick (a click on the card,
@@ -335,7 +480,7 @@ $SOLID --page sky --cols 80 --rows 26 --keys Tab,Tab,Enter,Escape --settle 30 --
 thread_back() {
   grep -q "Mina Kimes" "$1" && {
     echo "FAIL: Escape did not leave the thread (its rows are still drawn)"; return 1; }
-  grep -q "Michael Warburton" "$1" || { echo "FAIL: Escape did not come back to the feed"; return 1; }
+  grep -q "Ron Filipkowski" "$1" || { echo "FAIL: Escape did not come back to the feed"; return 1; }
   return 0
 }
 thread_back "$OUT/solid-thread-back.txt" || exit 1
@@ -420,7 +565,7 @@ $SOLID --page sky --cols 80 --rows 26 --click 20,2 --keys Escape --settle 30 --d
 profile_back() {
   grep -q "Posts Replies Media" "$1" && {
     echo "FAIL: Escape did not leave the profile (its tablist is still drawn)"; return 1; }
-  grep -q "Michael Warburton" "$1" || { echo "FAIL: Escape did not come back to the feed"; return 1; }
+  grep -q "Ron Filipkowski" "$1" || { echo "FAIL: Escape did not come back to the feed"; return 1; }
   return 0
 }
 profile_back "$OUT/solid-profile-back.txt" || exit 1
@@ -559,7 +704,7 @@ if command -v python3 >/dev/null 2>&1; then
   # the five colours of the page, with the cells they cover: the page fill is the answer's background, the accent glyphs
   # the answer's OSC 4;4 blue, the ink the answer's OSC 10, and the panel and the muted grey the solver's own steps
   # (the panel 1.1:1 from the page, the grey 4.5:1 -- its 0x808080 report is not enough on this light page)
-  for line in "2 240,224,208 0 289" "3 0,96,208 11 0" "4 84,84,84 294 2" "5 229,214,198 0 1309" "6 16,16,16 221 0"; do
+  for line in "2 240,224,208 0 289" "3 0,96,208 11 0" "4 84,84,84 193 2" "5 229,214,198 0 1309" "6 16,16,16 436 0"; do
     grep -qx "$line" "$SYSTEM.txt" || {
       echo "FAIL: the system-themed frame has no '$line' in its colour table"; exit 1; }
   done
@@ -570,7 +715,7 @@ if command -v python3 >/dev/null 2>&1; then
   solved=$(sed -n 's/^\([2-6]\) [0-9,]* \([0-9]* [0-9]*\)$/\2/p' "$SYSTEM.txt" | tr '\n' '|')
   [ "$solved" = "$defaults" ] || {
     echo "FAIL: the system theme moved cells ($solved) from the page's own ($defaults)"; exit 1; }
-  identical "the glyph and fill counts are expected-solid-sky.txt's (289/11/0/1309 and 221): the page, repainted"
+  identical "the glyph and fill counts are expected-solid-sky.txt's (289/11/0/1309 and 436): the page, repainted"
   # the live path: the ask comes before termbox2's alternate screen, and the screen it draws is the terminal's palette
   COLORTERM=truecolor PYTHONUNBUFFERED=1 python3 terminal/pty-answer.py "$OUT/system-replies.bin" 30 -- \
     bun terminal/solid.ts --page sky --system-theme --frames 2 > "$SYSTEM-live.log" 2>&1

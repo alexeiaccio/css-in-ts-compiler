@@ -41,10 +41,11 @@
 #define FIELD_TEXT_COLOR_A 54
 #define FIELD_ROTATE 55
 
-// ponytail: 64 KB of text a frame and 256 value overrides a frame (the Sky feed's re-cut of twelve card ids is 60 of
-// them, and the page's own writes are more); a longer page needs bigger tables
+// ponytail: 64 KB of text a frame and 1,024 value overrides a frame (the Sky feed's re-cut of a card id is 5 of them,
+// and a feed's measuring pass — `measuredWindow` declares every card while a height is unknown — is 30 cards a page, 51
+// with the second one, 255 of the table before the page's own writes); a longer page needs bigger tables
 #define ARENA_SIZE (1 << 16)
-#define MAX_VALUES 256
+#define MAX_VALUES 1024
 
 static Cells grid;
 static Clay_RenderCommandArray cmds;
