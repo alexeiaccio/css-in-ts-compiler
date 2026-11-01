@@ -301,6 +301,8 @@ describe("Dialog x the animated box (real DOM)", () => {
     expect(instance.phase()).toBe("entering");
     const panel = instance.panel();
     expect(panel).not.toBeNull();
+    // the layer mounts in the same flush the primitive opens it: the focus is in the panel, not lost
+    expect(document.activeElement).toBe(panel);
 
     instance.finish();
     await settle();

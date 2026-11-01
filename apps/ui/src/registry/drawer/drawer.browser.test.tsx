@@ -274,6 +274,8 @@ describe("Drawer x the animated box (real DOM)", () => {
     expect(instance.phase()).toBe("right-entering");
     const panel = instance.panel();
     expect(panel).not.toBeNull();
+    // the primitive moves the focus into the panel it finds by id: the layer mounts in the same flush
+    expect(panel?.contains(document.activeElement)).toBe(true);
 
     instance.finish();
     await settle();

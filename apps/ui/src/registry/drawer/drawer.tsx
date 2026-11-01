@@ -351,7 +351,7 @@ export const DrawerTrigger = (props: DrawerTriggerProps): JSX.Element => {
  * `contain` or `overflow` can neither clip the layer nor become the containing block of its `position: fixed`.
  *
  * With `animated` the layer is mounted only while the box is not `closed` (or while the primitive is open and the box has
- * yet to follow it), so the slide out is played before the panel leaves the page; `data-state` is the box's phase, and
+ * yet to follow it), so the slide out is played before the panel leaves the page; `data-state` is `<side>-<phase>` and
  * the panel keeps no `hidden` attribute (a panel cut from the page mid-slide is the frame `Atomic` rules out). Without
  * it, the panel stays mounted and the CSS transition follows the primitive's open state.
  */
