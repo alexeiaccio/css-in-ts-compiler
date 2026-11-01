@@ -3483,3 +3483,47 @@ the CSS (`grid-template-rows`, `opacity`, `translate`, `@starting-style`), the h
 **Left**: no runtime — `packages/headless` has no disclosure yet, so there is no implementation for a differential
 walk, and the machine is the oracle a `createDisclosure` would be written against; the `createOptimisticStore` call
 site in the Solid bridge; and the port to `native/headless`.
+
+## @cssints/machine: a state machine for UI protocols (cssints-im52, 2026-11-01)
+
+The repository hit the same class of bug often enough to name it: a signal holds a value, not a protocol. An animated
+disclosure has a `closing` and an `opening` in one frame, a cancelled animation that still fires its completion, an
+interrupted close that must reverse from where the box is, a burst of `pointerenter`/`pointerleave` that must not
+produce five effects, and a debounce that must not swallow the last intent. Each is an invariant over state and time,
+and `@cssints/headless` already answers questions of that shape with Quint (`packages/apg-specs`), but a Quint model
+proves the protocol, it does not run it. `@cssints/machine` is the runtime half: `defineMachine` (states, events,
+guards, `assign`, effects, `after`), `createMachine` (an instance on an injected clock), and a harness that drives a
+fake clock and asserts the five properties in plain node. Events are a union derived from the states, a payload map
+types the payloads, the context is inferred from `initial`; a send no state accepts is a type error.
+
+No dependency is deliberate. The package is the small piece a host composes with its own animation and DOM, and
+`effect` would be a runtime to learn (and a megabyte) for data the host already has; `solid-js` is only an optional peer
+of `./solid`. So its files are plain code in the root `vite.config.ts` `plainCode` list, with a reason, as with
+`packages/reactive` and the browser runtimes. Effects are data with handles: `{ type: "animate", to: "closed" }` is
+issued as `{ id, spec, state }`, a `finish` carries the id back, and leaving the state (or a superseding transition)
+cancels the handle, so a stale completion is dropped rather than applied to the new state. The harness records
+`{ at, event, from, to, effect, context, cancelled }`, delivers queued events in any order (`race` at one instant,
+`interleave` round-robin), and `flushEffects()` returns only the handles still live, so "two events in one frame produce
+at most one effect per state" is a count.
+
+The Solid bridge taught two things that changed the design. Its first version used `createSignal`-style selector
+subscriptions and a hand-rolled pending flag; Solid 2 rc.13 has the vocabulary (`createStore`, `createProjection`,
+`createOptimistic`/`createOptimisticStore`) and mixing the two would be a second store layer that does not share the
+transaction. The bridge now writes one `createStore` per transition, mutating only the fields that changed, so a reader
+of `state.phase` does not re-run when `progress` changes; `createProjection` gives a derived view with the same
+granularity. The optimistic view is the derived `createOptimisticStore` form: its authoritative value follows the
+committed store, and an intent written inside a Solid `action` is an override that reverts at settle — a superseded
+intent rolls back to the committed state instead of sticking, and a settle reconciles by construction. One thing it
+cannot do: a `createProjection` reads the committed frame, not an optimistic override (Solid holds the frame whole for a
+projection), so the visual phase is read off `optimistic` directly and a projection is the logical view. The bridge
+writes in one store update per transition, the same atomicity `packages/reactive` gets from its one flush and the
+`Atomic` invariant of `specs/patterns/reactive.qnt` states for CSS writes; `test/store.mjs` collects every pair the
+store delivered and asserts each is a snapshot the machine actually held. That test runs in plain node with
+`--conditions=browser --conditions=development`: Solid's store layer needs no DOM, but the node default is the SSR build,
+where an action's optimistic override has no client transaction to live in. No browser test was needed.
+
+The cost: one package in the fixed group (29), no type-instantiation budget of its own (it is dependency-free and
+small), and one release by hand for its first version, like the other new packages. Left: parallel and history states
+are not modelled (two regions are two machines), an `invoke` that owns a promise is the host's job, there is no Quint
+spec for this runtime (the harness's five assertions are the oracle), and no host adapter for the Web Animations API —
+the README's example is the shape, not a package.
