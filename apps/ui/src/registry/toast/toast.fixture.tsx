@@ -18,11 +18,13 @@ export interface MountedToaster {
  *
  * @param {ToastOptions} options what the queue is created with
  * @param {HTMLElement} host the element the `Toaster` is rendered into, for the transformed ancestor the test needs
+ * @param {{ readonly reducedMotion?: boolean }} ui the skin's own props, so a test can turn the motion preference off
  * @returns {MountedToaster} the controller, the dismissals and the teardown
  */
 export const mountToaster = (
   options: ToastOptions = {},
   host: HTMLElement = document.createElement("div"),
+  ui: { readonly reducedMotion?: boolean } = {},
 ): MountedToaster => {
   document.body.append(host);
   const dismissed: string[] = [];
@@ -36,7 +38,7 @@ export const mountToaster = (
         options.onDismiss?.(id);
       },
     });
-    return <Toaster toast={api} />;
+    return <Toaster toast={api} reducedMotion={ui.reducedMotion} />;
   }, host);
 
   return {

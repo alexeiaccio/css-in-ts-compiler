@@ -1891,7 +1891,7 @@
       "type": "registry:ui",
       "title": "Toast",
       "description": "A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast",
-      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/machine"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme"],
       "files": [

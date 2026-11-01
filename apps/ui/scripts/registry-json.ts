@@ -422,6 +422,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
     with: ["render.tsx", "theme.ts", "tokens.ts"],
+    deps: ["@cssints/machine"],
     title: "Toast",
     description:
       "A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast",

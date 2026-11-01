@@ -644,6 +644,17 @@ const ToastDemo = (): JSX.Element => {
         <Button
           tone="quiet"
           onClick={() => {
+            // the row is already on its way in: asking again mid-enter reverses it from where the box is, instead of
+            // snapping it to visible and fading that out
+            const id = toast.show({ title: "Dismissed while entering" });
+            setTimeout(() => toast.requestDismiss(id), 80);
+          }}
+        >
+          Dismiss while entering
+        </Button>
+        <Button
+          tone="quiet"
+          onClick={() => {
             // the queue keeps three: the first of the four is dropped as the fourth arrives, so the stack ends on the last three
             for (const title of ["First toast", "Second toast", "Third toast", "Fourth toast"]) {
               toast.show({ title });
