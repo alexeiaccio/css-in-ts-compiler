@@ -329,7 +329,7 @@ export const DisclosureAnimated = (props: DisclosureAnimatedProps): JSX.Element 
   let live: LiveAnimation | undefined;
   /** Where a cancelled animation stopped: the reversal's start. */
   let carried: number | undefined;
-  /** The phase before the transition in progress (effects run before the transition listener). */
+  /** The phase the last transition left (its listener runs before the effect announcement, so `onEffect` reads it). */
   let lastPhase: DisclosureAnimatedPhase = machine.getState().state;
 
   const fractionOf = (effect: LiveAnimation): number => {
@@ -346,7 +346,7 @@ export const DisclosureAnimated = (props: DisclosureAnimatedProps): JSX.Element 
   };
 
   machine.onTransition((record) => {
-    lastPhase = record.to as DisclosureAnimatedPhase;
+    lastPhase = record.from as DisclosureAnimatedPhase;
   });
 
   const offEffect = machine.onEffect((handle) => {

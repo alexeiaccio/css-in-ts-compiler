@@ -12,7 +12,8 @@ import {
   animationSteps,
 } from "@cssints/apg-specs/patterns/animation.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
-import { describe, it } from "vite-plus/test";
+import { flush } from "solid-js";
+import { describe, expect, it } from "vite-plus/test";
 import scenarios from "@cssints/apg-specs/scenarios/patterns/animation.spec.json";
 import definitionJson from "@cssints/apg-specs/patterns/animation.model.json";
 import { domDriver } from "./disclosure-animated-driver.ts";
@@ -57,4 +58,40 @@ describe("DisclosureAnimated x the animation spec (differential walk)", () => {
       });
     });
   }
+});
+
+// The kit's own extension: the motion preference can be turned back off, which the spec latches on (`reducedMotion=false`
+// is `Unsupported` there). The next animation must start at the settled end, not at the fraction where the settle
+// interrupted the box, and the cancelled animation's late completion must still move nothing.
+describe("DisclosureAnimated x the kit's motion switch", () => {
+  it("starts the next animation at the settled end after reduced motion is turned off", async () => {
+    const mounted = mountDisclosureAnimated({ reducedMotion: false });
+    const driver = domDriver(mounted);
+    const settle = async (): Promise<void> => {
+      flush();
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+      flush();
+    };
+    const value = () => mounted.value() as { state: string; progress: number };
+
+    await driver.perform({ event: "click", target: "trigger" });
+    await driver.perform({ event: "frame" });
+    await driver.perform({ event: "frame" });
+    expect(value()).toMatchObject({ state: "opening", progress: 2 });
+
+    mounted.setProp("reducedMotion", true);
+    await settle();
+    expect(value()).toMatchObject({ state: "open", progress: 4 });
+
+    mounted.setProp("reducedMotion", false);
+    await settle();
+    await driver.perform({ event: "click", target: "trigger" });
+    expect(value()).toMatchObject({ state: "closing", progress: 4 });
+    await driver.perform({ event: "frame" });
+    expect(value()).toMatchObject({ state: "closing", progress: 3 });
+
+    driver.dispose?.();
+  });
 });
