@@ -14,6 +14,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -65,6 +66,37 @@ process.stdout.write(
   `items: ${items.length} (${tested.length} with a conformance test: ${tested.join(", ")})\n`,
 );
 
+// Every workspace package, packed once: the template and the items may name any of them, and a package that is new in
+// this commit (or ahead of the version npm serves) cannot be fetched at all. Tarballs, not `file:` directories: npm
+// installs a directory as a symlink, and the package then loses its own dependency tree (a peer such as `effect` is not
+// installed for a symlink). `bun pm pack`, not `npm pack`: it rewrites a `workspace:*` dependency to the version it packs.
+const tarballs = join(dest, ".tarballs");
+mkdirSync(tarballs, { recursive: true });
+/** name -> the `file:.tarballs/...` specifier an install can read */
+const local = new Map();
+for (const directory of readdirSync(join(root, "packages"))) {
+  const path = join(root, "packages", directory, "package.json");
+  if (!existsSync(path)) {
+    continue;
+  }
+  const { name } = JSON.parse(readFileSync(path, "utf8"));
+  // bun ends its output with a size summary, npm with the filename: the `*.tgz` line is the one both agree on
+  const packed = execFileSync("bun", ["pm", "pack", "--destination", tarballs], {
+    cwd: join(root, "packages", directory),
+    encoding: "utf8",
+  })
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.endsWith(".tgz"))
+    .pop();
+  local.set(name, `file:.tarballs/${basename(packed)}`);
+}
+process.stdout.write(`packed ${local.size} workspace packages\n`);
+
+/** The bare package name of an npm specifier (`@scope/name@^1`, `name@1`, `name`). */
+const specName = (spec) =>
+  spec.startsWith("@") ? spec.split("@").slice(0, 2).join("@") : spec.split("@")[0];
+
 // A plain static server for `apps/ui/r`: the CLI reads the items from the same JSON the site
 // deploys, so an item added in this commit is real here before the deploy has run.
 const served = new Set();
@@ -79,8 +111,16 @@ const server = createServer((request, response) => {
     return;
   }
   served.add(name);
+  // An item names the packages it needs; a package of this checkout is served as its tarball, so `add` installs this
+  // commit rather than looking for a release that may not exist yet.
+  const item = JSON.parse(readFileSync(path, "utf8"));
+  for (const field of ["dependencies", "devDependencies"]) {
+    if (Array.isArray(item[field])) {
+      item[field] = item[field].map((spec) => local.get(specName(spec)) ?? spec);
+    }
+  }
   response.writeHead(200, { "content-type": "application/json" });
-  response.end(readFileSync(path));
+  response.end(JSON.stringify(item));
 });
 await new Promise((listening) => server.listen(0, "127.0.0.1", listening));
 const { port } = server.address();
@@ -117,29 +157,14 @@ try {
   // is not installed for a symlink). The live-registry step at the end still exercises the published item JSON and the CDN.
   const manifestPath = join(dest, "package.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  const tarballs = join(dest, ".tarballs");
-  mkdirSync(tarballs, { recursive: true });
   const linked = [];
   for (const field of ["dependencies", "devDependencies"]) {
     for (const name of Object.keys(manifest[field] ?? {})) {
-      const dir = join(root, "packages", name.split("/").pop());
-      const path = join(dir, "package.json");
-      if (!existsSync(path) || JSON.parse(readFileSync(path, "utf8")).name !== name) {
-        continue;
+      const tarball = local.get(name);
+      if (tarball !== undefined) {
+        manifest[field][name] = tarball;
+        linked.push(name);
       }
-      // `bun pm pack`, not `npm pack`: it rewrites a `workspace:*` dependency to the version it packs, and npm cannot
-      // install a tarball that still carries the protocol.
-      // bun ends its output with a size summary, npm with the filename: the `*.tgz` line is the one both agree on
-      const packed = execFileSync("bun", ["pm", "pack", "--destination", tarballs], {
-        cwd: dir,
-        encoding: "utf8",
-      })
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.endsWith(".tgz"))
-        .pop();
-      manifest[field][name] = `file:.tarballs/${basename(packed)}`;
-      linked.push(name);
     }
   }
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

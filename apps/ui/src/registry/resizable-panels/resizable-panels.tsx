@@ -158,10 +158,14 @@ const template = (sizes: ReadonlyArray<number>): string =>
  * before it and returns to the size it left.
  */
 export const ResizablePanels = (props: ResizablePanelsProps): JSX.Element => {
+  // The pane list carries the host's JSX. It is read once, here: reading it later (inside the primitive's own computation,
+  // which asks for its options lazily) would create those components in an effect phase with no owner, and Solid 2's dev
+  // build refuses that — `PRIMITIVE_IN_EFFECT_CALLBACK`, a throw in a real `vite dev` app that a production build hides.
+  const panes = props.panes;
   const panels = createResizablePanels({
     // the primitive reads the options lazily; the skin's `title` and content are not part of them
     get panes() {
-      return props.panes.map(({ title: _title, children: _children, ...pane }) => pane);
+      return panes.map(({ title: _title, children: _children, ...pane }) => pane);
     },
     get orientation() {
       return props.orientation;
@@ -219,7 +223,7 @@ export const ResizablePanels = (props: ResizablePanelsProps): JSX.Element => {
       class={css.cn(groupClass, groupMotion, props.class)}
       style={{ ...layout(), height: props.height ?? DEFAULT_HEIGHT }}
     >
-      <For each={props.panes}>
+      <For each={panes}>
         {(pane, index) => (
           <>
             <div {...panels.paneProps(index())} data-part="resizable-panels-pane" class={paneClass}>
@@ -228,7 +232,7 @@ export const ResizablePanels = (props: ResizablePanelsProps): JSX.Element => {
               </Show>
               {pane.children}
             </div>
-            <Show when={index() < props.panes.length - 1}>
+            <Show when={index() < panes.length - 1}>
               <div {...separator(index())}>
                 <span
                   aria-hidden="true"
