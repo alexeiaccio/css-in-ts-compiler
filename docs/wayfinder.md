@@ -3527,3 +3527,53 @@ small), and one release by hand for its first version, like the other new packag
 are not modelled (two regions are two machines), an `invoke` that owns a promise is the host's job, there is no Quint
 spec for this runtime (the harness's five assertions are the oracle), and no host adapter for the Web Animations API —
 the README's example is the shape, not a package.
+
+## The animated disclosure in the kit: the machine's first real user (apps/ui, 2026-11-01)
+
+`@cssints/machine` and `specs/patterns/animation.qnt` landed without a host: the spec's own entry said "no runtime —
+`packages/headless` has no disclosure yet, so there is no implementation for a differential walk". The kit's
+`disclosure-animated` is that host, and the first component whose conformance test is a protocol rather than an APG
+pattern. It is a new item; the static `disclosure` is untouched.
+
+The machine is in the component: `closed`/`opening`/`open`/`closing`, a context of `logical` (the intent), `committed`
+(what a settle landed on) and `reduced`, and six events — `open`, `close`, `toggle`, `hover { open }`, `finish { id }`,
+`motion { reduced }`. The transitions are per state, so a same-direction intent has no transition at all and the running
+effect is not cancelled and restarted; the opposite one reverses. Leaving a state cancels its handle, which is what
+makes the animation's late completion stale: `Animation.finished` rejects after `cancel()`, and the rejection handler
+sends `{ type: "finish", id }` with the dead handle's id, which the machine drops before it looks at a transition. On
+`onCancel` the host reads the running animation's `currentTime` first (a cancelled animation's `currentTime` is null)
+and starts the replacement at that fraction, with a duration proportional to the distance left, so the spec's `progress`
+— `floor(fraction * 4)` — keeps its position through the reversal and moves one grid point per quarter of a full
+duration. A burst of `pointerenter`/`pointerleave` is the machine's own debounce (`hover`, 120 ms), and a click cancels
+the window before its toggle. `prefers-reduced-motion` is the machine's initial context (a reduced page never enters a
+transition, even for its first intent) and a `motion` event settles an effect that was already running. The animation is
+linear on purpose: the five-point grid is a sample of real `currentTime`, and easing would make it a non-linear read of
+time; `fill: "none"` with the panel's `data-state` styling as the end of either direction, so a finished animation can
+be cancelled in the same task that writes the next state without a frame at the wrong end.
+
+The Solid bridge exposed one thing the package's own README does not say: `store.send` with an `intent` starts an
+optimistic action, and the open action holds the committed store until the machine settles. The panel's `data-state` is
+the machine's transient phase (`opening`, not the intent's `open`), so the kit reads the **committed** store and passes
+no `intent`; the spec's optimistic split is the context's `logical` against `committed`, which is exact without the
+action, and `createMachineStore(machine)` still gives one `setState` per transition with only the changed fields written
+— a reader of `phase` does not re-run when `logical` changes, and `hidden` is a `createProjection` over `phase`. A write
+from a Solid `createEffect` (the `open` and `reducedMotion` props) is refused as `REACTIVE_WRITE_IN_OWNED_SCOPE`, so
+those two deliver on the next microtask; event handlers and animation completions write directly.
+
+The test is the spec. The 15 ported scenarios replay through the DOM, and a differential walk over `{ reducedMotion:
+false }` and `{ reducedMotion: true }` compares every probed attribute and the value against the generated model after
+every step; both configs are driveable, so there is no `Unsupported` entry. The driver's `click` is synthetic
+(`element.click()`), not a pointer: a real pointer left over the next fixture's trigger by `userEvent` fires an unasked
+`pointerenter` at it, and the fresh fixture then opens from a pending hover the scenario never asked for. `debounce`
+advances the fixture's fake clock, `finish` calls `finish()` on the real `Animation`, and `frame` advances a paused
+animation exactly one grid point using the `from:to` the host writes into `animation.id`; the fixture's `onAnimate`
+pauses every animation, so the walk is deterministic without faking `currentTime`. A zero-distance reversal (the box is
+already at the end it heads to) has no point to advance, and the model's saturated tick says the same.
+
+Cost: no type budget and no dist; the item adds `@cssints/machine` to the kit's dependency list and to `apps/ui`, and
+regenerating the registry reformatted 25 other items because the template's browser config gained the iframe timeout on
+master. Left: durations and easing are the component's constants, not tokens; there is no nested disclosure; the hover
+intent is implemented but the demo does not advertise hover-to-open; the machine definition has no `after` fallback (a
+completion is the settle, and a host that never gets one can cancel); focus and `inert` on the closed panel are not
+managed; and the kit reads the committed store, leaving the bridge's optimistic lead to a host that wants to expose the
+intent even earlier than `aria-expanded` already does.
