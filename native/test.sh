@@ -58,6 +58,10 @@ esac
 
 # Solid 2 on the desktop: the Sensors page as JSX, its frames against the same stored ThorVG frames
 sh solid/test.sh
+# the Figure page's invariants (solid/figure.test.ts): every bar's fill read back from the frame against value/max, each
+# number's text and the rows' order, the funnel's steps, `check`'s refusals with their sentences, and the same spec's
+# rows on the terminal — one spec, three targets
+bun solid/figure.test.ts
 # The Dialog page's two overlays as generated C — the modal's backdrop and panel (both Clay root floats) and the menu
 # floated off zoom-trigger: examples/dialog/gen.c dumps the three static frames through desktop/clay_dump.c, measured
 # with ThorVG as the Solid host measures (so a box is its exact number, no tolerance), and each is compared field by

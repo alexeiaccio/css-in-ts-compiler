@@ -96,6 +96,28 @@ else
   echo "solid, terminal: no script(1), the termbox2 screen check skipped"
 fi
 
+# ---- the Figure page, the terminal host's third page: one spec, the layout's own cells --------------------------
+# solid/specs/bars.json is the desktop's own file, and solid/src/figure/kinds.ts speaks cells, so the host re-cuts no
+# length: a figure written in cells is the cell grid's own shape. A focus line reads without colour (`►`), as the kit's.
+# A directory of the figure's own, so a suite running in another checkout beside this one cannot share its dumps.
+FIG="${TMPDIR:-/tmp}/cssints-figure-terminal"
+mkdir -p "$FIG"
+$SOLID --page figure --spec solid/specs/bars.json --cols 60 --rows 7 --dump "$FIG/solid-figure.txt"
+grep -q "A frame, by target" "$FIG/solid-figure.txt" || { echo "FAIL: the figure page drew no title"; exit 1; }
+grep -q "desktop" "$FIG/solid-figure.txt" || { echo "FAIL: the figure page drew no bar row"; exit 1; }
+identical "the figure page (bars.json): the title and the rows, the layout's own cells"
+$SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --dump "$FIG/solid-figure-funnel.txt"
+grep -q "► One in twenty visitors pays." "$FIG/solid-figure-funnel.txt" || {
+  echo "FAIL: the funnel's focus line (► and its words) is not in the cells"; exit 1; }
+grep -q "signed up" "$FIG/solid-figure-funnel.txt" || { echo "FAIL: the funnel drew no step"; exit 1; }
+identical "the funnel spec: its steps and its focus line with ►, so the point reads without colour"
+# a press on a figure is nothing: the page declares no control of its own
+$SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --dump "$FIG/solid-figure-base.txt"
+$SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 20,4 --dump "$FIG/solid-figure-click.txt"
+cmp "$FIG/solid-figure-base.txt" "$FIG/solid-figure-click.txt" || {
+  echo "FAIL: a click on the figure changed its cells"; exit 1; }
+identical "a click on the figure changes nothing (no control, no state)"
+
 # the cost: the frame (declare + Clay + the commands into cells) and the same cells as ANSI, on this machine
 bench=$($SOLID --bench 20)
 echo "$bench"
