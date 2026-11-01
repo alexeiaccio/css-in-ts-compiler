@@ -2,10 +2,10 @@ import { type ActionStep, type Driver, type Json, Unsupported } from "@cssints/a
 import { flush } from "solid-js";
 
 /**
- * The DOM side of the animation spec's vocabulary. The user-level steps are real input (a click, the two pointer
- * events); the effect steps act on the animation the component really created: `finish` completes it, and `frame`
- * advances its paused timeline one point of the spec's five-point grid. Nothing here counts frames or keeps a second
- * copy of the phase: `value` reads the machine and the animation's own `currentTime`.
+ * The DOM side of the animation spec's vocabulary. The user-level steps reach the real trigger (a click and the two
+ * pointer events); the effect steps act on the animation the component really created: `finish` completes it, and
+ * `frame` advances its paused timeline one point of the spec's five-point grid. Nothing here counts frames or keeps a
+ * second copy of the phase: `value` reads the machine and the animation's own `currentTime`.
  */
 export interface Mounted {
   readonly root: HTMLElement;
