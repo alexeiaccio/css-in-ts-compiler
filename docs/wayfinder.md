@@ -3417,3 +3417,69 @@ declares the whole column on one frame — the native note's element-count ceili
 The oracle is a plain browser test, not a scenario: there is no APG pattern and no Quint machine for virtualisation (the state is pixels), so `virtual-list.browser.test.tsx` mounts 10 000 rows in a 600 px port and checks the declared count, the `aria-setsize`/`aria-posinset` pair, the whole `scrollHeight`, a middle scroll's different window at exact `offsetTop`s, and `scrollToIndex(9000)`; `table.browser.test.tsx` adds the window: `aria-rowcount` 10 000, `aria-rowindex` per row, a scroll that re-renders another window, and a select-all that covers only it. The registry item is `tested: true` with no `<item>-driver.ts` (nothing to replay), and the generated item now also ships `render.tsx` for the table, which it imported but did not list.
 
 Left: horizontal virtualisation, a sticky header inside the scrollport (the arithmetic starts at the content's 0, so the header is a sibling above the port), a measured table window (a `<tr>` whose height differs per row is the measured mode, and the primitive would need the table's rows to carry its `ref`), and a visible count of the selection outside the window — the demo says "N selected" but the table itself does not announce how many of the whole set are selected. The measured window still rebuilds a prefix sum per call, fine for a feed, not for a dataset.
+
+## A Quint machine for an animated disclosure (packages/apg-specs, 2026-11-01)
+
+The repo's primitives keep their logical state in a signal (`open`), and a signal is enough until the component
+animates. Then five things appear that no signal can hold, and each is a known bug: two intents arriving in one
+frame (`open` then `close`, or the reverse) must end at the last one with one live effect, not two; leaving a
+transition must cancel its effect and the cancelled effect's late `finish` must move nothing; an interrupted close
+must continue from where the box is, not from `open`; a transition that supersedes another must replace the effect
+handle; and a burst of `pointerenter`/`pointerleave` must coalesce into its last intent without losing it. A signal
+also cannot express the split that makes the pattern: `aria-expanded` follows the intent at once, the box animates,
+and the machine's own state settles one effect later.
+
+`specs/patterns/animation.qnt`. Not `specs/apg/` — there is no WAI-ARIA APG page for "animate the disclosure", and
+the patterns family is where a non-APG machine goes (the same reasoning as `resizable-panels` and `dropzone`). No
+CSS specification is the model either: the source of truth is the protocol itself, the five properties above, and
+the spec says so plainly. A real implementation runs `Element.animate` (WAAPI), settles on the animation's
+`finished` promise or a `transitionend`, cancels the old animation before starting the new one, and short-circuits
+on `prefers-reduced-motion: reduce`; that is the protocol, and the browser detail is the DOM test's.
+
+Four states (`visual`: `closed`, `opening`, `open`, `closing`) and no `direction` variable: `opening`/`closing` are
+the direction, and a reversal is a `visual` change that keeps `progress`, so a second variable would only be a name
+the invariants have to keep in sync. `progress` is the box's position on a five-point grid (0 closed .. 4 open);
+`logical` is the exposed intent (`aria-expanded`), `committed` the state the machine has settled at, `optimistic`
+the split between them, `visible` the content's `hidden`. `handle` is the live effect's id (0 none), `last` the id
+of the effect the live one replaced, `live` the count of running effects (0 or 1), `pending` the debounce window.
+An intent that arrives at rest starts an effect; one that arrives during the opposite effect reverses it, keeps
+`progress`, and replaces the handle (`last` keeps the cancelled id, which is what a stale `finish` carries and what
+`CancelledFinishIgnored` and `StaleCarriesCancelled` reject).
+
+Fifteen invariants, each with the bug it rules out: `LastIntentWins` (a settle that landed anywhere but the intent),
+`OneEffectPerState` (two live effects), `OptimisticIsSplit` (an `optimistic` flag that disagrees with the exposed
+and committed states), `OptimisticLeadsOnIntent` (an intent whose effect moved the committed state before settling),
+`OptimisticReconcilesOnSettle` (a settle that left the split open), `OptimisticRollsBackOnCancel` (a superseded
+intent that committed anyway; the aborted intent leaves nothing in `committed` and nothing in `aria-expanded`, only
+the box's own continuity), `NoStaleOptimistic` (a box animating towards an intent the machine no longer holds, or an
+optimistic exposure with no live effect to reconcile it), `CancelledFinishIgnored` (a late completion that moved the
+box or the handle), `StaleCarriesCancelled` (a stale completion carrying the live id), `ReversalKeepsPosition` (a
+reversal that restarted from an end, did not flip the direction, or kept the cancelled handle), `NoStuckState` (an
+in-flight box with no handle that can finish it — the test walks from every reachable state to closed or open
+rather than trusting the local witness), `DebounceKeepsLast` (a commit that took an earlier intent of the burst, or
+left the window open), `CoalescingHolds` (a pointer intent that moved the box), `ReducedMotionSkips` (a transition
+entered with the preference on) and `Atomic` (a `hidden` that disagrees with the box — a close cut from the
+accessibility tree while it is still painted). A Quint step is already one flush, so the model cannot carry the
+"two frames" half of `reactive.qnt`'s `Atomic`: `Atomic` here states what a step can state (the host's attributes
+are this state's own values) and the header says so; the real two-write hazard is the reactive spec's for its
+owners, and the browser replay's.
+
+**The optimistic half is the runtime package's.** `@cssints/reactive`'s Solid bridge exposes `createOptimistic` /
+`createOptimisticStore`: a value that leads a committed one and reconciles when the async work settles. An animated
+disclosure is that store with an animation as the work, and `animation.qnt` is its oracle — the intent leads, the
+settle commits, a superseded intent rolls back and a cancelled completion cannot commit. `REQUEST VS COMMIT` is
+that split with the effect's settle as the commit, not a host's acceptance: the machine starts after an intent is
+accepted, and a host that rejects one is the reactive spec's business.
+
+Checked: `bun run generate:all` regenerated 47 specs byte-identically apart from the new model and scaffolding (46
+stood before this branch; AGENTS.md's count still says 45, already one behind, and that line is the coordinator's
+to bump with the parallel `packages/machine` work). Quint's own typechecker accepts all 47; `test/patterns/animation.test.ts`
+carries the invariant list, teeth for every invariant on hand-built bad states (including the multi-invariant ones,
+stated as such), the reachable-state checks for the race, the reversal, the stale handle, the window and the split,
+the liveness walk over the explored states, and the 15 scenarios through `specDriver`; `packages/apg-specs` 973
+tests. **What it cannot see**: real timing (durations, easing, frame pacing — `tick` is one arbitrary frame),
+WAAPI's own completion ordering (`finished` after `cancel()`, a rejected promise, `transitionend` per property),
+the CSS (`grid-template-rows`, `opacity`, `translate`, `@starting-style`), the hover plumbing and `display: none`.
+**Left**: no runtime — `packages/headless` has no disclosure yet, so there is no implementation for a differential
+walk, and the machine is the oracle a `createDisclosure` would be written against; the `createOptimisticStore` call
+site in the Solid bridge; and the port to `native/headless`.
