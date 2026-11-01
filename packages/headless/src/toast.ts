@@ -59,8 +59,19 @@ export interface Toast {
   readonly toasts: Accessor<readonly ToastItem[]>;
   /** Queues a toast and returns its id. */
   readonly show: (input: ToastInput) => string;
+  /** Removes a toast now, skipping whatever a renderer would animate. */
   readonly dismiss: (id: string) => void;
   readonly dismissAll: () => void;
+  /**
+   * Asks the renderer to remove a toast: every `onDismissRequest` handler is called and the removal is the one that
+   * claims it (the countdown is over either way). With no handler, or none that claims it, the toast leaves at once.
+   */
+  readonly requestDismiss: (id: string) => void;
+  /**
+   * A toast the countdown wants gone: return `true` when this renderer owns the row and call `dismiss(id)` when it has
+   * finished leaving. The queue still holds the item, so its ceiling counts it until then.
+   */
+  readonly onDismissRequest: (handler: (id: string) => boolean) => () => void;
   readonly regionProps: ToastRegionProps;
   readonly toastProps: (id: string) => ToastItemProps;
 }
@@ -85,11 +96,17 @@ interface Countdown {
  * The timeout is a floor of practice, not of code: the default is 5000 ms
  * because both Base UI and React Aria agree on at least five seconds to read a
  * message; shorter values exist for tests and are the host's judgement.
+ *
+ * The countdown does not remove a toast by itself: it asks, through
+ * `onDismissRequest`, and a renderer that animates the departure answers with
+ * `dismiss(id)` when the row is gone. A host with no renderer hears nothing and
+ * the toast leaves at once.
  */
 export const createToast = (options: ToastOptions = {}): Toast => {
   const [version, setVersion] = createSignal(0);
   let items: ToastItem[] = [];
   const timers = new Map<string, Countdown>();
+  const requests = new Set<(id: string) => boolean>();
 
   const toasts = (): readonly ToastItem[] => {
     version();
@@ -135,7 +152,31 @@ export const createToast = (options: ToastOptions = {}): Toast => {
   };
 
   const arm = (id: string, countdown: Countdown): void => {
-    countdown.handle = setTimeout(() => dismiss(id), countdown.remaining);
+    countdown.handle = setTimeout(() => {
+      countdown.handle = undefined;
+      request(id);
+    }, countdown.remaining);
+  };
+
+  // The countdown is over: the renderer that owns the row removes it, and a toast no renderer claims leaves at once.
+  const request = (id: string): void => {
+    if (!items.some((item) => item.id === id)) {
+      return;
+    }
+    const countdown = timers.get(id);
+    if (countdown !== undefined) {
+      if (countdown.handle !== undefined) {
+        clearTimeout(countdown.handle);
+      }
+      timers.delete(id);
+    }
+    let claimed = false;
+    for (const handler of requests) {
+      claimed = handler(id) || claimed;
+    }
+    if (!claimed) {
+      dismiss(id);
+    }
   };
 
   const pause = (id: string): void => {
@@ -237,6 +278,13 @@ export const createToast = (options: ToastOptions = {}): Toast => {
     show,
     dismiss,
     dismissAll,
+    requestDismiss: request,
+    onDismissRequest: (handler) => {
+      requests.add(handler);
+      return () => {
+        requests.delete(handler);
+      };
+    },
     regionProps: {
       role: "region",
       get "aria-label"() {

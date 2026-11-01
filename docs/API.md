@@ -1358,8 +1358,10 @@ createToast(options?: {
     description?: string | undefined;
     tone?: "info" | "success" | "error" | undefined; // "info"
   }): string; // the id
-  dismiss(id: string): void;
+  dismiss(id: string): void; // removes now, skipping whatever a renderer would animate
   dismissAll(): void;
+  requestDismiss(id: string): void; // asks the renderer to remove it; removes at once when none claims it
+  onDismissRequest(handler: (id: string) => boolean): () => void; // the expiry: true when this row owns it, then dismiss
   regionProps: { role: "region"; "aria-label": string }; // the F6 target
   toastProps(id: string): {
     role: "alert" | "status"; // "alert" for tone "error", "status" otherwise
@@ -1375,6 +1377,8 @@ createToast(options?: {
 `createStatus` renders one `role=status` region that the host keeps mounted; `show()` replaces its text, so a burst of "Link copied" / "Saved" reads as the last state, not as a queue. A status is never for errors: an error is `createAlert` (`role=alert`), and a titled message with a timeout is a toast. Both take `from: () => text`, which makes the text the host's own signal (`createAlert({ from: () => error() })`): no effect mirrors it into `show()`, and clearing the signal unmounts the alert.
 
 A toast is its own live region inside the `role=region` landmark: `role=alert` for `tone: "error"` (assertive) and `role=status` otherwise (polite). The host renders the `title` and `description` handed to `show` inside that element, so the toast's own text is the announcement — `aria-atomic` reads all of it, a close button's label included, so keep a toast to its title and description and give a close button no more than an icon with a label. The role sits on the toast rather than on one container per tone: the container is the `region` landmark, so it cannot also be the live region, and a role per toast needs no second region from the host. One timer per toast honours `timeout`; hover pauses it when `pauseOnHover` is true and focus always pauses, and both resume with the time that was left rather than restarting the deadline. `max` drops the oldest toast past the ceiling, and `onDismiss` fires for every toast that leaves. F6 into the region is the host's handler (hotkeys are a separate bean, cssints-h0d5): give `regionProps` an element with `tabindex="-1"` and focus it, remembering where focus was.
+
+The countdown does not remove a toast itself: its expiry calls every `onDismissRequest` handler and the removal is the renderer's — a handler returns `true` when it owns that row and calls `dismiss(id)` once the row has finished leaving, so a departure can be animated. With no handler, none that claims the id (a row that has not mounted yet), and for `requestDismiss(id)`, the toast leaves at once, as `dismiss(id)` always does; `dismissAll()` does too, and so does the ceiling, which replaces the dropped row with the new one.
 
 ### Headless: `createPopover` (`@cssints/headless`)
 

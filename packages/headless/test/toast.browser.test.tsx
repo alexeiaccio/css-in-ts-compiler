@@ -184,6 +184,46 @@ describe("createToast", () => {
     expect(toast.dismissed).toEqual([id]);
   });
 
+  it("asks a renderer to remove the toast, and removes it when none claims the id", async () => {
+    const toast = mountToast({ timeout: 30 });
+    const asked: string[] = [];
+    toast.api.onDismissRequest((id) => {
+      asked.push(id);
+      // a renderer that does not own this row (it has not mounted yet, or is another one) declines it
+      return false;
+    });
+    const id = toast.api.show({ title: "Asked" });
+
+    // the countdown's expiry is the ask, and the unclaimed toast leaves at once with one departure announced
+    await waitFor(() => asked.length === 1);
+    expect(asked).toEqual([id]);
+    await waitFor(() => byId(toast.root, id) === null);
+    expect(toast.dismissed).toEqual([id]);
+  });
+
+  it("leaves the removal to the renderer that claims the toast", async () => {
+    const toast = mountToast({ timeout: 30 });
+    const asked: string[] = [];
+    const id = toast.api.show({ title: "Claimed" });
+    toast.api.onDismissRequest((askedId) => {
+      asked.push(askedId);
+      // this renderer owns the row: it removes the toast when the row is gone
+      return askedId === id;
+    });
+
+    // the ask is not a removal: the toast is still queued (and counted by the ceiling) until the renderer answers
+    await waitFor(() => asked.length === 1);
+    expect(toast.api.toasts().map((item) => item.id)).toEqual([id]);
+    expect(byId(toast.root, id)).not.toBeNull();
+    expect(toast.dismissed).toEqual([]);
+
+    // the renderer's answer, once its row has left
+    toast.api.dismiss(id);
+    await tick();
+    expect(toast.api.toasts()).toHaveLength(0);
+    expect(toast.dismissed).toEqual([id]);
+  });
+
   it("pauses the countdown on hover and resumes from where it stopped", async () => {
     // Hovered at ~800 of 1200: after the release about 400 ms are left, so a
     // dismissal well before another 1200 ms is what tells a resume from a restart.
