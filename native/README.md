@@ -1927,8 +1927,9 @@ so the C pages' frames are untouched. The Sky page needed four things of the bin
   place. Only a float's shadow, backdrop and alpha fade are still a cell's to drop;
 - a text's line height is the **cell's**, not the style's: Clay lays a text out at its `lineHeight` (the Sky card's 22px
   name was 1.4 rows and pushed every card out of its cells), so `term_text` writes `CELL_H` (measure.c already returns
-  one cell a line). The per-frame value table is 256, because twelve card re-cuts and the page's own writes are more
-  than 64. The parts of a style a cell cannot show are still not declared: an image, a shadow, a backdrop, a gradient,
+  one cell a line). The per-frame value table is 1,024, because a feed's measuring pass declares every card of a page
+  (51 with the second one, five values each) and the page's own writes are on top of that; a longer page needs a bigger
+  table. The parts of a style a cell cannot show are still not declared: an image, a shadow, a backdrop, a gradient,
   and the group fields of the value channel (46–49, 55), which arrive and are dropped — the page's entry animation is a
   no-op in cells rather than a different frame.
 
@@ -1944,14 +1945,17 @@ asks the page's focus, and `Sensors.tsx` has no focus prop, so the host draws th
 (`styles.magnitude`'s colour in the theme that is on) while its own focus is on the pill. Tab moves it off the pill,
 which is where the C page's list would take it; there is no list in `Sensors.tsx`, so the ring simply goes.
 
-**The Sky feed.** `bun terminal/solid.ts --page sky` renders `solid/app/Sky.tsx` **unmodified**: its props are the
-host's `input` (the headless parts and the focus manager), its `motion` (the page puts its wheel, its pointer and its
-tick there), `theme`/`setTheme` (the host's `t`), and `load`. The terminal has no AppView, so the host settles `load`'s
-promise with the app's **recorded** thread — apps/csssky's `thread.json`, through the page's own `screenOf`, the fixture
-`solid/thread.test.ts` hands it — one frame after the screen mounts: a card's click draws the loading row and the app's
-rows the frame after it. The page needed no prop it does not have on the desktop. What the host re-cuts, through the
+**The Sky feed.** `bun terminal/solid.ts --page sky` renders `solid/app/Sky.tsx` over the terminal's cells: its props are
+the host's `input` (the headless parts and the focus manager), its `motion` (the page puts its wheel, its pointer and its
+tick there), `theme`/`setTheme` (the host's `t`), `load`, `pages` — and two the desktop host has too: `screen` (the page
+started on its notifications) and `mutate`. `pages` is what this step added to the page: the app's `homeScreen` at a
+cursor, so the feed is the **data's** and not the six fixtures transcribed in the page (`posts`, the synthetic feed's
+prop, still replaces Discover on the desktop). With no source the page is those fixtures, so the desktop and the browser
+are unchanged; with one, the feed's first page is asked on the page's first frame, the next when its scroll reaches the
+feed's end (the app's own sentinel at the list's end), and the cards are **appended below the reader** — the offset does
+not follow them, because a page that arrived is not a re-measure of the same column. What the host re-cuts, through the
 value channel (written by the walk just before each element opens, so a frame uses a value only for the elements it
-declares: the table is 256 a frame), is the length set a cell cannot take as px:
+declares), is the length set a cell cannot take as px:
 
 | the page | px | the cell |
 | --- | --- | --- |
@@ -1960,6 +1964,29 @@ declares: the table is 256 a frame), is the length set a cell cannot take as px:
 | the status line | 32 high | 1 row |
 | a card | 12 padding, 8 gap | 1 cell of side padding, 0 above/below, 0 gap (its lines are rows) |
 | the feed | 12 padding, 8 gap | **not** re-cut: the page's own scroll arithmetic adds the same lengths (a host that zeroed them would make the page's content end larger than Clay's and the clip would stop the scroll short) |
+
+**The data: the app's own calls, from its recordings.** `terminal/data.ts` is the terminal's AppView, so the page asks
+what it asks the network. `homeScreen(feed, cursor)` answers Discover from `home-discover-1` and then
+`home-discover-2` (the first page's cursor is the one the second was recorded with), Science from `home-science-1` and
+then an empty page, and News with an empty page (no recording — the app's empty feed); a third page is the empty page,
+which is the **end**. A page is filtered by the app's own `postVerdict` before it leaves, as `homeScreen` filters it (28
+and 23 of Discover's 30, 25 of Science's). `threadScreen(uri)` is `thread.json` through the page's own `screenOf` — one
+recording for whichever post opened it, as the app's test stub and `terminal/thread.c` show it — and the host hands it
+over one frame after the screen mounts, so the loading row is a frame the run draws. **`listNotifications` is not
+here**: apps/csssky has no notifications screen, route or fixture, so the page's rows stay hand-carried
+(`app/notify.ts`), and the file says so instead of inventing an answer.
+
+The feed's three states are the page's **status line**, because a row inside the clip would be out of view exactly at
+the end — the page's content end is the window's, not the declared rows': `Discover — loading…` on the first frame,
+`Discover — 28 posts — loading more…` at the end while the next page is on its way, `Discover — 51 posts — that's all
+for now` (the app's own words) when the source answers an empty page, and `Discover — could not load the feed` when it
+rejects. Two knobs make the last states reachable: `--offline` fails both calls (and a notification's thread), and
+`--mutate cursor` answers page 1 for page 2, which the page's dedupe (a card is its post's at-uri) adds nothing of and
+calls the end. The recordings are four JSON modules (`with { type: "json" }`, 224,760 bytes: 53,113 + 54,624 + 93,964 +
+23,059) in the host's module graph, imported only when the Sky page starts, so the Sensors host pays none of them.
+Numbers (`terminal/test.sh`): 28 cards on the first page, 23 on the second, the end after 51; the frame over 1,600 cells
+is **0.08 ms** with the full second page (36 commands); ArrowDown is 40px, PageDown a viewport (288px at 80x20, 160px at
+80x12), one wheel notch 10px; and the C feed's counted distance from the page is below.
 
 The tab's focus is the C bar's active tab — the accent fill and an on-accent label — because a `:focus` ring on a
 one-row tab is the label's row; the feed's `:focus` ring is the page's own `t.color.ring` border as one cell of box
@@ -2029,8 +2056,8 @@ card's snippet (row 4 in 9, the same words at a one-cell inset); the worst are t
 which the page's cards at rest have none of, and its footer. The stored guards are
 `terminal/expected-solid-notify.txt` and `-focus.txt` (the ring on the third row after Tab,Tab, as the C's focus frame
 has it), and the two mutations are the page's: `--mutate verbs` draws one wrong verb on every row (the stored dump fails)
-and `--mutate rows` never registers the rows (Tab,Tab is not the third row's frame). The frame is **0.19 ms** (64
-commands, 2080 cells) and its ANSI 0.18 ms (4956 bytes).
+and `--mutate rows` never registers the rows (Tab,Tab is not the third row's frame). The frame is **0.12–0.16 ms** (70
+commands, 2080 cells — the feed's cards are declared under the float too) and its ANSI 0.16 ms (5.1 KB).
 
 **The C feed's cells are not the Solid feed's, and the check does not pretend they are.** The C card
 (`terminal/sky.c`) has a hand-cut border and separator row, its name and meta on one row, its body clipped to one row,
@@ -2039,30 +2066,30 @@ no border at rest, its meta on its own row, a body that wraps at words, its coun
 page's status line as its footer. So no row of the two 80x20 frames is identical, and the measured distance is:
 
 ```
-solid, terminal: the Sky feed against terminal/expected-sky.txt (the C feed): 1251 cells, 0 of 20 rows the same, the worst row 1 (80 of 80); rows 32,80,68,31,72,73,80,80,78,40,12,79,80,80,75,6,78,79,80,48
-solid, terminal: after the tab switch against terminal/expected-sky-focus.txt: 1397 cells, 0 of 20 rows the same, the worst row 1 (80 of 80); rows 32,80,74,9,76,79,80,80,76,67,77,80,80,76,77,80,77,80,67,50
-solid, terminal: after the scroll against the C list's scrolled frame (80x12): 684 cells, 0 of 12 rows the same, the worst row 1 (80 of 80); rows 32,80,76,67,79,79,80,16,10,37,80,48
+solid, terminal: the Sky feed against terminal/expected-sky.txt (the C feed): 1475 cells, 0 of 20 rows the same, the worst row 1 (80 of 80); rows 32,80,76,74,77,74,80,80,77,74,78,79,80,80,76,74,77,79,80,48
+solid, terminal: after the tab switch against terminal/expected-sky-focus.txt: 1399 cells, 0 of 20 rows the same, the worst row 1 (80 of 80); rows 32,80,79,75,77,69,80,80,77,78,79,80,80,69,73,73,64,80,24,50
+solid, terminal: after the scroll against the C list's scrolled frame (80x12): 684 cells, 0 of 12 rows the same, the worst row 6 (80 of 80); rows 32,1,74,78,75,66,80,3,73,74,80,48
 ```
 
-The worst row is row 1 (80 of 80) every time: the C page's card top border against the Solid card's first line, which
-has no border. The closest rows are the body lines — row 3 differs in 31 of 80 cells at rest and 9 after the tab switch,
-row 15 in 6 — because the *words* are the same, one cell in and with no `│`. The C page's own rows (the bar's labels
-with their `1`/`2`/`3`, the six separator rows and the key-hint footer) have no counterpart; the bar row is 32 cells
-apart (the C bar's numbers and padding against the page's one-cell rhythm and the gear's marks). The tab switch and the
-scroll are compared
-as *behaviour*, not glyphs: after `Tab,ArrowRight` both pages show the Science feed (the Solid's 1397-cell distance is
-the same card-shape difference), after the wheel the Solid feed's rows move by its own offset (-24px, 1.5 rows, at
-80x20 where the C list does not scroll; -152px, 9.5 rows, at 80x12 where the C list's `scroll_into` drops two cards
-instead of moving an offset) and both hide the first post and show a later one. That is the honest ceiling: the C page
-re-cuts card heights and clips text by hand, so a cell page that keeps the app's own card structure cannot land on its
-rows.
+The worst row is row 1 (80 of 80) at rest and after the tab switch: the C page's card top border against the Solid
+card's first line, which has no border. The closest rows are the body lines — Science's row 5 and row 10 differ in 8 of
+80 cells, the same words one cell in and with no `│` — and the bar (row 0, 32 cells: the C's `1`/`2`/`3` and its
+padding against the page's rhythm) and the counts' words (67). The scrolled frame is the closest of the three: row 1 in
+1 of 80 and row 7 in 3, both at a one-cell offset. The C page's own six separator rows and the key-hints footer have no
+counterpart. The tab switch and the scroll are compared as *behaviour*, not glyphs: after `Tab,ArrowRight` both pages
+show the Science feed (the Solid's 1399-cell distance is the same card-shape difference), and after `PageDown` the Solid
+feed's rows move by its own offset (288px, 18 rows, at 80x20; 160px, 10 rows, at 80x12 where the C list's `scroll_into`
+drops two cards instead of moving an offset) and both hide the first post and show a later one. That is the honest
+ceiling: the C page re-cuts card heights and clips text by hand, so a cell page that keeps the app's own card structure
+cannot land on its rows.
 
-**The cost of the feed**, on this Mac (`--bench 50`, headless, 80x20 = 1600 cells, 34 commands): **0.11–0.35 ms a
-frame** over repeated runs (begin, the tree declared through Bun's FFI, Solid's flush, Clay's layout, and the commands
-turned into cells), and 0.12–0.17 ms more for the same cells as ANSI (3924 bytes, the file write included). The same
-`--bench` on the Sensors page is 0.04–0.13 ms (10 commands, the same 1600 cells): the feed is ~3.4x the commands, not
-the 30x a page of its element count might suggest, and it stays under a frame at 60fps with room. The C feed's own frame
-has not changed (~0.08 ms as the `demo --frames 1`/`--frames 201` delta, termbox2 included).
+**The cost of the feed**, on this Mac (`--bench 50`, headless, 80x20 = 1600 cells, 34–36 commands with the first page
+and the second): **0.08–0.17 ms a frame** over repeated runs (begin, the tree declared through Bun's FFI, Solid's flush,
+Clay's layout, and the commands turned into cells), and 0.11–0.16 ms more for the same cells as ANSI (3.9–4.4 KB, the
+file write included). The same `--bench` on the Sensors page is 0.04–0.13 ms (10 commands, the same 1600 cells): the
+feed is ~3.4x the commands, not the 30x a page of its element count might suggest, and it stays under a frame at 60fps
+with room. The C feed's own frame has not changed (~0.08 ms as the `demo --frames 1`/`--frames 201` delta, termbox2
+included).
 
 **The terminal's own palette.** `--system-theme` (`THEME=system`) asks the terminal instead of taking a flag: `tb2.c`'s
 `term_tb2_ask` opens `/dev/tty`, puts it in raw mode for the query, writes `@cssints/tui/system`'s `QUERY` — OSC 11 (the
@@ -2109,17 +2136,18 @@ is the slice's one real gap, counted by `terminal/test.sh` rather than hidden; t
 they are the same *page part* drawn by two different programs.
 
 **The cost**, on this Mac (`--bench 50`, headless; the number moves with the machine's load, so a range over repeated
-runs): the Sensors page's own 80x11 frame is **0.04–0.08 ms** (10 commands, 880 cells) and its 80x20 frame 0.10 in the
-suite's run; the Sky feed's 80x20 frame is **0.08–0.35 ms** (34 commands, 1600 cells), 0.11 in the suite's run — about
-3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a 60fps frame. The thread's
-80x26 frame is **0.13–0.15 ms** (66 commands, 2080 cells) and the profile's the same (**0.15** in the suite's run, 69
-commands): a full screen of rows costs about what the feed does, because the walk is the same per element and Clay's
-layout is a cell grid, not a page. The same cells as ANSI are 0.12–0.17 ms more (3924 bytes for the feed, 5759 for the
-thread, 5056 for the profile, the file write included). The C page's own frame is ~0.08 ms measured as the delta of
-`demo --frames 1` and `--frames 201` under a pty, termbox2's present included (`main.c` prints no frame time, so that
-delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's implementation, cells.c, render.c, measure.c and
-termbox2). The per-element FFI call is what the gap is: a page has one declaration per element and one per text through
-`bun:ffi`, where the C page calls Clay directly.
+runs): the Sensors page's own 80x11 frame is **0.04–0.08 ms** (10 commands, 880 cells) and its 80x20 frame 0.08 in the
+suite's run; the Sky feed's 80x20 frame is **0.08–0.17 ms** (34–36 commands, 1600 cells, the first page and the second),
+0.12 in the suite's run — about 3.4x the commands of the Sensors page, not the 30x the slice expected, and well inside a
+60fps frame. The thread's 80x26 frame is **0.13–0.25 ms** (66–70 commands, 2080 cells) and the profile's the same
+(**0.25** in the suite's run, 75 commands, the feed's cards declared under the float): a full screen of rows costs about
+what the feed does, because the walk is the same per element and Clay's layout is a cell grid, not a page. The same cells
+as ANSI are 0.11–0.20 ms more (3.9–4.4 KB for the feed, 5.8 KB for the thread, 5.1 KB for the profile, the file write
+included). The C page's own frame is
+~0.08 ms measured as the delta of `demo --frames 1` and `--frames 201` under a pty, termbox2's present included
+(`main.c` prints no frame time, so that delta is the number). The binding is 236 KB of `libterm.dylib` (Clay's
+implementation, cells.c, render.c, measure.c and termbox2). The per-element FFI call is what the gap is: a page has one
+declaration per element and one per text through `bun:ffi`, where the C page calls Clay directly.
 
 **What it cannot do in cells.** A text line is one row: the C pages clip a body to one row, and the Solid Sky page
 wraps at words (a long word is still broken nowhere) — neither is the paragraph the desktop draws. An image is a box

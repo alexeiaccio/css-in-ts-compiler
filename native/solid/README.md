@@ -84,13 +84,16 @@ bun terminal/solid.ts --page sky --bench 50       # the frame's ms and its cells
 sh terminal/test.sh                               # the stored frames and the C comparisons
 ```
 
-`Sky.tsx` needed no prop it does not have on the desktop: `input` (the headless parts), `motion` (the page puts its
-wheel, its pointer and its tick there), `theme`/`setTheme`, and `load` — and two of the terminal host's (the desktop's
-too): `screen` (`notify`: the page started on its notifications) and `mutate` (the mutation lines below). The terminal
-settles `load`'s promise with the app's **recorded** thread (apps/csssky's `thread.json` through the page's own
-`screenOf`) one frame after the screen mounts, so a card's click draws the loading row and then the app's rows; the
-profile needs nothing handed to it (`app/profile.ts` reads the recordings itself), and neither do the notifications
-(`app/notify.ts`'s five rows are the app's recordings hand-carried — the app has no notifications screen or fixture).
+`Sky.tsx` takes the props the desktop gives it — `input` (the headless parts), `motion` (the page puts its wheel, its
+pointer and its tick there), `theme`/`setTheme` — and two data ones: `pages` and `load`. `pages` is the step's: the
+app's `homeScreen` at a cursor, answered by `terminal/data.ts` from apps/csssky's **recordings** (Discover's two pages,
+Science's one, an empty page for News and for the end), so the feed's first page comes from the fixtures, the next is
+asked at the feed's end, and the loading/end/error states are the page's status line. `load` is settled by the host one
+frame after a screen mounts with the recorded thread (apps/csssky's `thread.json` through the page's own `screenOf`), so
+a card's click draws the loading row and then the app's rows; the profile needs nothing handed to it (`app/profile.ts`
+reads the recordings itself), and neither do the notifications (`app/notify.ts`'s five rows are the app's recordings
+hand-carried — the app has no notifications screen or fixture, which is why `terminal/data.ts` has no
+`listNotifications`).
 The thread, the profile and the notifications are the page's **screens**, not entries of their own (`Sky.tsx` mounts
 the thread as a root float and calls `Profile.tsx`'s `createProfile` and `Notify.tsx`'s `createNotify` in its own tree),
 so `--page notify` is the sky page with its own `screen` prop, not a page: Enter on the feed presses the first card's
@@ -110,18 +113,18 @@ screens), and a text line height forced to the cell's; the re-cut is written by 
 a frame writes a value only for the elements it declares (the table is 256).
 
 The C screens (`terminal/sky.c`, `thread.c`, `profile.c`, `notify.c`) are **not** reproducible cell for cell, and
-`terminal/test.sh` says so with numbers: the feed 1251 of 1600 cells differ at rest, 1397 after the tab switch, 684
-after the scroll; the thread 1957 of 2080 at 80x26; the profile 1837 of 2080; the notifications 1564 at rest and 1910
-after `Tab,Tab`; no row identical (the worst rows are the C card's top border, 80/80, the C profile's banner band, 80/80,
-and the notifications' card borders and footer, 80/80) — the C card has a hand-cut border, its name and meta share a
-row, its body is clipped, its counts are glyphs and its footer the key hints, and the C profile has a banner band, an
-accent-pill tab and the app's reason lines; the notifications' C page names the screen in its bar and draws a separator
-row at rest. The frames are 0.08-0.35 ms for the feed (34 commands over 1600 cells), 0.13-0.15 ms for the thread and the
-profile (66 and 69 commands over 2080) and 0.19 ms for the notifications (64 commands over 2080), so Solid on a
-terminal is viable. **All four** of the Sky page's screens are the page's own now (the feed, the thread, the profile and
-the notifications — the last one's rows are the app's recordings hand-carried, `app/notify.ts`, because the app has no
-notifications screen or fixture). The full account, with what a cell cannot carry, is `native/README.md`'s "Solid on the
-terminal".
+`terminal/test.sh` says so with numbers: the feed 1475 of 1600 cells differ at rest (the recording's page 1), 1399 after
+the tab switch, 684 after the scroll; the thread 1957 of 2080 at 80x26; the profile 1837 of 2080; the notifications 1564
+at rest and 1910 after `Tab,Tab`; no row identical (the worst rows are the C card's top border, 80/80, the C profile's
+banner band, 80/80, and the notifications' card borders and footer, 80/80) — the C card has a hand-cut border, its name
+and meta share a row, its body is clipped, its counts are glyphs and its footer the key hints, and the C profile has a
+banner band, an accent-pill tab and the app's reason lines; the notifications' C page names the screen in its bar and
+draws a separator row at rest. The frames are 0.08-0.17 ms for the feed (34-36 commands over 1600 cells), 0.13-0.25 ms
+for the thread and the profile (66-75 commands over 2080, the feed's cards declared under the float) and 0.12-0.16 ms for
+the notifications (70 commands over 2080), so Solid on a terminal is viable. **All four** of the Sky page's screens are the
+page's own now (the feed, the thread, the profile and the notifications — the last one's rows are the app's recordings
+hand-carried, `app/notify.ts`, because the app has no notifications screen or fixture). The full account, with what a cell
+cannot carry, is `native/README.md`'s "Solid on the terminal".
 
 **The theme's third value.** `theme` is `"light"`, the page's default (undefined) — or `"system"`: `--system-theme`
 (`THEME=system`) asks the terminal at startup and on `s` (`terminal/tb2.c`'s `term_tb2_ask` over `/dev/tty` with
