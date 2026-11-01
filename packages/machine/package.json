@@ -1,6 +1,6 @@
 {
   "name": "@cssints/machine",
-  "version": "0.25.0",
+  "version": "0.27.0",
   "description": "A minimal, dependency-free, type-safe state machine for UI protocols: effects as data, a stale effect cannot complete, debounce with a flush, an injectable clock and a harness that proves it without a browser",
   "license": "MIT",
   "repository": {
