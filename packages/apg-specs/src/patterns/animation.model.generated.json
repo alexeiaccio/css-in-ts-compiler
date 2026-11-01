@@ -1,0 +1,4893 @@
+{
+  "generatedFrom": "../../specs/patterns/animation.qnt",
+  "specHash": "5155ac70a65e09f299622dc5ce5f98fd7e54cdb7f16a0ec0b04fd170750a033f",
+  "module": "patterns_animation",
+  "vars": [
+    {
+      "name": "visual",
+      "type": "str"
+    },
+    {
+      "name": "committed",
+      "type": "str"
+    },
+    {
+      "name": "logical",
+      "type": "bool"
+    },
+    {
+      "name": "optimistic",
+      "type": "bool"
+    },
+    {
+      "name": "visible",
+      "type": "bool"
+    },
+    {
+      "name": "progress",
+      "type": "int"
+    },
+    {
+      "name": "handle",
+      "type": "int"
+    },
+    {
+      "name": "last",
+      "type": "int"
+    },
+    {
+      "name": "live",
+      "type": "int"
+    },
+    {
+      "name": "pending",
+      "type": "str"
+    },
+    {
+      "name": "reduced",
+      "type": "bool"
+    },
+    {
+      "name": "stale",
+      "type": "bool"
+    },
+    {
+      "name": "reversed",
+      "type": "bool"
+    },
+    {
+      "name": "lead",
+      "type": "bool"
+    },
+    {
+      "name": "settled",
+      "type": "bool"
+    },
+    {
+      "name": "debounced",
+      "type": "bool"
+    },
+    {
+      "name": "coalesced",
+      "type": "bool"
+    },
+    {
+      "name": "arrived",
+      "type": "int"
+    },
+    {
+      "name": "snapVisual",
+      "type": "str"
+    },
+    {
+      "name": "snapCommitted",
+      "type": "str"
+    },
+    {
+      "name": "snapLogical",
+      "type": "bool"
+    },
+    {
+      "name": "snapProgress",
+      "type": "int"
+    },
+    {
+      "name": "snapHandle",
+      "type": "int"
+    },
+    {
+      "name": "snapPending",
+      "type": "str"
+    }
+  ],
+  "defs": {
+    "ZERO": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "0"
+      }
+    },
+    "ONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "1"
+      }
+    },
+    "FULL": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "4"
+      }
+    },
+    "inFlight": {
+      "kind": "function",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "str",
+                "value": "opening"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "str",
+                "value": "closing"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "atRest": {
+      "kind": "function",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "str",
+                "value": "closed"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "str",
+                "value": "open"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "shows": {
+      "kind": "function",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "neq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "v"
+          },
+          {
+            "kind": "str",
+            "value": "closed"
+          }
+        ]
+      }
+    },
+    "restPhase": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "o"
+          },
+          {
+            "kind": "str",
+            "value": "open"
+          },
+          {
+            "kind": "str",
+            "value": "closed"
+          }
+        ]
+      }
+    },
+    "movingPhase": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "o"
+          },
+          {
+            "kind": "str",
+            "value": "opening"
+          },
+          {
+            "kind": "str",
+            "value": "closing"
+          }
+        ]
+      }
+    },
+    "endProgress": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "o"
+          },
+          {
+            "kind": "name",
+            "name": "FULL"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "openAt": {
+      "kind": "function",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "str",
+            "value": "open"
+          }
+        ]
+      }
+    },
+    "isOptimistic": {
+      "kind": "function",
+      "params": [
+        "o",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "neq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "o"
+          },
+          {
+            "kind": "app",
+            "opcode": "openAt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "bump": {
+      "kind": "function",
+      "params": [
+        "p"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "p"
+              },
+              {
+                "kind": "name",
+                "name": "FULL"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "p"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "FULL"
+          }
+        ]
+      }
+    },
+    "drop": {
+      "kind": "function",
+      "params": [
+        "p"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "p"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "p"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "isNoop": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "visual"
+          },
+          {
+            "kind": "app",
+            "opcode": "restPhase",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isReversal": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "visual"
+          },
+          {
+            "kind": "app",
+            "opcode": "movingPhase",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isStart": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "visual"
+          },
+          {
+            "kind": "app",
+            "opcode": "restPhase",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "supersedes": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reduced"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isReversal",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isStart",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextVisual": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "reduced"
+          },
+          {
+            "kind": "app",
+            "opcode": "restPhase",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isReversal",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "o"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isStart",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "o"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "movingPhase",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "visual"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextCommitted": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "reduced"
+          },
+          {
+            "kind": "app",
+            "opcode": "restPhase",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "committed"
+          }
+        ]
+      }
+    },
+    "nextOptimistic": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "isOptimistic",
+        "args": [
+          {
+            "kind": "name",
+            "name": "o"
+          },
+          {
+            "kind": "app",
+            "opcode": "nextCommitted",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextVisible": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "shows",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "nextVisual",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextProgress": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "reduced"
+          },
+          {
+            "kind": "app",
+            "opcode": "endProgress",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isStart",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "endProgress",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "o"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "progress"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextHandle": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "supersedes",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "handle"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reduced"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              },
+              {
+                "kind": "name",
+                "name": "handle"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextLive": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "supersedes",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ONE"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reduced"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              },
+              {
+                "kind": "name",
+                "name": "live"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextLast": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "supersedes",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "handle"
+          },
+          {
+            "kind": "name",
+            "name": "last"
+          }
+        ]
+      }
+    },
+    "nextReversed": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "isReversal",
+        "args": [
+          {
+            "kind": "name",
+            "name": "o"
+          }
+        ]
+      }
+    },
+    "nextLead": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reduced"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isStart",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextSettled": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "name",
+        "name": "reduced"
+      }
+    },
+    "headingTo": {
+      "kind": "function",
+      "params": [
+        "o",
+        "v"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "reduced"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "app",
+                "opcode": "restPhase",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "app",
+                "opcode": "movingPhase",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "canFinish": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igt",
+        "args": [
+          {
+            "kind": "name",
+            "name": "handle"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "finishedVisual": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "visual"
+              },
+              {
+                "kind": "str",
+                "value": "opening"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "open"
+          },
+          {
+            "kind": "str",
+            "value": "closed"
+          }
+        ]
+      }
+    },
+    "finishedProgress": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "visual"
+              },
+              {
+                "kind": "str",
+                "value": "opening"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "FULL"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "committing": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "neq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "pending"
+          },
+          {
+            "kind": "str",
+            "value": "none"
+          }
+        ]
+      }
+    },
+    "commitOpen": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "pending"
+          },
+          {
+            "kind": "str",
+            "value": "open"
+          }
+        ]
+      }
+    },
+    "staleNow": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "last"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "last"
+              },
+              {
+                "kind": "name",
+                "name": "handle"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LastIntentWins": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "atRest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "open"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "committed"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "not",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "optimistic"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "progress"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "endProgress",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "logical"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OneEffectPerState": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "inFlight",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "live"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "inFlight",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "live"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OptimisticIsSplit": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "optimistic"
+          },
+          {
+            "kind": "app",
+            "opcode": "isOptimistic",
+            "args": [
+              {
+                "kind": "name",
+                "name": "logical"
+              },
+              {
+                "kind": "name",
+                "name": "committed"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OptimisticLeadsOnIntent": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lead"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "committed"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "snapCommitted"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "optimistic"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "headingTo",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "logical"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OptimisticReconcilesOnSettle": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "settled"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "committed"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "restPhase",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "logical"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "optimistic"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OptimisticRollsBackOnCancel": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reversed"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "committed"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "snapCommitted"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "logical"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "not",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "snapLogical"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "headingTo",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "logical"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "NoStaleOptimistic": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "inFlight",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "opening"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "optimistic"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "inFlight",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "CancelledFinishIgnored": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stale"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "snapVisual"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "progress"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapProgress"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapHandle"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "StaleCarriesCancelled": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stale"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "arrived"
+              },
+              {
+                "kind": "name",
+                "name": "handle"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ReversalKeepsPosition": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reversed"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "progress"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "snapProgress"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapVisual"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapHandle"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "NoStuckState": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "inFlight",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "handle"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DebounceKeepsLast": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "debounced"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "pending"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "snapPending"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "open"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "CoalescingHolds": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "coalesced"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "pending"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "logical"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "snapLogical"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "visual"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "snapVisual"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "progress"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "snapProgress"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "handle"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "snapHandle"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ReducedMotionSkips": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reduced"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "atRest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "live"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Atomic": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "visible"
+          },
+          {
+            "kind": "app",
+            "opcode": "shows",
+            "args": [
+              {
+                "kind": "name",
+                "name": "visual"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "str",
+            "value": "closed"
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "str",
+            "value": "closed"
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "str",
+            "value": "closed"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "str",
+            "value": "closed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        }
+      ]
+    },
+    {
+      "name": "open",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextVisual",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextCommitted",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOptimistic",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextVisible",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextProgress",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextHandle",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLast",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLive",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextReversed",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLead",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextSettled",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              }
+            ]
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextVisual",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextCommitted",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOptimistic",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextVisible",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextProgress",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextHandle",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLast",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLive",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextReversed",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLead",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextSettled",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "toggle",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextVisual",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextCommitted",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "logical"
+              }
+            ]
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOptimistic",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextVisible",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextProgress",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextHandle",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLast",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLive",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextReversed",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextLead",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextSettled",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "hover_in",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "name",
+            "name": "optimistic"
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "name",
+            "name": "visible"
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "name",
+            "name": "last"
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "name",
+            "name": "live"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "open"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "hover_out",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "name",
+            "name": "optimistic"
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "name",
+            "name": "visible"
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "name",
+            "name": "last"
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "name",
+            "name": "live"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "close"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "debounce",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextVisual",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "visual"
+              }
+            ]
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextCommitted",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "committed"
+              }
+            ]
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "name",
+                "name": "commitOpen"
+              },
+              {
+                "kind": "name",
+                "name": "logical"
+              }
+            ]
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextOptimistic",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "optimistic"
+              }
+            ]
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextVisible",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "visible"
+              }
+            ]
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextProgress",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "progress"
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextHandle",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "handle"
+              }
+            ]
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextLast",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "last"
+              }
+            ]
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextLive",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "live"
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextReversed",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextLead",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "committing"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextSettled",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "commitOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "name",
+            "name": "committing"
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tick",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "name",
+            "name": "optimistic"
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "name",
+            "name": "visible"
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "visual"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "opening"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "bump",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "progress"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "visual"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "closing"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "drop",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "progress"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "progress"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "name",
+            "name": "last"
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "name",
+            "name": "live"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "finish_live",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "name",
+                "name": "finishedVisual"
+              },
+              {
+                "kind": "name",
+                "name": "visual"
+              }
+            ]
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "name",
+                "name": "finishedVisual"
+              },
+              {
+                "kind": "name",
+                "name": "committed"
+              }
+            ]
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "app",
+                "opcode": "isOptimistic",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "finishedVisual"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "optimistic"
+              }
+            ]
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "app",
+                "opcode": "shows",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "finishedVisual"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "visible"
+              }
+            ]
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "name",
+                "name": "finishedProgress"
+              },
+              {
+                "kind": "name",
+                "name": "progress"
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              },
+              {
+                "kind": "name",
+                "name": "handle"
+              }
+            ]
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "name",
+                "name": "handle"
+              },
+              {
+                "kind": "name",
+                "name": "last"
+              }
+            ]
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "canFinish"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              },
+              {
+                "kind": "name",
+                "name": "live"
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "name",
+            "name": "canFinish"
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "finish_stale",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "name",
+            "name": "optimistic"
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "name",
+            "name": "visible"
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "name",
+            "name": "last"
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "name",
+            "name": "live"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "name",
+            "name": "staleNow"
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "last"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reduced_motion",
+      "assignments": [
+        {
+          "field": "visual",
+          "rhs": {
+            "kind": "app",
+            "opcode": "restPhase",
+            "args": [
+              {
+                "kind": "name",
+                "name": "logical"
+              }
+            ]
+          }
+        },
+        {
+          "field": "committed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "restPhase",
+            "args": [
+              {
+                "kind": "name",
+                "name": "logical"
+              }
+            ]
+          }
+        },
+        {
+          "field": "logical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "optimistic",
+          "rhs": {
+            "kind": "app",
+            "opcode": "isOptimistic",
+            "args": [
+              {
+                "kind": "name",
+                "name": "logical"
+              },
+              {
+                "kind": "app",
+                "opcode": "restPhase",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "visible",
+          "rhs": {
+            "kind": "app",
+            "opcode": "shows",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "restPhase",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "logical"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "progress",
+          "rhs": {
+            "kind": "app",
+            "opcode": "endProgress",
+            "args": [
+              {
+                "kind": "name",
+                "name": "logical"
+              }
+            ]
+          }
+        },
+        {
+          "field": "handle",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "last",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "live",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        },
+        {
+          "field": "reduced",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "stale",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "reversed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lead",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "settled",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "debounced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "coalesced",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "arrived",
+          "rhs": {
+            "kind": "name",
+            "name": "arrived"
+          }
+        },
+        {
+          "field": "snapVisual",
+          "rhs": {
+            "kind": "name",
+            "name": "visual"
+          }
+        },
+        {
+          "field": "snapCommitted",
+          "rhs": {
+            "kind": "name",
+            "name": "committed"
+          }
+        },
+        {
+          "field": "snapLogical",
+          "rhs": {
+            "kind": "name",
+            "name": "logical"
+          }
+        },
+        {
+          "field": "snapProgress",
+          "rhs": {
+            "kind": "name",
+            "name": "progress"
+          }
+        },
+        {
+          "field": "snapHandle",
+          "rhs": {
+            "kind": "name",
+            "name": "handle"
+          }
+        },
+        {
+          "field": "snapPending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "open",
+    "close",
+    "toggle",
+    "hover_in",
+    "hover_out",
+    "debounce",
+    "tick",
+    "finish_live",
+    "finish_stale",
+    "reduced_motion"
+  ]
+}
