@@ -57,6 +57,24 @@ apps/csssky-tui and the docs' `/tui` page. Then `cssints/tui` is deprecated, css
 subpath is removed in a breaking release with a migration. Lengths stay per target: a style in cells is not a style
 in pixels, so a terminal page has its own styles under the same member names.
 
+**Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
+that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
+cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
+terminal at one cell. The numbers are geometry: a bar's fill is a box whose width is `value/max` of its track, read back
+from the frame in `solid/figure.test.ts` (worst error 0.49 of a cell). One of the figures is this repository's own
+measurements (`solid/specs/bars.json`, native/README.md's `--bench`):
+
+```text
+A frame, by target
+desktop   ████████████████████████  0.30 ms
+terminal  ██████                    0.077 ms
+browser   ██████                    0.08 ms
+native/README.md --bench: 0.30, 0.077, 0.08 ms
+```
+
+`pipeline.json` is this pipeline's own flow (declaration → Clay → commands → ThorVG / cells / Canvas2D); `funnel.json`
+and `compare.json` are the kit's examples, adapted. `native/README.md`'s "Figures from specs" chapter is the whole of it.
+
 ## Where Solid runs
 
 | Target   | Solid                                                                     |

@@ -313,3 +313,30 @@ fi
 # browser it is the Sky page's own bundle (browser/solid/sky.ts, `n`), which browser/sky-check.mjs checks.
 bun solid/main.ts notify --warm 40 --expect solid/frames/notify-initial.png
 bun solid/notify.test.ts
+# The Figure page: one glyph-kit spec (solid/specs/*.json) declared as Clay's boxes and texts, so its numbers are geometry
+# — a bar is a track with a fill whose width is value/max. The two stored frames are the page at rest; figure.test.ts
+# reads every bar's fill back from the frame, and a growing funnel is refused with its sentence before a frame (a
+# non-zero exit, and no PNG), as the other pages' bad input is.
+bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/frames/figure-bars.png
+bun solid/main.ts figure --spec solid/specs/funnel.json --warm 30 --expect solid/frames/figure-funnel.png
+# a directory of the figure's own, so a suite in another checkout beside this one cannot share these files
+FIG="${TMPDIR:-/tmp}/cssints-figure"
+mkdir -p "$FIG"
+if bun solid/main.ts figure --spec solid/specs/invalid-funnel.json --png "$FIG/figure-invalid.png" \
+  > "$FIG/figure-invalid.log" 2>&1; then
+  echo "FAIL: a funnel that grows did not fail"; exit 1
+fi
+grep -q "a funnel never grows" "$FIG/figure-invalid.log" || {
+  echo "FAIL: the growing funnel's refusal does not say why"; exit 1; }
+if [ -f "$FIG/figure-invalid.png" ]; then echo "FAIL: an invalid spec wrote a frame"; exit 1; fi
+echo "figure: two stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
+# ... and the same figure in the browser: browser/solid/figure.ts fetches the same spec file, and browser/figure-check.mjs
+# holds its commands to solid/goldens/figure.json (the desktop's frame, boxes within 4 px, Canvas2D's metrics) and a click
+# to nothing. Its own guard, so the frames above still run on a machine without zig or Chromium
+if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
+   node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
+  bun browser/solid/build.ts >/dev/null
+  node browser/figure-check.mjs
+else
+  echo "figure, in a browser: no zig, bun or Playwright chromium, skipped (bun browser/solid/build.ts && node browser/figure-check.mjs)"
+fi

@@ -2816,3 +2816,82 @@ What is still per-target: the board has no dump at all; a golden of a page's lig
 `capture(page, "light")` plus one file) and of the use_g frame; a custom command's pointer (an address, kept out of the
 goldens) and a frame's hash (with an image it hashes the image's pointer; also kept out). Nothing here sees the pixels,
 glyph shaping, a shadow's raster or a gradient's dither: the raster stays the final gate.
+
+## Figures from specs: one figure, three targets
+
+A **figure** here is a JSON *spec*, and every target draws that one file. The format is [glyph-kit](https://github.com/alextraykov/glyph-kit)'s
+(MIT): `skills/glyph-kit/reference/spec.md`, its `areas/metrics.md` and `areas/flows.md` are the reference, and **no code
+is taken** from it — the shape of the object, the four kinds' data and the sentences of its refusals are ported by hand,
+in plain TypeScript, over our own Clay tree. `solid/src/figure/spec.ts` is the format and the check;
+`solid/src/figure/kinds.ts` is the four kinds as a layout; `solid/app/Figure.tsx` declares that layout, once, for all
+three hosts.
+
+| Field | What it is | Here |
+| --- | --- | --- |
+| `kind` | one of the types | `barChart`, `compare`, `flow`, `funnel` (glyph-kit has 34) |
+| `title` | a short name, drawn above the rows | optional |
+| `intent` | why the figure exists | optional, carried, not drawn (it is a document's line, as the kit's) |
+| `source` | where the numbers came from | **required when the data holds a number**; drawn under the figure |
+| `data` | the kind's rows | see below |
+| `options` | widths and scales in cells | `width` (track cells), `max` (bar chart), `headers` (compare) |
+| `focus` | `{ on, tone, say }` | a row's label, `problem` / `good` / `plain`, and the `►` line |
+| `label`, `motion`, `lang` | the kit's | not here (no screen reader line, no motion, one locale) |
+
+The four kinds and their layout: **barChart** is a row of `{ label, value, text? }`, one track each, the fill
+`value/max` of it, at least one cell for a positive value and `"+"` on a number past `options.max`; **compare** is
+`{ label, a, aText, b, bText }`, two tracks a row that share the row's own scale (2.7 s against 7.7 s is one pair);
+**flow** is `[string]`, a row of panel boxes joined by `►`; **funnel** is `[{ label, value }]`, a track a step whose fill
+is `value/first`, with the number and its share of the first. `check(spec)` returns **every** problem as a sentence, and
+`parse` is the same over a file's text; `bun solid/main.ts figure --spec ...`, `bun terminal/solid.ts --page figure
+--spec ...` and the browser page all refuse before a frame (the desktop and terminal exit non-zero). The sentences ported
+from the kit (its `guard.mjs` and `render/focus.mjs`):
+
+```
+These numbers need a source: where did they come from?
+signed up 13000 is more than visited 12400; a funnel never grows
+Focus names "Q3", which isn't in the figure. Use a row label or a column heading as it is drawn.
+unknown kind "pieChart": the ones here are barChart, compare, flow, funnel.
+```
+
+**Numbers as geometry.** A bar is not a row of block characters: it is a `fig-track-<n>` box and a `fig-fill-<n>` box
+inside it, and the fill's width is its value's. The layout speaks **cells** — glyph-kit's unit and the terminal's
+(`terminal/cells.h`, 8x16 px) — so a pixel target multiplies a cell by eight across and sixteen down, which is exactly the
+rectangle a cell covers on the grid, and a fill's edge lands on a cell boundary instead of between two. That is why the
+desktop and browser add no length of their own and the terminal re-cuts **nothing**: one figure is 50x7 cells, 400x112
+px on ThorVG and 50x7 cells at 80 columns, the same rows in the same places.
+
+The invariant is read from the **frame**, not from the layout: `solid/figure.test.ts` captures each spec (through
+`solid/dump.ts`, the same last frame the goldens store), takes every fill's and track's box out of the commands, and
+compares `fill / track` with `value/max` (a funnel's `value/first`) within **half a cell**. Measured worst error: **0.49
+of a cell** (compare's "build time, before": 0.27/0.77 of a 10-cell track is 3.5 cells, rounded to 4). The same test
+checks each number's text command, the rows' order, that a funnel never grows, `check`'s sentences, and (f) the same
+spec on the terminal: the cell rows equal the pixel figure's rows in words and count. A mutation that draws the fill
+from the value instead of the ratio fails with `the fill is 0.00 cells of 24.00, 24.00 cells off 0.3/0.3`; a growing
+funnel that the check stops refusing fails with `no refusal with "signed up 13000 is more than visited 12400; a funnel
+never grows"`.
+
+**The focus paints by role, never by colour.** `focus.on` names a row as it is drawn; the label's text and the bar's
+fill take the `problem`, `good` or `plain` **token of `createTokens`** (`solid/app/Figure.styles.ts`), and the figure
+carries a `►` line with `focus.say`, so it reads the same without colour. `figure.test.ts` asserts the focus's style
+follows the token across the two themes (`230,60,60` dark, `190,30,40` light) and that the drawn label and `►` line are
+its dark value; a literal colour at the same value would read the same in both themes, and that is the assertion a
+deliberate literal fails.
+
+**The three targets.** Desktop (Bun, ThorVG): `bun solid/main.ts figure --spec solid/specs/bars.json`, stored as
+`solid/frames/figure-bars.png` (400x112, 14.6 KB) and `figure-funnel.png` (59x9 cells, 472x144, 22.4 KB); 15 commands,
+`--bench 1000`: declare 0.024 ms, layout 0.020 ms, draw 0.59 ms (ThorVG's raster included). Terminal (`terminal/solid.ts`
+over `libterm`, cells): `--page figure --spec ...`, 0.033-0.039 ms a frame for 560 cells at 80x7, and the same cells as
+1,313 bytes of truecolour SGR in 0.072 ms. Browser (`browser/solid/figure.ts`, Clay in `ui.wasm`, Canvas2D):
+`figure.html?spec=bars` (the spec is fetched from `solid/specs/`, not inlined, so all three read one file),
+`browser/figure-check.mjs` holds the frame to `solid/goldens/figure.json` with the **4 px** box tolerance Canvas2D's
+metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figure.js` is 184,183 B and a frame is 0.11 ms
+(the tree, Clay's layout, the commands, Canvas2D, one readback). `solid/specs/bars.json` is this repository's own
+measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
+commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
+
+**Not here** (and honest about it): the kit's other **30 kinds** (cohort, heatmap, forecast, sparkline, meter,
+stateMachine, branchFlow, journeyMap, tree, the wireframes…), its **motion** (funnels falling, arrival orders), its
+exports to **HTML, decks, SVG, PDF and PNG**, its **text renderer** (a figure as characters with `█▓▒`), its `@file` data,
+`lang` and the SAMPLE DATA stamp, and its `label`. The next one would be the **text renderer** — the same layout drawn as
+cells, which this repository already has half of in `terminal/solid.ts`'s dump — and then `branchFlow` and `stateMachine`,
+the two flow kinds with decisions, whose boxes and arrows are the same row of panel boxes with a second row under it.

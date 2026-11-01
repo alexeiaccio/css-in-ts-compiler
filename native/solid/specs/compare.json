@@ -1,0 +1,11 @@
+{
+  "kind": "compare",
+  "title": "Hero animation, before and after",
+  "intent": "Two versions of the same two measures, side by side.",
+  "source": "Sample: glyph-kit's comparison (areas/metrics.md)",
+  "data": [
+    { "label": "lines moving", "a": 1, "aText": "100%", "b": 0.23, "bText": "23%" },
+    { "label": "build time", "a": 0.27, "aText": "2.7 s", "b": 0.77, "bText": "7.7 s" }
+  ],
+  "options": { "width": 10, "headers": ["MEASURE", "BEFORE", "AFTER"] }
+}
