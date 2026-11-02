@@ -322,6 +322,9 @@ bun solid/main.ts figure --spec solid/specs/funnel.json --warm 30 --expect solid
 # the two flow kinds: a branch flow's decisions and a state machine's path, stored as the page at rest
 bun solid/main.ts figure --spec solid/specs/branch-flow.json --warm 30 --expect solid/frames/figure-branch-flow.png
 bun solid/main.ts figure --spec solid/specs/state-machine.json --warm 30 --expect solid/frames/figure-state-machine.png
+# the two planning kinds: a timeline's axis and spans, and a status key's swatches, stored as the page at rest
+bun solid/main.ts figure --spec solid/specs/timeline.json --warm 30 --expect solid/frames/figure-timeline.png
+bun solid/main.ts figure --spec solid/specs/status-key.json --warm 30 --expect solid/frames/figure-status-key.png
 # a directory of the figure's own, so a suite in another checkout beside this one cannot share these files
 FIG="${TMPDIR:-/tmp}/cssints-figure"
 mkdir -p "$FIG"

@@ -82,7 +82,7 @@ static struct {
 static int has_pending_gradient;
 // the value channel: this frame's overrides of a packed style, by element id, written by the page's tick (after
 // `ui_begin`, before the tree is declared) and read by `ui_open`
-#define MAX_VALUES 64
+#define MAX_VALUES 1024
 static struct {
     uint32_t id;
     uint16_t field;
@@ -318,7 +318,8 @@ void ui_backgroundImage(int kind, float angle, int count, const float *stops)
  *  moving one re-lays-out its parent's box, so an offset, a blur or the group is what reads as motion. */
 void ui_value(const char *id, int len, int field, float value)
 {
-    // ponytail: 64 overrides a frame (a page animating a dozen elements needs that many); more needs a bigger table
+    // ponytail: 1024 overrides a frame (a figure writes three for every item's width, and term.c's table is this size);
+    // a page that needs more needs a bigger table
     if (field < 0 || field > FIELD_ROTATE || value_count == MAX_VALUES) {
         errors++;
         return;

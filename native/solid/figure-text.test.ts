@@ -1,9 +1,10 @@
 // The text half's checks, read from the text and from the terminal's cells — not from a kind's data. For every spec in
 // solid/specs: (a) every line is inside the width, and each bar's length in cells is the terminal host's own count for
-// that bar (the same cross-target invariant the pixel figure has, within its half cell); (b) a bar's fraction is the
-// eighth block its remainder rounds to, and a remainder that rounds to a whole cell has none; (c) `compact` is ASCII
-// (one byte a cell); (d) `--markdown` is the title, the fence, the `►` line and `_source_`; (e) the docs' redraw is
-// byte-identical; (f) an invalid spec prints its sentences, exits non-zero, and prints no figure.
+// that bar (the same cross-target invariant the pixel figure has, within its half cell); (a2) a timeline's span is
+// (end - start)/scale of the axis, within half a cell; (b) a bar's fraction is the eighth block its remainder rounds to,
+// and a remainder that rounds to a whole cell has none; (c) `compact` is ASCII (one byte a cell); (d) `--markdown` is
+// the title, the fence, the `►` line and `_source_`; (e) the docs' redraw is byte-identical; (f) an invalid spec prints
+// its sentences, exits non-zero, and prints no figure.
 //
 //   bun solid/figure-text.test.ts
 import { spawnSync } from "node:child_process";
@@ -15,7 +16,7 @@ import { layout, PADDING_X, PADDING_Y, type Bar } from "./src/figure/kinds.ts";
 import { parse, type Spec } from "./src/figure/spec.ts";
 import { cellWidth, fillBlocks, FOCUS_MARK, markdown, redrawDoc, render } from "./src/figure/text.ts";
 
-const SPECS = ["bars", "funnel", "compare", "pipeline"] as const;
+const SPECS = ["bars", "funnel", "compare", "pipeline", "timeline", "status-key"] as const;
 const WIDTH = 80;
 /** A text bar may sit half a cell from the terminal's whole cells: the pixel figure's own tolerance. */
 const HALF_CELL = 0.5;
@@ -137,6 +138,37 @@ for (const name of SPECS) {
       ok(`${name}: ${compared} bar(s) in cells`, `each within ${HALF_CELL} of the terminal's count (value/max of the track)`);
     else bad(`${name}: the bars`, `${compared} of ${l.bars.length} bars found in the rows`);
   }
+}
+
+// (a2) a timeline's span: the text cells are the row's share of the axis, (end - start)/scale of its width, within the
+// same half cell the bars are held to. The worst is printed; the terminal's own cells are in (a) above.
+{
+  const s = spec("timeline");
+  const l = layout(s);
+  const axis = s.options?.width ?? 40;
+  const top = s.options?.scale ?? Math.max(...s.data.map((row) => row.end));
+  let worst = 0;
+  let where = "";
+  const before = failed;
+  s.data.forEach((row, i) => {
+    const bar = l.bars[i]!;
+    const textCells = fillBlocks(bar).cells;
+    const want = ((row.end - row.start) / top) * axis;
+    const error = Math.abs(textCells - want);
+    if (error > worst) (worst = error), (where = row.label);
+    if (error > HALF_CELL)
+      bad(
+        `timeline: ${row.label}'s span`,
+        `${textCells.toFixed(3)} cells, ${row.start}-${row.end} of ${top} over ${axis} cells is ${want.toFixed(3)}: ` +
+          `${error.toFixed(2)} off (half allowed)`,
+      );
+  });
+  if (failed === before)
+    ok(
+      "timeline: the spans",
+      `${s.data.length} spans are (end-start)/${top} of ${axis} cells within ${HALF_CELL}; the worst is ` +
+        `${worst.toFixed(3)} of a cell (${where})`,
+    );
 }
 
 // (b) the eighth block is the remainder: 3.5 cells is ███▌, 3.96 has none (its eighth is a whole cell)

@@ -69,6 +69,7 @@ echo "figure: six kinds — branchFlow's boxes and branches, stateMachine's path
 # host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
 # invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)
 bun solid/figure-text.test.ts
+echo "figure: eight kinds — timeline's axis and statusKey's swatches, their refusals, frames and goldens in figure.test.ts"
 # The Dialog page's two overlays as generated C — the modal's backdrop and panel (both Clay root floats) and the menu
 # floated off zoom-trigger: examples/dialog/gen.c dumps the three static frames through desktop/clay_dump.c, measured
 # with ThorVG as the Solid host measures (so a box is its exact number, no tolerance), and each is compared field by

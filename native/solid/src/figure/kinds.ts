@@ -4,13 +4,16 @@
 // 360px and at 80 columns, and a fill's edge lands on a cell boundary rather than between two. That is why the layout
 // speaks cells and not pixels: a page that asked for pixels could not be re-cut by a factor without moving a bar.
 //
-// The six kinds (and no more than six here):
+// The eight kinds (and no more than eight here):
 //   barChart     one track a row, the fill value/max of it, at least one cell for a positive value and "+" past `max`
 //   branchFlow   a column of boxes with a decision's branch drawn to its right, connectors and their words as text
 //   compare      two tracks a row, each column scaled by its own maximum
 //   flow         one row of boxes joined by arrows
 //   funnel       one track a step, value/first of it, so a step's width is its share of the first
 //   stateMachine a path's boxes in a column, each transition's event between them, the states off the path below
+//   timeline     one track a workstream, its start rounded to a cell and its span value/max of its visible track; the
+//                axis under it, and ours: a "now" mark and milestones
+//   statusKey    one swatch a status (level 0-4 of its width), its label, and its count or definition
 //
 // Every drawn thing has an id: `fig-fill-<n>` and `fig-track-<n>` for a bar (the invariant test reads their boxes), the
 // text ids for the numbers and the labels, `fig-box-<n>` for a flow's boxes, `fig-state-<n>` for a path's states. A box
@@ -26,6 +29,8 @@ import {
   type FunnelSpec,
   type Spec,
   type StateMachineSpec,
+  type StatusKeySpec,
+  type TimelineSpec,
   type Tone,
 } from "./spec.ts";
 
@@ -490,7 +495,139 @@ function stateMachine(spec: StateMachineSpec): Layout {
   return finish(spec, "stateMachine", widest, lines, [], labels, boxes, connectors);
 }
 
-/** The layout of a checked spec. The six kinds are this file's only branches. */
+/**
+ * A timeline: the axis is `options.width` cells and `options.scale` high; a row's start is rounded to a cell (a cell is
+ * the pixel targets' minimum anyway) and its span is exact, so a fractional end draws an eighth block in the text half.
+ * The axis's labels are under the rows; ours is the `now` mark and the milestones, both under the axis.
+ */
+function timeline(spec: TimelineSpec): Layout {
+  const focus = focusOf(spec);
+  const rows = spec.data;
+  const axisWidth = spec.options?.width ?? 40;
+  const unit = spec.options?.unit ?? "";
+  const top =
+    spec.options?.scale ??
+    Math.max(
+      0,
+      ...rows.map((row) => row.end),
+      spec.options?.now ?? 0,
+      ...(spec.options?.milestones ?? []).map((milestone) => milestone.at),
+    );
+  const scale = top > 0 ? top : 1;
+  const fmt = (value: number) => `${formatValue(value)}${unit}`;
+  const labelWidth = longest(rows.map((row) => row.label)) + 1;
+  const ranges = rows.map((row) => `${fmt(row.start)}-${fmt(row.end)}`);
+  const rangeWidth = longest(ranges) + 1;
+  const width = labelWidth + axisWidth + 1 + rangeWidth;
+  const at = (value: number) => Math.max(0, Math.min(axisWidth, Math.round((value / scale) * axisWidth)));
+  const bars: Bar[] = [];
+  const labels: Layout["labels"] = [];
+  let widest = width;
+  const lines: LayoutLine[] = rows.map((row, i) => {
+    const startCell = Math.max(0, Math.min(axisWidth - 1, at(row.start)));
+    const span = Math.max(0, ((row.end - row.start) / scale) * axisWidth);
+    const track = Math.max(1, axisWidth - startCell);
+    const fill = span > 0 ? Math.max(1, Math.min(track, Math.round(span))) : 0;
+    const paint = paintOf(focus, row.label);
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-num-${i}`,
+      label: row.label,
+      // the span is the bar's value and the visible track its own maximum: value/max of the track is the span's cells
+      value: span,
+      max: track,
+      fill,
+      track,
+      text: ranges[i]!,
+    });
+    labels.push({ textId: `fig-label-${i}`, text: row.label });
+    return {
+      items: [
+        textItem(`fig-label-${i}`, row.label, labelWidth, paint),
+        { kind: "space", id: `fig-start-${i}`, cells: startCell, paint: "ink" },
+        { kind: "bar", id: `fig-track-${i}`, fillId: `fig-fill-${i}`, cells: track, fill, paint },
+        { kind: "space", id: `fig-gap-${i}`, cells: 1, paint: "ink" },
+        textItem(`fig-num-${i}`, ranges[i]!, rangeWidth, paint),
+      ],
+    };
+  });
+  // the axis: one row of tick labels, the last one ending at the axis's right edge (as the kit's does)
+  const ticks = Math.max(2, Math.floor(spec.options?.ticks ?? 3));
+  const axis = Array.from({ length: axisWidth + 1 }, () => " ");
+  for (let i = 0; i < ticks; i++) {
+    const position = Math.round((i / (ticks - 1)) * axisWidth);
+    const text = fmt(Math.round(((scale * i) / (ticks - 1)) * 100) / 100);
+    const from = i === ticks - 1 ? Math.max(0, position - cells(text) + 1) : position;
+    for (let k = 0; k < cells(text) && from + k <= axisWidth; k++) axis[from + k] = [...text][k]!;
+  }
+  const axisText = " ".repeat(labelWidth) + axis.join("");
+  widest = Math.max(widest, cells(axisText));
+  lines.push({ items: [textItem("fig-axis", axisText, cells(axisText), "muted")] });
+  if (spec.options?.now !== undefined) {
+    const mark = " ".repeat(labelWidth + at(spec.options.now)) + `${GLYPH.vertical} now`;
+    widest = Math.max(widest, cells(mark));
+    lines.push({ items: [textItem("fig-now", mark, cells(mark), "muted", "note")] });
+  }
+  for (const [i, milestone] of (spec.options?.milestones ?? []).entries()) {
+    const mark = " ".repeat(labelWidth + at(milestone.at)) + `* ${milestone.label}`;
+    widest = Math.max(widest, cells(mark));
+    lines.push({ items: [textItem(`fig-milestone-${i}`, mark, cells(mark), "muted", "note")] });
+  }
+  return finish(spec, "timeline", widest, lines, bars, labels);
+}
+
+/**
+ * A status key: a swatch, its status, and its count or definition. The swatch is `options.width` cells and its fill is
+ * glyph-kit's level (0 blank, 4 full) of them, so the text half reads the shade as a run of blocks, and a legacy key
+ * that explains a focus's colour carries its `tone` (our field) instead.
+ */
+function statusKey(spec: StatusKeySpec): Layout {
+  const focus = focusOf(spec);
+  const rows = spec.data;
+  const track = spec.options?.width ?? 12;
+  const labelWidth = longest(rows.map((row) => row.label)) + 1;
+  const details = rows.map(
+    (row) => row.definition ?? (row.count === undefined ? "" : formatValue(row.count)),
+  );
+  const detailWidth = longest(details) + 1;
+  const width = track + 2 + labelWidth + detailWidth;
+  const bars: Bar[] = [];
+  const labels: Layout["labels"] = [];
+  const lines = rows.map((row, i) => {
+    const level = Math.max(0, Math.min(4, row.level));
+    const fill = Math.min(track, Math.max(0, Math.round((track * level) / 4)));
+    const text = details[i]!;
+    const swatch: Paint = row.tone === "problem" ? "problem" : row.tone === "good" ? "good" : "plain";
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-num-${i}`,
+      label: row.label,
+      value: level,
+      max: 4,
+      fill,
+      track,
+      text: text || row.label,
+    });
+    labels.push({ textId: `fig-label-${i}`, text: row.label });
+    const items: Item[] = [
+      { kind: "bar", id: `fig-track-${i}`, fillId: `fig-fill-${i}`, cells: track, fill, paint: swatch },
+      // a text gap, not a space item: the label after it reads from the left, not right-aligned against its detail
+      textItem(`fig-gap-${i}`, "  ", 2, "ink"),
+      textItem(`fig-label-${i}`, row.label, labelWidth, paintOf(focus, row.label)),
+    ];
+    items.push(
+      text
+        ? textItem(`fig-num-${i}`, text, detailWidth, "muted")
+        : { kind: "space", id: `fig-num-space-${i}`, cells: detailWidth, paint: "ink" },
+    );
+    return { items };
+  });
+  return finish(spec, "statusKey", width, lines, bars, labels);
+}
+
+/** The layout of a checked spec. The eight kinds are this file's only branches. */
 export function layout(spec: Spec): Layout {
   switch (spec.kind) {
     case "barChart":
@@ -505,6 +642,10 @@ export function layout(spec: Spec): Layout {
       return flow(spec);
     case "stateMachine":
       return stateMachine(spec);
+    case "timeline":
+      return timeline(spec);
+    case "statusKey":
+      return statusKey(spec);
   }
 }
 

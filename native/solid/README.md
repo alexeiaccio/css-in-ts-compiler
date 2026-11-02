@@ -206,7 +206,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_init_gpu(w, h)` | the same on ThorVG's WebGPU canvas (`--raster thorvg-gpu`); only a `libui.dylib` from `desktop/build-thorvg-gpu.sh solid` |
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
-| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), 45 its shadow's blur, 46/47 its whole subtree's alpha and scale (a ThorVG scene of its own: `FIELDS.ALPHA`, `FIELDS.SCALE`, the section below), 48/49 its subtree's translate, 50 the opacity of its background image, 51..54 the colour of the **text** with that id (a text's own floats, not its box's: `FIELDS.TEXT_COLOR`) and 55 its subtree's rotation in degrees (`FIELDS.ROTATE`). `ui_open` declares from a copy of the 45 floats with the frame's overrides applied, `ui_text` from a copy of its 10; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
+| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), 45 its shadow's blur, 46/47 its whole subtree's alpha and scale (a ThorVG scene of its own: `FIELDS.ALPHA`, `FIELDS.SCALE`, the section below), 48/49 its subtree's translate, 50 the opacity of its background image, 51..54 the colour of the **text** with that id (a text's own floats, not its box's: `FIELDS.TEXT_COLOR`) and 55 its subtree's rotation in degrees (`FIELDS.ROTATE`). `ui_open` declares from a copy of the 45 floats with the frame's overrides applied, `ui_text` from a copy of its 10; the table is cleared in `ui_begin`, 1024 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call; a figure spends three on every item's width) |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
 | `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
 | `ui_text(id, id_len, bytes, len, f32[10])` | a text element, with an id or NULL: with one, the text's colour can be moved through `ui_value` (fields 51..54, applied to a copy of its 10 floats). The bytes are copied for the frame |
@@ -1026,6 +1026,23 @@ fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a pag
 `bun terminal/solid.ts --page figure --spec ... --text` prints it from the terminal host. `solid/figure-text.test.ts`
 holds each bar's text cells to the terminal's (within half a cell, the same tolerance) and the docs' figures to a
 byte-identical `--redraw`; `native/README.md`'s two figures are that renderer's.
+
+**The two planning kinds.** `timeline` is glyph-kit's `gantt`: `[{ "label", "start", "end" }]` with
+`options: { width, scale, unit, ticks }`, one row a workstream, its start rounded to a cell and its span `(end - start)`
+of `scale` across the axis (a fractional span is an eighth block in the text half, as a bar's is), each row's range on the
+right and the axis's labels under the rows. Ours are `options.now` (a `| now` mark under the axis) and
+`options.milestones` (a `*` and its label under it), because the kit's published gantt has neither. `statusKey` is the
+kit's legend: `[{ "level": 0..4, "label", "count"?, "definition"?, "tone"? }]` with `options: { width }`, one row a
+status whose swatch is its level of the width (0 blank, 4 full), then its label and its count or definition; `tone` is
+ours, so a key can explain the `good`/`problem` role a focus uses instead of a shade. Both copy the kit's published
+checks verbatim (`has a negative start (-2).`, `has start 5, end 2; it should end after it starts.`,
+`has a level of 7, outside 0 to 4.`); the empty data, a bar past `options.scale` and the rows' time order (adapted from
+its `inTimeOrder`) are ours. Their specs are `solid/specs/timeline.json` (this repository's map's order) and
+`status-key.json` (the four statuses of a plan), with `solid/frames/figure-{timeline,status-key}.png` and
+`solid/goldens/figure-{timeline,status-key}.json`. What cells cannot carry: a bar's start is whole cells (the kit's
+`·` track is the terminal's dot background, not a character here), the kit's `░▒▓█` shades are a swatch's fill length
+instead of a glyph (Roboto has none of the shades), and a milestone is a labelled `*` under the axis, not a mark on its
+row.
 
 ## The accessibility tree
 

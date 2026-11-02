@@ -1,8 +1,8 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with six kinds here
-// (`barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine`) where the kit has thirty-four. `check` returns
-// **every** problem as a sentence, in the kit's voice, because a spec is refused before a frame is declared; `parse` is
-// the same check over a file's text. No dependency: plain TypeScript over JSON.
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with eight kinds here
+// (`barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine`, `timeline`, `statusKey`) where the kit has
+// thirty-four. `check` returns **every** problem as a sentence, in the kit's voice, because a spec is refused before a
+// frame is declared; `parse` is the same check over a file's text. No dependency: plain TypeScript over JSON.
 //
 // The ones ported from the kit's `guard.mjs` and `render/focus.mjs`, sentence and all:
 //   — numbers without a source ("These numbers need a source: where did they come from?");
@@ -16,9 +16,14 @@
 // branchFlow and stateMachine write their refusals in the kit's flow voice: "The path goes happened → paid, but no
 // transition connects them" follows its `states` check's sentence, and the branch and state-machine sentences are ours,
 // because the kit's published scripts check neither kind's data.
+//
+// timeline (the kit's `gantt`) and statusKey copy their published checks verbatim: a negative start ("has a negative
+// start (-2)."), a row that ends before it starts ("has start 5, end 2; it should end after it starts.") and a level
+// outside the five shades ("has a level of 7, outside 0 to 4."). Their other sentences — a bar past the axis, rows out
+// of time order (adapted from its `inTimeOrder`), an empty timeline or key — are ours in the same voice.
 
-/** The kinds here. glyph-kit has thirty-four; these are the six this repository draws, and no more. */
-export const KINDS = ["barChart", "branchFlow", "compare", "flow", "funnel", "stateMachine"] as const;
+/** The kinds here. glyph-kit has thirty-four; these are the eight this repository draws, and no more. */
+export const KINDS = ["barChart", "branchFlow", "compare", "flow", "funnel", "stateMachine", "timeline", "statusKey"] as const;
 export type Kind = (typeof KINDS)[number];
 
 /** The three tones of a focus: the role the figure paints it by, never a colour. */
@@ -118,7 +123,66 @@ export interface StateMachineSpec extends Base {
   options?: { width?: number; path?: readonly string[] };
 }
 
-export type Spec = BarChartSpec | BranchFlowSpec | CompareSpec | FlowSpec | FunnelSpec | StateMachineSpec;
+/** A workstream on a timeline: its label, the scale value it starts at, and the one it ends at. */
+export interface TimelineRow {
+  label: string;
+  start: number;
+  end: number;
+}
+
+/** A point on the timeline's axis: a milestone's label and the scale value it lands at. Ours: the kit's gantt has none. */
+export interface Milestone {
+  label: string;
+  at: number;
+}
+
+export interface TimelineSpec extends Base {
+  kind: "timeline";
+  data: readonly TimelineRow[];
+  options?: {
+    /** The axis's length in cells (40 by default, the kit's). */
+    width?: number;
+    /** The axis's top: the largest value it holds (the largest end by default). */
+    scale?: number;
+    /** The suffix every number prints, " wk" for weeks; the kit's `unit`. */
+    unit?: string;
+    /** Axis labels, 3 by default (the kit's `ticks`). */
+    ticks?: number;
+    /** Ours: the scale value "now" sits at, marked under the axis. */
+    now?: number;
+    /** Ours: points under the axis, each a `*`, its label after it. */
+    milestones?: readonly Milestone[];
+  };
+}
+
+/** A status in a legend: glyph-kit's level 0-4 (blank to full), a label, and a count or a definition. */
+export interface StatusRow {
+  level: number;
+  label: string;
+  /** A number the key carries, formatted as the figure's other numbers are. */
+  count?: number;
+  /** Or the sentence that defines the status, drawn where the count would be. */
+  definition?: string;
+  /** Ours: the swatch's role, for a key that explains a focus's colour rather than a shade. */
+  tone?: Tone;
+}
+
+export interface StatusKeySpec extends Base {
+  kind: "statusKey";
+  data: readonly StatusRow[];
+  /** The swatch's width in cells (12 by default). */
+  options?: { width?: number };
+}
+
+export type Spec =
+  | BarChartSpec
+  | BranchFlowSpec
+  | CompareSpec
+  | FlowSpec
+  | FunnelSpec
+  | StateMachineSpec
+  | TimelineSpec
+  | StatusKeySpec;
 
 export type Json = Record<string, unknown>;
 const isObject = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -359,6 +423,69 @@ function stateProblems(data: unknown, options: unknown): string[] {
   return out;
 }
 
+/** A timeline: a start and an end a row, the rows in time order, and no bar past the axis it names. */
+function timelineProblems(data: unknown, options: unknown): string[] {
+  const rows = rowsOf(data);
+  if (!rows.length)
+    return ['A timeline needs its workstreams: [{ "label": "research", "start": 0, "end": 2 }, ...].'];
+  const out: string[] = [];
+  const unit = isObject(options) && typeof options.unit === "string" ? options.unit : "";
+  const scale = isObject(options) ? number(options.scale) : undefined;
+  if (scale !== undefined && scale <= 0) out.push(`options.scale must be above zero: it is ${scale}.`);
+  for (const [i, row] of rows.entries()) {
+    if (
+      !isObject(row) ||
+      typeof row.label !== "string" ||
+      !row.label.trim() ||
+      number(row.start) === undefined ||
+      number(row.end) === undefined
+    ) {
+      out.push(`${labelOf(row, i)} needs a label, a start and an end: a number for each.`);
+      continue;
+    }
+    const start = number(row.start)!;
+    const end = number(row.end)!;
+    if (start < 0) out.push(`${row.label} has a negative start (${start}).`);
+    if (end < start) out.push(`${row.label} has start ${start}, end ${end}; it should end after it starts.`);
+    if (scale !== undefined && end > scale)
+      out.push(
+        `${row.label} ends at ${end}${unit}, past the axis's ${scale}${unit}. Raise options.scale or bring the bar ` +
+          `inside it.`,
+      );
+  }
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const before = rows[i - 1];
+    if (!isObject(row) || !isObject(before)) continue;
+    const start = number(row.start);
+    const prev = number(before.start);
+    if (start !== undefined && prev !== undefined && start < prev)
+      out.push(
+        `${labelOf(row, i)} (${start}${unit}) comes before the row above it (${prev}${unit}); keep them in time order.`,
+      );
+  }
+  return out;
+}
+
+/** A status key: a label and glyph-kit's level 0-4 for every status, and at least one status. */
+function statusProblems(data: unknown): string[] {
+  const rows = rowsOf(data);
+  if (!rows.length)
+    return ['A status key needs its statuses: [{ "level": 4, "label": "done" }, ...].'];
+  const out: string[] = [];
+  for (const [i, row] of rows.entries()) {
+    if (!isObject(row) || typeof row.label !== "string" || !row.label.trim() || number(row.level) === undefined) {
+      out.push(`${labelOf(row, i)} needs a label and a level: a number from 0 to 4.`);
+      continue;
+    }
+    const level = number(row.level)!;
+    if (level < 0 || level > 4) out.push(`${row.label} has a level of ${level}, outside 0 to 4.`);
+    if (row.tone !== undefined && !(TONES as readonly unknown[]).includes(row.tone))
+      out.push(`${row.label}'s tone is problem, good or plain, not ${say(row.tone)}.`);
+  }
+  return out;
+}
+
 /**
  * Every problem with a spec, in plain sentences: the kind, the numbers' source, the kind's own data rule, and the
  * focus's names. An empty array is a figure that can be drawn.
@@ -381,6 +508,8 @@ export function check(input: unknown): string[] {
   else if (kind === "compare") problems.push(...compareProblems(input.data));
   else if (kind === "branchFlow") problems.push(...branchProblems(input.data));
   else if (kind === "stateMachine") problems.push(...stateProblems(input.data, input.options));
+  else if (kind === "timeline") problems.push(...timelineProblems(input.data, input.options));
+  else if (kind === "statusKey") problems.push(...statusProblems(input.data));
   else problems.push(...flowProblems(input.data, input.options));
   problems.push(...focusProblems(input.focus, namesOf(kind as Kind, input.data, input.options)));
   return problems;

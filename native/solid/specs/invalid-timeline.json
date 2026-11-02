@@ -1,0 +1,6 @@
+{
+  "kind": "timeline",
+  "title": "A timeline that ends before it starts",
+  "source": "Sample: it must be refused",
+  "data": [{ "label": "build", "start": 5, "end": 2 }]
+}

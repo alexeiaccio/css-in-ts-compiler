@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "box": [0, 0, 584, 128], "color": [16, 19, 22, 255], "element": "Root", "id": 3621781681, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "align": "left", "box": [16, 16, 131.726562, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 742889473, "letterSpacing": 0, "lineHeight": 16, "size": 16, "text": "A figure's statuses", "type": "text", "wrap": "none", "z": 0 },
+    { "box": [16, 32, 96, 16], "color": [45, 51, 61, 255], "element": "fig-track-0", "id": 615539687, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "box": [16, 32, 96, 16], "color": [90, 190, 120, 255], "element": "fig-fill-0", "id": 2285240037, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "align": "left", "box": [112, 40, 6.43652344, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 53281915, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "  ", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [128, 32, 28.8056641, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 296316848, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "done", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [192, 32, 111.386719, 16], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 2027140063, "letterSpacing": 0, "lineHeight": 16, "size": 12, "text": "merged and checked", "type": "text", "wrap": "none", "z": 0 },
+    { "box": [16, 48, 96, 16], "color": [45, 51, 61, 255], "element": "fig-track-1", "id": 2338992477, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "box": [16, 48, 72, 16], "color": [59, 156, 240, 255], "element": "fig-fill-1", "id": 1979210346, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "align": "left", "box": [112, 56, 6.43652344, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 914128626, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "  ", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [128, 48, 32.3666992, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 3199350648, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "doing", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [192, 48, 47.0214844, 16], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 4126839568, "letterSpacing": 0, "lineHeight": 16, "size": 12, "text": "in review", "type": "text", "wrap": "none", "z": 0 },
+    { "box": [16, 64, 96, 16], "color": [45, 51, 61, 255], "element": "fig-track-2", "id": 3048605172, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "box": [16, 64, 48, 16], "color": [230, 60, 60, 255], "element": "fig-fill-2", "id": 1660892224, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "align": "left", "box": [112, 72, 6.43652344, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 1938987800, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "  ", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [128, 64, 45.4746094, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 755720958, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "blocked", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [192, 64, 112.429688, 16], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 2630587992, "letterSpacing": 0, "lineHeight": 16, "size": 12, "text": "waiting on a decision", "type": "text", "wrap": "none", "z": 0 },
+    { "box": [16, 80, 96, 16], "color": [45, 51, 61, 255], "element": "fig-track-3", "id": 3855017493, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "box": [16, 80, 24, 16], "color": [59, 156, 240, 255], "element": "fig-fill-3", "id": 1362661555, "radii": [0, 0, 0, 0], "type": "rectangle", "z": 0 },
+    { "align": "left", "box": [112, 88, 6.43652344, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 4890149, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "  ", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [128, 80, 24.7495117, 16], "color": [230, 233, 236, 255], "element": null, "font": 0, "id": 4105481015, "letterSpacing": 0, "lineHeight": 16, "size": 13, "text": "next", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [192, 80, 94.8515625, 16], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 1100423651, "letterSpacing": 0, "lineHeight": 16, "size": 12, "text": "a spec, not a start", "type": "text", "wrap": "none", "z": 0 },
+    { "align": "left", "box": [16, 96, 366.609375, 16], "color": [139, 152, 165, 255], "element": null, "font": 0, "id": 3732032235, "letterSpacing": 0, "lineHeight": 16, "size": 12, "text": "native/solid/app/Figure.styles.ts, the good, accent and problem roles", "type": "text", "wrap": "none", "z": 0 }
+  ],
+  "effects": { "backdrops": [], "gradients": [], "groups": [], "shadows": [], "textWeight": 0 }
+}

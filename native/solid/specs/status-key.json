@@ -1,0 +1,13 @@
+{
+  "kind": "statusKey",
+  "title": "A figure's statuses",
+  "intent": "The four statuses a plan's rows carry, and the colour each takes in the other figures.",
+  "source": "native/solid/app/Figure.styles.ts, the good, accent and problem roles",
+  "data": [
+    { "level": 4, "label": "done", "definition": "merged and checked", "tone": "good" },
+    { "level": 3, "label": "doing", "definition": "in review", "tone": "plain" },
+    { "level": 2, "label": "blocked", "definition": "waiting on a decision", "tone": "problem" },
+    { "level": 1, "label": "next", "definition": "a spec, not a start" }
+  ],
+  "options": { "width": 12 }
+}

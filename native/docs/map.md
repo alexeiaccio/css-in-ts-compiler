@@ -79,6 +79,8 @@ Its text half is the same layout as characters (`solid/src/figure/text.ts`, `sol
 `█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
 two figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure cannot
 drift from its spec. A future kind needs only to return its rows from `layout`: the text renderer reads no kind's data.
+Eight kinds are here now: the six above plus `timeline` (an axis with a row a workstream, a `now` mark and milestones) and
+`statusKey` (a swatch, a label and a count or definition a status).
 
 ## Where Solid runs
 

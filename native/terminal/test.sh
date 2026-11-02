@@ -122,6 +122,21 @@ grep -q "A dialog's presence, one open" "$FIG/solid-figure-state.txt" || {
   echo "FAIL: the state machine drew no title"; exit 1; }
 grep -q "| settled" "$FIG/solid-figure-state.txt" || { echo "FAIL: a transition's word is not in the cells"; exit 1; }
 identical "the state machine: the path's boxes and each transition's word between them"
+# the two planning kinds: a timeline's axis and its rows, and a status key's swatches, labels and definitions
+$SOLID --page figure --spec solid/specs/timeline.json --cols 80 --rows 16 --dump "$FIG/solid-figure-timeline.txt"
+grep -q "This repository's last weeks" "$FIG/solid-figure-timeline.txt" || {
+  echo "FAIL: the timeline drew no title"; exit 1; }
+grep -q "0 wk" "$FIG/solid-figure-timeline.txt" || { echo "FAIL: the timeline drew no axis labels"; exit 1; }
+grep -q "8 browser" "$FIG/solid-figure-timeline.txt" || { echo "FAIL: the timeline drew no workstream"; exit 1; }
+grep -q "| now" "$FIG/solid-figure-timeline.txt" || { echo "FAIL: the timeline drew no now mark"; exit 1; }
+identical "the timeline: a workstream a row, the axis under them, and the now mark and milestone below it"
+$SOLID --page figure --spec solid/specs/status-key.json --cols 80 --rows 10 --dump "$FIG/solid-figure-status.txt"
+grep -q "A figure's statuses" "$FIG/solid-figure-status.txt" || {
+  echo "FAIL: the status key drew no title"; exit 1; }
+grep -q "blocked" "$FIG/solid-figure-status.txt" || { echo "FAIL: the status key drew no status"; exit 1; }
+grep -q "waiting on a decision" "$FIG/solid-figure-status.txt" || {
+  echo "FAIL: the status key drew no definition"; exit 1; }
+identical "the status key: a swatch a status, its label and its definition"
 # a press on a figure is nothing: the page declares no control of its own
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --dump "$FIG/solid-figure-base.txt"
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 20,4 --dump "$FIG/solid-figure-click.txt"

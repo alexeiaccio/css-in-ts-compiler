@@ -1,0 +1,6 @@
+{
+  "kind": "statusKey",
+  "title": "A status outside the kit's five shades",
+  "source": "Sample: it must be refused",
+  "data": [{ "level": 7, "label": "shipped" }]
+}

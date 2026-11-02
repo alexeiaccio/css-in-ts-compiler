@@ -216,7 +216,8 @@ belongs on a float's offset; a fade, a scale or an arrival belongs on the group.
 
 The cost is one scan of the table per `ui_open` on a frame that uses the channel, and a 180-byte `memcpy` of the 45
 floats for each element that has an override (the Dialog writes two elements a frame: 360 bytes, and its declare phase is
-0.008 ms of a 2.0 ms frame). The table holds 64 overrides, which is more than a page animating a dozen elements needs.
+0.008 ms of a 2.0 ms frame). The table holds 1024 overrides (a figure spends three on every item's width), which is more
+than a page animating a dozen elements needs.
 
 ### Group opacity and scale: an element's whole subtree
 

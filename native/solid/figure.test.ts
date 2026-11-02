@@ -1,7 +1,7 @@
-// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the six
+// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the eight
 // kinds), the bar's fill box against its track's, the number's text command, the rows' order, the funnel's ratios, the
-// branch flow's boxes and connectors, the state machine's path; then `check`'s own refusals in their sentences; then the
-// same spec on the terminal, cell for cell.
+// branch flow's boxes and connectors, the state machine's path, the timeline's axis and the status key's swatches; then
+// `check`'s own refusals in their sentences; then the same spec on the terminal, cell for cell.
 //
 // The geometry comes from `solid/dump.ts`'s `capture` — the same last frame solid/goldens stores — so a bar is the box
 // Clay laid out, not the number the layout asked for. The error is in **cells** (the layout's unit): one cell is 8px
@@ -17,6 +17,7 @@ import { join } from "node:path";
 
 const { capture } = await import("./dump.ts");
 const { layout, CELL_WIDTH } = await import("./src/figure/kinds.ts");
+const { fillBlocks } = await import("./src/figure/text.ts");
 const { check, parse } = await import("./src/figure/spec.ts");
 const { variant } = await import("./src/pack.ts");
 const { format } = await import("./src/format.ts");
@@ -24,11 +25,13 @@ const styles = await import("./app/Figure.styles.ts");
 
 /** A bar may round to the nearest half cell of its ratio: the layout rounds a cell, and that is the whole tolerance. */
 const HALF_CELL = 0.5;
-const SPECS = ["bars", "funnel", "compare", "pipeline", "branch-flow", "state-machine"] as const;
-/** The two new kinds' command goldens: one frame each, stored by the same capture this test reads. */
+const SPECS = ["bars", "funnel", "compare", "pipeline", "branch-flow", "state-machine", "timeline", "status-key"] as const;
+/** The four later kinds' command goldens: one frame each, stored by the same capture this test reads. */
 const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "branch-flow": "figure-branch-flow",
   "state-machine": "figure-state-machine",
+  timeline: "figure-timeline",
+  "status-key": "figure-status-key",
 };
 let failed = 0;
 let checks = 0;
@@ -169,6 +172,49 @@ for (const name of SPECS) {
     else bad(`${name}: the footer`, `no text command reads "not on the path: ${off.join(", ")}"`);
   }
 
+  // (c3b) a timeline: the axis's labels under the rows, a bar a workstream, and the now mark and milestone under it
+  if (s.kind === "timeline") {
+    const axis = dump.commands.find(
+      (command) => command.type === "text" && command.text?.trimStart().startsWith("0 wk") && command.text.includes("10 wk"),
+    );
+    const wanted = ["0 wk", "5 wk", "10 wk"].filter((label) => axis?.text?.includes(label));
+    if (wanted.length === 3) ok(`${name}: the axis`, `"${axis?.text?.trim()}" — 0, 5 and 10 wk under the rows`);
+    else bad(`${name}: the axis`, `${JSON.stringify(axis?.text)} has ${wanted.length} of 3 tick labels`);
+    if (l.bars.length === s.data.length)
+      ok(`${name}: the workstreams`, `${l.bars.length} rows, one bar each (${s.data.map((row) => row.label).join(", ")})`);
+    else bad(`${name}: the workstreams`, `${l.bars.length} bars for ${s.data.length} rows`);
+    const now = dump.commands.find((command) => command.type === "text" && command.text?.endsWith("now"));
+    const milestone = dump.commands.find(
+      (command) => command.type === "text" && command.text?.includes("one spec, three targets"),
+    );
+    if (now?.text?.endsWith("now") && milestone?.text?.includes("one spec, three targets"))
+      ok(`${name}: the marks`, `"${now.text.trim()}" and "${milestone.text.trim()}" under the axis`);
+    else bad(`${name}: the marks`, `now ${JSON.stringify(now?.text)}, milestone ${JSON.stringify(milestone?.text)}`);
+  }
+
+  // (c3c) a status key: one swatch a status, filled level/4 of its width, its label and its detail
+  if (s.kind === "statusKey") {
+    const swatches = s.data.map((row, i) => {
+      const bar = l.bars[i]!;
+      return { label: row.label, fill: bar.fill, want: Math.min(bar.track, Math.round((bar.track * row.level) / 4)) };
+    });
+    const wrong = swatches.filter((swatch) => swatch.fill !== swatch.want);
+    if (!wrong.length)
+      ok(`${name}: the swatches`, swatches.map((swatch) => `${swatch.label} ${swatch.fill}/${l.bars[0]!.track}`).join(", "));
+    else
+      bad(
+        `${name}: the swatches`,
+        wrong.map((swatch) => `${swatch.label} is ${swatch.fill} cells, level/4 of the track is ${swatch.want}`).join("; "),
+      );
+    const details = s.data.filter((row) => row.definition !== undefined || row.count !== undefined);
+    const missing = details.filter((row) => {
+      const bar = l.bars[s.data.indexOf(row)];
+      return !bar || !dump.commands.some((command) => command.type === "text" && command.text === bar.text);
+    });
+    if (!missing.length) ok(`${name}: the details`, `${details.length} status(es) carry their count or definition`);
+    else bad(`${name}: the details`, `no text command for ${missing.map((row) => row.label).join(", ")}`);
+  }
+
   // (c4) the new kinds' command goldens: the same capture, stored as solid/goldens/<name>.json
   const goldenName = GOLDENS[name];
   if (goldenName) {
@@ -247,7 +293,8 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, flow, funnel, stateMachine.');
+  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, flow, funnel, stateMachine, timeline, ' +
+    'statusKey.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",
@@ -298,6 +345,41 @@ refuses("a path that does not start at the first state", {
 }, "The path starts at saving, but the machine's first state is idle.");
 refuses("a machine with no states", { kind: "stateMachine", data: { states: [], transitions: [] } },
   'A state machine needs its states: ["closed", "opening", "open", "closing"].');
+refuses("a timeline that ends before it starts", {
+  kind: "timeline",
+  source: "Sample",
+  data: [{ label: "build", start: 5, end: 2 }],
+}, "build has start 5, end 2; it should end after it starts.");
+refuses("a negative start", {
+  kind: "timeline",
+  source: "Sample",
+  data: [{ label: "design", start: -1, end: 2 }],
+}, "design has a negative start (-1).");
+refuses("rows out of time order", {
+  kind: "timeline",
+  source: "Sample",
+  data: [{ label: "build", start: 3, end: 5 }, { label: "research", start: 0, end: 2 }],
+}, "research (0) comes before the row above it (3); keep them in time order.");
+refuses("a bar past the axis", {
+  kind: "timeline",
+  source: "Sample",
+  data: [{ label: "build", start: 3, end: 12 }],
+  options: { scale: 10, unit: " wk" },
+}, "build ends at 12 wk, past the axis's 10 wk. Raise options.scale or bring the bar inside it.");
+refuses("a timeline with no workstreams", { kind: "timeline", data: [] },
+  'A timeline needs its workstreams: [{ "label": "research", "start": 0, "end": 2 }, ...].');
+refuses("a status outside the kit's set", {
+  kind: "statusKey",
+  source: "Sample",
+  data: [{ level: 7, label: "shipped" }],
+}, "shipped has a level of 7, outside 0 to 4.");
+refuses("a status key with no statuses", { kind: "statusKey", data: [] },
+  'A status key needs its statuses: [{ "level": 4, "label": "done" }, ...].');
+refuses("a status tone that is not one of the three", {
+  kind: "statusKey",
+  source: "Sample",
+  data: [{ level: 4, label: "done", tone: "green" }],
+}, 'done\'s tone is problem, good or plain, not "green".');
 // the invalid file itself: the funnel solid/test.sh gives the desktop's `--spec`, refused with the sentence
 const invalid = parse(readFileSync(new URL("./specs/invalid-funnel.json", import.meta.url), "utf8"));
 if (invalid.problems.includes("signed up 12600 is more than visited 12400; a funnel never grows"))
@@ -306,6 +388,8 @@ else bad("solid/specs/invalid-funnel.json", JSON.stringify(invalid.problems));
 for (const [file, sentence] of [
   ["invalid-branch.json", 'check the data has no "no" branch.'],
   ["invalid-state.json", "The path goes happened → paid, but no transition connects them."],
+  ["invalid-timeline.json", "build has start 5, end 2; it should end after it starts."],
+  ["invalid-status.json", "shipped has a level of 7, outside 0 to 4."],
 ] as const) {
   const refused = parse(readFileSync(new URL(`./specs/${file}`, import.meta.url), "utf8"));
   if (refused.problems.includes(sentence)) ok(`solid/specs/${file}`, sentence);
@@ -371,6 +455,45 @@ for (const [file, sentence] of [
   if (dropped.length !== path)
     ok("mutation: a dropped state box", `${path} states on the path, ${dropped.length} boxes: the count differs`);
   else bad("mutation: a dropped state box", "the count did not move");
+}
+
+// (i) the two planning kinds' mutations: a bar drawn from its end instead of its span, a status outside the kit's set
+// left unrefused, and the axis's labels dropped from the layout
+{
+  const plan = spec("timeline");
+  const timeline = layout(plan);
+  const axisWidth = plan.options?.width ?? 40;
+  const top = plan.options?.scale ?? Math.max(...plan.data.map((row) => row.end));
+  const i = plan.data.findIndex((row) => row.label === "7 board");
+  const row = plan.data[i]!;
+  const bar = timeline.bars[i]!;
+  const span = ((row.end - row.start) / top) * axisWidth;
+  const endCells = (row.end / top) * axisWidth;
+  const broken = { ...bar, value: endCells, max: bar.track };
+  const drawn = (broken.track * broken.value) / broken.max;
+  const error = Math.abs(drawn - span);
+  if (error > HALF_CELL)
+    ok(
+      "mutation: a bar drawn from its end",
+      `${row.label} ${row.start}-${row.end} draws ${drawn.toFixed(2)} cells where the span is ${span.toFixed(2)}: ` +
+        `${error.toFixed(2)} cells off (half allowed)`,
+    );
+  else bad("mutation: a bar drawn from its end", `${error.toFixed(2)} cells: the span check did not move`);
+
+  const outOfSet = { kind: "statusKey", source: "Sample", data: [{ level: 7, label: "shipped" }] };
+  const sentence = "shipped has a level of 7, outside 0 to 4.";
+  if (check(outOfSet).includes(sentence)) ok("mutation: a status outside the kit's set", `not left unrefused — ${sentence}`);
+  else bad("mutation: a status outside the kit's set", `the check printed no ${JSON.stringify(sentence)}: ${JSON.stringify(check(outOfSet))}`);
+
+  const axisLine = (line: { items: readonly { kind: string; textId?: string }[] }): boolean =>
+    line.items.some((item) => item.kind === "text" && item.textId === "fig-axis");
+  const withoutAxis = timeline.lines.filter((line) => !axisLine(line));
+  if (withoutAxis.length !== timeline.lines.length)
+    ok(
+      "mutation: the axis labels dropped",
+      `${timeline.lines.length} rows with the axis, ${withoutAxis.length} without: the row count differs`,
+    );
+  else bad("mutation: the axis labels dropped", "the row count did not move");
 }
 
 // the kind's own two edges, from the layout: a value past `max` fills the track and prints "+", and a positive value

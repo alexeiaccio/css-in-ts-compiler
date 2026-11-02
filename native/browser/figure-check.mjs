@@ -154,6 +154,8 @@ async function main() {
     for (const [name, title] of [
       ["branch-flow", "One spec, from its file to a frame"],
       ["state-machine", "A dialog's presence, one open"],
+      ["timeline", "This repository's last weeks, in the map's order"],
+      ["status-key", "A figure's statuses"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);
       await page.waitForFunction(() => window.__page, null, { timeout: 20000 });
