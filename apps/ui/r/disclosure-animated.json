@@ -5,7 +5,7 @@
   "title": "Animated disclosure",
   "description": "A disclosure whose panel animates on `@cssints/machine`: an interrupted animation reverses from where the box is, a cancelled one's completion is ignored, a hover burst is debounced, and reduced motion skips the transition",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/machine"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme"],
   "files": [
     {

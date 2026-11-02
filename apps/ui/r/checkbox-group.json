@@ -5,7 +5,7 @@
   "title": "Checkbox group",
   "description": "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme", "@cssints/checkbox"],
   "files": [
     {

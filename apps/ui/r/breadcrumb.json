@@ -5,7 +5,7 @@
   "title": "Breadcrumb",
   "description": "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme"],
   "files": [
     {

@@ -560,7 +560,7 @@ const starter = (item: Starter) => ({
   // browser test does not.
   devDependencies:
     item.tested && existsSync(join(root, "src/registry", item.name, `${item.name}-driver.ts`))
-      ? ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"]
+      ? ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"]
       : [],
   registryDependencies: ["@cssints/theme", ...(item.also ?? [])],
   files: kitFiles(item),
