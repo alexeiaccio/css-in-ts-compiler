@@ -3722,3 +3722,53 @@ guard. The package now sets `testTimeout: 60_000`, the same reasoning as `tools/
 **Left**: the stale reads under concurrency have no reproduction file-by-file, so nothing was changed for them; if CI
 ever shows one, the first suspect is the DOM driver's settle (`flush()` plus one macrotask in `test/dom-driver.ts`), which
 deliberately avoids a frame because a frame perturbs the focus fixup (bean 209r).
+
+## The carousel's clock on `@cssints/machine` (apps/ui, 2026-11-02)
+
+The kit's carousel shipped paused because nothing advanced it. `createCarousel` exposes `tick()` — one rotation interval,
+deliberately without a timer — so the skin passed `autoRotate: false`, and the control that starts a rotation nothing
+advances was hidden rather than allowed to lie. The clock is the machine's now
+(`apps/ui/src/registry/carousel/carousel.tsx`): `idle` and `waiting`, a `play` event carrying the primitive's
+`rotating()`, and a `wait` effect (`{ type: "wait", ms }`) whose `elapse { id }` calls `tick()` and issues the next wait.
+The machine follows `rotating()` exactly as the overlays follow `open()`: the pointer pause, the focus pause, the sticky
+focus and the control's intent are `specs/apg/carousel.qnt`'s and stay in `@cssints/headless`, and the clock only reads
+their result. That is also why the control's label and the clock's phase cannot disagree: the label is `rotating()`'s and
+the phase is the clock's copy of it.
+
+**What stays in the primitive.** Everything the pattern is about: `rotating()` (the hover pause, the sticky focus and the
+explicit Start), `toggleRotation()`, `next` / `prev` / `selectSlide`, the `aria-live` that flips to `off` while rotating,
+the rotation control's label, and `tick()` itself, which already refuses when not rotating. Nothing in
+`@cssints/headless` changed, so there is no changeset, and the carousel's ported scenarios and differential walk still
+drive the same primitive.
+
+**A tick, a pause, a resume.** Leaving `waiting` cancels the wait, and the host's `onCancel` clears the timer it started.
+An `elapse` that arrives after its wait was cancelled carries the dead handle's id, and the machine drops it before
+looking at a transition, so a timer that was already due when the pause landed moves nothing. A resume enters `waiting`
+once, with one new wait; a repeated `play` in the same direction has no transition at all, so there is no second timer —
+and no debounce is needed, because one pending wait is the coalescer. A manual next or previous sends the machine no
+event, so the wait handle stays live and the interval ends when it was going to end.
+
+**The harness proves it without a browser or a real interval.** The tests in `carousel.browser.test.tsx` drive the shipped
+`watchCarouselClock` wiring on `createFakeClock`: one wait and one timer while rotating, one tick per elapse (and one new
+wait, never two), a pause that clears the timer so no tick can ever arrive, the stale elapse logged as `cancelled` and
+moving nothing, exactly one wait and one tick per elapse after a resume, a repeated play keeping the same handle, no
+effect at all when the primitive reports `rotating() === false` (reduced motion), and an unmount that cancels the last
+wait. The DOM tests pass the fake clock to the component's `clock` prop, so the same wiring moves slides in Chromium with
+no real interval: autoplay advances after the interval, a hover pauses and the leave resumes, the control's label and the
+phase agree at every step, reduced motion starts paused with no timer, and a manual next leaves the wait's handle and its
+deadline alone. One test takes the system clock with a 40 ms interval and asserts only that time passed (the shown slide
+is `ticks % 5`), so a loaded machine that runs the timers late still passes.
+
+**Cost and the choices.** Auto-rotation is on by default, as in the primitive and the APG's example; a page that wants
+the old paused carousel passes `autoRotate={false}`, which also hides the control as the APG asks. The interval is
+`CAROUSEL_INTERVAL = 6000`, a constant rather than a token (`ponytail:` note in the file: a token would let the theme
+retime the autoplay, and the `interval` prop already retimes one carousel). The preference is read once at mount and
+starts the carousel paused; the store is `createMachineStore`, and the test counts the re-runs — a phase reader is not
+re-run by a tick, as in `packages/machine/test/store.mjs`.
+
+**Left.** There is no tab-hidden pause: the clock has no visibility event and the APG carousel does not ask for one, so a
+carousel in a background tab keeps waiting and ticking at the browser's throttled rate. There is no rotation direction
+in the machine — `tick()` always advances forward, so a swipe or a previous during a wait moves the slide back and the
+next elapse moves forward from where the reader left it, and the clock is not paused by a gesture. The interval is not a
+token, and a live change of `prefers-reduced-motion` does not reach a mounted carousel. An explicit Start under reduced
+motion still rotates, because the primitive allows it and the clock follows `rotating()` rather than a second opinion.
