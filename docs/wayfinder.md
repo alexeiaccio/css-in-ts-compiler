@@ -3881,3 +3881,14 @@ and two browser tests pin both presses and the Left collapse. The same pass remo
 never read — `SwitchOptions.id`, `TooltipTriggerInput.label`, `PaginationLabels.gap` — and corrected the textbox's
 `onValueChange` note (it is the `input` event). One minor changeset for `@cssints/headless`, because the removals change a
 published type.
+
+## The 0.28.0 release: a red run, a green rerun, a lagging registry (2026-11-02)
+
+The first publish run after merging "Version Packages" put 22 of 29 packages on npm and failed the rest with
+`TLOG_CREATE_ENTRY_ERROR (409) an equivalent entry already exists in the transparency log` — npm's Sigstore log already held
+the entry for those tarballs because their earlier `PUT` was retried, so `npm publish` never reached the registry.
+`scripts/publish.mjs` classifies only `previously staged version` as "nothing left to do", so the job went red; re-running
+the failed job published the remaining six (`skeleton`, `layout`, `mcp`, `reveal`, `fonts`, `icons`) and reported success.
+`@cssints/color-names@0.28.0` then answered publish-API `E403: cannot publish over the previously published versions` while
+the read side still 404'd; the version document appeared about fifteen minutes later. All 29 are on 0.28.0. **Recorded**:
+RELEASING.md has the tlog recipe (rerun, do not bump) and the registry-lag check; the publish script is unchanged.

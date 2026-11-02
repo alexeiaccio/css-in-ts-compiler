@@ -189,3 +189,15 @@ npm view @cssints/tui deprecated                              # reads it back
 
 `@*` marks every version already on npm and every one published later; a single version is `@cssints/tui@0.4.1`. To undo
 it, `npm deprecate "@cssints/tui@*" ""` (an empty message clears it).
+
+## A red publish that landed (0.28.0, 2026-11-02)
+
+npm's transparency log is keyed by the artifact. An attempt that fails after its log entry is written — a retried `PUT`, a
+transient 5xx — leaves the next attempt with `TLOG_CREATE_ENTRY_ERROR: error creating tlog entry - (409) an equivalent
+entry already exists in the transparency log`. That is **not** a broken release and not a reason to bump a version: some
+packages are already on the registry, and re-running the failed job (`gh run rerun <id> --failed`) publishes the rest while
+changesets skips the versions it finds. In 0.28.0 the first run published 22 of 29 and the rerun reported the other 6;
+`@cssints/color-names` still answered 404 for about fifteen minutes after npm's publish endpoint had accepted it (its
+tarball is the largest, 491 kB), so the check is `https://registry.npmjs.org/<pkg>/<version>` — `npm view` and the CDN
+lag behind it. Only `previously staged version` means "nothing left to do" in `scripts/publish.mjs`; the tlog 409 turns
+the job red and the rerun is the recovery.
