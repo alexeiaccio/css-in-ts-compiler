@@ -3892,3 +3892,45 @@ the failed job published the remaining six (`skeleton`, `layout`, `mcp`, `reveal
 `@cssints/color-names@0.28.0` then answered publish-API `E403: cannot publish over the previously published versions` while
 the read side still 404'd; the version document appeared about fifteen minutes later. All 29 are on 0.28.0. **Recorded**:
 RELEASING.md has the tlog recipe (rerun, do not bump) and the registry-lag check; the publish script is unchanged.
+
+## The virtualizer's pending jump is a machine (packages/headless, 2026-11-02)
+
+`createVirtualizer`'s measured jump was a protocol written as two mutable variables: `pending` (the target
+`scrollToIndex` accepted) and `requested` (the `scrollTop` the last landing wrote, so the browser's echo of our own
+write could be told from the reader's scroll), an effect (`jump`), a completion (`reapply` after every height batch), a
+cancel (`sync`), a staleness rule that was implicit (the target could change under a landing's feet) and a count shrink
+that dropped the target in `prune`. Every branch was a `pending = undefined` in a different place. It is now
+`settleDefinition`, a `@cssints/machine` definition in `src/virtual.ts`: states `idle` and `landing`, context
+`{ target, requested }`, events `seek { index, settled }`, `measured { settled }`, `landed { id, offset }`, `manual`,
+`count { total }` and `reset`. Effects are `{ type: "land", final }` — the row is `context.target`, because an effect
+spec is static data and the index belongs to the event. The host runs `jump`, reports the offset it wrote as `landed`,
+and the machine issues another `land` while `settled` is false and exactly one `final` landing when every height is in.
+`@cssints/headless` now takes `@cssints/machine` as a dependency, not a peer: the machine's core is plain code, no
+browser and no Solid, and both packages are in the same fixed release group.
+
+The races are the machine's: a second `scrollToIndex` is the last intent (a `seek` out of `landing` cancels the live
+handle and issues one `land`; the first landing's late `landed` carries a dead handle id and is dropped before any
+transition — the package's rule that a numeric `id` is reserved for a handle); a repeated `seek` of the same row is a
+transition with no effect, so the protocol does not restart; `landing` ends on `manual`, on a `count` that no longer
+names the target, and on `settled`, which issues the one final landing and drops the target; a jump that is already
+exact (`settled` true, or the fixed mode) lands once and drops the target in its completion. No state is a trap:
+`idle` holds no target, and `landing` holds one and a landing, live or reported. `test/virtual.browser.test.tsx` has
+the harness half: a host that runs `land` exactly as the primitive does, one test per race, each closed by the
+`NoStuckState` check (`noStuckState`);
+its DOM half asserts the same in Chromium (a long jump lands on the estimate, then on the exact height, then stops; a
+hand scroll during the landing keeps the reader's offset; two jumps end on the second target; a count shrink drops the
+target; an exact jump moves once; a repeated jump does not move twice).
+
+Cost: one machine per virtualizer, created at setup; the teardown `attach` returns destroys it, and a host that attaches
+again gets a new one. `createMachineStore` is not used — the engine path takes the machine and `onEffect` only — and the
+window memo reads no machine state (the `count` event is sent from `prune`, which already ran there, and the transition
+writes no signal). A scroll frame reads `getState()` once to compare `scrollTop` with `requested` and sends `manual`
+only when the two differ while `landing`; a frame that echoes our own landing sends nothing, and no frame sends while
+`idle`. `scrollToIndex` is one `seek` plus the completion its effect reports; a height batch is one `measured` while
+landing.
+
+Left: the measured window still builds an O(n) prefix sum per computation (`layout`); a persistent prefix sum, or a
+binary search over a running total, is the upgrade for very large feeds. The estimates still converge only as fast as
+the `ResizeObserver` delivers heights — a better per-row estimate would land closer on the first try. Horizontal
+virtualisation and a sticky header are still absent. There is no Quint spec: the state is pixels, and the harness is the
+oracle.
