@@ -3869,3 +3869,15 @@ down. The distance threshold is a constant in px rather than a share of the pane
 measured only for the dismissal's fraction. The drag ignores `dismissable`: that prop turns off the backdrop and the
 outside press, and a pull past the threshold is neither, so a sheet whose backdrop is disabled still drags away — a
 separate switch would be a separate decision.
+
+## The treegrid's Right arrow, and three options that never were (packages/headless, 2026-11-02)
+
+Found while writing the API docs: `createTreegrid`'s `right()` expands a collapsed row and then re-reads `canExpand` to
+decide whether to enter the first cell — which reads like it sends the focus into the cell on the expanding press. It did
+not: on Solid 2 the expansion write is not observable in the same tick, so the re-read still saw the collapsed row and the
+focus stayed where the APG wants it (measured in Chromium: the row carries the tab stop after the first press, `cell:0,0`
+after the second). The behaviour was correct by timing, not by construction, so `right()` now decides once and returns,
+and two browser tests pin both presses and the Left collapse. The same pass removed three options that were declared and
+never read — `SwitchOptions.id`, `TooltipTriggerInput.label`, `PaginationLabels.gap` — and corrected the textbox's
+`onValueChange` note (it is the `input` event). One minor changeset for `@cssints/headless`, because the removals change a
+published type.

@@ -1,11 +1,11 @@
 ---
 # cssints-rghf
 title: 'headless: options that are declared but never read'
-status: todo
+status: completed
 type: task
 priority: low
 created_at: 2026-11-02T11:36:39Z
-updated_at: 2026-11-02T11:36:39Z
+updated_at: 2026-11-02T12:18:51Z
 ---
 
 Found while documenting the primitives for `docs/API.md` (2026-11-02). Each of these is in a public options type and reads as a feature that does nothing:
@@ -16,3 +16,9 @@ Found while documenting the primitives for `docs/API.md` (2026-11-02). Each of t
 - `packages/headless/src/textbox.ts` — the `onValueChange` JSDoc says "Change and input both land here", but only `onInput` is wired.
 
 Either implement the option or remove it from the type (removal is a breaking change for a published package, so a minor with a note, or a patch if the type was never used anywhere). The wayfinder entry of the docs round records the same list.
+
+
+
+## Outcome (2026-11-02)
+
+All three options were removed from the published types (`SwitchOptions.id`, `TooltipTriggerInput.label`, `PaginationLabels.gap`) — nothing in the repository passed any of them — and the textbox note now says the `input` event only. Covered by `.changeset/treegrid-right-and-dead-options.md` (minor).
