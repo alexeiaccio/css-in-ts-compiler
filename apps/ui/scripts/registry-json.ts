@@ -90,13 +90,13 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Drawer",
     description:
       "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return — and an `animated` slide that leaves the page only when it has finished",
-    also: ["@cssints/button"],
+    also: ["@cssints/button", "@cssints/input"],
   },
   {
     name: "panzoom",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
-    with: ["theme.ts", "tokens.ts"],
+    with: ["theme.ts", "tokens.ts", "render.tsx"],
     title: "Pan and zoom",
     description:
       "One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
@@ -216,6 +216,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     name: "tabs",
     tested: true,
     with: ["theme.ts", "tokens.ts"],
+    also: ["@cssints/accordion"],
     title: "Tabs",
     description: "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
   },
@@ -451,7 +452,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   {
     tested: true,
     name: "pagination",
-    with: ["theme.ts", "tokens.ts"],
+    with: ["theme.ts", "tokens.ts", "render.tsx"],
     title: "Pagination",
     description:
       "A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count",
