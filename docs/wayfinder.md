@@ -3632,10 +3632,55 @@ second bridge. The protocol properties it does share — reversal, a stale compl
 **Left.** `dismissAll` and the ceiling remove rows without an exit (the primitive's policy, and the replacement reason
 above); a host that calls `dismiss(id)` itself skips the animation too, and `requestDismiss(id)` is the animated path. The
 queue still counts a leaving row against `max` until `dismiss(id)` lands, so a burst of pushes while a row leaves drops
-one more than the visible stack suggests. The stack does not animate as a whole (the remaining rows do not slide into the
-gap), there is no swipe or drag dismissal, the enter and leave durations are constants rather than tokens, the motion
-preference is read once per row rather than followed live, and the leave starts from the computed opacity — a paused enter
-(`animation.pause()` by a host) keeps that value, but nothing in the kit pauses one.
+one more than the visible stack suggests. There is no swipe or drag dismissal, the enter and leave durations are constants
+rather than tokens, and the motion preference is read once per row rather than followed live. Two of this entry's lefts
+were closed by the next one: the stack now moves as a stack, and the leave starts from the running animation's fraction
+rather than from the computed opacity.
+
+## The toast stack closes its own gap (apps/ui, 2026-11-02)
+
+The row lifecycle (the entry above) moved the opacity only, so the stack was a list of frozen boxes: when a row left, the
+rows around it jumped by its whole height in one frame, and a new row appeared with no room made for it. The primitive's
+queue does not know about layout, and a FLIP pass over the siblings would have to measure every neighbour before and after,
+keep the transforms in step with an animation it does not own, and re-measure whenever a title wrapped. The collapse rides
+the two effects the machine already runs instead: `entering` grows the row's own box and `leaving` shrinks it, so the
+stack's flex layout closes and opens the gap continuously and the sibling rows move only because layout moved them. No
+phase, no effect and no listener was added — the machine still decides, and the harness case "carries the box's growth and
+collapse inside the two effects the phases already had" pins that down.
+
+**What the box is.** The enter reads the row's rest geometry off the DOM once, synchronously, before its animation exists
+(`getBoundingClientRect().height` plus the computed block padding, border and margin), and animates from zero to it. The
+leave runs the same frame function the other way, so the two keyframe sets are symmetric. The padding and border are in the
+keyframes because `box-sizing: border-box` floors a zero block size at them: a size-only collapse would leave a 26 px
+strip behind and jump the stack by it at the unmount. The space between rows moved from the region's `gap` to each row's
+own `margin-block-start`, for the same reason — a container gap outlives the row it separated — and the row clips its
+content with `overflow: clip` so the text does not spill out of a box going through zero. The animation is linear and its
+`animation.id` is `from:to` (`0:1`, `1:0`, `0.5:0`), as the kit's overlay motion does.
+
+**The reversal is one number.** A `dismiss` in `entering` cancels the enter; the host reads the cancelled animation's
+`currentTime` before cancelling it and keeps it as the fraction of the box, so the leave's first keyframe is the box at that
+fraction for every property: a row dismissed halfway through its enter leaves from half its height, half its space and half
+its opacity, and the box does not snap open. The easing is linear for exactly this reason (the house rule the disclosure and
+the overlay motion already set): the fraction is `currentTime / duration`, not an eased guess. A dead finish still moves
+nothing, because the machine drops a completion whose handle id it already cancelled.
+
+**The tests prove both halves.** The harness owns the protocol: one enter effect, one leave effect, no state or effect for
+the box, `gone` issues nothing, and a late finish is logged as a cancelled delivery. The browser tests hold the animations
+with `onAnimate` (a `pause()`), step `currentTime` and read the real box: the enter's first keyframe is `blockSize: 0px` and
+the row grows through two stepped samples; the leave's ends are the rest box and nothing, the row shrinks through the
+samples, a sibling's `offsetTop` changes while the leave runs and not after the unmount, and the region closes by exactly
+the row's share (its box plus its margin). A new row's enter moves the row above it in more than one step, by the new row's
+whole share. A reversal at half the enter produces the leave id `0.5:0`, a first keyframe of half the box and half the
+margin, and no snap. Finally the rows are asserted to be `position: static`, sharing the region's column, with the region's
+height equal to their shares — the stack is a flow, not a set of positioned boxes. Reduced motion is unchanged: `visible`
+at the start, straight to `gone`, no animation and no `leaving`.
+
+**Left.** `dismissAll`, the ceiling and a host's own `dismiss(id)` still remove rows without an exit, so a stack emptied by
+one of them jumps once: they are the primitive's policy and their animated path is `requestDismiss`, one row at a time. The
+stack reflows a row at a time; it has no stack-level pass for a bulk removal, it does not scroll when the ceiling is raised
+past what the viewport holds, and a row that is leaving still counts against `max` until `dismiss(id)` lands. The durations
+are constants, the motion preference is read once per row, and a resize while a row is settled does not re-measure it — the
+leave reads the box again when it starts, so only a resize _during_ an enter would be kept at the old size.
 
 ## The modal overlays close on a machine: the Escape-during-close race (apps/ui, 2026-11-01)
 
