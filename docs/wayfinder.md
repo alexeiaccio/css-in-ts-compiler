@@ -3772,3 +3772,25 @@ in the machine — `tick()` always advances forward, so a swipe or a previous du
 next elapse moves forward from where the reader left it, and the clock is not paused by a gesture. The interval is not a
 token, and a live change of `prefers-reduced-motion` does not reach a mounted carousel. An explicit Start under reduced
 motion still rotates, because the primitive allows it and the clock follows `rotating()` rather than a second opinion.
+
+## The headless API, completed in the docs (docs/API.md, 2026-11-02)
+
+`docs/API.md` documented 24 headless primitives and named 19 others not at all — every one of them published in
+`@cssints/headless`. The 19 now have sections in the house style (what the host renders, the spec or the test that is
+the oracle, controlled vs uncontrolled, the keyboard, the limits), placed after `createRearrangeableListbox` so the
+headless group stays one run of the file rather than a tail after "Browser support": disclosure, accordion, switch,
+radio, tooltip, toolbar, text input/area, link, listbox, meter, pagination, breadcrumb, treeview, treegrid, window
+splitter, resizable panels, carousel, feed, player. Every signature was copied from the source and every options block
+is fenced `ts skip` — the doc test type-checks `ts` blocks, and a pseudo-signature has no business passing it.
+
+**What the exercise turned up** — four batches, three kinds of drift. Options declared and never read
+(`SwitchOptions.id`, `TooltipTriggerInput.label`, `PaginationLabels.gap`, and the textbox's `onValueChange` comment
+promising `change` where only `input` is wired; bean `cssints-rghf`). A real conformance bug: treegrid's Right expands a
+collapsed row and lands in its first cell in the same press, while the APG keeps the row focused, and all 86 ported
+treegrid scenarios skip, so nothing caught it (bean `cssints-qw4q`). And text that outlived the code: the headless README
+still called nested groups the host's and omitted the `defaultSize` rule, the carousel header promised CSS scroll-snap
+while the primitive hides every non-current slide, and `docs/player-aria-contract.md` described volume and rate controls
+and a dragged seek rail that never shipped. The three text drifts are fixed here; the two code findings are beans.
+
+**Left**: the dead options need either an implementation or a removal from a published type (its own changeset), and the
+treegrid fix needs its test.
