@@ -89,7 +89,7 @@ export const panzoomGlideDefinition = (reduced: boolean) =>
             },
             {
               target: "gliding",
-              assign: (context, event) => velocityOf(event),
+              assign: (_context, event) => velocityOf(event),
             },
           ],
           grab: { target: "rest", assign: ZERO },
