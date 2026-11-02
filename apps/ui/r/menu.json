@@ -5,7 +5,7 @@
   "title": "Menu",
   "description": "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme", "@cssints/button"],
   "files": [
     {

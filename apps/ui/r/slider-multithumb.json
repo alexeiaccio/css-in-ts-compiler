@@ -5,7 +5,7 @@
   "title": "Range slider",
   "description": "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme"],
   "files": [
     {

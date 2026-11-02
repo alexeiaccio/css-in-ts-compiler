@@ -5,7 +5,7 @@
   "title": "Meter",
   "description": "APG meter: a track and the fill of the value, on `createMeter`",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme"],
   "files": [
     {

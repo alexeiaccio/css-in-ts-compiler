@@ -5,7 +5,7 @@
   "title": "Listbox",
   "description": "A plain listbox on `createListbox`: one roving tab stop, arrows, Home and End, type-ahead, and single or multiple selection with a check mark",
   "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-  "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+  "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
   "registryDependencies": ["@cssints/theme"],
   "files": [
     {

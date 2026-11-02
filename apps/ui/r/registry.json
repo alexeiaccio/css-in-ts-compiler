@@ -643,7 +643,7 @@
       "title": "Switch",
       "description": "APG switch on @cssints/headless, on the neutral theme, with its scenario test",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -695,7 +695,7 @@
       "title": "Disclosure",
       "description": "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -747,7 +747,7 @@
       "title": "Animated disclosure",
       "description": "A disclosure whose panel animates on `@cssints/machine`: an interrupted animation reverses from where the box is, a cancelled one's completion is ignored, a hover burst is debounced, and reduced motion skips the transition",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/machine"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -804,7 +804,7 @@
       "title": "Button",
       "description": "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -861,7 +861,7 @@
       "title": "Checkbox",
       "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -913,7 +913,7 @@
       "title": "Radio group",
       "description": "APG radio group with roving tabindex or aria-activedescendant focus",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -965,7 +965,7 @@
       "title": "Tabs",
       "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/accordion"],
       "files": [
         {
@@ -1017,7 +1017,7 @@
       "title": "Accordion",
       "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1210,7 +1210,7 @@
       "title": "Alert",
       "description": "APG alert: a title and a body in a live region, with an `invalid` tone",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1314,7 +1314,7 @@
       "title": "Meter",
       "description": "APG meter: a track and the fill of the value, on `createMeter`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1371,7 +1371,7 @@
       "title": "Breadcrumb",
       "description": "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1428,7 +1428,7 @@
       "title": "Tree view",
       "description": "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1673,7 +1673,7 @@
       "title": "Menu",
       "description": "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
@@ -1730,7 +1730,7 @@
       "title": "Menubar",
       "description": "APG menu and menubar: a roving bar whose menus float under their items, rows with one tab stop, and nested submenus that open beside the parent row",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1839,7 +1839,7 @@
       "title": "Popover",
       "description": "A non-modal panel anchored to a trigger: a dialog surface that flips at the viewport edge, closes on an outside press or Escape, and returns the focus",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
@@ -1896,7 +1896,7 @@
       "title": "Date picker",
       "description": "A calendar in a popover: a 6x7 month grid with arrows, Home and End, PageUp and PageDown, min and max, and the chosen day on the trigger",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
@@ -2005,7 +2005,7 @@
       "title": "Command palette",
       "description": "A modal dialog with a search field: the primitive filters the commands, `aria-activedescendant` marks the active row, and arrows, Enter, Escape and a hotkey are its keys",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
@@ -2109,7 +2109,7 @@
       "title": "Slider",
       "description": "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -2166,7 +2166,7 @@
       "title": "Range slider",
       "description": "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -2223,7 +2223,7 @@
       "title": "Spinbutton",
       "description": "APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -2280,7 +2280,7 @@
       "title": "Checkbox group",
       "description": "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/checkbox"],
       "files": [
         {
@@ -2723,7 +2723,7 @@
       "title": "Listbox",
       "description": "A plain listbox on `createListbox`: one roving tab stop, arrows, Home and End, type-ahead, and single or multiple selection with a check mark",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -2780,7 +2780,7 @@
       "title": "Link",
       "description": "A link on `createLink`: a native `<a href>` or a custom `role=link` with its own tab stop and Enter, a muted tone, and the current page marked `aria-current=page`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
+      "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
