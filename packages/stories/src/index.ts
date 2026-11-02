@@ -9,7 +9,12 @@ export type Control =
   | { readonly type: "boolean" }
   | { readonly type: "select"; readonly options: ReadonlyArray<string> }
   | { readonly type: "text" }
-  | { readonly type: "number"; readonly min?: number; readonly max?: number; readonly step?: number }
+  | {
+      readonly type: "number";
+      readonly min?: number;
+      readonly max?: number;
+      readonly step?: number;
+    }
   | { readonly type: "range"; readonly min: number; readonly max: number; readonly step?: number };
 
 export type ArgTypes = Readonly<Record<string, Control>>;
@@ -59,8 +64,9 @@ export interface Entry<Node = unknown> {
 }
 
 /** A CSF module: the `import.meta.glob` result an app passes to `entries`. */
-export type Module<Node = unknown> = { readonly default: Meta<Record<string, unknown>, Node> } &
-  Record<string, unknown>;
+export type Module<Node = unknown> = {
+  readonly default: Meta<Record<string, unknown>, Node>;
+} & Record<string, unknown>;
 
 const kebab = (text: string): string =>
   text
@@ -78,7 +84,9 @@ const viewOf = <Node>(
   }
   const component = meta.component;
   if (!component) {
-    throw new Error(`stories: a story of "${meta.title}" has no render and its meta has no component`);
+    throw new Error(
+      `stories: a story of "${meta.title}" has no render and its meta has no component`,
+    );
   }
   // The component's return type is the app's node type, which this package cannot name: the app parameterizes `entries`.
   return (args) => createComponent(component as never, args as never) as Node;

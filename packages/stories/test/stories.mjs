@@ -58,7 +58,9 @@ assert.equal(stories[2].view({}), "card");
 
 // the item can be named by the app instead of the path's directory
 const flat = entries(
-  { "./stories/disclosure.stories.tsx": { default: { title: "D" }, Closed: { render: () => "d" } } },
+  {
+    "./stories/disclosure.stories.tsx": { default: { title: "D" }, Closed: { render: () => "d" } },
+  },
   (path) => path.slice("./stories/".length, -".stories.tsx".length),
 );
 assert.equal(flat[0].id, "disclosure--closed");
