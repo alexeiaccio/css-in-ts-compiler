@@ -1,11 +1,11 @@
 ---
 # cssints-zovu
 title: Pan-zoom image
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-30T17:34:44Z
+updated_at: 2026-11-02T10:59:25Z
 parent: cssints-65eb
 ---
 
@@ -31,3 +31,11 @@ kocharin zoomable.tsx is ~110 lines of pointer math with no keyboard path and no
 Checks: headless suite green (1099 passed; menu-button walk rerun alone after a load flake), tsc, `vp lint packages/headless`, `vp fmt --check`, `bun run diff:check`, `bun run release:check`.
 
 Left: adoption in kocharin-art-3 (the last item) belongs to the session that owns that repo.
+
+## Summary of Changes
+
+Shipped as `createPanZoom` in 0.18.0 (keyboard, pointer drag, modifier wheel, clamp/free bounds, live value); built for kocharin's zoomable.tsx.
+
+## 2026-11-02: tracked there, not here
+
+Moved: the kocharin-art-3 adoption is tracked in effects-of-atmosphere `9g8k` (cross-repo item).

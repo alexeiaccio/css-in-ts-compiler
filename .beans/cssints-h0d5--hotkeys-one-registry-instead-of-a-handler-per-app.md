@@ -36,3 +36,7 @@ Still open: adoption in apps/docs (search focus) and cms-admin (save, publish) -
 - `packages/headless/src/hotkeys.ts` is the unchecked item, shipped and ticked here: `createHotkeys(options?: { isApple })` and `bind({ keys, onTrigger, when, preventDefault, allowInEditable, scope })` give modifiers with exact matching (`?` implies Shift), `when` falling through to the next match, the editable guard (`input`, `textarea`, contenteditable; opt in per binding), a per-binding scope that only filters the event target, and an idempotent unbind plus `dispose()`. The oracle is `packages/headless/test/hotkeys.browser.test.tsx` (11 tests in Chromium).
 - First host: `apps/docs/src/Shell.tsx` (the search focus and the page's own chords; documented in `docs/API.md`).
 - Second host, and the first visual one: `apps/ui/src/registry/shortcuts/` (2026-10-31) — `createShortcuts` binds `?` with `allowInEditable: false` and an optional `scope`, the `Kbd`/`Shortcuts` sheet renders the host's groups, and the fixture binds `mod+k` and `s` through the same registry (a note's scoped `s` shadows the page's inside it).
+
+## 2026-11-02: tracked there, not here
+
+Moved: the cms-admin adoption is tracked in effects-of-atmosphere `2d5y`.
