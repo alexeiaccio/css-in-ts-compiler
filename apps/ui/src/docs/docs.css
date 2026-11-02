@@ -78,23 +78,6 @@ code {
   font-size: var(--font-size-sm);
 }
 
-.docs__chip {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-button-background);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.docs__chip--active {
-  border-color: var(--color-highlight);
-  background: var(--color-highlight);
-  color: var(--color-on-highlight);
-}
-
 .docs__main {
   display: grid;
   gap: var(--space-6);
@@ -121,6 +104,32 @@ code {
 .docs__heading {
   margin: 0;
   font-size: var(--font-size-lg);
+}
+
+.docs__story {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-muted);
+}
+
+.docs__mode {
+  display: flex;
+  align-items: center;
+}
+
+/* The controls a story declares: a row each, the label beside its widget. */
+.controls {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .docs__preview {

@@ -1,10 +1,20 @@
-// The docs page: one widget at a time, from the registry build. The live preview, the source that
-// ships, the add command, the tint picker that moves every preview, and the preflight result the
-// published copy passed.
+// The docs page: one item at a time, from the registry build. The live preview comes from the item's CSF story file (with
+// the story ids Storybook builds, its args as controls); an item without one still shows its demo. The source that ships,
+// the add command, the tint picker that moves every preview, and the preflight result the published copy passed.
+//
+// The page is built on the registry's own components, so the chrome is one more reader of the kit: the theme switch, the
+// tint group, the story tabs, the controls and the copy buttons are the components on the pages they stand beside.
 import { componentFile, items, type CatalogItem } from "./catalog.ts";
 import { For, Show, createEffect, createSignal, onCleanup } from "solid-js";
 import { demos } from "./demos.tsx";
 import { GUIDES, type Guide } from "./guides.tsx";
+import { Button } from "../registry/button/button.tsx";
+import { RadioGroup } from "../registry/radio/radio.tsx";
+import { Switch } from "../registry/switch/switch.tsx";
+import { Tabs } from "../registry/tabs/tabs.tsx";
+import { Controls } from "../stories/controls.tsx";
+import { type Args, type Entry, parseHash, storyOfId } from "../stories/load.ts";
+import { storiesOf } from "../stories/site.ts";
 import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
@@ -36,10 +46,51 @@ const isPreflight = (value: unknown): value is Preflight =>
   "files" in value &&
   "passedAt" in value;
 
-const selected = (): string => location.hash.replace(/^#/, "") || (items[0]?.name ?? "");
+const first = (): string => items[0]?.name ?? "";
+
+const start = parseHash(location.hash);
+
+/**
+ * One story on the canvas: its args in a signal, a control writing into it, and the story remounted on every change, so an
+ * arg that a component reads once (a count, a set of tabs) still lands. A story with no declared controls keeps its args
+ * and shows no panel.
+ *
+ * @param {{ readonly entry: Entry }} props the story to draw
+ * @returns {JSX.Element} the canvas and, when the story declares controls, the panel
+ */
+const StoryCanvas = (props: { readonly entry: Entry }): JSX.Element => {
+  const [args, setArgs] = createSignal<Args>(props.entry.args);
+  const controlled = (): boolean => Object.keys(props.entry.argTypes).length > 0;
+
+  return (
+    <>
+      <Show keyed when={args()}>
+        {(current) => props.entry.view(current)}
+      </Show>
+      <Show when={controlled()}>
+        <section class="docs__section">
+          <h2 class="docs__heading">Controls</h2>
+          <p class="docs__note">
+            The args this story declares. A change remounts it: a prop the component reads once — a
+            count, a set of tabs — still arrives.
+          </p>
+          <Controls
+            argTypes={props.entry.argTypes}
+            values={args()}
+            onChange={(name, value) => setArgs((previous) => ({ ...previous, [name]: value }))}
+          />
+          <Button tone="quiet" size="sm" onClick={() => setArgs(props.entry.args)}>
+            reset
+          </Button>
+        </section>
+      </Show>
+    </>
+  );
+};
 
 export const Docs = (): JSX.Element => {
-  const [name, setName] = createSignal(selected());
+  const [name, setName] = createSignal(start.name || first());
+  const [story, setStory] = createSignal(start.story);
   const [tint, setTint] = createSignal(TINTS[0] ?? { name: "neutral", hue: "0", chroma: "0" });
   const [copied, setCopied] = createSignal("");
 
@@ -53,13 +104,24 @@ export const Docs = (): JSX.Element => {
     },
   );
 
+  // The dark look is a `data-mode` scope of the theme, not a second theme module: set, every token inside moves at once;
+  // removed, the page follows the system preference again, which is the one thing the switch cannot say.
+  const [isDark, setIsDark] = createSignal(false);
+  createEffect(
+    () => isDark(),
+    (on) => {
+      if (on) {
+        document.documentElement.setAttribute("data-mode", "dark");
+      } else {
+        document.documentElement.removeAttribute("data-mode");
+      }
+    },
+  );
+
   const follow = (): void => {
-    // The hash names the page: a hash that is neither an item nor a guide is a fragment link inside a preview (a table of
-    // contents, a breadcrumb), which scrolls the preview and leaves the gallery where it is.
-    const next = selected();
-    if (items.some((entry) => entry.name === next) || GUIDES.some((entry) => entry.name === next)) {
-      setName(next);
-    }
+    const next = parseHash(location.hash);
+    setName(next.name || first());
+    setStory(next.story);
   };
   // one-shot: the listener is attached once, in the component body, and removed with it
   window.addEventListener("hashchange", follow);
@@ -70,6 +132,27 @@ export const Docs = (): JSX.Element => {
   const item = (): CatalogItem | undefined => items.find((entry) => entry.name === name());
   // a guide is a page of its own: a hash that names one renders it instead of a widget
   const guide = (): Guide | undefined => GUIDES.find((entry) => entry.name === name());
+  // the stories of the current item, and the one the hash names (or the first, which is what `#button` means)
+  const stories = (): ReadonlyArray<Entry> => storiesOf(name());
+  const entry = (): Entry | undefined => {
+    const named = storyOfId(stories(), story() ?? "");
+    return named ?? stories()[0];
+  };
+  const at = (): number => {
+    const current = entry();
+    return current ? stories().findIndex((candidate) => candidate.id === current.id) : 0;
+  };
+
+  const pick = (index: number): void => {
+    const next = stories()[index];
+    if (!next) {
+      return;
+    }
+    setStory(next.id);
+    history.replaceState(null, "", `#${next.id}`);
+  };
+
+  const link = (id: string): string => `${location.origin}${location.pathname}#${id}`;
 
   // Solid 2 has no `createResource`: the current item's result is a plain fetch into a signal. An
   // item published before the preflight existed has no file, and the section stays hidden.
@@ -153,18 +236,23 @@ export const Docs = (): JSX.Element => {
         </nav>
         <div class="docs__tints">
           <p class="docs__label">Tint</p>
-          <div class="demo-row">
-            <For each={TINTS}>
-              {(preset) => (
-                <button
-                  class={`docs__chip${preset.name === tint().name ? " docs__chip--active" : ""}`}
-                  onClick={() => setTint(preset)}
-                >
-                  {preset.name}
-                </button>
-              )}
-            </For>
-          </div>
+          <RadioGroup
+            values={TINTS.map((preset) => preset.name)}
+            value={tint().name}
+            onValueChange={(value) => {
+              const preset = TINTS.find((candidate) => candidate.name === value);
+              if (preset) {
+                setTint(preset);
+              }
+            }}
+          >
+            {(value) => value}
+          </RadioGroup>
+        </div>
+        <div class="docs__mode">
+          <Switch value={isDark()} onValueChange={setIsDark}>
+            dark
+          </Switch>
         </div>
       </aside>
 
@@ -180,25 +268,61 @@ export const Docs = (): JSX.Element => {
             </Show>
           }
         >
-          {(entry) => (
+          {(current) => (
             <>
-              <h1 class="docs__title">{entry().title}</h1>
-              <p class="docs__description">{entry().description}</p>
+              <h1 class="docs__title">{current().title}</h1>
+              <p class="docs__description">{current().description}</p>
+
+              <Show when={entry()}>
+                {(story) => (
+                  <div class="docs__story">
+                    <code>{story().id}</code>
+                    <Button tone="quiet" size="sm" onClick={() => void copy(link(story().id))}>
+                      {copied() === link(story().id) ? "copied" : "copy link"}
+                    </Button>
+                  </div>
+                )}
+              </Show>
 
               <section class="docs__preview">
-                {/* keyed: a different widget is a different component, not the same one with a new name */}
-                <Show when={demos[entry().name]} keyed fallback={<p>No demo yet.</p>}>
-                  {(Example) => <Example />}
+                <Show
+                  when={stories().length > 0}
+                  fallback={
+                    <Show when={demos[current().name]} keyed fallback={<p>No demo yet.</p>}>
+                      {(Example) => <Example />}
+                    </Show>
+                  }
+                >
+                  <Show
+                    when={stories().length > 1}
+                    fallback={
+                      <Show when={entry()} keyed>
+                        {(story) => <StoryCanvas entry={story} />}
+                      </Show>
+                    }
+                  >
+                    <Tabs
+                      items={stories().length}
+                      value={at()}
+                      onValueChange={pick}
+                      tab={(index) => stories()[index]?.name ?? ""}
+                      panel={(index) => (
+                        <Show when={stories()[index]} keyed>
+                          {(story) => <StoryCanvas entry={story} />}
+                        </Show>
+                      )}
+                    />
+                  </Show>
                 </Show>
               </section>
 
               <section class="docs__section">
                 <h2 class="docs__heading">Add it</h2>
                 <div class="docs__command">
-                  <code>{command(entry().name)}</code>
-                  <button class="docs__chip" onClick={() => void copy(command(entry().name))}>
-                    {copied() === command(entry().name) ? "copied" : "copy"}
-                  </button>
+                  <code>{command(current().name)}</code>
+                  <Button tone="quiet" size="sm" onClick={() => void copy(command(current().name))}>
+                    {copied() === command(current().name) ? "copied" : "copy"}
+                  </Button>
                 </div>
                 <p class="docs__note">
                   Solid 2 (<code>2.0.0-rc.13</code>) and Vite+ are required; see the starter
@@ -222,12 +346,14 @@ export const Docs = (): JSX.Element => {
               <section class="docs__section">
                 <h2 class="docs__heading">How the component is written</h2>
                 <Show
-                  when={entry().files.some((file) => file.target.endsWith(`${entry().name}.css`))}
+                  when={current().files.some((file) =>
+                    file.target.endsWith(`${current().name}.css`),
+                  )}
                   fallback={
                     <>
                       <p class="docs__note">
                         Styles live in{" "}
-                        <code>{`src/registry/${entry().name}/${entry().name}.tsx`}</code>:{" "}
+                        <code>{`src/registry/${current().name}/${current().name}.tsx`}</code>:{" "}
                         <code>cn()</code> and <code>cv()</code> with the theme's tokens, states read
                         off the attributes the widget announces (<code>css.attr()</code>,{" "}
                         <code>css.within()</code>), and <code>render</code> replacing a part with
@@ -248,11 +374,11 @@ export const Docs = (): JSX.Element => {
                 >
                   <p class="docs__note">
                     The skin is authored on cssints,{" "}
-                    <code>{`src/registry/${entry().name}/${entry().name}.ts`}</code>: declarations
-                    checked against the CSS grammar, states written with <code>css.attr()</code> and
-                    the pseudo-class wrappers, selectors as the <code>ui-*</code> contract the
-                    markup uses. A script compiles it to <code>{entry().name}.css</code> before the
-                    item is built.
+                    <code>{`src/registry/${current().name}/${current().name}.ts`}</code>:
+                    declarations checked against the CSS grammar, states written with{" "}
+                    <code>css.attr()</code> and the pseudo-class wrappers, selectors as the{" "}
+                    <code>ui-*</code> contract the markup uses. A script compiles it to{" "}
+                    <code>{current().name}.css</code> before the item is built.
                   </p>
                   <p class="docs__note">
                     What you copy is that compiled sheet, so{" "}
@@ -271,12 +397,12 @@ export const Docs = (): JSX.Element => {
                 </p>
                 <For
                   each={[
-                    ...entry().files.filter((file) => file === componentFile(entry())),
-                    ...entry().files.filter((file) => file !== componentFile(entry())),
+                    ...current().files.filter((file) => file === componentFile(current())),
+                    ...current().files.filter((file) => file !== componentFile(current())),
                   ]}
                 >
                   {(file) => (
-                    <details class="docs__file" open={file === componentFile(entry())}>
+                    <details class="docs__file" open={file === componentFile(current())}>
                       <summary>
                         <code>{file.target}</code>
                       </summary>

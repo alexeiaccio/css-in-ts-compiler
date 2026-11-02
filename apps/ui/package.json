@@ -10,7 +10,8 @@
     "preview": "vp preview",
     "test": "vp test run --config vitest.browser.config.ts",
     "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
-    "theme:check": "node --experimental-strip-types scripts/theme-css.ts --check"
+    "theme:check": "node --experimental-strip-types scripts/theme-css.ts --check",
+    "test:site": "node test/site.mjs"
   },
   "dependencies": {
     "@cssints/headless": "workspace:*",
