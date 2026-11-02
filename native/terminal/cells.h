@@ -47,6 +47,8 @@ uint8_t cells_color(Cells *g, uint8_t r, uint8_t g_, uint8_t b);
 void cells_clip(Cells *g, int x0, int y0, int x1, int y1);
 /** Text at (col,row), one row, one cell per code point, clipped to the grid and the clip rect. len < 0: strlen. */
 void cells_put(Cells *g, int col, int row, const char *text, int len);
+/** cells_put in a colour of its own: a span of a highlighted line, one cell a code point. */
+void cells_put_color(Cells *g, int col, int row, const char *text, int len, uint8_t fg);
 void cells_fill(Cells *g, int col, int row, int w, int h, uint8_t bg);
 /** A box-drawing frame on the perimeter of the rect; sides is CELLS_TOP|RIGHT|BOTTOM|LEFT. */
 void cells_box(Cells *g, int col, int row, int w, int h, uint8_t fg, int sides);
@@ -59,5 +61,7 @@ void cells_ansi(const Cells *g, FILE *out);
 void cells_dump(const Cells *g, FILE *out);
 /** UTF-8 code points in text[0..len), for the measure function: a monospace cell each. */
 int cells_utf8_count(const char *text, int len);
+/** The bytes of the code point at text[i]: the sequence's own length, 1 for a continuation or a truncated one. */
+int cells_utf8_len(const char *text, int i, int len);
 
 #endif

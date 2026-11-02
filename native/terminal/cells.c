@@ -5,7 +5,7 @@
 
 // The first bytes of a UTF-8 sequence, and how many bytes it claims. A continuation byte that is not one, or a
 // truncated sequence, is one byte (the decoder never runs past len).
-static int utf8_len(const char *text, int i, int len)
+int cells_utf8_len(const char *text, int i, int len)
 {
     const unsigned char b = (unsigned char)text[i];
     int n = b < 0x80 ? 1 : (b >> 5) == 6 ? 2 : (b >> 4) == 14 ? 3 : (b >> 3) == 30 ? 4 : 1;
@@ -15,7 +15,7 @@ static int utf8_len(const char *text, int i, int len)
 int cells_utf8_count(const char *text, int len)
 {
     int n = 0;
-    for (int i = 0; i < len;) i += utf8_len(text, i, len), n++;
+    for (int i = 0; i < len;) i += cells_utf8_len(text, i, len), n++;
     return n;
 }
 
@@ -82,17 +82,22 @@ static void set_cell(Cells *g, int col, int row, const char *bytes, uint8_t fg)
 
 void cells_put(Cells *g, int col, int row, const char *text, int len)
 {
+    cells_put_color(g, col, row, text, len, g->fg);
+}
+
+void cells_put_color(Cells *g, int col, int row, const char *text, int len, uint8_t fg)
+{
     if (!text) return;
     if (len < 0) len = (int)strlen(text);
     for (int i = 0, c = col; i < len && text[i]; c++) {
         const unsigned char b = (unsigned char)text[i];
-        const int n = utf8_len(text, i, len);
+        const int n = cells_utf8_len(text, i, len);
         char one[5] = {' ', 0, 0, 0, 0};
         // a control byte (a newline in a text run) is a space: this layer draws one row, it does not wrap
         if (b >= 0x20) memcpy(one, text + i, (size_t)n), one[n] = 0;
         // ponytail: one cell a code point, so a wide CJK glyph or an emoji would take one cell and break the row by
         // one; a width table (wcwidth) is the upgrade when a page needs them
-        set_cell(g, c, row, one, g->fg);
+        set_cell(g, c, row, one, fg);
         i += n;
     }
 }
