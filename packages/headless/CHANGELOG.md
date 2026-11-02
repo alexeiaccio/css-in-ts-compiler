@@ -1,5 +1,17 @@
 # @cssints/headless
 
+## 0.29.0
+
+### Minor Changes
+
+- 1b82d1b: `createPanZoom` gains `panBy(dx, dy)`: a relative pan through the same bounded `move` as a drag, for a host that moves the picture without a pointer (an inertial glide after a flick). The clamp and `onPanChange` apply exactly as they do to a pointer.
+
+### Patch Changes
+
+- f6e6014: The virtualizer's measured jump is now `@cssints/machine`'s `settle` machine: one definition for the target, the
+  landings, the manual scroll, the count shrink and the stale completion. No behaviour change.
+- @cssints/machine@0.29.0
+
 ## 0.28.0
 
 ### Minor Changes
