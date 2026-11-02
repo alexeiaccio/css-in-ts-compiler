@@ -1,5 +1,22 @@
 # @cssints/headless
 
+## 0.27.0
+
+### Minor Changes
+
+- f1a5db5: `createVirtualizer`: a DOM virtualiser ported from the native renderer's window (`fixedWindow` / `measuredWindow`). The host renders only the visible rows plus an overscan and two gap-compensated spacers stand in for the rest, so the content height, the scroll's clamp and its thumb are the whole list's. A fixed `itemSize` is arithmetic; a per-row estimate (or no `itemSize` at all) measures the rendered rows through a `ResizeObserver`, declares the whole column while any height is unknown, and then virtualises at exact heights. Every declared row carries `aria-setsize` / `aria-posinset`, `attach` wires the scrollport without creating a computation (the `createPopover` ref lesson), and `scrollToIndex` is the host's focus hook. A measured jump keeps its target and lands again as the heights arrive (the first offset is an estimate), and a hand scroll cancels it.
+- 2b2a6e2: `createControllable`: an intent the host has not answered yet is one request. A controlled host's value is applied on
+  Solid's flush, so two dismissals in the same frame (an Escape and a backdrop click, or a second Escape during a
+  transition) used to ask `onValueChange` twice for the same state; the request path now remembers the intent it is
+  waiting on for one microtask. A separate, later intent is asked again, so a host that refuses a close is still asked
+  when the reader asks again.
+- 6da3097: `createPagination`'s previous and next controls follow the current page: `previousProps` and `nextProps` are getters over an offset, and their `onClick` resolves the page when it runs. A host that spreads the object onto an anchor once can now step past the first move, which it could not before — the second click on Next targeted the page it was already on. `packages/headless/test/pagination.browser.test.tsx` covers it (next twice, then previous).
+- c2b3807: `createToast`: the countdown asks before it removes. `onDismissRequest(handler)` is the expiry's channel, so a renderer
+  can animate a row's departure and call `dismiss(id)` when it is gone; `requestDismiss(id)` is the same ask for a host's
+  own imperative call, and it removes at once when no handler is subscribed, as `dismiss`, `dismissAll` and the ceiling
+  always do.
+- 4aadc5c: `createTreegrid` takes the tree it renders: `parents` is the parent of each row in document order (`-1` for a root), and `defaultExpanded` opens rows at mount. The spec's Email Inbox tree stays the default, so `treegrid.qnt` and every existing test are unchanged; a host with its own data no longer has to fit it into the seven spec rows.
+
 ## 0.26.0
 
 ### Minor Changes

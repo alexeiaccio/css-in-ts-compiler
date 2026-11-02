@@ -1,5 +1,12 @@
 # @cssints/reveal
 
+## 0.27.0
+
+### Patch Changes
+
+- cssints@0.27.0
+  - @cssints/motion@0.27.0
+
 ## 0.26.0
 
 ### Patch Changes
