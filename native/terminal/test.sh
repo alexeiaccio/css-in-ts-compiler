@@ -111,6 +111,17 @@ grep -q "► One in twenty visitors pays." "$FIG/solid-figure-funnel.txt" || {
   echo "FAIL: the funnel's focus line (► and its words) is not in the cells"; exit 1; }
 grep -q "signed up" "$FIG/solid-figure-funnel.txt" || { echo "FAIL: the funnel drew no step"; exit 1; }
 identical "the funnel spec: its steps and its focus line with ►, so the point reads without colour"
+# the two flow kinds, the same layout the desktop draws: the branch's ASCII run and a path's transition words
+$SOLID --page figure --spec solid/specs/branch-flow.json --cols 80 --rows 20 --dump "$FIG/solid-figure-branch.txt"
+grep -q "One spec, from its file to a frame" "$FIG/solid-figure-branch.txt" || {
+  echo "FAIL: the branch flow drew no title"; exit 1; }
+grep -q -e '-- no -->' "$FIG/solid-figure-branch.txt" || { echo "FAIL: the branch's connector is not in the cells"; exit 1; }
+identical "the branch flow: a column of boxes, the branch to the right, and its no connector"
+$SOLID --page figure --spec solid/specs/state-machine.json --cols 80 --rows 20 --dump "$FIG/solid-figure-state.txt"
+grep -q "A dialog's presence, one open" "$FIG/solid-figure-state.txt" || {
+  echo "FAIL: the state machine drew no title"; exit 1; }
+grep -q "| settled" "$FIG/solid-figure-state.txt" || { echo "FAIL: a transition's word is not in the cells"; exit 1; }
+identical "the state machine: the path's boxes and each transition's word between them"
 # a press on a figure is nothing: the page declares no control of its own
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --dump "$FIG/solid-figure-base.txt"
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 20,4 --dump "$FIG/solid-figure-click.txt"

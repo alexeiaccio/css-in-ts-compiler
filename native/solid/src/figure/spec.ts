@@ -1,8 +1,8 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with four kinds here
-// (`barChart`, `compare`, `flow`, `funnel`) where the kit has thirty-four. `check` returns **every** problem as a
-// sentence, in the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a
-// file's text. No dependency: plain TypeScript over JSON.
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with six kinds here
+// (`barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine`) where the kit has thirty-four. `check` returns
+// **every** problem as a sentence, in the kit's voice, because a spec is refused before a frame is declared; `parse` is
+// the same check over a file's text. No dependency: plain TypeScript over JSON.
 //
 // The ones ported from the kit's `guard.mjs` and `render/focus.mjs`, sentence and all:
 //   — numbers without a source ("These numbers need a source: where did they come from?");
@@ -12,9 +12,13 @@
 //   — a negative bar ("Copy has a negative value (-3).") and a focus tone that is not one of the three.
 // The kit's `neverGrows` says "is larger than the step before it; a funnel only loses people"; this one speaks the same
 // rule with the labels and the numbers it compares, so a refusal reads as the figure's own data.
+//
+// branchFlow and stateMachine write their refusals in the kit's flow voice: "The path goes happened → paid, but no
+// transition connects them" follows its `states` check's sentence, and the branch and state-machine sentences are ours,
+// because the kit's published scripts check neither kind's data.
 
-/** The kinds here. glyph-kit has thirty-four; these are the four this repository draws, and no more. */
-export const KINDS = ["barChart", "compare", "flow", "funnel"] as const;
+/** The kinds here. glyph-kit has thirty-four; these are the six this repository draws, and no more. */
+export const KINDS = ["barChart", "branchFlow", "compare", "flow", "funnel", "stateMachine"] as const;
 export type Kind = (typeof KINDS)[number];
 
 /** The three tones of a focus: the role the figure paints it by, never a colour. */
@@ -75,7 +79,46 @@ export interface FunnelSpec extends Base {
   options?: { width?: number };
 }
 
-export type Spec = BarChartSpec | CompareSpec | FlowSpec | FunnelSpec;
+/** A decision's branch: the box drawn to its right, and the step (or "end") it goes to next. */
+export interface Branch {
+  label: string;
+  /** A step's label in the same list, or "end" to finish the flow there. */
+  to: string;
+}
+
+/** A step of a branch flow: a plain `{ label }`, or a decision with its `no` branch. */
+export interface BranchStep {
+  label: string;
+  type?: "decision";
+  no?: Branch;
+}
+
+export interface BranchFlowSpec extends Base {
+  kind: "branchFlow";
+  data: readonly BranchStep[];
+  options?: { width?: number };
+}
+
+/** One transition: a state, the state it goes to, and the event (`on`) that takes it there. */
+export interface Transition {
+  from: string;
+  to: string;
+  on: string;
+}
+
+export interface StateMachineData {
+  states: readonly string[];
+  transitions: readonly Transition[];
+}
+
+export interface StateMachineSpec extends Base {
+  kind: "stateMachine";
+  data: StateMachineData;
+  /** `path` is the walk the figure draws, one state a box; it must start at `states[0]`. */
+  options?: { width?: number; path?: readonly string[] };
+}
+
+export type Spec = BarChartSpec | BranchFlowSpec | CompareSpec | FlowSpec | FunnelSpec | StateMachineSpec;
 
 export type Json = Record<string, unknown>;
 const isObject = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -110,8 +153,23 @@ export function formatValue(value: number): string {
 }
 
 /** The names a focus may point at: the row labels (or a flow's box labels), as they are drawn. */
-function namesOf(kind: Kind, data: unknown): string[] {
+function namesOf(kind: Kind, data: unknown, options: unknown): string[] {
   if (kind === "flow") return rowsOf(data).filter((s): s is string => typeof s === "string");
+  if (kind === "branchFlow") {
+    const names: string[] = [];
+    for (const [i, step] of rowsOf(data).entries()) {
+      names.push(labelOf(step, i));
+      if (isObject(step) && isObject(step.no) && typeof step.no.label === "string" && step.no.label)
+        names.push(step.no.label);
+    }
+    return names;
+  }
+  if (kind === "stateMachine") {
+    if (!isObject(data) || !Array.isArray(data.states)) return [];
+    const states = data.states.filter((state): state is string => typeof state === "string" && state !== "");
+    const path = isObject(options) && Array.isArray(options.path) ? options.path : [states[0]];
+    return path.filter((state): state is string => typeof state === "string");
+  }
   return rowsOf(data).map((row, i) => labelOf(row, i));
 }
 
@@ -223,6 +281,84 @@ function flowProblems(data: unknown, options: unknown): string[] {
   return out;
 }
 
+/** A flow with decisions: each step a label, each decision a `no` branch that goes to a step or "end". */
+function branchProblems(data: unknown): string[] {
+  const steps = rowsOf(data);
+  if (!steps.length)
+    return ['A branch flow needs its steps: [{ "label": "read the spec" }, { "label": "check it", "type": "decision", "no": { "label": "refuse it", "to": "end" } }].'];
+  const out: string[] = [];
+  const names = new Set<string>();
+  for (const [i, step] of steps.entries())
+    if (isObject(step) && typeof step.label === "string" && step.label.trim()) names.add(step.label);
+  for (const [i, step] of steps.entries()) {
+    const label = labelOf(step, i);
+    if (!isObject(step) || typeof step.label !== "string" || !step.label.trim()) {
+      out.push(`${label} needs a label: a word or a line, not ${say(isObject(step) ? step.label : step)}.`);
+      continue;
+    }
+    if (step.type !== undefined && step.type !== "decision")
+      out.push(`${label}'s type is "decision" or left out: it is ${say(step.type)}.`);
+    if (step.type !== "decision") continue;
+    const no = step.no;
+    if (!isObject(no) || typeof no.label !== "string" || !no.label.trim()) {
+      out.push(`${label} has no "no" branch.`);
+      continue;
+    }
+    if (typeof no.to !== "string" || !no.to.trim()) {
+      out.push(`${label}'s "no" needs a "to": a step's label, or "end".`);
+      continue;
+    }
+    if (no.to !== "end" && !names.has(no.to))
+      out.push(`${label}'s "no" goes to "${no.to}", which is not a step.`);
+  }
+  return out;
+}
+
+/** A state machine: its states, transitions that name two of them, and a path that starts first and follows them. */
+function stateProblems(data: unknown, options: unknown): string[] {
+  const machine = isObject(data) ? data : {};
+  const raw = Array.isArray(machine.states) ? machine.states : [];
+  if (!raw.length)
+    return ['A state machine needs its states: ["closed", "opening", "open", "closing"].'];
+  const out: string[] = [];
+  const states: string[] = [];
+  for (const [i, name] of raw.entries())
+    if (typeof name === "string" && name.trim()) states.push(name);
+    else out.push(`State ${i + 1} needs a name: a word, not ${say(name)}.`);
+  const transitions = Array.isArray(machine.transitions) ? machine.transitions : [];
+  if (!transitions.length)
+    out.push('A state machine needs its transitions: [{ "from": "closed", "to": "opening", "on": "open" }, ...].');
+  for (const [i, t] of transitions.entries()) {
+    if (!isObject(t) || typeof t.from !== "string" || typeof t.to !== "string" || typeof t.on !== "string") {
+      out.push(`Transition ${i + 1} needs from, to and on: [{ "from": "closed", "to": "opening", "on": "open" }].`);
+      continue;
+    }
+    const missing = [t.from, t.to].filter((name) => !states.includes(name));
+    if (missing.length)
+      out.push(
+        `${t.from} goes to ${t.to} on "${t.on}", but ` +
+          (missing.length === 1
+            ? `"${missing[0]}" isn't one of the states.`
+            : `neither "${missing[0]}" nor "${missing[1]}" is one of the states.`),
+      );
+  }
+  const path = isObject(options) && Array.isArray(options.path) ? options.path : [states[0]];
+  if (!path.length) return [...out, "A state machine's path needs at least one state: options.path is empty."];
+  for (const name of path)
+    if (typeof name !== "string" || !states.includes(name))
+      out.push(`The path visits ${say(name)}, which isn't one of the states.`);
+  const first = path[0];
+  if (typeof first === "string" && states[0] !== undefined && first !== states[0])
+    out.push(`The path starts at ${first}, but the machine's first state is ${states[0]}.`);
+  for (let i = 1; i < path.length; i++) {
+    const [from, to] = [path[i - 1], path[i]];
+    if (typeof from !== "string" || typeof to !== "string") continue;
+    if (!transitions.some((t) => isObject(t) && t.from === from && t.to === to))
+      out.push(`The path goes ${from} → ${to}, but no transition connects them.`);
+  }
+  return out;
+}
+
 /**
  * Every problem with a spec, in plain sentences: the kind, the numbers' source, the kind's own data rule, and the
  * focus's names. An empty array is a figure that can be drawn.
@@ -243,8 +379,10 @@ export function check(input: unknown): string[] {
     if (max !== undefined && max <= 0) problems.push(`options.max must be above zero: it is ${max}.`);
   } else if (kind === "funnel") problems.push(...funnelProblems(input.data));
   else if (kind === "compare") problems.push(...compareProblems(input.data));
+  else if (kind === "branchFlow") problems.push(...branchProblems(input.data));
+  else if (kind === "stateMachine") problems.push(...stateProblems(input.data, input.options));
   else problems.push(...flowProblems(input.data, input.options));
-  problems.push(...focusProblems(input.focus, namesOf(kind as Kind, input.data)));
+  problems.push(...focusProblems(input.focus, namesOf(kind as Kind, input.data, input.options)));
   return problems;
 }
 

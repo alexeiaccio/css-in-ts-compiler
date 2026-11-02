@@ -1004,19 +1004,22 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The four specs are `solid/specs/bars.json` (this repository's own
-`--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`; `invalid-funnel.json` is the refusal the
-test uses.
+width), prints them and exits 1, so no PNG is written. The six specs are `solid/specs/bars.json` (this repository's own
+`--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, plus the two flow kinds
+`branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
+`presence`); `invalid-funnel.json`, `invalid-branch.json` and `invalid-state.json` are the refusals the test uses.
 
 The layout speaks **cells** (8x16 px, the terminal's), so a length here is `cells * 8` across and a line is one cell down;
 a width is data and a style is a literal, so every item's width — and a bar's fill — is written through the value channel
 in `tick`, before the tree is declared, as the List's spacers are. The terminal host and the browser page import this
 component **unmodified**: the terminal's cells are the layout's own unit (no re-cut), and the browser fetches the same
 `solid/specs/<name>.json` with `?spec=`. `solid/figure.test.ts` reads the geometry back from the frame (each fill's box
-against its track's, within half a cell; over the four specs the worst is 0.49), each number's text, the rows' order, the
+against its track's, within half a cell; over the six specs the worst is 0.49), each number's text, the rows' order, the
 funnel's ratios and `check`'s sentences, then the same spec's rows on the terminal (`terminal/solid.ts --page figure
 --spec ... --dump`) word for word. `solid/goldens/figure.json` is the bars frame's command golden, and
 `browser/figure-check.mjs` holds the browser's copy to it within 4 px, with a click that changes nothing.
+`figure-branch-flow.json` and `figure-state-machine.json` are the two flow kinds' command goldens, and the browser check
+reads `?spec=branch-flow` and `?spec=state-machine` from the same files.
 
 ## The accessibility tree
 

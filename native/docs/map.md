@@ -60,7 +60,8 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. The numbers are geometry: a bar's fill is a box whose width is `value/max` of its track, read back
+terminal at one cell. Six kinds are here: `barChart`, `branchFlow`, `compare`, `flow`, `funnel` and `stateMachine`. The
+numbers are geometry: a bar's fill is a box whose width is `value/max` of its track, read back
 from the frame in `solid/figure.test.ts` (worst error 0.49 of a cell). One of the figures is this repository's own
 measurements (`solid/specs/bars.json`, native/README.md's `--bench`):
 
