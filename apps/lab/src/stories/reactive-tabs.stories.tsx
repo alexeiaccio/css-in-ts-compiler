@@ -30,7 +30,7 @@ import {
   state,
 } from "@cssints/reactive" with { type: "cssints" };
 
-import type { Meta, Story } from "../csf.ts";
+import type { Meta, Story } from "@cssints/stories";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 const owner = state({ tab: "one" });

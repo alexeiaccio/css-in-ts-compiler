@@ -2,7 +2,7 @@
 // exists because the component takes a render function per tab and per panel, not a list of children.
 import type { JSX } from "@solidjs/web";
 
-import type { Meta, Story } from "../../stories/csf.ts";
+import type { Meta, Story } from "@cssints/stories";
 import { Tabs } from "./tabs.tsx";
 
 interface TabsExampleProps {

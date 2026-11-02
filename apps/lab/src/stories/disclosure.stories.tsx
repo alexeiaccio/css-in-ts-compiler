@@ -23,7 +23,7 @@ import {
 } from "cssints" with { type: "cssints" };
 import { bind, inside, on, state, toggle } from "@cssints/reactive" with { type: "cssints" };
 
-import type { Meta, Story } from "../csf.ts";
+import type { Meta, Story } from "@cssints/stories";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 const frame = cn(

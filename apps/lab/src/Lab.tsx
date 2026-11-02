@@ -1,3 +1,4 @@
+import type { JSX } from "@solidjs/web";
 import { createListbox, createSwitch } from "@cssints/headless";
 import * as css from "cssints" with { type: "cssints" };
 import { For, Show, createEffect, onSettled } from "solid-js";
@@ -199,7 +200,7 @@ export default function Lab() {
         <div class={canvas}>
           <Show when={entry()} keyed>
             {(story) => {
-              const View = story.view;
+              const View = story.view as (args: Record<string, unknown>) => JSX.Element;
               return <View {...story.args} />;
             }}
           </Show>

@@ -1,7 +1,7 @@
-// The lab's stories, loaded by the same CSF reader the docs site uses (`apps/ui/src/stories/load.ts`): the part that is
-// identical in both is not copied, and the chrome around the canvas is not shared — the lab's rail is headless widgets in the
-// lab's own theme, the site's is the kit's tabs.
-import { entries, type Entry, type Module } from "../../ui/src/stories/load.ts";
+// The lab's stories, loaded by `@cssints/stories` — the same loader the docs site reads. The chrome around the canvas is
+// not shared: the lab's rail is headless widgets in the lab's own theme, the site's is the kit's tabs, and a native window
+// will be the third.
+import { entries, type Entry, type Module } from "@cssints/stories";
 
 export type { Entry };
 

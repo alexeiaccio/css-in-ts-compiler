@@ -125,6 +125,7 @@
         "@cssints/headless": "workspace:*",
         "@cssints/reactive": "workspace:*",
         "@cssints/reset": "workspace:*",
+        "@cssints/stories": "workspace:*",
         "@solidjs/web": "2.0.0-rc.13",
         "cssints": "workspace:*",
         "solid-js": "2.0.0-rc.13",
@@ -143,6 +144,7 @@
         "@cssints/machine": "workspace:*",
         "@cssints/mise-en-mode": "workspace:*",
         "@cssints/reset": "workspace:*",
+        "@cssints/stories": "workspace:*",
         "@solidjs/web": "2.0.0-rc.13",
         "cssints": "workspace:*",
         "solid-js": "2.0.0-rc.13",
@@ -573,6 +575,16 @@
         "cssints": "^0.28.0",
       },
     },
+    "packages/stories": {
+      "name": "@cssints/stories",
+      "version": "0.28.0",
+      "devDependencies": {
+        "solid-js": "2.0.0-rc.13",
+      },
+      "peerDependencies": {
+        "solid-js": "^2.0.0-rc.13",
+      },
+    },
     "packages/stuck": {
       "name": "@cssints/stuck",
       "version": "0.28.0",
@@ -846,6 +858,8 @@
     "@cssints/skeleton": ["@cssints/skeleton@workspace:packages/skeleton"],
 
     "@cssints/squircle": ["@cssints/squircle@workspace:packages/squircle"],
+
+    "@cssints/stories": ["@cssints/stories@workspace:packages/stories"],
 
     "@cssints/stuck": ["@cssints/stuck@workspace:packages/stuck"],
 

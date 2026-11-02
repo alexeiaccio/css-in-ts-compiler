@@ -6,8 +6,7 @@ import { Input } from "../registry/input/input.tsx";
 import { Select, SelectContent, SelectTrigger } from "../registry/select/select.tsx";
 import { Slider } from "../registry/slider/slider.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
-import type { ArgTypes } from "./csf.ts";
-import type { Args } from "./load.ts";
+import type { Args, ArgTypes } from "@cssints/stories";
 
 export interface ControlsProps {
   readonly argTypes: ArgTypes;

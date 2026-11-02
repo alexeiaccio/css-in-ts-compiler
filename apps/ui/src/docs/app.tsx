@@ -13,8 +13,8 @@ import { RadioGroup } from "../registry/radio/radio.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Controls } from "../stories/controls.tsx";
-import { type Args, type Entry, parseHash, storyOfId } from "../stories/load.ts";
-import { storiesOf } from "../stories/site.ts";
+import { type Args, parseHash, storyOfId } from "@cssints/stories";
+import { type SiteEntry, storiesOf } from "../stories/site.ts";
 import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
@@ -58,7 +58,7 @@ const start = parseHash(location.hash);
  * @param {{ readonly entry: Entry }} props the story to draw
  * @returns {JSX.Element} the canvas and, when the story declares controls, the panel
  */
-const StoryCanvas = (props: { readonly entry: Entry }): JSX.Element => {
+const StoryCanvas = (props: { readonly entry: SiteEntry }): JSX.Element => {
   const [args, setArgs] = createSignal<Args>(props.entry.args);
   const controlled = (): boolean => Object.keys(props.entry.argTypes).length > 0;
 
@@ -133,8 +133,8 @@ export const Docs = (): JSX.Element => {
   // a guide is a page of its own: a hash that names one renders it instead of a widget
   const guide = (): Guide | undefined => GUIDES.find((entry) => entry.name === name());
   // the stories of the current item, and the one the hash names (or the first, which is what `#button` means)
-  const stories = (): ReadonlyArray<Entry> => storiesOf(name());
-  const entry = (): Entry | undefined => {
+  const stories = (): ReadonlyArray<SiteEntry> => storiesOf(name());
+  const entry = (): SiteEntry | undefined => {
     const named = storyOfId(stories(), story() ?? "");
     return named ?? stories()[0];
   };

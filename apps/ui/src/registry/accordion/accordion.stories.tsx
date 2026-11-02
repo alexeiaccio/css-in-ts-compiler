@@ -2,7 +2,7 @@
 // actually does, and the count is a control because the triggers wrap at narrow widths.
 import type { JSX } from "@solidjs/web";
 
-import type { Meta, Story } from "../../stories/csf.ts";
+import type { Meta, Story } from "@cssints/stories";
 import { Accordion } from "./accordion.tsx";
 
 interface AccordionExampleProps {

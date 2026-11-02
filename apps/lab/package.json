@@ -13,6 +13,7 @@
     "@cssints/headless": "workspace:*",
     "@cssints/reactive": "workspace:*",
     "@cssints/reset": "workspace:*",
+    "@cssints/stories": "workspace:*",
     "@solidjs/web": "2.0.0-rc.13",
     "cssints": "workspace:*",
     "solid-js": "2.0.0-rc.13"

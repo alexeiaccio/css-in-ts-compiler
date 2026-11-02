@@ -35,7 +35,7 @@ import {
 } from "cssints" with { type: "cssints" };
 import { onSettled } from "solid-js";
 
-import type { Meta, Story } from "../csf.ts";
+import type { Meta, Story } from "@cssints/stories";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 interface SaveFormProps {

@@ -4,7 +4,7 @@
 import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
-import type { Meta, Story } from "../../stories/csf.ts";
+import type { Meta, Story } from "@cssints/stories";
 import { Button, type ButtonProps } from "./button.tsx";
 
 const meta = {
