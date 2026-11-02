@@ -3794,3 +3794,78 @@ and a dragged seek rail that never shipped. The three text drifts are fixed here
 
 **Left**: the dead options need either an implementation or a removal from a published type (its own changeset), and the
 treegrid fix needs its test.
+
+## The bottom sheet's drag, and why it is the kit's (apps/ui, 2026-11-02)
+
+`packages/headless/docs/bottom-sheet.md` recorded a decision that still holds: the **primitive has no drag**. `createDrawer`
+is the Dialog (Modal) shell (`specs/apg/dialog-modal.qnt`), its `handleProps` are `aria-hidden` decoration, and a drag is
+not a dialog interaction — a pointer gesture on the panel's body is a scroll claimed as a gesture, and the primitive has
+no oracle for it. The **kit owns presentation**, so the gesture is `apps/ui/src/registry/drawer/drawer.tsx`'s and it
+starts **only from the grab handle** (`Drawer.Handle`, `data-part="drawer-handle"`, `pointer capture`,
+`touch-action: none` on that element alone). The panel's body keeps `overflow-y: auto`, its scroll and its `pointer-events`;
+the handle is the one surface that moves the sheet, which answers the recorded objection instead of ignoring it. The
+handle stays decorative for assistive technology, and the keyboard path stays the primitive's (Escape, `Drawer.Close`).
+The drag exists only for `side: "bottom"` **and** `animated`: a side rail has no downward drag, and a static sheet keeps
+its CSS transition and gets no handle.
+
+**Two machines, composed.** The overlay's box is unchanged (`overlay-motion.ts`: `closed → entering → open → leaving →
+closed`, the primitive's `open()` as the intent, one effect per state). The drag is a second machine beside it
+(`rest → dragging → settling`, context `{ offset, velocity, reduced }`, events `grab { offset }`, `move { offset }`,
+`release { velocity }`, `cancel`, `reset`, `finish { id }`). A release past `SHEET_DISMISS_DISTANCE` (96 px) or
+`SHEET_DISMISS_VELOCITY` (0.5 px/ms) issues a `dismiss` effect; everything else settles back to 0 through a `settle`
+effect the host runs on `element.animate`. **The dismissal is the overlay's leave, not a second animation**: the effect
+asks the primitive to close (`drawer.triggerProps.onClick`, the same channel `Drawer.Close` uses, so a controlled host may
+refuse), and `createOverlayMotion` gained a `current` option — its leave starts at the fraction a drag left the sheet at
+rather than at 1, read once, so a refused request leaves nothing behind and the sheet snaps back instead. There is one
+leave animation on a dismissal, and the harness asserts the drag machine issues a `dismiss` and no `settle`. The
+suggested single `settle` effect became two because the threshold decision is the machine's: deriving "dismissed" in the
+host after `send` would be a second copy of the same rule. The drag writes the panel's `translate` property (the overlay
+animates `transform`, so the two never race one declaration), and it is linear for the same reason the overlay's slide
+is: a grab during the snap-back reads the running animation's `currentTime` and continues from the fraction, which is
+only the visual position when the easing is linear.
+
+**Each race.** A release below the threshold snaps back from the offset the context holds (the harness pins 40; the DOM
+test reads `0px 45px` in the effect's first keyframe), keeps `bottom-open` and starts no close. A release past it
+dismisses through the overlay's `leaving` — one new `Animation`, whose `id` carries the start fraction, whose first
+keyframe is the drag's position and whose last is `translate(0%, 100%)` — and the panel is unmounted only at `closed`. A
+grab during the snap-back cancels that effect and continues from the position the host hands it (`ReversalKeepsPosition`):
+the host reads `positionOf(live)` before cancelling, the DOM test seeks halfway and asserts the next move is
+`22.5px + 5px`, not a jump to 0 or 45. The cancelled animation's `finished` still rejects and its host callback sends a
+`finish` carrying the dead id, which the machine drops before it looks at a transition (`CancelledFinishIgnored`,
+`StaleCarriesCancelled`); the harness logs it as `cancelled` and the DOM test asserts the drag is still `dragging` at the
+same offset. Escape during the drag is the drag's, not the drawer's: the kit registers a document keydown listener in the
+capture phase **before** any open (the primitive registers its own when it opens) and stops the event — so the snap-back
+runs and the overlay stays open; with no finger down the listener does nothing and Escape is the primitive's, unchanged.
+A tap (a `pointerup` at offset 0) is a release the machine guards to `rest` with no effect at all. `prefers-reduced-motion`
+is in the drag's start context (a snap-back lands at `rest` with no effect) and read live by the host (an effect that
+somehow arrives is not animated); the DOM test opens, snaps back and dismisses with `animations()` empty throughout.
+`Atomic` is the panel's: `data-state` is the overlay store's phase, `data-drag-state` the drag store's, and the offset is
+a third field of the same store read by one effect — a phase reader does not re-run when the offset moves, which the
+browser test counts. **No debounce.** `dragging` has one live move stream (the pointer), and `settling` declares no
+`release`/`cancel`, so a second intent is already decided: the state is the coalescer, and a debounce window would only
+delay a snap-back that has begun. The host does coalesce the _sampling_, not the events: velocity is measured over the
+last 100 ms of moves, and an interval under 8 ms is no sample, so a burst of synthetic moves is a distance and not a
+flick.
+
+**What stayed in the primitive.** Whether the drawer is open, the request/commit split, the focus in and back to the
+invoker, the Tab cycle, Escape, the backdrop, `aria-modal`, the counted scroll lock, and the modal contract of
+`specs/apg/dialog-modal.qnt` — none of it moved. `@cssints/headless` has no source change and no changeset; the only
+headless edit is the new paragraph in `docs/bottom-sheet.md` (docs are not in the package's `files`). The animation
+spec's bridge was not reused: it names a disclosure's trigger and content and watches `aria-expanded`, and the sheet's
+drag has its own alphabet (a grab, a move stream, a release), so its oracle is the harness in the same file, like the
+toast row's.
+
+**Left.** Velocity decay is not modelled: a release's measured velocity only decides dismiss-or-snap-back, and the
+snap-back is a fixed 180 ms linear track — a spring or a rubber band would need a per-frame solver the machine does not
+have. A drag pulled above the open position clamps at 0 instead of overscrolling, and a release below the threshold
+always animates from the current offset (there is no "it is close enough, snap it" threshold pair). The body does not
+participate: a drag started on the panel's body scrolls it, and a sheet whose body is scrolled to the top does not hand
+the gesture to the drag (the nested-scroll question is unanswered, deliberately). The handle is inert while the sheet is
+`entering` (the overlay's animation still owns the transform) and during `leaving`; the drag exists only for an animated
+bottom sheet, so `side` changing to `right` at a breakpoint drops the handle rather than converting the gesture. The
+motion preference is read by the drag machine once at creation (the host also reads the live value, so a snap-back under a
+preference that turned on mid-session is still one step). Multi-touch is not modelled: one pointer id, the first one
+down. The distance threshold is a constant in px rather than a share of the panel's height, and the sheet's height is
+measured only for the dismissal's fraction. The drag ignores `dismissable`: that prop turns off the backdrop and the
+outside press, and a pull past the threshold is neither, so a sheet whose backdrop is disabled still drags away — a
+separate switch would be a separate decision.

@@ -167,6 +167,20 @@ the library should model.
 4. Record the composition in [apg-platform-features.md](apg-platform-features.md) so the pattern
    inventory is complete (bean `effects-of-atmosphere-jtjk`).
 
+**The primitive still has no drag; the kit's animated drawer does, from the handle (2026-11-02).**
+The decision above stands for `@cssints/headless`: `createDrawer` is the dialog shell, its
+`handleProps` stay `aria-hidden` decoration, and no pointer handler is added there — a drag started
+from the panel's body would be a scroll claimed as a gesture, and the primitive has no oracle for
+it. The styled kit (`apps/ui/src/registry/drawer/drawer.tsx`) owns presentation, so the gesture
+lives there and starts **only from the grab handle** (`data-part="drawer-handle"`, pointer capture,
+`touch-action: none` on that element): the body keeps `overflow-y: auto` and its scroll, which is
+what answers the objection rather than ignoring it. That drag is a small machine of its own
+(`rest → dragging → settling`) composed with the overlay's animated box, and a release past its
+distance or velocity threshold asks the primitive to close, so the leave animation is still the
+overlay machine's — one leave, not a second drag-driven one. It exists only for an animated
+bottom sheet (`side: "bottom"`); a side rail has no downward drag and a static sheet keeps its CSS
+transition.
+
 ### Why the rejected alternative (a non-APG `sheet` primitive) is wrong
 
 - **No oracle.** The library's whole method is: a Quint spec of an APG pattern + scenarios ported
