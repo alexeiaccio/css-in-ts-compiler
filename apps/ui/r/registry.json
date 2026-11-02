@@ -186,7 +186,7 @@
       "description": "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return — and an `animated` slide that leaves the page only when it has finished",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/machine"],
       "devDependencies": [],
-      "registryDependencies": ["@cssints/theme", "@cssints/button"],
+      "registryDependencies": ["@cssints/theme", "@cssints/button", "@cssints/input"],
       "files": [
         {
           "path": "drawer.tsx",
@@ -258,6 +258,11 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
           "type": "registry:file"
         },
         {
@@ -961,7 +966,7 @@
       "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "registryDependencies": ["@cssints/theme", "@cssints/accordion"],
       "files": [
         {
           "path": "tabs.tsx",
@@ -2499,6 +2504,11 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
           "type": "registry:file"
         },
         {
