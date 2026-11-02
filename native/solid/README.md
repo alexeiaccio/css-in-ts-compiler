@@ -1021,6 +1021,12 @@ funnel's ratios and `check`'s sentences, then the same spec's rows on the termin
 `figure-branch-flow.json` and `figure-state-machine.json` are the two flow kinds' command goldens, and the browser check
 reads `?spec=branch-flow` and `?spec=state-machine` from the same files.
 
+**As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
+fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
+`bun terminal/solid.ts --page figure --spec ... --text` prints it from the terminal host. `solid/figure-text.test.ts`
+holds each bar's text cells to the terminal's (within half a cell, the same tolerance) and the docs' figures to a
+byte-identical `--redraw`; `native/README.md`'s two figures are that renderer's.
+
 ## The accessibility tree
 
 `solid/a11y.ts` is the tree a screen reader would walk: `snapshot(root, { parts, containers })` returns

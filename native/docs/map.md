@@ -75,6 +75,10 @@ native/README.md --bench: 0.30, 0.077, 0.08 ms
 
 `pipeline.json` is this pipeline's own flow (declaration → Clay → commands → ThorVG / cells / Canvas2D); `funnel.json`
 and `compare.json` are the kit's examples, adapted. `native/README.md`'s "Figures from specs" chapter is the whole of it.
+Its text half is the same layout as characters (`solid/src/figure/text.ts`, `solid/figure.ts`): the title, the rows with
+`█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
+two figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure cannot
+drift from its spec. A future kind needs only to return its rows from `layout`: the text renderer reads no kind's data.
 
 ## Where Solid runs
 

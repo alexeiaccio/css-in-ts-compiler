@@ -39,6 +39,9 @@
 //                                          the Figure page: the desktop's spec as cells. The layout already speaks
 //                                          cells (solid/src/figure/kinds.ts), so the host re-cuts nothing; a spec that
 //                                          `check` refuses fails with its sentences before a frame, as solid/main.ts does
+//   ... --spec solid/specs/bars.json --text|--markdown
+//                                          the same layout as characters instead of cells (solid/src/figure/text.ts,
+//                                          the module solid/figure.ts prints): --compact, --width N
 //   bun terminal/solid.ts --dump [file]    one frame headless, as plain text (cells_dump: '.' is a fill); no file: stdout
 //   bun terminal/solid.ts --ansi [file]    the same frame as ANSI truecolour (SGR runs merged)
 //   --keys Tab,ArrowDown                   headless: the frame, then each key with a frame after it, as main.c. A `-`
@@ -151,6 +154,17 @@ if (figurePage) {
     process.exit(1);
   }
   figureSpec = spec;
+}
+// the text half: `--text`/`--markdown` print the layout as characters (solid/src/figure/text.ts) before the grid opens,
+// so a figure reaches a README from the host a script already runs, and the two paths are one module. `--compact` and
+// `--width` are the CLI's flags.
+if (figurePage && (process.argv.includes("--text") || process.argv.includes("--markdown"))) {
+  const { markdown, render } = await import("../solid/src/figure/text.ts");
+  const width = Number(arg("--width")?.[0] ?? 80);
+  const compact = process.argv.includes("--compact");
+  const options = { width, compact };
+  console.log(process.argv.includes("--markdown") ? markdown(figureSpec!, options) : render(figureSpec!, options));
+  process.exit(0);
 }
 // a deliberately broken host for the test's mutation lines: `scroll` drops the page's clip offset, `tab` never flushes
 // the frame a tab switch lands on, so the tree (the bar's active tab) stays as it was

@@ -65,6 +65,10 @@ bun solid/figure.test.ts
 # the two flow kinds are in it too: the branch flow's boxes and its branch connectors, the state machine's path and its
 # transitions, their refusals (each with its sentence), a command golden each, and a stored frame each
 echo "figure: six kinds — branchFlow's boxes and branches, stateMachine's path and transitions, their refusals and frames"
+# the text half of the same layout: every spec as characters within the width, each bar in cells against the terminal
+# host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
+# invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)
+bun solid/figure-text.test.ts
 # The Dialog page's two overlays as generated C — the modal's backdrop and panel (both Clay root floats) and the menu
 # floated off zoom-trigger: examples/dialog/gen.c dumps the three static frames through desktop/clay_dump.c, measured
 # with ThorVG as the Solid host measures (so a box is its exact number, no tolerance), and each is compared field by

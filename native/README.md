@@ -3022,3 +3022,54 @@ kit's connectors are `│ ─ ► ▼ →`: Roboto has none of those code points
 the focus line draws as an empty box), so these two kinds use `|`, `-`, `>` and `v`, which read the same on the terminal
 and the pixels. `solid/figure.test.ts` asserts the boxes' and connectors' counts, the path's labels in the path's order,
 the six refusal sentences, a command golden each, and the terminal's rows against the pixel figure's.
+
+**The text half.** `solid/src/figure/text.ts` draws the same layout as characters, so one spec also prints as a figure for
+a README, a pull request or a model's context, with no host underneath: `render(spec, { width = 80, compact = false })`.
+The shape is glyph-kit's: the title, one line a row (a label padded to its cell, the bar, the number as text on the
+right), the `►` line with the focus's `say`, the source. A bar is `█` a whole cell and **one eighth block** (`▏▎▍▌▋▊▉`) for
+the fraction its `value/max` leaves — 3.5 cells of a track reads `███▌`, and a remainder that rounds to a whole cell has
+no block. The width is counted in **display cells**, not JS characters (`░` and `█` one, a CJK label two), and a line
+longer than the width is cut there with `…`.
+
+```
+bun solid/figure.ts solid/specs/bars.json                     80 cells (the default)
+bun solid/figure.ts solid/specs/pipeline.json --width 60      cut at 60 display cells
+bun solid/figure.ts solid/specs/funnel.json --compact         plain ASCII, for a model's context
+bun solid/figure.ts solid/specs/funnel.json --markdown        ## title, the intent, the fence, _source_
+bun terminal/solid.ts --page figure --spec solid/specs/bars.json --text   the same, from the terminal host
+```
+
+`--compact` maps every glyph the renderer draws to one ASCII character, so columns stay where they were: `█` → `#`, each
+of `▏▎▍▌▋▊▉` → `=` (a partial cell), `►` → `>`, and the cut's `…` → `.`. Nothing else changes; the renderer draws no box
+drawing and no shades, so `:`, `-`, `|` and `+` are not needed here. The terminal host hangs `--text` (and `--markdown`)
+on `--page figure`: it prints the same module's text before the grid opens, so the text and the cells cannot disagree.
+`--markdown` is one figure as a page: `## title`, the `intent`, a ```text fence with the rows and the `►` line, then
+`_source_`.
+
+An invalid spec is refused with every sentence on stderr, exit 1, and **no figure on stdout**, as the desktop and the
+terminal refuse before a frame.
+
+**The docs draw themselves.** The two figures below are drawn by the renderer from their specs, and `test.sh` regenerates
+them (`bun solid/figure.ts --redraw native/README.md`) and `cmp`s the result with this file, so a figure here cannot drift
+from its spec — the same discipline as the generated C and the goldens. The line above each fence names the spec, relative
+to this file.
+
+<!-- glyph-kit: solid/specs/pipeline.json -->
+```text
+One declaration, three targets
+[declaration] ► [Clay] ► [commands] ► [ThorVG / cells / Canvas2D]
+native/docs/map.md, the contract
+```
+
+<!-- glyph-kit: solid/specs/bars.json -->
+```text
+A frame, by target
+desktop  ████████████████████████  0.30 ms
+terminal ██████▏                  0.077 ms
+browser  ██████▍                   0.08 ms
+native/README.md --bench: 0.30, 0.077, 0.08 ms
+```
+
+**Not in the text half**: the kit's SAMPLE DATA stamp (our `source` line is always drawn, sample or not), its `@file` data,
+its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
+nothing at run time pays for them.
