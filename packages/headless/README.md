@@ -180,9 +180,17 @@ const panels = createResizablePanels({
 </div>;
 ```
 
-Controlled is `sizes` + `onSizesChange` (the request), like every other primitive. `storageKey` persists the layout in localStorage — host storage, so the key belongs to the host's namespace.
+Controlled is `sizes` + `onSizesChange` (the request), like every other primitive. A pane's
+`defaultSize` is kept and the panes that name none share what is left equally; `defaultSizes` states the
+whole start instead, and `storageKey` persists the layout in localStorage — host storage, so the key
+belongs to the host's namespace. A group nests: the inner group's separators measure their own parent, so
+a sidebar beside a stack of editor and terminal is two instances, and the outer drag never re-solves the
+inner percentages.
 
-Left to the host: pane bounds in pixels (percent only), nested groups, and F6 (with three panes a Tab is enough). Not modelled: react-resizable-panels' collapse-on-drag threshold (a pane collapses on Enter or a host write, never by dragging through MIN) and restoring a pane that was mounted already collapsed (it returns to its own `min`).
+Left to the host: pane bounds in pixels (percent only), and F6 (with three panes a Tab is enough). Not
+modelled: react-resizable-panels' collapse-on-drag threshold (a pane collapses on Enter or a host write,
+never by dragging through MIN) and restoring a pane that was mounted already collapsed (it returns to its
+own `min`).
 
 ## Form field
 

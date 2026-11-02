@@ -126,8 +126,9 @@ export interface Carousel {
  * user explicitly started it); slides are `group` or `tabpanel`. No styling, no
  * elements. Checked against `specs/apg/carousel.qnt` by the scenario bridge.
  *
- * Platform: **hybrid** — CSS scroll-snap (widely) scrolls slides; the library
- * owns rotation control, pause-on-focus/hover, live region and slide semantics.
+ * Platform: **not a scroller** — every non-current slide is `hidden`, so a skin
+ * swaps (and may animate) one slide at a time; the library owns rotation control,
+ * pause-on-focus/hover, live region and slide semantics.
  *
  * The rotation/prev/next controls suppress the focus a mouse press would give
  * them (APG: activating a control does not move focus); tabs and slides still

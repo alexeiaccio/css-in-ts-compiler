@@ -1,6 +1,8 @@
 # Player ARIA & spec composition — the implementable contract
 
 > Moved from effects-of-atmosphere `docs/research/` on 2026-10-23 with the widgets. `effects-of-atmosphere-xxxx` ids are beans in that repository.
+>
+> **Shipped (2026-10-23).** `createPlayer` (`../src/player.ts`) is the subset this contract asks of a primitive: the adapter-driven transport and stage, the surface's focus and keys, play/pause, mute, the four preferences as request/commit _values_ (volume, muted, rate, fullscreen) and a `role="slider"` seek with its `aria-*` and keys. A volume or rate **control**, a dragged seek rail and fullscreen beyond its flag are the host's; `docs/API.md`'s `createPlayer` section states the contract that ships.
 
 Research for the wayfinder ticket **"Player ARIA & spec composition
 (Slider + Toolbar + HTMLMediaElement)"** (`effects-of-atmosphere-v2uy`), parent map
