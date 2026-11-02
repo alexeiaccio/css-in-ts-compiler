@@ -159,8 +159,10 @@ done
 # generated into the build directory, because the terminal has no file system to read it from. The fixture's dump is
 # stored: every colour it used is in its legend, so a capture the query lost or a theme that changed fails the
 # comparison, not only a crash; test_code.c asserts the contrast and that the query asks for nothing it cannot evaluate.
+# gnu11, not c11: tree-sitter's dot-graph writers want `fdopen` and its UTF-16 decoder wants glibc's `le16toh`, and
+# neither is in a strict ISO C11 (the grammar is tree-sitter's own build too).
 node generator/highlights-header.ts vendor/tree-sitter-languages/tsx/highlights.scm "$OUT/highlights.h"
-cc -std=c11 -Wall -Wno-unused-variable -I "$OUT" -I terminal -I vendor/tree-sitter/lib/include \
+cc -std=gnu11 -Wall -Wno-unused-variable -I "$OUT" -I terminal -I vendor/tree-sitter/lib/include \
   -I vendor/tree-sitter-typescript/tsx/src \
   terminal/test_code.c terminal/code.c terminal/cells.c \
   vendor/tree-sitter/lib/src/lib.c vendor/tree-sitter-typescript/tsx/src/parser.c \
