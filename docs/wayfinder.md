@@ -3979,3 +3979,33 @@ binary search over a running total, is the upgrade for very large feeds. The est
 the `ResizeObserver` delivers heights — a better per-row estimate would land closer on the first try. Horizontal
 virtualisation and a sticky header are still absent. There is no Quint spec: the state is pixels, and the harness is the
 oracle.
+
+## The lab becomes the reactive lab; the site becomes the storybook (2026-11-02)
+
+Asked by the user ("we started ramping up our own storybook; as I understand it, it lives in the lab now", then "merge with
+apps/ui and make it a real one — controls from args, static deploy, story links", then "and the storybook itself on the new
+styled components; maybe extract something into packages"). **Two galleries with one idea became one gallery and one
+lab.** The site already had everything a storybook needs except the stories: a page per registry item, hash routing, a
+tint picker, the preflight result and a deformable static deploy (Cloudflare, `alchemy.run.ts`). The lab had the CSF
+reader, the story ids and the devtools overlay. So the CSF reader moved to `apps/ui/src/stories/` — `csf.ts` is the CSF 3
+types plus `argTypes`, `load.ts` is `entries()` — and the lab kept the stories the site cannot have: `@cssints/reactive`
+holds no component of the registry, so a page for it would have nothing to add.
+
+**Controls without inference.** Storybook derives a control from a component's props; a Solid component carries none at run
+time, and a hand-written props→control inferencer would be a second type system. A story declares `argTypes` instead
+(`{ tone: { type: "select", options: [...] } }`), and `Controls` renders the declared rows with the kit's own Field,
+Select, Switch and Slider. A change writes the arg and **remounts the story** rather than patching props: a component that
+reads a prop once (`createTabs({ items })`) is exactly the case a patched prop would silently miss. Stories for the four
+items that left the lab — button, switch, tabs, accordion — declare them; the rest still show `demos.tsx` until they get a
+story file.
+
+**Not a package.** The shared part is the loader, ~120 lines; the shell deliberately is not shared, because the lab styles
+its rail with its own tokens and the site uses the kit's components. Two consumers, one file, and the repo's own precedent
+for sharing app code is a relative import (csssky-tui over csssky) — so the lab imports `apps/ui/src/stories/load.ts` and
+`csf.ts`, and the extraction waits for a third consumer or a non-Solid renderer. **Evidence:** `apps/ui/test/site.mjs` in
+Chrome — `#button` draws `button--accent` (the namespace's alphabetical order, Storybook's), the tablist lists every story
+of the file, `#button--quiet` is a link, the tone select changes the canvas, the disabled switch disables the story's
+button, the tabs story's `count` slider still arrives after the change, the theme switch is a `data-mode` scope and the tint
+group moves `--hue-tint`; `apps/lab/test/lab.mjs` still passes on the five reactive stories. **Left:** a story file for the
+other 30 registry items, `demos.tsx` gone, and the `STRICT_READ_UNTRACKED` warnings the kit's Select emits under a `Show`
+(read directly in the component body; the storybook is the first host with a Select inside a switchable panel).
