@@ -1,6 +1,7 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with six kinds here
-// (`barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine`) where the kit has thirty-four. `check` returns
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with eight kinds here
+// (`barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `journeyMap`, `stateMachine`, `tree`) where the kit has
+// thirty-four. `check` returns
 // **every** problem as a sentence, in the kit's voice, because a spec is refused before a frame is declared; `parse` is
 // the same check over a file's text. No dependency: plain TypeScript over JSON.
 //
@@ -16,9 +17,13 @@
 // branchFlow and stateMachine write their refusals in the kit's flow voice: "The path goes happened → paid, but no
 // transition connects them" follows its `states` check's sentence, and the branch and state-machine sentences are ours,
 // because the kit's published scripts check neither kind's data.
+//
+// journeyMap's range sentence is the kit's own `within` check, word for word ("Import has a feeling of 3, outside -2 to
+// 2."); its empty-journey sentence and the tree's three sentences are ours, because the kit's published scripts check
+// neither kind's data (its `tree` has no check at all).
 
-/** The kinds here. glyph-kit has thirty-four; these are the six this repository draws, and no more. */
-export const KINDS = ["barChart", "branchFlow", "compare", "flow", "funnel", "stateMachine"] as const;
+/** The kinds here. glyph-kit has thirty-four; these are the eight this repository draws, and no more. */
+export const KINDS = ["barChart", "branchFlow", "compare", "flow", "funnel", "stateMachine", "journeyMap", "tree"] as const;
 export type Kind = (typeof KINDS)[number];
 
 /** The three tones of a focus: the role the figure paints it by, never a colour. */
@@ -118,7 +123,67 @@ export interface StateMachineSpec extends Base {
   options?: { width?: number; path?: readonly string[] };
 }
 
-export type Spec = BarChartSpec | BranchFlowSpec | CompareSpec | FlowSpec | FunnelSpec | StateMachineSpec;
+/** One stage of a journey: what people did, what they thought, and how it felt (-2 bad to 2 great, the kit's scale). */
+export interface Stage {
+  label: string;
+  doing?: string;
+  thinking?: string;
+  feeling: number;
+}
+
+export interface JourneyMapSpec extends Base {
+  kind: "journeyMap";
+  data: readonly Stage[];
+  /** `width` is the feeling bar's track, in cells. */
+  options?: { width?: number };
+}
+
+/** A node of a tree: glyph-kit's nested shape, or a name and its parent's name in a flat list. */
+export interface TreeNode {
+  name: string;
+  children?: readonly TreeNode[];
+  /** The flat list's link upward: a node without one is the root. */
+  parent?: string;
+}
+
+export interface TreeSpec extends Base {
+  kind: "tree";
+  /** glyph-kit's nested `{ name, children }`, or a parent/child list with one node above the rest. */
+  data: TreeNode | readonly TreeNode[];
+  options?: { width?: number };
+}
+
+export type Spec =
+  | BarChartSpec
+  | BranchFlowSpec
+  | CompareSpec
+  | FlowSpec
+  | FunnelSpec
+  | JourneyMapSpec
+  | StateMachineSpec
+  | TreeSpec;
+
+/** A tree's data as one nested root. A flat parent/child list is resolved to children by name; the check has already
+ *  refused a list with no root, a missing parent or a loop, so a caller draws only a tree that can be drawn. */
+export function treeRoot(data: unknown): TreeNode | undefined {
+  if (isObject(data) && !Array.isArray(data)) return data as TreeNode;
+  if (!Array.isArray(data)) return undefined;
+  const nodes = data.filter(isObject) as unknown as TreeNode[];
+  const root = nodes.find((node) => !node.parent);
+  if (!root) return undefined;
+  const children = new Map<string, TreeNode[]>();
+  for (const node of nodes) {
+    if (!node.parent) continue;
+    const list = children.get(node.parent);
+    if (list) list.push(node);
+    else children.set(node.parent, [node]);
+  }
+  const build = (node: TreeNode): TreeNode => {
+    const kids = children.get(node.name) ?? [];
+    return kids.length ? { name: node.name, children: kids.map(build) } : { name: node.name };
+  };
+  return build(root);
+}
 
 export type Json = Record<string, unknown>;
 const isObject = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -152,9 +217,26 @@ export function formatValue(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/** The names a tree draws, in the data's order: a nested node's walk, or a flat list's own names. */
+function treeNames(data: unknown): string[] {
+  const names: string[] = [];
+  const walk = (node: unknown) => {
+    if (!isObject(node) || typeof node.name !== "string" || !node.name) return;
+    names.push(node.name);
+    if (Array.isArray(node.children)) for (const child of node.children) walk(child);
+  };
+  if (Array.isArray(data)) {
+    for (const node of data) if (isObject(node) && typeof node.name === "string" && node.name) names.push(node.name);
+    return names;
+  }
+  walk(data);
+  return names;
+}
+
 /** The names a focus may point at: the row labels (or a flow's box labels), as they are drawn. */
 function namesOf(kind: Kind, data: unknown, options: unknown): string[] {
   if (kind === "flow") return rowsOf(data).filter((s): s is string => typeof s === "string");
+  if (kind === "tree") return treeNames(data);
   if (kind === "branchFlow") {
     const names: string[] = [];
     for (const [i, step] of rowsOf(data).entries()) {
@@ -360,6 +442,88 @@ function stateProblems(data: unknown, options: unknown): string[] {
 }
 
 /**
+ * A tree: glyph-kit's nested `{ name, children }`, or a flat parent/child list. Either way exactly one node is above
+ * the rest, and every `parent` names a node in the list. The kit's published scripts check none of this: these
+ * sentences are ours, in its voice.
+ */
+function treeProblems(data: unknown): string[] {
+  const out: string[] = [];
+  if (Array.isArray(data)) {
+    if (!data.length) return ["A tree needs its root: a node with a name and no parent."];
+    const nodes = data.filter(isObject);
+    const names = new Set<string>();
+    for (const [i, node] of data.entries()) {
+      if (!isObject(node) || typeof node.name !== "string" || !node.name.trim()) {
+        out.push(`Node ${i + 1} needs a name: a word, not ${say(isObject(node) ? node.name : node)}.`);
+        continue;
+      }
+      names.add(node.name);
+    }
+    const roots = nodes.filter((node) => typeof node.name === "string" && node.name && !node.parent);
+    if (!roots.length) out.push("A tree needs one root: every node names a parent, so none is above them.");
+    else if (roots.length > 1)
+      out.push(`A tree needs one root, but ${roots.map((node) => String(node.name)).join(", ")} have no parent.`);
+    for (const node of nodes) {
+      if (typeof node.name !== "string" || !node.name.trim()) continue;
+      const parent = node.parent;
+      if (parent === undefined || parent === null || parent === "") continue;
+      if (typeof parent !== "string" || !names.has(parent))
+        out.push(`${node.name} names ${say(parent)} as its parent, but there is no node named ${say(parent)}.`);
+    }
+    const root = roots.length === 1 ? roots[0]! : undefined;
+    if (root && out.length === 0) {
+      const reached = new Set<string>();
+      const walk = (node: Json) => {
+        if (typeof node.name !== "string" || reached.has(node.name)) return;
+        reached.add(node.name);
+        for (const child of nodes) if (child.parent === node.name) walk(child);
+      };
+      walk(root);
+      const lost = [...names].filter((name) => !reached.has(name));
+      if (lost.length) out.push(`${lost[0]} is not under the root ${String(root.name)}: its parents form a loop.`);
+    }
+    return out;
+  }
+  if (!isObject(data)) return ['A tree needs its root: { "name": "Settings", "children": [...] }, or a parent/child list.'];
+  const walk = (node: unknown, parent: string | undefined) => {
+    if (!isObject(node) || typeof node.name !== "string" || !node.name.trim()) {
+      out.push(
+        parent === undefined
+          ? "A tree needs its root: the outermost node has no name."
+          : `${parent}'s child needs a name: a word, not ${say(isObject(node) ? node.name : node)}.`,
+      );
+      return;
+    }
+    if (node.children !== undefined && !Array.isArray(node.children)) {
+      out.push(`${node.name}'s children need a list: it is ${say(node.children)}.`);
+      return;
+    }
+    for (const child of node.children ?? []) walk(child, node.name);
+  };
+  walk(data, undefined);
+  return out;
+}
+
+/** A journey: a label and a feeling a stage, and the feeling inside the kit's -2 to 2 scale. */
+function journeyProblems(data: unknown): string[] {
+  const stages = rowsOf(data);
+  if (!stages.length)
+    return ['A journey needs its stages: [{ "label": "Discover", "feeling": 1 }, ...], each with the feeling it had.'];
+  const out: string[] = [];
+  const feelings: (number | undefined)[] = [];
+  for (const [i, stage] of stages.entries()) {
+    const feeling = isObject(stage) ? number(stage.feeling) : undefined;
+    feelings.push(feeling);
+    if (!isObject(stage) || typeof stage.label !== "string" || !stage.label.trim() || feeling === undefined)
+      out.push(`${labelOf(stage, i)} needs a label and a feeling: a number from -2 to 2.`);
+  }
+  for (const [i, feeling] of feelings.entries())
+    if (feeling !== undefined && (feeling < -2 || feeling > 2))
+      out.push(`${labelOf(stages[i], i)} has a feeling of ${feeling}, outside -2 to 2.`);
+  return out;
+}
+
+/**
  * Every problem with a spec, in plain sentences: the kind, the numbers' source, the kind's own data rule, and the
  * focus's names. An empty array is a figure that can be drawn.
  */
@@ -381,6 +545,8 @@ export function check(input: unknown): string[] {
   else if (kind === "compare") problems.push(...compareProblems(input.data));
   else if (kind === "branchFlow") problems.push(...branchProblems(input.data));
   else if (kind === "stateMachine") problems.push(...stateProblems(input.data, input.options));
+  else if (kind === "journeyMap") problems.push(...journeyProblems(input.data));
+  else if (kind === "tree") problems.push(...treeProblems(input.data));
   else problems.push(...flowProblems(input.data, input.options));
   problems.push(...focusProblems(input.focus, namesOf(kind as Kind, input.data, input.options)));
   return problems;

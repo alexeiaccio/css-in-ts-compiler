@@ -60,7 +60,9 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Six kinds are here: `barChart`, `branchFlow`, `compare`, `flow`, `funnel` and `stateMachine`. The
+terminal at one cell. Eight kinds are here: `barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `journeyMap`,
+`stateMachine` and `tree`; the last two are the ones that draw a second row — a tree's level is a row of boxes with
+`| - +` connectors between the levels, and a journey stage is a bar row with its doing and thinking under it. The
 numbers are geometry: a bar's fill is a box whose width is `value/max` of its track, read back
 from the frame in `solid/figure.test.ts` (worst error 0.49 of a cell). One of the figures is this repository's own
 measurements (`solid/specs/bars.json`, native/README.md's `--bench`):
@@ -77,8 +79,9 @@ native/README.md --bench: 0.30, 0.077, 0.08 ms
 and `compare.json` are the kit's examples, adapted. `native/README.md`'s "Figures from specs" chapter is the whole of it.
 Its text half is the same layout as characters (`solid/src/figure/text.ts`, `solid/figure.ts`): the title, the rows with
 `█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
-two figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure cannot
-drift from its spec. A future kind needs only to return its rows from `layout`: the text renderer reads no kind's data.
+four figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure
+cannot drift from its spec. A future kind needs only to return its rows from `layout`: the text renderer reads no kind's
+data.
 
 ## Where Solid runs
 

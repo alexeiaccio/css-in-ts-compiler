@@ -1,7 +1,7 @@
-// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the six
-// kinds), the bar's fill box against its track's, the number's text command, the rows' order, the funnel's ratios, the
-// branch flow's boxes and connectors, the state machine's path; then `check`'s own refusals in their sentences; then the
-// same spec on the terminal, cell for cell.
+// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the
+// eight kinds), the bar's fill box against its track's, the number's text command, the rows' order, the funnel's ratios,
+// the branch flow's boxes and connectors, the state machine's path, the tree's levels and edges, the journey's feelings;
+// then `check`'s own refusals in their sentences; then the same spec on the terminal, cell for cell.
 //
 // The geometry comes from `solid/dump.ts`'s `capture` — the same last frame solid/goldens stores — so a bar is the box
 // Clay laid out, not the number the layout asked for. The error is in **cells** (the layout's unit): one cell is 8px
@@ -24,11 +24,13 @@ const styles = await import("./app/Figure.styles.ts");
 
 /** A bar may round to the nearest half cell of its ratio: the layout rounds a cell, and that is the whole tolerance. */
 const HALF_CELL = 0.5;
-const SPECS = ["bars", "funnel", "compare", "pipeline", "branch-flow", "state-machine"] as const;
+const SPECS = ["bars", "funnel", "compare", "pipeline", "branch-flow", "state-machine", "tree", "journey-map"] as const;
 /** The two new kinds' command goldens: one frame each, stored by the same capture this test reads. */
 const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "branch-flow": "figure-branch-flow",
   "state-machine": "figure-state-machine",
+  "tree": "figure-tree",
+  "journey-map": "figure-journey-map",
 };
 let failed = 0;
 let checks = 0;
@@ -124,9 +126,15 @@ for (const name of SPECS) {
     if (command) used.add(command);
     return command;
   });
-  const inOrder = labelRows.every(
-    (command, i) => command && (i === 0 || command.box[axis]! > labelRows[i - 1]!.box[axis]!),
-  );
+  // a tree's level is several boxes on one row: its order is the row's (top down), then left to right
+  const inOrder = labelRows.every((command, i) => {
+    if (!command) return false;
+    if (i === 0) return true;
+    const before = labelRows[i - 1]!;
+    if (kind === "tree")
+      return command.box[1]! > before.box[1]! || (command.box[1] === before.box[1] && command.box[0]! > before.box[0]!);
+    return command.box[axis]! > before.box[axis]!;
+  });
   if (inOrder) ok(`${name}: the rows`, `${l.labels.map((label) => label.text).join(", ")} — the data's order`);
   else bad(`${name}: the rows`, JSON.stringify(labelRows.map((c) => [c?.text, c?.box[axis]])));
 
@@ -183,6 +191,48 @@ for (const name of SPECS) {
           `${JSON.stringify(got.split("\n")[at])} is not ${JSON.stringify(want.split("\n")[at])}`,
       );
     }
+  }
+
+  // (c5) the two row kinds: a tree's levels are rows of boxes joined by its edges, and a journey's stages are a bar row
+  // with the stage's notes under it. A tree's boxes are the proof that a layout is not a column: its levels' y differs.
+  if (s.kind === "tree") {
+    const rows = new Set(l.boxes.map((box) => commandOf(dump, box.id)?.box[1]));
+    if (l.boxes.length === l.labels.length)
+      ok(`${name}: the nodes`, `${l.boxes.length} boxes, one a node (${l.labels.map((label) => label.text).join(", ")})`);
+    else bad(`${name}: the nodes`, `${l.boxes.length} boxes for ${l.labels.length} labels`);
+    if (l.connectors.length === l.boxes.length - 1)
+      ok(`${name}: the edges`, `${l.connectors.length} connector(s), one a child`);
+    else bad(`${name}: the edges`, `${l.connectors.length} connectors for ${l.boxes.length - 1} children`);
+    if (rows.size >= 3)
+      ok(`${name}: the levels`, `${rows.size} rows of boxes, so a level is a row and not a column`);
+    else bad(`${name}: the levels`, `${rows.size} distinct rows of boxes`);
+    const bracket = dump.commands.some((c) => c.type === "text" && c.text?.includes("+"));
+    const stem = dump.commands.some((c) => c.type === "text" && c.text?.includes("|"));
+    if (bracket && stem) ok(`${name}: the connectors`, "a bracket's + and a stem's | are in the frame");
+    else bad(`${name}: the connectors`, `bracket ${bracket}, stem ${stem}`);
+  }
+  if (s.kind === "journeyMap") {
+    const stages = s.data;
+    if (l.bars.length === stages.length)
+      ok(`${name}: the stages`, `${stages.length} bars, one a stage (${stages.map((stage) => stage.label).join(", ")})`);
+    else bad(`${name}: the stages`, `${l.bars.length} bars for ${stages.length} stages`);
+    const words = l.bars.filter((bar) =>
+      dump.commands.some((command) => command.type === "text" && command.text === bar.text),
+    );
+    if (words.length === l.bars.length) ok(`${name}: the feelings`, `${words.map((bar) => bar.text).join(", ")} — the words as drawn`);
+    else bad(`${name}: the feelings`, `${words.length} of ${l.bars.length} feeling words in the frame`);
+    const notes = stages.filter((stage) =>
+      !stage.doing || dump.commands.some((command) => command.type === "text" && command.text?.trim() === stage.doing),
+    );
+    if (notes.length === stages.length) ok(`${name}: the notes`, "every stage's doing is a text command under its row");
+    else bad(`${name}: the notes`, `${stages.length - notes.length} stage(s) have no doing line`);
+    const fills = l.bars.every((bar) => {
+      const fill = commandOf(dump, bar.fillId);
+      const track = commandOf(dump, bar.trackId);
+      return fill && track && Math.abs(fill.box[2]! - (track.box[2]! * bar.value) / bar.max) / CELL_WIDTH <= HALF_CELL;
+    });
+    if (fills) ok(`${name}: the bars`, "each feeling's magnitude is its fill, against the kit's -2 to 2 scale");
+    else bad(`${name}: the bars`, "a feeling's fill is not |feeling|/2 of its track");
   }
 
   // (d) a funnel never grows, and each step's width is value/first
@@ -247,7 +297,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, flow, funnel, stateMachine.');
+  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, flow, funnel, stateMachine, journeyMap, tree.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",
@@ -298,6 +348,29 @@ refuses("a path that does not start at the first state", {
 }, "The path starts at saving, but the machine's first state is idle.");
 refuses("a machine with no states", { kind: "stateMachine", data: { states: [], transitions: [] } },
   'A state machine needs its states: ["closed", "opening", "open", "closing"].');
+refuses("a tree with two roots", {
+  kind: "tree",
+  data: [{ name: "desktop" }, { name: "terminal" }],
+}, "A tree needs one root, but desktop, terminal have no parent.");
+refuses("a tree with no node above the rest", {
+  kind: "tree",
+  data: [{ name: "desktop", parent: "terminal" }, { name: "terminal", parent: "desktop" }],
+}, "A tree needs one root: every node names a parent, so none is above them.");
+refuses("a tree node whose parent does not exist", {
+  kind: "tree",
+  data: [{ name: "root" }, { name: "child", parent: "missing" }],
+}, 'child names "missing" as its parent, but there is no node named "missing".');
+refuses("a tree with a loop", {
+  kind: "tree",
+  data: [{ name: "root" }, { name: "a", parent: "b" }, { name: "b", parent: "a" }],
+}, "a is not under the root root: its parents form a loop.");
+refuses("a journey feeling outside the scale", {
+  kind: "journeyMap",
+  source: "Sample",
+  data: [{ label: "Import", feeling: 3 }],
+}, "Import has a feeling of 3, outside -2 to 2.");
+refuses("an empty journey", { kind: "journeyMap", data: [] },
+  'A journey needs its stages: [{ "label": "Discover", "feeling": 1 }, ...], each with the feeling it had.');
 // the invalid file itself: the funnel solid/test.sh gives the desktop's `--spec`, refused with the sentence
 const invalid = parse(readFileSync(new URL("./specs/invalid-funnel.json", import.meta.url), "utf8"));
 if (invalid.problems.includes("signed up 12600 is more than visited 12400; a funnel never grows"))
@@ -306,6 +379,8 @@ else bad("solid/specs/invalid-funnel.json", JSON.stringify(invalid.problems));
 for (const [file, sentence] of [
   ["invalid-branch.json", 'check the data has no "no" branch.'],
   ["invalid-state.json", "The path goes happened → paid, but no transition connects them."],
+  ["invalid-tree.json", 'child names "missing" as its parent, but there is no node named "missing".'],
+  ["invalid-journey.json", "Import has a feeling of 3, outside -2 to 2."],
 ] as const) {
   const refused = parse(readFileSync(new URL(`./specs/${file}`, import.meta.url), "utf8"));
   if (refused.problems.includes(sentence)) ok(`solid/specs/${file}`, sentence);
@@ -371,6 +446,34 @@ for (const [file, sentence] of [
   if (dropped.length !== path)
     ok("mutation: a dropped state box", `${path} states on the path, ${dropped.length} boxes: the count differs`);
   else bad("mutation: a dropped state box", "the count did not move");
+
+  const tree = layout(spec("tree"));
+  const nodes = tree.boxes.length;
+  const edges = tree.connectors.length;
+  if (edges === nodes - 1) ok("mutation: the tree's edges", `${nodes} nodes, ${edges} connectors, one a child`);
+  else bad("mutation: the tree's edges", `${nodes} nodes, ${edges} connectors`);
+  const rootName = tree.labels[0]!.text;
+  const top = tree.connectors.filter((connector) => connector.from === rootName);
+  const withoutLevel = tree.connectors.filter((connector) => connector.from !== rootName);
+  if (withoutLevel.length !== nodes - 1)
+    ok(
+      "mutation: a tree level without its connectors",
+      `${nodes} nodes and ${edges} connectors; drop the root's ${top.length}: ${withoutLevel.length} left, the count fails`,
+    );
+  else bad("mutation: a tree level without its connectors", "the count did not move");
+  const droppedNode = tree.boxes.slice(0, -1);
+  if (droppedNode.length !== nodes)
+    ok("mutation: a node dropped from a row", `${nodes} nodes, ${droppedNode.length} boxes: the count differs`);
+  else bad("mutation: a node dropped from a row", "the count did not move");
+
+  const journeyOut = {
+    kind: "journeyMap",
+    source: "Sample",
+    data: [{ label: "First chart", feeling: 4 }],
+  } as const;
+  const outSentence = "First chart has a feeling of 4, outside -2 to 2.";
+  if (check(journeyOut).includes(outSentence)) ok("mutation: a journey feeling out of range", outSentence);
+  else bad("mutation: a journey feeling out of range", `the check printed no ${JSON.stringify(outSentence)}`);
 }
 
 // the kind's own two edges, from the layout: a value past `max` fills the track and prints "+", and a positive value

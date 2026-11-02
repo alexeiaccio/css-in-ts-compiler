@@ -57,8 +57,8 @@
 
 // the page's text lives here for the frame: Clay keeps the pointer until the render pass (the desktop's sizes)
 #define ARENA_SIZE (1 << 16)
-// ponytail: 64 overrides a frame, as the desktop's; more needs a bigger table
-#define MAX_VALUES 64
+// ponytail: 128 overrides a frame, as the desktop's (a figure's item writes three; a tree's rows are the first past 64)
+#define MAX_VALUES 128
 // ponytail: 512 names a process, as the desktop's; later ids are unnamed in a dump
 #define MAX_ID_NAMES 512
 // ponytail: 512 elements a frame (a command of one carries its node for the dump's text alignment and a group's subtree)
