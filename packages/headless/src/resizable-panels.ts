@@ -10,7 +10,7 @@ export interface ResizablePaneOptions {
   readonly min?: number;
   /** Largest size, in percent. */
   readonly max?: number;
-  /** The uncontrolled start; defaults to an equal split. */
+  /** The uncontrolled start; panes that leave it out share what is left equally. */
   readonly defaultSize?: number;
   /** Collapses to `collapsedSize` on Enter and restores the remembered size. */
   readonly collapsible?: boolean;
@@ -251,14 +251,19 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
     return next;
   };
 
+  /** The start: the sizes the panes name, and the rest shared by the panes that name none. */
+  const defaults = (): ReadonlyArray<number> => {
+    const named = panes().map((pane) => pane.defaultSize);
+    const given = named.reduce<number>((sum, value) => sum + (value ?? 0), 0);
+    const open = named.filter((value) => value === undefined).length;
+    const share = open === 0 ? 0 : round2((FULL - given) / open);
+    return named.map((value) => value ?? share);
+  };
+
   const initialSizes = (): ReadonlyArray<number> => {
     const stored =
       options.storageKey === undefined ? undefined : readStored(options.storageKey, count());
-    return fit(
-      stored ??
-        options.defaultSizes ??
-        panes().map((pane) => pane.defaultSize ?? round2(FULL / Math.max(count(), 1))),
-    );
+    return fit(stored ?? options.defaultSizes ?? defaults());
   };
 
   const start = initialSizes();

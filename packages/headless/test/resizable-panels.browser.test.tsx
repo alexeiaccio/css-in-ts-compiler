@@ -106,6 +106,21 @@ describe("createResizablePanels remembered size", () => {
   });
 });
 
+describe("createResizablePanels defaults", () => {
+  it("keeps a pane's defaultSize and shares the rest among the panes that name none", () => {
+    const panels = createRoot(() =>
+      createResizablePanels({
+        panes: [{ defaultSize: 24, min: 15, collapsible: true }, { max: 100 }, {}],
+      }),
+    );
+    expect(panels.sizes()).toEqual([24, 38, 38]);
+  });
+  it("splits equally when no pane names a size", () => {
+    const panels = createRoot(() => createResizablePanels({ panes: [{}, {}, {}] }));
+    expect(panels.sizes()).toEqual([33.34, 33.33, 33.33]);
+  });
+});
+
 describe("createResizablePanels persistence", () => {
   const key = "cssints-resizable-panels-test";
 
