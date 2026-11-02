@@ -4,7 +4,7 @@ import { createMemo, createRoot, flush } from "solid-js";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { type MountedToaster, mountToaster } from "./toast.fixture";
-import { type ToastPhase, toastRowMachine } from "./toast.tsx";
+import { type ToastPhase, TOAST_ENTER_MS, TOAST_LEAVE_MS, toastRowMachine } from "./toast.tsx";
 
 /** Solid 2 applies setters and delivers delegated events on a later tick. */
 const tick = (ms = 20): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -29,7 +29,10 @@ const mounts: MountedToaster[] = [];
 const mount = (
   options = {},
   host?: HTMLElement,
-  ui: { readonly reducedMotion?: boolean } = {},
+  ui: {
+    readonly reducedMotion?: boolean;
+    readonly onAnimate?: (animation: Animation) => void;
+  } = {},
 ): MountedToaster => {
   const mounted = mountToaster(options, host, ui);
   mounts.push(mounted);
@@ -55,6 +58,19 @@ const rowOf = (title: string): HTMLElement | undefined =>
 
 const closeOf = (title: string): HTMLButtonElement | undefined =>
   rowOf(title)?.querySelector<HTMLButtonElement>('[data-part="toast-close"]') ?? undefined;
+
+// The animation a row is running, by the ends the component names it with (`from:to`): `0:1` is an enter from nothing,
+// `1:0` a leave from the rest box, `0.5:0` a reversal that started at the fraction the enter had reached.
+const animationOf = (row: HTMLElement, id: string): Animation | undefined =>
+  row.getAnimations().find((animation) => animation.id === id);
+
+/** The keyframes a paused animation really carries, as the browser serialized them. */
+const framesOf = (animation: Animation): Keyframe[] =>
+  ((animation.effect as KeyframeEffect | null)?.getKeyframes() ?? []) as Keyframe[];
+
+/** The row's share of the stack: the box the animation grows and collapses, plus the block margin it owns. */
+const shareOf = (row: HTMLElement): number =>
+  row.getBoundingClientRect().height + Number.parseFloat(getComputedStyle(row).marginBlockStart);
 
 /** Every `data-state` a row is given, from the click to the unmount: the phases the DOM actually painted. */
 const watchPhases = (
@@ -175,6 +191,31 @@ describe("Toast x the row machine (the harness)", () => {
     expect(h.log.every((entry) => entry.effect === undefined)).toBe(true);
     expect(h.log.map((entry) => entry.from)).toEqual(["visible"]);
   });
+
+  it("carries the box's growth and collapse inside the two effects the phases already had", () => {
+    const h = harness(toastRowMachine(false));
+    const enter = only(h);
+    // the box grows inside the enter effect: no state between `entering` and `visible` owns it
+    expect(enter.spec.type).toBe("enter");
+    expect(enter.state).toBe("entering");
+
+    h.send({ type: "dismiss" });
+    const leave = only(h);
+    // and it collapses inside the leave effect: the same four phases, and no third effect for the box
+    expect(leave.spec.type).toBe("leave");
+    expect(leave.state).toBe("leaving");
+    expect(h.log.filter((entry) => entry.effect !== undefined)).toHaveLength(1);
+
+    h.send({ type: "finish", id: leave.id });
+    expect(h.machine.getState().state).toBe("gone");
+    expect(h.machine.effects()).toHaveLength(0);
+    // `gone` issues nothing: the box has already collapsed when the row is removed
+    expect(h.log.filter((entry) => entry.effect !== undefined)).toHaveLength(1);
+    // a dead finish still moves nothing
+    h.send({ type: "finish", id: leave.id });
+    expect(h.machine.getState().state).toBe("gone");
+    expect(h.log.at(-1)).toMatchObject({ event: "finish", cancelled: true });
+  });
 });
 
 // --- the DOM, in Chromium ----------------------------------------------------------------------------------------------------
@@ -283,6 +324,189 @@ describe("Toaster", () => {
     watched.stop();
     expect(watched.phases).not.toContain("visible");
     expect(mounted.dismissed).toHaveLength(1);
+  });
+
+  it("grows a row's box while it enters, so the stack makes room instead of jumping", async () => {
+    // The first row settles at rest; only the second row's enter is held, so the timeline is the test's and the layout
+    // around it is the real one.
+    let pauseEnter = false;
+    const mounted = mount({ timeout: 10_000 }, undefined, {
+      onAnimate: (animation) => {
+        if (pauseEnter && animation.id === "0:1") {
+          animation.pause();
+        }
+      },
+    });
+    mounted.api.show({ title: "First" });
+    await waitFor(() => rowOf("First")?.getAttribute("data-state") === "visible");
+    const first = rowOf("First") as HTMLElement;
+    const restingTop = first.getBoundingClientRect().top;
+
+    pauseEnter = true;
+    mounted.api.show({ title: "Second" });
+    await waitFor(() => rowOf("Second") !== undefined);
+    const second = rowOf("Second") as HTMLElement;
+    await waitFor(() => animationOf(second, "0:1") !== undefined);
+    const enter = animationOf(second, "0:1") as Animation;
+    const [from, to] = framesOf(enter);
+    // the enter's ends: nothing, then the row's own box read from the DOM
+    expect(from?.blockSize).toBe("0px");
+    expect(from?.marginBlockStart).toBe("0px");
+    expect(Number(from?.opacity)).toBe(0);
+    expect(Number.parseFloat(String(to?.blockSize))).toBeGreaterThan(0);
+
+    const heights: number[] = [];
+    const tops: number[] = [];
+    for (const time of [0, TOAST_ENTER_MS / 2, TOAST_ENTER_MS]) {
+      enter.currentTime = time;
+      heights.push(second.getBoundingClientRect().height);
+      tops.push(first.getBoundingClientRect().top);
+    }
+    // the box grows through the enter, not at its end
+    expect(heights[0]).toBeLessThan(1);
+    expect(heights[1]).toBeGreaterThan(heights[0] as number);
+    expect(heights[2]).toBeGreaterThan(heights[1] as number);
+    // and the row above it slides in more than one step: the stack is laid out again, not snapped
+    expect(tops[1]).toBeLessThan(tops[0] as number);
+    expect(tops[2]).toBeLessThan(tops[1] as number);
+    // the room made is the new row's whole share: its box plus the margin it owns — nothing is left for the unmount
+    expect((tops[0] as number) - (tops[2] as number)).toBeCloseTo(shareOf(second), 0);
+    expect(restingTop - (tops[2] as number)).toBeCloseTo(shareOf(second), 0);
+  });
+
+  it("shrinks a leaving row's box, and the gap closes while the leave runs instead of after", async () => {
+    const mounted = mount({ timeout: 10_000 }, undefined, {
+      onAnimate: (animation) => {
+        if (animation.id.endsWith(":0")) {
+          animation.pause();
+        }
+      },
+    });
+    for (const title of ["Top", "Middle", "Bottom"]) {
+      mounted.api.show({ title });
+    }
+    await waitFor(
+      () =>
+        rows().length === 3 && rows().every((row) => row.getAttribute("data-state") === "visible"),
+    );
+    const top = rowOf("Top") as HTMLElement;
+    const middle = rowOf("Middle") as HTMLElement;
+    const region = stack() as HTMLElement;
+    const height = top.getBoundingClientRect().height;
+    const share = shareOf(top);
+    const regionBefore = region.getBoundingClientRect().height;
+    // the row below starts lower and has room to move up
+    expect(middle.offsetTop).toBeGreaterThan(0);
+
+    closeOf("Top")?.click();
+    await waitFor(() => animationOf(top, "1:0") !== undefined);
+    const leave = animationOf(top, "1:0") as Animation;
+    const [from, to] = framesOf(leave);
+    // the leave's ends are the enter's, walked the other way: the rest box, then nothing
+    expect(Number.parseFloat(String(from?.blockSize))).toBeCloseTo(height, 0);
+    expect(to?.blockSize).toBe("0px");
+    expect(to?.paddingBlockStart).toBe("0px");
+    expect(to?.marginBlockStart).toBe("0px");
+    expect(Number(to?.opacity)).toBe(0);
+
+    const heights: number[] = [];
+    const offsets: number[] = [];
+    for (const time of [0, TOAST_LEAVE_MS / 2, TOAST_LEAVE_MS]) {
+      leave.currentTime = time;
+      heights.push(top.getBoundingClientRect().height);
+      offsets.push(middle.offsetTop);
+    }
+    // the box shrinks through the leave, not at its end
+    expect(heights[0]).toBeCloseTo(height, 0);
+    expect(heights[1]).toBeLessThan(heights[0] as number);
+    expect(heights[2]).toBeLessThan(1);
+    // the sibling's offsetTop changes while the leave animation runs, in more than one step...
+    expect(offsets[1]).toBeLessThan(offsets[0] as number);
+    expect(offsets[2]).toBeLessThan(offsets[1] as number);
+    // ...by the row's whole share, so the region closed as the box collapsed
+    expect((offsets[0] as number) - (offsets[2] as number)).toBeCloseTo(share, 0);
+    expect(regionBefore - (stack() as HTMLElement).getBoundingClientRect().height).toBeCloseTo(
+      share,
+      0,
+    );
+
+    // resume from the end: the machine's completion removes the row, and nothing moves again
+    leave.play();
+    await waitFor(() => rowOf("Top") === undefined);
+    expect(middle.offsetTop).toBeCloseTo(offsets[2] as number, 0);
+    expect(mounted.dismissed).toHaveLength(1);
+  });
+
+  it("reverses a close during the enter from the fraction the box had reached, without snapping it open", async () => {
+    let held = false;
+    const mounted = mount({ timeout: 10_000 }, undefined, {
+      onAnimate: (animation) => {
+        if (held) {
+          animation.pause();
+        }
+      },
+    });
+    held = true;
+    mounted.api.show({ title: "Half in" });
+    await waitFor(() => rowOf("Half in") !== undefined);
+    const row = rowOf("Half in") as HTMLElement;
+    await waitFor(() => animationOf(row, "0:1") !== undefined);
+    const enter = animationOf(row, "0:1") as Animation;
+    // half the enter, linearly: half the box
+    enter.currentTime = TOAST_ENTER_MS / 2;
+    const midHeight = row.getBoundingClientRect().height;
+    const restHeight = Number.parseFloat(String(framesOf(enter)[1]?.blockSize));
+    // the rest margin from the enter's own end: the paused fill covers the computed value
+    const restMargin = Number.parseFloat(String(framesOf(enter)[1]?.marginBlockStart));
+    expect(midHeight).toBeLessThan(restHeight);
+    expect(midHeight).toBeCloseTo(restHeight / 2, 0);
+    expect(restMargin).toBeGreaterThan(0);
+
+    closeOf("Half in")?.click();
+    await waitFor(() => row.getAnimations().some((animation) => animation.id.endsWith(":0")));
+    const leave = row.getAnimations().find((animation) => animation.id.endsWith(":0")) as Animation;
+    // the leave's start is the running enter's own currentTime, for every property: half the box, half the space, half the
+    // opacity — and the box keeps the size it had, so nothing snaps it open on the way out
+    expect(leave.id).toBe("0.5:0");
+    const [from] = framesOf(leave);
+    expect(Number.parseFloat(String(from?.blockSize))).toBeCloseTo(midHeight, 0);
+    expect(Number.parseFloat(String(from?.marginBlockStart))).toBeCloseTo(restMargin / 2, 0);
+    expect(Number(from?.opacity)).toBeCloseTo(0.5, 2);
+    expect(row.getBoundingClientRect().height).toBeCloseTo(midHeight, 0);
+
+    leave.currentTime = TOAST_LEAVE_MS;
+    expect(row.getBoundingClientRect().height).toBeLessThan(1);
+    leave.play();
+    await waitFor(() => rowOf("Half in") === undefined);
+    expect(mounted.dismissed).toHaveLength(1);
+  });
+
+  it("leaves the rows in the stack's flow, one column, not a list of absolutely positioned boxes", async () => {
+    const mounted = mount({ timeout: 10_000 });
+    for (const title of ["One", "Two", "Three"]) {
+      mounted.api.show({ title });
+    }
+    await waitFor(
+      () =>
+        rows().length === 3 && rows().every((row) => row.getAttribute("data-state") === "visible"),
+    );
+    const region = stack() as HTMLElement;
+    const ordered = rows();
+    const first = ordered[0] as HTMLElement;
+
+    for (const row of ordered) {
+      // a flow row: its own box in the column, never taken out of it
+      expect(getComputedStyle(row).position).toBe("static");
+      expect(row.offsetLeft).toBe(first.offsetLeft);
+    }
+    for (let index = 1; index < ordered.length; index += 1) {
+      expect((ordered[index] as HTMLElement).offsetTop).toBeGreaterThan(
+        (ordered[index - 1] as HTMLElement).offsetTop,
+      );
+    }
+    // the region's height is exactly the rows' own share: no absolutely positioned row outside the layout
+    const share = ordered.reduce((total, row) => total + shareOf(row as HTMLElement), 0);
+    expect(region.getBoundingClientRect().height).toBeCloseTo(share, 0);
   });
 
   it("is never hidden while an animation is running", async () => {

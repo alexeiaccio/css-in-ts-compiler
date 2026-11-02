@@ -96,6 +96,8 @@ export interface ToasterProps extends Renderable<ToasterPartProps, void> {
   readonly renderItem?: Render<ToastPartProps, ToastMessage> | undefined;
   /** The motion preference; left out, `prefers-reduced-motion: reduce` is read once, when a row is created. */
   readonly reducedMotion?: boolean | undefined;
+  /** Every animation a row starts, so a test can own the timeline (as the kit's other animated parts allow). */
+  readonly onAnimate?: ((animation: Animation) => void) | undefined;
   readonly class?: string;
 }
 
@@ -104,12 +106,17 @@ export interface ToastProps extends Renderable<ToastPartProps, ToastMessage> {
   /** The toast the primitive queued: its title, description, tone and id. */
   readonly item: ToastMessage;
   readonly reducedMotion?: boolean | undefined;
+  readonly onAnimate?: ((animation: Animation) => void) | undefined;
   readonly class?: string;
 }
 
 // The stack sits in the viewport's bottom end corner and never takes a click of its own: with nothing in the queue it is an
 // empty, still box over the page, so it is transparent to the pointer and each row turns it back on. The corner is the
 // inline end of the writing mode, and the inset is a token so a dense screen grows it with everything else.
+//
+// There is no `gap`: the space between rows is each row's own block margin, so it is part of the box the leave collapses
+// and the enter grows. A container gap would survive the row's collapse and jump the stack by its width when the row was
+// unmounted.
 const regionClass = css.cn(
   css.position("fixed"),
   css.insetBlockEnd(t.space._4),
@@ -119,15 +126,16 @@ const regionClass = css.cn(
   css.display("flex"),
   css.flexDirection("column"),
   css.alignItems("stretch"),
-  css.gap(t.space._2),
   css.width("min(24rem, calc(100vw - 2 * 16px))"),
   css.pointerEvents("none"),
 );
 
 // The row is painted at rest and its phases are the machine's: `entering` starts transparent, `leaving` is headed to
-// transparent, and the WAAPI animation the machine's effect runs covers the way between the row's own opacity and the
-// state's. The CSS is the animation's ends, so a row with no animation (reduced motion, or a frame before it starts) is
-// already at the right end and never flashes.
+// transparent, and the WAAPI animation the machine's effect runs covers the way between the row's own box and the state's —
+// the box's block size, its padding and border on that axis, its own block margin (the stack's spacing) and its opacity.
+// The CSS is the animation's opacity ends, so a row with no animation (reduced motion, or a frame before it starts) is
+// already at the right end and never flashes; the box is the animation's alone, because a zero block size in CSS would still
+// leave the padding and the border behind.
 //
 // The tone is one rule on the leading edge: the theme has an invalid colour and one accent, so `success` takes the accent
 // and `info` the plain border. The row names the tone it was queued with (`data-tone`), which is the primitive's own
@@ -143,6 +151,11 @@ const toast = css.cv({
     css.columnGap(t.space._2),
     css.alignItems("start"),
     css.boxSizing("border-box"),
+    // the space this row owns in the stack, collapsed with the box: `block-size: 0` alone would leave it behind and the
+    // stack would jump when the row was unmounted
+    css.marginBlockStart(t.space._2),
+    // the content must not spill out of a box that is being collapsed through zero
+    css.overflow("clip"),
     css.padding(t.space._3),
     css.border("1px solid", "transparent"),
     css.borderInlineStartWidth(t.space._1),
@@ -151,7 +164,7 @@ const toast = css.cv({
     css.color(t.color.text),
     css.boxShadow(t.shadow.popover),
     css.fontSize(t.font.size),
-    // `visible` is the resting look; the two transient phases are the animation's ends, and `gone` is never painted
+    // `visible` is the resting look; the two transient phases are the fade's ends, and `gone` is never painted
     css.attr("data-state", "entering")(css.opacity(0)),
     css.attr("data-state", "leaving")(css.opacity(0)),
   ),
@@ -237,6 +250,7 @@ export const Toaster = (props: ToasterProps): JSX.Element => {
               item={item}
               render={props.renderItem}
               reducedMotion={props.reducedMotion}
+              onAnimate={props.onAnimate}
             />
           )}
         </For>
@@ -254,8 +268,56 @@ const prefersReducedMotion = (): boolean =>
 interface LiveRow {
   readonly handle: EffectHandle;
   readonly animation: Animation;
-  readonly element: HTMLElement;
+  readonly duration: number;
 }
+
+/**
+ * The row's rest box, read from the DOM before its animation starts: the block size it grows to, and the padding, border
+ * and margin on that axis the collapse has to take with it. `box-sizing: border-box` floors a zero block size at the
+ * padding and the border, and the space between rows is the row's own block margin, so animating the size alone would
+ * leave a strip of the row behind and the stack would jump by it at the unmount.
+ */
+interface RowBox {
+  readonly blockSize: number;
+  readonly paddingBlockStart: number;
+  readonly paddingBlockEnd: number;
+  readonly borderBlockStartWidth: number;
+  readonly borderBlockEndWidth: number;
+  readonly marginBlockStart: number;
+}
+
+const length = (value: string): number => {
+  const size: number = Number.parseFloat(value);
+  return Number.isNaN(size) ? 0 : size;
+};
+
+/** The row's rest box: the row is painted at it, so one synchronous read gives every end of the animation. */
+const boxOf = (element: HTMLElement): RowBox => {
+  const style = getComputedStyle(element);
+  return {
+    blockSize: element.getBoundingClientRect().height,
+    paddingBlockStart: length(style.paddingBlockStart),
+    paddingBlockEnd: length(style.paddingBlockEnd),
+    borderBlockStartWidth: length(style.borderBlockStartWidth),
+    borderBlockEndWidth: length(style.borderBlockEndWidth),
+    marginBlockStart: length(style.marginBlockStart),
+  };
+};
+
+/**
+ * The row's box at a fraction of its height: `0` is nothing, `1` the rest box. The enter runs `0 → 1` and the leave
+ * `f → 0` with the same function, so the two keyframe sets are symmetric and a leave that starts at a fraction continues
+ * from the box the enter had reached — a reversal never snaps the row open first.
+ */
+const frame = (box: RowBox, f: number): Keyframe => ({
+  blockSize: `${box.blockSize * f}px`,
+  paddingBlockStart: `${box.paddingBlockStart * f}px`,
+  paddingBlockEnd: `${box.paddingBlockEnd * f}px`,
+  borderBlockStartWidth: `${box.borderBlockStartWidth * f}px`,
+  borderBlockEndWidth: `${box.borderBlockEndWidth * f}px`,
+  marginBlockStart: `${box.marginBlockStart * f}px`,
+  opacity: f,
+});
 
 /**
  * One toast: the `role` and `aria-atomic` the primitive gives it (`role="alert"` for `error`, `status` otherwise), the
@@ -263,11 +325,13 @@ interface LiveRow {
  * countdown through the handlers `toastProps` hands over.
  *
  * The row's phase is `@cssints/machine`'s: `entering` runs the enter animation, a `dismiss` in it reverses from the
- * opacity the box has reached (the leave effect reads it before the enter is cancelled), a `dismiss` in `leaving` is a
- * state the machine does not react to so the leave is never restarted, and a cancelled animation's own completion carries
- * a dead handle id and is dropped. `prefers-reduced-motion` builds the machine at `visible`, so a dismissal goes straight
- * to `gone` and no animation exists to skip. `data-state` and `hidden` read the row's own store, so one row's phase never
- * re-runs another row's readers.
+ * fraction the box has reached (the leave effect reads the enter's `currentTime` before it is cancelled), a `dismiss` in
+ * `leaving` is a state the machine does not react to so the leave is never restarted, and a cancelled animation's own
+ * completion carries a dead handle id and is dropped. The animation moves the row's own box — block size, the padding and
+ * border on that axis, its block margin and its opacity — so the stack's own layout closes the gap and opens it, and no
+ * sibling is measured or moved by hand. `prefers-reduced-motion` builds the machine at `visible`, so a dismissal goes
+ * straight to `gone` and no animation exists to skip. `data-state` and `hidden` read the row's own store, so one row's
+ * phase never re-runs another row's readers.
  */
 export const Toast = (props: ToastProps): JSX.Element => {
   // the preference is read once per row: a toast lives for seconds, and a machine is not rebuilt under a running effect
@@ -285,7 +349,7 @@ export const Toast = (props: ToastProps): JSX.Element => {
   let row: HTMLElement | undefined;
   /** The running animation, or `undefined` at rest. */
   let live: LiveRow | undefined;
-  /** The opacity a cancelled enter had reached: where the leave starts. */
+  /** The fraction of the box a cancelled enter had reached: where the leave starts, for every property the box moves. */
   let carried: number | undefined;
 
   const offEffect = machine.onEffect((handle) => {
@@ -296,15 +360,23 @@ export const Toast = (props: ToastProps): JSX.Element => {
       return;
     }
     const entering = handle.spec.type === "enter";
+    // the box is at rest when the effect runs (a cancelled enter was cancelled before it, and its state's rule carries no
+    // box), so this is the size to grow to and, at a fraction, the size to leave from
+    const box = boxOf(element);
     const from = entering ? 0 : (carried ?? 1);
     carried = undefined;
-    const animation = element.animate([{ opacity: from }, { opacity: entering ? 1 : 0 }], {
-      duration: entering ? TOAST_ENTER_MS : TOAST_LEAVE_MS,
-      easing: "ease-out",
+    const duration = entering ? TOAST_ENTER_MS : TOAST_LEAVE_MS;
+    // linear, so the box travels at a constant rate and a reversal's fraction is the running animation's own `currentTime`
+    const animation = element.animate([frame(box, from), frame(box, entering ? 1 : 0)], {
+      duration,
+      easing: "linear",
       // each phase's end is the state's own styling; the leave holds its end until `gone` unmounts the row
       fill: entering ? "both" : "forwards",
     });
-    live = { handle, animation, element };
+    // the ends, for a test that steps the timeline (as the kit's overlay motion does)
+    animation.id = `${from}:${entering ? 1 : 0}`;
+    live = { handle, animation, duration };
+    props.onAnimate?.(animation);
     const done = (): void => {
       if (live?.handle.id === handle.id) {
         live = undefined;
@@ -323,9 +395,10 @@ export const Toast = (props: ToastProps): JSX.Element => {
     }
     const cancelled = live;
     live = undefined;
-    // the box's own opacity, whatever the easing: the leave starts where the enter was, not at its end
-    const opacity = Number.parseFloat(getComputedStyle(cancelled.element).opacity);
-    carried = Number.isNaN(opacity) ? 1 : opacity;
+    // read before `cancel()`: a cancelled animation's `currentTime` is null. One fraction moves every property, so a row
+    // dismissed halfway through its enter leaves from half its height and half its space, exactly where it was.
+    const time = Number(cancelled.animation.currentTime ?? 0);
+    carried = cancelled.duration === 0 ? 0 : Math.min(1, Math.max(0, time / cancelled.duration));
     cancelled.animation.cancel();
   });
 

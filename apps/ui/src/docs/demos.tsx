@@ -690,6 +690,10 @@ const ToastDemo = (): JSX.Element => {
           Queue four
         </Button>
       </div>
+      <p class="docs__note">
+        The stack is one flow: a row grows its own box as it enters and collapses it as it leaves,
+        so the rows around it move with the gap instead of jumping after it.
+      </p>
       <Toaster toast={toast} />
     </div>
   );
