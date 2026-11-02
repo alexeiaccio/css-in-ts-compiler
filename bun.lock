@@ -356,6 +356,9 @@
     "packages/headless": {
       "name": "@cssints/headless",
       "version": "0.28.0",
+      "dependencies": {
+        "@cssints/machine": "workspace:*",
+      },
       "devDependencies": {
         "@cssints/apg-specs": "workspace:*",
         "@quint-machine/core": "0.1.0",

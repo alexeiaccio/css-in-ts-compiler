@@ -42,6 +42,9 @@
     "pack:tgz": "node ../../scripts/pack.mjs",
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
+  "dependencies": {
+    "@cssints/machine": "workspace:*"
+  },
   "devDependencies": {
     "@cssints/apg-specs": "workspace:*",
     "@quint-machine/core": "0.1.0",

@@ -1,4 +1,5 @@
-import { type Virtualizer, createVirtualizer } from "../src/virtual";
+import { harness } from "@cssints/machine";
+import { type Virtualizer, createVirtualizer, settleDefinition } from "../src/virtual";
 import { For, Show, createMemo, createSignal, flush } from "solid-js";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { render } from "@solidjs/web";
@@ -267,6 +268,11 @@ describe("createVirtualizer", () => {
     const row = m.row(1_900);
     expect(row?.offsetTop).toBe(top);
     expect((row?.offsetTop ?? 0) - m.port.scrollTop).toBe(view - height);
+
+    // The batch that left nothing unknown was the final landing: more frames move nothing and issue no move.
+    await settle();
+    await settle();
+    expect(m.port.scrollTop).toBe(top + height - view);
   });
 
   it("cancels a pending measured jump when the host scrolls by hand", async () => {
@@ -285,6 +291,101 @@ describe("createVirtualizer", () => {
     // The measurement corrected the content, but not the reader's scroll.
     expect(m.port.scrollTop).toBe(8_000);
     expect(m.row(1_900)).toBeUndefined();
+
+    // The target is gone, not merely paused: the heights that arrived after the hand scroll do not land it.
+    await settle();
+    expect(m.port.scrollTop).toBe(8_000);
+  });
+
+  it("supersedes a jump with the last intent, so the earlier landing moves nothing", async () => {
+    const m = mount({
+      count: 2_000,
+      itemSize: () => 30,
+      gap: 4,
+      rowHeight: (index) => (index % 2 === 0 ? 40 : 60),
+    });
+
+    m.api.scrollToIndex(1_900);
+    // A second jump before the heights arrive: the first target is superseded, and its landing is stale.
+    m.api.scrollToIndex(500);
+    await settle();
+
+    // The exact top of 500: 250 pairs, and one gap each; the jump from the top shows the row fully.
+    const top = 250 * 100 + 500 * 4;
+    const view = m.port.clientHeight;
+    expect(m.port.scrollTop).toBe(top + 40 - view);
+    flush();
+    expect(m.row(500)?.offsetTop).toBe(top);
+    expect(m.row(1_900)).toBeUndefined();
+
+    // and the last intent is the one that stays
+    await settle();
+    expect(m.port.scrollTop).toBe(top + 40 - view);
+  });
+
+  it("drops a pending jump when the count shrinks below its target", async () => {
+    const m = mount({
+      count: 2_000,
+      itemSize: () => 30,
+      gap: 4,
+      rowHeight: (index) => (index % 2 === 0 ? 40 : 60),
+    });
+
+    // Unmeasured, so the jump is pending; then the list loses the row it waits for.
+    m.api.scrollToIndex(1_900);
+    m.setCount(100);
+    flush();
+    await settle();
+
+    // No height batch landed the dropped target: the scroll stays where the shortened content clamps it, and the
+    // window is the new list's.
+    const at = m.api.window();
+    const landed = m.port.scrollTop;
+    expect(landed).toBeLessThanOrEqual(at.content - m.port.clientHeight);
+    expect(at.last).toBeLessThanOrEqual(99);
+    expect(m.row(1_900)).toBeUndefined();
+    await settle();
+    expect(m.port.scrollTop).toBe(landed);
+  });
+
+  it("lands once, immediately, when every height is already measured", async () => {
+    const m = mount({
+      count: 200,
+      itemSize: () => 30,
+      gap: 4,
+      rowHeight: (index) => (index % 2 === 0 ? 40 : 60),
+    });
+    await settle();
+
+    // Every height is in before the jump: the first offset is exact, and no height can correct it later.
+    m.api.scrollToIndex(150);
+    const top = 75 * 100 + 150 * 4;
+    const view = m.port.clientHeight;
+    expect(m.port.scrollTop).toBe(top + 40 - view);
+    flush();
+    expect(m.row(150)?.offsetTop).toBe(top);
+
+    await settle();
+    expect(m.port.scrollTop).toBe(top + 40 - view);
+  });
+
+  it("does not restart a landing when the same index is asked for again", async () => {
+    const m = mount({
+      count: 2_000,
+      itemSize: () => 30,
+      gap: 4,
+      rowHeight: (index) => (index % 2 === 0 ? 40 : 60),
+    });
+
+    m.api.scrollToIndex(1_900);
+    m.api.scrollToIndex(1_900);
+    await settle();
+
+    const top = 950 * 100 + 1_900 * 4;
+    const view = m.port.clientHeight;
+    expect(m.port.scrollTop).toBe(top + 40 - view);
+    await settle();
+    expect(m.port.scrollTop).toBe(top + 40 - view);
   });
 
   it("measures once, then virtualises a feed of two heights", async () => {
@@ -376,5 +477,166 @@ describe("createVirtualizer", () => {
     await settle();
     expect(m.api.rangeCount()).toBeLessThan(30);
     expect(m.api.window().content).toBe(100 * 40 + 100 * 60 + 199 * 4);
+  });
+});
+
+// --- the settle machine without a browser -----------------------------------------------------------------------------
+
+/**
+ * The machine with a deterministic host: it runs a `land` effect the way the primitive does (the row is the context's,
+ * the offset it would write is `row · 10 + 5`) and reports it, so the harness walks the protocol through the same
+ * synchronous wiring `createVirtualizer` uses.
+ */
+const settleHost = () => {
+  const h = harness(settleDefinition);
+  const lands: Array<{ index: number; final: boolean }> = [];
+  const context = () => h.machine.getState().context;
+  const phase = () => h.machine.getState().state;
+  h.machine.onEffect((handle) => {
+    if (handle.type !== "land") {
+      return;
+    }
+    const target = context().target;
+    if (target === undefined) {
+      return;
+    }
+    lands.push({ index: target, final: handle.spec["final"] === true });
+    h.send({ type: "landed", id: handle.id, offset: target * 10 + 5 });
+  });
+  return { h, lands, context, phase };
+};
+
+/** The `NoStuckState` invariant: `idle` holds no target, and `landing` holds one and a landing (live or reported). */
+const noStuckState = (host: ReturnType<typeof settleHost>): void => {
+  const { state, context } = host.h.machine.getState();
+  expect(["idle", "landing"]).toContain(state);
+  if (state === "idle") {
+    expect(context.target).toBeUndefined();
+    return;
+  }
+  expect(context.target).toBeDefined();
+  expect(
+    host.h.machine.effects().some((handle) => handle.type === "land") ||
+      context.requested !== undefined,
+  ).toBe(true);
+};
+
+describe("the settle machine (harness)", () => {
+  it("lands on every batch, makes the last one final, and then stops", () => {
+    const host = settleHost();
+    host.h.send({ type: "seek", index: 900, settled: false });
+    expect(host.phase()).toBe("landing");
+    expect(host.lands).toEqual([{ index: 900, final: false }]);
+    noStuckState(host);
+
+    host.h.send({ type: "measured", settled: false });
+    host.h.send({ type: "measured", settled: false });
+    expect(host.lands).toHaveLength(3);
+    expect(host.lands.every((land) => land.index === 900 && !land.final)).toBe(true);
+    noStuckState(host);
+
+    // the batch that leaves nothing unknown: one final landing, and the target is dropped
+    host.h.send({ type: "measured", settled: true });
+    expect(host.lands).toHaveLength(4);
+    expect(host.lands.at(-1)).toEqual({ index: 900, final: true });
+    expect(host.phase()).toBe("idle");
+    expect(host.context().target).toBeUndefined();
+    noStuckState(host);
+
+    // no loop: heights arriving after the final landing do not land again
+    host.h.send({ type: "measured", settled: true });
+    host.h.send({ type: "measured", settled: false });
+    expect(host.lands).toHaveLength(4);
+    noStuckState(host);
+  });
+
+  it("cancels the pending target on a manual scroll, and later heights do not move it", () => {
+    const host = settleHost();
+    host.h.send({ type: "seek", index: 900, settled: false });
+    const lands = host.lands.length;
+
+    host.h.send({ type: "manual" });
+    expect(host.phase()).toBe("idle");
+    expect(host.context().target).toBeUndefined();
+    noStuckState(host);
+
+    host.h.send({ type: "measured", settled: true });
+    host.h.send({ type: "measured", settled: false });
+    expect(host.lands).toHaveLength(lands);
+    noStuckState(host);
+  });
+
+  it("supersedes the first target with the last intent, and a stale landed moves nothing", () => {
+    const h = harness(settleDefinition);
+    h.send({ type: "seek", index: 100, settled: false });
+    const first = h.machine.effects().at(-1);
+    h.send({ type: "seek", index: 200, settled: false });
+    const second = h.machine.effects().at(-1);
+
+    expect(first?.spec["final"]).toBe(false);
+    expect(second?.id).not.toBe(first?.id);
+    expect(h.cancelled()).toContain(first?.id);
+    expect(h.machine.getState().context.target).toBe(200);
+
+    // the first landing reports late: its handle is gone, so nothing is written and the target stays the last one
+    h.send({ type: "landed", id: first?.id as number, offset: 1 });
+    expect(h.machine.getState().context.target).toBe(200);
+    expect(h.machine.getState().context.requested).toBeUndefined();
+    expect(h.log.at(-1)?.cancelled).toBe(true);
+
+    // the live landing is the one that writes
+    h.send({ type: "landed", id: second?.id as number, offset: 2 });
+    expect(h.machine.getState().context.requested).toBe(2);
+    expect(h.machine.getState().state).toBe("landing");
+  });
+
+  it("drops a target a shrunk count no longer names, and keeps one it still does", () => {
+    const host = settleHost();
+    host.h.send({ type: "seek", index: 900, settled: false });
+
+    // the list still has the row: the protocol continues
+    host.h.send({ type: "count", total: 901 });
+    expect(host.phase()).toBe("landing");
+    expect(host.context().target).toBe(900);
+    noStuckState(host);
+
+    host.h.send({ type: "count", total: 900 });
+    expect(host.phase()).toBe("idle");
+    expect(host.context().target).toBeUndefined();
+
+    const lands = host.lands.length;
+    host.h.send({ type: "measured", settled: true });
+    expect(host.lands).toHaveLength(lands);
+    noStuckState(host);
+  });
+
+  it("lands exactly once when the jump is already exact, and drops the target", () => {
+    const host = settleHost();
+    host.h.send({ type: "seek", index: 10, settled: true });
+
+    expect(host.lands).toEqual([{ index: 10, final: true }]);
+    expect(host.phase()).toBe("idle");
+    expect(host.context().target).toBeUndefined();
+    expect(host.context().requested).toBeUndefined();
+    noStuckState(host);
+
+    host.h.send({ type: "measured", settled: true });
+    expect(host.lands).toHaveLength(1);
+  });
+
+  it("does not restart the protocol for a repeated seek of the same row", () => {
+    const host = settleHost();
+    host.h.send({ type: "seek", index: 900, settled: false });
+    expect(host.lands).toHaveLength(1);
+
+    host.h.send({ type: "seek", index: 900, settled: false });
+    expect(host.lands).toHaveLength(1);
+    expect(host.phase()).toBe("landing");
+    noStuckState(host);
+
+    host.h.send({ type: "measured", settled: true });
+    expect(host.lands).toHaveLength(2);
+    expect(host.lands.at(-1)).toEqual({ index: 900, final: true });
+    expect(host.phase()).toBe("idle");
   });
 });

@@ -1,3 +1,4 @@
+import { type Machine, createMachine, defineMachine } from "@cssints/machine";
 import { type Accessor, createMemo, createSignal } from "solid-js";
 
 // A DOM virtualiser: which items a scrolling element declares this frame. A list of thousands costs what the screen
@@ -16,18 +17,22 @@ import { type Accessor, createMemo, createSignal } from "solid-js";
 // worth of content. At an end there is no spacer at all — a zero-height box would still add its gap — so a host
 // renders a spacer only while its height is positive.
 //
-// **There is no APG pattern for virtualisation and no Quint machine**: the state is pixels, not items. The contract is
+// **There is no APG pattern for virtualisation and no Quint spec**: the state is pixels, not items. The contract is
 // WAI-ARIA — every declared item still announces its place in the whole set (`aria-setsize` / `aria-posinset`) — and
-// `test/virtual.browser.test.tsx` is the oracle.
+// `test/virtual.browser.test.tsx` is the oracle. The one protocol here, a measured jump, is `@cssints/machine`'s
+// (`settleDefinition`).
 //
 // **Focus is the host's.** A focused item that leaves the window unmounts, and no primitive can hold DOM focus on an
 // element that is not there. The host moves focus with its own keys and calls `scrollToIndex` first, so the item is
 // declared before focus lands; the ARIA indexes stay right while it is.
 //
-// **A measured jump is kept.** `scrollToIndex` can only add up the heights it has, and beyond the measured range those
-// are estimates: the first offset a long jump lands on is off by the estimate error. So the measured mode keeps the
-// target and lands again whenever the heights change, until every height is in; a scroll the host makes by hand cancels
-// it, because the reader has taken over.
+// **A measured jump is kept, by a machine.** `scrollToIndex` can only add up the heights it has, and beyond the measured
+// range those are estimates: the first offset a long jump lands on is off by the estimate error. So the measured mode
+// runs the `settle` machine (`settleDefinition`): a `land` effect writes `scrollTop` for the accepted target, and while a
+// height is still an estimate the machine lands again on every batch, exactly once more when every height is in. A
+// scroll the host makes by hand, a count that drops the row, and a second `scrollToIndex` end or supersede it. The
+// protocol was already here as two mutable variables (`pending`/`requested`); the machine names it, owns the staleness,
+// and its harness proves the races without a browser.
 //
 // ponytail: the measured window builds a prefix sum over every index on each call (O(n) a frame; n is a feed, not a
 // dataset). A persistent prefix sum maintained as heights arrive, or a binary search over a running total, is the
@@ -140,6 +145,136 @@ export interface Virtualizer {
   readonly attach: (element: HTMLElement) => () => void;
 }
 
+/** The settle machine's context: the row a measured jump waits for, and the offset its last landing wrote. */
+export interface SettleContext {
+  /** The row `scrollToIndex` accepted; `undefined` when no jump is pending. */
+  readonly target: number | undefined;
+  /** The `scrollTop` the last landing wrote, so the browser's echo is told from the reader's own scroll. */
+  readonly requested: number | undefined;
+}
+
+/** The settle machine's states: no jump pending, or a target landed and waiting for the heights. */
+export type SettlePhase = "idle" | "landing";
+
+/** The settle machine's events. */
+export type SettleEvent =
+  | { readonly type: "seek"; readonly index: number; readonly settled: boolean }
+  | { readonly type: "measured"; readonly settled: boolean }
+  | { readonly type: "landed"; readonly id: number; readonly offset: number }
+  | { readonly type: "manual" }
+  | { readonly type: "count"; readonly total: number }
+  | { readonly type: "reset" };
+
+/** The settle machine as the primitive holds it. */
+export type SettleMachine = Machine<SettleContext, SettlePhase, SettleEvent>;
+
+const settleInitial: SettleContext = { target: undefined, requested: undefined };
+
+// a type alias, not an interface: `PayloadMap` is an index signature, and only an alias is assignable to one
+type SettlePayloads = {
+  readonly seek: { readonly index: number; readonly settled: boolean };
+  readonly measured: { readonly settled: boolean };
+  readonly landed: { readonly id: number; readonly offset: number };
+  readonly manual: undefined;
+  readonly count: { readonly total: number };
+  readonly reset: undefined;
+};
+
+/**
+ * The protocol of a measured jump, as data. A `land` effect writes `scrollTop` for `context.target` and reports the
+ * offset it wrote; while a height is still an estimate the machine stays in `landing` and issues another `land` on
+ * every `measured` batch, and the batch that leaves nothing unknown is the one `final` landing, which drops the target.
+ * `seek` is the last intent (a second one supersedes the first, a repeated one does not restart it), `manual` is the
+ * reader taking the scroll, `count` drops a target the list no longer names, and `reset` is a new scrollport. A
+ * `landed` that carries a cancelled handle's id is dropped before any transition, so a stale landing moves nothing.
+ *
+ * The effect carries the row in the context, not in its spec: effect specs are static data, and the row belongs to the
+ * event. The host reports `settled`, because whether a height is still unknown is the layout's, not the machine's.
+ */
+export const settleDefinition = defineMachine<SettlePayloads>()({
+  start: "idle",
+  initial: settleInitial,
+  states: {
+    idle: {
+      on: {
+        seek: [
+          // every height is in: one landing is exact, and its completion drops the target
+          {
+            guard: (_context, event) => event.type === "seek" && event.settled,
+            target: "idle",
+            assign: (_context, event) => ({
+              target: event.type === "seek" ? event.index : undefined,
+              requested: undefined,
+            }),
+            effect: { type: "land", final: true },
+          },
+          // a height is still an estimate: land now, and land again as the heights arrive
+          {
+            target: "landing",
+            assign: (_context, event) => ({
+              target: event.type === "seek" ? event.index : undefined,
+              requested: undefined,
+            }),
+            effect: { type: "land", final: false },
+          },
+        ],
+        landed: { target: "idle", assign: { target: undefined, requested: undefined } },
+        reset: { target: "idle", assign: { target: undefined, requested: undefined } },
+      },
+    },
+    landing: {
+      on: {
+        seek: [
+          {
+            guard: (_context, event) => event.type === "seek" && event.settled,
+            target: "idle",
+            assign: (_context, event) => ({
+              target: event.type === "seek" ? event.index : undefined,
+              requested: undefined,
+            }),
+            effect: { type: "land", final: true },
+          },
+          // the same row again: the protocol for it is already running, so nothing is issued
+          {
+            guard: (context, event) => event.type === "seek" && context.target === event.index,
+            target: "landing",
+          },
+          {
+            target: "landing",
+            assign: (_context, event) => ({
+              target: event.type === "seek" ? event.index : undefined,
+              requested: undefined,
+            }),
+            effect: { type: "land", final: false },
+          },
+        ],
+        measured: [
+          {
+            guard: (_context, event) => event.type === "measured" && event.settled,
+            target: "idle",
+            effect: { type: "land", final: true },
+          },
+          { target: "landing", effect: { type: "land", final: false } },
+        ],
+        landed: {
+          target: "landing",
+          assign: (_context, event) => ({
+            requested: event.type === "landed" ? event.offset : undefined,
+          }),
+        },
+        manual: { target: "idle", assign: { target: undefined, requested: undefined } },
+        count: {
+          guard: (context, event) =>
+            event.type === "count" && context.target !== undefined && event.total <= context.target,
+          target: "idle",
+          assign: { target: undefined, requested: undefined },
+        },
+        reset: { target: "idle", assign: { target: undefined, requested: undefined } },
+      },
+    },
+  },
+});
+
 /** The resolved heights and their prefix sums, gaps included. */
 interface Layout {
   readonly heights: number[];
@@ -174,11 +309,11 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
   const elementOf = new Map<number, HTMLElement>();
   let observer: ResizeObserver | undefined;
   let cleanup: (() => void) | undefined;
-  // The measured mode's jump: the offset it lands on first is an estimate, so the target is kept and landed again as
-  // the heights arrive. `requested` is the `scrollTop` the last landing wrote, so a scroll that reports another can be
-  // told from the browser echoing our own.
-  let pending: number | undefined;
-  let requested: number | undefined;
+  // The measured mode's jump is the `settle` machine's (one per virtualizer): `landing` holds the target, and the
+  // offset its last landing wrote is the context's `requested`, so a scroll reporting another one is the reader's.
+  // `createSettle` is hoisted, and its listener runs the `jump`/`sync` below only once an event arrives.
+  let settle = createSettle();
+  let settleLive = true;
 
   const count = (): number => {
     const value = typeof options.count === "function" ? options.count() : options.count;
@@ -200,12 +335,11 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
         }
       }
     }
-    cached = total;
     // the row a pending jump is waiting for may be one the new count no longer names
-    if (pending !== undefined && pending >= total) {
-      pending = undefined;
-      requested = undefined;
+    if (total !== cached) {
+      settle.send({ type: "count", total });
     }
+    cached = total;
     for (const [element, index] of indexOf) {
       if (!element.isConnected) {
         observer?.unobserve(element);
@@ -339,14 +473,15 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     if (element === undefined) {
       return;
     }
-    // a jump wrote `requested`; a scroll that reports another offset is the host's own and ends the pending jump
+    // a landing wrote `requested`; a scroll that reports another offset is the reader's own and ends the pending jump
+    // (the state is the guard, so a scroll while idle sends nothing: no send per scroll frame)
+    const machine = settle.getState();
     if (
-      pending !== undefined &&
-      requested !== undefined &&
-      Math.abs(element.scrollTop - requested) > 1
+      machine.state === "landing" &&
+      machine.context.requested !== undefined &&
+      Math.abs(element.scrollTop - machine.context.requested) > 1
     ) {
-      pending = undefined;
-      requested = undefined;
+      settle.send({ type: "manual" });
     }
     setOffset(element.scrollTop);
     setViewport(element.clientHeight);
@@ -380,7 +515,10 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     }
     if (changed) {
       setVersion((value) => value + 1);
-      reapply();
+      // a batch of heights: land again while any is still an estimate, and once, finally, when none is
+      if (settle.getState().state === "landing") {
+        settle.send({ type: "measured", settled: !layout(count()).unknown });
+      }
     }
   };
 
@@ -415,8 +553,11 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     return { "aria-hidden": "true", style: { height: `${height}px` } };
   };
 
-  /** The least scroll that shows `target`, from the heights and the viewport known now. */
-  const jump = (element: HTMLElement, target: number): void => {
+  /**
+   * The least scroll that shows `target`, from the heights and the viewport known now; returns the offset it wrote (the
+   * browser clamps it), which the machine keeps as `requested`.
+   */
+  const jump = (element: HTMLElement, target: number): number => {
     const size = options.itemSize;
     const g = gap();
     let top: number;
@@ -435,30 +576,36 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     if (next !== at) {
       element.scrollTop = Math.max(0, next);
     }
-    requested = element.scrollTop;
-    sync();
+    return element.scrollTop;
   };
 
   /**
-   * Land on the pending jump again after a measurement. While some height is still
-   * an estimate the offset is too, so every batch lands again; once every height is
-   * in, the landing is exact and the target is dropped.
+   * The settle machine's host: run a `land` effect, report the offset it wrote, then read the port. The listener is
+   * synchronous, so `seek` and `measured` land before they return and a host's accessor sees the new window in the same
+   * flush — the order the inline jump had.
    */
-  const reapply = (): void => {
-    const element = port();
-    const total = count();
-    if (pending === undefined || element === undefined || total <= 0 || pending >= total) {
-      pending = undefined;
-      requested = undefined;
-      return;
-    }
-    const settled = !layout(total).unknown;
-    jump(element, pending);
-    if (settled) {
-      pending = undefined;
-      requested = undefined;
-    }
-  };
+  function createSettle(): SettleMachine {
+    const machine = createMachine(settleDefinition);
+    machine.onEffect((handle) => {
+      if (handle.type !== "land") {
+        return;
+      }
+      const element = port();
+      const target = machine.getState().context.target;
+      if (element === undefined || target === undefined) {
+        return;
+      }
+      // the count shrank before the memo said so: the row the jump waits for is gone
+      if (target >= count()) {
+        machine.send({ type: "reset" });
+        return;
+      }
+      const offset = jump(element, target);
+      machine.send({ type: "landed", id: handle.id, offset });
+      sync();
+    });
+    return machine;
+  }
 
   const scrollToIndex = (index: number): void => {
     const element = port();
@@ -468,16 +615,22 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
     }
     const target = clamp(Math.trunc(index), 0, total - 1);
     // the measured mode's first offset is an estimate only while a height is missing: otherwise it lands once, exactly
-    pending = measures() && layout(total).unknown ? target : undefined;
-    requested = undefined;
-    jump(element, target);
+    settle.send({
+      type: "seek",
+      index: target,
+      settled: !measures() || !layout(total).unknown,
+    });
   };
 
   const attach = (element: HTMLElement): (() => void) => {
     cleanup?.();
-    // a new port is a new scroll: a jump that was waiting on the old one no longer applies
-    pending = undefined;
-    requested = undefined;
+    // a new port is a new scroll: the target of the old one no longer applies, and a machine whose teardown ran starts
+    // over (a host may attach again after detaching)
+    if (!settleLive) {
+      settle = createSettle();
+      settleLive = true;
+    }
+    settle.send({ type: "reset" });
     setPort(element);
     sync();
     const listener = (): void => sync();
@@ -494,6 +647,9 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
       observer?.disconnect();
       observer = undefined;
       setPort(undefined);
+      // the protocol is the machine's: its teardown drops the target, the handles and the listeners
+      settle.destroy();
+      settleLive = false;
       cleanup = undefined;
     };
     cleanup = detach;
