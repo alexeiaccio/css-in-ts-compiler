@@ -2,6 +2,18 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.29.0 (2026-11-02)
+
+### Minor changes
+
+- `createPanZoom` gains `panBy(dx, dy)`: a relative pan through the same bounded `move` as a drag, for a host that moves the picture without a pointer (an inertial glide after a flick). The clamp and `onPanChange` apply exactly as they do to a pointer.
+- `@cssints/stories`: the CSF 3 loader of a cssints storybook, published — `entries()`, `storyOfId()`, `parseHash()` and the `Meta`/`Story`/`ArgTypes` types, with the ids Storybook builds. It was the loader of `apps/ui` and `apps/lab`; a native storybook is the third reader, so it is a package instead of two copies.
+
+### Patch changes
+
+- The virtualizer's measured jump is now `@cssints/machine`'s `settle` machine: one definition for the target, the
+  landings, the manual scroll, the count shrink and the stale completion. No behaviour change.
+
 ## 0.28.0 (2026-11-02)
 
 ### Minor changes

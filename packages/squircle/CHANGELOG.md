@@ -1,5 +1,11 @@
 # @cssints/squircle
 
+## 0.29.0
+
+### Patch Changes
+
+- cssints@0.29.0
+
 ## 0.28.0
 
 ### Patch Changes
