@@ -340,3 +340,13 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
 else
   echo "figure, in a browser: no zig, bun or Playwright chromium, skipped (bun browser/solid/build.ts && node browser/figure-check.mjs)"
 fi
+# The text half of a figure (solid/src/figure/text.ts, solid/figure.ts): the docs draw themselves. The two figures in
+# native/README.md are the renderer's output from their specs, and a figure edited by hand is cmp's — the file and the
+# line — before figure-text.test.ts's own comparison runs in native/test.sh. `--redraw` prints the document and writes
+# nothing, so this check cannot change what it checks.
+TEXTDOC="${TMPDIR:-/tmp}/cssints-figure-text-doc"
+mkdir -p "$TEXTDOC"
+bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
+cmp "$TEXTDOC/README.md" README.md || {
+  echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
+echo "figure text: native/README.md's two figures are the renderer's, byte for byte (cmp)"

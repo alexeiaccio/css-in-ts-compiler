@@ -62,6 +62,10 @@ sh solid/test.sh
 # number's text and the rows' order, the funnel's steps, `check`'s refusals with their sentences, and the same spec's
 # rows on the terminal — one spec, three targets
 bun solid/figure.test.ts
+# the text half of the same layout: every spec as characters within the width, each bar in cells against the terminal
+# host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
+# invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)
+bun solid/figure-text.test.ts
 # The Dialog page's two overlays as generated C — the modal's backdrop and panel (both Clay root floats) and the menu
 # floated off zoom-trigger: examples/dialog/gen.c dumps the three static frames through desktop/clay_dump.c, measured
 # with ThorVG as the Solid host measures (so a box is its exact number, no tolerance), and each is compared field by
