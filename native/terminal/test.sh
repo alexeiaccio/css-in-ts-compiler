@@ -122,6 +122,26 @@ grep -q "A dialog's presence, one open" "$FIG/solid-figure-state.txt" || {
   echo "FAIL: the state machine drew no title"; exit 1; }
 grep -q "| settled" "$FIG/solid-figure-state.txt" || { echo "FAIL: a transition's word is not in the cells"; exit 1; }
 identical "the state machine: the path's boxes and each transition's word between them"
+# the two row kinds: the tree's levels are rows of boxes with the | - + connectors between them, and a journey stage is
+# a bar row with the stage's doing and thinking under it
+$SOLID --page figure --spec solid/specs/tree.json --cols 80 --rows 13 --dump "$FIG/solid-figure-tree.txt"
+grep -q "The targets and their pages" "$FIG/solid-figure-tree.txt" || {
+  echo "FAIL: the tree drew no title"; exit 1; }
+grep -q "one UI, many targets" "$FIG/solid-figure-tree.txt" || { echo "FAIL: the tree drew no root"; exit 1; }
+grep -q -F -- '+---' "$FIG/solid-figure-tree.txt" || {
+  echo "FAIL: the tree's bracket is not in the cells"; exit 1; }
+for node in desktop terminal browser board sensors figure sky; do
+  grep -q "$node" "$FIG/solid-figure-tree.txt" || { echo "FAIL: the tree's row has no $node"; exit 1; }
+done
+identical "the tree: the root, the four targets in one row and their pages in the next, with | - + connectors"
+$SOLID --page figure --spec solid/specs/journey-map.json --cols 80 --rows 13 --dump "$FIG/solid-figure-journey.txt"
+grep -q "The first week, in three stages" "$FIG/solid-figure-journey.txt" || {
+  echo "FAIL: the journey map drew no title"; exit 1; }
+grep -q "+2 great" "$FIG/solid-figure-journey.txt" || { echo "FAIL: no stage's feeling is in the cells"; exit 1; }
+grep -q -- "-2 bad" "$FIG/solid-figure-journey.txt" || { echo "FAIL: the bad stage's word is not in the cells"; exit 1; }
+grep -q "Why did my dates break?" "$FIG/solid-figure-journey.txt" || {
+  echo "FAIL: a stage's thinking is not under its bar"; exit 1; }
+identical "the journey map: a bar a stage, its feeling's word, and the stage's doing and thinking under it"
 # a press on a figure is nothing: the page declares no control of its own
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --dump "$FIG/solid-figure-base.txt"
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 20,4 --dump "$FIG/solid-figure-click.txt"

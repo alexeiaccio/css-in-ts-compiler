@@ -150,16 +150,20 @@ async function main() {
       bad("?spec=funnel", `the focus line is ${JSON.stringify(focus?.text)}`);
     else ok("?spec=funnel", `the figure is the spec's ("${focus.text}"), not bars.json's`);
 
-    // (d) the two flow kinds are specs by name too: the page needs no code for them, only the file
+    // (d) the two flow kinds and the two row kinds are specs by name too: the page needs no code for them, only the file
     for (const [name, title] of [
       ["branch-flow", "One spec, from its file to a frame"],
       ["state-machine", "A dialog's presence, one open"],
+      ["tree", "The targets and their pages"],
+      ["journey-map", "The first week, in three stages"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);
       await page.waitForFunction(() => window.__page, null, { timeout: 20000 });
       await page.evaluate(() => window.__page.warm(2));
       const dump = JSON.parse(await page.evaluate(() => window.__page.dump()));
-      if (!dump.commands.some((c) => c.text === title)) bad(`?spec=${name}`, `the frame has no "${title}"`);
+      const errors = await page.evaluate(() => window.__page.errors());
+      if (errors) bad(`?spec=${name}`, `${errors} Clay errors`);
+      else if (!dump.commands.some((c) => c.text === title)) bad(`?spec=${name}`, `the frame has no "${title}"`);
       else ok(`?spec=${name}`, `the file's figure ("${title}"), no page code for the kind`);
     }
 

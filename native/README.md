@@ -3049,7 +3049,7 @@ on `--page figure`: it prints the same module's text before the grid opens, so t
 An invalid spec is refused with every sentence on stderr, exit 1, and **no figure on stdout**, as the desktop and the
 terminal refuse before a frame.
 
-**The docs draw themselves.** The two figures below are drawn by the renderer from their specs, and `test.sh` regenerates
+**The docs draw themselves.** The four figures below are drawn by the renderer from their specs, and `test.sh` regenerates
 them (`bun solid/figure.ts --redraw native/README.md`) and `cmp`s the result with this file, so a figure here cannot drift
 from its spec — the same discipline as the generated C and the goldens. The line above each fence names the spec, relative
 to this file.
@@ -3068,6 +3068,59 @@ desktop  ███████████████████████�
 terminal ██████▏                  0.077 ms
 browser  ██████▍                   0.08 ms
 native/README.md --bench: 0.30, 0.077, 0.08 ms
+```
+
+**The two row kinds.** `tree.json` is this repository's own map: the root `one UI, many targets`, the four targets under
+it (`desktop`, `terminal`, `browser`, `board`) and the pages each draws as their children; `journey-map.json` is
+glyph-kit's own "First week" example adapted, with its three stages and their feelings. A tree is drawn as a row of
+boxes a level — the root, its children, their children — with three connector rows between two levels: the parents' `|`
+stems, a `+---+` bracket over the children's centres, and the children's `|` stems. The kit draws a tree with
+`├── └── │`, which ThorVG's Roboto has not (there is no fallback), so ours is `| - +`, the same ASCII as the other
+kinds. A journey stage is `{ label, doing, thinking, feeling }`; `feeling` is the kit's -2 to 2 scale, and the row is a
+bar of `|feeling|/2` of its track, the number and its word (`-2 bad` … `+2 great`), the doing and the thinking on the
+rows under it. Neither needs any code in the page or in the text renderer: `Figure.tsx` declares `layout`'s items and
+`text.ts` prints them.
+
+Their refusals: the journey's range sentence is the kit's `within` check word for word ("Import has a feeling of 3,
+outside -2 to 2."); the tree's sentences ("A tree needs one root: …", `child names "missing" as its parent, …`) and the
+empty journey's are ours in its voice, because the kit's published scripts check neither kind's data. The stored frames
+are `solid/frames/figure-tree.png` (576x208) and `figure-journey-map.png` (480x208), the command goldens
+`solid/goldens/figure-tree.json` and `figure-journey-map.json`, the terminal's dumps are in `terminal/test.sh`, and the
+browser draws `?spec=tree` and `?spec=journey-map` from the same files.
+
+What our cells cannot carry of them: the kit's tree glyphs (above) and its three-level cap (ours draws every level, and a
+level wider than 80 cells makes the figure wider); the kit's journey map is a table with a doing row and a thinking row
+across the stages, where ours is a bar a stage with its notes under it, because a bar here is geometry (a box) and not a
+run of `░▒▓█`.
+
+<!-- glyph-kit: solid/specs/tree.json -->
+```text
+The targets and their pages
+                       [one UI, many targets]
+                                 |
+         +-----------------+-----+-------------+---------------+
+         |                 |                   |               |
+     [desktop]         [terminal]          [browser]        [board]
+         |                 |                   |               |
+    +----+----+        +---+---+          +----+----+          +
+    |         |        |       |          |         |          |
+[sensors]  [figure]  [sky]  [figure]  [sensors]  [figure]  [sensors]
+native/docs/map.md, Targets; native/solid/app/*.tsx, the pages
+```
+
+<!-- glyph-kit: solid/specs/journey-map.json -->
+```text
+The first week, in three stages
+Discover    ████      +1 good
+            Finds the tool through a colleague
+            "Will this replace my sheet?"
+Import      ████████   -2 bad
+            Uploads a CSV with 4,000 rows
+            "Why did my dates break?"
+First chart ████████ +2 great
+            Picks a template and edits labels
+            "Oh, that was quick"
+glyph-kit's journeyMap example (areas/flows.md), adapted
 ```
 
 **Not in the text half**: the kit's SAMPLE DATA stamp (our `source` line is always drawn, sample or not), its `@file` data,

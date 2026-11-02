@@ -314,7 +314,7 @@ fi
 bun solid/main.ts notify --warm 40 --expect solid/frames/notify-initial.png
 bun solid/notify.test.ts
 # The Figure page: one glyph-kit spec (solid/specs/*.json) declared as Clay's boxes and texts, so its numbers are geometry
-# — a bar is a track with a fill whose width is value/max. The two stored frames are the page at rest; figure.test.ts
+# — a bar is a track with a fill whose width is value/max. The stored frames are the page at rest; figure.test.ts
 # reads every bar's fill back from the frame, and a growing funnel is refused with its sentence before a frame (a
 # non-zero exit, and no PNG), as the other pages' bad input is.
 bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/frames/figure-bars.png
@@ -322,6 +322,9 @@ bun solid/main.ts figure --spec solid/specs/funnel.json --warm 30 --expect solid
 # the two flow kinds: a branch flow's decisions and a state machine's path, stored as the page at rest
 bun solid/main.ts figure --spec solid/specs/branch-flow.json --warm 30 --expect solid/frames/figure-branch-flow.png
 bun solid/main.ts figure --spec solid/specs/state-machine.json --warm 30 --expect solid/frames/figure-state-machine.png
+# the two row kinds: the tree's rows of boxes and the journey map's bars, words and notes, stored as the page at rest
+bun solid/main.ts figure --spec solid/specs/tree.json --warm 30 --expect solid/frames/figure-tree.png
+bun solid/main.ts figure --spec solid/specs/journey-map.json --warm 30 --expect solid/frames/figure-journey-map.png
 # a directory of the figure's own, so a suite in another checkout beside this one cannot share these files
 FIG="${TMPDIR:-/tmp}/cssints-figure"
 mkdir -p "$FIG"
@@ -332,7 +335,7 @@ fi
 grep -q "a funnel never grows" "$FIG/figure-invalid.log" || {
   echo "FAIL: the growing funnel's refusal does not say why"; exit 1; }
 if [ -f "$FIG/figure-invalid.png" ]; then echo "FAIL: an invalid spec wrote a frame"; exit 1; fi
-echo "figure: four stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
+echo "figure: six stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
 # ... and the same figure in the browser: browser/solid/figure.ts fetches the same spec file, and browser/figure-check.mjs
 # holds its commands to solid/goldens/figure.json (the desktop's frame, boxes within 4 px, Canvas2D's metrics) and a click
 # to nothing. Its own guard, so the frames above still run on a machine without zig or Chromium
@@ -343,7 +346,7 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
 else
   echo "figure, in a browser: no zig, bun or Playwright chromium, skipped (bun browser/solid/build.ts && node browser/figure-check.mjs)"
 fi
-# The text half of a figure (solid/src/figure/text.ts, solid/figure.ts): the docs draw themselves. The two figures in
+# The text half of a figure (solid/src/figure/text.ts, solid/figure.ts): the docs draw themselves. The four figures in
 # native/README.md are the renderer's output from their specs, and a figure edited by hand is cmp's — the file and the
 # line — before figure-text.test.ts's own comparison runs in native/test.sh. `--redraw` prints the document and writes
 # nothing, so this check cannot change what it checks.
@@ -352,4 +355,4 @@ mkdir -p "$TEXTDOC"
 bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
 cmp "$TEXTDOC/README.md" README.md || {
   echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
-echo "figure text: native/README.md's two figures are the renderer's, byte for byte (cmp)"
+echo "figure text: native/README.md's four figures are the renderer's, byte for byte (cmp)"

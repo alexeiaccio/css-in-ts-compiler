@@ -4,13 +4,19 @@
 // 360px and at 80 columns, and a fill's edge lands on a cell boundary rather than between two. That is why the layout
 // speaks cells and not pixels: a page that asked for pixels could not be re-cut by a factor without moving a bar.
 //
-// The six kinds (and no more than six here):
+// The eight kinds (and no more than eight here):
 //   barChart     one track a row, the fill value/max of it, at least one cell for a positive value and "+" past `max`
 //   branchFlow   a column of boxes with a decision's branch drawn to its right, connectors and their words as text
 //   compare      two tracks a row, each column scaled by its own maximum
 //   flow         one row of boxes joined by arrows
 //   funnel       one track a step, value/first of it, so a step's width is its share of the first
 //   stateMachine a path's boxes in a column, each transition's event between them, the states off the path below
+//   journeyMap   a stage a row: its label, a bar of |feeling|/2, the feeling's word, and its doing and thinking below
+//   tree         the root above its children's rows, then each level, with | - + connectors between them
+//
+// The last two are the ones that need a second row: a tree's level is several boxes on one line, and a journey stage
+// is a bar row with a note under it. `text.ts` reads the layout's items and has no kind in it, so both print there
+// without a change.
 //
 // Every drawn thing has an id: `fig-fill-<n>` and `fig-track-<n>` for a bar (the invariant test reads their boxes), the
 // text ids for the numbers and the labels, `fig-box-<n>` for a flow's boxes, `fig-state-<n>` for a path's states. A box
@@ -19,14 +25,18 @@
 // frame (a layout length is data, and a style is a literal): `cells * 8` for a box, `fill * 8` for a bar's fill.
 import {
   formatValue,
+  treeRoot,
   type BarChartSpec,
   type BranchFlowSpec,
   type CompareSpec,
   type FlowSpec,
   type FunnelSpec,
+  type JourneyMapSpec,
   type Spec,
   type StateMachineSpec,
   type Tone,
+  type TreeSpec,
+  type TreeNode,
 } from "./spec.ts";
 
 /** A cell: the terminal's unit, and what the pixel targets multiply by (terminal/cells.h). */
@@ -490,7 +500,187 @@ function stateMachine(spec: StateMachineSpec): Layout {
   return finish(spec, "stateMachine", widest, lines, [], labels, boxes, connectors);
 }
 
-/** The layout of a checked spec. The six kinds are this file's only branches. */
+/** The feeling's word, on the kit's scale: -2 bad, -1 poor, 0 neutral, 1 good, 2 great (a fraction rounds). */
+const FEELING_WORDS = ["bad", "poor", "neutral", "good", "great"] as const;
+const feelingWord = (feeling: number): string =>
+  FEELING_WORDS[Math.max(-2, Math.min(2, Math.round(feeling))) + 2] ?? "neutral";
+/** The number as the row prints it: "-2 bad", "0 neutral", "+2 great". */
+const feelingText = (feeling: number): string => `${feeling > 0 ? "+" : ""}${feeling} ${feelingWord(feeling)}`;
+/** A bad stage is the problem role, a good one the good role, and a flat one the ink. */
+const feelingPaint = (feeling: number): Paint => (feeling > 0 ? "good" : feeling < 0 ? "problem" : "ink");
+
+/**
+ * A journey map: a stage a row, its label, a bar of |feeling|/2 (the kit's -2 to 2 scale), the feeling's word, and the
+ * stage's doing and thinking under it. The bar is the magnitude, so a bad and a great stage are the same length and
+ * their word and their role tell them apart.
+ */
+function journeyMap(spec: JourneyMapSpec): Layout {
+  const focus = focusOf(spec);
+  const stages = spec.data;
+  const track = spec.options?.width ?? 8;
+  const labelWidth = longest(stages.map((stage) => stage.label)) + 1;
+  const texts = stages.map((stage) => feelingText(stage.feeling));
+  const textWidth = longest(texts) + 1;
+  const notes = stages.flatMap((stage) => [
+    stage.doing ? `${" ".repeat(labelWidth)}${stage.doing}` : "",
+    stage.thinking ? `${" ".repeat(labelWidth)}"${stage.thinking}"` : "",
+  ]);
+  const width = Math.max(labelWidth + track + textWidth, longest(notes));
+  const bars: Bar[] = [];
+  const labels: Layout["labels"] = [];
+  const lines: LayoutLine[] = [];
+  stages.forEach((stage, i) => {
+    const value = Math.abs(stage.feeling);
+    const fill = fillOf(value, 2, track);
+    const paint = feelingPaint(stage.feeling);
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-num-${i}`,
+      label: stage.label,
+      value,
+      max: 2,
+      fill,
+      track,
+      text: texts[i]!,
+    });
+    labels.push({ textId: `fig-label-${i}`, text: stage.label });
+    lines.push({
+      items: [
+        textItem(`fig-label-${i}`, stage.label, labelWidth, paintOf(focus, stage.label)),
+        { kind: "bar", id: `fig-track-${i}`, fillId: `fig-fill-${i}`, cells: track, fill, paint },
+        textItem(`fig-num-${i}`, texts[i]!, textWidth, paint),
+      ],
+    });
+    if (stage.doing) {
+      const note = `${" ".repeat(labelWidth)}${stage.doing}`;
+      lines.push({ items: [textItem(`fig-doing-${i}`, note, cells(note), "muted", "note")] });
+    }
+    if (stage.thinking) {
+      const note = `${" ".repeat(labelWidth)}"${stage.thinking}"`;
+      lines.push({ items: [textItem(`fig-thinking-${i}`, note, cells(note), "muted", "note")] });
+    }
+  });
+  return finish(spec, "journeyMap", width, lines, bars, labels);
+}
+
+/** A node of a tree, placed on the cell grid: its box's left cell and width, and its children's placements. */
+interface Placed {
+  node: TreeNode;
+  depth: number;
+  left: number;
+  width: number;
+  children: Placed[];
+  index: number;
+}
+
+/**
+ * A tree: the root above a row of its children, then each level under its parent, with three connector rows between
+ * two levels — the parents' stems, the bracket that joins the children's centres, and the children's stems down. Cells
+ * have no box drawing (Roboto has no `┌ ┬ ┐`; ThorVG has no fallback), so the bracket is `-` and `+` and the stems are
+ * `|`, the same ASCII the other kinds' connectors use.
+ */
+function tree(spec: TreeSpec): Layout {
+  const focus = focusOf(spec);
+  const root = treeRoot(spec.data);
+  if (!root) return finish(spec, "tree", 0, [], [], []);
+  const gap = 2;
+  const boxWidth = (node: TreeNode) => cells(node.name) + 2;
+  const subtreeWidth = (node: TreeNode): number => {
+    const kids = node.children ?? [];
+    if (!kids.length) return boxWidth(node);
+    return Math.max(boxWidth(node), kids.reduce((n, kid) => n + subtreeWidth(kid), 0) + gap * (kids.length - 1));
+  };
+  const place = (node: TreeNode, left: number, depth: number): Placed => {
+    const width = subtreeWidth(node);
+    const own = boxWidth(node);
+    const kids = node.children ?? [];
+    const kidsWidth = kids.reduce((n, kid) => n + subtreeWidth(kid), 0) + gap * Math.max(0, kids.length - 1);
+    let x = left + Math.floor((width - kidsWidth) / 2);
+    const children = kids.map((kid) => {
+      const placed = place(kid, x, depth + 1);
+      x += subtreeWidth(kid) + gap;
+      return placed;
+    });
+    return { node, depth, left: left + Math.floor((width - own) / 2), width: own, children, index: 0 };
+  };
+  const placed = place(root, 0, 0);
+  const gridWidth = subtreeWidth(root);
+  const levels: Placed[][] = [];
+  const collect = (node: Placed) => {
+    (levels[node.depth] ??= []).push(node);
+    for (const child of node.children) collect(child);
+  };
+  collect(placed);
+  let index = 0;
+  for (const level of levels) for (const node of level) node.index = index++;
+
+  const centerOf = (node: Placed) => node.left + Math.floor((node.width - 1) / 2);
+  const connectorLine = (id: string, chars: string[]): LayoutLine => {
+    const text = chars.join("");
+    return { items: [textItem(id, text, chars.length, "muted", "connector")] };
+  };
+  const lines: LayoutLine[] = [];
+  const boxes: BoxRecord[] = [];
+  const labels: Layout["labels"] = [];
+  const connectors: Connector[] = [];
+  levels.forEach((level, depth) => {
+    if (depth > 0) {
+      const parents = levels[depth - 1]!.filter((node) => node.children.length);
+      const stem: string[] = Array(gridWidth).fill(" ");
+      const bracket: string[] = Array(gridWidth).fill(" ");
+      const down: string[] = Array(gridWidth).fill(" ");
+      for (const parent of parents) {
+        stem[centerOf(parent)] = GLYPH.vertical;
+        const centres = parent.children.map(centerOf);
+        const from = Math.min(...centres);
+        const to = Math.max(...centres);
+        for (let x = from; x <= to; x++) bracket[x] = GLYPH.line;
+        for (const x of centres) bracket[x] = "+";
+        bracket[centerOf(parent)] = "+";
+        for (const x of centres) down[x] = GLYPH.vertical;
+        for (const child of parent.children)
+          connectors.push({
+            textId: `fig-tree-branch-${depth}`,
+            text: GLYPH.vertical,
+            from: parent.node.name,
+            to: child.node.name,
+            role: "transition",
+          });
+      }
+      lines.push(connectorLine(`fig-tree-stem-${depth}`, stem));
+      lines.push(connectorLine(`fig-tree-bracket-${depth}`, bracket));
+      lines.push(connectorLine(`fig-tree-down-${depth}`, down));
+    }
+    const items: Item[] = [];
+    let x = 0;
+    for (const node of level) {
+      if (node.left > x)
+        items.push({ kind: "space", id: `fig-tree-gap-${depth}-${x}`, cells: node.left - x, paint: "ink" });
+      items.push({
+        kind: "box",
+        id: `fig-node-${node.index}`,
+        textId: `fig-node-text-${node.index}`,
+        text: node.node.name,
+        cells: node.width,
+        paint: paintOf(focus, node.node.name),
+        role: node.depth === 0 ? "start" : "step",
+      });
+      boxes.push({
+        id: `fig-node-${node.index}`,
+        textId: `fig-node-text-${node.index}`,
+        text: node.node.name,
+        role: node.depth === 0 ? "start" : "step",
+      });
+      labels.push({ textId: `fig-node-text-${node.index}`, text: node.node.name });
+      x = node.left + node.width;
+    }
+    lines.push({ items });
+  });
+  return finish(spec, "tree", gridWidth, lines, [], labels, boxes, connectors);
+}
+
+/** The layout of a checked spec. The eight kinds are this file's only branches. */
 export function layout(spec: Spec): Layout {
   switch (spec.kind) {
     case "barChart":
@@ -505,6 +695,10 @@ export function layout(spec: Spec): Layout {
       return flow(spec);
     case "stateMachine":
       return stateMachine(spec);
+    case "journeyMap":
+      return journeyMap(spec);
+    case "tree":
+      return tree(spec);
   }
 }
 

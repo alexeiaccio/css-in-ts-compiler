@@ -15,7 +15,7 @@ import { layout, PADDING_X, PADDING_Y, type Bar } from "./src/figure/kinds.ts";
 import { parse, type Spec } from "./src/figure/spec.ts";
 import { cellWidth, fillBlocks, FOCUS_MARK, markdown, redrawDoc, render } from "./src/figure/text.ts";
 
-const SPECS = ["bars", "funnel", "compare", "pipeline"] as const;
+const SPECS = ["bars", "funnel", "compare", "pipeline", "tree", "journey-map"] as const;
 const WIDTH = 80;
 /** A text bar may sit half a cell from the terminal's whole cells: the pixel figure's own tolerance. */
 const HALF_CELL = 0.5;
@@ -212,6 +212,41 @@ for (const name of SPECS) {
 const focused = markdown(spec("funnel"));
 if (focused.includes(`${FOCUS_MARK} One in twenty visitors pays.`)) ok("--markdown: the ► line", `"${FOCUS_MARK} One in twenty visitors pays." is in the fence`);
 else bad("--markdown: the ► line", "no ► line with the focus's say");
+
+// (g) the two row kinds print as their layout: a tree's boxes, level by level in order, with a connector row between
+// them; a journey's feeling word and its notes under the bar. The text half reads items, so neither needed a branch here.
+{
+  const s = spec("tree");
+  const l = layout(s);
+  const rows = render(s, { width: WIDTH }).split("\n");
+  const wanted = l.lines.map((line) => line.items.flatMap((item) => (item.kind === "box" ? [item.text] : [])));
+  const got = rows.map((line) => [...line.matchAll(/\[([^\]]*)\]/g)].map((match) => match[1]!));
+  const same = wanted.length === got.length && wanted.every((names, i) => names.join("|") === got[i]!.join("|"));
+  const levels = wanted.filter((names) => names.length);
+  const connectors = l.lines.filter((line) => line.items.some((item) => item.role === "connector")).length;
+  if (same && levels.length >= 3 && connectors >= 3)
+    ok(
+      "tree: the rows",
+      `${l.boxes.length} boxes on ${levels.length} levels (${levels.map((names) => names.join(", ")).join(" / ")}), ` +
+        `${connectors} connector rows between them`,
+    );
+  else bad("tree: the rows", `${got.length} rows, ${levels.length} with boxes, ${connectors} connector rows; same ${same}`);
+}
+{
+  const s = spec("journey-map");
+  const l = layout(s);
+  const text = render(s, { width: WIDTH });
+  const words = l.bars.filter((bar) => text.includes(bar.text));
+  const notes = s.data.filter(
+    (stage) => (!stage.doing || text.includes(stage.doing)) && (!stage.thinking || text.includes(stage.thinking)),
+  );
+  if (words.length === l.bars.length && notes.length === s.data.length)
+    ok(
+      "journeyMap: the stages",
+      `${words.length} feelings (${l.bars.map((bar) => bar.text).join(", ")}) and ${notes.length} stages' doing and thinking`,
+    );
+  else bad("journeyMap: the stages", `${words.length} of ${l.bars.length} feelings, ${notes.length} of ${s.data.length} notes`);
+}
 
 // (e) the docs draw themselves: the redraw of native/README.md is byte-identical
 const doc = new URL("../README.md", import.meta.url).pathname;
