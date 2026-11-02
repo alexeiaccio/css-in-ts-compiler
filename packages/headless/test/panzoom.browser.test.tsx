@@ -178,6 +178,38 @@ describe("createPanZoom", () => {
     dispose();
   });
 
+  it("moves the pan from a host with panBy, through the same clamp", () => {
+    const changes: { x: number; y: number }[] = [];
+    const { api, part, dispose } = mount({ onPanChange: (offset) => changes.push(offset) });
+    const viewport = part("viewport");
+    api().setScale(2);
+    // an arrow measures the viewport and is the first move: the box is 300 x 200, so the clamp is (150, 100)
+    key(viewport, "ArrowRight");
+
+    api().panBy(50, 20);
+    expect(api().offset()).toEqual({ x: 74, y: 20 });
+    api().panBy(1000, 1000);
+    expect(api().offset()).toEqual({ x: 150, y: 100 });
+    api().panBy(-1000, -1000);
+    expect(api().offset()).toEqual({ x: -150, y: -100 });
+    // a move that the clamp swallows is not a change
+    const count = changes.length;
+    api().panBy(-10, 0);
+    expect(changes).toHaveLength(count);
+    expect(changes.at(-1)).toEqual({ x: -150, y: -100 });
+    dispose();
+  });
+
+  it("lets panBy leave the viewport with bounds: free", () => {
+    const { api, part, dispose } = mount({ bounds: "free" });
+    const viewport = part("viewport");
+    key(viewport, "ArrowRight");
+
+    api().panBy(-400, 260);
+    expect(api().offset()).toEqual({ x: -376, y: 260 });
+    dispose();
+  });
+
   it("keeps the image covering the viewport (no gap) when it is dragged", () => {
     const { api, part, dispose } = mount();
     const viewport = part("viewport");

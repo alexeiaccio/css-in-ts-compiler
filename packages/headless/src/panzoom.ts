@@ -75,6 +75,12 @@ export interface PanZoom {
   readonly zoomOut: () => void;
   /** A request; `origin` is the viewport point to keep still (its centre by default). */
   readonly setScale: (scale: number, origin?: PanZoomPoint) => void;
+  /**
+   * Move the pan by `dx` / `dy` CSS px from where it is now, through the same clamp as a drag, and
+   * report it with `onPanChange`. A host that moves the image without a pointer (an inertial glide
+   * after a flick, a minimap) uses this instead of writing the offset.
+   */
+  readonly panBy: (dx: number, dy: number) => void;
   readonly viewportProps: PanZoomViewportProps;
   readonly imageProps: PanZoomImageProps;
   readonly valueProps: PanZoomValueProps;
@@ -124,7 +130,8 @@ const axis = (value: number, limit: number): number => Math.min(limit, Math.max(
  * + `onScaleChange` to own the value. The offset has no controlled prop, so a
  * hosting page that rejects a scale request also gets the offset resolved for the
  * scale it refused — accept the request, or pass `bounds: "free"` and own the
- * pan elsewhere.
+ * pan elsewhere. A host that moves the pan without a pointer (an inertial glide,
+ * a minimap) calls `panBy`, which goes through the same bounded `move` as a drag.
  *
  * The host owns the box and the looks: size the viewport, put `touch-action:
  * none` on it if a touch drag should pan, centre the image
@@ -213,6 +220,13 @@ export const createPanZoom = (options: PanZoomOptions = {}): PanZoom => {
 
   const zoomIn = (): void => setScale(scale() + step);
   const zoomOut = (): void => setScale(scale() - step);
+
+  // A relative pan for a host with no pointer: the same bounded `move` the drag and the arrows take,
+  // so the clamp and `onPanChange` hold for every source of movement alike.
+  const panBy = (dx: number, dy: number): void => {
+    const current = offset();
+    move({ x: current.x + dx, y: current.y + dy });
+  };
 
   const reset = (): void => {
     requestScale(min);
@@ -344,6 +358,7 @@ export const createPanZoom = (options: PanZoomOptions = {}): PanZoom => {
     zoomIn,
     zoomOut,
     setScale,
+    panBy,
     value: () => `${Math.round(scale() * 100)}%`,
     viewportProps: {
       tabindex: 0,

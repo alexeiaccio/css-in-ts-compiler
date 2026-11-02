@@ -1792,6 +1792,7 @@ createPanZoom(options?: {
   zoomIn(): void;
   zoomOut(): void;
   setScale(scale: number, origin?: { x: number; y: number }): void; // origin in the viewport's own space, its centre by default
+  panBy(dx: number, dy: number): void; // a relative pan through the same clamp as a drag; a host's glide uses this
   viewportProps: {
     tabindex: 0;
     role: "group";
@@ -1814,7 +1815,7 @@ createPanZoom(options?: {
 
 Wheel zooms **only with `ctrl` / `meta`** held: the browser's pinch gesture arrives that way, and a bare wheel is left to the page so trackpad scrolling still works — a swallowed wheel is never acceptable. Arrows pan the image with the arrow (like a drag), and with `bounds: "clamp"` they are inert at `min`, where there is nothing to reveal. The clamp bounds the offset by half the viewport's scaled overflow, so the image is expected to fill the viewport at `min` (`width: 100%; height: 100%` / `object-fit: cover`); a letterboxed image cannot be held gap-free, and `bounds: "free"` lets it be dragged out of view instead. `valueProps` carries no `hidden` — a `hidden` live region is not announced — so the host hides it visually.
 
-The host owns the box and the look: the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan, `transform-origin: 50% 50%` (the default this maths assumes), and any transition on the transform. Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused. Not modelled: inertia, rotation, and pinching on platforms without `PointerEvent` (the browser's own pinch is the `ctrl+wheel` path).
+The host owns the box and the look: the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan, `transform-origin: 50% 50%` (the default this maths assumes), and any transition on the transform. Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused. A host that moves the pan without a pointer calls `panBy(dx, dy)`: it takes the same bounded `move` as a drag, so the clamp and `onPanChange` hold for an inertial glide and a drag alike (the kit's `Panzoom` glides after a flick this way). Not modelled: rotation, and pinching on platforms without `PointerEvent` (the browser's own pinch is the `ctrl+wheel` path).
 
 ### Headless: `createMenu` (`@cssints/headless`)
 

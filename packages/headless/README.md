@@ -112,9 +112,11 @@ const panzoom = createPanZoom({ min: 1, max: 4, step: 0.25 });
 
 **Gestures.** A drag pans, a second pointer pinches about its midpoint, a double click resets. Pinch is two pointers and the distance between them, not a platform gesture, so it works where `PointerEvent` does. **Wheel is zoom only with `ctrl` / `meta`** — the browser's own pinch arrives as `ctrl+wheel` — and a bare wheel is never `preventDefault`ed, so the page keeps scrolling; a swallowed wheel is the one thing that is never acceptable on a trackpad.
 
+**A host can pan without a pointer.** `panBy(dx, dy)` moves the offset by a relative step through the same bounded `move` a drag takes, and reports it with `onPanChange`; the kit's `Panzoom` runs the glide after a flick on it (the machine is the skin's, the momentum is not this primitive's).
+
 **`bounds: "clamp"`** (the default) bounds the offset by half the viewport's scaled overflow, so the image is expected to fill the viewport at `min` (`width: 100%; height: 100%` / `object-fit: cover`). A letterboxed image smaller than its viewport cannot be held gap-free: give it a viewport of its own or `bounds: "free"`.
 
-Left to the host: the box (the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan), the look (a transition on the transform, `transform-origin: 50% 50%` — the default this maths assumes), and the image itself. Not modelled: inertia, rotation, and a keyboard pan at scale `min` (the clamp means there is nothing to pan, so the arrows are inert).
+Left to the host: the box (the viewport's size and `overflow: hidden`, `touch-action: none` if a touch drag should pan), the look (a transition on the transform, `transform-origin: 50% 50%` — the default this maths assumes), and the image itself. Not modelled: rotation, and a keyboard pan at scale `min` (the clamp means there is nothing to pan, so the arrows are inert). Inertia is the host's too: `panBy` is the seam a glide after a flick drives, so the momentum's curve and its motion preference stay with the skin.
 
 ```tsx
 const panzoom = createPanZoom({
