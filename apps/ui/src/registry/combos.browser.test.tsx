@@ -31,6 +31,7 @@ import {
   Spinbuttons,
   Toolbars,
   Tooltips,
+  Workspace,
 } from "./combos.fixture.tsx";
 
 const mount = (view: () => JSX.Element): HTMLElement => {
@@ -48,6 +49,63 @@ const part = (root: HTMLElement, name: string): HTMLElement => {
     throw new Error(`no [data-part="${name}"] in ${root.innerHTML}`);
   }
   return found;
+};
+
+/** Two frames: a measured layout (a grid track, a bounding box) is settled after them. */
+const frame = (): Promise<void> =>
+  new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+/** One group's own parts: `:scope >` keeps a nested group's bars out. */
+const own = (group: HTMLElement, name: string): HTMLElement[] => [
+  ...group.querySelectorAll<HTMLElement>(`:scope > [data-part="${name}"]`),
+];
+
+const pointer = (
+  element: HTMLElement,
+  type: string,
+  position: { readonly x: number; readonly y: number },
+  buttons: number,
+): void => {
+  element.dispatchEvent(
+    new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      button: 0,
+      buttons,
+      clientX: position.x,
+      clientY: position.y,
+    }),
+  );
+};
+
+const centre = (element: HTMLElement): { readonly x: number; readonly y: number } => {
+  const box = element.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+};
+
+const value = (separator: HTMLElement): number => Number(separator.getAttribute("aria-valuenow"));
+
+const groups = (root: HTMLElement): HTMLElement[] => [
+  ...root.querySelectorAll<HTMLElement>('[data-part="resizable-panels"]'),
+];
+
+const press = async (target: HTMLElement, key: string): Promise<void> => {
+  target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+  flush();
+};
+
+const nested = (
+  root: HTMLElement,
+): { readonly outer: HTMLElement; readonly inner: HTMLElement } => {
+  const [outer, inner] = groups(root);
+  if (outer === undefined || inner === undefined) {
+    throw new Error(`expected two nested groups in ${root.innerHTML}`);
+  }
+  return { outer, inner };
 };
 
 describe("the kit composes", () => {
@@ -636,5 +694,131 @@ describe("the kit composes", () => {
     boxes[1]!.click();
     flush();
     expect(boxes.map((box) => box.getAttribute("aria-checked"))).toEqual(["true", "true", "false"]);
+  });
+
+  it("nests a group in a pane, with each group's bars, names and ids its own", async () => {
+    const root = mount(() => <Workspace />);
+    await frame();
+    const { outer, inner } = nested(root);
+
+    // the split is a pane of the workspace, not a sibling of it
+    expect(inner.parentElement?.getAttribute("data-part")).toBe("resizable-panels-pane");
+    expect(inner.parentElement?.parentElement).toBe(outer);
+    expect(outer.getAttribute("role")).toBe("group");
+    expect(outer.getAttribute("aria-label")).toBe("Workspace");
+    expect(inner.getAttribute("aria-label")).toBe("Editor and terminal");
+
+    expect(own(outer, "resizable-panels-separator")).toHaveLength(1);
+    expect(own(inner, "resizable-panels-separator")).toHaveLength(1);
+    const outerBar = own(outer, "resizable-panels-separator")[0];
+    const innerBar = own(inner, "resizable-panels-separator")[0];
+    if (outerBar === undefined || innerBar === undefined) {
+      throw new Error("a nested group has no separator");
+    }
+    expect(outerBar.getAttribute("aria-orientation")).toBe("vertical");
+    expect(innerBar.getAttribute("aria-orientation")).toBe("horizontal");
+
+    // each bar controls a pane of its own group, and no two panes share an id
+    expect(outerBar.getAttribute("aria-controls")).toBe(own(outer, "resizable-panels-pane")[0]?.id);
+    expect(innerBar.getAttribute("aria-controls")).toBe(own(inner, "resizable-panels-pane")[0]?.id);
+    const ids = [...root.querySelectorAll<HTMLElement>('[data-part="resizable-panels-pane"]')].map(
+      (pane) => pane.id,
+    );
+    expect(ids).toHaveLength(4);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("drags the inner bar against its own group's height, not the workspace's", async () => {
+    const root = mount(() => <Workspace />);
+    await frame();
+    const { outer, inner } = nested(root);
+    const bar = own(inner, "resizable-panels-separator")[0];
+    if (bar === undefined) {
+      throw new Error("the split has no separator");
+    }
+    const start = centre(bar);
+    const height = inner.getBoundingClientRect().height;
+    expect(height).toBeGreaterThan(0);
+
+    pointer(bar, "pointerdown", start, 1);
+    // a tenth of the group's own height is ten points of its own hundred, whatever the outer pane is
+    pointer(bar, "pointermove", { x: start.x, y: start.y + height * 0.1 }, 1);
+    pointer(bar, "pointerup", { x: start.x, y: start.y + height * 0.1 }, 0);
+    await frame();
+
+    expect(value(bar)).toBe(75);
+    expect(inner.style.gridTemplateRows).toBe("75fr auto 25fr");
+    expect(outer.style.gridTemplateColumns).toBe("24fr auto 76fr");
+  });
+
+  it("resizes the split when the sidebar bar moves, and the inner split keeps its percentage", async () => {
+    const root = mount(() => <Workspace />);
+    await frame();
+    const { outer, inner } = nested(root);
+    const bar = own(outer, "resizable-panels-separator")[0];
+    if (bar === undefined) {
+      throw new Error("the workspace has no separator");
+    }
+    const start = centre(bar);
+    const width = outer.getBoundingClientRect().width;
+
+    pointer(bar, "pointerdown", start, 1);
+    pointer(bar, "pointermove", { x: start.x + width * 0.1, y: start.y }, 1);
+    pointer(bar, "pointerup", { x: start.x + width * 0.1, y: start.y }, 0);
+    await frame();
+
+    expect(value(bar)).toBe(34);
+    expect(outer.style.gridTemplateColumns).toBe("34fr auto 66fr");
+    // a nested group's sizes are percentages of itself: it follows its pane, it does not re-solve
+    expect(inner.style.gridTemplateRows).toBe("65fr auto 35fr");
+  });
+
+  it("collapses the sidebar with Enter and restores it, leaving the split where it was", async () => {
+    const root = mount(() => <Workspace />);
+    await frame();
+    const { outer, inner } = nested(root);
+    const bar = own(outer, "resizable-panels-separator")[0];
+    if (bar === undefined) {
+      throw new Error("the workspace has no separator");
+    }
+    bar.focus();
+
+    await press(bar, "Enter");
+    expect(value(bar)).toBe(0);
+    expect(outer.style.gridTemplateColumns.startsWith("0fr auto")).toBe(true);
+    expect(inner.style.gridTemplateRows).toBe("65fr auto 35fr");
+
+    await press(bar, "Enter");
+    expect(value(bar)).toBe(24);
+    expect(outer.style.gridTemplateColumns).toBe("24fr auto 76fr");
+    expect(inner.style.gridTemplateRows).toBe("65fr auto 35fr");
+  });
+
+  it("gives each bar its own keyboard: arrows move only the group the bar belongs to", async () => {
+    const root = mount(() => <Workspace />);
+    await frame();
+    const { outer, inner } = nested(root);
+    const outerBar = own(outer, "resizable-panels-separator")[0];
+    const innerBar = own(inner, "resizable-panels-separator")[0];
+    if (outerBar === undefined || innerBar === undefined) {
+      throw new Error("a nested group has no separator");
+    }
+
+    innerBar.focus();
+    await press(innerBar, "ArrowDown");
+    expect(value(innerBar)).toBe(75);
+    expect(value(outerBar)).toBe(24);
+    expect(inner.style.gridTemplateRows).toBe("75fr auto 25fr");
+    expect(outer.style.gridTemplateColumns).toBe("24fr auto 76fr");
+
+    // the terminal's 20% minimum is the editor's 80% ceiling, not the workspace's
+    await press(innerBar, "ArrowDown");
+    await press(innerBar, "ArrowDown");
+    expect(value(innerBar)).toBe(80);
+
+    outerBar.focus();
+    await press(outerBar, "ArrowRight");
+    expect(value(outerBar)).toBe(34);
+    expect(inner.style.gridTemplateRows).toBe("80fr auto 20fr");
   });
 });

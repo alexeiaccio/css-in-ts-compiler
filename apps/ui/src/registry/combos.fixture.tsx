@@ -22,6 +22,7 @@ import {
   BreadcrumbList,
 } from "./breadcrumb/breadcrumb.tsx";
 import { Meter } from "./meter/meter.tsx";
+import { ResizablePanels } from "./resizable-panels/resizable-panels.tsx";
 import { ButtonGroup } from "./button-group/button-group.tsx";
 import { Card, CardBody, CardHeader } from "./card/card.tsx";
 import { Field, FieldControl, FieldLabel, FieldMessage } from "./field/field.tsx";
@@ -339,4 +340,48 @@ export const CheckboxGroups = (): JSX.Element => (
   <CheckboxGroup label="Notifications" values={["email", "push", "sms"]} defaultValue={["email"]}>
     {(channel) => channel}
   </CheckboxGroup>
+);
+
+/** react-resizable-panels' workspace: a sidebar beside a group that stacks the editor over the terminal. */
+export const Workspace = (): JSX.Element => (
+  <ResizablePanels
+    label="Workspace"
+    height="20rem"
+    panes={[
+      {
+        label: "Files",
+        min: 15,
+        collapsible: true,
+        defaultSize: 24,
+        children: (
+          <ul>
+            <li>index.ts</li>
+            <li>theme.ts</li>
+            <li>README.md</li>
+          </ul>
+        ),
+      },
+      {
+        label: "Editor and terminal",
+        // the workspace is the whole width when the sidebar collapses: the neighbour takes its space
+        max: 100,
+        children: (
+          <ResizablePanels
+            label="Editor and terminal"
+            orientation="horizontal"
+            height="100%"
+            panes={[
+              { label: "Editor", defaultSize: 65, children: <p>const answer = 42;</p> },
+              {
+                label: "Terminal",
+                min: 20,
+                defaultSize: 35,
+                children: <p>$ bun test</p>,
+              },
+            ]}
+          />
+        ),
+      },
+    ]}
+  />
 );
