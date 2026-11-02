@@ -2,6 +2,16 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.28.0 (2026-11-02)
+
+### Minor changes
+
+- `createTreegrid`: the Right arrow decides before the expansion is written, so a collapsed parent always expands and keeps the row focused instead of depending on read-after-write timing. Removed the options that were never read — `SwitchOptions.id`, `TooltipTriggerInput.label` and `PaginationLabels.gap` — and corrected the textbox's `onValueChange` note (it is the `input` event).
+
+### Patch changes
+
+- `createResizablePanels`: a pane's `defaultSize` is kept, and the panes that name none share the rest equally instead of the first pane taking the residual.
+
 ## 0.27.0 (2026-11-01)
 
 ### Minor changes

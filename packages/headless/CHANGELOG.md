@@ -1,5 +1,15 @@
 # @cssints/headless
 
+## 0.28.0
+
+### Minor Changes
+
+- f093414: `createTreegrid`: the Right arrow decides before the expansion is written, so a collapsed parent always expands and keeps the row focused instead of depending on read-after-write timing. Removed the options that were never read — `SwitchOptions.id`, `TooltipTriggerInput.label` and `PaginationLabels.gap` — and corrected the textbox's `onValueChange` note (it is the `input` event).
+
+### Patch Changes
+
+- 7776771: `createResizablePanels`: a pane's `defaultSize` is kept, and the panes that name none share the rest equally instead of the first pane taking the residual.
+
 ## 0.27.0
 
 ### Minor Changes
