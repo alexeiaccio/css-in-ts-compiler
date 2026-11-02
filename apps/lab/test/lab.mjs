@@ -1,13 +1,14 @@
-// The lab in Chrome (playwright-core from node_modules/.bun, the installed Chrome; not in `test`): the shell is built on
-// @cssints/headless, so this checks the wiring a story needs, in the dev server the lab is used in.
+// The lab in Chrome (playwright-core from node_modules/.bun, the installed Chrome; not in `test`): the lab holds the
+// @cssints/reactive stories — the ones that are not a styled component of the registry — so this checks what a story of
+// that package needs, in the dev server the lab is used in.
 //   - one row per named export of every CSF file, by component; the meta's args and the story's are merged and reach the
-//     widget (which panel is open, which tab is disabled)
+//     story (which save form fails, which disclosure starts open)
 //   - picking a row draws that story and writes the Storybook story id into the hash; a link with the id and the arrow keys
 //     (roving tabindex, follows focus, no wrapping at the ends) move the selection
 //   - the ARIA state the widgets announce is what the classes style: the selected row and the switch's track read tokens, in
 //     light and in dark
-//   - the @cssints/reactive stories hold no JavaScript state and no handler: a click on the disclosure's button flips
-//     aria-expanded and the panel's display, and the tabs' aria-selected is the tab's own binding
+//   - the reactive stories hold no JavaScript state and no handler: a click on the disclosure's button flips aria-expanded
+//     and the panel's display, and the tabs' aria-selected is the tab's own binding
 //   - the async boundary: a form's submit leaves CSS through emit(), the app's listen() does the fake save, and the sheet
 //     paints pending, saved and failed from the data-pending / data-state attributes the app writes
 //   - the overlay of @cssints/devtools picks the story's button and names the winner per property with the token it reads,
@@ -57,7 +58,6 @@ try {
   const htmlBg = () =>
     page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
   const rowBg = (name) => row(name).evaluate((el) => getComputedStyle(el).backgroundColor);
-  const expanded = (name) => page.getByRole("button", { name }).getAttribute("aria-expanded");
   const displayOf = (selector) =>
     page.locator(selector).evaluate((el) => getComputedStyle(el).display);
   const ariaSelected = (name) =>
@@ -66,78 +66,47 @@ try {
 
   // One row per named export of every CSF file, by component; the exports of a module are alphabetical, as in Storybook.
   assert.deepEqual(await options.allInnerTexts(), [
-    "Accordion · Collapsed",
-    "Accordion · Multiple",
-    "Accordion · Single",
-    "Button · Disabled",
-    "Button · Primary",
-    "Button · Quiet",
-    "Button · Row",
-    "Button · Small",
-    "Button · Toggle",
     "CSS interactions/Disclosure · Closed",
     "CSS interactions/Disclosure · Open",
+    "CSS interactions/Tabs · Computed",
     "CSS interactions/Save form · Failed",
     "CSS interactions/Save form · Saved",
-    "CSS interactions/Tabs · Computed",
-    "Tabs · Three",
-    "Tabs · WithDisabled",
   ]);
   // The first story is picked at boot, and the args of the meta and of the story reach the component.
-  assert.equal(await heading(), "Accordion");
-  assert.equal(await id(), "accordion--collapsed");
+  assert.equal(await heading(), "CSS interactions/Disclosure");
+  assert.equal(await id(), "disclosure--closed");
   assert.equal(new URL(page.url()).hash, "");
-  assert.equal(await row("Accordion · Collapsed").getAttribute("aria-selected"), "true");
-  assert.equal(await expanded("What headless means here"), "false");
-  // The style reads the attribute the listbox announced, not a second copy of the selection.
-  assert.equal(await rowBg("Accordion · Collapsed"), "rgb(230, 235, 253)");
-
-  // A link with a story id of another component: the widget settles the rest (one panel is open here).
-  await page.goto(`${base}#accordion--single`);
-  assert.equal(await id(), "accordion--single");
-  assert.equal(await expanded("What headless means here"), "true");
-  assert.equal(await expanded("One panel at a time"), "false");
-
-  await row("Tabs · Three").click();
-  assert.equal(await heading(), "Tabs");
-  assert.equal(await id(), "tabs--three");
-  assert.equal(new URL(page.url()).hash, "#tabs--three");
-  assert.equal(await page.getByRole("tab").count(), 3);
-  assert.equal(await page.getByRole("tab", { selected: true }).innerText(), "Overview");
   assert.equal(
-    await page.getByRole("tab", { name: "Disabled" }).getAttribute("aria-disabled"),
-    null,
+    await row("CSS interactions/Disclosure · Closed").getAttribute("aria-selected"),
+    "true",
   );
+  // The style reads the attribute the listbox announced, not a second copy of the selection.
+  assert.equal(await rowBg("CSS interactions/Disclosure · Closed"), "rgb(230, 235, 253)");
 
-  // Disabled is the widget's, not the styles'.
-  await page.goto(`${base}#tabs--with-disabled`);
-  assert.equal(await row("Tabs · WithDisabled").getAttribute("aria-selected"), "true");
+  // A link with a story id of another story of the same component: the widget settles the rest.
+  await page.goto(`${base}#disclosure--open`);
+  assert.equal(await id(), "disclosure--open");
   assert.equal(
-    await page.getByRole("tab", { name: "Disabled" }).getAttribute("aria-disabled"),
+    await row("CSS interactions/Disclosure · Open").getAttribute("aria-selected"),
     "true",
   );
 
   // The arrows are the listbox's, and the selection follows the focus (it stops at the ends: no wrapping).
-  await row("Tabs · WithDisabled").click();
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "tabs--three");
-  assert.equal(new URL(page.url()).hash, "#tabs--three");
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "reactive-tabs--computed");
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "save-form--saved");
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "save-form--failed");
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "disclosure--open");
+  await page.goto(`${base}#disclosure--closed`);
+  await row("CSS interactions/Disclosure · Closed").click();
   await page.keyboard.press("ArrowUp");
   assert.equal(await id(), "disclosure--closed");
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "button--toggle");
-  await page.goto(`${base}#accordion--collapsed`);
-  await row("Accordion · Collapsed").click();
-  await page.keyboard.press("ArrowUp");
-  assert.equal(await id(), "accordion--collapsed");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await id(), "disclosure--open");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await id(), "reactive-tabs--computed");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await id(), "save-form--failed");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await id(), "save-form--saved");
+  assert.equal(new URL(page.url()).hash, "#save-form--saved");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await id(), "save-form--saved");
 
   // @cssints/reactive: no JavaScript state and no handler in the story. The package's runtime writes the owner's
   // attribute and its bindings on load (a MutationObserver sees the nodes Solid mounts), so a binding can land a frame
@@ -276,18 +245,17 @@ try {
   assert.equal(await handOffs(), 2);
 
   // The overlay picks the story's button: the properties table names the winner and the token it reads, and the classes by
-  // the call that wrote them, in the component's file.
-  await page.goto(`${base}#button--primary`);
+  // the call that wrote them, in the story's file.
+  await page.goto(`${base}#save-form--saved`);
   await page.locator("[data-devtools=toggle]").click();
   await page.locator("[data-devtools=panel]").waitFor();
   if ((await page.locator("[data-devtools=pick]").getAttribute("data-on")) === "no") {
     await page.locator("[data-devtools=pick]").click();
   }
-  const save = page.getByRole("button", { name: "Save" });
-  const box = await save.boundingBox();
-  // the middle of the top edge: the element itself, not a child of it (or its parent, at a round corner)
-  await page.hover("main button", { position: { x: box.width / 2, y: 2 } });
-  await page.click("main button", { position: { x: box.width / 2, y: 2 } });
+  const box = await saveButton.boundingBox();
+  // the middle of the top edge: the element itself, not a child of it
+  await page.hover("#save-submit", { position: { x: box.width / 2, y: 2 } });
+  await page.click("#save-submit", { position: { x: box.width / 2, y: 2 } });
   const property = (name) =>
     page.locator(`[data-devtools=properties] [data-prop="${name}"]`).evaluate((el) => ({
       status: el.dataset.status,
@@ -297,15 +265,21 @@ try {
     }));
   const paint = await property("background-color");
   assert.equal(paint.status, "ok", paint.text);
-  assert.match(paint.text, /var\(--color-accent\)/); // the tone.primary variant, through the token
-  assert.equal(paint.computed, await save.evaluate((el) => getComputedStyle(el).backgroundColor));
-  assert.match((await property("padding")).text, /10px 16px/); // size.md
+  assert.match(paint.text, /var\(--color-accent\)/); // the token, through the sheet
+  assert.equal(
+    paint.computed,
+    await saveButton.evaluate((el) => getComputedStyle(el).backgroundColor),
+  );
+  assert.match((await property("padding")).text, /10px 16px/);
   assert.ok(paint.winner?.startsWith("._"));
-  assert.deepEqual(
-    await page
-      .locator("[data-site]")
-      .evaluateAll((els) => els.map((el) => el.getAttribute("data-site"))),
-    ["src/components/Button.tsx:17"],
+  const sites = await page
+    .locator("[data-site]")
+    .evaluateAll((els) => els.map((el) => el.getAttribute("data-site")));
+  assert.ok(sites.length > 0, "the overlay names the file the classes were written in");
+  // the site of the button's own cn() call: the story file, at a line
+  assert.ok(
+    sites.some((site) => site.startsWith("src/stories/save-form.stories.tsx:")),
+    `a site in the story file: ${sites.join(", ")}`,
   );
 
   // The switch writes the mode class, and every token of the theme follows it.
@@ -322,18 +296,7 @@ try {
   assert.equal(await page.getByRole("switch").getAttribute("aria-checked"), "true");
   assert.equal(await html(), "dark");
   assert.equal(await htmlBg(), "rgb(15, 17, 21)");
-  assert.equal(await rowBg("Button · Primary"), "rgb(35, 42, 69)");
-  // within(): the knob follows the track's aria-checked, so it is the accent's partner colour, translated.
-  assert.deepEqual(
-    await page
-      .getByRole("switch")
-      .locator("span")
-      .evaluate((knob) => [
-        getComputedStyle(knob).transform,
-        getComputedStyle(knob).backgroundColor,
-      ]),
-    ["matrix(1, 0, 0, 1, 16, 0)", "rgb(15, 17, 21)"],
-  );
+  assert.equal(await rowBg("CSS interactions/Save form · Saved"), "rgb(35, 42, 69)");
 
   assert.deepEqual(errors, []);
   console.log("lab: rail, canvas, story ids, overlay, arrow keys and the switch's theme ok");

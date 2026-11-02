@@ -1,69 +1,25 @@
-import type { JSX } from "@solidjs/web";
-import { createComponent } from "solid-js";
+// The lab's stories, loaded by the same CSF reader the docs site uses (`apps/ui/src/stories/load.ts`): the part that is
+// identical in both is not copied, and the chrome around the canvas is not shared — the lab's rail is headless widgets in the
+// lab's own theme, the site's is the kit's tabs.
+import { entries, type Entry, type Module } from "../../ui/src/stories/load.ts";
 
-import type { Meta, Story } from "./csf.ts";
+export type { Entry };
 
-/** One story as the rail shows it, with the id Storybook would give it. */
-export interface Entry {
-  /** `button--primary`: the file's name and the story's, kebab-cased, as Storybook builds a story id. */
-  readonly id: string;
-  readonly title: string;
-  readonly name: string;
-  readonly view: () => JSX.Element;
-}
-
-// Every story file is a CSF module in src/stories: add a file and it is in the rail, there is no registry to edit.
-type Module = { readonly default: Meta } & Record<string, unknown>;
-
+// Every story file is a CSF module in src/stories: add a file and it is in the rail, there is no registry to edit. The lab
+// has no registry, so the item is the file's own name.
 const modules = import.meta.glob<Module>("./stories/*.stories.tsx", { eager: true });
 
-const kebab = (text: string): string =>
-  text
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/[^a-zA-Z0-9]+/g, "-")
-    .toLowerCase();
+/** Every story of the lab, by id. */
+export const stories: ReadonlyArray<Entry> = entries(modules, (path) =>
+  path.slice("./stories/".length, -".stories.tsx".length),
+);
 
-const viewOf = (meta: Meta, story: Story): (() => JSX.Element) => {
-  const args = { ...meta.args, ...story.args };
-  if (story.render) {
-    const render = story.render;
-    return () => render(args);
-  }
-  const component = meta.component;
-  if (!component) {
-    throw new Error(`lab: a story of "${meta.title}" has no render and its meta has no component`);
-  }
-  return () => createComponent(component, args);
-};
-
-const found: Array<Entry> = [];
-for (const [path, module] of Object.entries(modules)) {
-  const meta = module.default;
-  const file = path.slice("./stories/".length, -".stories.tsx".length);
-  for (const [exported, value] of Object.entries(module)) {
-    if (exported === "default") {
-      continue;
-    }
-    const story = value as Story;
-    // The plugin adds exports of its own to a module it compiles (`__cssints_hoisted`, `$$moduleUrl`): a story is an object.
-    if (typeof value !== "object" || value === null) {
-      continue;
-    }
-    const name = story.name ?? exported;
-    found.push({
-      id: `${kebab(file)}--${kebab(name)}`,
-      title: meta.title,
-      name,
-      view: viewOf(meta, story),
-    });
-  }
-}
-
-// By component title. Within a file an ES module namespace lists its exports alphabetically, which is the order Storybook
-// gives the stories of a component by default.
-export const stories: ReadonlyArray<Entry> = found.sort((a, b) => a.title.localeCompare(b.title));
-
-// The entry at `index`, or the first: the rail is built from `stories`, so an index in it is an entry.
+/**
+ * The entry at `index`, or the first: the rail is built from `stories`, so an index in it is an entry.
+ *
+ * @param {number} index the story's place in the rail
+ * @returns {Entry} the story
+ */
 export const storyAt = (index: number): Entry => {
   const entry = stories[index] ?? stories[0];
   if (!entry) {
@@ -72,6 +28,11 @@ export const storyAt = (index: number): Entry => {
   return entry;
 };
 
-// The story an id names, or the first one.
+/**
+ * The story an id names, or the first one.
+ *
+ * @param {string} id the story id, `disclosure--closed`
+ * @returns {Entry} the story
+ */
 export const storyOfId = (id: string): Entry =>
   stories.find((entry) => entry.id === id) ?? storyAt(0);

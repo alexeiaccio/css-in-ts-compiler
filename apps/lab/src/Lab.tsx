@@ -174,7 +174,7 @@ export default function Lab() {
   return (
     <div class={root}>
       <aside class={rail}>
-        <p class={brand}>cssints lab</p>
+        <p class={brand}>cssints lab · reactive</p>
         <ul {...nav.listboxProps} class={list}>
           <For each={stories}>
             {(story, at) => (
@@ -200,7 +200,7 @@ export default function Lab() {
           <Show when={entry()} keyed>
             {(story) => {
               const View = story.view;
-              return <View />;
+              return <View {...story.args} />;
             }}
           </Show>
         </div>
