@@ -339,6 +339,22 @@ describe("Panzoom x the glide (machine)", () => {
     expect(h.machine.effects()).toEqual([]);
   });
 
+  it("a take-over (the reader's key) stops the glide where it is", () => {
+    const h = start();
+    h.send({ type: "fling", vx: 1.5, vy: 0 });
+    const live = h.machine.effects()[0];
+    if (live === undefined) {
+      throw new Error("the fling issued no glide");
+    }
+
+    h.send({ type: "stop" });
+    expect(h.machine.getState().state).toBe("rest");
+    expect(h.cancelled()).toEqual([live.id]);
+    // a frame the stopped loop still had in flight carries the dead id and is dropped
+    h.send({ type: "frame", id: live.id });
+    expect(h.log.at(-1)).toMatchObject({ event: "frame", to: undefined, cancelled: true });
+  });
+
   it("under reduced motion a flick lands at rest with no loop at all", () => {
     const h = harness(panzoomGlideDefinition(true));
     h.send({ type: "fling", vx: 10, vy: 10 });
