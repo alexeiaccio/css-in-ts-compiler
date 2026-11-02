@@ -10,7 +10,6 @@ export interface SwitchOptions {
   readonly readOnly?: boolean;
   /** The APG's optional Enter key also flips the switch. */
   readonly enterToggles?: boolean;
-  readonly id?: string;
   /**
    * A request to change the state, called when the intent differs from the
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.

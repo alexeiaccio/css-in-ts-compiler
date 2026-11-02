@@ -5,8 +5,6 @@ export interface PaginationLabels {
   readonly next?: string | undefined;
   /** The prefix of a page link's name; defaults to "Page". */
   readonly page?: string | undefined;
-  /** The gap between page runs; defaults to "More pages". */
-  readonly gap?: string | undefined;
   /** The live count; defaults to `Page <page> of <count>`. */
   readonly status?: ((page: number, count: number) => string) | undefined;
 }

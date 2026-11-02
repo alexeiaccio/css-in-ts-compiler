@@ -95,3 +95,39 @@ describe("createTreegrid x treegrid.qnt (differential walk)", () => {
     });
   }
 });
+
+describe("createTreegrid keyboard", () => {
+  const rowsFirst = {
+    nav: "rowsFirst" as const,
+    selection: "single" as const,
+    controlled: false,
+    accepts: false,
+    selected: [],
+  };
+
+  it("expands a collapsed parent row with ArrowRight and keeps the row focused", async () => {
+    const driver = partsDriver(mountTreegrid(rowsFirst));
+    await driver.perform({ event: "focus", target: "row:0" });
+    expect(driver.observer.attr("row:0", "aria-expanded")).toBe("false");
+
+    // APG treegrid: a collapsed row expands; the row keeps focus
+    await driver.perform({ event: "key", key: "ArrowRight", target: "row:0" });
+    expect(driver.observer.attr("row:0", "aria-expanded")).toBe("true");
+    expect(driver.observer.focus()).toBe("row:0");
+
+    // already expanded: the next press moves into the first cell
+    await driver.perform({ event: "key", key: "ArrowRight", target: "row:0" });
+    expect(driver.observer.focus()).toBe("cell:0,0");
+    driver.dispose?.();
+  });
+
+  it("collapses an expanded parent row with ArrowLeft and stays on the row", async () => {
+    const driver = partsDriver(mountTreegrid(rowsFirst));
+    await driver.perform({ event: "focus", target: "row:0" });
+    await driver.perform({ event: "key", key: "ArrowRight", target: "row:0" });
+    await driver.perform({ event: "key", key: "ArrowLeft", target: "row:0" });
+    expect(driver.observer.attr("row:0", "aria-expanded")).toBe("false");
+    expect(driver.observer.focus()).toBe("row:0");
+    driver.dispose?.();
+  });
+});

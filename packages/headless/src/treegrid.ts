@@ -342,14 +342,22 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
 
   // --- keyboard (spec actions) ----------------------------------------------
   const right = (): void => {
-    if (inGrid() && kind() === "row" && canExpand(focusedRow())) {
-      toggleExpansion(focusedRow());
+    if (!inGrid()) {
+      return;
     }
-    if (inGrid() && kind() === "row" && !canExpand(focusedRow())) {
+    if (kind() === "row") {
+      // APG: a collapsed row expands and keeps the row focused; an expanded row
+      // moves into its first cell. Decide once — the expansion is written but not
+      // yet observable in this tick (Solid 2 defers the update), so re-reading it
+      // after the toggle would take the cell path too.
+      if (canExpand(focusedRow())) {
+        toggleExpansion(focusedRow());
+        return;
+      }
       setKind("cell");
-    } else if (inGrid() && kind() === "cell") {
-      setFocusedCol(minI(focusedCol() + 1, totalCols - 1));
+      return;
     }
+    setFocusedCol(minI(focusedCol() + 1, totalCols - 1));
   };
 
   const left = (): void => {

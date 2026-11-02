@@ -3061,8 +3061,7 @@ at each end, and **one `gap` entry per elided run**, keyed by the run's start so
 It is recomputed on every read, so a host may change `page` and `pageCount` without rebuilding;
 `current()` clamps the page it was given, and the page list and both ends are built from the
 clamped value. A gap entry has no handler and no role: the host renders its own marker, hidden from
-assistive technology (the count is already in the status line), and `labels.gap` is declared but
-never read.
+assistive technology (the count is already in the status line).
 
 The ends are `previousProps` and `nextProps`, getters that resolve their page from the current one
 at read time, so a host that spreads the object onto an anchor once still steps past the first move;
@@ -3339,8 +3338,9 @@ createTreegrid(options?: {
 - **Movement** is the same in all three. Up / Down move over the visible rows, staying in the
   column in cell mode; Home / End are the first / last cell in cell mode and the first / last
   visible row in row mode; Ctrl+Home / Ctrl+End are the first / last visible row, keeping the
-  column. Right on a row expands a collapsed parent and then enters its first cell, so a row's
-  Right always ends in the cell; Left on an expanded parent collapses it and keeps the row.
+  column. Right on a collapsed parent expands it and keeps the row; on an expanded row it
+  enters the row's first cell, and the next press moves right. Left on an expanded parent
+  collapses it and keeps the row.
 - **Selection** is per row. `"single"` follows the focus, and `aria-selected` is on the selected
   row only (absent elsewhere); a cell click selects its row. `"multi"` sets
   `aria-multiselectable`, writes `aria-selected` true or false on every row, and changes only on

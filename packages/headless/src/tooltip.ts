@@ -6,7 +6,6 @@ export interface TooltipTriggerInput {
   readonly id?: string;
   /** Id of this trigger's tooltip element (needed for `aria-describedby`). */
   readonly tooltipId?: string;
-  readonly label?: string;
 }
 
 export interface TooltipGroupOptions {

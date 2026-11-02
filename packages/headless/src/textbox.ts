@@ -41,7 +41,7 @@ export interface TextInputOptions extends FieldOptions {
   readonly name?: string | undefined;
   readonly dir?: "ltr" | "rtl" | "auto" | undefined;
   readonly placeholder?: string | undefined;
-  /** Change and input both land here; the host decides what a keystroke means. */
+  /** The `input` event's value; the host decides what a keystroke means. */
   readonly onValueChange?: ((value: string) => void) | undefined;
 }
 
