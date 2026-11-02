@@ -4,7 +4,7 @@
   "commit": false,
   "fixed": [
     [
-      "cssints",
+      "@cssints/apg-specs",
       "@cssints/balance",
       "@cssints/color-names",
       "@cssints/css-grammar",
@@ -13,6 +13,7 @@
       "@cssints/fonts",
       "@cssints/gradient",
       "@cssints/gradient-2d",
+      "@cssints/headless",
       "@cssints/icons",
       "@cssints/layout",
       "@cssints/machine",
@@ -28,11 +29,11 @@
       "@cssints/rybitten",
       "@cssints/skeleton",
       "@cssints/squircle",
+      "@cssints/stories",
       "@cssints/stuck",
       "@cssints/tokens",
       "@cssints/tui",
-      "@cssints/headless",
-      "@cssints/apg-specs"
+      "cssints"
     ]
   ],
   "linked": [],
