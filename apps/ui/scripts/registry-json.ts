@@ -57,7 +57,7 @@ interface Starter {
 
 const STARTERS: ReadonlyArray<Starter> = [
   {
-    tested: false,
+    tested: true,
     name: "card",
     title: "Card",
     description: "A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`",
@@ -65,7 +65,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "field",
-    tested: false,
+    tested: true,
     with: ["input/input.tsx", "render.tsx", "theme.ts", "tokens.ts"],
     title: "Field",
     description:
@@ -74,8 +74,8 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "dialog",
-    tested: false,
-    with: ["overlay-motion.ts", "render.tsx", "theme.ts", "tokens.ts"],
+    tested: true,
+    with: ["input/input.tsx", "overlay-motion.ts", "render.tsx", "theme.ts", "tokens.ts"],
     deps: ["@cssints/machine"],
     title: "Dialog",
     description:
@@ -141,7 +141,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "input",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Input",
     description: "A text field on the neutral theme, and the control `Field` puts in by default",
@@ -151,12 +151,13 @@ const STARTERS: ReadonlyArray<Starter> = [
     title: "Toolbar",
     description:
       "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
+    also: ["@cssints/button"],
   },
   {
     name: "button-group",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Button group",
     description:
@@ -190,7 +191,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "button",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Button",
     description:
@@ -226,7 +227,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "separator",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Separator",
     description:
@@ -234,7 +235,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "badge",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Badge",
     description:
@@ -242,14 +243,14 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "skeleton",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Skeleton",
     description: "A placeholder box that pulses only when the reader has not asked for less motion",
   },
   {
     name: "alert",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Alert",
     description: "APG alert: a title and a body in a live region, with an `invalid` tone",
@@ -265,14 +266,14 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "meter",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Meter",
     description: "APG meter: a track and the fill of the value, on `createMeter`",
   },
   {
     name: "breadcrumb",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Breadcrumb",
     description:
@@ -280,7 +281,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "treeview",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Tree view",
     description: "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
@@ -319,7 +320,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "menu",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Menu",
     description:
@@ -336,7 +337,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "tooltip",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Tooltip",
     description:
@@ -363,7 +364,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "select",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Select",
     description:
@@ -381,7 +382,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "textarea",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Textarea",
     description:
@@ -389,7 +390,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "slider",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Slider",
     description:
@@ -405,7 +406,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "spinbutton",
-    tested: false,
+    tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Spinbutton",
     description:
@@ -413,7 +414,7 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     name: "checkbox-group",
-    tested: false,
+    tested: true,
     with: ["checkbox/checkbox.tsx", "render.tsx", "theme.ts", "tokens.ts"],
     title: "Checkbox group",
     description:
