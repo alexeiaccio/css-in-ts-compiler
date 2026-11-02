@@ -4,10 +4,10 @@ The registry items, one page each: a live preview on the neutral theme, the sour
 picker and the preflight result the published copy passed. `src/docs/catalog.ts` reads the registry build (`r/*.json`), so
 a page cannot describe an item that was not generated.
 
-The preview is the item's CSF story where the item has one (four so far: button, switch, tabs, accordion); the rest still
-show the hand-written demo in `src/docs/demos.tsx`. `src/registry/<name>/<name>.stories.tsx` is a Storybook CSF 3 file — a
+The preview is the item's CSF story. `src/registry/<name>/<name>.stories.tsx` is a Storybook CSF 3 file — a
 default `meta` (title, `component`, `args`, `argTypes`) and one object per named export — so a story file moves into a real
-Storybook unchanged. `@cssints/stories` turns the modules into entries with Storybook's ids (`button--accent`), and the
+Storybook unchanged; an item without a story file says "No story yet" (28 of the 55 do). `@cssints/stories` turns the
+modules into entries with Storybook's ids (`button--accent`), and the
 id is the hash, so a story is a link. A story's `argTypes` declares the controls under the canvas
 (`src/stories/controls.tsx`, on the kit's own Field, Select, Switch and Slider); a story that declares none shows no panel.
 The shell is the kit too: the story switcher is `Tabs`, the theme switch a `Switch` writing the theme's `data-mode` scope,

@@ -116,6 +116,27 @@ try {
   }
   assert.equal(await preview.getByRole("tab", { name: "Members" }).count(), 1);
 
+  // The rest of the registry reads its own story files too: a composed one, the two the primitive drives, and one whose
+  // props are a set.
+  await page.goto(`${base}#card`);
+  assert.equal(await preview.getByText("Monthly report").count(), 1);
+  // a story's id, not the item's: `#treeview` is the first story alphabetically, `Collapsed`
+  await page.goto(`${base}#treeview--files`);
+  assert.equal(await preview.getByRole("treeitem").count(), 6);
+  await page.goto(`${base}#select`);
+  await preview.getByRole("combobox", { name: "Fruit" }).click();
+  assert.equal(await page.getByRole("option").count(), 4);
+  await page.keyboard.press("Escape");
+  await page.goto(`${base}#checkbox-group`);
+  assert.equal(await preview.getByRole("checkbox").count(), 4); // the parent box and the three channels
+  await page.goto(`${base}#disclosure`);
+  assert.equal(
+    await preview
+      .getByRole("button", { name: "Shipping, returns and refunds" })
+      .getAttribute("aria-expanded"),
+    "false",
+  );
+
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });
   const pageBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);

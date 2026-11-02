@@ -6,7 +6,6 @@
 // tint group, the story tabs, the controls and the copy buttons are the components on the pages they stand beside.
 import { componentFile, items, type CatalogItem } from "./catalog.ts";
 import { For, Show, createEffect, createSignal, onCleanup } from "solid-js";
-import { demos } from "./demos.tsx";
 import { GUIDES, type Guide } from "./guides.tsx";
 import { Button } from "../registry/button/button.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
@@ -285,14 +284,7 @@ export const Docs = (): JSX.Element => {
               </Show>
 
               <section class="docs__preview">
-                <Show
-                  when={stories().length > 0}
-                  fallback={
-                    <Show when={demos[current().name]} keyed fallback={<p>No demo yet.</p>}>
-                      {(Example) => <Example />}
-                    </Show>
-                  }
-                >
+                <Show when={stories().length > 0} fallback={<p>No story yet.</p>}>
                   <Show
                     when={stories().length > 1}
                     fallback={

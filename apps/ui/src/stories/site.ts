@@ -4,7 +4,9 @@ import type { JSX } from "@solidjs/web";
 // Every story file sits beside its component, in the registry item's directory: add one and it is on the item's page,
 // there is no registry to edit (the item's own `r/<name>.json` is built from the files the registry-json script lists, and
 // a story is not one of them).
-const modules = import.meta.glob<Module<JSX.Element>>("../registry/*/*.stories.tsx", { eager: true });
+const modules = import.meta.glob<Module<JSX.Element>>("../registry/*/*.stories.tsx", {
+  eager: true,
+});
 
 /** One story of the site: the loader's entry, drawn as DOM. */
 export type SiteEntry = Entry<JSX.Element>;
