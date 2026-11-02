@@ -3689,3 +3689,23 @@ runs off the main thread is not a transition. Nested modals animate independentl
 `closed`, so the scroll lock is the primitive's count, not the machine's. The dialog's own kit still has no cleanup for
 the scroll lock when a host unmounts an open dialog (the drawer's primitive does), which the animation makes easier to
 hit but does not cause.
+
+## The workspace: nested panel groups (apps/ui, 2026-11-02)
+
+react-resizable-panels' workspace example is a sidebar beside a group that stacks the editor over the terminal — the case
+the panel-group entry left open ("nested groups"). **The nesting needed no engine change**: the drag measures the
+separator's `parentElement`, which for an inner group is that group and not the workspace, so a pointer delta is a share
+of the group the bar belongs to. The kit's `ResizablePanels` nests as a pane's content, and the composition contract
+(`apps/ui/src/registry/combos.fixture.tsx`, `Workspace`) proves in Chromium that a tenth of the inner group's height moves
+the inner split by ten points while the outer layout stays put, that moving the outer bar resizes the inner group without
+re-solving its percentages (`65fr auto 35fr` follows its pane), that each group keeps its own ids, `aria-controls`,
+orientation and keyboard, and that collapsing the sidebar with Enter and restoring it leaves the split where it was.
+
+**One engine bug found by the composition.** A `defaultSize` on one pane and none on the others did not mean "24% and
+share the rest": the unset panes each took `100 / count`, and `fit()` pushed the residual into the first pane, so the
+explicit 24 came back as 50. The start is now the sizes the panes name plus an equal share of what is left
+(`createResizablePanels`'s `defaults()`), with a headless test for both cases and a patch changeset; all panes naming a
+size, or none naming one, behave as before.
+
+**Left.** Sizes stay percentages (as upstream), a persisted layout has no version or namespace (the key is the host's),
+and `native/headless` still has no panel-group widget.
