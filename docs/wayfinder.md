@@ -4056,3 +4056,25 @@ back — a spring would need a per-frame solver and a target, which is a differe
 current scale, so a glide at 4× covers the same pixels as one at 2× — the offset is in CSS px, which is what the primitive
 clamps. A wheel zoom during a glide is not a take-over: the glide keeps panning at the new scale; only a pointer, a key and
 a double click stop it, because those are the cases the protocol names today.
+
+## Every demo is a story, and the loader is a package (2026-11-02)
+
+Asked by the user ("run the 30", then "can the storybook be for native too? then the package would be worth it"). **The
+site's 27 hand-written demos became 27 CSF story files** in `src/registry/<name>/<name>.stories.tsx`, and
+`src/docs/demos.tsx` is gone: a page draws a story, the story switcher is `Tabs`, and an item with no story file says "No
+story yet" instead of falling back to a second source. Splitting each demo into stories is what makes the variants legible
+on the page — the treeview's collapsed and expanded files, the checkbox's mixed state, the alert's dismissible form — and
+what gives each one a link. The 28 registry items that never had a demo (carousel, drawer, combobox, timeline, …) still
+have none: their pages are the source and the add command until a story is written.
+
+**`@cssints/stories` is a package now.** It was `apps/ui/src/stories/load.ts` plus `csf.ts`, and the lab imported it by
+relative path; a native storybook is the third reader, which is the criterion the previous entry named. The move is one
+file (`src/index.ts`), and the one design question it forced is the renderer: `Node` is a type parameter —
+`entries<JSX.Element>()` on the web, `entries<NativeNode>()` in `cssints-native` — so the loader never names a DOM type and
+`createComponent` stays the only import from `solid-js` (a peer). The panel and the chrome stay the app's: the site's is
+the kit's Field/Select/Switch/Slider, the lab's is headless widgets in its own theme, a native window will be Clay's.
+**Evidence:** `packages/stories/test/stories.mjs` on the loader alone (ids, the arg merge, the exports the plugin adds and
+the loader skips, the order, a component view through `createComponent`, a render view, the hash split, the error a
+component-less file throws); `apps/ui/test/site.mjs` also draws a composed story (card), the treeview's six rows, the
+select's four options and the checkbox group's parent box; `apps/lab/test/lab.mjs` is unchanged and green. **Left:** the
+28 items without a story, and the native storybook itself (next).

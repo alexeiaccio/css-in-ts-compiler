@@ -136,6 +136,8 @@ const plainCode = [
   // (no Effect runtime there) and called through Effect.sync by the dev server.
   "packages/cssints/src/devtools-link.ts",
   "packages/devtools/src/opencode.ts",
+  // @cssints/stories: the CSF loader of a storybook, a dev tool with no Effect runtime (it reads the modules a bundler globbed).
+  "packages/stories/src/**",
   // @cssints/headless: plain Solid signals and attribute objects, in the browser (no Effect runtime in a widget); @cssints/apg-specs:
   // the Quint specs' bridges, generator scripts and spec-only tests (the test oracle of the widgets, not published).
   "packages/headless/**",

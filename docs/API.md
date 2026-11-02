@@ -3931,6 +3931,54 @@ createPlayer(options: {
   slider does not mirror its arrows under RTL — a time axis does not flip, a deliberate divergence
   from `slider.qnt`.
 
+### Stories: `@cssints/stories` (decided 2026-11-02)
+
+The CSF 3 loader of a storybook, with no DOM, no styles and no chrome: the modules an app globs in, the entries with the ids
+Storybook builds out, and the controls a story declares. It serves the starters' site, the reactive lab and (the reason it is
+a package rather than two copies) a native window.
+
+```ts skip
+// src/registry/button/button.stories.tsx — a Storybook CSF 3 file, unchanged
+import type { Meta, Story } from "@cssints/stories";
+import { Button, type ButtonProps } from "./button.tsx";
+
+const meta = {
+  title: "Button",
+  component: Button,
+  args: { children: "Save", tone: "neutral" },
+  argTypes: {
+    tone: { type: "select", options: ["neutral", "accent", "quiet"] },
+    disabled: { type: "boolean" },
+  },
+} satisfies Meta<ButtonProps>;
+export default meta;
+
+export const Default: Story<ButtonProps> = {};
+export const Publish: Story<ButtonProps> = { args: { tone: "accent", children: "Publish" } };
+```
+
+```ts skip
+import { entries, parseHash, storyOfId, type Module } from "@cssints/stories";
+
+const modules = import.meta.glob<Module>("../registry/*/*.stories.tsx", { eager: true });
+const stories = entries(modules); // [{ id: "button--default", item: "button", view, args, argTypes, … }]
+```
+
+- **`entries(modules, itemOf?)`** returns `Entry[]`: `id` (`button--publish`, the item's name and the story's,
+  kebab-cased), `item` (the story file's directory, or whatever `itemOf` reads from the path), `title`, `name`, `args` (the
+  meta's with the story's over them), `argTypes`, and `view(args)` — the meta's `component` called through
+  `createComponent`, or the story's own `render`. Entries are sorted by item and then by id; within a file the module
+  namespace's order is what Storybook lists.
+- **`storyOfId(stories, id)`** finds one entry, and **`parseHash(hash)`** splits `#button--publish` into the page
+  (`button`) and the story, so an app's hash is a link to a story.
+- **`argTypes`** is the controls model: `{ type: "boolean" }`, `{ type: "select", options }`, `{ type: "text" }`,
+  `{ type: "number", min?, max?, step? }`, `{ type: "range", min, max, step? }`. Storybook infers a control from a
+  component's props; a Solid component carries none at run time, so a story declares what it wants. **The panel is the
+  app's**: the site draws it on the kit's `Field`, `Select`, `Switch` and `Slider`, and a story with no `argTypes` gets no
+  panel.
+- **`Node`** is a type parameter: `entries<JSX.Element>(modules)` on the web, `entries<NativeNode>(modules)` in
+  `cssints-native`, and the package never names a renderer. `solid-js` is a peer (for `createComponent` alone).
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
