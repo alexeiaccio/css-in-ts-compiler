@@ -155,4 +155,19 @@ for f in page_generated.c page_generated_switch.c page_generated_disclosure.c; d
   cc -std=c99 -Wall -Wno-unused-variable -I "$CLAY_H" -c "$OUT/widgets-gen/$f" -o "$OUT/widgets-gen/$f.o"
 done
 
+# The code pane: tree-sitter's TSX grammar and the vendored highlight query into cells (terminal/code.c). The query is
+# generated into the build directory, because the terminal has no file system to read it from. The fixture's dump is
+# stored: every colour it used is in its legend, so a capture the query lost or a theme that changed fails the
+# comparison, not only a crash; test_code.c asserts the contrast and that the query asks for nothing it cannot evaluate.
+node generator/highlights-header.ts vendor/tree-sitter-languages/tsx/highlights.scm "$OUT/highlights.h"
+cc -std=c11 -Wall -Wno-unused-variable -I "$OUT" -I terminal -I vendor/tree-sitter/lib/include \
+  -I vendor/tree-sitter-typescript/tsx/src \
+  terminal/test_code.c terminal/code.c terminal/cells.c \
+  vendor/tree-sitter/lib/src/lib.c vendor/tree-sitter-typescript/tsx/src/parser.c \
+  vendor/tree-sitter-typescript/tsx/src/scanner.c -lm -o "$OUT/code"
+"$OUT/code"
+"$OUT/code" terminal/code_fixture.tsx > "$OUT/code.txt"
+cmp "$OUT/code.txt" terminal/expected-code.txt ||
+  { echo "FAIL: terminal/expected-code.txt is stale (the fixture, the query or the theme changed)"; exit 1; }
+
 echo "c: the headers, the C against them and the generated pages are current"

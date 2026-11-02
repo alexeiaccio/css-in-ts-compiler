@@ -1728,8 +1728,20 @@ Node, browsers and workerd, and `codeToHtml` / `codeToTokens` / streaming / edit
 pane and example blocks, with a theme built from our tokens; Shiki stays only where twoslash needs types (the API
 blocks), because a second pipeline there buys no hover.
 
-First step when code highlighting is picked: the TSX parser plus these queries into `terminal/`'s cell renderer, spans
-mapped to the theme's tokens; the docs' Files pane is the second reader of the same spans. Bean: `cssints-h0rs`.
+**Done: native's code pane** (`terminal/code.c`, 2026-11-02). Tree-sitter's `lib/` (v0.25.10), the `tsx` grammar's
+`parser.c` and the v0.3.0 query, all vendored; the query is compiled once, its four predicate spellings
+(`#match?`/`#not-match?`/`#eq?` and their patterns) are evaluated in C, and the captures' byte ranges become cells: one
+row a line, a tab the next multiple of 4, the innermost span winning and, where two captures cover the same text, a
+fixed kind ranking (a variable naming a component is a tag, `css.cn` a function though it is also a property). The theme
+is one dark palette, every colour 4.5:1 or better on the background. `terminal/test_code.c` is both the check and the
+pane: `code file.tsx` prints the grid (a dump, or `--ansi`), and `check.sh` fails on a lost capture or a changed colour
+through the stored fixture dump. Cost: 9.3 MB of vendored C, 6 s of `cc`, and about a second of start-up — the query
+compiles once, `ts_query_new` over the 283k-line grammar; 1080 lines drawn on top cost nothing measurable. Not yet wired
+into `demo`: a file pane in the live terminal needs a keys/scroll story first, and every `demo` build would carry the
+grammar and that second.
+
+The docs' Files pane is the second reader of the same spans, and it has not moved yet: `@pierre/highlights` is the
+recorded pick there, Shiki stays for twoslash. Bean: `cssints-h0rs`.
 
 ## Not doing
 
