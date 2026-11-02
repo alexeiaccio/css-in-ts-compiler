@@ -65,6 +65,8 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - timeline: A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line. `add @cssints/timeline`
 - reorder: A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved. `add @cssints/reorder`
 - combobox: A searchable picker: the field filters a listbox as the reader types, `aria-activedescendant` marks the active option, and Enter, Space or a click chooses it. `add @cssints/combobox`
+- listbox: A plain listbox on `createListbox`: one roving tab stop, arrows, Home and End, type-ahead, and single or multiple selection with a check mark. `add @cssints/listbox`
+- link: A link on `createLink`: a native `<a href>` or a custom `role=link` with its own tab stop and Enter, a muted tone, and the current page marked `aria-current=page`. `add @cssints/link`
 - theme: the neutral theme as plain custom properties; arrives with any starter
 
 ## How a component is written

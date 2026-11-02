@@ -492,6 +492,24 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A searchable picker: the field filters a listbox as the reader types, `aria-activedescendant` marks the active option, and Enter, Space or a click chooses it",
   },
+  {
+    tested: true,
+    // the APG listbox specs walk the primitive; this starter is the plain list those specs describe
+    name: "listbox",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Listbox",
+    description:
+      "A plain listbox on `createListbox`: one roving tab stop, arrows, Home and End, type-ahead, and single or multiple selection with a check mark",
+  },
+  {
+    tested: true,
+    // the APG link spec walks the primitive; this starter is the native and the custom skin of it
+    name: "link",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Link",
+    description:
+      "A link on `createLink`: a native `<a href>` or a custom `role=link` with its own tab stop and Enter, a muted tone, and the current page marked `aria-current=page`",
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files
