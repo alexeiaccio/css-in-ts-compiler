@@ -1709,6 +1709,28 @@ it out), our own text shaping (HarfBuzz/Parley is its own project; ThorVG's text
 pixel-exact goldens across architectures: float differences are real, so a mobile lane needs the tolerance model of
 Rune's research 14 — a bounded per-channel error with a recorded budget, not a hash.
 
+## Highlighting: tree-sitter and Pierre (2026-11-02)
+
+The terminal and the desktop will show code — a file pane, the docs' Files view — and neither target has a highlighter:
+Shiki is a build-time Node tool with no C story.
+
+**Native** takes [pierredotco/tree-sitter-languages](https://github.com/pierredotco/tree-sitter-languages) (MIT). Its
+`tsx/queries/highlights.scm` is generated from a pinned grammar with every token classified (`queries/tokens.json` fails
+on an unclassified one), the TS/TSX grammars are `zed-industries/tree-sitter-typescript@e2c53597d6a5`, and Dockerfile,
+GraphQL, Make, Nix, Svelte, Vue and YAML vendor the grammar's C `src/`. Releases `v0.1.0`-`v0.2.0` are retracted; use
+`v0.3.0` or later. We take the `.scm` queries and, for a language outside TS, the vendored C grammar. We do not take its
+Go bindings: there is no Go in this repository.
+
+**The TypeScript side has a packaged answer**: [`@pierre/highlights`](https://github.com/pierrecomputer/pierre/tree/main/packages/highlights)
+(Apache-2.0, 333 kB wasm / 147 kB gzipped) is Pierre's lexer-in-WAT highlighter — 152 languages including `tsx`, `css`,
+`bash` and `json`, 65 Shiki-catalog and 10 Pierre themes with `toCSS` for CSS variables, synchronous after import in
+Node, browsers and workerd, and `codeToHtml` / `codeToTokens` / streaming / edits. It is the reader for the docs' Files
+pane and example blocks, with a theme built from our tokens; Shiki stays only where twoslash needs types (the API
+blocks), because a second pipeline there buys no hover.
+
+First step when code highlighting is picked: the TSX parser plus these queries into `terminal/`'s cell renderer, spans
+mapped to the theme's tokens; the docs' Files pane is the second reader of the same spans. Bean: `cssints-h0rs`.
+
 ## Not doing
 
 - JS on a microcontroller. A GPU path on the ESP32-S3. One style for cells and pixels. A layout engine of our own.
