@@ -4,17 +4,30 @@
 // 360px and at 80 columns, and a fill's edge lands on a cell boundary rather than between two. That is why the layout
 // speaks cells and not pixels: a page that asked for pixels could not be re-cut by a factor without moving a bar.
 //
-// The four kinds (and no more than four here):
-//   barChart  one track a row, the fill value/max of it, at least one cell for a positive value and "+" past `max`
-//   compare   two tracks a row, each column scaled by its own maximum
-//   flow      one row of boxes joined by arrows
-//   funnel    one track a step, value/first of it, so a step's width is its share of the first
+// The six kinds (and no more than six here):
+//   barChart     one track a row, the fill value/max of it, at least one cell for a positive value and "+" past `max`
+//   branchFlow   a column of boxes with a decision's branch drawn to its right, connectors and their words as text
+//   compare      two tracks a row, each column scaled by its own maximum
+//   flow         one row of boxes joined by arrows
+//   funnel       one track a step, value/first of it, so a step's width is its share of the first
+//   stateMachine a path's boxes in a column, each transition's event between them, the states off the path below
 //
 // Every drawn thing has an id: `fig-fill-<n>` and `fig-track-<n>` for a bar (the invariant test reads their boxes), the
-// text ids for the numbers and the labels, `fig-box-<n>` for a flow's boxes. The page writes every item's width through
-// the value channel each frame (a layout length is data, and a style is a literal): `cells * 8` for a box, `fill * 8`
-// for a bar's fill.
-import { formatValue, type BarChartSpec, type CompareSpec, type FlowSpec, type FunnelSpec, type Spec, type Tone } from "./spec.ts";
+// text ids for the numbers and the labels, `fig-box-<n>` for a flow's boxes, `fig-state-<n>` for a path's states. A box
+// and a text also carry a `role` — step, decision, branch, state, connector, label, note — so a target or a text
+// renderer draws what an item is, not only its cells. The page writes every item's width through the value channel each
+// frame (a layout length is data, and a style is a literal): `cells * 8` for a box, `fill * 8` for a bar's fill.
+import {
+  formatValue,
+  type BarChartSpec,
+  type BranchFlowSpec,
+  type CompareSpec,
+  type FlowSpec,
+  type FunnelSpec,
+  type Spec,
+  type StateMachineSpec,
+  type Tone,
+} from "./spec.ts";
 
 /** A cell: the terminal's unit, and what the pixel targets multiply by (terminal/cells.h). */
 export const CELL_WIDTH = 8;
@@ -28,6 +41,11 @@ export const FOCUS_MARK = "►";
 /** What a figure's text is painted by: a role of the tokens, never a colour. */
 export type Paint = "title" | "muted" | "ink" | Tone;
 
+/** What a box is, for a target that draws more than its cells: a step, a decision, the end, a branch, a state. */
+export type BoxRole = "step" | "decision" | "end" | "branch" | "state" | "start";
+/** What a text is: a label, a connector's glyph, a connector's word, or the note under a state machine. */
+export type TextRole = "label" | "connector" | "connector-label" | "note";
+
 interface BaseItem {
   /** The id of the box whose width the page writes (the item's cell). */
   id: string;
@@ -40,11 +58,13 @@ export interface TextItem extends BaseItem {
   /** The id of the `text` itself, which is what a focus's colour moves. */
   textId: string;
   text: string;
+  role?: TextRole;
 }
 export interface BoxItem extends BaseItem {
   kind: "box";
   textId: string;
   text: string;
+  role: BoxRole;
 }
 export interface BarItem extends BaseItem {
   kind: "bar";
@@ -57,6 +77,24 @@ export interface SpaceItem extends BaseItem {
 export type Item = TextItem | BoxItem | BarItem | SpaceItem;
 export interface LayoutLine {
   items: Item[];
+}
+
+/** One drawn box, in the layout's own record: the invariant test's count and a target's role. */
+export interface BoxRecord {
+  id: string;
+  textId: string;
+  text: string;
+  role: BoxRole;
+}
+
+/** One connector the data asked for: a decision's branch, or a transition the path walks. */
+export interface Connector {
+  /** The text id of the drawn connector run: its glyph and its word, in one item. */
+  textId: string;
+  text: string;
+  from: string;
+  to: string;
+  role: "branch" | "transition";
 }
 
 /** One drawn bar, in cells: the invariant test's own record of what the frame should hold. */
@@ -81,11 +119,21 @@ export interface Layout {
   bars: Bar[];
   /** The label texts in the data's order, for the order invariant. */
   labels: { textId: string; text: string }[];
+  /** The spine's boxes — a flow's steps, a state machine's path — in drawing order. */
+  boxes: BoxRecord[];
+  /** A decision's branch and a path's transitions: one a branch or transition the data names. */
+  connectors: Connector[];
   focus?: { on: string[]; tone: Tone; say?: string };
 }
 
 const cells = (text: string): number => [...text].length;
 const longest = (values: readonly string[]): number => Math.max(0, ...values.map(cells));
+
+/** The glyphs our cells and pixels both have: Roboto has no │ ─ ► ▼ → (ThorVG has no fallback), so the connectors are
+ *  ASCII and the same figure reads on all three targets. */
+const GLYPH = { down: "v", right: ">", vertical: "|", line: "-" } as const;
+/** A branch's run to its box: one cell of label either side, so "no" reads inside the line. */
+const arrowOf = (label: string): string => `${GLYPH.line}${GLYPH.line} ${label} ${GLYPH.line}${GLYPH.line}${GLYPH.right}`;
 
 /** The text a row's number prints: its own, or the value formatted (with "+" when it runs past the scale). */
 const numberText = (row: { value: number; text?: string }, max: number): string =>
@@ -110,16 +158,16 @@ const paintOf = (focus: Layout["focus"], label: string): Paint => {
   return focus.tone === "plain" ? "ink" : focus.tone;
 };
 
-const textItem = (id: string, text: string, width: number, paint: Paint): TextItem => ({
+const textItem = (id: string, text: string, width: number, paint: Paint, role?: TextRole): TextItem => ({
   kind: "text",
   id: `${id}-cell`,
   textId: id,
   text,
   cells: width,
   paint,
+  ...(role === undefined ? {} : { role }),
 });
-
-/** The lines every kind shares: the title above, the source and the focus line below, each widening the figure. */
+/** The cells every kind shares: the title above, the source and the focus line below, each widening the figure. */
 function finish(
   spec: Spec,
   kind: Layout["kind"],
@@ -127,6 +175,8 @@ function finish(
   lines: LayoutLine[],
   bars: Bar[],
   labels: Layout["labels"],
+  boxes: BoxRecord[] = [],
+  connectors: Connector[] = [],
 ): Layout {
   const focus = focusOf(spec);
   const focusLine = focus ? `${FOCUS_MARK} ${focus.say ?? focus.on.join(", ")}` : undefined;
@@ -137,7 +187,7 @@ function finish(
   if (spec.source) out.push({ items: [textItem("fig-source", spec.source, w, "muted")] });
   if (focus && focusLine)
     out.push({ items: [textItem("fig-focus", focusLine, w, focus.tone === "plain" ? "ink" : focus.tone)] });
-  return { kind, width: w, lines: out, bars, labels, focus };
+  return { kind, width: w, lines: out, bars, labels, boxes, connectors, focus };
 }
 
 /** A bar row: the label's cell, the track (with its fill), and the number's cell. */
@@ -306,9 +356,10 @@ function flow(spec: FlowSpec): Layout {
       text: label,
       cells: boxes[i]!,
       paint: paintOf(focus, label),
+      role: "step",
     });
     if (i < labels.length - 1)
-      items.push({ kind: "text", id: `fig-arrow-${i}-cell`, textId: `fig-arrow-${i}`, text: " ► ", cells: 3, paint: "muted" });
+      items.push({ kind: "text", id: `fig-arrow-${i}-cell`, textId: `fig-arrow-${i}`, text: " ► ", cells: 3, paint: "muted", role: "connector" });
   });
   return finish(
     spec,
@@ -320,17 +371,140 @@ function flow(spec: FlowSpec): Layout {
   );
 }
 
-/** The layout of a checked spec. The four kinds are this file's only branches. */
+/**
+ * A branch flow: one column of boxes, a decision's `no` box to its right, and the words as text. The main path goes down
+ * as "yes"; the branch's arrow runs right from the decision's edge.
+ */
+function branchFlow(spec: BranchFlowSpec): Layout {
+  const focus = focusOf(spec);
+  const steps = spec.data;
+  const branchOf = (step: (typeof steps)[number]) => (step.type === "decision" ? step.no : undefined);
+  const branchText = (step: (typeof steps)[number]) => {
+    const no = branchOf(step);
+    return no ? `${no.label} -> ${no.to}` : "";
+  };
+  const W = Math.max(3, longest(steps.map((step) => step.label)) + 2);
+  const center = Math.floor((W - 1) / 2);
+  const lines: LayoutLine[] = [];
+  const boxes: BoxRecord[] = [];
+  const connectors: Connector[] = [];
+  const labels: Layout["labels"] = [];
+  let widest = W;
+  steps.forEach((step, i) => {
+    const no = branchOf(step);
+    const role: BoxRole = i === steps.length - 1 ? "end" : step.type === "decision" ? "decision" : "step";
+    const items: Item[] = [
+      {
+        kind: "box",
+        id: `fig-box-${i}`,
+        textId: `fig-box-text-${i}`,
+        text: step.label,
+        cells: W,
+        paint: paintOf(focus, step.label),
+        role,
+      },
+    ];
+    boxes.push({ id: `fig-box-${i}`, textId: `fig-box-text-${i}`, text: step.label, role });
+    labels.push({ textId: `fig-box-text-${i}`, text: step.label });
+    if (no) {
+      const arrow = arrowOf("no");
+      const branch = branchText(step);
+      const branchCells = cells(branch) + 2;
+      items.push(textItem(`fig-arrow-${i}`, arrow, cells(arrow), "muted", "connector-label"));
+      items.push({
+        kind: "box",
+        id: `fig-branch-${i}`,
+        textId: `fig-branch-text-${i}`,
+        text: branch,
+        cells: branchCells,
+        paint: paintOf(focus, no.label),
+        role: "branch",
+      });
+      connectors.push({ textId: `fig-arrow-${i}`, text: "no", from: step.label, to: no.to, role: "branch" });
+    }
+    const width = items.reduce((n, item) => n + item.cells, 0);
+    widest = Math.max(widest, width);
+    lines.push({ items });
+    if (i < steps.length - 1) {
+      const word = step.type === "decision" ? " yes" : "";
+      const down = `${" ".repeat(center)}${GLYPH.vertical}${word}`;
+      widest = Math.max(widest, cells(down));
+      lines.push({ items: [textItem(`fig-spine-${i}`, down, cells(down), "muted", "connector")] });
+      const arrow = `${" ".repeat(center)}${GLYPH.down}`;
+      lines.push({ items: [textItem(`fig-spine-down-${i}`, arrow, cells(arrow), "muted", "connector")] });
+    }
+  });
+  return finish(spec, "branchFlow", widest, lines, [], labels, boxes, connectors);
+}
+
+/**
+ * A state machine: the path's states in a column, each transition's event between them, and the states the path does not
+ * visit listed under it. A state the path visits twice is drawn twice: it is the walk, not the set.
+ */
+function stateMachine(spec: StateMachineSpec): Layout {
+  const focus = focusOf(spec);
+  const states = spec.data.states;
+  const transitions = spec.data.transitions;
+  const path = spec.options?.path ?? [states[0]!];
+  const W = Math.max(3, longest(states) + 2);
+  const center = Math.floor((W - 1) / 2);
+  const lines: LayoutLine[] = [];
+  const boxes: BoxRecord[] = [];
+  const connectors: Connector[] = [];
+  const labels: Layout["labels"] = [];
+  let widest = W;
+  path.forEach((name, i) => {
+    const role: BoxRole = i === 0 ? "start" : "state";
+    lines.push({
+      items: [
+        {
+          kind: "box",
+          id: `fig-state-${i}`,
+          textId: `fig-state-text-${i}`,
+          text: name,
+          cells: W,
+          paint: paintOf(focus, name),
+          role,
+        },
+      ],
+    });
+    boxes.push({ id: `fig-state-${i}`, textId: `fig-state-text-${i}`, text: name, role });
+    labels.push({ textId: `fig-state-text-${i}`, text: name });
+    if (i === path.length - 1) return;
+    const next = path[i + 1]!;
+    const event = transitions.find((t) => t.from === name && t.to === next)?.on ?? "";
+    const word = event ? ` ${event}` : "";
+    const edge = `${" ".repeat(center)}${GLYPH.vertical}${word}`;
+    widest = Math.max(widest, cells(edge));
+    lines.push({ items: [textItem(`fig-edge-${i}`, edge, cells(edge), "muted", "connector")] });
+    const arrow = `${" ".repeat(center)}${GLYPH.down}`;
+    lines.push({ items: [textItem(`fig-edge-down-${i}`, arrow, cells(arrow), "muted", "connector")] });
+    connectors.push({ textId: `fig-edge-${i}`, text: event, from: name, to: next, role: "transition" });
+  });
+  const unvisited = states.filter((state) => !path.includes(state));
+  if (unvisited.length) {
+    const note = `not on the path: ${unvisited.join(", ")}`;
+    widest = Math.max(widest, cells(note));
+    lines.push({ items: [textItem("fig-unvisited", note, cells(note), "muted", "note")] });
+  }
+  return finish(spec, "stateMachine", widest, lines, [], labels, boxes, connectors);
+}
+
+/** The layout of a checked spec. The six kinds are this file's only branches. */
 export function layout(spec: Spec): Layout {
   switch (spec.kind) {
     case "barChart":
       return barChart(spec);
+    case "branchFlow":
+      return branchFlow(spec);
     case "funnel":
       return funnel(spec);
     case "compare":
       return compare(spec);
     case "flow":
       return flow(spec);
+    case "stateMachine":
+      return stateMachine(spec);
   }
 }
 

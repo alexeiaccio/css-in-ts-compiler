@@ -2906,14 +2906,14 @@ glyph shaping, a shadow's raster or a gradient's dither: the raster stays the fi
 
 A **figure** here is a JSON *spec*, and every target draws that one file. The format is [glyph-kit](https://github.com/alextraykov/glyph-kit)'s
 (MIT): `skills/glyph-kit/reference/spec.md`, its `areas/metrics.md` and `areas/flows.md` are the reference, and **no code
-is taken** from it — the shape of the object, the four kinds' data and the sentences of its refusals are ported by hand,
+is taken** from it — the shape of the object, the six kinds' data and the sentences of its refusals are ported by hand,
 in plain TypeScript, over our own Clay tree. `solid/src/figure/spec.ts` is the format and the check;
-`solid/src/figure/kinds.ts` is the four kinds as a layout; `solid/app/Figure.tsx` declares that layout, once, for all
+`solid/src/figure/kinds.ts` is the six kinds as a layout; `solid/app/Figure.tsx` declares that layout, once, for all
 three hosts.
 
 | Field | What it is | Here |
 | --- | --- | --- |
-| `kind` | one of the types | `barChart`, `compare`, `flow`, `funnel` (glyph-kit has 34) |
+| `kind` | one of the types | `barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine` (glyph-kit has 34) |
 | `title` | a short name, drawn above the rows | optional |
 | `intent` | why the figure exists | optional, carried, not drawn (it is a document's line, as the kit's) |
 | `source` | where the numbers came from | **required when the data holds a number**; drawn under the figure |
@@ -2922,11 +2922,15 @@ three hosts.
 | `focus` | `{ on, tone, say }` | a row's label, `problem` / `good` / `plain`, and the `►` line |
 | `label`, `motion`, `lang` | the kit's | not here (no screen reader line, no motion, one locale) |
 
-The four kinds and their layout: **barChart** is a row of `{ label, value, text? }`, one track each, the fill
-`value/max` of it, at least one cell for a positive value and `"+"` on a number past `options.max`; **compare** is
-`{ label, a, aText, b, bText }`, two tracks a row that share the row's own scale (2.7 s against 7.7 s is one pair);
-**flow** is `[string]`, a row of panel boxes joined by `►`; **funnel** is `[{ label, value }]`, a track a step whose fill
-is `value/first`, with the number and its share of the first. `check(spec)` returns **every** problem as a sentence, and
+The six kinds and their layout: **barChart** is a row of `{ label, value, text? }`, one track each, the fill
+`value/max` of it, at least one cell for a positive value and `"+"` on a number past `options.max`; **branchFlow** is a
+column of `{ label }` steps where a decision `{ label, type: "decision", no: { label, to } }` draws its `no` box to the
+right and its `no` word on the connector; **compare** is `{ label, a, aText, b, bText }`, two tracks a row that share
+the row's own scale (2.7 s against 7.7 s is one pair); **flow** is `[string]`, a row of panel boxes joined by `►`;
+**funnel** is `[{ label, value }]`, a track a step whose fill is `value/first`, with the number and its share of the
+first; **stateMachine** is `{ states, transitions: [{ from, to, on }] }` with `options.path`, the path's states as a
+column and each transition's `on` word between them, the states the path does not visit listed under it. `check(spec)`
+returns **every** problem as a sentence, and
 `parse` is the same over a file's text; `bun solid/main.ts figure --spec ...`, `bun terminal/solid.ts --page figure
 --spec ...` and the browser page all refuse before a frame (the desktop and terminal exit non-zero). The sentences ported
 from the kit (its `guard.mjs` and `render/focus.mjs`):
@@ -2963,23 +2967,61 @@ its dark value; a literal colour at the same value would read the same in both t
 deliberate literal fails.
 
 **The three targets.** Desktop (Bun, ThorVG): `bun solid/main.ts figure --spec solid/specs/bars.json`, stored as
-`solid/frames/figure-bars.png` (400x112, 14.6 KB) and `figure-funnel.png` (59x9 cells, 472x144, 22.4 KB); 15 commands,
+`solid/frames/figure-bars.png` (400x112, 14.6 KB) and `figure-funnel.png` (59x9 cells, 472x144, 22.4 KB), plus the
+two flow kinds' `figure-branch-flow.png` (72x17 cells, 576x272, 24.9 KB) and `figure-state-machine.png` (71x17 cells,
+568x272, 21.4 KB); 15 commands,
 `--bench 1000`: declare 0.024 ms, layout 0.020 ms, draw 0.59 ms (ThorVG's raster included). Terminal (`terminal/solid.ts`
 over `libterm`, cells): `--page figure --spec ...`, 0.033-0.039 ms a frame for 560 cells at 80x7, and the same cells as
 1,313 bytes of truecolour SGR in 0.072 ms. Browser (`browser/solid/figure.ts`, Clay in `ui.wasm`, Canvas2D):
 `figure.html?spec=bars` (the spec is fetched from `solid/specs/`, not inlined, so all three read one file),
 `browser/figure-check.mjs` holds the frame to `solid/goldens/figure.json` with the **4 px** box tolerance Canvas2D's
-metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figure.js` is 184,183 B and a frame is 0.11 ms
+metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figure.js` is 193,445 B and a frame is 0.12 ms
 (the tree, Clay's layout, the commands, Canvas2D, one readback). `solid/specs/bars.json` is this repository's own
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's other **30 kinds** (cohort, heatmap, forecast, sparkline, meter,
-stateMachine, branchFlow, journeyMap, tree, the wireframes…), its **motion** (funnels falling, arrival orders), its
+**Not here** (and honest about it): the kit's other **28 kinds** (cohort, heatmap, forecast, sparkline, meter,
+journeyMap, tree, the wireframes…), its **motion** (funnels falling, arrival orders), its
 exports to **HTML, decks, SVG, PDF and PNG**, its **text renderer** (a figure as characters with `█▓▒`), its `@file` data,
 `lang` and the SAMPLE DATA stamp, and its `label`. The next one would be the **text renderer** — the same layout drawn as
-cells, which this repository already has half of in `terminal/solid.ts`'s dump — and then `branchFlow` and `stateMachine`,
-the two flow kinds with decisions, whose boxes and arrows are the same row of panel boxes with a second row under it.
+cells, which this repository already has half of in `terminal/solid.ts`'s dump — then `journeyMap` and `tree`, whose
+boxes and arrows are the same row of panel boxes with a second row under it.
+
+**The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
+stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
+(`solid/goldens/figure-branch-flow.json`, `figure-state-machine.json`). A branch flow's step is `{ "label": "read the
+spec" }`; a decision adds `"type": "decision"` and `"no": { "label": "refuse it", "to": "end" }`, where `to` is a step's
+label (the branch loops back to it) or `"end"`. The branch box is drawn to the right of the decision, its `no` word on
+the connector, and the main path goes down as "yes"; a state machine is `{ "states": [...], "transitions": [{ "from",
+"to", "on" }] }` with `"options": { "path": [...] }`, drawn as the path's boxes in a column with each transition's `on`
+between them and the states the path does not visit listed under it. Their own spec: `branch-flow.json` is this
+repository's path — a spec read, checked, laid out, drawn, refused or redrawn — and `state-machine.json` is the Dialog's
+`presence` (`solid/src/motion.ts`), closed → opening → open → closing → closed, with `reopen` a transition the path does
+not take.
+
+Their refusals (glyph-kit's published checks cover `states`' path, whose sentence this follows; the branch and state
+machine sentences are ours in its voice):
+
+```
+has data has no "no" branch.
+has data's "no" goes to "import data", which is not a step.
+saving goes to saved on "ok", but "saved" isn't one of the states.
+The path goes happened → paid, but no transition connects them.
+The path starts at saving, but the machine's first state is idle.
+A state machine needs its states: ["closed", "opening", "open", "closing"].
+```
+
+What our cells cannot carry of the kit's drawing (and the layout says so rather than pretending): the kit frames a step
+solid, a decision dotted and an end double; a cell here is a filled panel, so a box's `role` in the layout
+(`step`/`decision`/`end`/`branch`/`state`) is what tells a target which it is, and the drawing itself does not change its
+border. The kit wraps a label past 24 cells onto a second line inside its box; a line here is one cell high and nowrap,
+so a long label widens the figure instead. The kit's branch box puts `→ to` on a second line inside the box; here it is
+one line, `label -> to`. The kit draws a state machine horizontally with lanes for forward and back edges; here the path
+is a vertical column, so transitions the path does not walk are not drawn at all (only the states are listed). And the
+kit's connectors are `│ ─ ► ▼ →`: Roboto has none of those code points (ThorVG has no fallback, and the `►` already in
+the focus line draws as an empty box), so these two kinds use `|`, `-`, `>` and `v`, which read the same on the terminal
+and the pixels. `solid/figure.test.ts` asserts the boxes' and connectors' counts, the path's labels in the path's order,
+the six refusal sentences, a command golden each, and the terminal's rows against the pixel figure's.
 
 **The text half.** `solid/src/figure/text.ts` draws the same layout as characters, so one spec also prints as a figure for
 a README, a pull request or a model's context, with no host underneath: `render(spec, { width = 80, compact = false })`.

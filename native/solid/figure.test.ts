@@ -1,6 +1,7 @@
-// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the three
-// kinds with numbers and the flow), the bar's fill box against its track's, the number's text command, the rows' order,
-// the funnel's ratios; then `check`'s own refusals in their sentences; then the same spec on the terminal, cell for cell.
+// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the six
+// kinds), the bar's fill box against its track's, the number's text command, the rows' order, the funnel's ratios, the
+// branch flow's boxes and connectors, the state machine's path; then `check`'s own refusals in their sentences; then the
+// same spec on the terminal, cell for cell.
 //
 // The geometry comes from `solid/dump.ts`'s `capture` — the same last frame solid/goldens stores — so a bar is the box
 // Clay laid out, not the number the layout asked for. The error is in **cells** (the layout's unit): one cell is 8px
@@ -18,11 +19,17 @@ const { capture } = await import("./dump.ts");
 const { layout, CELL_WIDTH } = await import("./src/figure/kinds.ts");
 const { check, parse } = await import("./src/figure/spec.ts");
 const { variant } = await import("./src/pack.ts");
+const { format } = await import("./src/format.ts");
 const styles = await import("./app/Figure.styles.ts");
 
 /** A bar may round to the nearest half cell of its ratio: the layout rounds a cell, and that is the whole tolerance. */
 const HALF_CELL = 0.5;
-const SPECS = ["bars", "funnel", "compare", "pipeline"] as const;
+const SPECS = ["bars", "funnel", "compare", "pipeline", "branch-flow", "state-machine"] as const;
+/** The two new kinds' command goldens: one frame each, stored by the same capture this test reads. */
+const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
+  "branch-flow": "figure-branch-flow",
+  "state-machine": "figure-state-machine",
+};
 let failed = 0;
 let checks = 0;
 const ok = (what: string, extra = "") => (checks++, console.log(`ok   ${what}${extra ? ` — ${extra}` : ""}`));
@@ -108,14 +115,75 @@ for (const name of SPECS) {
   if (l.bars.length) ok(`${name}: ${l.bars.length} bar(s)`, `every fill is value/max and every number its text`);
 
   // (c) the rows are the data's, in order: each label's text command, from the top down — a flow is one row of boxes, so
-  // there the order is left to right
-  const labelRows = l.labels.map((label) => dump.commands.find((c) => c.type === "text" && c.text === label.text));
+  // there the order is left to right. A state machine may draw the same state twice (the path is the walk), so a label
+  // consumes the next command that carries its text, not the first.
   const axis = kind === "flow" ? 0 : 1;
+  const used = new Set<Cmd>();
+  const labelRows = l.labels.map((label) => {
+    const command = dump.commands.find((c) => c.type === "text" && c.text === label.text && !used.has(c));
+    if (command) used.add(command);
+    return command;
+  });
   const inOrder = labelRows.every(
     (command, i) => command && (i === 0 || command.box[axis]! > labelRows[i - 1]!.box[axis]!),
   );
   if (inOrder) ok(`${name}: the rows`, `${l.labels.map((label) => label.text).join(", ")} — the data's order`);
   else bad(`${name}: the rows`, JSON.stringify(labelRows.map((c) => [c?.text, c?.box[axis]])));
+
+  // (c2) a branch flow: one box a step, one connector a decision's branch, and the branch's word is drawn
+  if (s.kind === "branchFlow") {
+    const steps = s.data;
+    const spine = l.boxes.filter((box) => box.role !== "branch");
+    const decisions = steps.filter((step) => step.type === "decision");
+    const branches = l.connectors.filter((connector) => connector.role === "branch");
+    if (spine.length === steps.length)
+      ok(`${name}: the steps`, `${spine.length} boxes, one a step (${steps.map((step) => step.label).join(", ")})`);
+    else bad(`${name}: the steps`, `${spine.length} boxes for ${steps.length} steps`);
+    if (branches.length === decisions.length)
+      ok(`${name}: the branches`, `${branches.length} connector(s), one a decision (${branches.map((b) => b.from).join(", ")})`);
+    else bad(`${name}: the branches`, `${branches.length} connectors for ${decisions.length} decisions`);
+    const branchesDrawn = branches.filter((branch) =>
+      dump.commands.some((command) => command.type === "text" && command.text === `-- ${branch.text} -->`),
+    );
+    if (branchesDrawn.length === branches.length)
+      ok(`${name}: the branch words`, `"-- no -->" on every branch (${branches.length})`);
+    else bad(`${name}: the branch words`, `${branchesDrawn.length} of ${branches.length} have their "-- ${branches[0]?.text ?? "no"} -->" in the frame`);
+  }
+
+  // (c3) a state machine: one box a path step, one connector a transition the path walks, the labels the path's order
+  if (s.kind === "stateMachine") {
+    const path = s.options?.path ?? [s.data.states[0]!];
+    if (l.boxes.length === path.length)
+      ok(`${name}: the path's boxes`, `${l.boxes.length} boxes, the path's ${path.length}`);
+    else bad(`${name}: the path's boxes`, `${l.boxes.length} boxes for the path's ${path.length}`);
+    if (l.connectors.length === path.length - 1)
+      ok(`${name}: the path's transitions`, `${l.connectors.length} connector(s), one a step pair`);
+    else bad(`${name}: the path's transitions`, `${l.connectors.length} connectors for ${path.length - 1} steps`);
+    const walked = l.labels.map((label) => label.text).join(" → ");
+    if (walked === path.join(" → ")) ok(`${name}: the path's labels`, walked);
+    else bad(`${name}: the path's labels`, `${walked} is not ${path.join(" → ")}`);
+    const off = s.data.states.filter((state) => !path.includes(state));
+    if (!off.length) ok(`${name}: the footer`, "every state is on the path");
+    else if (dump.commands.some((command) => command.type === "text" && command.text === `not on the path: ${off.join(", ")}`))
+      ok(`${name}: the footer`, `not on the path: ${off.join(", ")}`);
+    else bad(`${name}: the footer`, `no text command reads "not on the path: ${off.join(", ")}"`);
+  }
+
+  // (c4) the new kinds' command goldens: the same capture, stored as solid/goldens/<name>.json
+  const goldenName = GOLDENS[name];
+  if (goldenName) {
+    const want = readFileSync(new URL(`./goldens/${goldenName}.json`, import.meta.url), "utf8").trim();
+    const got = format({ commands: dump.commands, effects: dump.effects });
+    if (got === want) ok(`${name}: the golden`, `solid/goldens/${goldenName}.json, every command field identical`);
+    else {
+      const at = got.split("\n").findIndex((line, i) => line !== want.split("\n")[i]);
+      bad(
+        `${name}: the golden`,
+        `solid/goldens/${goldenName}.json differs at line ${at + 1}: ` +
+          `${JSON.stringify(got.split("\n")[at])} is not ${JSON.stringify(want.split("\n")[at])}`,
+      );
+    }
+  }
 
   // (d) a funnel never grows, and each step's width is value/first
   if (kind === "funnel") {
@@ -179,7 +247,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are barChart, compare, flow, funnel.');
+  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, flow, funnel, stateMachine.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",
@@ -191,11 +259,119 @@ refuses("a flow wider than its width", {
   data: ["declaration", "Clay", "commands", "ThorVG / cells / Canvas2D"],
   options: { width: 20 },
 }, "These 4 boxes need 65 cells with their arrows; the width is 20. Shorten a label or raise options.width.");
+refuses("a decision with no branch", {
+  kind: "branchFlow",
+  source: "Sample",
+  data: [{ label: "read the spec" }, { label: "has data", type: "decision" }],
+}, 'has data has no "no" branch.');
+refuses("a branch target that is not a step", {
+  kind: "branchFlow",
+  source: "Sample",
+  data: [
+    { label: "has data", type: "decision", no: { label: "empty state", to: "import data" } },
+    { label: "a frame" },
+  ],
+}, 'has data\'s "no" goes to "import data", which is not a step.');
+refuses("a transition naming a state that does not exist", {
+  kind: "stateMachine",
+  source: "Sample",
+  data: {
+    states: ["idle", "saving"],
+    transitions: [{ from: "idle", to: "saving", on: "submit" }, { from: "saving", to: "saved", on: "ok" }],
+  },
+  options: { path: ["idle", "saving"] },
+}, 'saving goes to saved on "ok", but "saved" isn\'t one of the states.');
+refuses("a path that skips a transition", {
+  kind: "stateMachine",
+  source: "Sample",
+  data: {
+    states: ["happened", "paid", "refunded"],
+    transitions: [{ from: "paid", to: "refunded", on: "refund" }],
+  },
+  options: { path: ["happened", "paid", "refunded"] },
+}, "The path goes happened → paid, but no transition connects them.");
+refuses("a path that does not start at the first state", {
+  kind: "stateMachine",
+  source: "Sample",
+  data: { states: ["idle", "saving"], transitions: [{ from: "idle", to: "saving", on: "submit" }] },
+  options: { path: ["saving"] },
+}, "The path starts at saving, but the machine's first state is idle.");
+refuses("a machine with no states", { kind: "stateMachine", data: { states: [], transitions: [] } },
+  'A state machine needs its states: ["closed", "opening", "open", "closing"].');
 // the invalid file itself: the funnel solid/test.sh gives the desktop's `--spec`, refused with the sentence
 const invalid = parse(readFileSync(new URL("./specs/invalid-funnel.json", import.meta.url), "utf8"));
 if (invalid.problems.includes("signed up 12600 is more than visited 12400; a funnel never grows"))
   ok("solid/specs/invalid-funnel.json", invalid.problems[0]!);
 else bad("solid/specs/invalid-funnel.json", JSON.stringify(invalid.problems));
+for (const [file, sentence] of [
+  ["invalid-branch.json", 'check the data has no "no" branch.'],
+  ["invalid-state.json", "The path goes happened → paid, but no transition connects them."],
+] as const) {
+  const refused = parse(readFileSync(new URL(`./specs/${file}`, import.meta.url), "utf8"));
+  if (refused.problems.includes(sentence)) ok(`solid/specs/${file}`, sentence);
+  else bad(`solid/specs/${file}`, JSON.stringify(refused.problems));
+}
+
+// (g) the states the path does not visit: a walk that stops before the machine's last state lists it under the path
+{
+  const partly = layout({
+    kind: "stateMachine",
+    data: {
+      states: ["idle", "saving", "saved", "failed"],
+      transitions: [
+        { from: "idle", to: "saving", on: "submit" },
+        { from: "saving", to: "saved", on: "ok" },
+        { from: "saving", to: "failed", on: "error" },
+      ],
+    },
+    options: { path: ["idle", "saving", "saved"] },
+  });
+  const note = partly.lines.flatMap((line) => line.items).find((item) => item.kind === "text" && item.role === "note");
+  if (note && note.kind === "text" && note.text === "not on the path: failed")
+    ok("a state machine's footer", `"${note.text}"`);
+  else bad("a state machine's footer", `no note reads "not on the path: failed": ${JSON.stringify(note)}`);
+}
+
+// (h) the mutations, as the asserts they break: a branch drawn without its connector, a path that skips a transition
+// with the sentence the check must print, and a path with a box dropped
+{
+  const branch = layout(spec("branch-flow"));
+  const branches = branch.connectors.filter((connector) => connector.role === "branch").length;
+  const countBranches = (connectors: readonly { role: string }[]) =>
+    connectors.filter((connector) => connector.role === "branch").length === branches;
+  if (countBranches(branch.connectors)) ok("mutation: the branch connectors", `${branches} branches, ${branches} connectors`);
+  else bad("mutation: the branch connectors", "the intact layout failed its own count");
+  const drawnWithout = branch.connectors.slice(1);
+  const left = drawnWithout.filter((connector) => connector.role === "branch").length;
+  if (!countBranches(drawnWithout))
+    ok(
+      "mutation: a branch without its connector",
+      `${branches} branches, ${left} connector${left === 1 ? "" : "s"}: the count fails`,
+    );
+  else bad("mutation: a branch without its connector", "the count did not move");
+
+  const skip = {
+    kind: "stateMachine",
+    source: "Sample",
+    data: {
+      states: ["happened", "paid", "refunded"],
+      transitions: [{ from: "paid", to: "refunded", on: "refund" }],
+    },
+    options: { path: ["happened", "paid", "refunded"] },
+  } as const;
+  const skipSentence = "The path goes happened → paid, but no transition connects them.";
+  if (check(skip).includes(skipSentence)) ok("mutation: a path that skips a transition", skipSentence);
+  else bad("mutation: a path that skips a transition", `the check printed no ${JSON.stringify(skipSentence)}`);
+
+  const machine = layout(spec("state-machine"));
+  const path = machine.labels.length;
+  if (machine.boxes.length === path) ok("mutation: the state boxes", `${path} states on the path, ${machine.boxes.length} boxes`);
+  else bad("mutation: the state boxes", `${path} states on the path, ${machine.boxes.length} boxes`);
+  const dropped = machine.boxes.slice(0, -1);
+  if (dropped.length !== path)
+    ok("mutation: a dropped state box", `${path} states on the path, ${dropped.length} boxes: the count differs`);
+  else bad("mutation: a dropped state box", "the count did not move");
+}
 
 // the kind's own two edges, from the layout: a value past `max` fills the track and prints "+", and a positive value
 // too small for a cell still draws one

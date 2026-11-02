@@ -319,6 +319,9 @@ bun solid/notify.test.ts
 # non-zero exit, and no PNG), as the other pages' bad input is.
 bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/frames/figure-bars.png
 bun solid/main.ts figure --spec solid/specs/funnel.json --warm 30 --expect solid/frames/figure-funnel.png
+# the two flow kinds: a branch flow's decisions and a state machine's path, stored as the page at rest
+bun solid/main.ts figure --spec solid/specs/branch-flow.json --warm 30 --expect solid/frames/figure-branch-flow.png
+bun solid/main.ts figure --spec solid/specs/state-machine.json --warm 30 --expect solid/frames/figure-state-machine.png
 # a directory of the figure's own, so a suite in another checkout beside this one cannot share these files
 FIG="${TMPDIR:-/tmp}/cssints-figure"
 mkdir -p "$FIG"
@@ -329,7 +332,7 @@ fi
 grep -q "a funnel never grows" "$FIG/figure-invalid.log" || {
   echo "FAIL: the growing funnel's refusal does not say why"; exit 1; }
 if [ -f "$FIG/figure-invalid.png" ]; then echo "FAIL: an invalid spec wrote a frame"; exit 1; fi
-echo "figure: two stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
+echo "figure: four stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
 # ... and the same figure in the browser: browser/solid/figure.ts fetches the same spec file, and browser/figure-check.mjs
 # holds its commands to solid/goldens/figure.json (the desktop's frame, boxes within 4 px, Canvas2D's metrics) and a click
 # to nothing. Its own guard, so the frames above still run on a machine without zig or Chromium

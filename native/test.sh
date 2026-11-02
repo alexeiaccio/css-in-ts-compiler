@@ -62,6 +62,9 @@ sh solid/test.sh
 # number's text and the rows' order, the funnel's steps, `check`'s refusals with their sentences, and the same spec's
 # rows on the terminal — one spec, three targets
 bun solid/figure.test.ts
+# the two flow kinds are in it too: the branch flow's boxes and its branch connectors, the state machine's path and its
+# transitions, their refusals (each with its sentence), a command golden each, and a stored frame each
+echo "figure: six kinds — branchFlow's boxes and branches, stateMachine's path and transitions, their refusals and frames"
 # the text half of the same layout: every spec as characters within the width, each bar in cells against the terminal
 # host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
 # invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)
