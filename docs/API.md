@@ -2291,6 +2291,1645 @@ createRearrangeableListbox(options: {
 - **The primitive owns the ARIA of a listbox, not the position or the drag.** It writes `role`, `tabindex`, `aria-multiselectable`, `aria-activedescendant`, `aria-selected` and the handlers; it does not write `aria-posinset` / `aria-setsize` (a listbox's order is implicit), and it has no pointer drag. A host that wants a drag translates it to `move`; the `reorder` starter in `apps/ui` does exactly that, and adds the position attributes itself.
 - **Both lists or one.** A host renders `listProps("a")` and `listProps("b")` for the full pattern, or the first alone for a reorderable list. With one list, Enter and Delete have nowhere to transfer, so the host ignores them.
 
+### Headless: `createDisclosure` (`@cssints/headless`)
+
+The APG Disclosure: one trigger that shows and hides one panel. Its behaviour is
+`packages/apg-specs/specs/apg/disclosure.qnt`, which
+`packages/headless/test/disclosure.browser.test.tsx` holds it to by replaying the ported scenarios of the APG,
+ariakit, base-ui and React Aria (`packages/apg-specs/scenarios/apg/disclosure.*.json`) and by a seeded
+differential walk in seven configurations: uncontrolled, expanded, disabled, and a controlled host that
+accepts or holds a request. The host renders a `<button>` and a panel and spreads the two prop objects; the
+primitive owns the state and the attributes, not the elements or the look. Options are read lazily, so pass a
+component's `props` or getters, never destructured values.
+
+`defaultValue` starts the uncontrolled state (`false`), and `value` + `onValueChange` make the host own it:
+every intent is a request, so a refused one leaves the state untouched. `setExpanded`, `expand`, `collapse`
+and `toggle` are requests too.
+
+```ts skip
+createDisclosure(options?: {
+  value?: boolean | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: boolean; // false: collapsed at mount
+  disabled?: boolean; // the trigger's native attribute, and its click is dropped
+  id?: string; // base of `<id>-trigger` and `<id>-panel`; generated when absent
+  onValueChange?(expanded: boolean): void; // a request the host may ignore
+}): {
+  expanded(): boolean;
+  setExpanded(expanded: boolean): void; // a request, like expand / collapse / toggle
+  expand(): void;
+  collapse(): void;
+  toggle(): void;
+  triggerProps: {
+    id; // `<id>-trigger`
+    type: "button";
+    "aria-expanded"; // "true" | "false", from the state
+    "aria-controls"; // `<id>-panel`, always present
+    disabled; // the option, read on every read
+    onClick;
+  };
+  panelProps: {
+    id; // `<id>-panel`
+    hidden; // true while collapsed
+  };
+};
+```
+
+- **The panel stays mounted.** `panelProps.hidden` is the whole hide, so `aria-controls` always names a real
+  element and a closing animation has something to animate. Base UI unmounts the closed panel instead, and
+  that missing `aria-controls` while collapsed is a named divergence. So are React Aria's `aria-hidden`
+  beside `hidden` (which already removes the panel from the accessibility tree) and its `role="group"` on
+  the panel.
+- **The pattern's attributes only.** React Aria forwards an attribute the consumer supplied; this primitive
+  returns only the pattern's, so the host adds its own (an `aria-label`, a `class`).
+- **Ids.** `id` is the base of `<id>-trigger` and `<id>-panel`; a page with two disclosures passes its own base
+  to each, since one base names one pair.
+
+No key is bound: the trigger is a native `<button>`, so Enter and Space arrive as its `click`, and the host
+sees one request path for pointer and keyboard. `disabled` is the trigger's native attribute, so the browser
+skips it in the tab order and drops its click; the primitive guards its `onClick` as well.
+
+### Headless: `createAccordion` (`@cssints/headless`)
+
+The APG Accordion: N headings, each a button that shows and hides its region, under the mode constraints of
+`packages/apg-specs/specs/apg/accordion.qnt`. `packages/headless/test/accordion.browser.test.tsx` replays the
+ported base-ui and React Aria scenarios and walks the model in eleven configurations (uncontrolled, expanded,
+multiple, non-collapsible, and a controlled host that accepts or holds a request). `items` is the number of
+panels (3, at least one), and the host renders a heading, a button and a panel per index, spreading
+`headingProps`, `triggerProps` and `panelProps`. Options are read lazily; `defaultValue` is the uncontrolled
+expanded set and `value` + `onValueChange` make the host own it.
+
+```ts skip
+createAccordion(options?: {
+  items?: number; // 3; at least 1
+  value?: ReadonlyArray<number> | undefined; // controlled: the expanded indices
+  defaultValue?: ReadonlyArray<number>; // []: all collapsed
+  multiple?: boolean; // false: at most one panel expanded
+  collapsible?: boolean; // true: the last expanded panel may collapse
+  headingLevel?: number; // 3, clamped into 1..6
+  disabled?: boolean; // every trigger
+  disabledItems?: ReadonlyArray<number>; // the named triggers only
+  id?: string; // base of `<id>-trigger-<i>`, `<id>-panel-<i>`, `<id>-heading-<i>`
+  onValueChange?(expanded: ReadonlyArray<number>): void; // a request the host may ignore
+}): {
+  items: number;
+  expanded(): ReadonlyArray<boolean>; // one flag per panel
+  isExpanded(index: number): boolean;
+  toggle(index: number): void; // a request; a disabled index changes nothing
+  setMultiple(value: boolean): void; // re-normalizes the uncontrolled set only
+  setCollapsible(value: boolean): void; // likewise
+  setHeadingLevel(level: number): void; // clamped into 1..6
+  triggerProps(index: number): {
+    id;
+    type: "button";
+    "aria-expanded";
+    "aria-controls"; // the panel's id
+    "aria-disabled": "true" | undefined; // the sole expanded trigger when it cannot collapse
+    disabled; // `disabled` or `disabledItems`
+    onClick;
+  };
+  panelProps(index: number): {
+    id;
+    role: "region";
+    "aria-labelledby"; // the trigger's id
+    tabindex: 0;
+    hidden;
+  };
+  headingProps(index: number): { id; role: "heading"; "aria-level": number };
+};
+```
+
+- **The mode constraints are the spec's `normExpanded`.** `multiple: false` keeps only the first expanded
+  index, and `collapsible: false` re-expands the first panel when the set would be empty. A controlled host
+  owns the set verbatim, so `setMultiple` / `setCollapsible` change their flag everywhere but re-normalize
+  only while uncontrolled.
+- **The panel that cannot collapse says so.** While `collapsible` is false and this trigger is the only
+  expanded one, `toggle` refuses it and `triggerProps` announces `aria-disabled="true"`; it stays focusable
+  (the native `disabled` comes only from `disabled` / `disabledItems`), so a keyboard user meets the same
+  refusal as a pointer.
+- **The panel is a region and a tab stop.** `role="region"`, named by its trigger through `aria-labelledby`,
+  with `tabindex=0` whatever it holds and `hidden` while collapsed.
+- **`headingProps` is the wrapper, not a level of markup.** It carries `role="heading"` and the clamped
+  `aria-level`, so the host spreads it on the element it would have used anyway (`<h3>`, a `<div>`).
+- **Two divergences from React Aria:** panels are keyed by index where React Aria keys them by item text, and
+  `onValueChange` reports the whole expanded index set (the base-ui model) where React Aria reports one
+  boolean per change.
+
+No key is bound beyond the native button's: Enter and Space on a focused trigger arrive as its `click`, and
+Tab walks the triggers and the open panels (no roving tabindex, as the pattern's keyboard section has it).
+
+### Headless: `createSwitch` (`@cssints/headless`)
+
+The APG Switch: one binary on/off control whose label never changes with its state. Its behaviour is
+`packages/apg-specs/specs/apg/switch.qnt`, replayed by
+`packages/headless/test/switch.browser.test.tsx` against the ported base-ui and React Aria scenarios and a
+differential walk in nine configurations (unchecked, checked, disabled, the optional Enter key, and a
+controlled host that accepts or holds a request). The host spreads `switchProps` onto the focusable element;
+`defaultValue` is the uncontrolled state (`false`) and `value` + `onValueChange` make the host own it.
+
+The platform behind the pattern is the native `<input type="checkbox" switch>` as progressive enhancement
+(Safari only), with a checkbox carrying `role="switch"` as the safe baseline. This primitive returns that
+baseline's contract (`role="switch"`, `aria-checked`, `tabindex=0`, the handlers) and no element.
+
+```ts skip
+createSwitch(options?: {
+  value?: boolean | undefined; // controlled; undefined = uncontrolled
+  defaultValue?: boolean; // false: off at mount
+  disabled?: boolean; // aria-disabled; every intent is dropped
+  readOnly?: boolean; // aria-readonly; focus works, every intent is dropped
+  enterToggles?: boolean; // false: the pattern's optional Enter key
+  onValueChange?(checked: boolean): void; // a request the host may ignore
+}): {
+  checked(): boolean;
+  disabled(): boolean;
+  readOnly(): boolean;
+  enterToggles(): boolean;
+  focused(): boolean;
+  setChecked(checked: boolean): void; // a request
+  setDisabled(value: boolean): void; // also disarms a held Space
+  setEnterToggles(value: boolean): void;
+  toggle(): void; // a request
+  switchProps: {
+    role: "switch";
+    "aria-checked": "true" | "false";
+    "aria-disabled": "true" | undefined;
+    "aria-readonly": "true" | undefined;
+    tabindex: 0;
+    onKeyDown;
+    onKeyUp;
+    onClick;
+    onFocus;
+    onBlur;
+  };
+};
+```
+
+- **Space is armed, then released.** `onKeyDown` arms on Space and `preventDefault`s the page scroll;
+  `onKeyUp` flips. A repeated keydown does not re-arm, and a blur disarms. Enter flips on keydown only while
+  `enterToggles` is on.
+- **`disabled` and `readOnly` block the same intents and announce differently.** Both drop every key, click
+  and `toggle`, but `disabled` says `aria-disabled` and `readOnly` says `aria-readonly`. Only `disabled` has a
+  setter; a host that flips `readOnly` flips the prop, which is read on every read.
+- **`focused()` is the primitive's own signal.** Focus sets it, a click sets it (a click focuses the control
+  in a browser) and blur clears it; the primitive never moves the DOM focus.
+- **Two divergences:** React Aria renders a native input and carries the HTML `checked` / `disabled`
+  attributes, where this primitive exposes `role="switch"` + `aria-checked`; base-ui reports its clicks to
+  ancestor elements, where this primitive owns only the switch's callbacks.
+
+### Headless: `createRadioGroup` (`@cssints/headless`)
+
+The APG Radio Group: one `radiogroup` with `role="radio"` items, where selection follows the focus. Its
+behaviour is `packages/apg-specs/specs/apg/radio.qnt`, replayed by
+`packages/headless/test/radio.browser.test.tsx` against the ported ariakit, base-ui and React Aria scenarios
+and a differential walk in six configurations (unchecked, checked, disabled, `activedescendant`, and a
+controlled host that accepts or holds a request). `values` is the option list (a getter is fine, so a list
+that arrives later is still one widget), `defaultValue` is the uncontrolled check and `value` +
+`onValueChange` make the host own it.
+
+`value` may be a getter, and then `undefined` means "nothing checked" as a controlled state: it is the bare
+`undefined` prop that says uncontrolled.
+
+```ts skip
+createRadioGroup<T>(options: {
+  values: ReadonlyArray<T> | (() => ReadonlyArray<T>); // one per radio
+  value?: T | (() => T | undefined) | undefined; // controlled; bare undefined = uncontrolled
+  defaultValue?: T; // nothing checked
+  flavor?: "roving" | "activedescendant"; // "roving"
+  disabled?: ReadonlyArray<number>; // indices never focused, checked or picked as the tab stop
+  orientation?: "horizontal" | "vertical"; // sets aria-orientation only
+  dir?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows swap
+  id?: string; // base of `<id>-radio-<i>`
+  describedby?: string | undefined; // aria-describedby on every radio
+  onValueChange?(value: T): void; // a request the host may ignore
+  onFocus?(target: string): void; // "radio:<index>"
+  onBlur?(target: string): void;
+}): {
+  checked(): number | null; // the index, null when nothing is checked
+  focused(): number | null;
+  flavor(): RadioFlavor;
+  values: ReadonlyArray<T>;
+  value(): T | null;
+  focus(): void;
+  blur(): void;
+  keyDown(key: string): void;
+  click(index: number): void;
+  setDisabled(indices: ReadonlyArray<number>): void;
+  setFlavor(flavor: RadioFlavor): void;
+  setPreselect(index: number | null): void;
+  radiogroupProps: {
+    role: "radiogroup";
+    "aria-orientation";
+    "aria-activedescendant": string | undefined; // only the activedescendant flavor
+    tabindex: 0 | undefined; // 0 only in the activedescendant flavor
+    onKeyDown;
+    onFocus;
+    onBlur;
+  };
+  radioProps(index: number): {
+    id;
+    role: "radio";
+    "aria-checked": "true" | "false";
+    "aria-disabled": "true" | "false";
+    "aria-describedby";
+    type: "button"; // keeps a surrounding form from submitting
+    tabindex: 0 | -1 | undefined; // roving only: 0 for the tab stop
+    onClick;
+    onFocus;
+  };
+};
+```
+
+- **Two flavors, one machine.** `"roving"` (the default) keeps the tab stop on the radios: `tabindex=0` on
+  the checked radio, or on the first enabled one while nothing is checked, `-1` on the rest.
+  `"activedescendant"` puts the tab stop on the group (`tabindex=0` there, nothing on the radios) and names
+  the focused radio in `aria-activedescendant`; the host keeps the DOM focus on the group. The primitive
+  moves no DOM focus in either flavor: `focused()` reads synchronously, so the host applies it.
+- **Selection follows the focus.** An arrow moves to the next enabled radio (wrapping) and requests it, Space
+  requests the focused one, a click focuses and requests, and Tab enters on the tab stop. `setPreselect`
+  starts the check without a request, and `setDisabled` / `setFlavor` reset the focus.
+- **Config remounts fire no request.** `setDisabled`, `setFlavor` and `setPreselect` write the uncontrolled
+  local directly; with `value` set, what is checked is the prop's, so they only move the focus.
+- **Two divergences:** React Aria renders native `<input type="radio">` elements and carries the HTML
+  `disabled` attribute; one `onFocus` / `onBlur` reports the radio (`"radio:<index>"`) where the React Aria
+  scenario uses a callback per radio.
+
+ArrowDown / ArrowRight are forward and ArrowUp / ArrowLeft backward, with `dir: "rtl"` swapping the
+horizontal pair; both axes work whatever `orientation` says, since that option only sets `aria-orientation`.
+The arrows wrap past the ends and skip every disabled index; Home / End are not handled, as the pattern has
+no such key.
+
+### Headless: `createTooltipGroup` (`@cssints/headless`)
+
+The APG Tooltip with WCAG 1.4.13 (dismissable, hoverable, persistent), over the spec's pair of triggers. Its
+behaviour is `packages/apg-specs/specs/apg/tooltip.qnt`, which
+`packages/headless/test/tooltip.browser.test.tsx` holds it to by replaying the ported ariakit, base-ui and
+React Aria scenarios and by a differential walk in four configurations (uncontrolled, controlled accepting,
+controlled holding, and one holding a tooltip open). Timers are events, not clocks: the spec and the walk
+fire `showTimer`, `hideTimer` and `warmExpire`, and the host wires its own `setTimeout` from
+`showDelayMs()` / `hideDelayMs()`, resolved from `prefs` (600 ms and 300 ms by default).
+
+The visible tooltip is the controlled value: `0` none, `1` the first trigger's, `2` the second's.
+`defaultOpen` is the uncontrolled index and `onOpenChange(open, index)` is the request. The rest of the
+machine (focus, pointer, pending timers, the dismissal memory) tracks every event either way and only the
+commit is gated, so a refused request leaves the visible tooltip where it was.
+
+```ts skip
+createTooltipGroup(options: {
+  triggers: ReadonlyArray<{ id?: string; tooltipId?: string }>; // the spec's pair
+  disabled?: boolean; // focus and pointer are ignored entirely
+  openOnFocus?: boolean; // keyboard focus opens at once (the host applied its delay)
+  openOnHover?: boolean; // hover opens at once (a delay of 0)
+  nativePointer?: boolean; // true: the elements' own pointer events drive the state
+  defaultOpen?: number; // trigger index whose tooltip starts visible
+  value?: number | undefined; // controlled: 0 none, 1 first, 2 second; undefined = uncontrolled
+  onOpenChange?(open: boolean, index: number): void; // a request the host may ignore
+  prefs?: Partial<Prefs> | undefined; // tooltipShowDelayMs / tooltipHideDelayMs
+}): {
+  visibleIndex(): number | null;
+  showDelayMs(): number;
+  hideDelayMs(): number;
+  described(index: number): boolean; // this trigger names its tooltip now
+  focusTrigger(index: number): void;
+  blur(): void;
+  pointerEnter(index: number): void;
+  pointerEnterTip(): void;
+  pointerLeave(): void; // also calls hideTimer()
+  showTimer(index: number): void; // the host's show setTimeout fired
+  hideTimer(): void; // the grace period expired
+  escape(): void;
+  warmExpire(): void; // closes the warm window
+  setWarmup(on: boolean): void; // enables the spec's warm-up variant
+  hostSet(vis: number): void; // call before a controlled write of `value`
+  hostToggle(): void; // call before a controlled flip between none and the first
+  triggerProps(index: number): {
+    id;
+    "aria-describedby": string | undefined; // the tooltip, only while visible
+    onFocus;
+    onPointerEnter;
+    onPointerLeave;
+    onKeyDown; // Escape
+  };
+  tooltipProps(index: number): {
+    id;
+    role: "tooltip";
+    hidden;
+    onPointerEnter; // hoverable: the pointer may travel onto the tooltip
+    onPointerLeave;
+  };
+};
+```
+
+- **Ids.** A trigger's `id` and `tooltipId` name it and its tooltip (`<base>-trigger-<i>` and
+  `<base>-tooltip-<i>` when absent); `aria-describedby` names the tooltip only while it is visible, and
+  `described(index)` is that same condition as a boolean.
+- **The delays belong to the host.** `openOnFocus` / `openOnHover` open with no delay, for a host that has
+  already applied its own; otherwise focus and hover only arm a show timer, and `showTimer(index)` is the
+  host's `setTimeout` firing. A pointer leaving a trigger or the tooltip calls `hideTimer()` — the grace
+  period is the host's too.
+- **Hoverable is the tooltip's own handlers.** `tooltipProps` carries `onPointerEnter` / `onPointerLeave`, so
+  the pointer can travel onto the tooltip without closing it. `nativePointer: false` stops the rendered
+  elements from driving the state, for a host that feeds `pointerEnter` / `pointerLeave` itself.
+- **Warm-up.** `setWarmup(true)` enables the spec's variant: while a tooltip is visible, or was hidden within
+  the warm window, a newly entered trigger opens immediately. `warmExpire()` closes that window, and an
+  Escape leaves the widget warm, so the next trigger inside the window opens at once.
+- **Host writes.** `hostSet(vis)` and `hostToggle()` drop the timers and the dismissal memory a controlled
+  write invalidates, so call one before writing `value`; both do nothing while uncontrolled.
+- **One divergence:** the base-ui scenario that starts open with `defaultOpen` and then unhovers a trigger
+  never sees a pointer event in the DOM, so the hide grace is never armed there.
+- **Two triggers.** The spec models a pair: index `0` is the first and `1` the second. There is no `id`
+  option, because each trigger names its own elements.
+
+Escape on a trigger hides the tooltip (`escape()`) without moving the focus or the pointer, and nothing
+reopens it until that trigger is left and entered again — WCAG's dismissable part. No other key is bound:
+focus and hover are the other two ways in, and the pointer handlers above are the hoverable part.
+
+### Headless: `createToolbar` (`@cssints/headless`)
+
+The APG Toolbar: a row or column of controls behind one tab stop, with the roving tabindex of
+`shared/focusgroup.qnt` and the delta of `packages/apg-specs/specs/apg/toolbar.qnt` (`aria-orientation`, the
+author's wrap choice, disabled-but-focusable items, embedded controls that consume keys, and activation).
+`packages/headless/test/toolbar.browser.test.tsx` replays the ported ariakit, base-ui and React Aria
+scenarios and walks the model horizontally (no wrap) and vertically (wrapping); the fixture composes
+`createMenu` for the spec's menu-button, which the primitive never imports.
+
+Platform: the roving tabindex is the `focusgroup="toolbar"` contract, so ship the
+`@microsoft/focusgroup-polyfill` first and switch to the native attribute when Chrome/Edge is the floor.
+
+`items` is fixed at construction, as label strings or `{ label, kind, disabled }`, and `kinds` names a kind per
+index for the string form (`"button"` by default). `defaultFocus` is the index that starts focused, and
+`focus: -1` means "outside the toolbar".
+
+```ts skip
+createToolbar(options: {
+  items: ReadonlyArray<string | { label: string; kind?: ToolbarItemKind; disabled?: boolean }>;
+  kinds?: ReadonlyArray<"button" | "text" | "spin">; // per index, for the string form
+  orientation?: "horizontal" | "vertical"; // "horizontal"
+  wrap?: boolean; // false: the arrows stop at the ends
+  defaultFocus?: number; // -1: nothing focused yet
+  disabled?: ReadonlyArray<number>; // items disabled at mount, still focusable
+  id?: string; // base of `<id>-item-<i>`
+  onActivate?(index: number): void; // a button item, by click, Enter or Space
+}): {
+  focus(): number; // -1 when the toolbar is left
+  tabStop(): number;
+  orientation(): "horizontal" | "vertical";
+  wrap(): boolean;
+  items: ReadonlyArray<{ id; label; kind; disabled }>;
+  focusIn(): void; // Tab into the toolbar: the tab stop
+  leave(): void;
+  focusItem(index: number): void;
+  keyDown(key: string): void;
+  tab(back: boolean): void;
+  clickItem(index: number): void;
+  activate(): void; // a button item
+  toggleDisabled(index: number): void;
+  setOrientation(orientation: "horizontal" | "vertical"): void;
+  setWrap(wrap: boolean): void;
+  toolbarProps: {
+    role: "toolbar";
+    "aria-orientation": "horizontal" | "vertical";
+    onKeyDown;
+  };
+  itemProps(index: number): {
+    id;
+    role: "button";
+    "aria-disabled": "true" | undefined;
+    tabindex: 0 | -1; // the roving tab stop
+    onClick;
+    onFocus;
+  };
+};
+```
+
+- **Disabled but focusable.** A disabled item keeps its place in the arrows and the tab-stop order and
+  announces `aria-disabled="true"`; it is never activated, so `onActivate` does not fire for it.
+  `toggleDisabled(index)` flips the mask at runtime.
+- **Embedded controls consume their keys.** A `"text"` item swallows the axis navigation keys and a
+  `"spin"` item swallows Up / Down and Home / End, so typing or stepping inside an item never moves the
+  toolbar's focus. The embedded control's own value is not modelled: the host renders it and owns it.
+- **Divergences.** base-ui and ariakit skip disabled items in roving navigation, where `toolbar.qnt` keeps
+  them focusable; the tab stop starts on item `0` even when that item is disabled, where the abstract
+  Composite picks the first non-disabled item; and the primitive renders `role="toolbar"` with
+  `aria-orientation`, where the abstract Composite role carries neither. A toggle group's `aria-pressed` is
+  not this primitive.
+- **Limits (the source's own):** no separators, no RTL, and `items` does not grow after construction.
+
+`Right` / `Left` on a horizontal toolbar and `Down` / `Up` on a vertical one move the roving tab stop along
+the axis (`ArrowRight` and `Right` are normalised to one key), Home / End jump to the ends, and `wrap`
+decides whether an edge wraps or stops. Enter and Space activate the focused `button` item, and both are
+`preventDefault`ed. Tab from a `button` item leaves the toolbar (the browser moves on); from a `text` item it
+steps to the neighbouring item and only leaves at the edge, which is how Tab escapes a text field inside a
+composite. `focusIn`, `leave` and `tab(back)` are those steps as methods, and `focusItem`, `clickItem` and
+`activate` are the pointer and programmatic paths.
+
+### Headless: `createTextInput` and `createTextArea` (`@cssints/headless`)
+
+`createField` plus the props a host forgets: a text input or a textarea with the field's label, hint, error
+and description contract attached. There is no APG pattern for text editing (an `<input>` already is the
+pattern), so there is no Quint spec and `packages/headless/test/textbox.browser.test.tsx` is the oracle for
+both. The field half — ids, `aria-describedby` order, `aria-invalid` only while invalid, `role="alert"` on a
+shown error — is `createField`'s and is documented above.
+
+```ts skip
+createTextInput(options?: {
+  // the field's options: id, required, invalid, hint, error, describedby
+  type?: "text" | "email" | "tel" | "url" | "search" | "password"; // "text"
+  autoComplete?: AutoCompleteToken; // the HTML token list; the browser's autofill is the accessible path
+  spellCheck?: boolean; // spellcheck, "true" | "false"; absent when the option is
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
+  maxLength?: number; // the browser's own limit
+  readOnly?: boolean; // focusable, selectable, submitted
+  disabled?: boolean; // out of the tab order, not submitted
+  name?: string;
+  dir?: "ltr" | "rtl" | "auto";
+  placeholder?: string;
+  onValueChange?(value: string): void; // every `input` event
+}): {
+  // the field's members: invalid(), hint(), error(), describedIds(), labelProps, hintProps, errorProps
+  controlProps: {
+    id; // `<id>-control`, from the field
+    "aria-describedby"; // hint, then error, while shown, then the host's describedby
+    "aria-invalid"; // "true" only while invalid
+    "aria-required"; // "true" while required
+    required; // true while required
+    type;
+    autoComplete;
+    spellcheck: "true" | "false" | undefined;
+    autocapitalize;
+    inputmode;
+    maxlength;
+    readOnly: true | undefined;
+    disabled: true | undefined;
+    name;
+    dir;
+    placeholder;
+    onInput;
+  };
+};
+```
+
+```ts skip
+createTextArea(options?: {
+  // the text input's options and members, plus:
+  rows?: number;
+  wrap?: "soft" | "hard" | "off";
+  resize?: "none" | "vertical" | "horizontal" | "both"; // carried as a style
+}): {
+  controlProps: {
+    // …the input's controlProps, plus
+    rows: number | undefined;
+    wrap: "soft" | "hard" | "off" | undefined;
+    style: { resize: "none" | "vertical" | "horizontal" | "both" } | undefined;
+  };
+};
+```
+
+- **Both `required` attributes.** The native one is what the browser enforces, `aria-required` is what a
+  custom widget reading the same props needs. A host that validates itself puts `noValidate` on the form
+  rather than dropping the attribute.
+- **`maxLength` is the browser's.** The primitive emits the attribute and reports the value it is given; it
+  never truncates in JS, which would break paste and IME.
+- **`disabled` is not `readOnly`.** Disabled is out of the tab order and is not submitted; readOnly is
+  focusable, selectable and submitted, which is what a value the user must read before signing wants.
+- **One callback per edit.** `onValueChange` is wired to `input`, so a keystroke, a paste, a dropped
+  character and an IME commit all reach it; `change` is not bound.
+- **The textarea adds `rows`, `wrap` and `resize`.** `resize` is a `style` because CSS has no attribute for
+  it, and it is absent when the option is; `none` is what a layout that owns its own height wants.
+- **Options are read on every attribute read,** so `disabled`, `hint` and `error` may change on a mounted
+  control.
+
+No key is bound: editing is the platform's, with its arrows, Home / End, selection, undo, IME and paste
+behaviour. The primitive neither commits on Enter nor intercepts Tab, and a multiline field's Enter is the
+browser's too, so a host that wants Enter to submit reads the key itself.
+
+### Headless: `createLink` (`@cssints/headless`)
+
+The APG link as attribute objects: a native `<a href>` when the host has an `href` (the default),
+and otherwise a custom element that takes `role="link"`, `tabindex="0"` and an Enter handler,
+because the pattern says that "applying the link role will not cause browsers to enhance the
+element". Its behaviour is `packages/apg-specs/specs/apg/link.qnt`;
+`packages/headless/test/link.browser.test.tsx` replays the ariakit, Base UI and react-aria scenarios
+(`packages/apg-specs/scenarios/apg/link.*.json`) against it and walks it differentially against the
+model in both the native and the custom configuration.
+
+```ts skip
+createLink(options?: {
+  href?: string | undefined; // set: a native anchor, unless native: false
+  native?: boolean | undefined; // defaults to href !== undefined
+  disabled?: boolean; // false
+  current?: boolean; // aria-current="page", for a trail's current entry
+  onActivate?(): void; // Enter or a click reached the link
+  onNavigate?(href: string): void; // router integration: where the activation would go
+}): {
+  native(): boolean;
+  href(): string | undefined;
+  disabled(): boolean;
+  linkProps: {
+    role: "link" | undefined; // undefined on a native anchor
+    tabindex: number | undefined; // undefined natively, -1 while disabled, else 0
+    href: string | undefined; // only a native anchor carries it
+    "aria-disabled": "true" | undefined;
+    "aria-current": "page" | undefined;
+    onKeyDown;
+    onClick;
+  };
+};
+```
+
+The primitive holds no state: `native`, `href`, `disabled` and `current` are read when an attribute
+is read, so a host that flips one of them reacts without rebuilding anything. `linkProps` is
+getter-backed for the same reason: spread it once and every attribute follows the props.
+
+**The primitive never navigates.** `onClick` prevents the anchor's default action on every click and
+then calls `onActivate()` and `onNavigate(href())`, which is what makes a router integration a
+callback rather than an intercept of the browser's own follow. A middle click is an `auxclick`,
+which `linkProps` does not handle, so "open in a new tab" keeps the browser's path. A disabled
+custom link leaves the tab order (`tabindex="-1"`); a disabled native one keeps its tab stop and
+only announces `aria-disabled="true"`, so a host that must truly retire the link drops `href` while
+it is disabled. The one react-aria scenario that stays a negative test is
+`accessible-props-passed-through`: it passes `aria-current` through a consumer prop, and the
+primitive only returns the pattern's own attributes.
+
+**Keyboard, and what the host owns.** Enter activates through the same handler for both shapes, so a
+native anchor's activation reaches `onNavigate` instead of the address bar; Space is consumed
+(`preventDefault`) but does nothing, as the pattern's key table says, so the page never scrolls on a
+focused link. There is no live region and no focus management (`link.qnt`'s "focus moves to the
+target" is the browser's job, or the host's after `onActivate`). `role` and `tabindex` exist only
+for the custom element: a native anchor gets focusability and activation from the browser.
+
+### Headless: `createListbox` (`@cssints/headless`)
+
+The APG listbox as state plus attribute objects, one widget for the three machines the scenarios
+use: single-select (with optional selection-follows-focus), multi-select in the recommended model,
+and type-ahead. `packages/apg-specs/specs/apg/listbox-single.qnt`, `listbox-multi.qnt` and
+`listbox-typeahead.qnt` are its models; `packages/headless/test/listbox.browser.test.tsx` replays
+the ariakit, Base UI and react-aria scenarios (`packages/apg-specs/scenarios/apg/listbox.*.json`)
+and walks it differentially in thirteen configurations: single, follows-focus, a default selection,
+multi with and without one, type-ahead with `selectionMode: "none"`, and each of those controlled by
+a host that accepts every request and one that holds its value.
+
+```ts skip
+// ListboxItemInput is a label string or { id?, label, textValue?, disabled? }
+createListbox(options: {
+  items: ReadonlyArray<ListboxItemInput> | (() => ReadonlyArray<ListboxItemInput>);
+  selectionMode?: "single" | "multiple" | "none"; // "single"
+  followsFocus?: boolean; // false; single-select only: the active option is also selected
+  value?: ReadonlyArray<number> | undefined; // controlled selection, by option index
+  defaultValue?: ReadonlyArray<number>; // uncontrolled; defaultSelected is an alias
+  defaultActive?: number; // 0
+  activeValue?: number | undefined; // controlled active option (the type-ahead focus move)
+  disabled?: ReadonlyArray<number>; // indices that cannot be selected or reached
+  focusOnHover?: boolean; // false: hoverOption moves the active option only when true
+  id?: string; // base of the generated option ids
+  label?: string | undefined; // aria-label on the listbox
+  onValueChange?(selected: ReadonlyArray<number>): void; // a request; onSelectionChange is an alias
+  onActiveChange?(index: number): void; // a request
+}): {
+  active(): number;
+  selected(): ReadonlyArray<number>; // sorted, de-duplicated, in range
+  focused(): boolean;
+  items: ReadonlyArray<{ id; label; textValue; disabled }>; // getter-backed
+  selectionMode: "single" | "multiple" | "none";
+  focus(): number; // the option that takes focus on entry
+  blur(): void;
+  keyDown(key: string, modifiers?: { shift?; ctrl?; meta?; alt? }): void;
+  type(text: string): void;
+  clearTypeahead(): void;
+  clickOption(index: number): void;
+  hoverOption(index: number): void;
+  setFollowsFocus(value: boolean): void;
+  listboxProps: {
+    role: "listbox";
+    "aria-multiselectable": "true" | "false" | undefined; // undefined in "none"
+    "aria-activedescendant": string | undefined; // only while the widget holds focus
+    "aria-label": string | undefined;
+    onKeyDown;
+    onFocusOut;
+  };
+  optionProps(index: number): {
+    id;
+    role: "option";
+    "aria-selected": "true" | "false";
+    "aria-disabled": "true" | undefined;
+    "aria-posinset";
+    "aria-setsize";
+    tabindex: 0 | -1; // 0 on the active option only
+    onClick;
+    onFocus;
+    onMouseEnter;
+  };
+};
+```
+
+`items` takes a getter (`() => items()`) and is read at attribute-read time, so a list that arrives
+later, or is filtered, keeps the active option and the selection instead of being rebuilt; the
+normalized list is cached by the identity of the array it came from, so one re-rendered option does
+not walk the whole list. A selection or a `defaultActive` chosen before the items landed still
+applies once they do, because `selected()` normalizes against the live count at every read.
+Selection is a set of indices, always returned sorted and de-duplicated, and an option that is
+disabled either by the `disabled` index list or by its own `disabled` field is skipped by the
+arrows, Home/End, clicks and hover.
+
+Selection is uncontrolled by default (`defaultValue`, or `defaultActive` for the active option) and
+controlled by `value` + `onValueChange` (the active option by `activeValue` + `onActiveChange`,
+which is the type-ahead machine's value). Every selection change and every focus move is a request:
+uncontrolled it commits, controlled it commits nothing until the host writes the prop back, and a
+request equal to the current state is not made at all.
+
+**Keyboard.** In `"single"` and `"none"` a printable character is type-ahead: a fresh buffer
+searches from the option after the active one, wrapping, and a growing buffer searches from the
+active one inclusive, both on the item's `textValue` (its label by default); a Space continues a
+non-empty buffer instead of selecting. ArrowDown / ArrowUp move the active option without wrapping,
+Home / End jump to the first / last enabled option, and Space or Enter selects the active option in
+single-select (in `"none"` there is nothing to select). In `"multiple"` Space toggles the active
+option, Shift+Space selects the run from the anchor to the active option, Shift+Arrow toggles the
+option it enters, Ctrl+Shift+Home / End select to that edge, and Ctrl+A (or Meta+A) selects all, or
+clears when all are selected. Ctrl+Space and Ctrl+Arrow are consumed and move nothing: the pattern's
+alternative model, where the arrows move focus only, is not implemented. The type-ahead keys are
+single- and none-only; `type(text)` itself searches in any mode.
+
+There is no live region and no timer: the host calls `clearTypeahead()` from its own idle timer, and
+`focusOnHover` is off by default because moving the active option on hover fights a nested scroll or
+a tooltip. `focus()` names the entry option (the first selected one, else the first), returns the
+active one when the widget already has focus, and, in single-select with `followsFocus`, commits it.
+`aria-activedescendant` is emitted while the widget holds focus, but the container itself has no
+tabindex: the active option is the single tab stop, so the host keeps the DOM focus on that option.
+The scenario divergences: `autoFocus` focuses the option, not the listbox, so a probe reads
+`option:0`; and `onAction` / `onPress` are react-aria extensions the primitive does not report (only
+the selection change).
+
+### Headless: `createMeter` (`@cssints/headless`)
+
+A graphical display of a numeric value within a range, for a battery or a fuel gauge: **not a
+progress bar** (there is no completion) and not for an unbounded value. The platform does the work
+(`<meter>`), so the primitive only derives the ARIA contract and runs no state machine:
+`packages/apg-specs/specs/apg/meter.qnt` checks the three properties the pattern states (min below
+max, the value clamped into the range, a value text that describes the current value),
+`packages/headless/test/meter.browser.test.tsx` replays the Base UI and react-aria scenarios
+(`packages/apg-specs/scenarios/apg/meter.*.json`) and walks it differentially with in-range,
+offset-range and out-of-range configurations.
+
+```ts skip
+createMeter(options?: {
+  value?: number; // 0; clamped into [min, max]
+  min?: number; // 0
+  max?: number; // 100
+  valueText?: string | undefined; // aria-valuetext; the rounded percentage when absent
+  label?: string | undefined; // aria-label
+  labelId?: string | undefined; // aria-labelledby, for a visible label element
+}): {
+  min(): number;
+  max(): number;
+  value(): number; // the clamped value, never the raw one
+  percent(): number; // 0..100, rounded to a whole number
+  meterProps: {
+    role: "meter";
+    "aria-valuemin";
+    "aria-valuemax";
+    "aria-valuenow";
+    "aria-valuetext"; // always present: the host's text or "42%"
+    "aria-label";
+    "aria-labelledby";
+  };
+};
+```
+
+The primitive is controlled by construction: the host feeds `value`, `min` and `max`, and nothing is
+stored. A value outside the range is clamped for both `aria-valuenow` and `percent()`, and a range
+whose `max` does not exceed its `min` reports `min` and 0% rather than a negative ratio: the model
+ignores such a range change and keeps the last valid one, where a pure function of the current props
+has nothing to keep. `percent()` is the skin's input (fill width, needle angle); the primitive draws
+nothing. Pass `label` or `labelId`, not both: both attributes are emitted as given, and
+`aria-labelledby` wins in ARIA.
+
+**Keyboard and limits.** None: a meter is not focusable, binds no key and has no live region,
+because the value it shows is not a control the user operates. `aria-valuetext` is always emitted,
+so a host that wants a friendlier sentence ("3 of 5 bars") passes it; the default is the rounded
+percentage. Neither a progressbar's completion semantics nor the value's history belongs here: a
+task that finishes, and has a `role="progressbar"` of its own, is not a meter.
+
+### Headless: `createPagination` (`@cssints/headless`)
+
+A navigation landmark over a page list. **No APG pattern exists for pagination**; the requirements
+are TetraLogical's (accessible-components-library v1.0.0), and
+`packages/headless/test/pagination.browser.test.tsx` is its oracle: exactly one current page, the
+ends kept in place and disabled rather than removed, the count announced once, and an `href` for
+every link so the control works without JS.
+
+```ts skip
+createPagination(options: {
+  page: number; // required, 1-based
+  pageCount: number; // required
+  siblings?: number; // 1: pages shown on each side of the current one
+  boundaries?: number; // 1: pages always shown at each end
+  hrefFor?: ((page: number) => string) | undefined; // set: anchors; absent: buttons
+  disabled?: boolean; // false
+  labels?: {
+    nav?; // "Pagination"
+    previous?; // "Previous page"
+    next?; // "Next page"
+    page?; // the prefix of a page link's name, "Page"
+    gap?; // declared, but unused: a gap carries its key, the host writes its text
+    status?: (page: number, count: number) => string; // "Page <page> of <count>"
+  } | undefined;
+  onPageChange?(page: number): void; // a request the host may ignore
+}): {
+  items(): ReadonlyArray<
+    { kind: "page"; page: number; current: boolean } | { kind: "gap"; key: string }
+  >;
+  current(): number; // page, clamped into 1..max(pageCount, 1)
+  navProps: { "aria-label": string };
+  listProps: { role: "list" };
+  itemProps(page: number): { role: "listitem"; "aria-current": "page" | undefined };
+  linkProps(page: number): {
+    href: string | undefined;
+    "aria-current": "page" | undefined;
+    "aria-disabled": "true" | undefined; // disabled, or a page outside the range
+    "aria-label": string;
+    rel: undefined;
+    onClick;
+  };
+  previousProps: { href; "aria-current": undefined; "aria-disabled"; "aria-label"; rel: "prev"; onClick };
+  nextProps: { href; "aria-current": undefined; "aria-disabled"; "aria-label"; rel: "next"; onClick };
+  status(): string;
+  statusProps: { role: "status"; "aria-live": "polite"; "aria-atomic": "true" };
+};
+```
+
+`items()` is the page list: the current page, `siblings` pages either side of it, `boundaries` pages
+at each end, and **one `gap` entry per elided run**, keyed by the run's start so the list is stable.
+It is recomputed on every read, so a host may change `page` and `pageCount` without rebuilding;
+`current()` clamps the page it was given, and the page list and both ends are built from the
+clamped value. A gap entry has no handler and no role: the host renders its own marker, hidden from
+assistive technology (the count is already in the status line), and `labels.gap` is declared but
+never read.
+
+The ends are `previousProps` and `nextProps`, getters that resolve their page from the current one
+at read time, so a host that spreads the object onto an anchor once still steps past the first move;
+both carry `rel`, `aria-disabled` at a boundary, and an `href` from `hrefFor`. A page link's
+`aria-label` is `"Page <n>"`; `itemProps(page)` is meant for the `<li>` around the page link and
+around each end. `status()` is the one announcement, and the current page is marked on its item and
+on its link. The host's `hrefFor` is what makes the control work without JS; without it the props
+carry no `href` and a click only asks `onPageChange`. Target size is the skin's job: 24x24 CSS px at
+AA, 44x44 at AAA.
+
+**Keyboard and limits.** The primitive binds no key and moves no focus: the props go on anchors or
+buttons, so Tab, Enter and Space are the platform's, and `disabled` only sets `aria-disabled` and
+drops the request (the host keeps its anchors out of the tab order if it must). `labels` is the
+whole translation surface, including the status sentence, which defaults to English. The current
+page is still rendered as a page link and still gets its `href`; a click on it is refused
+(`navigate` returns early when the page is current), so the mark changes and the page does not
+reload.
+
+### Headless: `createBreadcrumb` (`@cssints/headless`)
+
+The APG breadcrumb: a trail of links in hierarchical order, the current page last and marked
+`aria-current="page"` on both the item and its link. The platform carries the navigation landmark,
+so the primitive only returns the trail's attributes. Its behaviour is
+`packages/apg-specs/specs/apg/breadcrumb.qnt`; `packages/headless/test/breadcrumb.browser.test.tsx`
+replays the react-aria scenarios (`packages/apg-specs/scenarios/apg/breadcrumb.react-aria.json`) and
+walks it differentially for a trail of four items and of two.
+
+```ts skip
+createBreadcrumb(options: {
+  items: ReadonlyArray<{ label: string; href?: string | undefined }>;
+  currentIndex?: number; // 1-based; defaults to the last item, 0 marks no item
+  disabled?: boolean; // false: aria-disabled on every item and every press refused
+  label?: string | undefined; // the landmark's name, "Breadcrumbs"
+  labelledby?: string | undefined; // aria-labelledby, for a visible heading
+  describedby?: string | undefined; // aria-describedby
+  onPress?(index: number): void; // a request: the host navigates or cuts the trail
+}): {
+  navProps: { "aria-label": string | undefined; "aria-labelledby"; "aria-describedby" };
+  listProps: { role: "list" };
+  itemProps(index: number): { role: "listitem"; "aria-current": "page" | undefined; "aria-disabled" };
+  linkProps(index: number): { href: string; "aria-current": "page" | undefined; onClick };
+};
+```
+
+The trail's length is read once at creation, so the array is not a getter: a trail that grows (the
+user descends) or shrinks (an ancestor link cuts it back) is a new `createBreadcrumb` call, or the
+host renders fewer items itself. `currentIndex` is clamped into `0..items.length`, which gives the
+model's three states: the last item marks the trail's end, `0` marks nothing (the spec's "none"),
+and an index past the end clamps to the last item.
+`linkProps(index).href` falls back to `"#"` for an item with no `href`, because an anchor without
+one is not a link; the current item may be rendered as text instead (the pattern allows
+`aria-current` on the item alone), which is the fixture's `renderText` case. Pressing any link,
+current one included, calls `onPress(index)`; the host decides whether that navigates or cuts the
+trail. Nothing is prevented, so a native anchor follows its own `href` as well: `onPress` is a
+notification that can cut the trail, and the address the link points at stays the host's.
+
+**Keyboard and limits.** None of its own: the entries are plain links, so Tab and Enter are the
+browser's, and there is no live region and no focus management (the react-aria scenario that focuses
+an ancestor at mount stays a negative test). `navProps` carries `aria-label` even beside a
+`labelledby`, so pass one of them per landmark; `aria-labelledby` wins in ARIA. **No overflow is
+built in**: a trail too long for the width is the host's collapse (the APG example truncates the
+middle behind a menu), and this primitive returns one item per input, in order. The other two
+divergences are the upstream's generic `aria-label` on every item and its expectation that an item
+wrapper carries no role: the primitive always renders a `listitem` around the link, and an item's
+label stays its text.
+
+### Headless: `createTreeview` (`@cssints/headless`)
+
+The APG tree view: a `role="tree"` of `role="treeitem"` rows, one roving tab stop, a selection
+that is a request and an expansion that is always uncontrolled. Its behaviour is
+`packages/apg-specs/specs/apg/treeview.qnt`, checked against the real DOM by the differential walk
+in `packages/headless/test/treeview.browser.test.tsx` (single and multi, uncontrolled, controlled
+accepting and holding). The ported scenarios are
+`packages/apg-specs/scenarios/apg/treeview.apg.json`: 30 of the 35 replay, two stay recorded
+divergences (APG moves focus to the selected node when the tree receives focus; the spec and the
+primitive keep the roving node), and three skip because their steps carry a `modifiers` field the
+bridge cannot express (Shift+ArrowUp / Shift+ArrowDown, Ctrl+A), which the walk covers instead. A
+tree with columns and cell navigation is `createTreegrid`, below; this one is the single-column
+tree.
+
+`nodes` is read once, at creation — ids in pre-order (document order), `parent` 0 for a root —
+so a list that arrives later needs a fresh primitive; the default is `TREEVIEW_NODES`, the spec's
+seven-node file tree. The host renders every node in document order and spreads `treeProps` on
+the tree and `itemProps(id)` on each item: `aria-level`, `aria-setsize`, `aria-posinset`,
+`aria-expanded` on parents only, `aria-selected` on every node, the roving `tabindex` and `hidden`
+for a node inside a closed parent. Render all of them and let `hidden` hide a subtree: the
+setsize / posinset of a visible row count its hidden siblings too. There is no expander button in
+the primitive: the host draws its chevron from `aria-expanded` and attaches no handler to it,
+because a click on a parent row already toggles it as well as selecting and focusing it.
+
+Expansion is uncontrolled (`defaultExpanded` + `onExpandedChange`); the selection is `value` +
+`onValueChange` when the host owns it and `defaultValue` (or its alias `defaultSelected`) when it
+does not, and a request fires `onSelectionChange` once per newly selected node. The primitive never
+calls `focus()`: it publishes the roving node as `focus()`, `tabindex="0"` and `hasFocus`, and the
+host moves the DOM focus after an arrow (the fixture does it in an effect). `select`,
+`toggleSelected`, `expand`, `collapse` and `toggleExpanded` are the programmatic requests.
+
+```ts skip
+createTreeview(options?: {
+  nodes?: ReadonlyArray<TreeviewNode>; // read once: { id, parent, label }, parent 0 = a root, document order
+  multiSelectable?: boolean; // false: one selected node, and Space / Enter / a click replace it
+  value?: ReadonlyArray<number> | undefined; // controlled: the selected node ids; undefined = uncontrolled
+  defaultValue?: ReadonlyArray<number>; // the selection at mount
+  defaultSelected?: ReadonlyArray<number>; // an alias for defaultValue
+  defaultExpanded?: ReadonlyArray<number>; // the parent ids open at mount
+  defaultFocus?: number; // the roving node at mount; the first node by default
+  label?: string; // the tree's aria-label
+  orientation?: "vertical" | "horizontal"; // "vertical": announced only, the keys are the vertical set
+  onExpandedChange?(node: TreeviewNode): void; // once per node whose expansion changed
+  onSelectionChange?(node: TreeviewNode): void; // once per newly selected node
+  onValueChange?(selected: ReadonlyArray<number>): void; // a request the host may ignore
+  onActivate?(node: TreeviewNode): void; // Enter's default action
+}): {
+  nodeIds(): ReadonlyArray<number>;
+  expanded(): ReadonlyArray<number>;
+  selected(): ReadonlyArray<number>;
+  focus(): number; // the roving node
+  hasFocus(): boolean;
+  isExpanded(id: number): boolean;
+  isSelected(id: number): boolean;
+  isVisible(id: number): boolean; // not inside a closed parent
+  isParent(id: number): boolean;
+  expand(id: number): void;
+  collapse(id: number): void;
+  toggleExpanded(id: number): void;
+  select(id: number): void; // replace the selection with this node
+  toggleSelected(id: number): void;
+  resetTypeahead(): void; // the timeout, modelled explicitly
+  treeProps: {
+    role: "tree";
+    "aria-multiselectable": "true" | "false";
+    "aria-label": string | undefined;
+    "aria-orientation": "horizontal" | undefined; // vertical carries nothing
+    onKeyDown;
+    onFocusIn;
+    onFocusOut;
+  };
+  itemProps(id: number): {
+    role: "treeitem";
+    "aria-level": number;
+    "aria-setsize": number; // the siblings, hidden ones included
+    "aria-posinset": number;
+    "aria-expanded": "true" | "false" | undefined; // parents only
+    "aria-selected": "true" | "false";
+    tabindex: 0 | -1; // the roving node
+    hidden: boolean; // inside a closed parent
+    onClick;
+  };
+};
+```
+
+**Keyboard.** ArrowDown / ArrowUp move over the visible nodes, a closed subtree skipped; ArrowRight
+opens a closed parent, and on an open parent it moves to the first child; ArrowLeft closes an open
+parent, else moves to the parent; Home / End are the first and last visible node; `*` opens every
+closed sibling of the focused node (the focused node included when it is a parent); Enter toggles a
+parent, selects it when single-select, and then fires `onActivate`; Space selects it (multi:
+toggles); Shift+ArrowUp / Shift+ArrowDown move and toggle the node they land on; Ctrl+A or Cmd+A
+(multi) selects every node and a second press clears, nodes inside collapsed subtrees included.
+Type-ahead matches the visible labels from the node after the roving one for one character and from
+the roving node for two; the buffer holds two characters and a third starts a new one, and its
+timeout is the host's `resetTypeahead()` call, so no timer and no `prefs` delay is involved.
+
+**Limits.** There is no live region: the roving focus and the ARIA the host spreads are the
+announcement. Single-select selection does not follow the focus (Space, Enter and a click select;
+the arrows only move), and range selection (Shift+Space, Ctrl+Shift+Home / End), Ctrl+Arrow,
+Ctrl+click, `aria-current` navigation trees and `aria-disabled` nodes are not modelled. The model
+checks three levels; the primitive computes `aria-level` at any depth. `orientation` is announced
+only, and the ids pack into a 32-bit mask, so the widget takes at most 32 nodes.
+
+### Headless: `createTreegrid` (`@cssints/headless`)
+
+The APG treegrid: rows of cells with a tree in the first column, the example's three navigation
+models and row selection. Its behaviour is `packages/apg-specs/specs/apg/treegrid.qnt` — the Email
+Inbox tree, `A > {A.1, A.2 > {A.2.1}}` and `B > {B.1, B.2}` — checked against the real DOM by the
+differential walk in `packages/headless/test/treegrid.browser.test.tsx` over seven configurations:
+each navigation model, single and multi selection, controlled accepting and holding. The ported
+scenarios (`scenarios/apg/treegrid.apg.json` and `scenarios/apg/treegrid.react-aria.json`, 86
+together) are replayed but every one skips: their configs carry a dynamic `tree` / `columns` /
+`expanded` the bridge cannot express, because the model is the spec's fixed seven-row tree. The
+walk, not the ported scenarios, is the oracle, and it holds the three navigation models rather
+than the tree a host passes.
+
+`parents` is the tree and its only tree data: the parent of each row in document order, `-1` for a
+root and otherwise the index of that row's parent. **It is read once, at creation**, and the
+default is the spec's seven rows — so the primitive is not tied to the spec tree, but nothing
+rebuilds a tree that changes underneath it. `cols` is the column count (3 by default; the spec
+fixes three). Expansion is uncontrolled — `defaultExpanded` at mount, then `toggleRow` /
+`setExpanded`, with no expansion callback — while the selection is `value` + `onValueChange` or
+`defaultValue`.
+
+The host renders `gridProps` on the treegrid, `rowProps(row)` on every row, `cellProps(row, col)` on
+every cell and `expanderProps(row)` on a button inside the first cell of a row where
+`hasChildren(row)` is true. The primitive owns the roving tab stop (exactly one row or cell is
+tabbable, remembered while the focus is outside), `aria-level` / `aria-setsize` / `aria-posinset`,
+`aria-expanded` on parent rows, `aria-selected`, the ids (`<id>-row-<row>` and
+`<id>-cell-<row>-<col>`) and the key handling. `focusTargetPart()` names the tab stop as `row:<row>`
+or `cell:<row>,<col>`, and `treegridFocusTargetPart(grid)` is the same value for a host that holds
+the primitive in a signal; the host focuses that element after a key, as the fixture does.
+`gridProps` carries no accessible name: put `aria-label` or `aria-labelledby` on the element
+yourself.
+
+```ts skip
+createTreegrid(options?: {
+  nav?: "rowsFirst" | "cellsFirst" | "cellsOnly"; // "rowsFirst": Tab lands on the row
+  selection?: "single" | "multi"; // "single": the selection follows the focus
+  cols?: number; // 3; the spec fixes three
+  parents?: ReadonlyArray<number>; // read once: -1 is a root, else the index of the row's parent
+  defaultExpanded?: ReadonlyArray<number>; // the rows open at mount, by index
+  value?: ReadonlyArray<number> | undefined; // controlled: the selected rows; undefined = uncontrolled
+  defaultValue?: ReadonlyArray<number>; // the selection at mount
+  id?: string; // base of <id>-row-<row> and <id>-cell-<row>-<col>
+  onValueChange?(selected: ReadonlyArray<number>): void; // a request the host may ignore
+}): {
+  rows(): number;
+  cols(): number;
+  nav(): "rowsFirst" | "cellsFirst" | "cellsOnly";
+  selection(): "single" | "multi";
+  focusedRow(): number;
+  focusedCol(): number;
+  kind(): "row" | "cell"; // which of the two holds the tab stop
+  inGrid(): boolean;
+  visible(row: number): boolean;
+  hasChildren(row: number): boolean;
+  isExpanded(row: number): boolean;
+  isSelected(row: number): boolean;
+  focusTargetPart(): string | null; // "row:2" / "cell:2,1"; null while the focus is out
+  gridProps: {
+    role: "treegrid";
+    "aria-multiselectable": "true" | undefined; // multi only
+    onFocusOut;
+  };
+  rowProps(row: number): {
+    role: "row";
+    id: string;
+    "aria-level": number;
+    "aria-setsize": number;
+    "aria-posinset": number;
+    "aria-expanded": "true" | "false" | undefined; // parent rows only
+    "aria-selected": "true" | "false" | undefined; // undefined on unselected rows when single
+    tabindex: 0 | -1;
+    onFocus;
+    onKeyDown;
+  };
+  cellProps(row: number, col: number): {
+    role: "gridcell";
+    id: string;
+    tabindex: 0 | -1;
+    onClick;
+    onFocus;
+    onKeyDown;
+  };
+  expanderProps(row: number): {
+    role: "button";
+    "aria-label": "Expand" | "Collapse";
+    "aria-expanded": "true" | "false";
+    onMouseDown; // keeps the focus where it is
+    onClick; // toggles the row, and does not reach the cell
+  };
+  focus(): void; // moves the tab stop into the grid; the host focuses it
+  blur(): void;
+  clickCell(row: number, col: number): void;
+  toggleRow(row: number): void;
+  configureNav(nav: "rowsFirst" | "cellsFirst" | "cellsOnly"): void; // resets expansion and focus
+  configureSelection(selection: "single" | "multi"): void;
+  setExpanded(row: number, expanded: boolean): void;
+};
+```
+
+- **`nav`** picks the tab stop and the Left / Right path. `"rowsFirst"` (the default) puts Tab on
+  the row: Right enters the row's first cell, then moves right, and Left on the first cell returns
+  to the row. `"cellsFirst"` puts Tab on the first cell, and Left from it still reaches the row.
+  `"cellsOnly"` never focuses a row: Left stays among the cells, and Enter on the first cell of a
+  parent toggles it.
+- **Movement** is the same in all three. Up / Down move over the visible rows, staying in the
+  column in cell mode; Home / End are the first / last cell in cell mode and the first / last
+  visible row in row mode; Ctrl+Home / Ctrl+End are the first / last visible row, keeping the
+  column. Right on a row expands a collapsed parent and then enters its first cell, so a row's
+  Right always ends in the cell; Left on an expanded parent collapses it and keeps the row.
+- **Selection** is per row. `"single"` follows the focus, and `aria-selected` is on the selected
+  row only (absent elsewhere); a cell click selects its row. `"multi"` sets
+  `aria-multiselectable`, writes `aria-selected` true or false on every row, and changes only on
+  Shift+Space (toggle the focused row), Ctrl+A (every row, no second press to clear) and
+  Shift+ArrowUp / Shift+ArrowDown in row mode (move and add the neighbouring visible row to the
+  selection); a click or a plain arrow does not select.
+- **`configureNav` / `configureSelection`** are a host's switches between models: they reset the
+  expansion, the tab stop and an uncontrolled selection to the new model's start, and leave a
+  controlled selection alone.
+
+**Keyboard and limits.** Enter acts in `cellsOnly` only, and the other two models
+`preventDefault` it without doing anything, so a row's default action is the host's; a click is a
+cell click, not a row click. The expander takes no focus on `mousedown`, stops its click from
+reaching the cell, and moves the focus to the toggled row when the collapse would hide the focused
+row. No live region: the ARIA and the moved focus are the announcement. Not modelled: cell and
+column selection, editing or Tab inside a cell, PageUp / PageDown, `aria-rowcount` / `-colcount` /
+`-index`, disabled rows, type-ahead and row header cells (every cell is a `gridcell`). The model
+checks the fixed seven rows and three columns, the parent map is fixed at creation, and row ids
+pack into a 32-bit mask, so the grid takes at most 32 rows.
+
+### Headless: `createWindowSplitter` (`@cssints/headless`)
+
+The APG window splitter: one focusable `role="separator"` between a primary and a secondary pane,
+whose value is the primary pane's size. Its behaviour is
+`packages/apg-specs/specs/apg/windowsplitter.qnt` (the bounds 0..6, a step of 2, a start of 4 and a
+primary pane that collapses at 0), checked against the real DOM by the differential walk in
+`packages/headless/test/windowsplitter.browser.test.tsx` (vertical, horizontal, fixed, controlled
+accepting and holding) and by the 25 ported scenarios in
+`packages/apg-specs/scenarios/apg/windowsplitter.apg.json`. Two of those stay recorded
+divergences: they write `"*"` for any IDREF or accessible name, which the replay engine's literal
+comparison cannot match (`aria-label`, `aria-controls`), and the rest replay.
+
+**This is the single-separator pattern, not the N-pane group.** `createResizablePanels` is the
+group of N panes and N-1 separators: the same splitter keyboard, with the layout and its bounds in
+`packages/apg-specs/specs/patterns/resizable-panels.qnt`, plus the pointer drag this primitive does
+not have. A two-pane split belongs here; a layout with more than one separator belongs there.
+
+The value is one number in the host's own unit: `min`, `max` and `step` are in it, `aria-valuenow`
+prints it as it is, and the primitive knows nothing of pixels, percentages or the layout. There is
+no `aria-valuetext`, so a percentage reads as its bare number. `collapsed` means "collapsed by
+Enter", not "the value is `min`": a pane at `min` that was never collapsed is not collapsed. While
+controlled, `collapsed` is derived from the host's value plus the last collapse request, so call
+`freezeCollapse()` before the host writes `value` itself (a preset, a saved layout), or a write
+that happens to land on `min` reads as a collapse. `onCollapsedChange` reports the derived state
+when it changes.
+
+The host spreads `separatorProps` on the focusable bar and `primaryProps` / `secondaryProps` on the
+two panes. The panes are `tabindex="0"`, not `-1`, because F6's cycle lands on them, and their
+`onFocus` / `onBlur` mirror the DOM focus into `focusPart`; the primitive never calls `focus()`
+itself, so the host follows `focusPart` with its own effect to make F6 move the focus (the fixture
+does). `separatorProps["aria-controls"]` names the primary pane's id, and the host must put that id
+on the primary element, because `primaryProps` carries none: spread the separator first and read
+it back, or pass `primaryId` and use the same string. `label` or `labelledby` names the separator,
+and APG wants the primary pane's own label, so `labelledby` is the better one.
+
+Options are read lazily, so pass the object itself: `orientation`, `fixed`, `min`, `max`, `step`
+and `value` may be getters, and a host that flips `fixed` or `orientation` on a mounted splitter
+sees the new bounds and keys at once (the fixture switches both that way).
+
+```ts skip
+createWindowSplitter(options?: {
+  orientation?: "vertical" | "horizontal"; // "vertical": a left/right split; horizontal: top/bottom
+  fixed?: boolean; // false: arrows and Home/End move; true: only Enter's two positions
+  value?: number | undefined; // controlled: the primary pane's size; undefined = uncontrolled
+  defaultValue?: number; // 4, clamped into the range
+  min?: number; // 0
+  max?: number; // 6
+  step?: number; // 2: one arrow press
+  id?: string; // base of the separator and pane ids
+  primaryId?: string; // the id aria-controls names; <id>-primary by default
+  label?: string; // the separator's aria-label
+  labelledby?: string; // the id of the primary pane's visible label; it wins the name
+  onValueChange?(value: number): void; // a request the host may ignore
+  onCollapsedChange?(collapsed: boolean): void; // the derived state, when it changes
+}): {
+  value(): number;
+  collapsed(): boolean;
+  focusPart(): "none" | "splitter" | "primary" | "secondary";
+  focusSeparator(): void; // sets focusPart only
+  setFocusPart(part: "none" | "splitter" | "primary" | "secondary"): void;
+  keyDown(key: string): void;
+  freezeCollapse(): void; // call before the host writes `value` itself
+  collapse(): void; // only while the separator has focus
+  expand(): void; // only while the separator has focus
+  separatorProps: {
+    id: string;
+    role: "separator";
+    "aria-orientation": "vertical" | "horizontal";
+    "aria-valuenow": number;
+    "aria-valuemin": number;
+    "aria-valuemax": number;
+    "aria-controls": string; // the primary pane's id: set it on the element
+    "aria-label": string | undefined;
+    "aria-labelledby": string | undefined;
+    tabindex: 0;
+    onKeyDown;
+    onFocus;
+    onBlur;
+  };
+  primaryProps: { tabindex: 0; onKeyDown; onFocus; onBlur };
+  secondaryProps: { tabindex: 0; onKeyDown; onFocus; onBlur };
+};
+```
+
+**Keyboard.** On the bar, ArrowLeft / ArrowRight move a vertical splitter and ArrowUp / ArrowDown
+a horizontal one, by `step` and clamped at the bounds; Home / End jump to the bounds; Enter
+collapses the primary pane to `min` and restores the size it had before. A fixed splitter ignores
+the arrows and Home / End and keeps Enter's two positions; a collapsed one ignores everything but
+Enter. While a pane has focus those keys do nothing (their presses are `preventDefault`ed), and F6
+is the only one that acts: it cycles the focus splitter → secondary → primary → splitter. The
+primitive handles the keys a host's own listener passes to `keyDown`, and nothing else.
+
+**Limits.** One separator and a two-pane split, no drag (a dragged separator is the host's, or
+`createResizablePanels`), no nested splits, no `aria-valuetext` and no live region. The spec fixes
+its bounds and step and does not model a `min` above zero; the options are the primitive's and the
+walk covers the spec's constants.
+
+### Headless: `createResizablePanels` (`@cssints/headless`)
+
+A group of N panes and N-1 separators: react-resizable-panels' percentage layout on the APG
+window splitter's keyboard. It is **not `createWindowSplitter`**: that primitive is one separator,
+the APG pattern only, with no drag, no bounds and no collapse; this one owns the whole layout — a
+drag with pointer capture, per-pane `min` / `max`, a collapsible pane, a remembered size and
+persistence. It is not an APG pattern, so its spec lives under `specs/patterns/`:
+`packages/apg-specs/specs/patterns/resizable-panels.qnt` is the three-pane instance (10% steps,
+10/80 bounds, pane 0 collapsible at 0) and the primitive takes N panes and any bounds.
+`packages/headless/test/resizable-panels.browser.test.tsx` replays its 11 scenarios
+(`scenarios/patterns/resizable-panels.spec.json`) and walks the generated model in four
+configurations (uncontrolled, horizontal, a controlled host that accepts, one that holds), then
+pins the drag, the remembered size, the defaults and persistence, which the model cannot hold. The
+host renders the group, each pane and a separator between neighbours, and spreads the props: the
+group is a flex or grid box, and the pane's size is `sizes()[index]`.
+
+Sizes are percentages of the group and always sum to 100. A move (an arrow, Home/End or a drag)
+changes only the two panes around its separator, clamped by both bounds, and never drags a pane
+below its expanded `min` (only Enter or a host write collapses one). Collapsing hands the space to
+the nearest pane that can take it and cascades outward, right then left; restoring takes it back in
+the same order from the size the pane left. `defaultSize` is a pane's named start: it is kept, and
+the panes that name none share what is left equally (changed 2026-11-02); `defaultSizes` states the
+whole start instead and wins over the per-pane names, and a layout stored under `storageKey` wins
+over both. Every start is clamped and its residual pushed into the panes in order, so a host's bad
+sum still lands on 100.
+
+Uncontrolled by default; `sizes` + `onSizesChange` make it controlled, and the request is the whole
+layout array. The drag is a snapshot plus a delta: pointerdown remembers the layout, every move
+re-solves from it, so dragging back past a clamp recovers exactly. A host write of `sizes` ends a
+drag; the echo of a request the host accepted does not count as one. The newest pointerdown takes
+the drag over, the keyboard is inert while a drag runs, and only the primary button starts one.
+
+```ts skip
+createResizablePanels(options: {
+  panes: ReadonlyArray<{
+    id?: string; // the pane's id; the separator's aria-controls names it
+    min?: number; // smallest expanded size, percent (10)
+    max?: number; // largest size, percent (80)
+    defaultSize?: number; // the named start; panes that name none share what is left
+    collapsible?: boolean; // Enter collapses to collapsedSize and restores the remembered size
+    collapsedSize?: number; // 0
+    label?: string; // the separator announces "Resize <label>"
+  }>;
+  orientation?: "vertical" | "horizontal"; // "vertical": a vertical bar, panes side by side
+  sizes?: ReadonlyArray<number> | undefined; // controlled; undefined = uncontrolled
+  defaultSizes?: ReadonlyArray<number>; // the uncontrolled start as a whole
+  step?: number; // keyboard step, percent (10)
+  id?: string; // base of the generated ids; generated when absent
+  label?: string | undefined; // the group's aria-label
+  storageKey?: string | undefined; // persist the layout in localStorage
+  onSizesChange?(sizes: ReadonlyArray<number>): void; // a request the host may ignore
+}): {
+  sizes(): ReadonlyArray<number>; // the committed layout, percent; sums to 100
+  collapsed(index: number): boolean;
+  resizing(): number | null; // the separator being dragged
+  focusSeparator(): number | null;
+  setFocusSeparator(index: number | null): void;
+  keyDown(index: number, key: string): void; // the separator's keys, without an event
+  groupProps: { role: "group"; "aria-label": string | undefined };
+  paneProps(index: number): { id: string };
+  separatorProps(index: number): {
+    id;
+    role: "separator";
+    "aria-orientation": "vertical" | "horizontal";
+    "aria-valuenow": number; // the committed size of the pane on its left
+    "aria-valuemin": number; // that pane's min
+    "aria-valuemax": number; // that pane's max
+    "aria-controls": string; // the pane on its left
+    "aria-label": string; // "Resize <label>", else "Resize"
+    tabindex: 0;
+    onKeyDown;
+    onFocus;
+    onBlur;
+    onPointerDown;
+    onPointerMove;
+    onPointerUp;
+    onPointerCancel;
+  };
+};
+```
+
+- **The separator is the widget.** It is the only tab stop the primitive adds: `role=separator`,
+  `aria-orientation` the group's, `aria-valuenow` the committed size of the pane on its left,
+  `aria-valuemin` / `-max` that pane's `min` and `max` (10 and 80 by default), `aria-controls` its
+  id, and `aria-label` "Resize <label>" (else "Resize"). A collapsible pane's committed
+  `collapsedSize` (0) therefore reads below its announced minimum.
+- **Keyboard.** Left/Right move a vertical bar's pair (the default: panes side by side), Up/Down a
+  horizontal one's, Home/End jump the pair to its bounds, and Enter collapses or restores; all six
+  `preventDefault`, and every other key passes. Tab walks the bars in DOM order — there is no
+  arrow navigation between them and no F6. A bar beside a collapsed pane is inert except Enter.
+- **Nested groups.** The drag measures `event.currentTarget.parentElement`'s box at pointerdown, so
+  an inner group's bar is a share of the inner group, not of the workspace (2026-11-02), and an
+  outer bar resizing the inner group does not re-solve its percentages. Each group keeps its own
+  ids, `aria-controls`, orientation and keyboard.
+- **Persistence is the host's.** `storageKey` reads and writes `localStorage` best effort: a stored
+  array of another length, or one with a non-number, is ignored, and a blocked or full store is
+  silent. A pane mounted already collapsed restores to its own `min`, not to 0.
+- **Limits.** Percentages only (no pixel bounds), a fixed pane list, and a persisted layout with no
+  version or namespace: the key belongs to the host's storage. F6 is left out; with three panes a
+  Tab is enough.
+
+### Headless: `createCarousel` (`@cssints/headless`)
+
+A carousel after the APG pattern: a rotator, previous and next controls, an optional tabbed picker,
+a slide that is a `group` (or `tabpanel`) and a pause policy. **It is not a scroll-snap strip**:
+every slide but the current one gets `hidden`, so the DOM holds one visible slide and no scroll
+container, and the primitive owns the slide semantics, the pause on hover and focus, and the live
+region. It owns no timer either: `tick()` is one rotation interval and the host calls it from its
+own interval (and passes `reducedMotion`, from its own `matchMedia`). Its behaviour is
+`packages/apg-specs/specs/apg/carousel.qnt`; `packages/headless/test/carousel.browser.test.tsx`
+replays the 51 scenarios of `scenarios/apg/carousel.apg.json` in Chromium and walks the model in
+seven configurations (plain, tabbed, auto-rotation off, started paused, hovering, controlled
+accepting, controlled pinned).
+
+The host renders the wrapper with `carouselProps`, the rotation control (hidden when `autoRotate` is
+false), previous and next, a slide per item with `slideProps`, and for `tabbed` a `tablist` with one
+tab per slide. The host puts the rotation control first in the tab order, as the pattern asks. It is
+`hidden` rather than disabled when `autoRotate` is false, so the option removes it. `items` is read
+once (6, at least 1); `value` + `onValueChange` own the shown slide, `defaultIndex` starts it, and
+`next`, `prev`, `selectSlide`, `toggleRotation` and `tick` are requests too — `next` and `prev`
+wrap.
+
+`autoRotate` (true) is the feature, `playing` (true) is the start and `reducedMotion` (false) starts
+it paused; `rotating()` is true when the feature is on, the state wants it, and either the user
+started it or neither focus nor hover is inside. Focus entering the carousel stops the rotation
+under `stickyFocusPause` (true) and the rotation control starts it again; a pointer press on a
+control suppresses the focus it would give, so a click does not count as focus entering. Hover is a
+real `mousemove` (`mouseenter` would mark an element that appeared under a stationary pointer), and
+it pauses a rotation the user did not start. `onRotatingChange` reports the user's intent, not the
+momentary pause. `focused()` names the part holding focus (`rotation`, `prev`, `next`, `tab:<i>`,
+`slide:<i>`), which a host syncs to the DOM as the test fixture does.
+
+```ts skip
+createCarousel(options?: {
+  items?: number; // slides (6, at least 1)
+  value?: number | undefined; // controlled shown slide; undefined = uncontrolled
+  defaultIndex?: number; // the uncontrolled start (0)
+  autoRotate?: boolean; // true; false removes (hides) the rotation control
+  playing?: boolean; // true: rotation starts on
+  reducedMotion?: boolean; // false: the host's prefers-reduced-motion starts it paused
+  tabbed?: boolean; // tablist / tab / tabpanel instead of plain groups
+  stickyFocusPause?: boolean; // true: focus entering stops rotation until Start
+  hovering?: boolean; // the pointer starts over the carousel
+  role?: "region" | "group"; // "group"
+  labelledBy?: string | undefined; // the carousel's accessible name
+  id?: string; // base of the generated ids
+  onValueChange?(index: number): void; // a request the host may ignore
+  onRotatingChange?(rotating: boolean): void; // the user's intent, not a hover/focus pause
+}): {
+  items: number;
+  current(): number;
+  rotating(): boolean;
+  focused(): "rotation" | "prev" | "next" | "tab:1" | "slide:0" | null; // the part holding focus
+  next(): void; // wraps; a request
+  prev(): void;
+  selectSlide(index: number): void; // out of range is a no-op
+  toggleRotation(): void;
+  tick(): void; // one interval: next() while rotating
+  carouselProps: {
+    role: "region" | "group";
+    "aria-roledescription": "carousel";
+    "aria-live": "off" | "polite"; // off while rotating
+    "aria-labelledby": string | undefined;
+    onMouseMove;
+    onMouseLeave;
+  };
+  rotationProps: {
+    type: "button";
+    id;
+    "aria-label": string; // "Stop automatic slide show" / "Start automatic slide show"
+    "aria-controls": string;
+    hidden: boolean; // true when autoRotate is false
+    onMouseDown;
+    onClick;
+    onFocus;
+    onBlur;
+  };
+  prevProps: { type: "button"; id; "aria-controls": string; onMouseDown; onClick; onFocus; onBlur };
+  nextProps: { type: "button"; id; "aria-controls": string; onMouseDown; onClick; onFocus; onBlur };
+  slideProps(index: number): {
+    id;
+    role: "group" | "tabpanel";
+    "aria-roledescription": "slide";
+    "aria-label": string; // "1 of 6"
+    tabindex: 0 | -1; // the current slide only
+    hidden: boolean; // every other slide
+    onFocus;
+    onBlur;
+  };
+  tablistProps: { role: "tablist" };
+  tabProps(index: number): {
+    id;
+    role: "tab";
+    "aria-label": string; // "Slide 1"
+    "aria-selected": "true" | "false";
+    "aria-controls": string;
+    tabindex: -1 | undefined; // undefined on the current tab (a native button)
+    onClick;
+    onFocus;
+    onBlur;
+    onKeyDown;
+  };
+};
+```
+
+- **Keyboard.** Rotation, previous and next are native buttons, so Enter and Space are the
+  browser's. A tab's ArrowRight / ArrowDown, ArrowLeft / ArrowUp, Home and End select the next,
+  previous, first and last slide, wrapping, with automatic activation; a slide has no keys. Exactly
+  one slide is in the tab order (`tabindex="0"` on the current, `-1` on the rest), and every
+  non-current one is hidden.
+- **Live region.** The carousel wrapper is the region: `aria-live="off"` while rotating and
+  `"polite"` otherwise. There is no second status element, and while it is paused a slide change is
+  announced.
+- **ARIA.** `role` is `group` by default; pass `region` for a named landmark. A slide is a `group`
+  (a `tabpanel` when `tabbed`) with `aria-roledescription="slide"` and "N of M" as its name.
+  The controls' `aria-controls` names `<base>-slides`, so a host that wants the reference to
+  resolve passes `id` and gives its slides wrapper that id. The rotation control's label flips
+  between "Stop automatic slide show" and "Start automatic slide show", with no `aria-pressed`.
+- **Divergences.** Two ported scenarios use the `*` (any non-empty IDREF) convention, which the
+  replay engine does not implement, and one asserts the raw `hidden=""` that the DOM driver reports
+  as `"true"`; those three stay negative tests. A fourth assumes focus does not pause rotation,
+  while the pattern text says it does, so the first activation restarts and the second stops: that
+  expectation stays negative too, because the pattern text wins (the README's divergence policy).
+- **Limits.** The host owns the interval, the media query, the slide transition and the slide
+  content. The picker activates automatically (there is no manual mode), and the grouped variant
+  with `aria-disabled` picker buttons is not modelled.
+
+### Headless: `createFeed` (`@cssints/headless`)
+
+The APG feed: a stream of articles that loads more when the reading cursor reaches the last loaded
+one, announces each article's place with `aria-posinset` / `aria-setsize`, and brackets a load with
+`aria-busy`. Its behaviour is `packages/apg-specs/specs/apg/feed.qnt`;
+`packages/headless/test/feed.browser.test.tsx` replays the 29 scenarios of
+`scenarios/apg/feed.apg.json` in Chromium and walks the model in seven configurations (1, 3 and 6
+loaded; both `aria-setsize` modes with the total known and unknown; a controlled host accepting or
+holding).
+
+The host renders a focusable element before the feed and one after it (`beforeProps`,
+`afterProps`), the container (`feedProps`), and one article slot per `items` with
+`articleProps(posinset)`; slots past `loaded()` are hidden. `items` is the number of slots the host
+renders, not the loaded count: the controlled value is `value`, the uncontrolled start
+`defaultValue` (1), and `loaded()` is clamped to 1..`items`. `onValueChange` comes from
+`loadFinish`, so the request is the new count. The primitive never moves DOM focus: it records the
+cursor from each article's `onFocus`, and the host focuses the article (or sentinel) that `active()`
+names, as the test fixture does. The cursor starts on the `"before"` zone; an article's
+`aria-labelledby` / `aria-describedby` name the host's title and content elements
+(`<base>-article-<n>-title` / `-content`), which the host must create.
+
+Load lifecycle: the primitive fetches nothing. Focus reaching the last loaded article, and
+`pageDown` onto it, call `loadStart`, which moves idle to loading only while more articles exist
+(`totalArticles` unknown or `loaded < total`), and `busy()` becomes `aria-busy="true"`. The skin
+watches that (or its own trigger), calls `loadStart` itself for a scroll sentinel, runs its loader,
+then reports back: `loadFinish(count)` requests `loaded + count`, clamped by the total, and returns
+to idle; `loadFail` returns to idle with the count unchanged. `loadFinish` is ignored when no load
+is in flight, and a controlled host that holds its `value` keeps the count while the busy state
+still ends. A host write of `value` also settles an in-flight load and pulls the cursor back into
+the new range.
+
+`aria-setsize` depends on `sizeMode`: `"loaded"` (the default) announces the loaded count,
+`"total"` the server total when `totalKnown` is true, else `-1` (ARIA's undetermined);
+`totalArticles: null` means the total is not known. `setSizeMode` and `setTotalKnown` change the
+mode at run time, and `aria-posinset` is the slot's 1-based position.
+
+```ts skip
+createFeed(options?: {
+  items?: number; // article slots the host renders (6, at least 1)
+  totalArticles?: number | null; // the server total; null = undetermined
+  value?: number | undefined; // controlled loaded count; undefined = uncontrolled
+  defaultValue?: number; // uncontrolled start (1, at least 1 and at most items)
+  sizeMode?: "loaded" | "total"; // "loaded": aria-setsize is the loaded count
+  totalKnown?: boolean; // false: total mode announces -1 until known
+  labelledBy?: string | undefined; // the feed's accessible name
+  id?: string; // base of the generated ids
+  onValueChange?(loaded: number): void; // a request the host may ignore
+}): {
+  items: number;
+  loaded(): number; // the committed count, 1..items
+  busy(): boolean; // a load is in flight (aria-busy)
+  active(): number | "before" | "after"; // the reading cursor: a 1-based posinset or a zone
+  focusArticle(posinset: number): void; // a loaded, rendered article only
+  pageDown(): void;
+  pageUp(): void;
+  ctrlEnd(): void;
+  ctrlHome(): void;
+  loadStart(): void; // idle -> loading, only when more articles exist
+  loadFinish(count: number): void; // a batch arrived: a request to grow the count
+  loadFail(): void; // end the busy state, keep the count
+  setSizeMode(mode: "loaded" | "total"): void;
+  setTotalKnown(known: boolean): void;
+  feedProps: {
+    id;
+    role: "feed";
+    "aria-busy": "true" | undefined;
+    "aria-labelledby": string | undefined;
+  };
+  articleProps(posinset: number): {
+    id;
+    role: "article";
+    "aria-posinset": number;
+    "aria-setsize": number; // the loaded count, the total, or -1
+    "aria-labelledby": string; // <base>-article-<n>-title
+    "aria-describedby": string; // <base>-article-<n>-content
+    tabindex: 0;
+    hidden: boolean; // every slot past the loaded count
+    onFocus;
+    onKeyDown;
+  };
+  beforeProps: { id; tabindex: 0; onFocus }; // an element just before the feed
+  afterProps: { id; tabindex: 0; onFocus }; // an element just after it
+};
+```
+
+- **Keyboard.** Page Down and Page Up move the reading cursor to the next and previous article and
+  stop at the last loaded one (Page Down there asks for more); Control+End and Control+Home leave
+  the feed for `afterProps` / `beforeProps`, not for the first article. Tab enters the feed on any
+  loaded article and leaves it from any, and the arrows do nothing.
+- **Divergence.** The APG example focuses the first article on Control+Home; the pattern text says
+  "the first focusable element before the feed", so `beforeProps` gets it and the ported scenario
+  stays a negative test. Two `*`-IDREF scenarios are negative for the replay engine's sake.
+- **Limits.** `items` is a slot count, so the host decides how many article elements exist; the
+  primitive observes no scroll and owns no focus. A batch only grows the count (a removal is a host
+  write of `value`), and a load is one batch, not a queue.
+
+### Headless: `createPlayer` (`@cssints/headless`)
+
+The media player as a composition: there is no APG player pattern, so the control surface restates
+the APG Slider (the media seek slider), Toolbar, Button and Menu Button contracts, and the playback
+machine is the HTML `HTMLMediaElement` state and event contract reduced to the stages a UI can show.
+`packages/apg-specs/specs/apg/player.qnt` is that composition (the generator imports pure defs
+only, so the slider, toolbar and button specs are restated, not imported); there is no ported
+scenario file, and `packages/headless/test/player.browser.test.tsx` is the oracle: four differential
+walks (uncontrolled at 90 s and 1 s, a controlled host accepting and holding) plus real-DOM checks
+of the controlled preferences, the `m:ss` value text, Space on the surface, the seek keys and the
+pressed states. The contract behind it is `packages/headless/docs/player-aria-contract.md`.
+
+The engine is injected as a `PlaybackAdapter`, so `@cssints/headless` imports no media library
+(Mediabunny is one adapter). The adapter owns transport and decoding; the primitive owns the stage,
+position and duration, the four preferences, and the seek slider's ARIA and keys. It subscribes at
+creation, calls `load(src ?? "")` after the first render, and unsubscribes and disposes on cleanup.
+Stages are `loading` at mount, `ready` on `loadedmetadata` (which also sets the duration and resets
+the position to 0), `playing`, `paused`, `buffering` (`waiting` while playing, `playing` back),
+`ended` (`ended` while playing sets the position to the duration) and `error` (an adapter `error`,
+or a rejected load or play; the cause is not exposed). `timeupdate` moves the position only while
+playing; `pause` from the adapter affects only an active stage; `seeking` and `seeked` change no
+state; a `ratechange` is a request for the rate. `play` is accepted from ready, paused, buffering
+and ended (from ended it starts at 0), `pause` from playing or buffering, and `seek` does nothing
+until metadata has arrived; a seek clamps to the duration and leaves the ended stage paused.
+
+The four preferences follow the request/commit model, each with `<name>`, `default<Name>` and
+`on<Name>Change`: `volume` is 0..100 from a linear control, applied to the adapter as a squared gain
+(the perceptual curve); `muted` is a boolean; `rate` is a percent, where `setRate` accepts 50, 100,
+150 or 200 and ignores anything else; `fullscreen` is a flag only, and the host applies the
+Fullscreen API. The adapter follows the committed values, so a request a controlled host rejects
+never reaches it; a `ratechange` from the adapter is taken as `round(rate × 100)` and, controlled,
+waits for the host like the other preferences.
+
+```ts skip
+interface PlaybackAdapter {
+  load(src: string): Promise<void>; // emits loadedmetadata once the duration is known
+  play(): Promise<void>;
+  pause(): void;
+  seek(seconds: number): Promise<void>;
+  setVolume(gain: number): void; // 0..1, already muted-resolved
+  setPlaybackRate(rate: number): void; // 1 = normal
+  dispose(): void;
+  subscribe(listener: (event: PlaybackAdapterEvent) => void): () => void;
+}
+
+type PlaybackAdapterEvent =
+  | { type: "loadedmetadata"; duration: number }
+  | { type: "canplay" | "playing" | "pause" | "waiting" | "seeking" | "seeked" | "ended" }
+  | { type: "timeupdate"; currentTime: number }
+  | { type: "ratechange"; rate: number }
+  | { type: "error"; cause: unknown };
+
+createPlayer(options: {
+  adapter: PlaybackAdapter;
+  src?: string; // the load source; "" when absent
+  volume?: number | undefined; // controlled, 0..100; undefined = uncontrolled
+  defaultVolume?: number; // 100
+  onVolumeChange?(volume: number): void; // a request the host may ignore
+  muted?: boolean | undefined;
+  defaultMuted?: boolean; // false
+  onMutedChange?(muted: boolean): void;
+  rate?: number | undefined; // controlled percent: 50, 100, 150 or 200
+  defaultRate?: number; // 100
+  onRateChange?(percent: number): void;
+  fullscreen?: boolean | undefined;
+  defaultFullscreen?: boolean; // false
+  onFullscreenChange?(fullscreen: boolean): void;
+  onPlay?(): void;
+  onPause?(): void;
+  onSeek?(seconds: number): void;
+  onEnded?(): void;
+}): {
+  stage(): "loading" | "ready" | "playing" | "paused" | "buffering" | "ended" | "error";
+  position(): number; // seconds
+  duration(): number; // 0 until loadedmetadata
+  muted(): boolean;
+  volume(): number; // 0..100
+  rate(): number; // percent
+  fullscreen(): boolean;
+  focus(): "none" | "surface" | "seek" | "control";
+  play(): void;
+  pause(): void;
+  togglePlay(): void;
+  seek(seconds: number): void; // a commit: a no-op until the duration is known
+  setVolume(value: number): void; // clamped to 0..100
+  toggleMute(): void;
+  setRate(percent: number): void; // 50, 100, 150 or 200; anything else is ignored
+  toggleFullscreen(): void;
+  surfaceProps: { tabindex: 0; onKeyDown; onFocus; onBlur };
+  playProps: {
+    type: "button";
+    "aria-label": "Play" | "Pause";
+    onClick;
+    onMouseDown;
+    onFocus;
+    onBlur;
+  };
+  seekProps: {
+    role: "slider";
+    tabindex: 0;
+    "aria-valuemin": 0;
+    "aria-valuenow": number; // the position
+    "aria-valuemax": number; // the duration
+    "aria-valuetext": string; // "m:ss"
+    onKeyDown;
+    onFocus;
+    onBlur;
+  };
+  muteProps: {
+    type: "button";
+    "aria-pressed": "true" | "false";
+    onClick;
+    onMouseDown;
+    onFocus;
+    onBlur;
+  };
+  fullscreenProps: {
+    type: "button";
+    "aria-pressed": "true" | "false";
+    onClick;
+    onMouseDown;
+    onFocus;
+    onBlur;
+  };
+};
+```
+
+- **Keyboard.** On the surface: Space (or the legacy `Spacebar`), `k` or `K` toggles play and
+  pause; ArrowLeft / ArrowRight seek -5 s / +5 s; `f` / `F` toggles fullscreen; `m` / `M` toggles
+  mute. On the seek slider: ArrowLeft / ArrowDown -1 s, ArrowRight / ArrowUp +1 s, PageUp +15 s,
+  PageDown -15 s, Home 0 and End the duration. A handled key `preventDefault`s; anything else
+  passes.
+- **Focus.** `focus()` is `surface`, `seek`, `control` or `none`. Every control is its own tab stop
+  (there is no roving toolbar), but a pointer press does not move focus: each button prevents its
+  `mousedown` default, so the surface shortcuts keep their scope after a click.
+- **Announcement.** There is no live region: the seek slider's `aria-valuetext` (`m:ss`, minutes
+  never folded into hours) is what a screen reader reads while it holds focus, and the play button's
+  label flips between "Play" and "Pause". `aria-valuenow` and `-max` are the position and duration
+  in seconds.
+- **The host's parts.** The primitive has no volume or rate control: render one from `volume()` and
+  `setVolume` (or `createSlider`) and from `rate()` and `setRate`. The mute and fullscreen buttons
+  carry only `aria-pressed` and no accessible name, so label them after the spread; the surface has
+  no role, so name it. The seek slider has no pointer handlers: a drag is the host's, mapped to
+  `seek` (a commit, with no preview).
+- **Limits.** `fullscreen` is a flag, not a Fullscreen API call. `src` is read at mount (there is no
+  reload and no retry), a live stream is out of scope (`duration` is taken as finite), and the seek
+  slider does not mirror its arrows under RTL — a time axis does not flip, a deliberate divergence
+  from `slider.qnt`.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
@@ -2833,514 +4472,3 @@ color("color-mix(in oklab, red, blue)"); // error: color: "color-mix()" is not i
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.
 - **Browser support** comes from [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data) against browserslist, as build warnings (see above). There is no per-property table in the types.
 - **Not in 0.1:** pseudo-elements, `:has()`, derived tokens, slot variants, a typed runtime token setter, icons (the plugin API they are written on is above; `frame()` is in `cssints/frame`, `surface()` in `cssints/surface`), polyfills of its own for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).
-
-### Headless: `createDisclosure` (`@cssints/headless`)
-
-The APG Disclosure: one trigger that shows and hides one panel. Its behaviour is
-`packages/apg-specs/specs/apg/disclosure.qnt`, which
-`packages/headless/test/disclosure.browser.test.tsx` holds it to by replaying the ported scenarios of the APG,
-ariakit, base-ui and React Aria (`packages/apg-specs/scenarios/apg/disclosure.*.json`) and by a seeded
-differential walk in seven configurations: uncontrolled, expanded, disabled, and a controlled host that
-accepts or holds a request. The host renders a `<button>` and a panel and spreads the two prop objects; the
-primitive owns the state and the attributes, not the elements or the look. Options are read lazily, so pass a
-component's `props` or getters, never destructured values.
-
-`defaultValue` starts the uncontrolled state (`false`), and `value` + `onValueChange` make the host own it:
-every intent is a request, so a refused one leaves the state untouched. `setExpanded`, `expand`, `collapse`
-and `toggle` are requests too.
-
-```ts skip
-createDisclosure(options?: {
-  value?: boolean | undefined; // controlled; undefined = uncontrolled
-  defaultValue?: boolean; // false: collapsed at mount
-  disabled?: boolean; // the trigger's native attribute, and its click is dropped
-  id?: string; // base of `<id>-trigger` and `<id>-panel`; generated when absent
-  onValueChange?(expanded: boolean): void; // a request the host may ignore
-}): {
-  expanded(): boolean;
-  setExpanded(expanded: boolean): void; // a request, like expand / collapse / toggle
-  expand(): void;
-  collapse(): void;
-  toggle(): void;
-  triggerProps: {
-    id; // `<id>-trigger`
-    type: "button";
-    "aria-expanded"; // "true" | "false", from the state
-    "aria-controls"; // `<id>-panel`, always present
-    disabled; // the option, read on every read
-    onClick;
-  };
-  panelProps: {
-    id; // `<id>-panel`
-    hidden; // true while collapsed
-  };
-};
-```
-
-- **The panel stays mounted.** `panelProps.hidden` is the whole hide, so `aria-controls` always names a real
-  element and a closing animation has something to animate. Base UI unmounts the closed panel instead, and
-  that missing `aria-controls` while collapsed is a named divergence. So are React Aria's `aria-hidden`
-  beside `hidden` (which already removes the panel from the accessibility tree) and its `role="group"` on
-  the panel.
-- **The pattern's attributes only.** React Aria forwards an attribute the consumer supplied; this primitive
-  returns only the pattern's, so the host adds its own (an `aria-label`, a `class`).
-- **Ids.** `id` is the base of `<id>-trigger` and `<id>-panel`; a page with two disclosures passes its own base
-  to each, since one base names one pair.
-
-No key is bound: the trigger is a native `<button>`, so Enter and Space arrive as its `click`, and the host
-sees one request path for pointer and keyboard. `disabled` is the trigger's native attribute, so the browser
-skips it in the tab order and drops its click; the primitive guards its `onClick` as well.
-
-### Headless: `createAccordion` (`@cssints/headless`)
-
-The APG Accordion: N headings, each a button that shows and hides its region, under the mode constraints of
-`packages/apg-specs/specs/apg/accordion.qnt`. `packages/headless/test/accordion.browser.test.tsx` replays the
-ported base-ui and React Aria scenarios and walks the model in eleven configurations (uncontrolled, expanded,
-multiple, non-collapsible, and a controlled host that accepts or holds a request). `items` is the number of
-panels (3, at least one), and the host renders a heading, a button and a panel per index, spreading
-`headingProps`, `triggerProps` and `panelProps`. Options are read lazily; `defaultValue` is the uncontrolled
-expanded set and `value` + `onValueChange` make the host own it.
-
-```ts skip
-createAccordion(options?: {
-  items?: number; // 3; at least 1
-  value?: ReadonlyArray<number> | undefined; // controlled: the expanded indices
-  defaultValue?: ReadonlyArray<number>; // []: all collapsed
-  multiple?: boolean; // false: at most one panel expanded
-  collapsible?: boolean; // true: the last expanded panel may collapse
-  headingLevel?: number; // 3, clamped into 1..6
-  disabled?: boolean; // every trigger
-  disabledItems?: ReadonlyArray<number>; // the named triggers only
-  id?: string; // base of `<id>-trigger-<i>`, `<id>-panel-<i>`, `<id>-heading-<i>`
-  onValueChange?(expanded: ReadonlyArray<number>): void; // a request the host may ignore
-}): {
-  items: number;
-  expanded(): ReadonlyArray<boolean>; // one flag per panel
-  isExpanded(index: number): boolean;
-  toggle(index: number): void; // a request; a disabled index changes nothing
-  setMultiple(value: boolean): void; // re-normalizes the uncontrolled set only
-  setCollapsible(value: boolean): void; // likewise
-  setHeadingLevel(level: number): void; // clamped into 1..6
-  triggerProps(index: number): {
-    id;
-    type: "button";
-    "aria-expanded";
-    "aria-controls"; // the panel's id
-    "aria-disabled": "true" | undefined; // the sole expanded trigger when it cannot collapse
-    disabled; // `disabled` or `disabledItems`
-    onClick;
-  };
-  panelProps(index: number): {
-    id;
-    role: "region";
-    "aria-labelledby"; // the trigger's id
-    tabindex: 0;
-    hidden;
-  };
-  headingProps(index: number): { id; role: "heading"; "aria-level": number };
-};
-```
-
-- **The mode constraints are the spec's `normExpanded`.** `multiple: false` keeps only the first expanded
-  index, and `collapsible: false` re-expands the first panel when the set would be empty. A controlled host
-  owns the set verbatim, so `setMultiple` / `setCollapsible` change their flag everywhere but re-normalize
-  only while uncontrolled.
-- **The panel that cannot collapse says so.** While `collapsible` is false and this trigger is the only
-  expanded one, `toggle` refuses it and `triggerProps` announces `aria-disabled="true"`; it stays focusable
-  (the native `disabled` comes only from `disabled` / `disabledItems`), so a keyboard user meets the same
-  refusal as a pointer.
-- **The panel is a region and a tab stop.** `role="region"`, named by its trigger through `aria-labelledby`,
-  with `tabindex=0` whatever it holds and `hidden` while collapsed.
-- **`headingProps` is the wrapper, not a level of markup.** It carries `role="heading"` and the clamped
-  `aria-level`, so the host spreads it on the element it would have used anyway (`<h3>`, a `<div>`).
-- **Two divergences from React Aria:** panels are keyed by index where React Aria keys them by item text, and
-  `onValueChange` reports the whole expanded index set (the base-ui model) where React Aria reports one
-  boolean per change.
-
-No key is bound beyond the native button's: Enter and Space on a focused trigger arrive as its `click`, and
-Tab walks the triggers and the open panels (no roving tabindex, as the pattern's keyboard section has it).
-
-### Headless: `createSwitch` (`@cssints/headless`)
-
-The APG Switch: one binary on/off control whose label never changes with its state. Its behaviour is
-`packages/apg-specs/specs/apg/switch.qnt`, replayed by
-`packages/headless/test/switch.browser.test.tsx` against the ported base-ui and React Aria scenarios and a
-differential walk in nine configurations (unchecked, checked, disabled, the optional Enter key, and a
-controlled host that accepts or holds a request). The host spreads `switchProps` onto the focusable element;
-`defaultValue` is the uncontrolled state (`false`) and `value` + `onValueChange` make the host own it.
-
-The platform behind the pattern is the native `<input type="checkbox" switch>` as progressive enhancement
-(Safari only), with a checkbox carrying `role="switch"` as the safe baseline. This primitive returns that
-baseline's contract (`role="switch"`, `aria-checked`, `tabindex=0`, the handlers) and no element.
-
-```ts skip
-createSwitch(options?: {
-  value?: boolean | undefined; // controlled; undefined = uncontrolled
-  defaultValue?: boolean; // false: off at mount
-  disabled?: boolean; // aria-disabled; every intent is dropped
-  readOnly?: boolean; // aria-readonly; focus works, every intent is dropped
-  enterToggles?: boolean; // false: the pattern's optional Enter key
-  onValueChange?(checked: boolean): void; // a request the host may ignore
-}): {
-  checked(): boolean;
-  disabled(): boolean;
-  readOnly(): boolean;
-  enterToggles(): boolean;
-  focused(): boolean;
-  setChecked(checked: boolean): void; // a request
-  setDisabled(value: boolean): void; // also disarms a held Space
-  setEnterToggles(value: boolean): void;
-  toggle(): void; // a request
-  switchProps: {
-    role: "switch";
-    "aria-checked": "true" | "false";
-    "aria-disabled": "true" | undefined;
-    "aria-readonly": "true" | undefined;
-    tabindex: 0;
-    onKeyDown;
-    onKeyUp;
-    onClick;
-    onFocus;
-    onBlur;
-  };
-};
-```
-
-- **Space is armed, then released.** `onKeyDown` arms on Space and `preventDefault`s the page scroll;
-  `onKeyUp` flips. A repeated keydown does not re-arm, and a blur disarms. Enter flips on keydown only while
-  `enterToggles` is on.
-- **`disabled` and `readOnly` block the same intents and announce differently.** Both drop every key, click
-  and `toggle`, but `disabled` says `aria-disabled` and `readOnly` says `aria-readonly`. Only `disabled` has a
-  setter; a host that flips `readOnly` flips the prop, which is read on every read.
-- **`focused()` is the primitive's own signal.** Focus sets it, a click sets it (a click focuses the control
-  in a browser) and blur clears it; the primitive never moves the DOM focus.
-- **Two divergences:** React Aria renders a native input and carries the HTML `checked` / `disabled`
-  attributes, where this primitive exposes `role="switch"` + `aria-checked`; base-ui reports its clicks to
-  ancestor elements, where this primitive owns only the switch's callbacks.
-
-### Headless: `createRadioGroup` (`@cssints/headless`)
-
-The APG Radio Group: one `radiogroup` with `role="radio"` items, where selection follows the focus. Its
-behaviour is `packages/apg-specs/specs/apg/radio.qnt`, replayed by
-`packages/headless/test/radio.browser.test.tsx` against the ported ariakit, base-ui and React Aria scenarios
-and a differential walk in six configurations (unchecked, checked, disabled, `activedescendant`, and a
-controlled host that accepts or holds a request). `values` is the option list (a getter is fine, so a list
-that arrives later is still one widget), `defaultValue` is the uncontrolled check and `value` +
-`onValueChange` make the host own it.
-
-`value` may be a getter, and then `undefined` means "nothing checked" as a controlled state: it is the bare
-`undefined` prop that says uncontrolled.
-
-```ts skip
-createRadioGroup<T>(options: {
-  values: ReadonlyArray<T> | (() => ReadonlyArray<T>); // one per radio
-  value?: T | (() => T | undefined) | undefined; // controlled; bare undefined = uncontrolled
-  defaultValue?: T; // nothing checked
-  flavor?: "roving" | "activedescendant"; // "roving"
-  disabled?: ReadonlyArray<number>; // indices never focused, checked or picked as the tab stop
-  orientation?: "horizontal" | "vertical"; // sets aria-orientation only
-  dir?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows swap
-  id?: string; // base of `<id>-radio-<i>`
-  describedby?: string | undefined; // aria-describedby on every radio
-  onValueChange?(value: T): void; // a request the host may ignore
-  onFocus?(target: string): void; // "radio:<index>"
-  onBlur?(target: string): void;
-}): {
-  checked(): number | null; // the index, null when nothing is checked
-  focused(): number | null;
-  flavor(): RadioFlavor;
-  values: ReadonlyArray<T>;
-  value(): T | null;
-  focus(): void;
-  blur(): void;
-  keyDown(key: string): void;
-  click(index: number): void;
-  setDisabled(indices: ReadonlyArray<number>): void;
-  setFlavor(flavor: RadioFlavor): void;
-  setPreselect(index: number | null): void;
-  radiogroupProps: {
-    role: "radiogroup";
-    "aria-orientation";
-    "aria-activedescendant": string | undefined; // only the activedescendant flavor
-    tabindex: 0 | undefined; // 0 only in the activedescendant flavor
-    onKeyDown;
-    onFocus;
-    onBlur;
-  };
-  radioProps(index: number): {
-    id;
-    role: "radio";
-    "aria-checked": "true" | "false";
-    "aria-disabled": "true" | "false";
-    "aria-describedby";
-    type: "button"; // keeps a surrounding form from submitting
-    tabindex: 0 | -1 | undefined; // roving only: 0 for the tab stop
-    onClick;
-    onFocus;
-  };
-};
-```
-
-- **Two flavors, one machine.** `"roving"` (the default) keeps the tab stop on the radios: `tabindex=0` on
-  the checked radio, or on the first enabled one while nothing is checked, `-1` on the rest.
-  `"activedescendant"` puts the tab stop on the group (`tabindex=0` there, nothing on the radios) and names
-  the focused radio in `aria-activedescendant`; the host keeps the DOM focus on the group. The primitive
-  moves no DOM focus in either flavor: `focused()` reads synchronously, so the host applies it.
-- **Selection follows the focus.** An arrow moves to the next enabled radio (wrapping) and requests it, Space
-  requests the focused one, a click focuses and requests, and Tab enters on the tab stop. `setPreselect`
-  starts the check without a request, and `setDisabled` / `setFlavor` reset the focus.
-- **Config remounts fire no request.** `setDisabled`, `setFlavor` and `setPreselect` write the uncontrolled
-  local directly; with `value` set, what is checked is the prop's, so they only move the focus.
-- **Two divergences:** React Aria renders native `<input type="radio">` elements and carries the HTML
-  `disabled` attribute; one `onFocus` / `onBlur` reports the radio (`"radio:<index>"`) where the React Aria
-  scenario uses a callback per radio.
-
-ArrowDown / ArrowRight are forward and ArrowUp / ArrowLeft backward, with `dir: "rtl"` swapping the
-horizontal pair; both axes work whatever `orientation` says, since that option only sets `aria-orientation`.
-The arrows wrap past the ends and skip every disabled index; Home / End are not handled, as the pattern has
-no such key.
-
-### Headless: `createTooltipGroup` (`@cssints/headless`)
-
-The APG Tooltip with WCAG 1.4.13 (dismissable, hoverable, persistent), over the spec's pair of triggers. Its
-behaviour is `packages/apg-specs/specs/apg/tooltip.qnt`, which
-`packages/headless/test/tooltip.browser.test.tsx` holds it to by replaying the ported ariakit, base-ui and
-React Aria scenarios and by a differential walk in four configurations (uncontrolled, controlled accepting,
-controlled holding, and one holding a tooltip open). Timers are events, not clocks: the spec and the walk
-fire `showTimer`, `hideTimer` and `warmExpire`, and the host wires its own `setTimeout` from
-`showDelayMs()` / `hideDelayMs()`, resolved from `prefs` (600 ms and 300 ms by default).
-
-The visible tooltip is the controlled value: `0` none, `1` the first trigger's, `2` the second's.
-`defaultOpen` is the uncontrolled index and `onOpenChange(open, index)` is the request. The rest of the
-machine (focus, pointer, pending timers, the dismissal memory) tracks every event either way and only the
-commit is gated, so a refused request leaves the visible tooltip where it was.
-
-```ts skip
-createTooltipGroup(options: {
-  triggers: ReadonlyArray<{ id?: string; tooltipId?: string }>; // the spec's pair
-  disabled?: boolean; // focus and pointer are ignored entirely
-  openOnFocus?: boolean; // keyboard focus opens at once (the host applied its delay)
-  openOnHover?: boolean; // hover opens at once (a delay of 0)
-  nativePointer?: boolean; // true: the elements' own pointer events drive the state
-  defaultOpen?: number; // trigger index whose tooltip starts visible
-  value?: number | undefined; // controlled: 0 none, 1 first, 2 second; undefined = uncontrolled
-  onOpenChange?(open: boolean, index: number): void; // a request the host may ignore
-  prefs?: Partial<Prefs> | undefined; // tooltipShowDelayMs / tooltipHideDelayMs
-}): {
-  visibleIndex(): number | null;
-  showDelayMs(): number;
-  hideDelayMs(): number;
-  described(index: number): boolean; // this trigger names its tooltip now
-  focusTrigger(index: number): void;
-  blur(): void;
-  pointerEnter(index: number): void;
-  pointerEnterTip(): void;
-  pointerLeave(): void; // also calls hideTimer()
-  showTimer(index: number): void; // the host's show setTimeout fired
-  hideTimer(): void; // the grace period expired
-  escape(): void;
-  warmExpire(): void; // closes the warm window
-  setWarmup(on: boolean): void; // enables the spec's warm-up variant
-  hostSet(vis: number): void; // call before a controlled write of `value`
-  hostToggle(): void; // call before a controlled flip between none and the first
-  triggerProps(index: number): {
-    id;
-    "aria-describedby": string | undefined; // the tooltip, only while visible
-    onFocus;
-    onPointerEnter;
-    onPointerLeave;
-    onKeyDown; // Escape
-  };
-  tooltipProps(index: number): {
-    id;
-    role: "tooltip";
-    hidden;
-    onPointerEnter; // hoverable: the pointer may travel onto the tooltip
-    onPointerLeave;
-  };
-};
-```
-
-- **Ids.** A trigger's `id` and `tooltipId` name it and its tooltip (`<base>-trigger-<i>` and
-  `<base>-tooltip-<i>` when absent); `aria-describedby` names the tooltip only while it is visible, and
-  `described(index)` is that same condition as a boolean.
-- **The delays belong to the host.** `openOnFocus` / `openOnHover` open with no delay, for a host that has
-  already applied its own; otherwise focus and hover only arm a show timer, and `showTimer(index)` is the
-  host's `setTimeout` firing. A pointer leaving a trigger or the tooltip calls `hideTimer()` — the grace
-  period is the host's too.
-- **Hoverable is the tooltip's own handlers.** `tooltipProps` carries `onPointerEnter` / `onPointerLeave`, so
-  the pointer can travel onto the tooltip without closing it. `nativePointer: false` stops the rendered
-  elements from driving the state, for a host that feeds `pointerEnter` / `pointerLeave` itself.
-- **Warm-up.** `setWarmup(true)` enables the spec's variant: while a tooltip is visible, or was hidden within
-  the warm window, a newly entered trigger opens immediately. `warmExpire()` closes that window, and an
-  Escape leaves the widget warm, so the next trigger inside the window opens at once.
-- **Host writes.** `hostSet(vis)` and `hostToggle()` drop the timers and the dismissal memory a controlled
-  write invalidates, so call one before writing `value`; both do nothing while uncontrolled.
-- **One divergence:** the base-ui scenario that starts open with `defaultOpen` and then unhovers a trigger
-  never sees a pointer event in the DOM, so the hide grace is never armed there.
-- **Two triggers.** The spec models a pair: index `0` is the first and `1` the second. There is no `id`
-  option, because each trigger names its own elements.
-
-Escape on a trigger hides the tooltip (`escape()`) without moving the focus or the pointer, and nothing
-reopens it until that trigger is left and entered again — WCAG's dismissable part. No other key is bound:
-focus and hover are the other two ways in, and the pointer handlers above are the hoverable part.
-
-### Headless: `createToolbar` (`@cssints/headless`)
-
-The APG Toolbar: a row or column of controls behind one tab stop, with the roving tabindex of
-`shared/focusgroup.qnt` and the delta of `packages/apg-specs/specs/apg/toolbar.qnt` (`aria-orientation`, the
-author's wrap choice, disabled-but-focusable items, embedded controls that consume keys, and activation).
-`packages/headless/test/toolbar.browser.test.tsx` replays the ported ariakit, base-ui and React Aria
-scenarios and walks the model horizontally (no wrap) and vertically (wrapping); the fixture composes
-`createMenu` for the spec's menu-button, which the primitive never imports.
-
-Platform: the roving tabindex is the `focusgroup="toolbar"` contract, so ship the
-`@microsoft/focusgroup-polyfill` first and switch to the native attribute when Chrome/Edge is the floor.
-
-`items` is fixed at construction, as label strings or `{ label, kind, disabled }`, and `kinds` names a kind per
-index for the string form (`"button"` by default). `defaultFocus` is the index that starts focused, and
-`focus: -1` means "outside the toolbar".
-
-```ts skip
-createToolbar(options: {
-  items: ReadonlyArray<string | { label: string; kind?: ToolbarItemKind; disabled?: boolean }>;
-  kinds?: ReadonlyArray<"button" | "text" | "spin">; // per index, for the string form
-  orientation?: "horizontal" | "vertical"; // "horizontal"
-  wrap?: boolean; // false: the arrows stop at the ends
-  defaultFocus?: number; // -1: nothing focused yet
-  disabled?: ReadonlyArray<number>; // items disabled at mount, still focusable
-  id?: string; // base of `<id>-item-<i>`
-  onActivate?(index: number): void; // a button item, by click, Enter or Space
-}): {
-  focus(): number; // -1 when the toolbar is left
-  tabStop(): number;
-  orientation(): "horizontal" | "vertical";
-  wrap(): boolean;
-  items: ReadonlyArray<{ id; label; kind; disabled }>;
-  focusIn(): void; // Tab into the toolbar: the tab stop
-  leave(): void;
-  focusItem(index: number): void;
-  keyDown(key: string): void;
-  tab(back: boolean): void;
-  clickItem(index: number): void;
-  activate(): void; // a button item
-  toggleDisabled(index: number): void;
-  setOrientation(orientation: "horizontal" | "vertical"): void;
-  setWrap(wrap: boolean): void;
-  toolbarProps: {
-    role: "toolbar";
-    "aria-orientation": "horizontal" | "vertical";
-    onKeyDown;
-  };
-  itemProps(index: number): {
-    id;
-    role: "button";
-    "aria-disabled": "true" | undefined;
-    tabindex: 0 | -1; // the roving tab stop
-    onClick;
-    onFocus;
-  };
-};
-```
-
-- **Disabled but focusable.** A disabled item keeps its place in the arrows and the tab-stop order and
-  announces `aria-disabled="true"`; it is never activated, so `onActivate` does not fire for it.
-  `toggleDisabled(index)` flips the mask at runtime.
-- **Embedded controls consume their keys.** A `"text"` item swallows the axis navigation keys and a
-  `"spin"` item swallows Up / Down and Home / End, so typing or stepping inside an item never moves the
-  toolbar's focus. The embedded control's own value is not modelled: the host renders it and owns it.
-- **Divergences.** base-ui and ariakit skip disabled items in roving navigation, where `toolbar.qnt` keeps
-  them focusable; the tab stop starts on item `0` even when that item is disabled, where the abstract
-  Composite picks the first non-disabled item; and the primitive renders `role="toolbar"` with
-  `aria-orientation`, where the abstract Composite role carries neither. A toggle group's `aria-pressed` is
-  not this primitive.
-- **Limits (the source's own):** no separators, no RTL, and `items` does not grow after construction.
-
-`Right` / `Left` on a horizontal toolbar and `Down` / `Up` on a vertical one move the roving tab stop along
-the axis (`ArrowRight` and `Right` are normalised to one key), Home / End jump to the ends, and `wrap`
-decides whether an edge wraps or stops. Enter and Space activate the focused `button` item, and both are
-`preventDefault`ed. Tab from a `button` item leaves the toolbar (the browser moves on); from a `text` item it
-steps to the neighbouring item and only leaves at the edge, which is how Tab escapes a text field inside a
-composite. `focusIn`, `leave` and `tab(back)` are those steps as methods, and `focusItem`, `clickItem` and
-`activate` are the pointer and programmatic paths.
-
-### Headless: `createTextInput` and `createTextArea` (`@cssints/headless`)
-
-`createField` plus the props a host forgets: a text input or a textarea with the field's label, hint, error
-and description contract attached. There is no APG pattern for text editing (an `<input>` already is the
-pattern), so there is no Quint spec and `packages/headless/test/textbox.browser.test.tsx` is the oracle for
-both. The field half — ids, `aria-describedby` order, `aria-invalid` only while invalid, `role="alert"` on a
-shown error — is `createField`'s and is documented above.
-
-```ts skip
-createTextInput(options?: {
-  // the field's options: id, required, invalid, hint, error, describedby
-  type?: "text" | "email" | "tel" | "url" | "search" | "password"; // "text"
-  autoComplete?: AutoCompleteToken; // the HTML token list; the browser's autofill is the accessible path
-  spellCheck?: boolean; // spellcheck, "true" | "false"; absent when the option is
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
-  maxLength?: number; // the browser's own limit
-  readOnly?: boolean; // focusable, selectable, submitted
-  disabled?: boolean; // out of the tab order, not submitted
-  name?: string;
-  dir?: "ltr" | "rtl" | "auto";
-  placeholder?: string;
-  onValueChange?(value: string): void; // every `input` event
-}): {
-  // the field's members: invalid(), hint(), error(), describedIds(), labelProps, hintProps, errorProps
-  controlProps: {
-    id; // `<id>-control`, from the field
-    "aria-describedby"; // hint, then error, while shown, then the host's describedby
-    "aria-invalid"; // "true" only while invalid
-    "aria-required"; // "true" while required
-    required; // true while required
-    type;
-    autoComplete;
-    spellcheck: "true" | "false" | undefined;
-    autocapitalize;
-    inputmode;
-    maxlength;
-    readOnly: true | undefined;
-    disabled: true | undefined;
-    name;
-    dir;
-    placeholder;
-    onInput;
-  };
-};
-```
-
-```ts skip
-createTextArea(options?: {
-  // the text input's options and members, plus:
-  rows?: number;
-  wrap?: "soft" | "hard" | "off";
-  resize?: "none" | "vertical" | "horizontal" | "both"; // carried as a style
-}): {
-  controlProps: {
-    // …the input's controlProps, plus
-    rows: number | undefined;
-    wrap: "soft" | "hard" | "off" | undefined;
-    style: { resize: "none" | "vertical" | "horizontal" | "both" } | undefined;
-  };
-};
-```
-
-- **Both `required` attributes.** The native one is what the browser enforces, `aria-required` is what a
-  custom widget reading the same props needs. A host that validates itself puts `noValidate` on the form
-  rather than dropping the attribute.
-- **`maxLength` is the browser's.** The primitive emits the attribute and reports the value it is given; it
-  never truncates in JS, which would break paste and IME.
-- **`disabled` is not `readOnly`.** Disabled is out of the tab order and is not submitted; readOnly is
-  focusable, selectable and submitted, which is what a value the user must read before signing wants.
-- **One callback per edit.** `onValueChange` is wired to `input`, so a keystroke, a paste, a dropped
-  character and an IME commit all reach it; `change` is not bound.
-- **The textarea adds `rows`, `wrap` and `resize`.** `resize` is a `style` because CSS has no attribute for
-  it, and it is absent when the option is; `none` is what a layout that owns its own height wants.
-- **Options are read on every attribute read,** so `disabled`, `hint` and `error` may change on a mounted
-  control.
-
-No key is bound: editing is the platform's, with its arrows, Home / End, selection, undo, IME and paste
-behaviour. The primitive neither commits on Enter nor intercepts Tab, and a multiline field's Enter is the
-browser's too, so a host that wants Enter to submit reads the key itself.
