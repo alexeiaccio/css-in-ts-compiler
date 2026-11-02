@@ -39,6 +39,13 @@ const textarea = css.cn(
     css.border("1px solid", t.color.invalid),
     css.outline("2px solid", t.color.invalid),
   ),
+  // the input's disabled rule, for the same reason: the native attribute and the ARIA a field may announce
+  css.disabled(
+    css.bg(t.color.page),
+    css.color(t.color.textDisabled),
+    css.border("1px solid", t.color.borderDisabled),
+    css.cursor("not-allowed"),
+  ),
   css.attr("aria-disabled", "true")(
     css.bg(t.color.page),
     css.color(t.color.textDisabled),

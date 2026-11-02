@@ -37,6 +37,14 @@ const input = css.cn(
     css.border("1px solid", t.color.invalid),
     css.outline("2px solid", t.color.invalid),
   ),
+  // A control is disabled either natively (`<Input disabled>`) or by the ARIA a widget announces; the skin's look reads
+  // both, since nothing but the caller sets `aria-disabled` on a plain input.
+  css.disabled(
+    css.bg(t.color.page),
+    css.color(t.color.textDisabled),
+    css.border("1px solid", t.color.borderDisabled),
+    css.cursor("not-allowed"),
+  ),
   css.attr("aria-disabled", "true")(
     css.bg(t.color.page),
     css.color(t.color.textDisabled),
