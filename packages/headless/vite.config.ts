@@ -18,6 +18,11 @@ export default defineConfig({
   ],
   test: {
     include: ["test/**/*.browser.test.tsx"],
+    // The differential walks are bounded by `runs` x `steps`, not by wall time, and one walk of the treeview's seven
+    // nodes costs seconds on a quiet machine: beside other suites (a dozen worktrees of this repo run theirs in
+    // parallel) the vitest default of 15 s is the load average talking, not a hung primitive. A genuinely stuck walk
+    // still fails, at 60 s rather than 15. Same reasoning as tools/ai-automation's 30 s and apg-specs' 300 s.
+    testTimeout: 60_000,
     browser: {
       enabled: true,
       provider: playwright(),

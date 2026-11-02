@@ -3709,3 +3709,16 @@ size, or none naming one, behave as before.
 
 **Left.** Sizes stay percentages (as upstream), a persisted layout has no version or namespace (the key is the host's),
 and `native/headless` still has no panel-group widget.
+
+## The walks' time budget, and what the red suite was (packages/headless, 2026-11-02)
+
+`bun run test` in `packages/headless` failed 8–11 files of 65 on a host whose load average sat at 50 on eight idle CPUs
+(an I/O-starved shared volume, not CPU): every failure was either the default 15 s test timeout, or a stale read after an
+action (`focus`, a `tabindex`, an `aria-valuenow` differing between the model and the DOM). Every failing file passes
+alone under the same load (`slider`, `menu-button`, `treeview`), so the stale reads are intra-suite concurrency rather
+than a primitive; a treeview walk alone then took 236 s for 43 tests, about 5.5 s each, so 15 s was never a correctness
+guard. The package now sets `testTimeout: 60_000`, the same reasoning as `tools/ai-automation`'s 30 s and
+`@cssints/apg-specs`' 300 s: a walk is bounded by `runs` x `steps`, and a genuinely stuck one still fails, later.
+**Left**: the stale reads under concurrency have no reproduction file-by-file, so nothing was changed for them; if CI
+ever shows one, the first suspect is the DOM driver's settle (`flush()` plus one macrotask in `test/dom-driver.ts`), which
+deliberately avoids a frame because a frame perturbs the focus fixup (bean 209r).
