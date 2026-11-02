@@ -1,6 +1,6 @@
 # Releasing
 
-Twenty-eight packages go to npm: `cssints` and the 27 `@cssints/*` packages in `packages/` (the published versions: <https://npmx.dev/package/cssints>, and `/package/@cssints/reset` and so on; the trusted publisher settings are on npmjs.com). They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
+Twenty-nine packages go to npm: `cssints` and the 28 `@cssints/*` packages in `packages/` (the published versions: <https://npmx.dev/package/cssints>, and `/package/@cssints/reset` and so on; the trusted publisher settings are on npmjs.com). They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
 
 ## Decisions (cssints-6tnn, 2026-10-10)
 
@@ -55,6 +55,20 @@ cd packages/machine/.publish && npm publish --access public --tag latest   # 0.2
 bun run release:check                                  # stages packages/reactive/.publish
 cd packages/reactive/.publish && npm publish --access public --tag latest   # 0.20.0, from a terminal (npm login first)
 ```
+
+`@cssints/machine` is the 29th, and it is the same case — with the lesson already paid for: its first release (0.27.0) was merged
+before the package existed on npm, so the release run failed with `E404` on `PUT /@cssints%2fmachine` and published **nothing**
+(changesets stops at the first failure and the group moves together). A new package is published by hand **before** its "Version
+Packages" pull request is merged:
+
+```bash
+bun run release:check                                  # stages packages/machine/.publish
+cd packages/machine/.publish && npm publish --access public --tag latest   # the version in its manifest, from a terminal (npm login first)
+npm trust github @cssints/machine --file release.yml --repo alexeiaccio/css-in-ts-compiler --allow-publish --yes
+```
+
+Then re-run the failed release job (`gh run rerun <id> --failed`): CI publishes the group and skips the version that is already
+on npm. Publishing the whole group by hand instead would leave the configuration unused, and it expires after 2 days.
 
 Then wait for that pull request, add the package's trusted publisher right before merging it (`sh scripts/trust.sh --recreate @cssints/reactive`: a new package has no connection to revoke; or the table below), and merge within 2 days. CI then publishes 0.21.0 through the new configuration. Publishing 0.21.0 by hand instead would leave the configuration unused — CI skips a version already on npm — so it would expire, and the next release would need it again.
 
