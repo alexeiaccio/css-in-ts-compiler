@@ -161,6 +161,11 @@ export const BreadcrumbLink = (props: BreadcrumbLinkProps): JSX.Element => {
   return renderPart(
     props,
     merge(crumb.linkProps(props.index), {
+      // the primitive announces the disabled trail on the item; the link copies it, because its own grey rule is
+      // read from the link's attribute (the same reason the slider's rail copies the thumb's)
+      get "aria-disabled"() {
+        return crumb.itemProps(props.index)["aria-disabled"];
+      },
       "data-part": "breadcrumb-link",
       get class() {
         return css.cn(linkClass, props.class);
