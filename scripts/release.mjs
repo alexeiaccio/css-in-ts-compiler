@@ -140,6 +140,27 @@ if (!problems.length && process.argv.includes("--install")) {
   else console.log("install: all tarballs install together, cssints-mcp answers initialize");
 }
 
+// A package that is not on npm yet cannot be published by CI: trusted publishing adds a connection to an existing package
+// only, so `changeset publish` answers `E404` on the first one and the whole group stays unpublished. Merging the "Version
+// Packages" pull request before that first publish is how 0.27.0 was lost for an hour — catch it here instead.
+const unknown = [];
+for (const dir of packageDirs) {
+  const manifest = read(dir);
+  const response = await fetch(`https://registry.npmjs.org/${manifest.name.replace("/", "%2F")}`, {
+    method: "HEAD",
+  });
+  if (response.status === 404) {
+    unknown.push({ name: manifest.name, directory: dir.split("/").pop() });
+  }
+}
+for (const { name, directory } of unknown) {
+  problems.push(
+    `${name} is not on npm: publish its first version by hand before merging the release pull request — ` +
+      `cd packages/${directory}/.publish && npm publish --access public --tag latest, then ` +
+      `npm trust github ${name} --file release.yml --repo alexeiaccio/css-in-ts-compiler --allow-publish --yes`,
+  );
+}
+
 if (problems.length) {
   console.error(`\n${problems.length} problem(s):\n- ${problems.join("\n- ")}`);
   process.exit(1);
