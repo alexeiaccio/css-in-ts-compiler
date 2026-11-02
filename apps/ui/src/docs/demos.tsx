@@ -408,8 +408,18 @@ const DiagramDemo = (): JSX.Element => {
 // the browser test show the same wiring.
 const ShortcutsDemo = (): JSX.Element => <ShortcutsExample />;
 
-// Five drawn slides, the control row and the dots: the same example the browser test mounts.
-const CarouselDemo = (): JSX.Element => <CarouselExample class="demo-carousel" />;
+// Five drawn slides, the control row and the dots, rotating on the machine's clock: the same example the browser test
+// mounts. The pauses are the primitive's — the pointer pauses and leaving resumes, focus stops it until the control starts
+// it again — and a reduced-motion preference starts it paused.
+const CarouselDemo = (): JSX.Element => (
+  <div class="demo-column">
+    <CarouselExample class="demo-carousel" autoRotate />
+    <p class="demo-text">
+      The slides rotate on their own. Pointing at the carousel pauses them and leaving resumes; the
+      pause control stops them for good, and a “reduce motion” preference starts them paused.
+    </p>
+  </div>
+);
 
 // The menu owns its open state (the primitive is uncontrolled), so the demo needs no signal: the trigger opens it, an item
 // or Escape closes it, and a pointer outside the anchor is the third way out.

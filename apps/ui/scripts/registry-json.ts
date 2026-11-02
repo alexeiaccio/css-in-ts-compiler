@@ -135,9 +135,10 @@ const STARTERS: ReadonlyArray<Starter> = [
     name: "carousel",
     tested: true,
     with: ["theme.ts", "tokens.ts"],
+    deps: ["@cssints/machine"],
     title: "Carousel",
     description:
-      "APG carousel: slides in a frame with previous and next, dots and a count as the indicator, arrow keys on a focused slide, a touch swipe, and the live region the primitive asks for",
+      "APG carousel: auto-rotating slides that pause on hover and focus, previous and next, dots and a count as the indicator, arrow keys on a focused slide, and a touch swipe",
   },
   {
     name: "input",

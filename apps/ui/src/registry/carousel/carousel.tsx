@@ -1,7 +1,15 @@
 import { createCarousel, type CarouselRole } from "@cssints/headless";
+import {
+  type Clock,
+  createMachine,
+  defineMachine,
+  type Machine,
+  systemClock,
+} from "@cssints/machine";
+import { type MachineStore, createMachineStore } from "@cssints/machine/solid";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createEffect, For, merge } from "solid-js";
+import { createEffect, For, merge, onCleanup, untrack } from "solid-js";
 
 import { t } from "../theme.ts" with { type: "cssints" };
 
@@ -23,6 +31,19 @@ export interface CarouselProps {
   readonly value?: number | undefined;
   /** A request to show a slide: uncontrolled it is accepted, controlled the host may ignore it. */
   readonly onValueChange?: ((index: number) => void) | undefined;
+  /**
+   * Auto-rotation, on by default as in the primitive: the clock advances the slide every `interval`, and the rotation
+   * control stops and starts it. `false` removes the control and leaves a paused carousel.
+   */
+  readonly autoRotate?: boolean | undefined;
+  /** One rotation interval in ms, read once when the carousel is created. @default 6000 */
+  readonly interval?: number | undefined;
+  /** The motion preference; left out, `prefers-reduced-motion: reduce` is read once, when the carousel is created. */
+  readonly reducedMotion?: boolean | undefined;
+  /** The clock's clock: the system one by default, a fake one in a test. */
+  readonly clock?: Clock | undefined;
+  /** The clock, once: a test reads its phase and its tick count; a page rarely does. */
+  readonly onReady?: (controller: CarouselClockController) => void;
   /** The line under the carousel; left out, the keys and the swipe in one sentence. */
   readonly hint?: string | undefined;
   readonly class?: string | undefined;
@@ -96,6 +117,10 @@ const controlClass = css.cn(
   css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("2px")),
 );
 
+// The rotation control and the previous button sit together at the bar's start; the indicator keeps the middle, the next
+// button the end.
+const startClass = css.cn(css.display("flex"), css.alignItems("center"), css.gap(t.space._1));
+
 const indicatorClass = css.cn(
   css.display("flex"),
   css.alignItems("center"),
@@ -148,6 +173,180 @@ const hintClass = css.cn(
 /** A swipe past this many px is a slide change; below it the pointer was a tap or an accidental drag. */
 const SWIPE_THRESHOLD = 40;
 
+/** One rotation interval: how long a slide stays before the clock advances it. */
+export const CAROUSEL_INTERVAL = 6000;
+
+// ponytail: a module constant, not a theme token: a token would let the theme retime the autoplay, and no page has asked;
+// the `interval` prop already retimes one carousel. Promote it when the theme should decide.
+
+/** The clock's two states: no interval is pending, or one is. */
+export type CarouselClockPhase = "idle" | "waiting";
+
+/** The clock's context: how many intervals have elapsed. */
+export interface CarouselClockContext {
+  readonly ticks: number;
+}
+
+// a type alias, not an interface: `PayloadMap` is an index signature, and only an alias is assignable to one
+type CarouselClockPayloads = {
+  readonly play: { readonly rotating: boolean };
+  readonly elapse: { readonly id: number };
+};
+
+/** The clock's events: the primitive's rotation state, and the completion of a wait. */
+export type CarouselClockEvent =
+  | { readonly type: "play"; readonly rotating: boolean }
+  | { readonly type: "elapse"; readonly id: number };
+
+/** The running clock, as the components and their tests name it. */
+export type CarouselClockMachine = Machine<
+  CarouselClockContext,
+  CarouselClockPhase,
+  CarouselClockEvent
+>;
+
+/**
+ * The auto-rotation clock as data: while the primitive is rotating it holds one `wait` effect (`{ type: "wait", ms }`),
+ * and its completion calls `tick()` and issues the next wait. It is only the clock: the APG pauses — the pointer, the
+ * focus, the sticky focus, the control's intent — are `createCarousel`'s `rotating()`, which this follows exactly as the
+ * overlays follow `open()`. A pause leaves `waiting` and cancels the pending wait; a resume enters it again with one new
+ * wait. A completion that arrives after its wait was cancelled carries the dead handle's id and is dropped before any
+ * transition. There is no debounce: one pending wait is the coalescer, and a second `play` in the same direction is a
+ * state with no transition, so it neither restarts nor doubles the timer.
+ */
+export const carouselClockDefinition = (ms: number) =>
+  defineMachine<CarouselClockPayloads>()({
+    start: "idle",
+    initial: { ticks: 0 },
+    states: {
+      idle: {
+        on: {
+          play: {
+            guard: (_context, event) => event.type === "play" && event.rotating,
+            target: "waiting",
+            effect: { type: "wait", ms },
+          },
+        },
+      },
+      waiting: {
+        on: {
+          play: {
+            guard: (_context, event) => event.type === "play" && !event.rotating,
+            target: "idle",
+          },
+          elapse: {
+            target: "waiting",
+            assign: (context) => ({ ticks: context.ticks + 1 }),
+            effect: { type: "wait", ms },
+          },
+        },
+      },
+    },
+  });
+
+/**
+ * The host's half of the clock: one timer per `wait`, cleared when its handle is cancelled, and one `tick` for each
+ * elapsed wait. It is plain code so the harness can drive the shipped wiring on its fake clock.
+ */
+export const watchCarouselClock = (
+  machine: CarouselClockMachine,
+  options: { readonly clock: Clock; readonly tick: () => void },
+): void => {
+  const timers = new Map<number, unknown>();
+  machine.onEffect((handle) => {
+    if (handle.type !== "wait") {
+      return;
+    }
+    const timer = options.clock.setTimeout(() => {
+      timers.delete(handle.id);
+      machine.send({ type: "elapse", id: handle.id });
+    }, Number(handle.spec.ms));
+    timers.set(handle.id, timer);
+  });
+  machine.onCancel((handle) => {
+    const timer = timers.get(handle.id);
+    if (timer === undefined) {
+      return;
+    }
+    timers.delete(handle.id);
+    options.clock.clearTimeout(timer);
+  });
+  // The tick is a completion's consequence, and the machine records the transition before it announces the effects, so
+  // the slide moves before the next wait is timed.
+  machine.onTransition((record) => {
+    if (record.taken && record.event === "elapse") {
+      options.tick();
+    }
+  });
+};
+
+/** The clock as the component and its tests read it. */
+export interface CarouselClockController {
+  readonly machine: CarouselClockMachine;
+  readonly store: MachineStore<CarouselClockContext, CarouselClockPhase, CarouselClockEvent>;
+  /** `waiting` exactly while the primitive is rotating. */
+  readonly phase: () => CarouselClockPhase;
+  /** How many intervals have elapsed. */
+  readonly ticks: () => number;
+}
+
+/** What the clock needs from its host: the primitive's rotation state, what one interval does, the duration and the clock. */
+interface CarouselClockOptions {
+  readonly rotating: () => boolean;
+  readonly tick: () => void;
+  readonly interval?: number | undefined;
+  readonly clock?: Clock | undefined;
+}
+
+/**
+ * Run the clock for one carousel. Call it in a component body: the store and its projections belong to the component, and
+ * disposing it cancels the last wait.
+ */
+const createCarouselClock = (options: CarouselClockOptions): CarouselClockController => {
+  const clock = untrack(() => options.clock) ?? systemClock;
+  const machine: CarouselClockMachine = createMachine(
+    carouselClockDefinition(options.interval ?? CAROUSEL_INTERVAL),
+    { clock },
+  );
+  watchCarouselClock(machine, { clock, tick: options.tick });
+  const store = createMachineStore(machine);
+
+  // The machine follows the primitive, as the overlays follow `open()`: the direction is the primitive's `rotating()`,
+  // never an intent of its own. The delivery is a microtask because an effect (and the component's render) runs in an
+  // owned scope, where the store refuses a write; the first run is a change like any other, so a carousel that rotates at
+  // mount holds its wait one microtask later. A repeat of the last direction is not delivered at all.
+  let announced: boolean | undefined;
+  const announce = (rotating: boolean): void => {
+    if (rotating === announced) {
+      return;
+    }
+    announced = rotating;
+    machine.send({ type: "play", rotating });
+  };
+  createEffect(
+    () => options.rotating(),
+    (rotating) => {
+      queueMicrotask(() => announce(rotating));
+    },
+  );
+
+  // destroying is what cancels the last wait: its handle's cancellation clears the timer (the listeners are still
+  // attached — the machine drops them itself)
+  onCleanup(() => machine.destroy());
+
+  return {
+    machine,
+    store,
+    phase: () => store.state.phase,
+    ticks: () => store.state.ticks,
+  };
+};
+
+const prefersReducedMotion = (): boolean =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 /**
  * A carousel, styled: `createCarousel` owns the shown slide, the next / previous requests, the slide semantics (`group` or
  * `tabpanel`, `aria-roledescription="slide"`, `aria-label="2 of 5"`), the hover / focus pause and the live `aria-live` the
@@ -155,8 +354,12 @@ const SWIPE_THRESHOLD = 40;
  * motion, and the two gestures the primitive leaves to the host: the arrow keys on a focused slide and a touch swipe.
  *
  * The primitive hides every slide but the current one, so the track is a stack and the skin does not translate it; a page
- * that wants a scrolling strip uses its own markup. Auto-rotation is off: the primitive advances only through `tick`, which
- * needs a timer the page owns.
+ * that wants a scrolling strip uses its own markup.
+ *
+ * Auto-rotation is back, on `@cssints/machine` and on by default as in the primitive: the clock holds one `wait` while the
+ * primitive is `rotating()`, and its elapse calls `tick()`. Every pause — the pointer, the focus, the sticky focus, the
+ * rotation control — stays in `createCarousel`, and the clock only follows it, so the control's label and the clock's
+ * phase cannot disagree. A reduced-motion preference is read once and starts the carousel paused.
  */
 export const Carousel = (props: CarouselProps): JSX.Element => {
   const carousel = createCarousel({
@@ -170,9 +373,18 @@ export const Carousel = (props: CarouselProps): JSX.Element => {
     get onValueChange() {
       return props.onValueChange;
     },
-    // no timer: a control that starts a rotation nothing advances would lie, and a paused carousel is the honest default
-    autoRotate: false,
+    get autoRotate() {
+      return props.autoRotate ?? true;
+    },
+    reducedMotion: untrack(() => props.reducedMotion) ?? prefersReducedMotion(),
   });
+  const clock = createCarouselClock({
+    rotating: carousel.rotating,
+    tick: carousel.tick,
+    interval: untrack(() => props.interval),
+    clock: props.clock,
+  });
+  untrack(() => props.onReady)?.(clock);
 
   let track: HTMLDivElement | undefined;
   /** An arrow key asked for the focus to follow the slide it showed. */
@@ -270,6 +482,15 @@ export const Carousel = (props: CarouselProps): JSX.Element => {
     },
   });
 
+  // The primitive's own rotation control: its label is "Stop automatic slide show" exactly while `rotating()`, which is
+  // the clock's `waiting`. It is hidden when `autoRotate` is off, as the APG asks (no rotation, no control).
+  const rotation = merge(carousel.rotationProps, {
+    "data-part": "carousel-rotation",
+    get class() {
+      return controlClass;
+    },
+  });
+
   return (
     <div
       {...carousel.carouselProps}
@@ -296,9 +517,14 @@ export const Carousel = (props: CarouselProps): JSX.Element => {
         </For>
       </div>
       <div data-part="carousel-bar" class={barClass}>
-        <button {...prev}>
-          <span aria-hidden="true">‹</span>
-        </button>
+        <div data-part="carousel-start" class={startClass}>
+          <button {...rotation}>
+            <span aria-hidden="true">{carousel.rotating() ? "❚❚" : "▶"}</span>
+          </button>
+          <button {...prev}>
+            <span aria-hidden="true">‹</span>
+          </button>
+        </div>
         <div data-part="carousel-indicator" class={indicatorClass}>
           <For each={props.slides}>
             {(_, index) => (
