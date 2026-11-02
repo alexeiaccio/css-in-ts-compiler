@@ -46,6 +46,21 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "card.browser.test.tsx",
+          "target": "src/components/ui/card.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -83,6 +98,21 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "field.browser.test.tsx",
+          "target": "src/components/ui/field.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -102,6 +132,11 @@
           "type": "registry:ui"
         },
         {
+          "path": "input.tsx",
+          "target": "src/components/ui/input.tsx",
+          "type": "registry:file"
+        },
+        {
           "path": "overlay-motion.ts",
           "target": "src/components/ui/overlay-motion.ts",
           "type": "registry:file"
@@ -119,6 +154,26 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "dialog.fixture.tsx",
+          "target": "src/components/ui/dialog.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dialog.browser.test.tsx",
+          "target": "src/components/ui/dialog.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -459,6 +514,21 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "input.browser.test.tsx",
+          "target": "src/components/ui/input.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -470,7 +540,7 @@
       "description": "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": [],
-      "registryDependencies": ["@cssints/theme"],
+      "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
           "path": "toolbar.tsx",
@@ -490,6 +560,26 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "toolbar.fixture.tsx",
+          "target": "src/components/ui/toolbar.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "toolbar.browser.test.tsx",
+          "target": "src/components/ui/toolbar.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -522,6 +612,21 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "button-group.browser.test.tsx",
+          "target": "src/components/ui/button-group.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -694,7 +799,7 @@
       "title": "Button",
       "description": "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -715,6 +820,31 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "button.fixture.tsx",
+          "target": "src/components/ui/button.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "button-driver.ts",
+          "target": "src/components/ui/button-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "button.browser.test.tsx",
+          "target": "src/components/ui/button.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -956,6 +1086,21 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "separator.browser.test.tsx",
+          "target": "src/components/ui/separator.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -987,6 +1132,21 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "badge.browser.test.tsx",
+          "target": "src/components/ui/badge.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -1020,6 +1180,21 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "skeleton.browser.test.tsx",
+          "target": "src/components/ui/skeleton.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -1030,7 +1205,7 @@
       "title": "Alert",
       "description": "APG alert: a title and a body in a live region, with an `invalid` tone",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1051,6 +1226,31 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "alert.fixture.tsx",
+          "target": "src/components/ui/alert.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "alert-driver.ts",
+          "target": "src/components/ui/alert-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "alert.browser.test.tsx",
+          "target": "src/components/ui/alert.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -1109,7 +1309,7 @@
       "title": "Meter",
       "description": "APG meter: a track and the fill of the value, on `createMeter`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1131,6 +1331,31 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "meter.fixture.tsx",
+          "target": "src/components/ui/meter.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "meter-driver.ts",
+          "target": "src/components/ui/meter-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "meter.browser.test.tsx",
+          "target": "src/components/ui/meter.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -1141,7 +1366,7 @@
       "title": "Breadcrumb",
       "description": "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1163,6 +1388,31 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "breadcrumb.fixture.tsx",
+          "target": "src/components/ui/breadcrumb.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "breadcrumb-driver.ts",
+          "target": "src/components/ui/breadcrumb-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "breadcrumb.browser.test.tsx",
+          "target": "src/components/ui/breadcrumb.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -1173,7 +1423,7 @@
       "title": "Tree view",
       "description": "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1194,6 +1444,31 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "treeview.fixture.tsx",
+          "target": "src/components/ui/treeview.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "treeview-driver.ts",
+          "target": "src/components/ui/treeview-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "treeview.browser.test.tsx",
+          "target": "src/components/ui/treeview.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -1393,7 +1668,7 @@
       "title": "Menu",
       "description": "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
         {
@@ -1414,6 +1689,31 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "menu.fixture.tsx",
+          "target": "src/components/ui/menu.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "menu-driver.ts",
+          "target": "src/components/ui/menu-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "menu.browser.test.tsx",
+          "target": "src/components/ui/menu.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -1503,6 +1803,26 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tooltip.fixture.tsx",
+          "target": "src/components/ui/tooltip.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "tooltip.browser.test.tsx",
+          "target": "src/components/ui/tooltip.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -1650,6 +1970,26 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "select.fixture.tsx",
+          "target": "src/components/ui/select.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "select.browser.test.tsx",
+          "target": "src/components/ui/select.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -1739,6 +2079,21 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "textarea.browser.test.tsx",
+          "target": "src/components/ui/textarea.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -1749,7 +2104,7 @@
       "title": "Slider",
       "description": "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1770,6 +2125,31 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "slider.fixture.tsx",
+          "target": "src/components/ui/slider.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "slider-driver.ts",
+          "target": "src/components/ui/slider-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "slider.browser.test.tsx",
+          "target": "src/components/ui/slider.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]
@@ -1838,7 +2218,7 @@
       "title": "Spinbutton",
       "description": "APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme"],
       "files": [
         {
@@ -1860,6 +2240,31 @@
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
           "type": "registry:file"
+        },
+        {
+          "path": "spinbutton.fixture.tsx",
+          "target": "src/components/ui/spinbutton.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "spinbutton-driver.ts",
+          "target": "src/components/ui/spinbutton-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "spinbutton.browser.test.tsx",
+          "target": "src/components/ui/spinbutton.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
         }
       ]
     },
@@ -1870,7 +2275,7 @@
       "title": "Checkbox group",
       "description": "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
-      "devDependencies": [],
+      "devDependencies": ["@cssints/apg-specs@^0.12.1", "@quint-machine/core@0.1.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/checkbox"],
       "files": [
         {
@@ -1896,6 +2301,31 @@
         {
           "path": "tokens.ts",
           "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "checkbox-group.fixture.tsx",
+          "target": "src/components/ui/checkbox-group.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "checkbox-group-driver.ts",
+          "target": "src/components/ui/checkbox-group-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "checkbox-group.browser.test.tsx",
+          "target": "src/components/ui/checkbox-group.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
           "type": "registry:file"
         }
       ]

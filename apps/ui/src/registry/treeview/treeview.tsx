@@ -48,7 +48,13 @@ const tree = css.cn(
 );
 
 const item = css.cn(
+  // The row is the marker `within()` reads: its own `aria-expanded` is what the chevron follows, the
+  // way a disclosure's trigger is.
+  css.group(),
   css.display("flex"),
+  // The primitive hides a row under a closed parent with the `hidden` attribute; the skin's own
+  // `display` would otherwise override the UA's `[hidden] { display: none }` and paint it anyway.
+  css.attr("hidden")(css.display("none")),
   css.alignItems("center"),
   css.gap(t.space._1),
   css.padding(t.space._1, t.space._2),

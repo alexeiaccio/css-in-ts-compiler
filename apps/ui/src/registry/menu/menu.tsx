@@ -6,7 +6,7 @@ import {
 } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createContext, createEffect, merge, omit, onSettled, useContext } from "solid-js";
+import { createContext, createEffect, merge, omit, onSettled, untrack, useContext } from "solid-js";
 
 import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
@@ -49,6 +49,8 @@ export interface MenuProps {
   /** Item indices that stay focusable and never activate. */
   readonly disabled?: ReadonlyArray<number>;
   readonly id?: string;
+  /** The primitive, once: a page that drives the menu from elsewhere. */
+  readonly onReady?: (menu: MenuController) => void;
   readonly children?: JSX.Element;
 }
 
@@ -199,6 +201,7 @@ export const Menu = (props: MenuProps): JSX.Element => {
       return props.onItemClick;
     },
   });
+  untrack(() => props.onReady)?.(menu);
   let anchor: HTMLDivElement | undefined;
   // A pointerdown outside the anchor is the dismiss the primitive does not own: it has no document listener, and the
   // trigger's own click is inside the anchor, so the toggle still works. It is a close *request*, so a host that holds
