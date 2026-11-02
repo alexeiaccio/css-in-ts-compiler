@@ -4009,3 +4009,50 @@ button, the tabs story's `count` slider still arrives after the change, the them
 group moves `--hue-tint`; `apps/lab/test/lab.mjs` still passes on the five reactive stories. **Left:** a story file for the
 other 30 registry items, `demos.tsx` gone, and the `STRICT_READ_UNTRACKED` warnings the kit's Select emits under a `Show`
 (read directly in the component body; the storybook is the first host with a Select inside a switchable panel).
+
+## The picture glides: pan-zoom momentum as a machine (apps/ui + packages/headless, 2026-11-02)
+
+The kit's `Panzoom` stopped dead when the finger lifted, and a fast drag of a large picture wants a glide. The primitive
+had no way in: it owned the pointer drag, the clamp and the live offset, and exposed `reset`, `zoomIn/Out` and `setScale`
+but nothing that moves the pan. It gains one method, `panBy(dx, dy)` (`@cssints/headless` **minor**), which calls the same
+bounded `move` a drag and the arrows take, so the clamp and `onPanChange` cannot disagree between sources.
+
+**Why a machine, not a `requestAnimationFrame` in the skin.** The animation itself is four lines; the races are the
+protocol. A pointer down during the glide must take the picture from the frame the last tick wrote, not from the release;
+a frame already dispatched when the grab cancels the loop must move nothing; a key or the double-click reset must end the
+momentum; an unmount must cancel the loop; `prefers-reduced-motion` must never start one. In the skin those are a handle
+compared in three places and a flag that is easy to miss; as a machine they are `rest | gliding`, `fling | grab | frame |
+stop`, one `glide` effect, and the harness asserts each race without a browser. The offset stays where it already was —
+in `@cssints/headless`'s primitive — and the machine's context is the velocity (`vx`, `vy`, px/ms) only, so the offset is
+never copied through the store.
+
+**The grab-during-glide rule.** `grab` enters `rest`, which cancels the glide effect; the host's `onCancel` cancels the
+queued frame, and the primitive's own `pointerDown` then snapshots `offset()` — exactly the value the last `panBy` wrote.
+No frame can land between the two because Solid events are synchronous and a frame is a later task, so
+`ReversalKeepsPosition` holds by construction rather than by reading the animation's time. A frame that was already
+dispatched carries the dead handle id: the machine drops it before looking at a transition (`StaleCarriesCancelled`), and
+the host checks the handle before its own `panBy` so a lost cancellation still moves nothing. The store is per-field:
+`data-gliding` reads the phase, the frames write only `vx`/`vy`, and the browser test counts that a phase reader does not
+re-run when the velocity decays three times.
+
+**The clamp and reduced motion.** The host stops when the clamp swallowed a frame's move (`after === before`) or when the
+speed reaches the friction floor, so the glide lands at rest at the bound rather than overshooting and returning; the DOM
+test ends on `translate(240px, 0px)` at scale 2 and asserts the image still covers the frame's four edges. Under
+`prefers-reduced-motion` the definition's `fling` guard lands at `rest` with no effect: there is no loop to cancel, which
+the DOM test checks by seeing `data-gliding` absent and a frame queue of zero. The primitive's hint now says "drag or
+flick"; the demo mounts at scale 2 and says to flick it and grab it to stop, because at 100% the clamp leaves nothing to
+pan.
+
+**Velocity sampling is the skin's** (the primitive has no business knowing about flings): the last 100 ms of pointer
+samples, a hold before the lift is no velocity, an interval under 8 ms is not a sample, and a second pointer marks the
+gesture as a pinch so it never ends in a fling. The threshold (0.3 px/ms) is the machine's, so the harness proves a slow
+release lands at rest and a fast one glides. The decay is one multiplier per frame (0.92), not per millisecond: an
+`assign` has no clock, and a frame is the machine's tick. On a 120 Hz screen the same flick travels half as far; passing
+the frame's elapsed time in the `frame` event is the upgrade if that matters.
+
+**Left.** Momentum on touch versus mouse is one curve: a finger flick and a trackpad flick both arrive as pointer samples,
+and neither is tuned separately. There is no rubber band at the bounds (the clamp simply ends the glide) and no spring
+back — a spring would need a per-frame solver and a target, which is a different machine. The decay does not read the
+current scale, so a glide at 4× covers the same pixels as one at 2× — the offset is in CSS px, which is what the primitive
+clamps. A wheel zoom during a glide is not a take-over: the glide keeps panning at the new scale; only a pointer, a key and
+a double click stop it, because those are the cases the protocol names today.

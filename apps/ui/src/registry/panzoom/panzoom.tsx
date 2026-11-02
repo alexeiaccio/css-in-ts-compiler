@@ -10,6 +10,7 @@ import { createSignal, merge, untrack } from "solid-js";
 import { Button } from "../button/button.tsx";
 import { type PartProps } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
+import { createPanzoomGlide, type FrameScheduler, type PanzoomGlide } from "./panzoom-glide.ts";
 
 export interface PanzoomProps {
   /** The image: a URL, or a `data:` URI. */
@@ -38,12 +39,24 @@ export interface PanzoomProps {
   readonly onPanChange?: (offset: PanZoomPoint) => void;
   /** `"clamp"` (default) keeps the scaled image covering the frame; `"free"` lets it leave. */
   readonly bounds?: "clamp" | "free";
+  /** `prefers-reduced-motion: reduce`: a flick lands where the drag left it, with no glide. */
+  readonly reducedMotion?: boolean;
   readonly class?: string;
   /** The primitive, once: a page that reads `scale()` or drives the camera. */
   readonly onReady?: (panzoom: PanZoomController) => void;
+  /** The glide machine, once: a fixture sends a stale frame or reads the phase; a page rarely does. */
+  readonly onGlide?: (glide: PanzoomGlide) => void;
+  /** The glide's frame loop; the browser's by default, a test's queue in a test. */
+  readonly frames?: FrameScheduler;
 }
 
-const DEFAULT_HINT = "Drag to pan, pinch or Ctrl/⌘ + wheel to zoom. Keys: +, -, arrows and 0.";
+const DEFAULT_HINT =
+  "Drag or flick to pan, pinch or Ctrl/⌘ + wheel to zoom. Keys: +, -, arrows and 0.";
+
+/** The window a release's velocity is measured over: the last 100 ms of pointer samples. */
+const GLIDE_VELOCITY_WINDOW = 100;
+/** A shorter interval than this is not a velocity: a burst of synthetic moves in one task would read as a flick. */
+const GLIDE_VELOCITY_FLOOR = 8;
 
 const rootClass = css.cn(css.display("grid"), css.gap(t.space._2), css.width("100%"));
 
@@ -82,6 +95,8 @@ const imageClass = css.cn(
   css.media("(prefers-reduced-motion: no-preference)")(
     css.transition("transform 140ms ease-out"),
     css.attr("data-dragging", "true")(css.transition("none")),
+    // the glide writes the transform on every frame: a transition would make it trail its own velocity
+    css.within(css.attr("data-gliding", "true"))(css.transition("none")),
   ),
 );
 
@@ -109,8 +124,12 @@ const hintClass = css.cn(css.margin("0"), css.fontSize(t.font.sizeSm), css.color
 /**
  * One image in a frame, styled: `createPanZoom` owns the scale, the offset, the pointer drag and pinch, the wheel, the
  * double click, the keys (+, -, arrows, 0) and the live value the viewport describes; the skin owns the surface and its
- * rounded corners, the focus ring, the value and the three buttons, the hint, and the transition that honours reduced
- * motion.
+ * rounded corners, the focus ring, the value and the three buttons, the hint, and the glide.
+ *
+ * A fast flick leaves the picture moving: the pointer's last 100 ms are measured on release, and `panzoom-glide.ts` runs
+ * the momentum as a machine — one frame per effect, `panBy` on the primitive, a grab that takes the picture back from
+ * the frame it is on, a key or a double click that stops it, and no loop at all under reduced motion. The offset stays
+ * the primitive's; the machine carries the velocity and `data-gliding` reads the phase.
  *
  * The frame's shape comes from `width` / `height` (or the image's own natural size once it loads), and the image fills it
  * with `object-fit: cover`, which is what the primitive's clamp assumes. A page that needs a letterboxed image passes
@@ -147,6 +166,49 @@ export const Panzoom = (props: PanzoomProps): JSX.Element => {
   // a structural prop, read once: it is the primitive for a page, not a signal
   untrack(() => props.onReady)?.(panzoom);
 
+  // The glide is the skin's: the primitive owns the drag and the offset, and has no way to move the pan from outside,
+  // so it gains `panBy` for this. The machine's context is the velocity only.
+  const glide = createPanzoomGlide({
+    panzoom,
+    reducedMotion: untrack(() => props.reducedMotion),
+    frames: untrack(() => props.frames),
+  });
+  untrack(() => props.onGlide)?.(glide);
+
+  // Velocity sampling is the skin's, not the primitive's: the last 100 ms of pointer samples decide a fling, a hold
+  // before the lift is no velocity, and a second pointer is a pinch, not a flick.
+  const samples: { at: number; x: number; y: number }[] = [];
+  const pointers = new Set<number>();
+  let pinched = false;
+
+  const sample = (event: PointerEvent): void => {
+    samples.push({ at: event.timeStamp, x: event.clientX, y: event.clientY });
+    while (samples.length > 1) {
+      const head = samples[0];
+      if (head === undefined || event.timeStamp - head.at <= GLIDE_VELOCITY_WINDOW) {
+        break;
+      }
+      samples.shift();
+    }
+  };
+
+  /** The release's velocity, in px/ms: the window's own span, or none when the pointer rested before it lifted. */
+  const velocity = (timeStamp: number): PanZoomPoint => {
+    const head = samples[0];
+    const tail = samples.at(-1);
+    const age = tail === undefined ? Number.POSITIVE_INFINITY : timeStamp - tail.at;
+    const elapsed = head === undefined || tail === undefined ? 0 : tail.at - head.at;
+    if (
+      age > GLIDE_VELOCITY_WINDOW ||
+      elapsed <= GLIDE_VELOCITY_FLOOR ||
+      head === undefined ||
+      tail === undefined
+    ) {
+      return { x: 0, y: 0 };
+    }
+    return { x: (tail.x - head.x) / elapsed, y: (tail.y - head.y) / elapsed };
+  };
+
   // the natural size, until the image has loaded and told us; 16:10 is the shape of a frame with nothing to go on
   const [natural, setNatural] = createSignal({ width: 16, height: 10 });
   const size = () => ({
@@ -166,7 +228,12 @@ export const Panzoom = (props: PanzoomProps): JSX.Element => {
 
   const viewport = merge(panzoom.viewportProps, {
     "data-part": "panzoom-viewport",
-    "data-dragging": () => (dragging() ? "true" : undefined),
+    get "data-dragging"() {
+      return dragging() ? "true" : undefined;
+    },
+    get "data-gliding"() {
+      return glide.gliding() ? "true" : undefined;
+    },
     get style() {
       const { width, height } = size();
       // kebab-case: Solid's style helper sets every key with `setProperty`, which ignores a camelCase name
@@ -176,22 +243,75 @@ export const Panzoom = (props: PanzoomProps): JSX.Element => {
       return viewportClass;
     },
     onPointerDown: (event: PointerEvent) => {
+      // the grab takes the picture before the primitive snapshots the offset for the drag: no frame can land between
+      glide.grab();
       setDragging(true);
+      if (event.button !== 0) {
+        panzoom.viewportProps.onPointerDown(event);
+        return;
+      }
+      if (pointers.size === 0) {
+        pinched = false;
+        samples.length = 0;
+      }
+      pointers.add(event.pointerId);
+      if (pointers.size > 1) {
+        pinched = true;
+      }
+      sample(event);
       panzoom.viewportProps.onPointerDown(event);
+    },
+    onPointerMove: (event: PointerEvent) => {
+      if (pointers.has(event.pointerId)) {
+        sample(event);
+      }
+      panzoom.viewportProps.onPointerMove(event);
     },
     onPointerUp: (event: PointerEvent) => {
       setDragging(false);
       panzoom.viewportProps.onPointerUp(event);
+      pointers.delete(event.pointerId);
+      if (pointers.size > 0) {
+        // a finger remains: the gesture continues, and a pinch never ends in a fling
+        return;
+      }
+      const released = !pinched && samples.length > 0 ? velocity(event.timeStamp) : undefined;
+      pinched = false;
+      samples.length = 0;
+      if (released !== undefined) {
+        glide.fling(released.x, released.y);
+      }
     },
     onPointerCancel: (event: PointerEvent) => {
       setDragging(false);
       panzoom.viewportProps.onPointerCancel(event);
+      pointers.delete(event.pointerId);
+      if (pointers.size === 0) {
+        pinched = false;
+        samples.length = 0;
+      }
+    },
+    onKeyDown: (event: KeyboardEvent) => {
+      // the reader took over: a key ends the glide where it is, before the primitive moves the picture
+      if (glide.gliding()) {
+        glide.stop();
+      }
+      panzoom.viewportProps.onKeyDown(event);
+    },
+    onDblClick: (event: MouseEvent) => {
+      // a reset is a take-over too: the glide must not carry the picture away from where reset put it
+      if (glide.gliding()) {
+        glide.stop();
+      }
+      panzoom.viewportProps.onDblClick(event);
     },
   } as PartProps);
 
   const image = merge(panzoom.imageProps, {
     "data-part": "panzoom-image",
-    "data-dragging": () => (dragging() ? "true" : undefined),
+    get "data-dragging"() {
+      return dragging() ? "true" : undefined;
+    },
     get class() {
       return imageClass;
     },

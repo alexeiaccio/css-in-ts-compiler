@@ -240,8 +240,8 @@
       "name": "panzoom",
       "type": "registry:ui",
       "title": "Pan and zoom",
-      "description": "One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
-      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "description": "One image in a frame: drag or flick to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/machine"],
       "devDependencies": [],
       "registryDependencies": ["@cssints/theme", "@cssints/button"],
       "files": [
@@ -249,6 +249,11 @@
           "path": "panzoom.tsx",
           "target": "src/components/ui/panzoom.tsx",
           "type": "registry:ui"
+        },
+        {
+          "path": "panzoom-glide.ts",
+          "target": "src/components/ui/panzoom-glide.ts",
+          "type": "registry:file"
         },
         {
           "path": "theme.ts",

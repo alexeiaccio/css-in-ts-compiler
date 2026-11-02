@@ -333,15 +333,20 @@ const DrawerDemo = (): JSX.Element => {
 };
 
 // The frame is as wide as the preview card allows; its height follows the image's shape. The value and the three buttons
-// are the skin; the drag, the wheel, the pinch, the double click and the keys are the primitive's.
+// are the skin; the drag, the wheel, the pinch, the double click and the keys are the primitive's. It starts zoomed in
+// because a glide needs somewhere to go: at 100% the clamp leaves nothing to pan.
 const PanzoomDemo = (): JSX.Element => (
-  <Panzoom
-    src={PANZOOM_IMAGE}
-    alt="A mountain lake at dusk"
-    width={PANZOOM_WIDTH}
-    height={PANZOOM_HEIGHT}
-    label="A mountain lake at dusk"
-  />
+  <div>
+    <Panzoom
+      src={PANZOOM_IMAGE}
+      alt="A mountain lake at dusk"
+      width={PANZOOM_WIDTH}
+      height={PANZOOM_HEIGHT}
+      label="A mountain lake at dusk"
+      defaultScale={2}
+    />
+    <p class="docs__note">Flick the picture; grab it to stop it.</p>
+  </div>
 );
 
 // A table of contents beside the article it follows: the pane scrolls and the page does not, so the whole demo fits the

@@ -1,6 +1,10 @@
+import { createMachine, harness } from "@cssints/machine";
+import { createMachineStore } from "@cssints/machine/solid";
+import { createEffect, createRoot, flush } from "solid-js";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
-import { type MountedPanzoom, mountPanzoom } from "./panzoom.fixture";
+import { PANZOOM_FLING_VELOCITY, panzoomGlideDefinition } from "./panzoom-glide.ts";
+import { type MountedPanzoom, type MountPanzoomOptions, mountPanzoom } from "./panzoom.fixture";
 
 // No APG pattern and no Quint spec exists for pan-zoom, so this file is the skin's oracle: it mounts the starter in a real
 // Chromium, at a 480 px frame, and drives the same events a reader does. The accessible contract (a focusable named
@@ -16,8 +20,8 @@ const settle = (): Promise<void> =>
 
 const live: MountedPanzoom[] = [];
 
-const mounted = (): MountedPanzoom => {
-  const instance = mountPanzoom();
+const mounted = (options: MountPanzoomOptions = {}): MountedPanzoom => {
+  const instance = mountPanzoom(options);
   live.push(instance);
   return instance;
 };
@@ -93,6 +97,47 @@ const pointer = (
 const at = (viewport: HTMLElement, x: number, y: number): [number, number] => {
   const rect = viewport.getBoundingClientRect();
   return [rect.left + x, rect.top + y];
+};
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+/**
+ * A real gesture in real time: the pointer is down, moves once after `ms`, and lifts `ms` later, so `timeStamp` gives the
+ * release the velocity `dx / ms` (px/ms). The glide's own frames are the fixture's queue, not the browser's.
+ */
+const flick = async (
+  viewport: HTMLElement,
+  from: readonly [number, number],
+  dx: number,
+  dy: number,
+  ms: number,
+): Promise<void> => {
+  pointer(viewport, "pointerdown", from);
+  await sleep(ms);
+  pointer(viewport, "pointermove", [from[0] + dx, from[1] + dy]);
+  await sleep(ms);
+  pointer(viewport, "pointerup", [from[0] + dx, from[1] + dy]);
+  await settle();
+};
+
+/** Step the glide's frame queue, flushing Solid's transform after each frame. */
+const stepFrames = async (instance: MountedPanzoom, count = 1): Promise<void> => {
+  for (let index = 0; index < count; index += 1) {
+    instance.frames.step();
+    await settle();
+  }
+};
+
+/** The offset in the image's transform, in px. */
+const translate = (root: ParentNode): { x: number; y: number } => {
+  const match = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(transform(root));
+  if (match === null) {
+    throw new Error(`panzoom: no translate in "${transform(root)}"`);
+  }
+  return { x: Number(match[1]), y: Number(match[2]) };
 };
 
 describe("Panzoom", () => {
@@ -219,5 +264,311 @@ describe("Panzoom", () => {
     await click(reset);
     expect(value(root).textContent).toBe("100%");
     expect(transform(root)).toBe("translate(0px, 0px) scale(1)");
+  });
+});
+
+describe("Panzoom x the glide (machine)", () => {
+  const start = () => harness(panzoomGlideDefinition(false));
+
+  it("a slow release lands at rest with no effect, and a fast one glides", () => {
+    const slow = start();
+    slow.send({ type: "fling", vx: PANZOOM_FLING_VELOCITY / 2, vy: 0 });
+    expect(slow.machine.getState().state).toBe("rest");
+    expect(slow.machine.getState().context).toEqual({ vx: 0, vy: 0 });
+    expect(slow.machine.effects()).toEqual([]);
+    expect(slow.flushEffects()).toEqual([]);
+
+    const fast = start();
+    fast.send({ type: "fling", vx: 2, vy: -0.5 });
+    expect(fast.machine.getState().state).toBe("gliding");
+    expect(fast.machine.getState().context).toEqual({ vx: 2, vy: -0.5 });
+    expect(fast.flushEffects().map((handle) => handle.type)).toEqual(["glide"]);
+  });
+
+  it("a frame is one tick: it issues the next frame and decays the velocity", () => {
+    const h = start();
+    h.send({ type: "fling", vx: 2, vy: -0.5 });
+    const first = h.flushEffects()[0];
+    if (first === undefined) {
+      throw new Error("the fling issued no glide");
+    }
+
+    h.send({ type: "frame", id: first.id });
+    expect(h.machine.getState().state).toBe("gliding");
+    expect(h.machine.getState().context.vx).toBeLessThan(2);
+    expect(h.machine.getState().context.vy).toBeGreaterThan(-0.5);
+
+    const second = h.flushEffects()[0];
+    expect(second?.type).toBe("glide");
+    expect(second?.id).not.toBe(first.id);
+    expect(h.machine.effects().map((handle) => handle.id)).toEqual([second?.id]);
+  });
+
+  it("a grab stops the glide, and a frame already in flight moves nothing", () => {
+    const h = start();
+    h.send({ type: "fling", vx: 2, vy: 0 });
+    const live = h.machine.effects()[0];
+    if (live === undefined) {
+      throw new Error("the fling issued no glide");
+    }
+
+    h.send({ type: "grab" });
+    expect(h.machine.getState().state).toBe("rest");
+    expect(h.machine.getState().context).toEqual({ vx: 0, vy: 0 });
+    expect(h.cancelled()).toEqual([live.id]);
+    expect(h.machine.effects()).toEqual([]);
+
+    // the frame the cancelled effect had already asked for: its id is dead before any transition is looked at
+    h.send({ type: "frame", id: live.id });
+    expect(h.machine.getState().state).toBe("rest");
+    expect(h.log.at(-1)).toMatchObject({ event: "frame", to: undefined, cancelled: true });
+  });
+
+  it("a glide the clamp has caught stops at rest on the host's stop", () => {
+    const h = start();
+    h.send({ type: "fling", vx: 4, vy: 0 });
+    const live = h.machine.effects()[0];
+    if (live === undefined) {
+      throw new Error("the fling issued no glide");
+    }
+
+    h.send({ type: "stop" });
+    expect(h.machine.getState().state).toBe("rest");
+    expect(h.machine.getState().context).toEqual({ vx: 0, vy: 0 });
+    expect(h.cancelled()).toEqual([live.id]);
+    expect(h.machine.effects()).toEqual([]);
+  });
+
+  it("under reduced motion a flick lands at rest with no loop at all", () => {
+    const h = harness(panzoomGlideDefinition(true));
+    h.send({ type: "fling", vx: 10, vy: 10 });
+    expect(h.machine.getState().state).toBe("rest");
+    expect(h.machine.getState().context).toEqual({ vx: 0, vy: 0 });
+    expect(h.machine.effects()).toEqual([]);
+    expect(h.log.filter((entry) => entry.effect !== undefined)).toEqual([]);
+  });
+
+  it("destroying the machine cancels the live frame", () => {
+    const h = start();
+    h.send({ type: "fling", vx: 1, vy: 0 });
+    const live = h.machine.effects()[0];
+    if (live === undefined) {
+      throw new Error("the fling issued no glide");
+    }
+
+    h.machine.destroy();
+    expect(h.cancelled()).toEqual([live.id]);
+    expect(h.machine.effects()).toEqual([]);
+  });
+
+  it("writes the velocity every frame but not the phase: a phase reader does not re-run", () => {
+    const machine = createMachine(panzoomGlideDefinition(false));
+    let phaseRuns = 0;
+    let velocityRuns = 0;
+    const dispose = createRoot((stop) => {
+      const store = createMachineStore(machine);
+      createEffect(
+        () => store.state.phase,
+        () => {
+          phaseRuns += 1;
+        },
+      );
+      createEffect(
+        () => store.state.vx,
+        () => {
+          velocityRuns += 1;
+        },
+      );
+      createEffect(
+        () => store.state.vy,
+        () => {
+          velocityRuns += 1;
+        },
+      );
+      flush();
+      return stop;
+    });
+    flush();
+
+    const atRest = phaseRuns;
+    machine.send({ type: "fling", vx: 2, vy: 0 });
+    flush();
+    expect(phaseRuns).toBe(atRest + 1);
+    const moving = phaseRuns;
+    const velocities = velocityRuns;
+
+    for (let index = 0; index < 3; index += 1) {
+      const live = machine.effects()[0];
+      if (live === undefined) {
+        throw new Error("the fling issued no glide");
+      }
+      machine.send({ type: "frame", id: live.id });
+      flush();
+    }
+    expect(phaseRuns).toBe(moving);
+    expect(velocityRuns).toBeGreaterThan(velocities);
+
+    machine.send({ type: "grab" });
+    flush();
+    expect(phaseRuns).toBe(moving + 1);
+    dispose();
+  });
+});
+
+describe("Panzoom x the glide (real DOM)", () => {
+  /** A frame that starts zoomed in: at `min` the clamp leaves nothing to pan, so nothing to glide. */
+  const zoomed = (options: MountPanzoomOptions = {}): MountedPanzoom =>
+    mounted({ defaultScale: 2, ...options });
+
+  it("a grab takes the glide back where the last frame left it, and the drag continues from there", async () => {
+    const instance = zoomed();
+    const root = instance.root;
+    const viewport = part(root, "panzoom-viewport");
+    const centre = at(viewport, 240, 135);
+    await flick(viewport, centre, 40, 0, 30);
+    expect(viewport.getAttribute("data-gliding")).toBe("true");
+    expect(instance.frames.pending()).toBe(1);
+
+    await stepFrames(instance, 2);
+    const glided = translate(root);
+    expect(glided.x).toBeGreaterThan(40);
+
+    pointer(viewport, "pointerdown", centre);
+    await settle();
+    expect(viewport.getAttribute("data-gliding")).toBeNull();
+    expect(instance.frames.pending()).toBe(0);
+    const grabbed = translate(root);
+    // exactly the offset the last frame wrote: no jump back to the release, no jump to the drag's own origin
+    expect(grabbed).toEqual(glided);
+
+    await stepFrames(instance, 3);
+    expect(translate(root)).toEqual(grabbed);
+
+    // the drag continues from the grabbed offset: the pointer's own +12 px, not a rewind
+    pointer(viewport, "pointermove", [centre[0] + 12, centre[1]]);
+    await settle();
+    expect(translate(root).x).toBeCloseTo(grabbed.x + 12, 3);
+    pointer(viewport, "pointerup", [centre[0] + 12, centre[1]]);
+  });
+
+  it("does not fling a slow drag, and flings a fast one", async () => {
+    const slow = zoomed();
+    const slowViewport = part(slow.root, "panzoom-viewport");
+    await flick(slowViewport, at(slowViewport, 240, 135), 10, 0, 60);
+    expect(slowViewport.getAttribute("data-gliding")).toBeNull();
+    expect(slow.frames.pending()).toBe(0);
+    const rest = translate(slow.root);
+    await stepFrames(slow, 3);
+    expect(translate(slow.root)).toEqual(rest);
+
+    const fast = zoomed();
+    const fastViewport = part(fast.root, "panzoom-viewport");
+    await flick(fastViewport, at(fastViewport, 240, 135), 40, 0, 30);
+    expect(fastViewport.getAttribute("data-gliding")).toBe("true");
+    expect(fast.frames.pending()).toBe(1);
+    await stepFrames(fast, 1);
+    expect(translate(fast.root).x).toBeGreaterThan(40);
+  });
+
+  it("stops at the clamp without overshooting, and the picture still covers the frame", async () => {
+    const instance = zoomed();
+    const root = instance.root;
+    const viewport = part(root, "panzoom-viewport");
+    await flick(viewport, at(viewport, 240, 135), 200, 0, 20);
+    expect(viewport.getAttribute("data-gliding")).toBe("true");
+
+    for (let index = 0; index < 20 && instance.frames.pending() > 0; index += 1) {
+      await stepFrames(instance, 1);
+    }
+    expect(viewport.getAttribute("data-gliding")).toBeNull();
+    expect(instance.frames.pending()).toBe(0);
+    // half the scaled overflow: 480 * (2 - 1) / 2
+    expect(transform(root)).toBe("translate(240px, 0px) scale(2)");
+
+    const frame = viewport.getBoundingClientRect();
+    const picture = image(root).getBoundingClientRect();
+    expect(picture.left).toBeLessThanOrEqual(frame.left + 0.01);
+    expect(picture.top).toBeLessThanOrEqual(frame.top + 0.01);
+    expect(picture.right).toBeGreaterThanOrEqual(frame.right - 0.01);
+    expect(picture.bottom).toBeGreaterThanOrEqual(frame.bottom - 0.01);
+
+    const landed = translate(root);
+    await stepFrames(instance, 3);
+    expect(translate(root)).toEqual(landed);
+  });
+
+  it("moves nothing when a frame outlives the effect that asked for it", async () => {
+    const instance = zoomed();
+    const root = instance.root;
+    const viewport = part(root, "panzoom-viewport");
+    const centre = at(viewport, 240, 135);
+    await flick(viewport, centre, 40, 0, 30);
+    const live = instance.glide().machine.effects()[0];
+    if (live === undefined) {
+      throw new Error("the fling issued no glide");
+    }
+    // the frame the browser had already dispatched when the pointer went down
+    const [late] = instance.frames.take();
+
+    pointer(viewport, "pointerdown", centre);
+    await settle();
+    const grabbed = translate(root);
+    late?.(1000);
+    await settle();
+    expect(translate(root)).toEqual(grabbed);
+    expect(viewport.getAttribute("data-gliding")).toBeNull();
+
+    // and the machine drops a frame whose handle is dead: no transition, no store write, no movement
+    instance.glide().machine.send({ type: "frame", id: live.id });
+    await settle();
+    expect(instance.glide().machine.getState().state).toBe("rest");
+    expect(translate(root)).toEqual(grabbed);
+    pointer(viewport, "pointerup", centre);
+  });
+
+  it("never starts a loop under prefers-reduced-motion", async () => {
+    const instance = zoomed({ reducedMotion: true });
+    const root = instance.root;
+    const viewport = part(root, "panzoom-viewport");
+    await flick(viewport, at(viewport, 240, 135), 120, 0, 30);
+    expect(viewport.getAttribute("data-gliding")).toBeNull();
+    expect(instance.frames.pending()).toBe(0);
+
+    const landed = translate(root);
+    await stepFrames(instance, 4);
+    expect(translate(root)).toEqual(landed);
+  });
+
+  it("cancels the frame loop when the picture unmounts", async () => {
+    const instance = mountPanzoom({ defaultScale: 2 });
+    const viewport = part(instance.root, "panzoom-viewport");
+    await flick(viewport, at(viewport, 240, 135), 40, 0, 30);
+    expect(instance.frames.pending()).toBe(1);
+    // the element outlives the render: its own style is still readable after the dispose
+    const picture = image(instance.root);
+    const release = picture.style.transform;
+
+    instance.dispose();
+    expect(instance.frames.pending()).toBe(0);
+    instance.frames.step(100);
+    flush();
+    expect(picture.style.transform).toBe(release);
+  });
+
+  it("stops the glide when a key takes over", async () => {
+    const instance = zoomed();
+    const root = instance.root;
+    const viewport = part(root, "panzoom-viewport");
+    await flick(viewport, at(viewport, 240, 135), 40, 0, 30);
+    const moved = translate(root);
+
+    await press(viewport, "ArrowRight");
+    expect(viewport.getAttribute("data-gliding")).toBeNull();
+    expect(instance.frames.pending()).toBe(0);
+    const after = translate(root);
+    expect(after.x).toBeCloseTo(moved.x + 24, 3);
+
+    await stepFrames(instance, 3);
+    expect(translate(root)).toEqual(after);
   });
 });

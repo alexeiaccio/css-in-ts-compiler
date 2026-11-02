@@ -96,10 +96,11 @@ const STARTERS: ReadonlyArray<Starter> = [
     name: "panzoom",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
-    with: ["theme.ts", "tokens.ts", "render.tsx"],
+    with: ["panzoom/panzoom-glide.ts", "theme.ts", "tokens.ts", "render.tsx"],
+    deps: ["@cssints/machine"],
     title: "Pan and zoom",
     description:
-      "One image in a frame: drag to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
+      "One image in a frame: drag or flick to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
     also: ["@cssints/button"],
   },
   {
