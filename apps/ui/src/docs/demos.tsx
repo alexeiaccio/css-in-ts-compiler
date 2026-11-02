@@ -33,6 +33,7 @@ import {
   DrawerClose,
   DrawerContent,
   DrawerFooter,
+  DrawerHandle,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -305,10 +306,12 @@ const DrawerDemo = (): JSX.Element => {
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
-        {/* the same drawer on the bottom edge: full width, its top corners round, and the body scrolls inside its height */}
-        <Drawer side="bottom">
+        {/* the same drawer on the bottom edge: full width, its top corners round, a handle that drags it away, and the
+            body scrolls inside its height */}
+        <Drawer side="bottom" animated>
           <DrawerTrigger>Open the sheet</DrawerTrigger>
           <DrawerContent>
+            <DrawerHandle />
             <DrawerHeader>
               <DrawerTitle>Share</DrawerTitle>
               <DrawerClose />
@@ -322,7 +325,8 @@ const DrawerDemo = (): JSX.Element => {
       </div>
       <p class="docs__note">
         Interrupt it: close the rail and open it again before the slide ends. It turns back from
-        where it is; the panel leaves the page only once the close has finished.
+        where it is; the panel leaves the page only once the close has finished. Drag the sheet's
+        handle down, or pull it back up.
       </p>
     </div>
   );

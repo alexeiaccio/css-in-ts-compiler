@@ -10,6 +10,7 @@ import {
   DrawerClose,
   DrawerContent,
   DrawerFooter,
+  DrawerHandle,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -109,6 +110,8 @@ export interface MountedMotionDrawer {
   readonly trigger: () => HTMLButtonElement;
   /** The panel, or `null` while the layer is unmounted. */
   readonly panel: () => HTMLElement | null;
+  /** The grab handle of the sheet, or `null` (a side rail has none, and a static sheet has no drag). */
+  readonly handle: () => HTMLElement | null;
   readonly layer: () => HTMLElement | null;
   /** The panel's `data-state` (`<side>-<phase>`), or `null` while the layer is unmounted. */
   readonly phase: () => string | null;
@@ -199,6 +202,7 @@ export const mountAnimatedDrawer = (
       >
         <DrawerTrigger>Filters</DrawerTrigger>
         <DrawerContent>
+          <DrawerHandle />
           <DrawerHeader>
             <DrawerTitle>Filters</DrawerTitle>
             <DrawerClose />
@@ -235,6 +239,7 @@ export const mountAnimatedDrawer = (
     },
     trigger,
     panel,
+    handle: () => panel()?.querySelector<HTMLElement>('[data-part="drawer-handle"]') ?? null,
     layer,
     phase: () => panel()?.getAttribute("data-state") ?? null,
     phases: () => [...phases],

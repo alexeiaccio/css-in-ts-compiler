@@ -145,6 +145,12 @@ export interface OverlayMotionOptions {
   readonly animated: boolean;
   /** The panel's frames: the dialog fades and lifts, the drawer slides off its own edge. */
   readonly frame: OverlayFrame;
+  /**
+   * Where the box is now when something other than the machine moves it — the bottom sheet's drag leaves the panel part
+   * way down. Read once when a leave starts, so that leave begins there rather than at the open end; `undefined` at
+   * rest. Every other effect ignores it.
+   */
+  readonly current?: (() => number | undefined) | undefined;
   /** The motion preference; left out, `prefers-reduced-motion: reduce` is read once. */
   readonly reducedMotion?: boolean | undefined;
   /** Every animation the host starts, once, after `animate()`: a test pauses it and steps the timeline. */
@@ -208,8 +214,9 @@ export const createOverlayMotion = (options: OverlayMotionOptions): OverlayMotio
 
   const offEffect = machine.onEffect((handle) => {
     const to = handle.spec.to === "open" ? 1 : 0;
-    // a reversal keeps the box where it was; a start begins at the end the box is already at
-    const from = carried ?? (to === 1 ? 0 : 1);
+    // a reversal keeps the box where it was; a sheet a drag left part way down starts its leave there; a start begins at
+    // the end the box is already at
+    const from = carried ?? (to === 0 ? options.current?.() : undefined) ?? (to === 1 ? 0 : 1);
     carried = undefined;
     const element = panel;
     if (element === undefined || !animated) {

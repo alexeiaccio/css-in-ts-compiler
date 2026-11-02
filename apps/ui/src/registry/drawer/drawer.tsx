@@ -1,11 +1,35 @@
 import { createDrawer, type Drawer as DrawerController, type DrawerSide } from "@cssints/headless";
+import {
+  type ConfigEvent,
+  createMachine,
+  defineMachine,
+  type EffectHandle,
+  type Machine,
+  type Transition,
+} from "@cssints/machine";
+import { type MachineStore, createMachineStore } from "@cssints/machine/solid";
 import { Portal } from "@solidjs/web";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createContext, createUniqueId, merge, omit, Show, untrack, useContext } from "solid-js";
+import {
+  type Accessor,
+  createContext,
+  createEffect,
+  createUniqueId,
+  merge,
+  omit,
+  onCleanup,
+  Show,
+  untrack,
+  useContext,
+} from "solid-js";
 
 import { Button } from "../button/button.tsx";
-import { createOverlayMotion, type OverlayMotion } from "../overlay-motion.ts";
+import {
+  createOverlayMotion,
+  type OverlayMotion,
+  type OverlayMotionPhase,
+} from "../overlay-motion.ts";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
 
@@ -67,6 +91,12 @@ export interface DrawerFooterProps extends Renderable<PartProps, void> {
   readonly children?: JSX.Element;
 }
 
+export interface DrawerHandleProps extends Renderable<PartProps, void> {
+  readonly class?: string;
+  /** Replaces the grip mark; the handle itself stays the drag's pointer surface. */
+  readonly children?: JSX.Element;
+}
+
 export interface DrawerCloseProps {
   /** The accessible name of the icon button (default `"Close"`). */
   readonly label?: string;
@@ -81,6 +111,7 @@ const DrawerContext = createContext<{
   readonly mount: () => Element | undefined;
   readonly animated: boolean;
   readonly motion: OverlayMotion;
+  readonly drag: SheetDrag;
 }>();
 
 // One positioned layer for the backdrop and the panel, out of the page's flow and over everything but a toast. It never takes
@@ -223,6 +254,462 @@ const drawerFrame = (side: DrawerSide, fraction: number): Keyframe => {
   return { transform: `translate(${x}%, ${y}%)` };
 };
 
+/** How far a sheet must be pulled down, in px, for a release to dismiss it. */
+export const SHEET_DISMISS_DISTANCE = 96;
+/** How fast it must be moving at the release, in px/ms, to dismiss it by a flick alone. */
+export const SHEET_DISMISS_VELOCITY = 0.5;
+/** A snap-back's duration: the finger has just left, so it is short. */
+const SHEET_SETTLE_DURATION = 180;
+/** The window a release's velocity is measured over. */
+const SHEET_VELOCITY_WINDOW = 100;
+/** A shorter interval than this is not a velocity: a burst of synthetic moves in one task would read as a flick. */
+const SHEET_VELOCITY_FLOOR = 8;
+// The snap-back is linear, like the overlay's slide, so a grab can read the sheet's position off the animation's
+// `currentTime` and continue from it.
+const SHEET_SETTLE_EASING = "linear";
+
+/** The drag's three states: at rest, the finger is down, or the sheet is going back to 0. */
+export type SheetDragPhase = "rest" | "dragging" | "settling";
+
+/** The drag machine's context: where the sheet is, how fast, and the motion preference it started with. */
+export interface SheetDragContext {
+  /** How far the sheet is pulled down, in px from the open position. Never below 0. */
+  readonly offset: number;
+  /** The last measured velocity, in px/ms downward. */
+  readonly velocity: number;
+  /** `prefers-reduced-motion: reduce` (or the override) when the machine was built; the host also reads the live one. */
+  readonly reduced: boolean;
+}
+
+// a type alias, not an interface: `PayloadMap` is an index signature, and only an alias is assignable to one
+type SheetDragPayloads = {
+  readonly grab: { readonly offset: number };
+  readonly move: { readonly offset: number };
+  readonly release: { readonly velocity: number };
+  readonly cancel: undefined;
+  readonly reset: undefined;
+  readonly finish: { readonly id: number };
+};
+
+/** The drag's events: the pointer's, the keyboard's, and an effect's completion. */
+export type SheetDragEvent =
+  | { readonly type: "grab"; readonly offset: number }
+  | { readonly type: "move"; readonly offset: number }
+  | { readonly type: "release"; readonly velocity: number }
+  | { readonly type: "cancel" }
+  | { readonly type: "reset" }
+  | { readonly type: "finish"; readonly id: number };
+
+/** The running drag machine, as the drawer and its tests name it. */
+export type SheetDragMachine = Machine<SheetDragContext, SheetDragPhase, SheetDragEvent>;
+
+type SheetDragConfig = ConfigEvent<SheetDragPayloads>;
+
+/** A pulled-up drag stops at the open position: rubber-band overscroll is not modelled. */
+const pulled = (offset: number): number => (offset > 0 ? offset : 0);
+
+const offsetOf = (event: SheetDragConfig): number =>
+  event.type === "grab" || event.type === "move" ? pulled(event.offset) : 0;
+
+const velocityOf = (event: SheetDragConfig): number =>
+  event.type === "release" ? event.velocity : 0;
+
+// The release decides: past the distance, or a fast enough downward flick, and the sheet is dismissed. Both numbers are
+// the machine's, so the harness can prove a flick without a browser and the host never re-checks them.
+const dismisses = (context: SheetDragContext, velocity: number): boolean =>
+  context.offset >= SHEET_DISMISS_DISTANCE || velocity >= SHEET_DISMISS_VELOCITY;
+
+// A release below the threshold, or an Escape, puts the sheet back: one step under reduced motion, an effect the host
+// runs on `element.animate` otherwise. `offset` stays in the context while `settling`, so the host reads the effect's
+// `from` off the machine — a literal in the spec would need one transition per pixel.
+const back = (): readonly Transition<SheetDragContext, SheetDragConfig>[] => [
+  {
+    guard: (context) => context.reduced || context.offset === 0,
+    target: "rest",
+    assign: (_context, event) => ({ offset: 0, velocity: velocityOf(event) }),
+  },
+  {
+    target: "settling",
+    assign: (_context, event) => ({ velocity: velocityOf(event) }),
+    effect: { type: "settle", to: 0 },
+  },
+];
+
+/**
+ * The drag protocol of one bottom sheet, composed with `createOverlayMotion` rather than replacing it: the overlay owns
+ * the open/closed box and its leave, this owns the finger. `rest`, `dragging`, `settling`; a release past
+ * `SHEET_DISMISS_DISTANCE` or `SHEET_DISMISS_VELOCITY` issues a `dismiss` effect (the host asks the primitive to close,
+ * so the leave is the overlay machine's and there is one leave), everything else settles back to 0. `cancel` is Escape
+ * and runs the snap-back; `reset` is the overlay no longer being open, so the drag is dropped without a second
+ * animation. A grab while `settling` cancels that effect and continues from the position the host hands it
+ * (`ReversalKeepsPosition`), and a cancelled settle's late `finish` is dropped by its dead id
+ * (`CancelledFinishIgnored`). No debounce: `dragging` has one live move stream, and `settling` has no transition that a
+ * burst could duplicate — the state is the coalescer.
+ */
+export const bottomSheetDragDefinition = (reduced: boolean) =>
+  defineMachine<SheetDragPayloads>()({
+    start: "rest",
+    initial: { offset: 0, velocity: 0, reduced },
+    states: {
+      rest: {
+        on: {
+          grab: {
+            target: "dragging",
+            assign: (_context, event) => ({ offset: offsetOf(event), velocity: 0 }),
+          },
+          cancel: { target: "rest", assign: { offset: 0, velocity: 0 } },
+          reset: { target: "rest", assign: { offset: 0, velocity: 0 } },
+        },
+      },
+      dragging: {
+        on: {
+          move: {
+            target: "dragging",
+            assign: (_context, event) => ({ offset: offsetOf(event) }),
+          },
+          release: [
+            {
+              guard: (context, event) =>
+                event.type === "release" && dismisses(context, event.velocity),
+              target: "rest",
+              assign: (_context, event) => ({ offset: 0, velocity: velocityOf(event) }),
+              effect: { type: "dismiss" },
+            },
+            ...back(),
+          ],
+          cancel: back(),
+          reset: { target: "rest", assign: { offset: 0, velocity: 0 } },
+        },
+      },
+      settling: {
+        on: {
+          finish: { target: "rest", assign: { offset: 0, velocity: 0 } },
+          grab: {
+            target: "dragging",
+            assign: (_context, event) => ({ offset: offsetOf(event), velocity: 0 }),
+          },
+          // a second Escape and a second release while the snap-back runs are not transitions: once the finger is up
+          // the sheet is going back, and dropping them is the coalescer
+          reset: { target: "rest", assign: { offset: 0, velocity: 0 } },
+        },
+      },
+    },
+  });
+
+/** What the host needs: the primitive's open state, the overlay's box and preference, and its close request. */
+export interface SheetDragOptions {
+  /** The drag exists: an animated bottom sheet. A side rail has no downward drag, and a static sheet keeps its CSS. */
+  readonly enabled: Accessor<boolean>;
+  /** The primitive's open state: while it is false the drag is reset, not left halfway. */
+  readonly open: Accessor<boolean>;
+  /** The overlay's box: a grab is taken only once the sheet is `open`, not while it enters. */
+  readonly phase: Accessor<OverlayMotionPhase>;
+  /** The overlay's motion preference, live: the host skips its animation when it is on. */
+  readonly reduced: Accessor<boolean>;
+  /** A dismissal asks the primitive for the close, so the leave is the overlay machine's, not a second one. */
+  readonly close: () => void;
+  /** Every animation the drag starts (a snap-back), once: a test pauses it and steps the timeline. */
+  readonly onAnimate?: ((animation: Animation) => void) | undefined;
+}
+
+/** The drag as the drawer's parts read it: a phase, an offset, and the handle's pointer props. */
+export interface SheetDrag {
+  readonly machine: SheetDragMachine;
+  readonly store: MachineStore<SheetDragContext, SheetDragPhase, SheetDragEvent>;
+  /** The handle is live: an animated bottom sheet. */
+  readonly enabled: Accessor<boolean>;
+  /** The finger is down: the cursor is `grabbing` and Escape is the drag's, not the drawer's. */
+  readonly dragging: Accessor<boolean>;
+  readonly attach: (element: HTMLElement | undefined) => void;
+  /**
+   * Where a dismissal left the box, as a fraction of the panel (1 open, 0 off the edge), for the overlay's leave to
+   * start from. Read once: a refused close then has nothing left behind.
+   */
+  readonly current: () => number | undefined;
+  /** The grab handle's pointer props. Decorative for readers: the keyboard path stays the primitive's. */
+  readonly handleProps: {
+    readonly onPointerDown: (event: PointerEvent) => void;
+    readonly onPointerMove: (event: PointerEvent) => void;
+    readonly onPointerUp: (event: PointerEvent) => void;
+    readonly onPointerCancel: (event: PointerEvent) => void;
+  };
+}
+
+interface LiveSettle {
+  /** The machine's handle, or `undefined` for the snap-back after a refused close. */
+  readonly handle: EffectHandle | undefined;
+  readonly animation: Animation;
+  readonly from: number;
+  readonly to: number;
+  readonly duration: number;
+}
+
+interface Sample {
+  readonly at: number;
+  readonly y: number;
+}
+
+/**
+ * Run the drag of one bottom sheet. Call it in a component body, beside `createOverlayMotion`: the store belongs to the
+ * component, the pointer props go on the grab handle, and disposing it destroys the machine.
+ *
+ * The offset is written to the panel as the `translate` property, not `transform`: the overlay's slide animates
+ * `transform`, so a drag and a leave never race for one declaration. The grab handle is the only pointer surface — the
+ * body keeps `overflow-y: auto` and its own scroll.
+ */
+export const createSheetDrag = (options: SheetDragOptions): SheetDrag => {
+  const machine: SheetDragMachine = createMachine(
+    bottomSheetDragDefinition(untrack(() => options.reduced())),
+  );
+  const store = createMachineStore(machine);
+
+  let panel: HTMLElement | undefined;
+  /** The running snap-back, or `undefined` at rest. */
+  let live: LiveSettle | undefined;
+  /** Where the finger went down, and the offset the sheet was at then (a grab during the snap-back). */
+  let origin: { readonly y: number; readonly offset: number } | undefined;
+  let samples: Sample[] = [];
+  /** The offset at the release, read before the dismissal resets it. */
+  let released = 0;
+  /** A dismissal's fraction for the overlay's leave; read once by `current()`. */
+  let handoff: number | undefined;
+
+  const reduced = (): boolean => untrack(() => options.reduced());
+
+  const positionOf = (settle: LiveSettle): number => {
+    const time = Number(settle.animation.currentTime ?? 0);
+    const fraction = settle.duration === 0 ? 0 : Math.min(1, Math.max(0, time / settle.duration));
+    return settle.from + (settle.to - settle.from) * fraction;
+  };
+
+  const animateBack = (from: number, handle: EffectHandle | undefined): void => {
+    const element = panel;
+    if (element === undefined || from === 0 || reduced()) {
+      // no motion asked for, or nothing to move: the same one-step landing, and the finish is a microtask so the
+      // transition is still one delivery
+      queueMicrotask(() => {
+        if (handle !== undefined) {
+          machine.send({ type: "finish", id: handle.id });
+        }
+      });
+      return;
+    }
+    // the animation is the position now; `fill: none` because the rest state is `translate: none` (the store's write)
+    element.style.translate = "";
+    const animation = element.animate([{ translate: `0px ${from}px` }, { translate: "0px 0px" }], {
+      duration: SHEET_SETTLE_DURATION,
+      easing: SHEET_SETTLE_EASING,
+      fill: "none",
+    });
+    // the ends, for a test that steps the timeline; `settle:` tells a snap-back from the overlay's own slide
+    animation.id = `settle:${from}:0`;
+    const settle: LiveSettle = {
+      handle,
+      animation,
+      from,
+      to: 0,
+      duration: SHEET_SETTLE_DURATION,
+    };
+    live = settle;
+    options.onAnimate?.(animation);
+    const done = (): void => {
+      if (live?.animation === animation) {
+        live = undefined;
+      }
+      animation.cancel();
+      // a completion, and a cancelled animation's own late one: the machine drops the latter by its id
+      if (handle !== undefined) {
+        machine.send({ type: "finish", id: handle.id });
+      }
+    };
+    animation.finished.then(done, done);
+  };
+
+  // A dismissal is the overlay's, not a second leave: hand the box's fraction over, ask the primitive to close, and if
+  // the request was refused (a controlled host) put the sheet back where the finger left it instead of leaving it
+  // halfway. The refusal is one microtask later, after the overlay's own follow has run.
+  const dismiss = (px: number): void => {
+    const height = panel?.getBoundingClientRect().height ?? 0;
+    handoff = height > 0 ? Math.min(1, Math.max(0, 1 - px / height)) : 0;
+    options.close();
+    queueMicrotask(() => {
+      if (options.open()) {
+        handoff = undefined;
+        animateBack(px, undefined);
+      }
+    });
+  };
+
+  const offEffect = machine.onEffect((handle) => {
+    if (handle.type === "dismiss") {
+      dismiss(released);
+      return;
+    }
+    animateBack(machine.getState().context.offset, handle);
+  });
+
+  const offCancel = machine.onCancel((handle) => {
+    if (live?.handle?.id !== handle.id) {
+      return;
+    }
+    const cancelled = live;
+    live = undefined;
+    cancelled.animation.cancel();
+  });
+
+  // The offset is the machine's, and it is the one thing the panel's `translate` reads. One store write per move, and a
+  // reader of the phase does not re-run for it.
+  createEffect(
+    () => store.state.offset,
+    (offset) => {
+      const element = panel;
+      if (element === undefined) {
+        return;
+      }
+      element.style.translate = offset === 0 ? "" : `0px ${offset}px`;
+    },
+  );
+
+  // The overlay is closed (or closing): the drag is done. A microtask, because a machine send writes the store and an
+  // effect runs in an owned scope, where a Solid store refuses a write.
+  createEffect(
+    () => options.open(),
+    (open) => {
+      if (open) {
+        return;
+      }
+      queueMicrotask(() => {
+        if (!options.open()) {
+          // the overlay's leave (if a dismissal asked for one) reads `current()` before this microtask: created first,
+          // queued first. `handoff` is not cleared here, so a host that accepts the close on a later turn still starts
+          // its leave where the drag left the sheet; `current()` and the refusal path are what clear it.
+          machine.send({ type: "reset" });
+        }
+      });
+    },
+  );
+
+  const pointerDown = (event: PointerEvent): void => {
+    if (!options.enabled() || !options.open() || options.phase() !== "open" || event.button !== 0) {
+      return;
+    }
+    const target = event.currentTarget;
+    if (target instanceof Element) {
+      try {
+        target.setPointerCapture(event.pointerId);
+      } catch {
+        // a synthetic pointer (a test, assistive technology) is not an active pointer: nothing to capture
+      }
+    }
+    // a grab during the snap-back continues from the running animation's position, not from its start. The machine is
+    // read, not its store: a store write is flushed, and a pointer sequence arrives in one task
+    const at = live === undefined ? machine.getState().context.offset : positionOf(live);
+    if (live !== undefined) {
+      live.animation.cancel();
+      live = undefined;
+    }
+    origin = { y: event.clientY, offset: at };
+    samples = [{ at: event.timeStamp, y: event.clientY }];
+    machine.send({ type: "grab", offset: at });
+  };
+
+  const pointerMove = (event: PointerEvent): void => {
+    if (origin === undefined || machine.getState().state !== "dragging") {
+      return;
+    }
+    machine.send({ type: "move", offset: origin.offset + event.clientY - origin.y });
+    samples.push({ at: event.timeStamp, y: event.clientY });
+    while (samples.length > 1) {
+      const head = samples[0];
+      if (head === undefined || event.timeStamp - head.at <= SHEET_VELOCITY_WINDOW) {
+        break;
+      }
+      samples.shift();
+    }
+  };
+
+  const pointerUp = (event: PointerEvent): void => {
+    if (origin === undefined) {
+      return;
+    }
+    origin = undefined;
+    const head = samples[0];
+    const tail = samples.at(-1);
+    const elapsed = head === undefined || tail === undefined ? 0 : tail.at - head.at;
+    // a pointer that rested before it lifted has no velocity; a burst of synthetic moves in one millisecond is no sample
+    // either, so the timestamps decide, not the distance alone
+    const age = tail === undefined ? Number.POSITIVE_INFINITY : event.timeStamp - tail.at;
+    const velocity =
+      age <= SHEET_VELOCITY_WINDOW &&
+      elapsed > SHEET_VELOCITY_FLOOR &&
+      head !== undefined &&
+      tail !== undefined
+        ? (tail.y - head.y) / elapsed
+        : 0;
+    samples = [];
+    released = machine.getState().context.offset;
+    machine.send({ type: "release", velocity });
+  };
+
+  const pointerCancel = (): void => {
+    origin = undefined;
+    samples = [];
+    machine.send({ type: "cancel" });
+  };
+
+  onCleanup(() => {
+    offEffect();
+    offCancel();
+    live?.animation.cancel();
+    live = undefined;
+    machine.destroy();
+  });
+
+  return {
+    machine,
+    store,
+    enabled: () => options.enabled(),
+    dragging: () => store.state.phase === "dragging",
+    attach: (element) => {
+      panel = element;
+      if (element === undefined) {
+        live?.animation.cancel();
+        live = undefined;
+      }
+    },
+    current: () => {
+      const fraction = handoff;
+      handoff = undefined;
+      return fraction;
+    },
+    handleProps: {
+      onPointerDown: pointerDown,
+      onPointerMove: pointerMove,
+      onPointerUp: pointerUp,
+      onPointerCancel: pointerCancel,
+    },
+  };
+};
+
+const handleClass = css.cn(
+  css.display("flex"),
+  css.alignItems("center"),
+  css.justifyContent("center"),
+  css.height(t.space._6),
+  css.flex("none"),
+  css.touchAction("none"),
+  css.userSelect("none"),
+  css.cursor("grab"),
+  css.attr("data-dragging", "true")(css.cursor("grabbing")),
+);
+
+const gripClass = css.cn(
+  css.width(t.space._8),
+  css.height("4px"),
+  css.borderRadius("999px"),
+  css.bg(t.color.border),
+);
+
 const headerClass = css.cn(
   css.display("flex"),
   css.alignItems("start"),
@@ -323,9 +810,44 @@ export const Drawer = (props: DrawerProps): JSX.Element => {
     get onAnimate() {
       return props.onAnimate;
     },
+    // the sheet's drag leaves the box part-way down, so a dismissal's leave starts there, not at the open end
+    current: () => drag.current(),
   });
+  // The bottom sheet's drag is the kit's, not the primitive's: it starts from the grab handle only, so the panel's body
+  // keeps its scroll. A side rail has no downward drag, and a static sheet keeps its CSS transition.
+  const drag = createSheetDrag({
+    enabled: () => animated && drawer.side() === "bottom",
+    open: () => drawer.open(),
+    phase: () => motion.phase(),
+    reduced: () => motion.machine.getState().context.reduced,
+    close: () => {
+      if (drawer.open()) {
+        // the primitive's own close channel: a controlled host may refuse it, and the drag puts the sheet back
+        drawer.triggerProps.onClick();
+      }
+    },
+    get onAnimate() {
+      return props.onAnimate;
+    },
+  });
+
+  // Escape during a drag is the drag's, not the drawer's: the snap-back must run and the overlay must stay open. The
+  // primitive listens on the document in capture phase and registers when it opens, so this one — registered here,
+  // before any open — sees the key first and stops it there. With no finger down it does nothing and the primitive's
+  // Escape is unchanged.
+  const onDragEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || drag.machine.getState().state !== "dragging") {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    drag.machine.send({ type: "cancel" });
+  };
+  document.addEventListener("keydown", onDragEscape, true);
+  onCleanup(() => document.removeEventListener("keydown", onDragEscape, true));
+
   return (
-    <DrawerContext value={{ drawer, titleId, mount, animated, motion }}>
+    <DrawerContext value={{ drawer, titleId, mount, animated, motion, drag }}>
       {props.children}
     </DrawerContext>
   );
@@ -356,7 +878,7 @@ export const DrawerTrigger = (props: DrawerTriggerProps): JSX.Element => {
  * it, the panel stays mounted and the CSS transition follows the primitive's open state.
  */
 export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
-  const { drawer, mount, animated, motion } = useContext(DrawerContext);
+  const { drawer, mount, animated, motion, drag } = useContext(DrawerContext);
   const merged = merge(omit(props, "render", "class", "children"), drawer.contentProps, () => ({
     "data-part": "drawer",
     get "data-side"() {
@@ -364,6 +886,11 @@ export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
     },
     get "data-state"() {
       return `${drawer.side()}-${animated ? motion.phase() : drawer.open() ? "open" : "closed"}`;
+    },
+    // the drag's own field: a reader of the phase is not re-run by a pointer move, and the offset reaches the panel
+    // through `translate` (the host's effect), never the overlay's `transform`
+    get "data-drag-state"() {
+      return drag.store.state.phase;
     },
     // the panel hides with `visibility` (panelMotion, panelPhases), not with `hidden`: the primitive's attribute would cut
     // the slide, make the panel unfocusable at the moment the focus moves into it, and take a leaving panel off the page
@@ -386,6 +913,7 @@ export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
               {...part}
               ref={(element: HTMLDivElement) => {
                 motion.attach(element);
+                drag.attach(element);
               }}
             >
               {props.children}
@@ -393,6 +921,32 @@ export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
           ))}
         </div>
       </Portal>
+    </Show>
+  );
+};
+
+/**
+ * The grab handle at the top of a bottom sheet: a grip mark a reader can pull down. It exists only for an animated sheet
+ * (`side="bottom"` and `animated`), and it is the only pointer surface of the drag — the panel's body keeps its scroll.
+ * Decorative for assistive technology (`aria-hidden`): the keyboard path is the primitive's Escape and `Drawer.Close`.
+ */
+export const DrawerHandle = (props: DrawerHandleProps): JSX.Element => {
+  const { drag } = useContext(DrawerContext);
+  const merged = merge(omit(props, "render", "class", "children"), drag.handleProps, () => ({
+    "data-part": "drawer-handle",
+    "aria-hidden": "true" as const,
+    get "data-dragging"() {
+      return drag.dragging() ? "true" : undefined;
+    },
+    get class() {
+      return css.cn(handleClass, props.class);
+    },
+  }));
+  return (
+    <Show when={drag.enabled()}>
+      {renderPart(props, merged, undefined, (part) => (
+        <div {...part}>{props.children ?? <span aria-hidden="true" class={gripClass} />}</div>
+      ))}
     </Show>
   );
 };
