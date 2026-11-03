@@ -2,6 +2,23 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.30.0 (2026-11-03)
+
+### Minor changes
+
+- A table states its roles, and a column may name its track.
+  
+  `createTable` used to add no `role`, because a native `<table>` said it itself. A skin that lays the
+  rows out as a CSS grid cannot: `display: contents` on `<thead>`/`<tbody>`/`<tr>` leaves those
+  elements without a box, and an element without a box keeps its place in the accessibility tree only
+  when it carries its own role. Every part now states one (`table`, `rowgroup`, `row`,
+  `columnheader`, `cell`), a grid skin can be built without losing the semantics, and
+  `TableColumn.width` carries the CSS track a `grid-template-columns` needs.
+  
+  The body row's `aria-rowindex` stays the skin's job: under a window only the host knows a row's
+  place in the whole set (the primitive is given the window), so `renderRow(row, index)` is where it
+  goes.
+
 ## 0.29.0 (2026-11-02)
 
 ### Minor changes
