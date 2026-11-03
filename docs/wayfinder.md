@@ -4138,3 +4138,25 @@ Tab, Enter picking the switch (`storybook-keys.png`), Tab×3 and Space opening t
 headless button, so a story is one Tab stop rather than an arrow-navigable list; the controls panel does not exist in
 native (a story's args are the page's own); and the native component library the stories would document is still the pages'
 inline styles.
+
+## Every item has a story, and two bugs the last 27 found (2026-11-03)
+
+Asked ("the remaining items"). The 27 registry pages that had no story file — the overlays, the pickers, the data and time
+starters — now have one, so **every one of the 54 pages draws a story** (`theme` is the 55th registry entry and is not a
+page). The pieces that cannot be honestly shown in a preview say so in their story's comment: a drop zone cannot receive a
+real OS drop, a command palette must not bind `mod+k` on the site, a drawer's sheet drag and a carousel's swipe are real
+pointer gestures, and panzoom's picture and the player's audio are a `data:` SVG and a silent WAV the story builds, because
+the repository has neither an image nor a film.
+
+**Two bugs fell out of writing them.** (1) The carousel's rotation control is hidden by the primitive with the `hidden`
+attribute when `autoRotate: false`, and the skin's `display: inline-flex` defeated the UA's `[hidden] { display: none }`:
+the control stayed on screen, and the conformance test only asserted the attribute. The control now carries
+`attr("hidden")(display("none"))`, and the test reads the computed display. (2) The docs page scrolled sideways on wide
+stories: the source block's `<pre><code>` sized its grid track to max-content, so one long line pushed the whole page —
+`minmax(0, 1fr)` on the main column, the sections and the preview, plus `max-width: 100%` on the code block, and the story
+that is wider than the column scrolls inside it. `apps/ui/test/site.mjs` now fails if the page overflows by a pixel.
+
+**Evidence:** typecheck and build clean, `node test/site.mjs` green (it also counts a table's rows, a virtual list's window,
+and the page's own overflow), and each story page driven in Chrome with its interaction: knob arrow, listbox selection,
+menubar open, pagination move, panzoom zoom, player play, popover open, reorder Alt+Down, combobox filter, palette command,
+date pick, carousel next, disclosure toggle, drawer Escape, diagram activate, feed load.

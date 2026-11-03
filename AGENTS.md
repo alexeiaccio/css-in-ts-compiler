@@ -47,7 +47,7 @@ apps/lab               the lab: the @cssints/reactive stories, in dev only (no S
                        (not in `test`)
 apps/ui                the starters' site (Solid 2 + cssints): one page per registry item — src/registry/<name>/<name>.tsx is the
                        component and <name>.stories.tsx its CSF stories; src/docs/catalog.ts reads the registry build (r/*.json), the
-                       preview is the item's story, read by @cssints/stories, with the controls the story declares (src/stories/:
+                       preview is the item's story (every page has one, 54 of them), read by @cssints/stories, with the controls the story declares (src/stories/:
                        site.ts the glob, controls.tsx the panel on the kit's own Field/Select/Switch/Slider); the chrome is the kit
                        itself (Tabs for the stories, Switch for the theme, RadioGroup for the tint, Button for the copies, the add
                        command and the preflight result the published copy passed); scripts/registry-json.ts regenerates r/*.json;
