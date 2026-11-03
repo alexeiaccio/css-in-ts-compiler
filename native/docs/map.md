@@ -1743,8 +1743,14 @@ compiles once, `ts_query_new` over the 283k-line grammar; 1080 lines drawn on to
 into `demo`: a file pane in the live terminal needs a keys/scroll story first, and every `demo` build would carry the
 grammar and that second.
 
-The docs' Files pane is the second reader of the same spans, and it has not moved yet: `@pierre/highlights` is the
-recorded pick there, Shiki stays for twoslash. Bean: `cssints-h0rs`.
+**Done: the docs' code** (2026-11-03). `apps/docs/plugin/code.ts` is the second reader: `@pierre/highlights` 0.3.0 paints
+the files of an example's Result/Code panel, the README blocks the type-check skips, and the landing page's samples;
+Shiki renders only the ts blocks twoslash type-checks, which is where its hovers come from. One palette serves both: the
+syntax colours are the default palette's (`src/palettes.ts`) at the accent's hue, each kind at a contrast floor (4.6:1
+light, 7:1 dark) on the code's own paper (`src/code.ts` — fixed, because a palette's warm paper takes fixed colours below
+the floor), and both highlighters emit the same `--shiki-light-*`/`--shiki-dark-*` custom properties, so the site's
+existing mode switch paints either. `test/code.mjs` measures every pair and the paper against the palette. Cost: the 276 kB
+wasm runs at build time only (it is not in the client), and the pages are unchanged in size. Bean: `cssints-sbce`.
 
 ## Not doing
 

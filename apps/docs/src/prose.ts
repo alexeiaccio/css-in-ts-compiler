@@ -10,6 +10,7 @@ import {
   display,
   fontFamily,
   fontSize,
+  fontStyle,
   fontWeight,
   gap,
   global,
@@ -43,6 +44,7 @@ import {
   width,
 } from "cssints" with { type: "cssints" };
 
+import { CODE_PAPER } from "./code.ts";
 import { t } from "./theme.ts" with { type: "cssints" };
 
 // The markdown pages are HTML strings made at build time, so their elements have no classes: these are global rules under
@@ -111,9 +113,14 @@ global(
   padding("0.15em 0.4em"),
   borderRadius(t.radius.xs),
 );
+// The code's own paper (src/code.ts): the syntax colours are painted at a contrast floor against it, so it is fixed rather
+// than the palette's subtle one, and the mode picks which of the two (a class first, the system's dark after it, as the
+// tokens' own switch below does).
+global(`${p} > pre`, bg(CODE_PAPER.light));
+global(`:root.dark ${p} > pre`, bg(CODE_PAPER.dark));
+global(`:root:not(.light) ${p} > pre`, media("(prefers-color-scheme: dark)")(bg(CODE_PAPER.dark)));
 global(
   `${p} > pre`,
-  bg(t.color.bgSubtle),
   border(t.border.width, "solid", t.color.border),
   borderRadius(t.radius.md),
   padding(t.space.lg),
@@ -198,13 +205,15 @@ global(
   borderBottom(t.border.width, "solid", t.color.border),
   fontSize(t.fontSize.sm),
 );
+global(`${e} pre`, bg(CODE_PAPER.light));
+global(`:root.dark ${e} pre`, bg(CODE_PAPER.dark));
+global(`:root:not(.light) ${e} pre`, media("(prefers-color-scheme: dark)")(bg(CODE_PAPER.dark)));
 global(
   `${e} pre`,
   margin("0"),
   padding(t.space.lg),
   maxHeight("18rem"),
   overflow("auto"),
-  bg(t.color.bgSubtle),
   fontSize(t.fontSize.sm),
   lineHeight(t.lineHeight.relaxed),
   tabSize(2),
@@ -240,12 +249,19 @@ global(
 );
 global(`${p} th`, fontWeight(t.fontWeight.semiBold), color(t.color.textMedium));
 
-// Shiki's dual themes: every token carries both colours as variables, and the mode picks one
+// The dual themes of both highlighters (plugin/code.ts writes the same `--shiki-*` variables from either): every token
+// carries both colours, and the mode picks one. An italic is the same trick, `--shiki-*-font-style` holding the keyword.
 global("[style*='--shiki-light']", color("var(--shiki-light)"));
 global(":root.dark [style*='--shiki-light']", color("var(--shiki-dark)"));
 global(
   ":root:not(.light) [style*='--shiki-light']",
   media("(prefers-color-scheme: dark)")(color("var(--shiki-dark)")),
+);
+global("[style*='--shiki-light-font-style']", fontStyle("var(--shiki-light-font-style)"));
+global(":root.dark [style*='--shiki-light-font-style']", fontStyle("var(--shiki-dark-font-style)"));
+global(
+  ":root:not(.light) [style*='--shiki-light-font-style']",
+  media("(prefers-color-scheme: dark)")(fontStyle("var(--shiki-dark-font-style)")),
 );
 
 // twoslash: the popups are placed by hovers.ts; the arrow would point at the wrong place. They are fixed from the start: an

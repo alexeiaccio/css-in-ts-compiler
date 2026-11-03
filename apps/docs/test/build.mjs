@@ -121,6 +121,13 @@ assert.match(sheet, /:hover\{--surface-d:calc\(\.0\d? \* clamp\(/); // surface()
 assert.match(sheet, /\.prose>pre\{/);
 assert.match(sheet, /\.prose h2\{[^}]*border-bottom/);
 assert.match(sheet, /:root\.dark \[style\*=--shiki-light\]\{color:var\(--shiki-dark\)\}/);
+assert.match(
+  sheet,
+  /:root\.dark \[style\*=--shiki-light-font-style\]\{font-style:var\(--shiki-dark-font-style\)\}/,
+);
+// the code's paper is the pair src/code.ts fixes (the syntax colours' floor is measured against it)
+assert.match(sheet, /\.prose>pre\{[^}]*#f7f5fa/);
+assert.match(sheet, /:root\.dark \.prose>pre\{[^}]*#18131f/);
 assert.ok(sheet.indexOf(".prose>pre{") < sheet.indexOf("@layer _.a{"), "globals come first");
 // the drawer: a variant of the sidebar, a transition that stops for reduced motion
 assert.match(sheet, /@media \(prefers-reduced-motion: ?reduce\)\{[^@]*transition:none/);
@@ -319,11 +326,15 @@ for (const doc of ["docs/API.md", "README.md"]) {
 const all = js.map((f) => f.code).join("");
 const count = (re) => all.match(re)?.length ?? 0;
 assert.equal(
-  count(/shiki-themes github-light github-dark twoslash lsp/g),
+  count(/shiki-themes cssints-light cssints-dark twoslash lsp/g),
   checked,
   "a hover on every checked block",
 );
-assert.equal(count(/shiki-themes github-light github-dark"/g) >= skipped, true);
+assert.equal(
+  count(/<pre class="highlights"/g) >= skipped,
+  true,
+  "a block Shiki need not check is Pierre's",
+);
 assert.equal(count(/twoslash-error-line/g), marked, "an error line for each `// error`");
 assert.ok(!all.includes(root), "no path of this machine in the pages");
 // the result of each page's example (plugin/examples.ts): a sandboxed frame right under the link, in the document and in the
@@ -362,7 +373,7 @@ for (const slug of projects) {
     .filter((f) => /\.tsx?$/.test(f))
     .sort((a, b) => Number(/^index\./.test(b)) - Number(/^index\./.test(a)) || a.localeCompare(b));
   assert.equal(
-    panel[2].match(/<pre class="shiki shiki-themes github-light github-dark"/g)?.length,
+    panel[2].match(/<pre class="highlights"/g)?.length,
     names.length,
     `${slug}: a block for each file`,
   );

@@ -103,6 +103,7 @@
         "@opencode/client": "2.0.26",
         "@oxc-parser/binding-wasm32-wasi": "0.149.0",
         "@oxc-transform/binding-wasm32-wasi": "0.149.0",
+        "@pierre/highlights": "^0.3.0",
         "@shikijs/twoslash": "^3.0.0",
         "@solidjs/vite-plugin": "3.0.0-next.47",
         "@wasm-fmt/oxc_fmt": "0.2.9",
@@ -1302,6 +1303,8 @@
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.85.0", "", { "os": "win32", "cpu": "x64" }, "sha512-pBebIPUpKKhWrhSMWhy8TdAZBewiXnfxmaAGxhzxM1068GagqFaTwgKlU6e+UyJ2sPR+VoHouhXuGJkQjsrDvA=="],
 
     "@oxlint/plugins": ["@oxlint/plugins@1.79.0", "", {}, "sha512-S0uyoxakDINJ4DPgqxGlEEvrdSMeQb7Z2lKVjxoY2gwsbZbfg2Xr8Klfeo5ZeraHmmdBCELFUHkSe6KEmBpMvg=="],
+
+    "@pierre/highlights": ["@pierre/highlights@0.3.0", "", {}, "sha512-s6xZ/giPPrSeCO2w254GiysUXD4ditKMTOrl1vHynvPqP7VdlujYi01O9joxJ0T16XkoXGQMN6zkRi9+O8NCzg=="],
 
     "@pnpm/deps.graph-sequencer": ["@pnpm/deps.graph-sequencer@1100.0.1", "", {}, "sha512-pOr5+q1fLYKwFN3LAJuGZEnfXDcQ73zqgDHMtGy+K+uIoUqyY+6MeDCWFwfu+4EFuq76I5EPFofoNAI+Bmmq4A=="],
 
