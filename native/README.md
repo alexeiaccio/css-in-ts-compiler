@@ -2921,7 +2921,8 @@ layout, once, for all three hosts.
 **Where a kind lives.** `solid/src/figure/spec.ts` is the format, the `parse` and the checks about the spec as a whole (a
 source, a focus's names, the width); a kind itself is **one file** under `solid/src/figure/kinds/`, its layout and its own
 refusals side by side — `metrics.ts` (barChart, compare, contrast, funnel), `flows.ts` (flow, branchFlow, stateMachine),
-`structure.ts` (journeyMap, tree) and `systems.ts` (palette, spacingScale, typeScale), over `shared.ts` (the cell helpers,
+`structure.ts` (journeyMap, tree), `systems.ts` (palette, spacingScale, typeScale) and `planning.ts` (nowNextLater,
+statusKey, timeline), over `shared.ts` (the cell helpers,
 the item builders, `finish`, the raw-JSON readers a refusal reads) — and one `register("<kind>", { layout, check })` at
 the bottom of the file that holds it. `solid/src/figure/registry.ts` is the table and the lookups (`layoutOf(spec)`,
 `checkOf(kind, data, options)`, `namesOf`, `sizeOf`), `solid/src/figure/kinds.ts` is the door that loads the four areas
@@ -3285,3 +3286,38 @@ apps/docs/src/tokens.json (fontSize, lineHeight) and src/prose.ts's roles
 What remains of the kit's systems half: `colourRoles` (a role's light and dark value with a verdict), `stateMatrix`,
 `layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its motion, and its exports to HTML,
 decks, SVG, PDF and PNG.
+
+**The planning half: the map's own plan.** The kit's `areas/planning.md` documents a plan as data, and three of its
+kinds are here with `native/docs/map.md` as the data — the figure that draws this repository's own steps:
+
+| kind | data | the figure |
+| --- | --- | --- |
+| `timeline` | `[{ label, start, end, status?, date?, note? }]`, `options` `{ width, start, end, unit }` | a step a row: its label, its span as a bar on one shared axis, the span's numbers and the date it records, and the axis's two ends under the rows |
+| `statusKey` | `[{ label, sentence }]`, `options.used` | a mark a status, its word and what it means; the entries are the declared set the figures use |
+| `nowNextLater` | `{ now, next, later: [string] }` | three columns of cards, a card wrapped in its column |
+
+What changed from the kit: a gantt row's `label`/`start`/`end` and its `options.width`/`.unit` are read on an axis of the
+plan's own order (one step is four cells) and `scale` is gone, because the map has an order and dates, not hours; a
+`statusKey` row gained `sentence`; and `timeline` rows gained `status` (the word the key legends), `date` (an axis a
+row's may not run backwards on) and `note` (a recorded date that is not an axis — the map's dates do not run in its
+order). The checks are ours, in the kit's voice: a span that ends before it starts, a row with no label, a date out of
+order, a span past `options.width`, an empty column, and a status the declared set does not have.
+
+`timeline.json` is **generated**: `node native/solid/specs/from-map.ts` parses the numbered bold headings of the map's
+`## Order of work` (a label is the heading after `Done:` and before ` in `, its status is `Done` when the heading says so
+and `Left` otherwise, and its note the first date the section records), and `solid/test.sh` regenerates it into a temp
+directory and `cmp`s — a step added, renamed or reordered in the map is a `cmp` line, not a stale figure. The map itself
+draws that timeline: a `<!-- glyph-kit: ../solid/specs/timeline.json -->` fence is redrawn and `cmp`'d too.
+`nowNextLater.json` is **hand-written**: the map's `Left:` lines mix remaining work with notes of what came later (one
+opens `Left: **termbox2 is in** …, and so are clicks; what a click cannot do is hover`) and the now/next/later split is a
+judgement about the map's own order of targets, so the parse is not honest enough; `solid/figure-planning.test.ts` holds
+every card's words and every status's name to the map's, so a renamed line still fails. `statusKey.json` is hand-written
+with a `source` naming the map's words.
+
+The numbers: the timeline is **8 rows** of 4 cells on a 32-cell axis, each fill's box **0.00 of a cell** from its span
+(`0–1 step` … `7–8 step`), and the axis's words at the axis's first and last cells. The key is **3 rows** (Done, Left,
+Blocked), one a status the timeline uses or the map's word for work that waits. The board is **19 cards** — 1 now, 15
+next, 3 later — each wrapped to 20 cells and every segment a text command. The desktop frames are
+`solid/frames/figure-{timeline,status-key,now-next-later}.png`, the command goldens `solid/goldens/figure-*.json`, the
+browser draws `?spec=timeline`, `?spec=statusKey` and `?spec=nowNextLater`, and the terminal's rows are the pixel
+figure's.
