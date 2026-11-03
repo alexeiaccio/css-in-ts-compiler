@@ -77,6 +77,7 @@ bun solid/figure-text.test.ts
 # one `unknown kind` refuses with and the one native/docs/map.md prints, and a throwaway kind registered in that test alone
 # draws through text.ts and declares on the desktop — the seam a new kind goes through, proved in one file
 bun solid/figure-registry.test.ts
+bun solid/figure-handoff.test.ts
 # The Dialog page's two overlays as generated C — the modal's backdrop and panel (both Clay root floats) and the menu
 # floated off zoom-trigger: examples/dialog/gen.c dumps the three static frames through desktop/clay_dump.c, measured
 # with ThorVG as the Solid host measures (so a box is its exact number, no tolerance), and each is compared field by

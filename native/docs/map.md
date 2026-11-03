@@ -60,9 +60,10 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Twelve kinds are here: `barChart`, `branchFlow`, `compare`, `contrast`, `flow`, `funnel`,
-`journeyMap`, `palette`, `spacingScale`, `stateMachine`, `tree` and `typeScale`. A kind is one file under
-`solid/src/figure/kinds/` — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, over `shared.ts` — its layout and its
+terminal at one cell. Fifteen kinds are here: `barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `flow`,
+`funnel`, `journeyMap`, `palette`, `qaChecklist`, `redline`, `spacingScale`, `stateMachine`, `tree` and `typeScale`. A
+kind is one file under `solid/src/figure/kinds/` — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `handoff.ts`,
+over `shared.ts` — its layout and its
 refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other kind's;
 `solid/src/figure/kinds.ts` is the door that loads those files and `registry.ts` the table a kind is looked up in. Four of
 them are the design system's half and their data is our own tokens: `palette` (`@cssints/tokens`' Open Props blue and
@@ -73,8 +74,15 @@ colour pairs at WCAG's floors) are **generated** by `solid/specs/from-tokens.ts`
 type line's own size are what the layout gained — an item kind `swatch`, an item kind `marker`, and a text's `size` with a
 line's `height` — so the halfway kinds still print through the same text renderer. The last of the original eight draws a
 second row: a tree's level is a row of boxes with `| - +` connectors between the levels, and a journey stage is a bar row
-with its doing and thinking under it. The
-numbers are geometry: a bar's fill is a box whose width is `value/max` of its track, read back
+with its doing and thinking under it. The last three are the handoff and QA half of the kit's `areas/handoff.md`, and
+their data is this repository's own: `redline` is the Widgets page's Wi-Fi switch row — its 10px padding, 44x24 track,
+12px gap and 204px label — drawn as leaders and numbers and held to the page's **packed style** (`app/Widgets.tsx`
+through `src/pack.ts`) by `solid/figure-handoff.test.ts`; `beforeAfter` is the same switch off and on, and its two
+measures' numbers are the two stored frames' commands (`solid/specs/from-frames.ts` writes `before-after.json` from them,
+and `solid/test.sh` regenerates and `cmp`s); `qaChecklist` is a dozen of the suite's own printed comparisons — the stored
+frames `solid/test.sh` compares and the terminal comparisons `terminal/test.sh` prints — with a summary the rows count
+and a refusal for a row naming a comparison no script prints. The numbers are geometry: a bar's fill is a box whose
+width is `value/max` of its track, read back
 from the frame in `solid/figure.test.ts` (worst error 0.49 of a cell). One of the figures is this repository's own
 measurements (`solid/specs/bars.json`, native/README.md's `--bench`):
 

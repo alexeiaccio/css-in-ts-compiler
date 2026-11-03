@@ -148,6 +148,7 @@ $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 2
 cmp "$FIG/solid-figure-base.txt" "$FIG/solid-figure-click.txt" || {
   echo "FAIL: a click on the figure changed its cells"; exit 1; }
 identical "a click on the figure changes nothing (no control, no state)"
+sh terminal/figure-handoff.sh
 
 # the cost: the frame (declare + Clay + the commands into cells) and the same cells as ANSI, on this machine
 bench=$($SOLID --bench 20)

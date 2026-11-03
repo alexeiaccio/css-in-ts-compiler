@@ -1,0 +1,23 @@
+{
+  "kind": "qaChecklist",
+  "title": "Twelve comparisons the suite makes",
+  "intent": "A hand-picked dozen of the suite's own comparisons, named as the scripts name them: a stored frame the desktop draws byte for byte, and a comparison the terminal prints. The summary is the rows counted.",
+  "source": "native/solid/test.sh and native/terminal/test.sh, the names as those scripts print them",
+  "data": {
+    "summary": "12 of 12 pass",
+    "rows": [
+      { "check": "solid/frames/widgets-initial.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/widgets-switch-on.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/list-top.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/sky.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/dialog-open.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/figure-palette.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/notify-initial.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "solid/frames/storybook-controls.png", "area": "frames", "verdict": "pass", "source": "native/solid/test.sh" },
+      { "check": "the page's frame, dark, is the C page's own (80x11 cells)", "area": "terminal", "verdict": "pass", "source": "native/terminal/test.sh" },
+      { "check": "its ANSI is the C page's own (truecolour, SGR runs merged)", "area": "ansi", "verdict": "pass", "source": "native/terminal/test.sh" },
+      { "check": "a click on the figure changes nothing (no control, no state)", "area": "figure", "verdict": "pass", "source": "native/terminal/test.sh" },
+      { "check": "Escape leaves the profile, and the feed is back", "area": "sky", "verdict": "pass", "source": "native/terminal/test.sh" }
+    ]
+  }
+}

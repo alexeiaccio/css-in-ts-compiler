@@ -406,3 +406,4 @@ cmp "$FIG/palette.html" docs/exports/palette.html || {
 cmp "$FIG/pipeline.svg" docs/exports/pipeline.svg || {
   echo "FAIL: docs/exports/pipeline.svg is not what 'bun solid/figure.ts solid/specs/pipeline.json --svg' writes; commit its output"; exit 1; }
 echo "figure export: every spec's SVG and page are the layout's (57 checks), and docs/exports/{palette.html,pipeline.svg} are regenerated and cmp'd"
+sh solid/figure-handoff.sh

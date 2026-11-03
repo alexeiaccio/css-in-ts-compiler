@@ -999,7 +999,7 @@ focus line. No state, no input, no entry: the page at rest is the frame its lite
 a source, a focus's names, the width), `registry.ts` (the `Layout`/`Item` types, the cell constants, `sizeOf`, and the
 table from a kind's name to its layout and its check), `kinds.ts` (the door: the four areas loaded once and the types and
 the table re-exported), `contrast.ts` (WCAG's two functions, no dependency) and `text.ts` (the same layout as characters);
-`kinds/` is an area a file — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts` — each holding its kinds' layouts and
+`kinds/` is an area a file — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `handoff.ts` — each holding its kinds' layouts and
 checks side by side over `kinds/shared.ts`'s item builders, with one `register` call a kind. `solid/figure-registry.test.ts`
 is the seam's test: both halves of every kind, the list the docs and the `unknown kind` sentence print, and a throwaway
 kind registered in the test alone that draws through `text.ts` and on the desktop.
@@ -1015,7 +1015,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The twelve specs are `solid/specs/bars.json` (this repository's own
+width), prints them and exits 1, so no PNG is written. The fifteen specs are `solid/specs/bars.json` (this repository's own
 `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the two flow kinds `branch-flow.json`
 (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's `presence`), the tree
 `tree.json` (this repository's own map: the four targets under one root, their pages as children), the journey
@@ -1046,6 +1046,22 @@ pixel target, since Roboto has no `▲`) and a text's `size` with a line's `heig
 whose rows differ: a 40px line is three cells). `src/figure/text.ts` draws all three in two branches — `██` for a swatch,
 `▲` for a marker — so the text half still reads items and has no kind in it. Their goldens are `figure-palette.json`,
 `figure-contrast.json`, `figure-spacing.json` and `figure-type-scale.json`, and the browser reads `?spec=` of each.
+
+The three **handoff and QA** kinds are the kit's `areas/handoff.md` half, and their data is this repository's own, so a
+figure cannot drift from what is drawn or from what passes. `redline.json` is the Widgets page's Wi-Fi switch row: the
+row's 10px padding, 4 top and bottom, the 44x24 track, the 12px gap and the 204px label, drawn as a leader row of `·`/`-`
+and a numbers row — and `solid/figure-handoff.test.ts` holds every one of those numbers to the **packed style** of
+`app/Widgets.tsx` (`src/pack.ts`'s `variant`), 0px out, while the drawn leaders are within half a cell (the worst 4px:
+a cell is 8px). `before-after.json` is the same switch off and on: **generated** by `specs/from-frames.ts` from two frames
+of the Widgets page (the switch focused in both, `Tab,Tab` and `Tab,Tab,Space`), whose commands differ in exactly two places
+— the track's colour (60,64,78 -> 240,140,50) and the thumb's x (2px -> 22px) — and `solid/test.sh` regenerates it and
+`cmp`s. Its two panels are the same box side by side, with the numbers that changed under them, computed from the two
+states. `qa-checklist.json` is a dozen of the suite's own comparisons, named as the scripts name them (a stored frame the
+`solid/test.sh` `--expect` compares, or an `identical "…"` the terminal prints) with a `source` naming the script: the test
+refuses a row that no script prints, and `check` refuses a summary that is not its rows' count (`12 of 12 pass`), the three
+verdicts painted by the `good`, `problem` and `muted` roles. Their goldens are `figure-redline.json`,
+`figure-before-after.json` and `figure-qa-checklist.json`, their frames are `solid/frames/figure-{redline,before-after,qa-checklist}.png`,
+and the browser reads `?spec=` of each (`browser/figure-handoff-check.mjs`).
 
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and

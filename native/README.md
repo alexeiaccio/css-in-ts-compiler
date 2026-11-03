@@ -3282,6 +3282,47 @@ fontSize.xs  ████▎          12/17 Aa
 apps/docs/src/tokens.json (fontSize, lineHeight) and src/prose.ts's roles
 ```
 
+**The handoff half: our own component and our own suite.** The kit's `areas/handoff.md` is measurement and QA, and three
+of its kinds are here — the half whose data is **this repository's**, so a figure cannot disagree with what the page draws
+or with what the suite passes:
+
+| kind | data | the figure |
+| --- | --- | --- |
+| `redline` | `{ box: { label, width, height }, parts: [{ label, x, y, width, height, inset? }] }` | the box's outline, a leader row of `·`/`-` runs for its parts and a numbers row of the real pixels |
+| `beforeAfter` | `{ before, after }`, each `{ caption, box: { width, height }, measures: [{ label, value }] }` | two panels side by side (above/below when narrow), each its caption, its box in cells and its measures; the numbers that changed under them |
+| `qaChecklist` | `{ summary, rows: [{ check, area, verdict, source }] }` | a comparison a row (area, the check as the suite names it, its verdict), the passes' bar with the summary's words, and the key `+ pass  x fail  - n/a` |
+
+`redline.json` is the Widgets page's Wi-Fi switch row: the row's own style (`app/Widgets.tsx`'s `row`, `track` and
+`thumb`), so its numbers are the page's — 10px of padding either side and 4 above and below, the 44x24 track, the 12px
+gap, and the 204px label that takes what is left of the 280px row. `figure-handoff.test.ts` reads those numbers out of the
+page's **packed style** (`src/pack.ts`'s `variant(s.row)`, `s.track`, `s.thumb` and `s.root`), so a style change that left
+the spec stale fails there with the number that moved (today: **0px out**), and the frame's leaders are within **half a
+cell** of them (the worst **4px** of a 2px inset round and a 4px track edge: a cell is 8px, and 280 is exactly 35 of them).
+A leader is a cell run, the number is the real pixel, and the numbers row carries each part's `x,y WxH`.
+
+`before-after.json` is the same switch off and on, **generated** by `specs/from-frames.ts`: it captures two frames of the
+Widgets page (the switch focused in both, `Tab,Tab` and `Tab,Tab,Space`, so the focus ring is the same command twice) and
+reads the commands that differ — exactly two: the track's colour (**60,64,78 -> 240,140,50**) and the thumb's x
+(**2px -> 22px**, the on track's `flex-end`). The figure's changed numbers are computed from the two states, never typed, so
+a caption cannot claim a change the frames do not make; `solid/test.sh` regenerates the spec and `cmp`s it, and the test
+recomputes the same two differences from the frames.
+
+`qa-checklist.json` is a hand-picked dozen of the suite's **own** comparisons, named as the scripts name them: eight stored
+frames the desktop's `--expect` compares (`solid/frames/widgets-initial.png`, `sky.png`, `dialog-open.png`, …) and four
+comparisons the terminal prints (`the page's frame, dark, is the C page's own (80x11 cells)`, …), each row's `source`
+naming the script. The test refuses a row that no `--expect` or `identical "…"` of its script prints, and `check` refuses
+a summary that is not its rows' count (`12 of 12 pass`) and a verdict the key does not name (pass, fail or n/a). The three
+verdicts are painted by the `good`, `problem` and `muted` roles, one role a state.
+
+The desktop frames are `solid/frames/figure-{redline,before-after,qa-checklist}.png`, the command goldens
+`solid/goldens/figure-{redline,before-after,qa-checklist}.json`, and the browser draws `?spec=redline`,
+`?spec=before-after` and `?spec=qa-checklist` from the same files (`browser/figure-handoff-check.mjs`, boxes within 4px).
+The terminal draws all three cells for cells (`terminal/figure-handoff.sh`).
+
+What remains of the kit's handoff half: `anatomy` (a numbered component drawing, which a cell figure cannot carry), a
+checklist's `note` ("waiting on brand"), and the redline's vertical leaders — a cell is 16px tall, so an inset of 4px is a
+number here and not a drawn line.
+
 What remains of the kit's systems half: `colourRoles` (a role's light and dark value with a verdict), `stateMatrix`,
 `layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its motion, and its exports to HTML,
 decks, SVG, PDF and PNG.
