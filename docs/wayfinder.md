@@ -4205,3 +4205,72 @@ the files — the search answers the same question with no data to maintain. If 
 grouping becomes a `For` over it. **Evidence:** `apps/ui/test/site.mjs` — `/` focuses the field, `car` leaves Carousel and
 drops Tabs, `toggle` reaches Button, a nonsense query shows the empty line, Escape restores the list — plus a screenshot of
 the rail with `ta` typed.
+
+## The native storybook grows a controls panel (2026-11-03)
+
+Asked (the user): "add a controls panel to the native storybook — one row per arg a story declares, a native headless
+switch / radio group / slider, each a real focus stop after the rail, and the story re-renders with its args", plus
+`--arg name=value` so a stored frame can show a control moved.
+
+**Decided: the panel is the story's `argTypes`, and each row is the headless part the Widgets page already uses.** A
+`boolean` is `createSwitch` (registered with `input.add`, as the Widgets page's Wi-Fi row), a `select` a
+`createRadioGroup({ orientation: "vertical", focus: input.focus })` of the options, a `number` / `range` a `createSlider`
+with the control's bounds, and a `text` a `createTextField` — the Field page's part, with the caret put after the arg so
+that Tab in and typing appends. Nothing new in `native/headless`. Every row is a Tab stop of the page's manager, after the
+rail and after the story's own control (the canvas is drawn first), and each row carries `a11y` + `labelledBy`, so the
+accessibility snapshot reads it as a switch, a radio group, a slider or a textbox.
+
+**A control writes the arg, and the story is mounted again with it.** The args are one signal per story
+(`{ [storyId]: Args }` over `picked().args`), and the canvas is `<Show keyed when={`${id}:${serial}`}>`: a write bumps the
+key, the old story's subtree is disposed and the view is called with the new args. A story is a function of its args —
+`createSwitch({ defaultValue: args.on })` reads them once — so a view that did not remount would keep drawing the old
+state. A story's *own* widget state is not written back (flipping the story's switch does not move the `on` arg): the arg
+is what the story was rendered with, as in Storybook.
+
+Two things fell out of the remount, both fixed at the cause:
+
+- **The story's parts stayed in the focus manager after it.** The leak was already there for a rail switch: before this
+  change `--keys Tab,ArrowDown,Tab,Space` focused the previous story's trigger, and Space did nothing. The canvas's
+  expression was replaced but its Solid owner was never disposed. The page now hands the story a facade `Input` whose
+  `add` / `bind` unregister the part on the display's cleanup, so the keyed canvas disposes the story's registrations with
+  its tree (a group, a slider and a text field already unregister on their own disposal).
+- **A remounted part came back after the panel's.** `createFocus` kept an entry's `order` only while it was registered, so
+  the story's `add`s after an unmount got fresh sequence numbers past the panel's, and from the first keystroke on Tab
+  went rail → panel → story. `createFocus` now remembers an id's order after `unregister` (one map), which covers any
+  subtree that remounts, and a test states it.
+
+Also refused: reading the args reactively in the panel's rows. The controls read their starting values once, when the
+panel mounts; a row rebuilt on every write would lose focus mid-keystroke, and the panel is keyed on the *story*, not on
+the args.
+
+**And a mount reads its story from the key it is given, never from the rail.** The first version had the panel's rows read
+`picked()` themselves; with a logged `picked()` the frame was right and without the log the switch's panel drew the
+disclosure's args (an empty `label` field) — a read of `tabs.selected()` inside a mount can still see the selection of the
+flush that replaced the tree, because Solid 2's setters land on the next flush. Both the canvas and the panel now take the
+story id from their keyed `<Show>`'s value (`argsOf(id)`), which is the one thing the key guarantees. Found by the frame
+check, not by reading: `storybook-keys.png` differed by the 258 pixels of the missing text.
+
+`--arg name=value` (repeatable) types the value by the control the story declares (`true` / `false` a boolean, a number
+for `number` / `range`, the string otherwise) and applies it to the opened story before the first frame. The **stories**:
+the switch declares `on` (boolean) and `label` (text); the disclosure `open` (boolean); and because a `select` and a
+`range` had no honest arg, two stories joined the file — `Tempo`, a headless radio group of speeds with `speed` as a
+`select`, and `Volume`, a headless slider with `volume` as a `range` (0..100, step 5). Their names sort after `Switch`, so
+the first two frames still open on `Disclosure` and `Switch`. Declaring controls per story needed one line in the loader:
+CSF 3's `Story.argTypes`, merged over the meta's, otherwise one meta's panel would show every story's args
+(`packages/stories`, with a changeset).
+
+**Evidence:** the `SB()` frames of `solid/test.sh`, each read back from the PNG: `storybook.png` (Disclosure at rest, the
+panel's `open` off), `storybook-keys.png` (Tab, ArrowDown: Switch and its `on` / `label` rows), `storybook-open.png`
+(Tab, Tab, Space: the trigger opened), `storybook-arg-on.png` (`--arg on=true`: both switches on),
+`storybook-arg-text.png` (`--arg label=Wi-Fi`: the story's title and the field), `storybook-arg-select.png`
+(`--story widgets--tempo --arg speed=16x`), `storybook-arg-range.png` (`--arg volume=70`: both rails at 70, the readout
+70), `storybook-controls.png` (three Tabs from the rail, Space: the panel's switch has the ring, both switches are on —
+the arg reached the canvas), `storybook-rail-tab.png` (Tab, ArrowDown, Tab, Space: the leak above is gone, the switch
+story's own switch flips). Then `sh solid/test.sh` green end to end, and `packages/stories`' loader test with the new
+story-level case.
+
+**Left:** a slider's drag is not wired (a press jumps to the point, a key steps; the Widgets page's drag needs the host's
+`motion.onPointer`, and the panel would need one flag per slider); an unbounded `number` is drawn as 0..100 (a slider
+needs a range, a typed number field is not there) and shares the slider's path, so it has no stored frame; the arg is the
+story's starting state, not its live one (a widget's own change is not written back, so a control and the story's part
+can disagree once both are used); and `text` has no IME, the primitive's own gap shared with the Field page.

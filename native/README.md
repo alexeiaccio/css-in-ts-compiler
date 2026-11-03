@@ -1216,6 +1216,7 @@ sh desktop/build-thorvg-gpu.sh examples/sensors               # ThorVG built fro
 sh desktop/build-wg-window.sh && ./build/sensors/wg-window --capture out.png   # ThorVG into the window's own WebGPU surface, no readback; --capture checks the frame
 bun solid/main.ts widgets                                     # Solid: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar; Tab, arrows, Space work
 bun solid/main.ts storybook                                   # the stories of solid/stories/*.stories.tsx in a vertical tablist rail: Tab enters, Up/Down move and pick; --story ID opens one
+bun solid/main.ts storybook --arg on=true --arg label=Wi-Fi   # the controls panel under the canvas: one row per arg a story declares, each a headless part (switch, radio group, slider, text field); --arg name=value starts the opened story with it (repeatable), typed by the control
 bun solid/main.ts notify                                      # the Sky page started on its notifications screen (the feed's `n`)
 bun solid/main.ts sky --settle 60 --idle 600                  # the page at rest: 0 draws of 600, and the ms the tick takes
 bun solid/main.ts sky --settle 60 --idle 600 --idle-keys 10   # ... and 60 keys, each drawing its own frame (60 draws)
