@@ -393,3 +393,16 @@ bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
 cmp "$TEXTDOC/README.md" README.md || {
   echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
 echo "figure text: native/README.md's four figures are the renderer's, byte for byte (cmp)"
+# The export half (solid/src/figure/export/*, solid/figure-export.test.ts): the same layout as one standalone SVG and one
+# self-contained page, with no host, no framework and no build step. The test holds every spec's SVG to the layout
+# (well-formed XML, its texts in order, every x/width the layout's number), the page to one verbatim SVG and no script,
+# Chromium's boxes to the SVG's numbers within 1 px, and two runs to `cmp`. The two shipped files below are regenerated
+# here and compared, so a figure cannot drift from its spec — the same discipline as the text half.
+bun solid/figure-export.test.ts
+bun solid/figure.ts solid/specs/palette.json --html "$FIG/palette.html"
+bun solid/figure.ts solid/specs/pipeline.json --svg "$FIG/pipeline.svg"
+cmp "$FIG/palette.html" docs/exports/palette.html || {
+  echo "FAIL: docs/exports/palette.html is not what 'bun solid/figure.ts solid/specs/palette.json --html' writes; commit its output"; exit 1; }
+cmp "$FIG/pipeline.svg" docs/exports/pipeline.svg || {
+  echo "FAIL: docs/exports/pipeline.svg is not what 'bun solid/figure.ts solid/specs/pipeline.json --svg' writes; commit its output"; exit 1; }
+echo "figure export: every spec's SVG and page are the layout's (57 checks), and docs/exports/{palette.html,pipeline.svg} are regenerated and cmp'd"
