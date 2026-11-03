@@ -111,6 +111,8 @@ export interface TableOptions {
 
 /** Spread onto `<table>`; the host renders the table, the head and the body. */
 export interface TableProps {
+  /** The role the element states for itself: a `display: contents` skin drops the box, not this. */
+  readonly role: "table";
   /** `labels.table`; leave it out when the host renders a caption. */
   readonly "aria-label": string | undefined;
   /** Only while the host windows its rows. */
