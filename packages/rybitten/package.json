@@ -1,6 +1,6 @@
 {
   "name": "@cssints/rybitten",
-  "version": "0.30.1",
+  "version": "0.31.0",
   "description": "RYB palettes for cssints as DTCG data: a hue wheel and ramps in RYBitten's historical colour cubes, at build time",
   "license": "MIT",
   "repository": {
@@ -50,7 +50,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.30.0"
+    "cssints": "^0.31.0"
   },
   "engines": {
     "node": ">=22"
