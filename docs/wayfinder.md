@@ -4108,3 +4108,33 @@ green. **Cost:** the 276 kB wasm runs at build time only and is not in the clien
 highlighting in the browser — a live pane (fetch a file, highlight on demand) is what the wasm in the client is for, and
 nothing yet needs it. `toCSS` was not used: the variables are already ours, and a CSS-variable theme would have put the
 colours beyond `test/code.mjs`'s reach.
+
+## The storybook reaches the native target (2026-11-03)
+
+Asked after the loader became a package ("can the storybook be for native too? then the package would be worth it"). **The
+third reader exists**: `bun solid/main.ts storybook` draws a rail of the stories in `native/solid/stories/*.stories.tsx` and
+the picked one in the canvas, over `@cssints/stories` — imported **by relative path** (`../../../packages/stories/src/index.ts`),
+the way native already imports `native/headless`, because native runs Bun and the Solid compiler, not Vite: there is no
+`import.meta.glob`, so `solid/stories/index.ts` lists the files, and no `dist/` is needed.
+
+Three things the target forced, and they are the design:
+
+- **The storybook hands its input down as an args.** A native story is not a component in a void: the keyboard and the
+  pointer belong to the page (`createInput`, the focus manager). So the page calls `view({ ...args, input, motion })`, and a
+  story that needs them asks for them by name — the first two stories are a headless switch and a headless disclosure, wired
+  by the story itself. A story's own args stay controls-shaped for the web.
+- **`Node` earns its place.** `entries<Node>(modules)` with `Node = El | Txt` from `solid/src/renderer.ts`; the loader names
+  no renderer and the story file type-checks against the native tree.
+- **One process, one token namespace.** A first attempt made the stories two pages (`InlineDemo`, `Sensors`); it failed
+  because both, and the Sensors page's `examples/sensors/styles.ts`, declare `--color-surface` with different initial
+  values, and one native process compiles every module it imports. So the stories are self-contained (literals, no
+  `createTokens`), and **`main.ts` imports the storybook only for its own page** — a static import put the story files, the
+  loader and InlineDemo's tokens into _every_ page, which broke the sensor page's build and the watch check. Found by
+  running `sh solid/test.sh`, not by reading.
+
+**Evidence:** three stored frames in `solid/frames/` compared by `solid/test.sh` — the page at rest (`storybook.png`), Tab,
+Tab, Enter picking the switch (`storybook-keys.png`), Tab×3 and Space opening the disclosure (`storybook-open.png`) — and
+`sh solid/test.sh` green end to end (89 stored frames, watch and hot checks included). **Left:** the rail is the native
+headless button, so a story is one Tab stop rather than an arrow-navigable list; the controls panel does not exist in
+native (a story's args are the page's own); and the native component library the stories would document is still the pages'
+inline styles.

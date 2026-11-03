@@ -57,6 +57,7 @@
 //                                        and a second column past the viewport's edge (the horizontal axis of the scroll
 //                                        machine: --wheel-x scrolls it, and a shift+vertical wheel in the window does too)
 //   --posts N                            the Sky's Discover feed: N synthetic posts instead of its three fixtures
+//   --story ID                           the storybook page: the story to open (default the first), `widgets--switch`
 //   --density N                          the raster's pixel density (the window's, 2 on a Retina screen): the same layout
 //                                        in N times the pixels; the frame written is that much larger (default 1)
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
@@ -82,6 +83,7 @@ if (
   page !== "notify" &&
   page !== "sheet" &&
   page !== "figure" &&
+  page !== "storybook" &&
   page !== "dev"
 ) {
   console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky, notify, sheet, figure or dev`);
@@ -175,6 +177,9 @@ const { loadSky } = await import("./src/skyload.ts");
 const { Sheet, size: sheetSize } = await import("./app/Sheet.tsx");
 const { Figure, size: figureSize } = await import("./app/Figure.tsx");
 const { Dev, size: devSize, stats: devStats } = await import("./app/Dev.tsx");
+// the storybook is imported only for its own page: it pulls the story files and @cssints/stories, and every other page
+// must not compile them (two token sets of one namespace stop the build, and a watcher of `widgets` would rebuild them)
+const storybook = page === "storybook" ? await import("./app/Storybook.tsx") : undefined;
 
 // the sheet is the one page wider than 360: the oracle draws a page, not a window group. The Figure page's size is its
 // layout's, from the spec: cells times the cell, and the padding
@@ -185,7 +190,9 @@ const W =
       ? figureSize(figureSpec!).width
       : page === "dev"
         ? devSize.width
-        : 360;
+        : page === "storybook"
+          ? (storybook?.size.width ?? 720)
+          : 360;
 const H =
   page === "widgets"
     ? size.height
@@ -203,7 +210,9 @@ const H =
                 ? figureSize(figureSpec!).height
                 : page === "dev"
                   ? devSize.height
-                  : 360;
+                  : page === "storybook"
+                    ? (storybook?.size.height ?? 560)
+                    : 360;
 
 if (
   (gpu ? ui.initGpu(W, H) : ui.init(W, H)) ||
@@ -247,7 +256,10 @@ const dispose = render(
               ? () => Sheet()
               : page === "figure"
                 ? () => Figure({ spec: figureSpec!, motion })
-                : page === "dev"
+                : page === "storybook"
+                  ? () =>
+                      storybook!.Storybook({ input, motion, start: arg("--story")?.[0] })
+                  : page === "dev"
                   ? () => Dev({ input, motion, drag: dragState, theme: () => theme, tune: arg("--tune")?.[0] })
                   : () => Sensors({ motion }),
   root,
