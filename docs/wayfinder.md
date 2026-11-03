@@ -4078,3 +4078,15 @@ the loader skips, the order, a component view through `createComponent`, a rende
 component-less file throws); `apps/ui/test/site.mjs` also draws a composed story (card), the treeview's six rows, the
 select's four options and the checkbox group's parent box; `apps/lab/test/lab.mjs` is unchanged and green. **Left:** the
 28 items without a story, and the native storybook itself (next).
+
+## The first publish of a package, in the order that works (2026-11-02)
+
+`@cssints/stories` became the 30th package, and its first publish was done by hand before merging the "Version Packages"
+pull request, as RELEASING.md says. Two details were not written down and cost a round each: **`npm trust github` needs the
+package to exist**, so before the publish it answers `404 POST /-/package/@cssints%2fstories/trust` (the trust endpoint
+validates the name against the registry) and the publish has to come first; and **`scripts/release.mjs` asks the registry
+for the packument**, not the version, so `release:check` — and with it the whole release job, which runs it before
+`changesets/action` — stays red while npm's read side lags: the version document answered 200 about two minutes before the
+packument did. Both waits are recorded in RELEASING.md. 0.29.0 then published all 30 through OIDC in one run, with no tlog
+retry, and `@cssints/stories@0.29.0` carries a `provenance` attestation from `release.yml` (its hand-published 0.28.0, from
+a token, does not).

@@ -67,6 +67,13 @@ cd packages/machine/.publish && npm publish --access public --tag latest   # the
 npm trust github @cssints/machine --file release.yml --repo alexeiaccio/css-in-ts-compiler --allow-publish --yes
 ```
 
+`@cssints/stories` is the 30th (0.29.0), and it cost two things not written down before. **The order is publish, then
+trust**: `npm trust github` validates the package against the registry, so before the first publish it answers `404 Not
+Found - POST /-/package/@cssints%2fstories/trust` (it is not "the package is missing", it is the trust endpoint refusing an
+unknown name). And **`release:check` fails on the name, not the version**: it issues a `HEAD` on the packument, so a fresh
+publish keeps it red until the read side appears — the version document answered 200 about two minutes before the packument
+did, and the run stayed blocked until then. Neither is a reason to bump a version or re-publish: wait, then re-run.
+
 Then re-run the failed release job (`gh run rerun <id> --failed`): CI publishes the group and skips the version that is already
 on npm. Publishing the whole group by hand instead would leave the configuration unused, and it expires after 2 days.
 
