@@ -90,6 +90,10 @@ const rowCheckbox = (root: HTMLElement, id: string): HTMLElement | null =>
 const selectAll = (root: HTMLElement): HTMLElement | null =>
   root.querySelector<HTMLElement>('[data-part="table-select-all"]');
 
+/** The row's first body cell: the row is `display: contents`, so the cell is the thing that paints. */
+const firstCell = (root: HTMLElement, id: string): HTMLElement =>
+  row(root, id)?.querySelector<HTMLElement>('[data-part="table-cell"]') as HTMLElement;
+
 /** The row's real id, read off its first cell: the selection control's mark is text too. */
 const rowId = (row: HTMLElement | undefined): string =>
   row?.querySelector<HTMLElement>('[data-part="table-cell"]')?.textContent?.split("-")[0] ?? "";
@@ -128,17 +132,17 @@ describe("Table skin", () => {
     dispose();
   });
 
-  it("toggles a row's aria-selected from its control, and paints the row from it", async () => {
+  it("toggles a row's aria-selected from its control, and paints the row's cells from it", async () => {
     const { root, selected, dispose } = mountTable();
     expect(row(root, "a")?.getAttribute("aria-selected")).toBe("false");
-    const plain = getComputedStyle(row(root, "a") as HTMLElement).backgroundColor;
+    const plain = getComputedStyle(firstCell(root, "a")).backgroundColor;
 
     rowCheckbox(root, "a")?.click();
     await tick();
     expect(selected()).toEqual(["a"]);
     expect(row(root, "a")?.getAttribute("aria-selected")).toBe("true");
     expect(rowCheckbox(root, "a")?.getAttribute("aria-checked")).toBe("true");
-    expect(getComputedStyle(row(root, "a") as HTMLElement).backgroundColor).not.toBe(plain);
+    expect(getComputedStyle(firstCell(root, "a")).backgroundColor).not.toBe(plain);
 
     // a second click on the row itself is the primitive's own toggle, not a second gesture
     row(root, "a")?.click();
@@ -196,6 +200,80 @@ describe("Table skin", () => {
     expect(selectAll(root)?.getAttribute("aria-label")).toBe("Select all rows");
     expect(root.querySelector("caption")?.textContent).toBe("Issues");
     dispose();
+  });
+});
+
+describe("Table grid", () => {
+  /** A small table with its own columns, so the tracks it writes are the columns' hints. */
+  const mountGrid = (selection: TableSelectionMode) => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const columns: ReadonlyArray<TableColumn> = [
+      { key: "name", width: "12rem" },
+      { key: "count", numeric: true },
+    ];
+    const dispose = render(
+      () => (
+        <Table columns={columns} rows={["a"]} selection={selection} caption="Grid">
+          <TableHead>
+            <TableHeaderCell column="name">name</TableHeaderCell>
+            <TableHeaderCell column="count">count</TableHeaderCell>
+          </TableHead>
+          <TableBody>
+            <TableRow row="a">
+              <TableCell column="name">a-name</TableCell>
+              <TableCell column="count">1</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      ),
+      root,
+    );
+    const table = root.querySelector<HTMLElement>("table") as HTMLElement;
+    return {
+      root,
+      table,
+      dispose: () => {
+        dispose();
+        root.remove();
+      },
+    };
+  };
+
+  it("lays the rows out as a grid: no table boxes, and the columns are the tracks", () => {
+    const { root, table, dispose } = mountGrid("none");
+    expect(getComputedStyle(table).display).toBe("grid");
+    // the group and the row keep no box; their roles are what keeps them in the accessibility tree
+    expect(getComputedStyle(root.querySelector("thead") as HTMLElement).display).toBe("contents");
+    expect(getComputedStyle(root.querySelector("tbody") as HTMLElement).display).toBe("contents");
+    expect(getComputedStyle(root.querySelector("tbody tr") as HTMLElement).display).toBe(
+      "contents",
+    );
+    // one track per column, in the caller's order: its `width` hint, or an equal share of what is left
+    expect(table.style.gridTemplateColumns).toBe("12rem minmax(0px, 1fr)");
+    dispose();
+  });
+
+  it("lines the columns up across rows: every row is the same template", () => {
+    const { root, dispose } = mountTable();
+    const left = (text: string): number => {
+      const cell = [...root.querySelectorAll<HTMLElement>("tbody td")].find(
+        (candidate) => candidate.textContent === text,
+      ) as HTMLElement;
+      return cell.getBoundingClientRect().left;
+    };
+    // a table box lined the cells up by itself; a grid does it only while every row agrees with the template
+    expect(left("a-title")).toBe(left("b-title"));
+    expect(left("a-count")).toBe(left("c-count"));
+    expect(left("a-count")).toBeGreaterThan(left("a-title"));
+    dispose();
+  });
+
+  it("gives the selection column a track of its own, in front", () => {
+    // `max-content`: the control is one box wide, and the header cell above it carries the same padding
+    const selectable = mountGrid("multiple");
+    expect(selectable.table.style.gridTemplateColumns).toBe("max-content 12rem minmax(0px, 1fr)");
+    selectable.dispose();
   });
 });
 
