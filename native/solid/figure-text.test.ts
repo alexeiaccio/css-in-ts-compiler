@@ -15,7 +15,18 @@ import { layout, PADDING_X, PADDING_Y, type Bar } from "./src/figure/kinds.ts";
 import { parse, type Spec } from "./src/figure/spec.ts";
 import { cellWidth, fillBlocks, FOCUS_MARK, markdown, redrawDoc, render } from "./src/figure/text.ts";
 
-const SPECS = ["bars", "funnel", "compare", "pipeline", "tree", "journey-map"] as const;
+const SPECS = [
+  "bars",
+  "funnel",
+  "compare",
+  "pipeline",
+  "tree",
+  "journey-map",
+  "palette",
+  "contrast",
+  "spacing",
+  "type-scale",
+] as const;
 const WIDTH = 80;
 /** A text bar may sit half a cell from the terminal's whole cells: the pixel figure's own tolerance. */
 const HALF_CELL = 0.5;
@@ -97,14 +108,19 @@ for (const name of SPECS) {
   if (l.bars.length) {
     const out = join(work, `${name}.txt`);
     const ansi = join(work, `${name}.ansi`);
+    // a line may be taller than a cell (a type scale's 40px row is three), so the grid's rows are the layout's heights
+    const gridRows = l.lines.reduce((n, line) => n + (line.height ?? 1), 0) + 2;
     const args = ["terminal/solid.ts", "--page", "figure", "--spec", specPath(name), "--cols", "80",
-      "--rows", String(l.lines.length + 2)];
+      "--rows", String(gridRows)];
     const run = spawnSync("bun", [...args, "--dump", out, "--ansi", ansi], { cwd: native, encoding: "utf8" });
     const rows = run.status === 0 ? rowsOfCells(readFileSync(out, "utf8")) : [];
     const cells = run.status === 0 ? ansiRows(readFileSync(ansi, "utf8")) : new Map();
     if (rows.length !== l.lines.length || run.status !== 0)
       bad(`${name}: the terminal's rows`, `exit ${run.status}, ${rows.length} rows for ${l.lines.length} lines: ${run.stderr.trim()}`);
     let compared = 0;
+    // a line's first cell row: the rows above it, each in its own cells (a type scale's 40px row is three)
+    const rowOf = (index: number) =>
+      1 + PADDING_Y + l.lines.slice(0, index).reduce((n, line) => n + (line.height ?? 1), 0);
     l.lines.forEach((line, lineIndex) => {
       let x = 0;
       for (const item of line.items) {
@@ -114,27 +130,30 @@ for (const name of SPECS) {
           const slice = row.slice(PADDING_X + x, PADDING_X + x + item.cells);
           // the dump draws the track and the fill as dots alike: this says the track is where the layout put it
           const dots = [...slice].filter((ch) => ch === ".").length;
-          const frame = cells.get(1 + PADDING_Y + lineIndex) ?? [];
+          const frame = cells.get(rowOf(lineIndex)) ?? [];
           const start = PADDING_X + x;
           const fillBg = frame[start]?.bg ?? "";
           let drawn = 0;
           while (drawn < item.cells && frame[start + drawn]?.bg === fillBg) drawn++;
           const textCells = fillBlocks(bar).cells;
           const error = Math.abs(textCells - drawn);
+          // a fill of whole cells lands on the grid; a fractional one (a spacing step's half cell, a contrast ratio
+          // between two cells) is quantised by the terminal to the cell it covers, so it may be a cell out
+          const slack = Math.abs(bar.fill - Math.round(bar.fill)) < 1e-9 ? HALF_CELL : 1;
           if (error > worstCells) (worstCells = error), (worstWhere = `${name} ${bar.label}`);
           if (dots !== item.cells)
             bad(`${name}: ${bar.label}'s track`, `the terminal drew ${dots} of ${item.cells} cells`);
-          if (drawn !== bar.fill)
-            bad(`${name}: ${bar.label}'s cells`, `the terminal filled ${drawn}, the layout says ${bar.fill}`);
-          if (error > HALF_CELL)
-            bad(`${name}: ${bar.label}'s length`, `${textCells.toFixed(3)} text cells against the terminal's ${drawn}: ${error.toFixed(2)} apart (half a cell allowed; ${bar.value}/${bar.max} of ${bar.track})`);
+          if (Math.abs(drawn - bar.fill) > slack)
+            bad(`${name}: ${bar.label}'s cells`, `the terminal filled ${drawn}, the layout says ${bar.fill} (${slack} allowed)`);
+          if (error > slack)
+            bad(`${name}: ${bar.label}'s length`, `${textCells.toFixed(3)} text cells against the terminal's ${drawn}: ${error.toFixed(2)} apart (${slack} allowed; ${bar.value}/${bar.max} of ${bar.track})`);
           compared++;
         }
         x += item.cells;
       }
     });
     if (compared === l.bars.length)
-      ok(`${name}: ${compared} bar(s) in cells`, `each within ${HALF_CELL} of the terminal's count (value/max of the track)`);
+      ok(`${name}: ${compared} bar(s) in cells`, `each within a cell of the terminal's count (value/max of the track)`);
     else bad(`${name}: the bars`, `${compared} of ${l.bars.length} bars found in the rows`);
   }
 }
@@ -248,6 +267,50 @@ else bad("--markdown: the ► line", "no ► line with the focus's say");
   else bad("journeyMap: the stages", `${words.length} of ${l.bars.length} feelings, ${notes.length} of ${s.data.length} notes`);
 }
 
+// (h) the palette's two new items: the text draws a swatch as glyph-kit's `██` in its two cells and the mark as `▲`,
+// and the terminal's cells are the step's own colour for those two cells and a filled cell at the mark — the same
+// agreement the bars have, a swatch at a time.
+{
+  const s = spec("palette");
+  const l = layout(s);
+  const lines = render(s, { width: WIDTH }).split("\n");
+  const ansi = join(work, "palette-swatch.ansi");
+  const gridRows = l.lines.reduce((n, line) => n + (line.height ?? 1), 0) + 2;
+  const run = spawnSync(
+    "bun",
+    ["terminal/solid.ts", "--page", "figure", "--spec", specPath("palette"), "--cols", "80", "--rows", String(gridRows), "--ansi", ansi],
+    { cwd: native, encoding: "utf8" },
+  );
+  const cells = run.status === 0 ? ansiRows(readFileSync(ansi, "utf8")) : new Map();
+  const rgb = (hex: string) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)).join(",");
+  let swatches = 0;
+  let marks = 0;
+  l.lines.forEach((line, lineIndex) => {
+    let x = 0;
+    for (const item of line.items) {
+      const slice = (lines[lineIndex] ?? "").slice(x, x + item.cells);
+      if (item.kind === "swatch") {
+        const frame = cells.get(1 + PADDING_Y + lineIndex) ?? [];
+        const fg = frame[PADDING_X + x]?.bg ?? "";
+        const neighbour = frame[PADDING_X + x + 1]?.bg ?? "";
+        if (slice !== "██" || fg !== rgb(item.value) || neighbour !== rgb(item.value))
+          bad("palette: a swatch", `${JSON.stringify(slice)} and ${fg}/${neighbour} in the cells for ${item.value}`);
+        swatches++;
+      }
+      if (item.kind === "marker") {
+        const frame = cells.get(1 + PADDING_Y + lineIndex) ?? [];
+        if (slice !== "▲ " || !frame[PADDING_X + x]?.bg)
+          bad("palette: the mark", `${JSON.stringify(slice)} and bg ${JSON.stringify(frame[PADDING_X + x]?.bg)}`);
+        marks++;
+      }
+      x += item.cells;
+    }
+  });
+  if (swatches === l.swatches.length && marks)
+    ok("palette: the swatches and the mark", `${swatches} swatches print ██ and are their colours' cells, ${marks} mark(s) print ▲ and a fill`);
+  else bad("palette: the swatches and the mark", `${swatches} of ${l.swatches.length} swatches, ${marks} marks`);
+}
+
 // (e) the docs draw themselves: the redraw of native/README.md is byte-identical
 const doc = new URL("../README.md", import.meta.url).pathname;
 const docText = readFileSync(doc, "utf8");
@@ -278,12 +341,14 @@ if (longest <= 40 && narrow.some((line) => line.endsWith("…")))
   ok("--width 40", `the widest line is ${longest} cells and the cut says …`);
 else bad("--width 40", `widest ${longest}: ${JSON.stringify(narrow)}`);
 
-// the cost: bytes of one figure and the ms to render one (a build/CLI path; nothing runs this per frame)
-const timed = spec("bars");
-const t0 = performance.now();
-for (let i = 0; i < 200; i++) render(timed, { width: WIDTH });
-const ms = (performance.now() - t0) / 200;
-console.log(`the text half: ${Buffer.byteLength(render(timed, { width: WIDTH }), "utf8")} bytes for bars.json, ${ms.toFixed(3)} ms a render (200 runs)`);
+// the cost: each spec's bytes and the ms to render one (a build/CLI path; nothing runs this per frame)
+for (const name of SPECS) {
+  const s = spec(name);
+  const t0 = performance.now();
+  for (let i = 0; i < 200; i++) render(s, { width: WIDTH });
+  const ms = (performance.now() - t0) / 200;
+  console.log(`the text half: ${Buffer.byteLength(render(s, { width: WIDTH }), "utf8")} bytes for ${name}.json, ${ms.toFixed(3)} ms a render (200 runs)`);
+}
 ok("the worst bar", `${worstCells.toFixed(2)} of a cell from the terminal (${worstWhere})`);
 
 if (failed) {

@@ -24,14 +24,37 @@ const styles = await import("./app/Figure.styles.ts");
 
 /** A bar may round to the nearest half cell of its ratio: the layout rounds a cell, and that is the whole tolerance. */
 const HALF_CELL = 0.5;
-const SPECS = ["bars", "funnel", "compare", "pipeline", "branch-flow", "state-machine", "tree", "journey-map"] as const;
-/** The two new kinds' command goldens: one frame each, stored by the same capture this test reads. */
+const SPECS = [
+  "bars",
+  "funnel",
+  "compare",
+  "pipeline",
+  "branch-flow",
+  "state-machine",
+  "tree",
+  "journey-map",
+  "palette",
+  "contrast",
+  "spacing",
+  "type-scale",
+] as const;
+/** The command goldens: one frame each, stored by the same capture this test reads. */
 const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "branch-flow": "figure-branch-flow",
   "state-machine": "figure-state-machine",
   "tree": "figure-tree",
   "journey-map": "figure-journey-map",
+  "palette": "figure-palette",
+  "contrast": "figure-contrast",
+  "spacing": "figure-spacing",
+  "type-scale": "figure-type-scale",
 };
+/** The engine's contrast, the one `packages/cssints` checks a site's colours with: the four design-system kinds' numbers
+ *  are held to it, not to the copy in solid/src/figure/contrast.ts that they refuse and draw by. */
+const engine = await import("../../packages/cssints/src/color.ts");
+const { shown } = await import("./src/figure/contrast.ts");
+const engineRatio = (fg: string, bg: string): number =>
+  engine.ratio(engine.luminance(fg).lum!, engine.luminance(bg).lum!);
 let failed = 0;
 let checks = 0;
 const ok = (what: string, extra = "") => (checks++, console.log(`ok   ${what}${extra ? ` — ${extra}` : ""}`));
@@ -120,11 +143,15 @@ for (const name of SPECS) {
   // there the order is left to right. A state machine may draw the same state twice (the path is the walk), so a label
   // consumes the next command that carries its text, not the first.
   const axis = kind === "flow" ? 0 : 1;
-  const used = new Set<Cmd>();
+  // a cursor, not a mark on the commands found: two labels may carry the same text (a state machine's path returns to a
+  // state), and the frame draws them in the data's order, so each label takes the *next* command that carries its text
+  let cursor = 0;
   const labelRows = l.labels.map((label) => {
-    const command = dump.commands.find((c) => c.type === "text" && c.text === label.text && !used.has(c));
-    if (command) used.add(command);
-    return command;
+    while (cursor < dump.commands.length) {
+      const command = dump.commands[cursor++]!;
+      if (command.type === "text" && command.text === label.text) return command;
+    }
+    return undefined;
   });
   // a tree's level is several boxes on one row: its order is the row's (top down), then left to right
   const inOrder = labelRows.every((command, i) => {
@@ -235,9 +262,125 @@ for (const name of SPECS) {
     else bad(`${name}: the bars`, "a feeling's fill is not |feeling|/2 of its track");
   }
 
+  // (c6) the four design-system kinds. A palette: a swatch a step, its own colour in the frame, its value and its
+  // contrast printed, and the mark on the first step that reads as words — computed with the engine here, not typed.
+  if (s.kind === "palette") {
+    const data = s.data;
+    const page = data.page ?? "#ffffff";
+    const steps = data.hues.reduce((n, hue) => n + hue.steps.length, 0);
+    if (l.swatches.length === steps)
+      ok(`${name}: the swatches`, `${steps} swatch(es), one a step of ${data.hues.map((hue) => hue.name).join(", ")}`);
+    else bad(`${name}: the swatches`, `${l.swatches.length} swatches for ${steps} steps`);
+    const colourOf = (hex: string) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+    const wrong = l.swatches.filter((swatch) => {
+      const box = commandOf(dump, swatch.id);
+      const want = colourOf(swatch.value);
+      return !box || ![0, 1, 2].every((i) => Math.abs(Number(box.color?.[i]) - want[i]!) <= 1);
+    });
+    if (!wrong.length) ok(`${name}: the swatches' colours`, `${l.swatches.length} boxes are their steps' own #rrggbb`);
+    else bad(`${name}: the swatches' colours`, `${wrong.length} of ${l.swatches.length} are not: ${wrong[0]!.value} first`);
+    // every printed value and ratio is the data's / the engine's
+    const printed = l.swatches.filter((swatch) => {
+      const value = dump.commands.find((c) => c.type === "text" && c.text === swatch.value);
+      const ratio = dump.commands.find((c) => c.type === "text" && c.text === shown(engineRatio(swatch.value, page)));
+      return value && ratio;
+    });
+    if (printed.length === l.swatches.length)
+      ok(`${name}: the printed contrast`, `every step's value and its engine ratio (4.5 from step ${l.swatches.find((x) => x.marked)?.step})`);
+    else bad(`${name}: the printed contrast`, `${printed.length} of ${l.swatches.length} steps print their value and the engine's ratio`);
+    // the mark: one a hue, on the step the engine says is the first that reads as words, at the swatch's own row
+    const marks = l.lines.flatMap((line) => line.items.filter((item) => item.kind === "marker"));
+    const firstReadable = data.hues.map((hue) => hue.steps.findIndex((step) => engineRatio(step.value, page) >= 4.5));
+    const at = marks.map((mark) => Number(/^fig-marker-(\d+)-(\d+)$/.exec(mark.id)?.[2] ?? -1));
+    const hueOf = marks.map((mark) => Number(/^fig-marker-(\d+)-(\d+)$/.exec(mark.id)?.[1] ?? -1));
+    const right = marks.length === firstReadable.filter((i) => i >= 0).length &&
+      marks.every((mark, i) => at[i] === firstReadable[hueOf[i]!]);
+    if (right)
+      ok(`${name}: the mark`, `on ${marks.map((mark, i) => `${data.hues[hueOf[i]!]!.name} ${data.hues[hueOf[i]!]!.steps[at[i]!]!.name}`).join(", ")} — the first step at 4.5 to 1`);
+    else bad(`${name}: the mark`, `marks at ${JSON.stringify(at)} for the first readable steps ${JSON.stringify(firstReadable)}`);
+    // ... and the frame's mark is a box of the good role, two cells left of its swatch on the same row
+    const good = [...(variant(styles.probe.good, undefined).text ?? [])].slice(0, 3);
+    const markBoxes = marks.map((mark) => commandOf(dump, mark.id));
+    const placed = markBoxes.every((box, i) => {
+      const swatch = commandOf(dump, l.swatches.find((x) => x.hue === data.hues[hueOf[i]!]!.name && x.marked)!?.id ?? "");
+      return box && swatch && box.box[1] === swatch.box[1] && Math.abs(box.box[0]! - (swatch.box[0]! - 16)) <= 0.5 &&
+        [0, 1, 2].every((k) => Math.abs(Number(box.color?.[k]) - good[k]) <= 1);
+    });
+    if (placed && marks.length) ok(`${name}: the mark's cell`, `a ${good.join()}-coloured cell two cells left of every marked swatch`);
+    else bad(`${name}: the mark's cell`, `${JSON.stringify(markBoxes.map((box) => box?.box))} against the swatches'`);
+  }
+
+  // A contrast figure: the ratio a pair prints is the engine's for its two colours, and the verdict is the pair's floor,
+  // painted by the good or the problem role.
+  if (s.kind === "contrast") {
+    const wrong = l.pairs.filter((pair) => {
+      const spec2 = s.data.find((row) => row.label === pair.label)!;
+      return pair.ratio !== spec2.ratio || shown(engineRatio(spec2.fg, spec2.bg)) !== shown(pair.ratio);
+    });
+    const printed = s.data.every((pair) => dump.commands.some((c) => c.type === "text" && c.text === `${shown(engineRatio(pair.fg, pair.bg))}:1`));
+    if (!wrong.length && printed)
+      ok(`${name}: the ratios`, `${s.data.length} pairs print the engine's own (${s.data.map((p) => shown(engineRatio(p.fg, p.bg))).join(", ")})`);
+    else bad(`${name}: the ratios`, `${wrong.length} disagree with the engine, printed ${printed}`);
+    const good = [...(variant(styles.probe.good, undefined).text ?? [])].slice(0, 3);
+    const problem = [...(variant(styles.probe.problem, undefined).text ?? [])].slice(0, 3);
+    const verdicts = l.pairs.map((pair) => {
+      const text = `${pair.ratio >= pair.min ? "pass" : "fails"} ${pair.min}:1`;
+      const command = dump.commands.find((c) => c.type === "text" && c.text === text);
+      const want = pair.ratio >= pair.min ? good : problem;
+      const right = command && [0, 1, 2].every((i) => Math.abs(Number(command.color?.[i]) - want[i]!) <= 1);
+      return right ? pair : undefined;
+    });
+    if (verdicts.every(Boolean))
+      ok(`${name}: the verdicts`, "every pair's pass/fails is its floor's, in the good or the problem role");
+    else bad(`${name}: the verdicts`, `${verdicts.filter((v) => !v).length} of ${l.pairs.length} are not their role's`);
+    const worst = Math.max(...l.bars.map((bar) => Math.abs(commandOf(dump, bar.fillId)!.box[2]! - (commandOf(dump, bar.trackId)!.box[2]! * bar.value) / bar.max) / CELL_WIDTH));
+    if (worst <= HALF_CELL) ok(`${name}: the scale`, `a cell a point of the 21:1 track, the worst fill ${worst.toFixed(2)} of a cell`);
+    else bad(`${name}: the scale`, `the worst fill is ${worst.toFixed(2)} cells off`);
+  }
+
+  // A spacing scale: a step's box is its own value in pixels, not "one cell" — a 4px step of a 48px scale is half a cell.
+  if (s.kind === "spacingScale") {
+    const errors = l.bars.map((bar) => {
+      const fill = commandOf(dump, bar.fillId)!;
+      return { step: bar.label, px: fill.box[2]!, value: bar.value, off: Math.abs(fill.box[2]! - bar.value) };
+    });
+    const worstPx = Math.max(...errors.map((e) => e.off));
+    const ratioWorst = Math.max(...l.bars.map((bar) => Math.abs(commandOf(dump, bar.fillId)!.box[2]! / commandOf(dump, bar.trackId)!.box[2]! - bar.value / bar.max)));
+    if (worstPx <= 0.5)
+      ok(`${name}: the steps' boxes`, `${errors.length} steps, each its value in pixels (worst ${worstPx.toFixed(2)} px: ${errors.map((e) => `${e.step} ${e.px.toFixed(0)}`).join(", ")})`);
+    else bad(`${name}: the steps' boxes`, `${errors.map((e) => `${e.step} ${e.px.toFixed(1)}px for ${e.value}`).join("; ")}`);
+    if (ratioWorst <= HALF_CELL)
+      ok(`${name}: the ratios`, `each step's box is value/largest of the track (worst ${(ratioWorst * l.bars[0]!.track).toFixed(2)} of ${l.bars[0]!.track} cells)`);
+    else bad(`${name}: the ratios`, `a step's box is ${ratioWorst.toFixed(3)} of the track off value/largest`);
+  }
+
+  // A type scale: rows from the largest size down, each specimen at its own size in the frame, and a row as tall as the
+  // line height it prints (a 40/48 line is three cells).
+  if (s.kind === "typeScale") {
+    const specimens = dump.commands
+      .filter((c) => c.type === "text" && c.text === "Aa")
+      .sort((a, b) => a.box[1]! - b.box[1]!);
+    const want = [...s.data].sort((a, b) => b.size - a.size);
+    const sorted = specimens.length === want.length && specimens.every((c, i) => c.size === want[i]!.size) &&
+      specimens.every((c, i) => i === 0 || c.size! < specimens[i - 1]!.size!);
+    if (sorted)
+      ok(`${name}: the sizes`, `${specimens.map((c) => c.size).join(" > ")} px, each the row's own text size, largest first`);
+    else bad(`${name}: the sizes`, `${JSON.stringify(specimens.map((c) => c.size))} for ${JSON.stringify(want.map((step) => step.size))}`);
+    const gaps = specimens.slice(1).map((c, i) => c.box[1]! - specimens[i]!.box[1]!);
+    const wanted = want.map((step) => Math.ceil(step.lineHeight / 16) * 16);
+    const source = dump.commands.find((c) => c.type === "text" && c.text === s.source);
+    const last = specimens[specimens.length - 1];
+    const tail = source && last ? source.box[1]! - last.box[1]! : -1;
+    if (gaps.every((gap, i) => gap === wanted[i]) && tail === wanted[wanted.length - 1])
+      ok(`${name}: the line heights`, `each row is its line height in whole cells (${wanted.map((h) => h / 16).join(", ")} cells)`);
+    else bad(`${name}: the line heights`, `${JSON.stringify([...gaps, tail])} for ${JSON.stringify(wanted)}`);
+    const numbers = dump.commands.filter((c) => c.type === "text" && /^\d+\/\d+$/.test(c.text ?? ""));
+    if (numbers.length === want.length) ok(`${name}: the numbers`, `${numbers.map((c) => c.text).join(", ")}`);
+    else bad(`${name}: the numbers`, `${numbers.length} of ${want.length} size/lineHeight texts`);
+  }
+
   // (d) a funnel never grows, and each step's width is value/first
-  if (kind === "funnel") {
-    const bars = l.bars;
+  if (kind === "funnel") {    const bars = l.bars;
     const first = bars[0]!.value;
     for (let i = 1; i < bars.length; i++)
       if (bars[i]!.value > bars[i - 1]!.value) bad(`${name}: a growing step`, `${bars[i]!.label} ${bars[i]!.value} after ${bars[i - 1]!.value}`);
@@ -250,8 +393,10 @@ for (const name of SPECS) {
     ok(`${name}: the steps`, `${bars.length} steps, none larger than the one before it, each value/first`);
   }
 
-  // (f) the same spec on the terminal: the cells' rows are the pixel figure's rows, in text and count
-  const rows = l.lines.length + 2;
+  // (f) the same spec on the terminal: the cells' rows are the pixel figure's rows, in text and count. A line may be
+  // taller than a cell (a type scale's 40px row is three), so the grid's rows are the layout's heights, and the blank
+  // rows a tall line leaves are dropped from both sides.
+  const rows = l.lines.reduce((n, line) => n + (line.height ?? 1), 0) + 2;
   const out = join(work, `${name}.txt`);
   const run = spawnSync(
     "bun",
@@ -265,13 +410,13 @@ for (const name of SPECS) {
   }
   const cells = rowsOfCells(readFileSync(out, "utf8"));
   const pixel = lines.map(stripDots);
+  // a plain walk, not `some`/`findIndex`: a row's disagreement is the index of the first one, and the message names both
+  let differ = -1;
+  for (let i = 0; i < cells.length && i < pixel.length; i++) if (cells[i] !== pixel[i]) { differ = i; break; }
   if (cells.length !== pixel.length)
     bad(`${name}: the terminal's rows`, `${cells.length} rows, the pixel figure's ${pixel.length}`);
-  else if (cells.some((line, i) => line !== pixel[i]))
-    bad(
-      `${name}: the terminal's rows`,
-      `${JSON.stringify(cells.find((line, i) => line !== pixel[i]))} is not ${JSON.stringify(pixel.find((l2, i) => l2 !== cells[i]))}`,
-    );
+  else if (differ >= 0)
+    bad(`${name}: the terminal's rows`, `row ${differ + 1}: ${JSON.stringify(cells[differ])} is not ${JSON.stringify(pixel[differ])}`);
   else ok(`${name}: the terminal's rows`, `${cells.length} rows, the pixel figure's words (cells, not pixels)`);
 }
 
@@ -297,7 +442,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, flow, funnel, stateMachine, journeyMap, tree.');
+  'unknown kind "pieChart": the ones here are barChart, branchFlow, compare, contrast, flow, funnel, journeyMap, palette, spacingScale, stateMachine, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",
@@ -371,6 +516,72 @@ refuses("a journey feeling outside the scale", {
 }, "Import has a feeling of 3, outside -2 to 2.");
 refuses("an empty journey", { kind: "journeyMap", data: [] },
   'A journey needs its stages: [{ "label": "Discover", "feeling": 1 }, ...], each with the feeling it had.');
+
+// ---- the four design-system kinds' refusals, in the kit's voice
+refuses("a palette whose steps do not get steadily darker", {
+  kind: "palette",
+  source: "Sample",
+  data: {
+    page: "#ffffff",
+    hues: [{
+      name: "Blue",
+      steps: [
+        { name: "100", value: "#dbe6ff" },
+        { name: "200", value: "#6487e6" },
+        { name: "300", value: "#b7ccfb" },
+        { name: "400", value: "#4269d6" },
+      ],
+    }],
+  },
+}, "Blue 300 is lighter than 200; a scale's steps get steadily darker.");
+refuses("a palette step that is not a hex colour", {
+  kind: "palette",
+  source: "Sample",
+  data: { page: "#ffffff", hues: [{ name: "Blue", steps: [{ name: "500", value: "rgb(66 105 214)" }] }] },
+}, "Blue 500: write the colour as a hex value like #1f4fd6, not \"rgb(66 105 214)\".");
+refuses("a palette with no hues", { kind: "palette", data: { hues: [] } },
+  'A palette needs its hues: [{ "name": "Blue", "steps": [{ "name": "50", "value": "#eef3ff" }] }].');
+refuses("a palette whose page is not a hex colour", {
+  kind: "palette",
+  source: "Sample",
+  data: { page: "white", hues: [{ name: "Blue", steps: [{ name: "500", value: "#4269d6" }] }] },
+}, 'Write the page colour as a hex value like #ffffff, not "white".');
+refuses("a contrast pair whose ratio is not its colours'", {
+  kind: "contrast",
+  source: "Sample",
+  data: [{ label: "ink on paper", fg: "#030507", bg: "#ffffff", min: 7, ratio: 19.36 }],
+}, "ink on paper says 19.36:1, but #030507 on #ffffff makes 20.41:1.");
+refuses("a contrast floor that is not WCAG's", {
+  kind: "contrast",
+  source: "Sample",
+  data: [{ label: "ink on paper", fg: "#030507", bg: "#ffffff", min: 4.6, ratio: 20.41 }],
+}, "ink on paper's min is 4.6: a minimum is 3, 4.5 or 7, WCAG's three floors.");
+refuses("a contrast check with no pairs", { kind: "contrast", data: [] },
+  'A contrast check needs its pairs: [{ "label": "ink on paper", "fg": "#080808", "bg": "#fbfbf8", "min": 4.5, "ratio": 19.36 }].');
+refuses("a spacing scale that does not grow", {
+  kind: "spacingScale",
+  source: "Sample",
+  data: [
+    { name: "space.sm", value: 8 },
+    { name: "space.lg", value: 16 },
+    { name: "space.md", value: 12 },
+  ],
+}, "space.md is 12px, less than space.lg's 16px before it; a spacing scale grows.");
+refuses("a spacing step of nothing", {
+  kind: "spacingScale",
+  source: "Sample",
+  data: [{ name: "space.xs", value: 0 }],
+}, "space.xs has a value of 0px: a step is above zero.");
+refuses("a type size under 8px", {
+  kind: "typeScale",
+  source: "Sample",
+  data: [{ name: "caption", size: 6, lineHeight: 10 }],
+}, "caption is 6px: a size under 8px is unreadable.");
+refuses("a line height under its size", {
+  kind: "typeScale",
+  source: "Sample",
+  data: [{ name: "body", size: 16, lineHeight: 14 }],
+}, "body is 16/14: a line height under its size (16) crowds the lines.");
 // the invalid file itself: the funnel solid/test.sh gives the desktop's `--spec`, refused with the sentence
 const invalid = parse(readFileSync(new URL("./specs/invalid-funnel.json", import.meta.url), "utf8"));
 if (invalid.problems.includes("signed up 12600 is more than visited 12400; a funnel never grows"))
@@ -474,6 +685,48 @@ for (const [file, sentence] of [
   const outSentence = "First chart has a feeling of 4, outside -2 to 2.";
   if (check(journeyOut).includes(outSentence)) ok("mutation: a journey feeling out of range", outSentence);
   else bad("mutation: a journey feeling out of range", `the check printed no ${JSON.stringify(outSentence)}`);
+
+  // ---- the design-system kinds' mutations
+  // a palette with two steps swapped is no longer one direction, and the check says which two
+  {
+    const palette = spec("palette");
+    if (palette.kind !== "palette") throw new Error("palette.json is not a palette");
+    const hues = palette.data.hues.map((hue) => ({ ...hue, steps: [...hue.steps] }));
+    const blue = hues[0]!;
+    const [fifth, sixth] = [blue.steps[5]!.value, blue.steps[6]!.value];
+    blue.steps[5] = { ...blue.steps[5]!, value: sixth };
+    blue.steps[6] = { ...blue.steps[6]!, value: fifth };
+    const swapped = { ...palette, data: { ...palette.data, hues } };
+    const sentence = "Blue 6 is lighter than 5; a scale's steps get steadily darker.";
+    if (check(swapped).includes(sentence) && !check(palette).length)
+      ok("mutation: two palette steps swapped", `${sentence} (the intact ${palette.data.hues[0]!.name} scale passes)`);
+    else if (!check(swapped).includes(sentence)) bad("mutation: two palette steps swapped", `no ${JSON.stringify(sentence)}: ${JSON.stringify(check(swapped))}`);
+    else bad("mutation: two palette steps swapped", `the intact spec is refused: ${JSON.stringify(check(palette))}`);
+  }
+  // a pair typed with another page keeps its old ratio, and the check names both numbers
+  {
+    const contrast = spec("contrast");
+    if (contrast.kind !== "contrast") throw new Error("contrast.json is not a contrast check");
+    const pair = contrast.data[3]!;
+    const typed = { ...contrast, data: contrast.data.map((row) => (row.label === pair.label ? { ...row, bg: "#ffffff" } : row)) };
+    const sentence = `${pair.label} says ${shown(pair.ratio)}:1, but ${pair.fg} on #ffffff makes ${shown(engineRatio(pair.fg, "#ffffff"))}:1.`;
+    if (check(typed).includes(sentence)) ok("mutation: a contrast ratio typed instead of computed", sentence);
+    else bad("mutation: a contrast ratio typed instead of computed", `no ${JSON.stringify(sentence)}: ${JSON.stringify(check(typed))}`);
+  }
+  // a spacing bar drawn from the index instead of the value is off by a cell or more, and the numbers say where
+  {
+    const spacing = layout(spec("spacing"));
+    const track = spacing.bars[0]!.track;
+    const wrong = spacing.bars.map((bar, i) => ({ step: bar.label, value: bar.value, want: (track * bar.value) / bar.max, drawn: i + 1 }));
+    const worst = wrong.reduce((a, b) => (Math.abs(b.drawn - b.want) > Math.abs(a.drawn - a.want) ? b : a));
+    const off = Math.abs(worst.drawn - worst.want);
+    if (off > HALF_CELL)
+      ok(
+        "mutation: a spacing bar from the index",
+        `${worst.step} is ${worst.value}px, so ${worst.want.toFixed(2)} of ${track} cells; from the index it is ${worst.drawn}, ${off.toFixed(2)} cells off`,
+      );
+    else bad("mutation: a spacing bar from the index", `the worst is ${off.toFixed(2)} of a cell, under the half a cell the check allows`);
+  }
 }
 
 // the kind's own two edges, from the layout: a value past `max` fills the track and prints "+", and a positive value

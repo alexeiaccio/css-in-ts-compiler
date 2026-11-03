@@ -1006,19 +1006,19 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The eight specs are `solid/specs/bars.json` (this repository's own
+width), prints them and exits 1, so no PNG is written. The twelve specs are `solid/specs/bars.json` (this repository's own
 `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the two flow kinds `branch-flow.json`
 (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's `presence`), the tree
-`tree.json` (this repository's own map: the four targets under one root, their pages as children) and the journey
-`journey-map.json` (glyph-kit's first-week example, adapted); `invalid-funnel.json`, `invalid-branch.json`,
-`invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the refusals the test uses.
+`tree.json` (this repository's own map: the four targets under one root, their pages as children), the journey
+`journey-map.json` (glyph-kit's first-week example, adapted), and the four design-system kinds below; `invalid-funnel.json`,
+`invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the refusals the test uses.
 
 The layout speaks **cells** (8x16 px, the terminal's), so a length here is `cells * 8` across and a line is one cell down;
 a width is data and a style is a literal, so every item's width — and a bar's fill — is written through the value channel
 in `tick`, before the tree is declared, as the List's spacers are. The terminal host and the browser page import this
 component **unmodified**: the terminal's cells are the layout's own unit (no re-cut), and the browser fetches the same
 `solid/specs/<name>.json` with `?spec=`. `solid/figure.test.ts` reads the geometry back from the frame (each fill's box
-against its track's, within half a cell; over the eight specs the worst is 0.49), each number's text, the rows' order, the
+against its track's, within half a cell; over the twelve specs the worst is 0.49), each number's text, the rows' order, the
 funnel's ratios and `check`'s sentences, then the same spec's rows on the terminal (`terminal/solid.ts --page figure
 --spec ... --dump`) word for word. `solid/goldens/figure.json` is the bars frame's command golden, and
 `browser/figure-check.mjs` holds the browser's copy to it within 4 px, with a click that changes nothing.
@@ -1027,11 +1027,22 @@ row kinds' command goldens, and the browser check reads `?spec=branch-flow`, `?s
 `?spec=journey-map` from the same files. A tree's level is a row of boxes and a journey stage is a bar row with its notes
 under it: the layout draws both, and the text renderer prints them without a kind of its own.
 
+The four **design-system** kinds are the kit's `areas/systems.md` half, and their data is our own tokens:
+`palette.json` and `contrast.json` are **generated** by `specs/from-tokens.ts` from `@cssints/tokens`' Open Props scales
+and `apps/docs`' palette — every ratio is `packages/cssints/src/color.ts`'s, the engine's — and `solid/test.sh`
+regenerates them and `cmp`s; `spacing.json` and `type-scale.json` are hand-written from `apps/docs/src/tokens.json`,
+whose line heights a role chooses. The layout gained three things they needed and no earlier kind had: a `swatch` item (a
+step's own `#rrggbb`: the one colour a figure draws as itself), a `marker` item (glyph-kit's `▲`, a `good`-role cell on a
+pixel target, since Roboto has no `▲`) and a text's `size` with a line's `height` in cells (`typeScale` is the one kind
+whose rows differ: a 40px line is three cells). `src/figure/text.ts` draws all three in two branches — `██` for a swatch,
+`▲` for a marker — so the text half still reads items and has no kind in it. Their goldens are `figure-palette.json`,
+`figure-contrast.json`, `figure-spacing.json` and `figure-type-scale.json`, and the browser reads `?spec=` of each.
+
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
 `bun terminal/solid.ts --page figure --spec ... --text` prints it from the terminal host. `solid/figure-text.test.ts`
 holds each bar's text cells to the terminal's (within half a cell, the same tolerance) and the docs' figures to a
-byte-identical `--redraw`; `native/README.md`'s four figures are that renderer's.
+byte-identical `--redraw`; `native/README.md`'s eight figures are that renderer's.
 
 ## The accessibility tree
 

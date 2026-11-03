@@ -43,7 +43,7 @@ export const t = css.createTokens({
 css.createGlobalTheme(t, "light", { color: { ...LIGHT } });
 export const font = css.fonts("Roboto");
 
-// the text roles: one style a paint, so a focus moves a row's colour and never its geometry (a style is a literal, so
+// The text roles: one style a paint, so a focus moves a row's colour and never its geometry (a style is a literal, so
 // each is written out: cssints evaluates a `.styles.ts` module once and a helper's parameter is not a value it can fold)
 const title = css.cn(
   font.Roboto,
@@ -81,7 +81,31 @@ const good = css.cn(
   css.whiteSpace("nowrap"),
 );
 
-// the root: the window, the page's fill and the figure's two cells of side padding and one row above and below
+// A type scale's specimen is drawn at its own size: one style a size of the app's own scale (apps/docs/src/tokens.json's
+// fontSize), its line height the same, so a 40px row is a 40px text in a 48px line. A size the figure has no style for
+// draws at the ink's, which is what the layout's `size` is there to make visible.
+const typeSize = {
+  12: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(12), css.lineHeight(12), css.whiteSpace("nowrap")),
+  14: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(14), css.lineHeight(14), css.whiteSpace("nowrap")),
+  16: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(16), css.lineHeight(16), css.whiteSpace("nowrap")),
+  18: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(18), css.lineHeight(18), css.whiteSpace("nowrap")),
+  22: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(22), css.lineHeight(22), css.whiteSpace("nowrap")),
+  28: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(28), css.lineHeight(28), css.whiteSpace("nowrap")),
+  40: css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(40), css.lineHeight(40), css.whiteSpace("nowrap")),
+} as const;
+// ... and the cell a specimen sits in: as tall as its line, so a 40px "Aa" is at its row's top and not centred in a
+// 16px box (which would reach into the row above it)
+const typeCell = {
+  12: css.cn(css.height(12), css.flexDirection("row")),
+  14: css.cn(css.height(14), css.flexDirection("row")),
+  16: css.cn(css.height(16), css.flexDirection("row")),
+  18: css.cn(css.height(18), css.flexDirection("row")),
+  22: css.cn(css.height(22), css.flexDirection("row")),
+  28: css.cn(css.height(28), css.flexDirection("row")),
+  40: css.cn(css.height(40), css.flexDirection("row")),
+} as const;
+
+// The root: the window, the page's fill and the figure's two cells of side padding and one row above and below
 const root = css.cn(
   css.width("stretch"),
   css.height("stretch"),
@@ -89,7 +113,9 @@ const root = css.cn(
   css.flexDirection("column"),
   css.bg(t.color.page),
 );
-// a line: one row of the cell grid, and no gap, so a line is 16px and a bar lands on a row
+// a line: one row of the cell grid, and no gap, so a line is 16px and a bar lands on a row. The height is the style's
+// default; a kind whose rows are taller (a type scale's 40px line is three cells) writes each line's own height through
+// the value channel, as every item's width is written.
 const line = css.cn(css.width("stretch"), css.height(16), css.flexDirection("row"));
 // a cell: a box whose width the page writes (the layout's cells), and its text at the left of it
 const cell = css.cn(css.height(16), css.flexDirection("row"), css.alignItems("center"));
@@ -102,6 +128,11 @@ const fill = {
   problem: css.cn(css.height(16), css.bg(t.color.problem)),
   good: css.cn(css.height(16), css.bg(t.color.good)),
 };
+// a palette's two: a swatch is its step's own colour (the page writes r, g, b; the style's alpha is what keeps the
+// override from being invisible), and a marker is glyph-kit's ▲ as a cell of the `good` role — Roboto has no ▲, so the
+// pixel targets draw a mark and the text half draws the glyph.
+const swatch = css.cn(cell, css.bg(t.color.line));
+const marker = css.cn(cell, css.bg(t.color.good));
 const text = { title, muted, ink, problem, good };
 
 // the token probe the invariant test reads: the two focus roles with nothing else, in both themes
@@ -111,4 +142,4 @@ export const probe = {
   ink: css.cn(css.color(t.color.ink)),
 };
 
-export const s = { t, font, root, line, cell, box, track, fill, text };
+export const s = { t, font, root, line, cell, box, track, fill, swatch, marker, typeSize, typeCell, text };
