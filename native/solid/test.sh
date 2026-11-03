@@ -34,12 +34,14 @@ W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Enter,ArrowRight,Shift+Tab,
 # the toolbar's menu button: to Size, Down opens the menu under the item (the checked Medium has the dot and the focus ring)
 W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight,ArrowRight,ArrowDown --expect solid/frames/widgets-toolbar-menu.png
 THEME=light bun solid/main.ts widgets --warm 30 --keys Tab,Tab,Space,Tab,Tab,Space,Tab,Tab,Enter,Tab,ArrowRight,Tab,ArrowRight,Tab,Tab,ArrowRight,ArrowRight,Tab,Enter --expect solid/frames/widgets-light.png
-# the storybook page: the rail reads @cssints/stories over native story files, the canvas draws the picked one; Tab walks
-# the stories (the native headless button), Enter picks
+# the storybook page: the rail reads @cssints/stories over native story files and is one vertical tablist (the native
+# headless tabs): Tab enters it on the picked story, Up and Down move the roving focus and pick the story the canvas draws
+# (automatic activation), and the story's own controls are the Tab stops after it. Down picks the second story; Tab past
+# the rail reaches the disclosure's trigger, which Space opens
 SB() { bun solid/main.ts storybook --warm 30 "$@"; }
 SB --expect solid/frames/storybook.png
-SB --keys Tab,Tab,Enter --expect solid/frames/storybook-keys.png
-SB --keys Tab,Tab,Tab,Space --expect solid/frames/storybook-open.png
+SB --keys Tab,ArrowDown --expect solid/frames/storybook-keys.png
+SB --keys Tab,Tab,Space --expect solid/frames/storybook-open.png
 # the settings tree, 12 Tabs in: the ring on Network, the first visible row; Down moves it without selecting;
 # Right on the closed Display opens it; Space selects the roving node
 TREE="Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab"

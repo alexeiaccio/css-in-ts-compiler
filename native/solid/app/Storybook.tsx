@@ -1,15 +1,14 @@
-// The storybook page: a rail of the stories `@cssints/stories` reads and the picked one in the canvas. The rail is the
-// native headless button, one per story, registered in the focus manager in document order, so Tab walks the stories and
-// Enter picks one — the same parts the Widgets page drives, and the same loader the web site reads.
+// The storybook page: a rail of the stories `@cssints/stories` reads and the picked one in the canvas. The rail is a
+// vertical tablist (the native headless tabs, the Widgets page's part): one Tab stop, Up and Down move the roving focus
+// and (automatic activation) pick the story the canvas draws — the same loader the web site reads.
 //
 //   bun solid/main.ts storybook                 a window, the first story picked
 //   bun solid/main.ts storybook --story widgets--switch  one story, for a frame or a stored golden
 import * as css from "cssints/clay" with { type: "cssints" };
-import { For, createSignal } from "solid-js";
 
 import { entries } from "../../../packages/stories/src/index.ts";
 
-import { createButton } from "../../headless/src/index.ts";
+import { createTabs } from "../../headless/src/index.ts";
 import { a11y } from "../a11y.ts";
 import { pageEntry, type Motion } from "../src/entry.ts";
 import type { Input } from "../src/input.ts";
@@ -99,32 +98,32 @@ export function Storybook(props: { input: Input; motion?: Motion; start?: string
     0,
     stories.findIndex((story) => story.id === props.start),
   );
-  const [index, setIndex] = createSignal(open);
-  const picked = () => stories[index()] ?? stories[0];
-
-  // one headless button per story, in document order: Tab walks them, Enter picks
-  const rows = stories.map((story, at) => {
-    const button = createButton({ id: `story-${story.id}`, onClick: () => setIndex(at) });
-    return { story, button, bind: props.input.add(button.part) };
+  // the rail is one tablist: the tabs register in the page's focus manager themselves (`focus`), so the rail is one Tab
+  // stop, entered on the selected row. The canvas is the picked story's box rather than a panel, so every panel is
+  // declared focusable: Tab goes on from the rail to the story's own first control, not to an invisible panel.
+  const tabs = createTabs({
+    id: "stories",
+    items: stories.length,
+    orientation: "vertical",
+    activation: "automatic",
+    defaultSelected: open,
+    focusablePanels: stories.map((_story, at) => at),
+    focus: props.input.focus,
   });
+  const bind = stories.map((_story, at) => props.input.bind(tabs.tabs[at]!));
+  const picked = () => stories[tabs.selected()] ?? stories[0]!;
 
   return (
     <box id="Storybook" style={root}>
-      <box style={rail}>
+      <box {...a11y(tabs.tablist)} style={rail}>
         <text style={caption}>Stories</text>
-        <For each={rows}>
-          {(row) => (
-            <box
-              {...row.bind}
-              {...a11y(row.button.part)}
-              style={row.story.id === picked().id ? rowOn : row}
-            >
-              <text style={row.story.id === picked().id ? labelOn : label}>
-                {`${row.story.title} · ${row.story.name}`}
-              </text>
-            </box>
-          )}
-        </For>
+        {stories.map((story, at) => (
+          <box {...bind[at]!} {...a11y(tabs.tabs[at]!)} style={story.id === picked().id ? rowOn : row}>
+            <text style={story.id === picked().id ? labelOn : label}>
+              {`${story.title} · ${story.name}`}
+            </text>
+          </box>
+        ))}
       </box>
       <box style={canvas}>
         <text style={caption}>{picked().id}</text>
