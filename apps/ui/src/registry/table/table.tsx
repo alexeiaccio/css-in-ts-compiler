@@ -104,18 +104,32 @@ const scroll = css.cn(css.overflowX("auto"), css.maxWidth("100%"));
 // table take no vertical padding or margin the arithmetic cannot see (the primitive starts at the content's 0).
 const viewport = css.cn(css.overflow("auto"), css.maxWidth("100%"), css.position("relative"));
 
-// A spacer row stands in for the rows outside the window; its one cell carries the height and paints nothing.
-const spacerCell = css.cn(css.padding("0"), css.border("none"), css.height("0"));
-
+// The rows are a grid, not table boxes: the `<table>` is the grid, and a row group and a row are `display: contents`, so
+// every cell is a grid item and the tracks line the columns up. An element with no box keeps its place in the
+// accessibility tree only because the primitive states its role (`rowGroupProps` on the groups, `rowProps` on the rows):
+// `display: contents` drops the box, not the semantics. `grid-template-columns` is written by `Table` from the columns.
 const table = css.cn(
-  css.borderCollapse("collapse"),
+  css.display("grid"),
   css.width("100%"),
   css.fontSize(t.font.size),
   css.color(t.color.text),
   css.textAlign("start"),
 );
 
+// No box of its own: what the element adds is its place in the DOM, and — with its role — in the accessibility tree.
+const flat = css.cn(css.display("contents"));
+
+// A spacer row stands in for the rows outside the window; its one cell spans the row, carries the height and paints nothing.
+const spacerCell = css.cn(
+  css.gridColumn("1 / -1"),
+  css.padding("0"),
+  css.border("none"),
+  css.height("0"),
+);
+
+// The caption is the grid's own first row, across every column.
 const caption = css.cn(
+  css.gridColumn("1 / -1"),
   css.padding(t.space._2, t.space._3),
   css.fontWeight("500"),
   css.textAlign("start"),
@@ -164,24 +178,23 @@ const sortArrow = css.cn(
   ),
 );
 
-// The selected row is the primitive's `aria-selected`; a hover on a row that selects is the affordance for the click the
-// row carries, and a row that does not select stays flat.
-const bodyRow = css.cn(
-  css.attr("data-selectable", "true")(
-    css.cursor("pointer"),
-    css.hover(css.bg(t.color.buttonBackground)),
-  ),
-  css.attr("aria-selected", "true")(css.bg(t.color.buttonBackground)),
-);
+// A row is `display: contents`, so its own box — and any paint, pointer or height on it — is gone: the cells read the row
+// through the `group("row")` its class carries. Only a row that selects carries the group, so a table whose rows do
+// nothing stays flat; the hover, the pointer and the selected paint are the cells' (see `cell`).
+const row = css.cn(css.display("contents"));
+const selectableRow = css.cn(css.display("contents"), css.group("row"));
 
 const cell = css.cn(
+  css.minWidth("0"),
   css.padding(t.space._2, t.space._3),
   css.borderBottom("1px solid", t.color.border),
-  css.verticalAlign("middle"),
   css.attr("data-numeric", "true")(css.textAlign("end"), css.fontVariantNumeric("tabular-nums")),
+  css.within(css.attr("data-selectable", "true"), "row")(css.cursor("pointer")),
+  css.within(css.hover, "row")(css.bg(t.color.buttonBackground)),
+  css.within(css.attr("aria-selected", "true"), "row")(css.bg(t.color.buttonBackground)),
 );
 
-const selectionCell = css.cn(css.width(t.space._6), css.paddingInlineEnd("0"));
+const selectionCell = css.cn(cell, css.paddingInlineEnd("0"));
 
 // A checkbox is drawn as a box, because a native input cannot say `mixed`: hidden until the state it follows says it is on.
 const controlClass = css.cn(
@@ -216,7 +229,8 @@ const mixedMark = css.cn(
 );
 
 /**
- * A data table on a native `<table>`: `createTable` owns the sort, the selection and the ARIA, and this skin paints them.
+ * A data table on a `<table>` laid out as a CSS grid: `createTable` owns the sort, the selection and the ARIA, and this
+ * skin paints them.
  *
  * The parts are the ones the element tree needs, and each is a part a caller can `render` over: `TableScroll` (a kit-only
  * box that scrolls a wide table sideways), `Table` (the `<table>`, its caption and the primitive's context), `TableHead`
@@ -305,10 +319,21 @@ export const Table = (props: TableProps): JSX.Element => {
     renderRow: props.renderRow,
   };
 
+  // One track per column, in order: the selection column first while the rows carry a control, then each column's own
+  // `width` hint, or an equal share of what is left.
+  const tracks = (): string =>
+    [
+      ...(tableControl.selectionMode() === "none" ? [] : ["max-content"]),
+      ...props.columns.map((column) => column.width ?? "minmax(0, 1fr)"),
+    ].join(" ");
+
   const merged = merge(tableControl.tableProps, () => ({
     "data-part": "table",
     get class() {
       return css.cn(table, props.class);
+    },
+    get style() {
+      return { "grid-template-columns": tracks() };
     },
   }));
   const element = (): JSX.Element =>
@@ -380,19 +405,20 @@ export const TableHead = (props: TableSectionProps): JSX.Element => {
   const { table: control } = useContext(TableContext);
   return renderPart(
     props,
-    {
+    merge(control.rowGroupProps, () => ({
       "data-part": "table-head",
       get class() {
-        return css.cn(props.class);
+        return css.cn(flat, props.class);
       },
-    },
+    })),
     undefined,
     (part) => (
       <thead {...part}>
-        <tr>
+        {/* the group and the row keep no box, so each states its own role; the header row is row 1 */}
+        <tr role="row" aria-rowindex={1} class={flat}>
           {/* the control only for multiple selection, but the cell in every selectable mode: the body rows carry one */}
           <Show when={control.selectionMode() !== "none"}>
-            <th data-part="table-select-all-cell" class={selectionCell}>
+            <th data-part="table-select-all-cell" class={css.cn(headerCell, selectionCell)}>
               <TableSelectAll />
             </th>
           </Show>
@@ -440,8 +466,7 @@ export const TableHeaderCell = (props: TableHeaderCellProps): JSX.Element => {
  * rows above and below it.
  */
 export const TableBody = (props: TableSectionProps): JSX.Element => {
-  const { table: control, columns, virtual, rows, renderRow } = useContext(TableContext);
-  const colspan = (): number => columns.length + (control.selectionMode() === "none" ? 0 : 1);
+  const { table: control, virtual, rows, renderRow } = useContext(TableContext);
   const indexes = (): number[] => {
     if (virtual === undefined) {
       return [];
@@ -457,19 +482,19 @@ export const TableBody = (props: TableSectionProps): JSX.Element => {
     }
     const height = virtual.spacerProps(position).style.height;
     return (
-      <tr aria-hidden="true" data-part="table-spacer" data-position={position} style={{ height }}>
-        <td colspan={colspan()} data-part="table-spacer-cell" class={spacerCell} />
+      <tr aria-hidden="true" data-part="table-spacer" data-position={position} class={flat}>
+        <td data-part="table-spacer-cell" class={spacerCell} style={{ height }} />
       </tr>
     );
   };
   return renderPart(
     props,
-    {
+    merge(control.rowGroupProps, () => ({
       "data-part": "table-body",
       get class() {
-        return css.cn(props.class);
+        return css.cn(flat, props.class);
       },
-    },
+    })),
     undefined,
     (part) => (
       <tbody {...part}>
@@ -499,22 +524,21 @@ export const TableBody = (props: TableSectionProps): JSX.Element => {
  * is 2, and the total is the table's `aria-rowcount`.
  */
 export const TableRow = (props: TableRowProps): JSX.Element => {
-  const { table: control, rowHeight } = useContext(TableContext);
+  const { table: control } = useContext(TableContext);
   const index = useContext(RowIndexContext);
+  const selectable = (): boolean => control.rowProps(props.row).onClick !== undefined;
   const merged = merge(control.rowProps(props.row), () => ({
     "data-part": "table-row",
     get class() {
-      return css.cn(bodyRow, props.class);
+      // only a row that selects carries the group the cells read; the row itself paints nothing
+      return css.cn(selectable() ? selectableRow : row, props.class);
     },
     get "data-selectable"() {
-      return control.rowProps(props.row).onClick === undefined ? undefined : "true";
+      return selectable() ? "true" : undefined;
     },
     get "aria-rowindex"() {
       // the header row is 1, so a body row at `index` is `index + 2`
       return index < 0 ? undefined : index + 2;
-    },
-    get style() {
-      return rowHeight === undefined ? undefined : { height: `${rowHeight}px` };
     },
   }));
   return renderPart(props, merged, undefined, (part) => (
@@ -531,7 +555,7 @@ export const TableRow = (props: TableRowProps): JSX.Element => {
 
 /** A body cell: its `aria-colindex` while the host windows its columns, and right alignment on a numeric column. */
 export const TableCell = (props: TableCellProps): JSX.Element => {
-  const { table: control, columns } = useContext(TableContext);
+  const { table: control, columns, rowHeight } = useContext(TableContext);
   const row = useContext(RowContext);
   const merged = merge(control.cellProps(row?.row ?? "", props.column), () => ({
     "data-part": "table-cell",
@@ -542,6 +566,10 @@ export const TableCell = (props: TableCellProps): JSX.Element => {
       return columns.find((column) => column.key === props.column)?.numeric === true
         ? "true"
         : undefined;
+    },
+    get style() {
+      // under a window the row's height is the window's arithmetic; the row has no box, so the cell carries it
+      return rowHeight === undefined ? undefined : { height: `${rowHeight}px` };
     },
   }));
   return renderPart(props, merged, undefined, (part) => <td {...part}>{props.children}</td>);
