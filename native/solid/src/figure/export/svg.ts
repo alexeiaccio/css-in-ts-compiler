@@ -21,7 +21,7 @@ import {
   CELL_WIDTH,
   PADDING_X,
   PADDING_Y,
-  layout,
+  layoutOf,
   sizeOf,
   type Layout,
   type Paint,
@@ -89,7 +89,7 @@ function textAt(
  * a `<text>`, a swatch a `<rect>` in its own colour, a marker a triangle, a space nothing.
  */
 export function svg(spec: Spec, options: SvgOptions = {}): string {
-  const l: Layout = layout(spec);
+  const l: Layout = layoutOf(spec);
   const size = sizeOf(spec);
   const scale = options.scale ?? 1;
   const width = options.width ?? size.width * scale;

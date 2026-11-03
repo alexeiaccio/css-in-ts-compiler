@@ -23,7 +23,7 @@ import {
   CELL_HEIGHT,
   CELL_WIDTH,
   PADDING_X,
-  layout,
+  layoutOf,
   sizeOf,
   type Layout,
 } from "./src/figure/kinds.ts";
@@ -189,7 +189,7 @@ for (const name of SPECS) {
   if (xmlBad.length) bad(`${name}: well-formed XML`, xmlBad.join("; "));
   else ok(`${name}: well-formed XML`, `${xml.length} B`);
 
-  const want = layoutTexts(layout(s));
+  const want = layoutTexts(layoutOf(s));
   const got = textsOf(xml);
   if (got.length !== want.length) bad(`${name}: texts`, `${got.length} <text> elements, the layout's ${want.length}`);
   else {
@@ -198,10 +198,10 @@ for (const name of SPECS) {
     else bad(`${name}: texts`, `#${at} is ${JSON.stringify(got[at])}, the layout's ${JSON.stringify(want[at])}`);
   }
 
-  const { problems, worst } = rectProblems(layout(s), xml);
+  const { problems, worst } = rectProblems(layoutOf(s), xml);
   worstRect = Math.max(worstRect, worst);
   if (problems.length) bad(`${name}: rects`, problems.slice(0, 3).join("; "));
-  else ok(`${name}: rects`, `${expectedRects(layout(s)).size} rects at the layout's x/width, worst ${worst.toFixed(3)} px`);
+  else ok(`${name}: rects`, `${expectedRects(layoutOf(s)).size} rects at the layout's x/width, worst ${worst.toFixed(3)} px`);
 }
 
 // a label with the five characters that break XML: the parse and the round trip

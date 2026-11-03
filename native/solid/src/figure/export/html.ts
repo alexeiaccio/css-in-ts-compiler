@@ -14,7 +14,7 @@
 // `--line`, `--problem` and `--good`, dark by default and overridden under `prefers-color-scheme: light` and in print.
 // The SVG's elements carry classes (`fig-ink`, `fig-track`, `fig-fill--good`, ...), so the same inline markup follows
 // the page's palette; the `.svg` file keeps the dark literals as its own fallback.
-import { FOCUS_MARK, layout } from "../kinds.ts";
+import { FOCUS_MARK, layoutOf } from "../kinds.ts";
 import type { Spec } from "../spec.ts";
 import { escapeXml, svg } from "./svg.ts";
 
@@ -109,7 +109,7 @@ ${vars(LIGHT)}
  */
 export function html(spec: Spec): string {
   const figure = svg(spec);
-  const l = layout(spec);
+  const l = layoutOf(spec);
   const title = spec.title ?? "A figure";
   const description = spec.intent ?? spec.source ?? title;
   const focus = l.focus ? `${FOCUS_MARK} ${l.focus.say ?? l.focus.on.join(", ")}` : undefined;
