@@ -992,8 +992,17 @@ ThorVG has no fallback font (the ⅓ of the sheet's quote line is an empty box, 
 
 `app/Figure.tsx` (and `app/Figure.styles.ts`, its palette and roles) is the tenth page and the one that is not an app:
 it takes `{ spec }`, a glyph-kit spec in the shape `src/figure/spec.ts` checks, and declares the layout `src/figure/kinds.ts`
-makes of it — a title, the rows (a label, a bar or a row of boxes, the number as text), the source and the `►` focus line.
-No state, no input, no entry: the page at rest is the frame its literals and its widths make.
+looks up for its kind — a title, the rows (a label, a bar or a row of boxes, the number as text), the source and the `►`
+focus line. No state, no input, no entry: the page at rest is the frame its literals and its widths make.
+
+`src/figure/` is five files and one directory: `spec.ts` (the format, `parse`, and the checks about the spec as a whole —
+a source, a focus's names, the width), `registry.ts` (the `Layout`/`Item` types, the cell constants, `sizeOf`, and the
+table from a kind's name to its layout and its check), `kinds.ts` (the door: the four areas loaded once and the types and
+the table re-exported), `contrast.ts` (WCAG's two functions, no dependency) and `text.ts` (the same layout as characters);
+`kinds/` is an area a file — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts` — each holding its kinds' layouts and
+checks side by side over `kinds/shared.ts`'s item builders, with one `register` call a kind. `solid/figure-registry.test.ts`
+is the seam's test: both halves of every kind, the list the docs and the `unknown kind` sentence print, and a throwaway
+kind registered in the test alone that draws through `text.ts` and on the desktop.
 
 ```
 bun solid/main.ts figure --spec solid/specs/bars.json     a window (the size is the layout's: 400x112 here)

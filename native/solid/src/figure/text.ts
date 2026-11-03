@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { layout, type Bar, type Item, type Layout, type LayoutLine } from "./kinds.ts";
+import { layoutOf, type Bar, type Item, type Layout, type LayoutLine } from "./kinds.ts";
 import { parse, type Spec } from "./spec.ts";
 
 /** The eighth blocks, 1/8 of a cell wide to 7/8: a bar's fractional cell, as glyph-kit draws it. */
@@ -155,7 +155,7 @@ export interface TextOptions {
 /** The layout's lines as text. `drop` names text ids a form leaves out (markdown's heading and source). */
 function linesOf(spec: Spec, options: TextOptions, drop: ReadonlySet<string> = new Set()): string[] {
   const width = options.width ?? 80;
-  const l: Layout = layout(spec);
+  const l: Layout = layoutOf(spec);
   const bars = new Map(l.bars.map((bar) => [bar.fillId, bar]));
   return l.lines
     .filter((line) => !drop.has(line.items[0]?.textId ?? ""))

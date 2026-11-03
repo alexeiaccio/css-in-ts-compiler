@@ -11,7 +11,7 @@
 import { For } from "solid-js";
 
 import type { Motion } from "../src/entry.ts";
-import { layout, sizeOf, type Item, type Layout, type Paint } from "../src/figure/kinds.ts";
+import { layoutOf, sizeOf, type Item, type Layout, type Paint } from "../src/figure/kinds.ts";
 import type { Spec } from "../src/figure/spec.ts";
 import { FIELDS } from "../src/pack.ts";
 import { ui } from "../src/ffi.ts";
@@ -98,7 +98,7 @@ export function size(spec: Spec): { width: number; height: number } {
 
 /** The page: the title, the rows (a label, a bar or boxes, the number as text), the source and the focus line. */
 export function Figure(props: { spec: Spec; motion?: Motion }) {
-  const l = layout(props.spec);
+  const l = layoutOf(props.spec);
   apply(l, props.motion);
   return (
     <box id="Root" style={s.s.root}>
