@@ -2,6 +2,13 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.31.0 (2026-11-03)
+
+### Minor changes
+
+- A story declares its own `argTypes`, over the meta's: a file whose stories have different args gives each of them the
+  controls it uses (`Story.argTypes`, merged per arg as CSF 3 merges it).
+
 ## 0.30.1 (2026-11-03)
 
 ### Patch changes

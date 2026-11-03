@@ -1,5 +1,11 @@
 # @cssints/headless
 
+## 0.31.0
+
+### Patch Changes
+
+- @cssints/machine@0.31.0
+
 ## 0.30.1
 
 ### Patch Changes
