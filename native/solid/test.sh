@@ -357,7 +357,7 @@ fi
 grep -q "a funnel never grows" "$FIG/figure-invalid.log" || {
   echo "FAIL: the growing funnel's refusal does not say why"; exit 1; }
 if [ -f "$FIG/figure-invalid.png" ]; then echo "FAIL: an invalid spec wrote a frame"; exit 1; fi
-echo "figure: ten stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
+echo "figure: thirteen stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
 # ... and the four design-system kinds, whose data is our own tokens: a palette's swatches and the mark of its first
 # readable step, a contrast check's engine ratios and their verdicts, a spacing scale at its own pixel lengths and a type
 # scale at its own sizes (a 40px row is three cells). One stored frame each, and the command goldens are figure.test.ts's.
@@ -365,6 +365,12 @@ bun solid/main.ts figure --spec solid/specs/palette.json --warm 30 --expect soli
 bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect solid/frames/figure-contrast.png
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
+# ... and the three planning kinds, whose data is the map's own plan: the eight steps as a timeline on one axis, the
+# status legend, and the Left: lists as a board. One stored frame each; the timeline is regenerated below and cmp'd.
+bun solid/main.ts figure --spec solid/specs/timeline.json --warm 30 --expect solid/frames/figure-timeline.png
+bun solid/main.ts figure --spec solid/specs/statusKey.json --warm 30 --expect solid/frames/figure-status-key.png
+bun solid/main.ts figure --spec solid/specs/nowNextLater.json --warm 30 --expect solid/frames/figure-now-next-later.png
+echo "figure: the map's plan — a timeline of its eight steps, the status key, and its Left: lists as a board (three stored frames)"
 # two of the four are regenerable from the data: specs/from-tokens.ts writes them from @cssints/tokens and the engine's
 # contrast (packages/cssints/src/color.ts), so a token change that left the figure stale is this cmp, not a review note
 bun solid/specs/from-tokens.ts "$FIG/specs" >/dev/null
@@ -373,6 +379,14 @@ cmp "$FIG/specs/palette.json" solid/specs/palette.json || {
 cmp "$FIG/specs/contrast.json" solid/specs/contrast.json || {
   echo "FAIL: solid/specs/contrast.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
 echo "figure: palette and contrast are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
+# the timeline is the map's own plan: specs/from-map.ts parses the step headings of native/docs/map.md, and this cmp is
+# what makes a step added or renamed there a rewrite of the spec and not a stale figure. The board and the key are
+# hand-written (the Left: lines are prose; figure-planning.test.ts holds them to it), so only the timeline is cmp'd.
+mkdir -p "$FIG/specs-map"
+bun solid/specs/from-map.ts "$FIG/specs-map" >/dev/null
+cmp "$FIG/specs-map/timeline.json" solid/specs/timeline.json || {
+  echo "FAIL: solid/specs/timeline.json is not what specs/from-map.ts writes from native/docs/map.md; commit its output"; exit 1; }
+echo "figure: timeline.json is regenerated from native/docs/map.md's steps, byte for byte (cmp)"
 # ... and the same figure in the browser: browser/solid/figure.ts fetches the same spec file, and browser/figure-check.mjs
 # holds its commands to solid/goldens/figure.json (the desktop's frame, boxes within 4 px, Canvas2D's metrics) and a click
 # to nothing. Its own guard, so the frames above still run on a machine without zig or Chromium
@@ -392,7 +406,11 @@ mkdir -p "$TEXTDOC"
 bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
 cmp "$TEXTDOC/README.md" README.md || {
   echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
-echo "figure text: native/README.md's four figures are the renderer's, byte for byte (cmp)"
+# ... and the map draws its own plan: the same redraw, under the marker above the timeline's fence
+bun solid/figure.ts --redraw docs/map.md > "$TEXTDOC/map.md"
+cmp "$TEXTDOC/map.md" docs/map.md || {
+  echo "FAIL: native/docs/map.md's timeline is not what 'bun solid/figure.ts --redraw docs/map.md' draws; commit its output"; exit 1; }
+echo "figure text: native/README.md's four figures and native/docs/map.md's timeline are the renderer's, byte for byte (cmp)"
 # The export half (solid/src/figure/export/*, solid/figure-export.test.ts): the same layout as one standalone SVG and one
 # self-contained page, with no host, no framework and no build step. The test holds every spec's SVG to the layout
 # (well-formed XML, its texts in order, every x/width the layout's number), the page to one verbatim SVG and no script,

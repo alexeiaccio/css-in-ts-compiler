@@ -23,6 +23,7 @@
 // has every kind registered too.
 import "./kinds/flows.ts";
 import "./kinds/metrics.ts";
+import "./kinds/planning.ts";
 import "./kinds/structure.ts";
 import "./kinds/systems.ts";
 
