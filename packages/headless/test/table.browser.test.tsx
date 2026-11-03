@@ -73,8 +73,8 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
     return (
       <table data-table {...table.tableProps}>
         <caption {...table.captionProps}>Issues</caption>
-        <thead>
-          <tr>
+        <thead {...table.rowGroupProps}>
+          <tr role="row">
             {selectAll === undefined ? null : (
               <th>
                 <span data-part="select-all" {...selectAll} />
@@ -96,7 +96,7 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
             })}
           </tr>
         </thead>
-        <tbody>
+        <tbody {...table.rowGroupProps}>
           {rowList().map((id) => {
             const checkbox = table.rowCheckboxProps(id);
             return (
@@ -149,6 +149,22 @@ const selectedRows = (root: HTMLElement): string[] =>
   );
 
 describe("createTable sorting", () => {
+  it("keeps its roles when a skin lays it out as a grid", () => {
+    // The premise of `display: contents` on the row groups and rows: those elements keep no box,
+    // so the accessibility tree keeps them only because the primitive states their roles.
+    const { root } = mount({});
+    expect(root.querySelector("table")?.getAttribute("role")).toBe("table");
+    expect(root.querySelectorAll("thead[role='rowgroup']")).toHaveLength(1);
+    expect(root.querySelectorAll("tbody[role='rowgroup']")).toHaveLength(1);
+    expect(
+      root.querySelectorAll("thead [role='columnheader']"),
+    ).toHaveLength(COLUMNS.length);
+    expect(root.querySelectorAll("tbody [role='row']")).toHaveLength(ROWS.length);
+    expect(root.querySelectorAll("tbody [role='cell']")).toHaveLength(
+      ROWS.length * COLUMNS.length,
+    );
+  });
+
   it("names the table, gives the caption an id, and marks only the sorted column", () => {
     const { root, dispose } = mount({
       id: "issues",
@@ -157,7 +173,7 @@ describe("createTable sorting", () => {
     });
     const table = root.querySelector("table");
     expect(table?.getAttribute("aria-label")).toBe("Open issues");
-    expect(table?.getAttribute("role")).toBeNull();
+    expect(table?.getAttribute("role")).toBe("table");
     expect(root.querySelector("caption")?.id).toBe("issues-caption");
 
     const marked = sorted(root);

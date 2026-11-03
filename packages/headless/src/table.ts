@@ -5,11 +5,12 @@ import { createControllable } from "./controllable";
  * A data table on Solid 2: sortable column headers and row selection, as state
  * plus getter-backed attribute objects; no elements, no styling.
  *
- * **The host renders a native `<table>`**: `<caption>`, `<thead>`, `<tbody>`,
- * `<th scope="col">` and `<td>` carry the semantics, so the primitive adds no
- * `role` and no `aria-rowindex` — only what a native table cannot say itself
- * (which column is sorted, whether a row is selected, the mixed select-all
- * state, and the totals a windowed table hides).
+ * **The host renders a `<table>`, and the roles are explicit.** The elements would say it
+ * themselves only while the skin lays them out as table boxes; a skin that is a CSS grid sets
+ * `display: contents` on the row and row-group elements, and an element with no box keeps its
+ * accessibility only if it carries its own `role`. So every part states its role (`table`,
+ * `rowgroup`, `row`, `columnheader`, `cell`) and the rows number themselves (`aria-rowindex`)
+ * once the host windows them — the two things a native table did for free and a grid does not.
  *
  * **Sorting is the host's data.** The primitive carries the sort descriptor and
  * announces it (`aria-sort`); it never sorts. The host maps `sort()` onto its
@@ -53,6 +54,11 @@ export interface TableColumn {
   readonly numeric?: boolean | undefined;
   /** The `abbr` of the header cell: the short form a screen reader uses. */
   readonly abbr?: string | undefined;
+  /**
+   * A CSS track for the column — `"6rem"`, `"minmax(0, 1fr)"` — for a skin that lays the rows
+   * out as a grid template. HTML has no attribute for a width, so this is the host's hint only.
+   */
+  readonly width?: string | undefined;
 }
 
 export interface TableLabels {
@@ -113,6 +119,11 @@ export interface TableProps {
   readonly "aria-colcount": number | undefined;
 }
 
+/** Spread onto `<thead>`/`<tbody>`; a grid skin's `display: contents` drops the box, not the role. */
+export interface TableRowGroupProps {
+  readonly role: "rowgroup";
+}
+
 /** Spread onto `<caption>`. */
 export interface TableCaptionProps {
   readonly id: string;
@@ -120,6 +131,7 @@ export interface TableCaptionProps {
 
 /** Spread onto `<th scope="col">` in the header row. */
 export interface TableHeaderCellProps {
+  readonly role: "columnheader";
   readonly scope: "col";
   /** The sorted column only; an unsorted one carries nothing (ARIA's default). */
   readonly "aria-sort": TableSortDirection | undefined;
@@ -132,8 +144,15 @@ export interface TableHeaderButtonProps {
   readonly onClick: () => void;
 }
 
-/** Spread onto `<tr>` in the body. */
+/**
+ * Spread onto `<tr>` in the body.
+ *
+ * `aria-rowindex` is **not** here: under a window only the host knows a row's place in the whole
+ * set (the primitive is given the window), so the skin sets it where it renders the row — see
+ * `Table.renderRow`, whose second argument is that index.
+ */
 export interface TableRowProps {
+  readonly role: "row";
   readonly "aria-selected": "true" | "false" | undefined;
   /** Selects the row; `undefined` when nothing is selectable. */
   readonly onClick: (() => void) | undefined;
@@ -141,6 +160,7 @@ export interface TableRowProps {
 
 /** Spread onto a `<td>`; `aria-colindex` only while the host windows its columns. */
 export interface TableCellProps {
+  readonly role: "cell";
   readonly "aria-colindex": number | undefined;
 }
 
@@ -175,6 +195,7 @@ export interface Table {
   readonly selected: Accessor<ReadonlyArray<string>>;
   readonly isSelected: (id: string) => boolean;
   readonly tableProps: TableProps;
+  readonly rowGroupProps: TableRowGroupProps;
   readonly captionProps: TableCaptionProps;
   readonly headerCellProps: (key: string) => TableHeaderCellProps;
   /** `undefined` for a column that is not sortable — render no button there. */
@@ -342,6 +363,7 @@ export const createTable = (options: TableOptions): Table => {
     selected,
     isSelected,
     tableProps: {
+      role: "table",
       get "aria-label"() {
         return options.labels?.table;
       },
@@ -352,8 +374,10 @@ export const createTable = (options: TableOptions): Table => {
         return options.columnCount;
       },
     },
+    rowGroupProps: { role: "rowgroup" },
     captionProps: { id: `${base}-caption` },
     headerCellProps: (key) => ({
+      role: "columnheader",
       scope: "col",
       get "aria-sort"() {
         const current = rawSort();
@@ -377,6 +401,7 @@ export const createTable = (options: TableOptions): Table => {
       };
     },
     rowProps: (id) => ({
+      role: "row",
       get "aria-selected"() {
         if (!selectable()) {
           return undefined;
@@ -388,6 +413,7 @@ export const createTable = (options: TableOptions): Table => {
       },
     }),
     cellProps: (_rowId, key) => ({
+      role: "cell",
       get "aria-colindex"() {
         // ponytail: a column window is numbered from the first column given;
         // add a column offset when a horizontal scroller starts elsewhere.
