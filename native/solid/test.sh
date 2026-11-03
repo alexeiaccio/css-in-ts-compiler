@@ -37,11 +37,23 @@ THEME=light bun solid/main.ts widgets --warm 30 --keys Tab,Tab,Space,Tab,Tab,Spa
 # the storybook page: the rail reads @cssints/stories over native story files and is one vertical tablist (the native
 # headless tabs): Tab enters it on the picked story, Up and Down move the roving focus and pick the story the canvas draws
 # (automatic activation), and the story's own controls are the Tab stops after it. Down picks the second story; Tab past
-# the rail reaches the disclosure's trigger, which Space opens
+# the rail reaches the disclosure's trigger, which Space opens.
+# Under the canvas is the story's controls panel: one row per arg the story declares (`argTypes`), each a native headless
+# part — a `boolean` a switch, a `select` a vertical radio group, a `range`/`number` a slider, a `text` a text field — and
+# a control writes the arg, which mounts the story again with it (the canvas is keyed on the story and its args). `--arg
+# name=value` starts the opened story with an arg, typed by the control it declares: the switch's `on` and `label`, the
+# tempo's `speed`, the volume's `volume`. The panel's rows are Tab stops after the story's own, so three Tabs from the
+# rail reach the switch's `on` and Space flips it (`storybook-controls.png`: both switches on, the ring on the panel's).
 SB() { bun solid/main.ts storybook --warm 30 "$@"; }
 SB --expect solid/frames/storybook.png
 SB --keys Tab,ArrowDown --expect solid/frames/storybook-keys.png
 SB --keys Tab,Tab,Space --expect solid/frames/storybook-open.png
+SB --story widgets--switch --arg on=true --expect solid/frames/storybook-arg-on.png
+SB --story widgets--switch --arg label=Wi-Fi --expect solid/frames/storybook-arg-text.png
+SB --story widgets--tempo --arg speed=16x --expect solid/frames/storybook-arg-select.png
+SB --story widgets--volume --arg volume=70 --expect solid/frames/storybook-arg-range.png
+SB --story widgets--switch --keys Tab,Tab,Tab,Space --expect solid/frames/storybook-controls.png
+SB --keys Tab,ArrowDown,Tab,Space --expect solid/frames/storybook-rail-tab.png
 # the settings tree, 12 Tabs in: the ring on Network, the first visible row; Down moves it without selecting;
 # Right on the closed Display opens it; Space selects the roving node
 TREE="Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab"

@@ -58,6 +58,9 @@
 //                                        machine: --wheel-x scrolls it, and a shift+vertical wheel in the window does too)
 //   --posts N                            the Sky's Discover feed: N synthetic posts instead of its three fixtures
 //   --story ID                           the storybook page: the story to open (default the first), `widgets--switch`
+//   --arg NAME=VALUE                     the storybook page: an arg of the opened story as a control writes it, applied at
+//                                        boot and typed by the story's control (`--arg on=true` a boolean, `--arg volume=70` a
+//                                        number, `--arg speed=16x` an option). Repeatable: --arg on=true --arg label=Wi-Fi
 //   --density N                          the raster's pixel density (the window's, 2 on a Retina screen): the same layout
 //                                        in N times the pixels; the frame written is that much larger (default 1)
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
@@ -142,6 +145,13 @@ const maxFrames = Number(arg("--frames")?.[0] ?? Infinity);
 const density = Number(arg("--density")?.[0] ?? 1);
 // reduced motion is the platform's ask, not a page's: one flag, read here and by the window alike
 const reducedMotion = process.argv.includes("--reduced-motion") || process.env.REDUCED_MOTION === "1";
+// the storybook's args: `--arg name=value`, repeatable, typed by the story's own controls in app/Storybook.tsx
+const storyArgs: Record<string, string> = {};
+for (let i = 2; i < process.argv.length; i++) {
+  if (process.argv[i] !== "--arg") continue;
+  const [name, ...rest] = (process.argv[i + 1] ?? "").split("=");
+  if (name !== undefined && name !== "" && rest.length > 0) storyArgs[name] = rest.join("=");
+}
 let theme = process.env.THEME === "light" ? "light" : undefined;
 // the Figure page's spec: a file, read and checked before the window or a frame — an invalid one exits with every
 // sentence it has, so a figure is never drawn from data the kit's own rules refuse
@@ -258,7 +268,12 @@ const dispose = render(
                 ? () => Figure({ spec: figureSpec!, motion })
                 : page === "storybook"
                   ? () =>
-                      storybook!.Storybook({ input, motion, start: arg("--story")?.[0] })
+                      storybook!.Storybook({
+                        input,
+                        motion,
+                        start: arg("--story")?.[0],
+                        args: storyArgs,
+                      })
                   : page === "dev"
                   ? () => Dev({ input, motion, drag: dragState, theme: () => theme, tune: arg("--tune")?.[0] })
                   : () => Sensors({ motion }),
