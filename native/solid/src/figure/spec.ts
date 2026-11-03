@@ -1,7 +1,7 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with eight kinds here
-// (`barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `journeyMap`, `stateMachine`, `tree`) where the kit has
-// thirty-four. `check` returns
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with twelve kinds here
+// (`barChart`, `branchFlow`, `compare`, `contrast`, `flow`, `funnel`, `journeyMap`, `palette`, `spacingScale`,
+// `stateMachine`, `tree`, `typeScale`) where the kit has thirty-four. `check` returns
 // **every** problem as a sentence, in the kit's voice, because a spec is refused before a frame is declared; `parse` is
 // the same check over a file's text. No dependency: plain TypeScript over JSON.
 //
@@ -21,9 +21,36 @@
 // journeyMap's range sentence is the kit's own `within` check, word for word ("Import has a feeling of 3, outside -2 to
 // 2."); its empty-journey sentence and the tree's three sentences are ours, because the kit's published scripts check
 // neither kind's data (its `tree` has no check at all).
+//
+// The four design-system kinds — `palette`, `contrast`, `spacingScale` and `typeScale` — are the half of the kit's
+// `areas/systems.md` whose data is **our own tokens** (packages/tokens, apps/docs/src/tokens.json), so the figure cannot
+// disagree with the design system it documents. The palette's refusal is the kit's own `colourChecks.palette` sentence,
+// with its hue: "Blue 300 is lighter than 200; a scale's steps get steadily darker." The contrast, spacing and type
+// sentences are ours in its voice: the kit's published scripts check only that a spacing value is not negative, and none
+// of them compare a pair's ratio with its colours or a line height with its size.
+//
+// The contrast pair's `ratio` is a number in the data, and it is the **engine's** — packages/cssints/src/color.ts's
+// `luminance`/`ratio`, which `solid/specs/from-tokens.ts` writes the spec with. `check` recomputes it here so that a
+// pair typed by hand is refused before a frame is declared, through ./contrast.ts (WCAG's formula, no dependency: see
+// its header for why a copy is here and how figure.test.ts holds it to the engine).
 
-/** The kinds here. glyph-kit has thirty-four; these are the eight this repository draws, and no more. */
-export const KINDS = ["barChart", "branchFlow", "compare", "flow", "funnel", "stateMachine", "journeyMap", "tree"] as const;
+import { contrastOf, HEX, luminance, shown } from "./contrast.ts";
+
+/** The kinds here. glyph-kit has thirty-four; these are the twelve this repository draws, and no more. */
+export const KINDS = [
+  "barChart",
+  "branchFlow",
+  "compare",
+  "contrast",
+  "flow",
+  "funnel",
+  "journeyMap",
+  "palette",
+  "spacingScale",
+  "stateMachine",
+  "tree",
+  "typeScale",
+] as const;
 export type Kind = (typeof KINDS)[number];
 
 /** The three tones of a focus: the role the figure paints it by, never a colour. */
@@ -153,15 +180,86 @@ export interface TreeSpec extends Base {
   options?: { width?: number };
 }
 
+/** One step of a hue: the name a scale gives it (`50`, `1`, `0`) and its colour. */
+export interface PaletteStep {
+  name: string;
+  /** `#rrggbb`, the palette's own data — a swatch is the one thing a figure draws as itself. */
+  value: string;
+}
+
+/** A hue and its steps, from the lightest to the darkest (or the other way: a scale holds one direction). */
+export interface PaletteHue {
+  name: string;
+  steps: readonly PaletteStep[];
+}
+
+/** glyph-kit's palette: the hues, each a tonal scale, against the page they are read on. */
+export interface PaletteData {
+  /** The page the steps are measured on; `#ffffff` when the data does not say. */
+  page?: string;
+  hues: readonly PaletteHue[];
+}
+
+export interface PaletteSpec extends Base {
+  kind: "palette";
+  data: PaletteData;
+}
+
+/**
+ * One pair of the colour roles: the text's colour, the page under it, the WCAG floor it is held to, and the ratio of the
+ * two, to two places. `ratio` is the engine's number (packages/cssints/src/color.ts), written by
+ * `solid/specs/from-tokens.ts`; `check` recomputes it and refuses a pair whose colours do not make it.
+ */
+export interface ContrastPair {
+  label: string;
+  fg: string;
+  bg: string;
+  /** 3, 4.5 or 7: WCAG's three floors (graphics, body text, AAA). */
+  min: number;
+  ratio: number;
+}
+
+export interface ContrastSpec extends Base {
+  kind: "contrast";
+  data: readonly ContrastPair[];
+}
+
+/** One step of a spacing scale: its token's name and its length in pixels. */
+export interface SpacingStep {
+  name: string;
+  value: number;
+}
+
+export interface SpacingSpec extends Base {
+  kind: "spacingScale";
+  data: readonly SpacingStep[];
+}
+
+/** One step of a type scale: its token's name, its size and its line height, in pixels. */
+export interface TypeStep {
+  name: string;
+  size: number;
+  lineHeight: number;
+}
+
+export interface TypeScaleSpec extends Base {
+  kind: "typeScale";
+  data: readonly TypeStep[];
+}
+
 export type Spec =
   | BarChartSpec
   | BranchFlowSpec
   | CompareSpec
+  | ContrastSpec
   | FlowSpec
   | FunnelSpec
   | JourneyMapSpec
+  | PaletteSpec
+  | SpacingSpec
   | StateMachineSpec
-  | TreeSpec;
+  | TreeSpec
+  | TypeScaleSpec;
 
 /** A tree's data as one nested root. A flat parent/child list is resolved to children by name; the check has already
  *  refused a list with no root, a missing parent or a loop, so a caller draws only a tree that can be drawn. */
@@ -237,6 +335,21 @@ function treeNames(data: unknown): string[] {
 function namesOf(kind: Kind, data: unknown, options: unknown): string[] {
   if (kind === "flow") return rowsOf(data).filter((s): s is string => typeof s === "string");
   if (kind === "tree") return treeNames(data);
+  if (kind === "palette") {
+    const palette = isObject(data) ? data : {};
+    const names: string[] = [];
+    for (const hue of rowsOf(palette.hues))
+      if (isObject(hue)) {
+        if (typeof hue.name === "string") names.push(hue.name);
+        for (const step of rowsOf(hue.steps))
+          if (isObject(step) && typeof step.name === "string") names.push(step.name);
+      }
+    return names;
+  }
+  if (kind === "spacingScale" || kind === "typeScale")
+    return rowsOf(data)
+      .filter(isObject)
+      .map((step, i) => (typeof step.name === "string" && step.name ? step.name : `row ${i + 1}`));
   if (kind === "branchFlow") {
     const names: string[] = [];
     for (const [i, step] of rowsOf(data).entries()) {
@@ -524,6 +637,142 @@ function journeyProblems(data: unknown): string[] {
 }
 
 /**
+ * A palette: hues of named steps whose colours are `#rrggbb`, each hue one direction — steadily darker or steadily
+ * lighter — and one name a step. The kit's own `coloursChecks.palette`, sentence and all, with the hue in front of the
+ * step: "Blue 300 is lighter than 200; a scale's steps get steadily darker."
+ */
+function paletteProblems(data: unknown): string[] {
+  const palette = isObject(data) ? data : {};
+  const hues = rowsOf(palette.hues).filter(isObject);
+  if (!hues.length)
+    return ['A palette needs its hues: [{ "name": "Blue", "steps": [{ "name": "50", "value": "#eef3ff" }] }].'];
+  const out: string[] = [];
+  const page = palette.page ?? "#ffffff";
+  if (!HEX.test(String(page))) out.push(`Write the page colour as a hex value like #ffffff, not ${say(page)}.`);
+  for (const [h, hue] of hues.entries()) {
+    const name = typeof hue.name === "string" && hue.name ? hue.name : `hue ${h + 1}`;
+    const steps = rowsOf(hue.steps);
+    if (!steps.length) {
+      out.push(`${name} has no steps: a hue is a list of { "name": "50", "value": "#eef3ff" }.`);
+      continue;
+    }
+    const named = new Set<string>();
+    const lengths: { name: string; l: number }[] = [];
+    for (const [i, step] of steps.entries()) {
+      if (!isObject(step) || typeof step.name !== "string" || !step.name) {
+        out.push(`${name}'s step ${i + 1} needs a name: the step's place in the scale, like "50".`);
+        continue;
+      }
+      if (named.has(step.name)) out.push(`${name} has two steps named ${step.name}: a step's name is its row.`);
+      named.add(step.name);
+      if (!HEX.test(String(step.value))) {
+        out.push(`${name} ${step.name}: write the colour as a hex value like #1f4fd6, not ${say(step.value)}.`);
+        continue;
+      }
+      lengths.push({ name: step.name, l: luminance(step.value)! });
+    }
+    // the kit's direction rule: the hue's own endpoints say which way its scale runs, and every step follows it
+    const first = lengths[0];
+    const last = lengths[lengths.length - 1];
+    const direction = first && last ? Math.sign(last.l - first.l) : 0;
+    const breakAt = direction
+      ? lengths.findIndex((s, i) => i > 0 && s.l !== lengths[i - 1]!.l && Math.sign(s.l - lengths[i - 1]!.l) !== direction)
+      : -1;
+    if (breakAt > 0) {
+      const step = lengths[breakAt]!;
+      const before = lengths[breakAt - 1]!;
+      out.push(
+        `${name} ${step.name} is ${direction < 0 ? "lighter" : "darker"} than ${before.name}; a scale's steps get ` +
+          `steadily ${direction < 0 ? "darker" : "lighter"}.`,
+      );
+    }
+  }
+  return out;
+}
+
+/** The kit's `within` for WCAG's own three floors: a pair held to any other number is not a check anyone can pass. */
+const FLOORS = [3, 4.5, 7] as const;
+
+/**
+ * A contrast check: pairs of a text colour and its page, each with WCAG's floor and the ratio of the two. The ratio must
+ * be the ratio the colours make — that is the one thing this kind exists to keep honest: a pair typed with another colour
+ * keeps its old number, and is refused here ("link on bgSubtle says 4.51:1, but #1971c2 on #f8f9fa makes 4.12:1.").
+ */
+function contrastProblems(data: unknown): string[] {
+  const pairs = rowsOf(data);
+  if (!pairs.length)
+    return ['A contrast check needs its pairs: [{ "label": "ink on paper", "fg": "#080808", "bg": "#fbfbf8", "min": 4.5, "ratio": 19.36 }].'];
+  const out: string[] = [];
+  for (const [i, pair] of pairs.entries()) {
+    if (!isObject(pair) || typeof pair.label !== "string" || !pair.label.trim()) {
+      out.push(`Pair ${i + 1} needs a label: what the pair is for, like "ink on paper".`);
+      continue;
+    }
+    const label = pair.label;
+    for (const [field, value] of [["fg", pair.fg], ["bg", pair.bg]] as const)
+      if (!HEX.test(String(value)))
+        out.push(`${label}'s ${field} is a hex value like #080808, not ${say(value)}.`);
+    const min = number(pair.min);
+    if (min === undefined) out.push(`${label} needs a min: 3, 4.5 or 7, WCAG's three floors.`);
+    else if (!(FLOORS as readonly number[]).includes(min))
+      out.push(`${label}'s min is ${min}: a minimum is 3, 4.5 or 7, WCAG's three floors.`);
+    const ratio = number(pair.ratio);
+    if (ratio === undefined) {
+      out.push(`${label} needs its ratio: the number of ${say(pair.fg)} on ${say(pair.bg)}, to two places.`);
+      continue;
+    }
+    const own = contrastOf(pair.fg, pair.bg);
+    if (own !== undefined && Math.abs(own - ratio) > 0.005)
+      out.push(`${label} says ${shown(ratio)}:1, but ${pair.fg} on ${pair.bg} makes ${shown(own)}:1.`);
+  }
+  return out;
+}
+
+/** A spacing scale: named steps in pixels, from the smallest to the largest — a scale that does not grow is not a scale. */
+function spacingProblems(data: unknown): string[] {
+  const steps = rowsOf(data);
+  if (!steps.length)
+    return ['A spacing scale needs its steps: [{ "name": "space-1", "value": 4 }, ...], in pixels, smallest first.'];
+  const out: string[] = [];
+  const clean: { name: string; value: number }[] = [];
+  for (const [i, step] of steps.entries()) {
+    const value = isObject(step) ? number(step.value) : undefined;
+    if (!isObject(step) || typeof step.name !== "string" || !step.name || value === undefined) {
+      out.push(`${isObject(step) && typeof step.name === "string" && step.name ? step.name : `Step ${i + 1}`} needs a name and a value: a length in pixels.`);
+      continue;
+    }
+    if (value <= 0) out.push(`${step.name} has a value of ${value}px: a step is above zero.`);
+    clean.push({ name: step.name, value });
+  }
+  for (let i = 1; i < clean.length; i++) {
+    const step = clean[i]!;
+    const before = clean[i - 1]!;
+    if (step.value < before.value)
+      out.push(`${step.name} is ${step.value}px, less than ${before.name}'s ${before.value}px before it; a spacing scale grows.`);
+  }
+  return out;
+}
+
+/** A type scale: named sizes with their line heights, no size under 8 px, no line height under its size. */
+function typeProblems(data: unknown): string[] {
+  const steps = rowsOf(data);
+  if (!steps.length)
+    return ['A type scale needs its sizes: [{ "name": "body", "size": 16, "lineHeight": 24 }, ...], in pixels.'];
+  const out: string[] = [];
+  for (const [i, step] of steps.entries()) {
+    const size = isObject(step) ? number(step.size) : undefined;
+    const lineHeight = isObject(step) ? number(step.lineHeight) : undefined;
+    if (!isObject(step) || typeof step.name !== "string" || !step.name || size === undefined || lineHeight === undefined) {
+      out.push(`${isObject(step) && typeof step.name === "string" && step.name ? step.name : `Step ${i + 1}`} needs a name, a size and a line height: pixels, like { "name": "body", "size": 16, "lineHeight": 24 }.`);
+      continue;
+    }
+    if (size < 8) out.push(`${step.name} is ${size}px: a size under 8px is unreadable.`);
+    if (lineHeight < size) out.push(`${step.name} is ${size}/${lineHeight}: a line height under its size (${size}) crowds the lines.`);
+  }
+  return out;
+}
+
+/**
  * Every problem with a spec, in plain sentences: the kind, the numbers' source, the kind's own data rule, and the
  * focus's names. An empty array is a figure that can be drawn.
  */
@@ -547,6 +796,10 @@ export function check(input: unknown): string[] {
   else if (kind === "stateMachine") problems.push(...stateProblems(input.data, input.options));
   else if (kind === "journeyMap") problems.push(...journeyProblems(input.data));
   else if (kind === "tree") problems.push(...treeProblems(input.data));
+  else if (kind === "palette") problems.push(...paletteProblems(input.data));
+  else if (kind === "contrast") problems.push(...contrastProblems(input.data));
+  else if (kind === "spacingScale") problems.push(...spacingProblems(input.data));
+  else if (kind === "typeScale") problems.push(...typeProblems(input.data));
   else problems.push(...flowProblems(input.data, input.options));
   problems.push(...focusProblems(input.focus, namesOf(kind as Kind, input.data, input.options)));
   return problems;

@@ -4,39 +4,57 @@
 // 360px and at 80 columns, and a fill's edge lands on a cell boundary rather than between two. That is why the layout
 // speaks cells and not pixels: a page that asked for pixels could not be re-cut by a factor without moving a bar.
 //
-// The eight kinds (and no more than eight here):
+// The twelve kinds (and no more than twelve here):
 //   barChart     one track a row, the fill value/max of it, at least one cell for a positive value and "+" past `max`
 //   branchFlow   a column of boxes with a decision's branch drawn to its right, connectors and their words as text
 //   compare      two tracks a row, each column scaled by its own maximum
+//   contrast     a pair a row: its label, a track of ratio/21, the ratio and its verdict against the pair's floor
 //   flow         one row of boxes joined by arrows
 //   funnel       one track a step, value/first of it, so a step's width is its share of the first
-//   stateMachine a path's boxes in a column, each transition's event between them, the states off the path below
 //   journeyMap   a stage a row: its label, a bar of |feeling|/2, the feeling's word, and its doing and thinking below
+//   palette      a step a row, a hue a column: the marker, the step's swatch, its value and its contrast on the page
+//   spacingScale a step a row: its name, a bar of value/largest (a 4px step of a 48px scale is half a cell), its pixels
+//   stateMachine a path's boxes in a column, each transition's event between them, the states off the path below
 //   tree         the root above its children's rows, then each level, with | - + connectors between them
+//   typeScale    a size a row: its name, a bar of size/largest, size/lineHeight, and a specimen at its own size
 //
-// The last two are the ones that need a second row: a tree's level is several boxes on one line, and a journey stage
-// is a bar row with a note under it. `text.ts` reads the layout's items and has no kind in it, so both print there
-// without a change.
+// The last two of the first eight are the ones that need a second row: a tree's level is several boxes on one line, and a
+// journey stage is a bar row with a note under it. `text.ts` reads the layout's items and has no kind in it, so both print
+// there without a change.
+//
+// The four design-system kinds needed three things the layout did not have, and all three are additions to the *format*,
+// not to one target: an item kind `swatch` (a step's own colour, which is the data and not a role), an item kind `marker`
+// (the ▲ that marks the first step that reads as words), and a text's `size` with a line's `height` in cells (a 40px line
+// of type is three cells tall: a cell is 16px, and a type scale cannot be drawn otherwise). `text.ts` draws all three in
+// two branches — a swatch is `██` in its cell, a marker is `▲` — so the text half still has no kind in it.
 //
 // Every drawn thing has an id: `fig-fill-<n>` and `fig-track-<n>` for a bar (the invariant test reads their boxes), the
-// text ids for the numbers and the labels, `fig-box-<n>` for a flow's boxes, `fig-state-<n>` for a path's states. A box
-// and a text also carry a `role` — step, decision, branch, state, connector, label, note — so a target or a text
-// renderer draws what an item is, not only its cells. The page writes every item's width through the value channel each
-// frame (a layout length is data, and a style is a literal): `cells * 8` for a box, `fill * 8` for a bar's fill.
+// text ids for the numbers and the labels, `fig-box-<n>` for a flow's boxes, `fig-state-<n>` for a path's states, and
+// `fig-swatch-<hue>-<step>` and `fig-marker-<hue>-<step>` for a palette's cells. A box and a text also carry a `role` —
+// step, decision, branch, state, connector, label, note, value, ratio, marker, swatch — so a target or a text renderer
+// draws what an item is, not only its cells. The page writes every item's width through the value channel each frame (a
+// layout length is data, and a style is a literal): `cells * 8` for a box, `fill * 8` for a bar's fill, a line's own
+// height, and a swatch's `#rrggbb` as the box's background — the one colour a figure carries, because a palette documents
+// the colours themselves.
+import { contrastOf, shown, WORDS } from "./contrast.ts";
 import {
   formatValue,
   treeRoot,
   type BarChartSpec,
   type BranchFlowSpec,
   type CompareSpec,
+  type ContrastSpec,
   type FlowSpec,
   type FunnelSpec,
   type JourneyMapSpec,
+  type PaletteSpec,
+  type SpacingSpec,
   type Spec,
   type StateMachineSpec,
   type Tone,
   type TreeSpec,
   type TreeNode,
+  type TypeScaleSpec,
 } from "./spec.ts";
 
 /** A cell: the terminal's unit, and what the pixel targets multiply by (terminal/cells.h). */
@@ -53,8 +71,9 @@ export type Paint = "title" | "muted" | "ink" | Tone;
 
 /** What a box is, for a target that draws more than its cells: a step, a decision, the end, a branch, a state. */
 export type BoxRole = "step" | "decision" | "end" | "branch" | "state" | "start";
-/** What a text is: a label, a connector's glyph, a connector's word, or the note under a state machine. */
-export type TextRole = "label" | "connector" | "connector-label" | "note";
+/** What a text is: a label, a connector's glyph, a connector's word, the note under a state machine, a palette's value
+ *  or contrast, or a contrast pair's verdict. */
+export type TextRole = "label" | "connector" | "connector-label" | "note" | "value" | "ratio" | "verdict";
 
 interface BaseItem {
   /** The id of the box whose width the page writes (the item's cell). */
@@ -69,6 +88,8 @@ export interface TextItem extends BaseItem {
   textId: string;
   text: string;
   role?: TextRole;
+  /** The text's own type size in px, on a target that has type: a type scale's specimen. The cells stay the box's. */
+  size?: number;
 }
 export interface BoxItem extends BaseItem {
   kind: "box";
@@ -84,9 +105,23 @@ export interface BarItem extends BaseItem {
 export interface SpaceItem extends BaseItem {
   kind: "space";
 }
-export type Item = TextItem | BoxItem | BarItem | SpaceItem;
+/** A palette's step: a `#rrggbb` swatch, the one colour a figure draws as itself (the palette documents the colours). */
+export interface SwatchItem extends BaseItem {
+  kind: "swatch";
+  value: string;
+}
+/** glyph-kit's `▲`: the first step of a hue that reads as words, a mark a pixel target paints by the `good` role. */
+export interface MarkerItem extends BaseItem {
+  kind: "marker";
+}
+export type Item = TextItem | BoxItem | BarItem | SpaceItem | SwatchItem | MarkerItem;
 export interface LayoutLine {
+  /** The box's id, so a line's own height can travel the value channel (a type scale's rows are not all one cell).
+   *  `finish` numbers them `fig-line-<n>`, the title and the source included. */
+  id?: string;
   items: Item[];
+  /** The line's height in cells: one unless a kind needs more (a 40px type row is three). */
+  height?: number;
 }
 
 /** One drawn box, in the layout's own record: the invariant test's count and a target's role. */
@@ -121,6 +156,29 @@ export interface Bar {
   text: string;
 }
 
+/** One swatch of a palette: the step's colour, its contrast on the page, and whether the row marks it. */
+export interface Swatch {
+  id: string;
+  /** The value text's id, so the frame's own number is what a check reads. */
+  textId: string;
+  hue: string;
+  step: string;
+  value: string;
+  /** The step's contrast on the page, computed: `contrastOf(value, page)`. */
+  contrast: number;
+  marked: boolean;
+}
+
+/** One pair of a contrast figure: its ratio, the floor it is held to and the verdict the row draws. */
+export interface Pair {
+  textId: string;
+  label: string;
+  ratio: number;
+  min: number;
+  pass: boolean;
+  verdictId: string;
+}
+
 export interface Layout {
   kind: Spec["kind"];
   /** The content's width in cells; the root adds the padding. */
@@ -133,6 +191,10 @@ export interface Layout {
   boxes: BoxRecord[];
   /** A decision's branch and a path's transitions: one a branch or transition the data names. */
   connectors: Connector[];
+  /** A palette's steps, one a swatch, in the figure's order. */
+  swatches: Swatch[];
+  /** A contrast figure's pairs, one a row. */
+  pairs: Pair[];
   focus?: { on: string[]; tone: Tone; say?: string };
 }
 
@@ -177,8 +239,7 @@ const textItem = (id: string, text: string, width: number, paint: Paint, role?: 
   paint,
   ...(role === undefined ? {} : { role }),
 });
-/** The cells every kind shares: the title above, the source and the focus line below, each widening the figure. */
-function finish(
+/** The cells every kind shares: the title above, the source and the focus line below, each widening the figure. */function finish(
   spec: Spec,
   kind: Layout["kind"],
   width: number,
@@ -187,6 +248,8 @@ function finish(
   labels: Layout["labels"],
   boxes: BoxRecord[] = [],
   connectors: Connector[] = [],
+  swatches: Swatch[] = [],
+  pairs: Pair[] = [],
 ): Layout {
   const focus = focusOf(spec);
   const focusLine = focus ? `${FOCUS_MARK} ${focus.say ?? focus.on.join(", ")}` : undefined;
@@ -197,8 +260,13 @@ function finish(
   if (spec.source) out.push({ items: [textItem("fig-source", spec.source, w, "muted")] });
   if (focus && focusLine)
     out.push({ items: [textItem("fig-focus", focusLine, w, focus.tone === "plain" ? "ink" : focus.tone)] });
-  return { kind, width: w, lines: out, bars, labels, boxes, connectors, focus };
+  const numbered = out.map((line, i) => (line.id === undefined ? { ...line, id: `fig-line-${i}` } : line));
+  return { kind, width: w, lines: numbered, bars, labels, boxes, connectors, swatches, pairs, focus };
 }
+
+/** An exact fill, in cells: no "at least one cell" floor, because a spacing scale's 4px step *is* half a cell. */
+const exactFill = (value: number, max: number, track: number): number =>
+  value > 0 && max > 0 && track > 0 ? Math.min(track, (track * value) / max) : 0;
 
 /** A bar row: the label's cell, the track (with its fill), and the number's cell. */
 function barLine(
@@ -680,7 +748,211 @@ function tree(spec: TreeSpec): Layout {
   return finish(spec, "tree", gridWidth, lines, [], labels, boxes, connectors);
 }
 
-/** The layout of a checked spec. The eight kinds are this file's only branches. */
+/**
+ * A palette: one row a step, one column a hue — glyph-kit's tonal scale. The cell is the marker (the first step of that
+ * hue that reads as words on the page, 4.5 to 1), the step's swatch, its value and its contrast on the page. The contrast
+ * is computed from the two colours here, with the same formula `check` refuses by, so a swatch and its number cannot
+ * disagree; the swatch itself is the step's `#rrggbb`, the one colour a figure draws as itself.
+ */
+function palette(spec: PaletteSpec): Layout {
+  const focus = focusOf(spec);
+  const { hues, page = "#ffffff" } = spec.data;
+  const steps: string[] = [];
+  for (const hue of hues) for (const step of hue.steps) if (!steps.includes(step.name)) steps.push(step.name);
+  const ratios = new Map<string, number>();
+  for (const hue of hues)
+    for (const step of hue.steps) ratios.set(`${hue.name}\t${step.name}`, contrastOf(step.value, page) ?? 1);
+  const ratioTexts = [...ratios.values()].map((r) => shown(r));
+  const stepWidth = Math.max(2, longest(steps)) + 2;
+  const valueWidth = Math.max(7, longest(hues.flatMap((hue) => hue.steps.map((step) => step.value)))) + 1;
+  const ratioWidth = longest(ratioTexts) + 2;
+  // the marker (two cells, so the ▲ reads apart from its swatch), the swatch, a cell, the value, the ratio and the gap
+  const slot = 2;
+  const cell = slot + 2 + 1 + valueWidth + ratioWidth;
+  const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const head = `${" ".repeat(stepWidth + slot)}${hues.map((hue) => pad(hue.name, cell)).join("")}`;
+  const lines: LayoutLine[] = [
+    { items: [textItem("fig-hues", head, cells(head), "muted", "label")] },
+  ];
+  const swatches: Swatch[] = [];
+  const labels: Layout["labels"] = [];
+  steps.forEach((stepName, row) => {
+    const items: Item[] = [textItem(`fig-step-${row}`, stepName, stepWidth, paintOf(focus, stepName), "label")];
+    labels.push({ textId: `fig-step-${row}`, text: stepName });
+    hues.forEach((hue, h) => {
+      const step = hue.steps.find((s) => s.name === stepName);
+      if (!step) {
+        items.push({ kind: "space", id: `fig-palette-gap-${h}-${row}`, cells: cell, paint: "ink" });
+        return;
+      }
+      const contrast = ratios.get(`${hue.name}\t${step.name}`) ?? 1;
+      // the first step of the hue that passes, in the hue's own order
+      const marked = hue.steps.find((s) => (ratios.get(`${hue.name}\t${s.name}`) ?? 0) >= WORDS)?.name === step.name;
+      items.push(
+        marked
+          ? { kind: "marker", id: `fig-marker-${h}-${row}`, cells: slot, paint: "good" }
+          : textItem(`fig-marker-gap-${h}-${row}`, " ".repeat(slot), slot, "ink"),
+        { kind: "swatch", id: `fig-swatch-${h}-${row}`, cells: 2, paint: "ink", value: step.value },
+        textItem(`fig-swatch-value-${h}-${row}`, " ", 1, "ink"),
+        textItem(`fig-value-${h}-${row}`, step.value, valueWidth, "ink", "value"),
+        textItem(`fig-ratio-${h}-${row}`, shown(contrast), ratioWidth, "muted", "ratio"),
+      );
+      swatches.push({
+        id: `fig-swatch-${h}-${row}`,
+        textId: `fig-value-${h}-${row}`,
+        hue: hue.name,
+        step: step.name,
+        value: step.value,
+        contrast,
+        marked,
+      });
+    });
+    lines.push({ items });
+  });
+  return finish(spec, "palette", stepWidth + cell * hues.length, lines, [], labels, [], [], swatches);
+}
+
+/**
+ * A contrast check: a pair a row — its label, a track of the ratio against 21:1 (one cell a point), the ratio and its
+ * verdict against the pair's floor. A passing pair's row is the `good` role and a failing one the `problem` role, so the
+ * verdict reads without reading the numbers; the ratio itself is the engine's, and `check` refuses a pair whose ratio is
+ * not the one its colours make.
+ */
+function contrast(spec: ContrastSpec): Layout {
+  const focus = focusOf(spec);
+  const pairs = spec.data;
+  // the scale runs to 21:1, one cell a point: WCAG's end, which is the same track for every pair
+  const track = 21;
+  const labelWidth = longest(pairs.map((pair) => pair.label)) + 1;
+  const texts = pairs.map((pair) => `${shown(pair.ratio)}:1`);
+  const textWidth = longest(texts) + 1;
+  const verdicts = pairs.map((pair) => `${pair.ratio >= pair.min ? "pass" : "fails"} ${pair.min}:1`);
+  const verdictWidth = longest(verdicts) + 1;
+  const width = labelWidth + track + textWidth + verdictWidth;
+  const bars: Bar[] = [];
+  const records: Pair[] = [];
+  const labels: Layout["labels"] = [];
+  const lines = pairs.map((pair, i) => {
+    const fill = exactFill(pair.ratio, 21, track);
+    const pass = pair.ratio >= pair.min;
+    const paint: Paint = pass ? "good" : "problem";
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-num-${i}`,
+      label: pair.label,
+      value: pair.ratio,
+      max: 21,
+      fill,
+      track,
+      text: texts[i]!,
+    });
+    records.push({ textId: `fig-num-${i}`, label: pair.label, ratio: pair.ratio, min: pair.min, pass, verdictId: `fig-verdict-${i}` });
+    labels.push({ textId: `fig-label-${i}`, text: pair.label });
+    return {
+      items: [
+        textItem(`fig-label-${i}`, pair.label, labelWidth, paintOf(focus, pair.label)),
+        { kind: "bar", id: `fig-track-${i}`, fillId: `fig-fill-${i}`, cells: track, fill, paint },
+        textItem(`fig-num-${i}`, texts[i]!, textWidth, paint, "ratio"),
+        { kind: "space", id: `fig-verdict-gap-${i}`, cells: 1, paint: "ink" },
+        textItem(`fig-verdict-${i}`, verdicts[i]!, verdictWidth, paint, "verdict"),
+      ] satisfies Item[],
+    };
+  });
+  return finish(spec, "contrast", width, lines, bars, labels, [], [], [], records);
+}
+
+/**
+ * A spacing scale: a step a row — its name, a bar of `value/largest`, its pixels. A cell is 8px and the track is the
+ * largest step, so the scale maps to cells at its own length: a 4px step of a 48px scale is **half a cell** (`▌` in the
+ * text half, 4px of fill on the pixel targets), not "one cell", and every step's fill is exactly its value's.
+ */
+function spacingScale(spec: SpacingSpec): Layout {
+  const focus = focusOf(spec);
+  const steps = spec.data;
+  const largest = Math.max(...steps.map((step) => step.value));
+  const track = Math.max(1, Math.ceil(largest / CELL_WIDTH));
+  const labelWidth = longest(steps.map((step) => step.name)) + 1;
+  const texts = steps.map((step) => `${step.value}px`);
+  const textWidth = longest(texts) + 1;
+  const note = `A cell is ${CELL_WIDTH}px: the track is the largest step, ${largest}px.`;
+  const width = Math.max(labelWidth + track + textWidth, cells(note));
+  const bars: Bar[] = [];
+  const labels: Layout["labels"] = [];
+  const lines = steps.map((step, i) => {
+    const fill = exactFill(step.value, largest, track);
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-num-${i}`,
+      label: step.name,
+      value: step.value,
+      max: largest,
+      fill,
+      track,
+      text: texts[i]!,
+    });
+    labels.push({ textId: `fig-label-${i}`, text: step.name });
+    return barLine(i, step.name, fill, track, texts[i]!, textWidth, labelWidth, paintOf(focus, step.name));
+  });
+  lines.push({ items: [textItem("fig-note", note, cells(note), "muted", "note")] });
+  return finish(spec, "spacingScale", width, lines, bars, labels);
+}
+
+/**
+ * A type scale: a size a row — its name, a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` at the size
+ * itself. A 40px line is three cells tall (a cell is 16px), so this is the one kind whose rows differ in height: the
+ * layout says so in `height`, the page writes it through the value channel, and the terminal draws the row's cells with
+ * the text in the first of them. The cell figure cannot draw type at its size — a cell has one size — so it prints the
+ * numbers and draws the proportional bar; the specimen's `size` is what a pixel target honours.
+ */
+function typeScale(spec: TypeScaleSpec): Layout {
+  const focus = focusOf(spec);
+  const steps = [...spec.data].sort((a, b) => b.size - a.size);
+  const largest = steps[0]?.size ?? 1;
+  const track = 14;
+  const labelWidth = longest(steps.map((step) => step.name)) + 1;
+  const numbers = steps.map((step) => `${step.size}/${step.lineHeight}`);
+  const numberWidth = longest(numbers) + 1;
+  // two glyphs of about 0.7em: enough cells that a 40px "Aa" is not cut by the next item
+  const specimenWidth = Math.max(2, ...steps.map((step) => Math.ceil((step.size * 1.4) / CELL_WIDTH))) + 1;
+  const width = labelWidth + track + numberWidth + specimenWidth;
+  const bars: Bar[] = [];
+  const labels: Layout["labels"] = [];
+  const lines = steps.map((step, i) => {
+    const fill = exactFill(step.size, largest, track);
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-num-${i}`,
+      label: step.name,
+      value: step.size,
+      max: largest,
+      fill,
+      track,
+      text: numbers[i]!,
+    });
+    labels.push({ textId: `fig-label-${i}`, text: step.name });
+    const specimen: TextItem = {
+      ...textItem(`fig-type-${i}`, "Aa", specimenWidth, paintOf(focus, step.name), "value"),
+      size: step.size,
+    };
+    const line: LayoutLine = {
+      items: [
+        textItem(`fig-label-${i}`, step.name, labelWidth, paintOf(focus, step.name)),
+        { kind: "bar", id: `fig-track-${i}`, fillId: `fig-fill-${i}`, cells: track, fill, paint: paintOf(focus, step.name) },
+        textItem(`fig-num-${i}`, numbers[i]!, numberWidth, "muted", "ratio"),
+        { kind: "space", id: `fig-type-gap-${i}`, cells: 1, paint: "ink" },
+        specimen,
+      ],
+      height: Math.max(1, Math.ceil(step.lineHeight / CELL_HEIGHT)),
+    };
+    return line;
+  });
+  return finish(spec, "typeScale", width, lines, bars, labels);
+}
+
+/** The layout of a checked spec. The twelve kinds are this file's only branches. */
 export function layout(spec: Spec): Layout {
   switch (spec.kind) {
     case "barChart":
@@ -691,10 +963,18 @@ export function layout(spec: Spec): Layout {
       return funnel(spec);
     case "compare":
       return compare(spec);
+    case "contrast":
+      return contrast(spec);
     case "flow":
       return flow(spec);
+    case "palette":
+      return palette(spec);
+    case "spacingScale":
+      return spacingScale(spec);
     case "stateMachine":
       return stateMachine(spec);
+    case "typeScale":
+      return typeScale(spec);
     case "journeyMap":
       return journeyMap(spec);
     case "tree":
@@ -702,11 +982,12 @@ export function layout(spec: Spec): Layout {
   }
 }
 
-/** The page's size in pixels: the cells times the cell, and the padding. */
+/** The page's size in pixels: the cells times the cell, the padding, and each line's own height (a type scale's rows). */
 export function sizeOf(spec: Spec): { width: number; height: number } {
   const l = layout(spec);
+  const rows = l.lines.reduce((n, line) => n + (line.height ?? 1), 0);
   return {
     width: (l.width + 2 * PADDING_X) * CELL_WIDTH,
-    height: (l.lines.length + 2 * PADDING_Y) * CELL_HEIGHT,
+    height: (rows + 2 * PADDING_Y) * CELL_HEIGHT,
   };
 }

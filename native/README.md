@@ -3049,7 +3049,7 @@ on `--page figure`: it prints the same module's text before the grid opens, so t
 An invalid spec is refused with every sentence on stderr, exit 1, and **no figure on stdout**, as the desktop and the
 terminal refuse before a frame.
 
-**The docs draw themselves.** The four figures below are drawn by the renderer from their specs, and `test.sh` regenerates
+**The docs draw themselves.** The eight figures below are drawn by the renderer from their specs, and `test.sh` regenerates
 them (`bun solid/figure.ts --redraw native/README.md`) and `cmp`s the result with this file, so a figure here cannot drift
 from its spec — the same discipline as the generated C and the goldens. The line above each fence names the spec, relative
 to this file.
@@ -3126,3 +3126,120 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 **Not in the text half**: the kit's SAMPLE DATA stamp (our `source` line is always drawn, sample or not), its `@file` data,
 its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
 nothing at run time pays for them.
+
+**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and four of
+its kinds are here — the half whose data is **ours**, so the figure cannot disagree with the design system it documents:
+
+| kind | data | the figure |
+| --- | --- | --- |
+| `palette` | `{ page, hues: [{ name, steps: [{ name, value }] }] }` | a step a row, a hue a column: the mark (the first step at 4.5 to 1 on the page), the step's swatch, its `#rrggbb` and its contrast — both computed |
+| `contrast` | `[{ label, fg, bg, min, ratio }]` | a pair a row: a track of 21 cells (a cell a point of the ratio), the ratio and pass/fails against WCAG's floor (3, 4.5 or 7) |
+| `spacingScale` | `[{ name, value }]` | a step a row: a bar of `value/largest` and its pixels — a cell is 8px, so a 4px step is **half a cell** |
+| `typeScale` | `[{ name, size, lineHeight }]` | a size a row: a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` **at its own size** |
+
+`palette.json` is `@cssints/tokens`' Open Props blue and grey scales (`packages/tokens/src/open-props.ts`, measured on
+their own `gray.0`) — Open Props and not Radix because its scales are one flat object of hex values that reads step for
+step into the figure, where Radix's light and dark are two sets of overrides. `contrast.json` is the six pairs the
+documentation site draws and checks: `apps/docs/src/palettes.ts`'s `open-props` light palette at `src/theme.ts`'s floors.
+**Those two are generated** — `node native/solid/specs/from-tokens.ts` writes them from those files and **the engine's own
+contrast**, `packages/cssints/src/color.ts`'s `luminance` and `ratio`, the functions `css.check.contrast` measures with —
+and `solid/test.sh` regenerates them into a temp directory and `cmp`s, so a token change that left a figure stale is a
+line of the suite and not a reviewer's memory. The other two are **hand-written and say so**: `spacing.json`
+(`space.xs` 4px … `space.3xl` 48px) and `type-scale.json` (12/17 … 40/48) are `apps/docs/src/tokens.json`, where a size's
+line height is the role's choice (`prose.ts`'s 1.7 on prose, 1.2 on the headings) and not a token.
+
+**The ratio is the engine's, twice.** A pair's number is written by `from-tokens.ts` with `color.ts` and printed at two
+places (`shown`, which floors: 4.499 does not read as the 4.5 it misses). `check` refuses a pair whose ratio is not the
+one its colours make — `link on bgSubtle says 4.51:1, but #1971c2 on #f8f9fa makes 4.12:1.` — through
+`solid/src/figure/contrast.ts`, a twelve-line WCAG formula with no dependency: a spec is checked on a terminal and in a
+browser too, and neither may import culori. `figure.test.ts` holds that copy to the engine on every pair and every swatch
+(they are bit-identical, not merely close), and every number a frame prints to `color.ts`'s.
+
+**What the layout gained** — three things these kinds needed, additions to the *format* and not to one target: an item
+kind `swatch` (a step's own `#rrggbb`: a palette documents the colours, so here the picture is the data — the one colour a
+figure carries), an item kind `marker` (glyph-kit's `▲`, a `good`-role cell on a pixel target because Roboto has no `▲`)
+and a text's `size` with a line's `height` in cells (a 40px line is three cells: `spacingScale` and `typeScale` are the
+first kinds whose rows are not all one cell). The text renderer draws all three with no kind in it: `██` in the swatch's
+cells, `▲` for the mark (and `*` under `--compact`). A palette's cell is the marker, the swatch, the value and the
+contrast; a type scale's row is the name, the bar, `size/lineHeight` and the specimen. The frame's value channel holds
+1,024 overrides on every target now (the terminal's `term.c` already did; the desktop's and the browser's `ui.c` were
+still 128, and a palette of two hues' thirteen steps writes 429 of them).
+
+**The numbers.** `palette`: 26 swatches (13 steps × 2 hues), the mark on **Blue 8 (4.76)** and **Grey 7 (7.75)** — the
+first step of each that reads as words — every swatch's frame box its own colour, and every printed ratio the engine's.
+`contrast`: 19.36, 9.70, 7.35, 4.51, 3.98, 5.00, each fill within **0.00 of a cell** of its `ratio/21` track.
+`spacing`: every step's fill is **its value in pixels** (4, 8, 12, 16, 24, 32, 48 — worst error **0.00 px**), because
+the track is the largest step in whole cells. `typeScale`: **40 > 28 > 22 > 18 > 16 > 14 > 12px**, each specimen its own
+`size` in the frame, and rows 3, 3, 2, 2, 2, 2, 2 cells tall — its line height in cells. The text half, a render and its
+bytes: palette **804 B / 0.168 ms**, contrast **591 B / 0.043 ms**, spacing **342 B / 0.032 ms**, type-scale
+**463 B / 0.037 ms** (the other kinds are 135–633 B and 0.014–0.073 ms). The desktop frames are
+`solid/frames/figure-{palette,contrast,spacing,type-scale}.png`, the command goldens `solid/goldens/figure-*.json`, and
+the browser draws `?spec=palette`, `?spec=contrast`, `?spec=spacing` and `?spec=type-scale` from the same files.
+
+What our cells cannot carry: a type scale's specimen is at its own size on the pixel targets only — the terminal has one
+cell size, so a `typeScale` row is as tall as its line height in cells and the cell figure prints the numbers (`40/48`).
+A palette's swatch is `██` in text and two cells of its colour on the terminal, which is exactly what the text half's
+check keeps (the swatch's cells are `██` and the terminal's two cells are that colour, a cell for a cell).
+
+<!-- glyph-kit: solid/specs/palette.json -->
+```text
+The blue and grey scales, on the page
+      Blue                Grey
+0     ██ #e7f5ff 1.05     ██ #f8f9fa 1.00
+1     ██ #d0ebff 1.17     ██ #f1f3f5 1.05
+2     ██ #a5d8ff 1.43     ██ #e9ecef 1.12
+3     ██ #74c0fc 1.86     ██ #dee2e6 1.23
+4     ██ #4dabf7 2.34     ██ #ced4da 1.41
+5     ██ #339af0 2.83     ██ #adb5bd 1.96
+6     ██ #228be6 3.37     ██ #868e96 3.15
+7     ██ #1c7ed6 3.98   ▲ ██ #495057 7.75
+8   ▲ ██ #1971c2 4.76     ██ #343a40 10.91
+9     ██ #1864ab 5.77     ██ #212529 14.63
+10    ██ #145591 7.27     ██ #16191d 16.72
+11    ██ #114678 9.17     ██ #0d0f12 18.20
+12    ██ #0d375e 11.54    ██ #030507 19.36
+packages/tokens/src/open-props.ts (blue, gray; page gray.0); ratio: color.ts
+```
+
+<!-- glyph-kit: solid/specs/contrast.json -->
+```text
+The docs' colour roles, on their pages
+text on bg            ███████████████████▍  19.36:1 pass 7:1
+textMedium on bgMuted █████████▊             9.70:1 pass 4.5:1
+textLow on bgSubtle   ███████▍               7.35:1 pass 4.5:1
+link on bgSubtle      ████▌                  4.51:1 pass 4.5:1
+accent on bg          ████                   3.98:1 pass 3:1
+onAccent on accent    █████                  5.00:1 pass 4.5:1
+apps/docs/src/palettes.ts (open-props, light); ratio: cssints/src/color.ts
+```
+
+<!-- glyph-kit: solid/specs/spacing.json -->
+```text
+The docs' spacing scale
+space.xs  ▌       4px
+space.sm  █       8px
+space.md  █▌     12px
+space.lg  ██     16px
+space.xl  ███    24px
+space.2xl ████   32px
+space.3xl ██████ 48px
+A cell is 8px: the track is the largest step, 48px.
+apps/docs/src/tokens.json (space); a cell is native/terminal/cells.h's 8px
+```
+
+<!-- glyph-kit: solid/specs/type-scale.json -->
+```text
+The docs' type scale
+fontSize.3xl ██████████████ 40/48 Aa
+fontSize.2xl █████████▊     28/34 Aa
+fontSize.xl  ███████▊       22/26 Aa
+fontSize.lg  ██████▎        18/22 Aa
+fontSize.md  █████▋         16/27 Aa
+fontSize.sm  ████▉          14/20 Aa
+fontSize.xs  ████▎          12/17 Aa
+apps/docs/src/tokens.json (fontSize, lineHeight) and src/prose.ts's roles
+```
+
+What remains of the kit's systems half: `colourRoles` (a role's light and dark value with a verdict), `stateMatrix`,
+`layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its motion, and its exports to HTML,
+decks, SVG, PDF and PNG.

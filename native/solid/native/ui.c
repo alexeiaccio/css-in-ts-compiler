@@ -82,8 +82,10 @@ static struct {
 static int has_pending_gradient;
 // the value channel: this frame's overrides of a packed style, by element id, written by the page's tick (after
 // `ui_begin`, before the tree is declared) and read by `ui_open`. A figure's item writes three values (a FIXED width's
-// type, min and max), so a multi-row figure of twenty items is sixty; the tree's levels are the first page to pass 64.
-#define MAX_VALUES 128
+// type, min and max), so a multi-row figure of twenty items is sixty; the tree's levels are the first page to pass 64,
+// and a palette of two hues' thirteen steps is a step a row of five items, 429 — the same 1,024 the terminal's table has
+// (solid/native/term.c), so a figure cannot draw on one target and be refused on another.
+#define MAX_VALUES 1024
 static struct {
     uint32_t id;
     uint16_t field;

@@ -5,6 +5,7 @@
 //   bun solid/dump.ts sensors                     # the JSON to stdout, the counts to stderr
 //   bun solid/dump.ts sky --out /tmp/sky.json     # ... or to a file
 //   bun solid/dump.ts widgets --update            # re-store solid/goldens/widgets.json
+//   bun solid/dump.ts figure --spec solid/specs/palette.json --commands --out solid/goldens/figure-palette.json
 //
 // `solid/dump.test.ts` compares every stored golden field by field (and says which command and which field a miss is).
 // Only `./plugin.ts` is imported statically: a static import is resolved before the plugin registers, and Bun would then
@@ -50,8 +51,7 @@ export const PAGES = {
   // the text sheet is static: one frame is the page (and the oracle's rows at their own boxes)
   sheet: { width: 440, height: 564, warm: 1 },
   // the figure's size is its layout's (the spec's cells times the cell), so these are placeholders `capture` replaces
-  figure: { width: 0, height: 0, warm: 1, figure: "bars.json" },
-} satisfies Record<string, Page>;
+  figure: { width: 0, height: 0, warm: 1, figure: "bars.json" },} satisfies Record<string, Page>;
 
 export type PageName = keyof typeof PAGES;
 
@@ -107,6 +107,14 @@ export interface Rest {
 function readSpec(name: string): Spec {
   const { spec, problems } = parse(readFileSync(new URL(`./specs/${name}`, import.meta.url), "utf8"));
   if (!spec) throw new Error(`solid/specs/${name}: ${problems.join(" ")}`);
+  return spec;
+}
+
+/** A spec file by path, for `--spec` (a golden of one of the figure's other specs): refused with its sentences. */
+function readSpecFile(path: string | undefined): Spec {
+  if (!path) throw new Error("--spec needs a file: solid/specs/palette.json");
+  const { spec, problems } = parse(readFileSync(path, "utf8"));
+  if (!spec) throw new Error(`${path}: ${problems.join(" ")}`);
   return spec;
 }
 
@@ -179,17 +187,21 @@ export function nodes(node: A11yNode): number {
 if (import.meta.main) {
   const argv = process.argv.slice(2);
   const at = argv.indexOf("--out");
-  const name = argv.find((a, i) => !a.startsWith("--") && (at < 0 || i !== at + 1)) as PageName | undefined;
+  const specAt = argv.indexOf("--spec");
+  const name = argv.find((a, i) => !a.startsWith("--") && (at < 0 || i !== at + 1) && (specAt < 0 || i !== specAt + 1)) as PageName | undefined;
   if (name === undefined || !(name in PAGES)) {
-    console.error(`usage: bun solid/dump.ts <${Object.keys(PAGES).join("|")}> [--out path] [--update]`);
+    console.error(`usage: bun solid/dump.ts <${Object.keys(PAGES).join("|")}> [--out path] [--update] [--spec file]`);
     process.exit(1);
   }
+  const spec = specAt >= 0 ? readSpecFile(argv[specAt + 1]) : undefined;
   const { format } = await import("./src/dump.ts");
-  const dump = await capture(name);
+  const dump = await capture(name, undefined, spec ? { spec } : {});
   const counts = `${name}: ${dump.commands.length} commands, ${nodes(dump.a11y)} a11y nodes`;
   const out = at >= 0 ? argv[at + 1] : argv.includes("--update") ? goldens(name) : undefined;
-  if (out === undefined) process.stdout.write(`${format(dump)}\n`);
-  else writeFileSync(out, `${format(dump)}\n`);
+  // `--commands` writes the figure's own golden shape: its commands and its renderer tables, without the a11y snapshot
+  const text = `${format(argv.includes("--commands") ? { commands: dump.commands, effects: dump.effects } : dump)}\n`;
+  if (out === undefined) process.stdout.write(text);
+  else writeFileSync(out, text);
   console.error(out === undefined ? counts : `${counts} -> ${out}`);
   process.exit(0);
 }

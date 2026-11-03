@@ -34,6 +34,7 @@ export const COMPACT: Readonly<Record<string, string>> = {
   "▊": "=",
   "▉": "=",
   "►": ">",
+  "▲": "*",
   "…": ".",
 };
 
@@ -99,7 +100,7 @@ function barText(bar: Bar, cells: number): string {
   return art + " ".repeat(Math.max(0, cells - full - (eighths ? 1 : 0)));
 }
 
-/** One item as characters: a text padded to its cell, a box `[so]`, a bar, or a space. */
+/** One item as characters: a text padded to its cell, a box `[so]`, a bar, a swatch, a marker, or a space. */
 function itemText(item: Item, bars: ReadonlyMap<string, Bar>, afterMeasure: boolean): string {
   if (item.kind === "bar") {
     const bar = bars.get(item.fillId);
@@ -107,6 +108,10 @@ function itemText(item: Item, bars: ReadonlyMap<string, Bar>, afterMeasure: bool
   }
   if (item.kind === "space") return " ".repeat(item.cells);
   if (item.kind === "box") return padEnd(`[${item.text}]`, item.cells);
+  // a palette's two: a swatch is glyph-kit's `██` in its cells (the colour is the data, and a cell has none), and the
+  // mark of the first step that reads as words is its `▲` — a pixel target paints the same cell by the `good` role
+  if (item.kind === "swatch") return padEnd("██".repeat(Math.ceil(item.cells / 2)).slice(0, item.cells), item.cells);
+  if (item.kind === "marker") return padEnd("▲", item.cells);
   // a number's own cell is right-aligned (glyph-kit's numbers on the right); a label and a heading read from the left
   return afterMeasure ? padStart(item.text, item.cells) : padEnd(item.text, item.cells);
 }
@@ -117,7 +122,8 @@ function lineText(line: LayoutLine, bars: ReadonlyMap<string, Bar>): string {
   let afterMeasure = false;
   for (const item of line.items) {
     out += itemText(item, bars, afterMeasure);
-    afterMeasure = item.kind === "bar" || item.kind === "space";
+    // a number reads against the bar it measures: the cell after a bar is right-aligned, and only a bar does that
+    afterMeasure = item.kind === "bar";
   }
   return out.replace(/ +$/, "");
 }

@@ -20,22 +20,44 @@ import * as s from "./Figure.styles.ts";
 const ids = new Map<string, Uint8Array>();
 const idBytes = (id: string) => ids.get(id) ?? (ids.set(id, new TextEncoder().encode(id)), ids.get(id)!);
 const put = (id: string, field: number, value: number) => ui.value(idBytes(id), field, value);
-/** A FIXED axis through the value channel: the type, then the min and the max (pack.ts's `axis`). */
+/** A FIXED axis through the value channel: the type, then the min and the max (pack.ts's `axis`, Clay's FIXED takes the
+ *  pair). */
 const fixedWidth = (id: string, px: number) => {
   put(id, FIELDS.WIDTH, 3);
   put(id, FIELDS.WIDTH + 1, px);
   put(id, FIELDS.WIDTH + 2, px);
 };
+/** A line's own height, the same way: a type scale's 40px row is three cells. */
+const fixedHeight = (id: string, px: number) => {
+  put(id, FIELDS.HEIGHT, 3);
+  put(id, FIELDS.HEIGHT + 1, px);
+  put(id, FIELDS.HEIGHT + 2, px);
+};
 
-/** Every item's width, and a bar's fill, written for the frame about to be declared (the channel is a frame's). */
+/** A `#rrggbb` as the three channels the value channel writes: a swatch is the palette's own colour. */
+function rgbOf(value: string): [number, number, number] {
+  const hex = /^#([0-9a-f]{6})$/i.exec(value)?.[1] ?? "000000";
+  return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+}
+
+/** Every item's width, a bar's fill, a swatch's colour and a line's height, written for the frame about to be declared
+ *  (the channel is a frame's). */
 function apply(l: Layout, motion: Motion | undefined): void {
   if (!motion) return;
   motion.tick = () => {
-    for (const line of l.lines)
+    for (const line of l.lines) {
+      if (line.id !== undefined && (line.height ?? 1) !== 1) fixedHeight(line.id, line.height! * 16);
       for (const item of line.items) {
         fixedWidth(item.id, item.cells * 8);
         if (item.kind === "bar") fixedWidth(item.fillId, item.fill * 8);
+        if (item.kind === "swatch") {
+          const [r, g, b] = rgbOf(item.value);
+          put(item.id, FIELDS.BACKGROUND, r);
+          put(item.id, FIELDS.BACKGROUND + 1, g);
+          put(item.id, FIELDS.BACKGROUND + 2, b);
+        }
       }
+    }
   };
 }
 
@@ -52,13 +74,19 @@ function ItemView(props: { item: Item }) {
         />
       </box>
     );
+  // a palette's two: the swatch's colour and the marker's role are the value channel's and the style's, not the data's
+  if (it.kind === "swatch") return <box id={it.id} style={s.s.swatch} />;
+  if (it.kind === "marker") return <box id={it.id} style={s.s.marker} />;
+  if (it.kind === "space") return <box id={it.id} style={s.s.cell} />;
+  // a type scale's specimen is drawn at its own size: a sized text gets a cell as tall as its line, so a 40px "Aa" is
+  // not centred in a 16px row and does not reach the row above it
+  const sized = it.kind === "text" && it.size !== undefined ? it.size : undefined;
+  const known = sized !== undefined && sized in s.s.typeSize;
   return (
-    <box id={it.id} style={it.kind === "box" ? s.s.box : s.s.cell}>
-      {it.kind !== "space" && (
-        <text id={it.textId} style={styleOf(it.paint)}>
-          {it.text}
-        </text>
-      )}
+    <box id={it.id} style={it.kind === "box" ? s.s.box : known ? s.s.typeCell[sized as keyof typeof s.s.typeCell] : s.s.cell}>
+      <text id={it.textId} style={known ? s.s.typeSize[sized as keyof typeof s.s.typeSize] : styleOf(it.paint)}>
+        {it.text}
+      </text>
     </box>
   );
 }
@@ -76,7 +104,7 @@ export function Figure(props: { spec: Spec; motion?: Motion }) {
     <box id="Root" style={s.s.root}>
       <For each={l.lines}>
         {(line) => (
-          <box style={s.s.line}>
+          <box id={line.id} style={s.s.line}>
             <For each={line.items}>{(item) => <ItemView item={item} />}</For>
           </box>
         )}

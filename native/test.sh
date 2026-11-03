@@ -64,8 +64,11 @@ sh solid/test.sh
 bun solid/figure.test.ts
 # the two flow kinds and the two row kinds are in it too: the branch flow's boxes and its branch connectors, the state
 # machine's path and its transitions, the tree's levels and connectors, the journey map's feelings, their refusals (each
-# with its sentence), a command golden each, and a stored frame each
-echo "figure: eight kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, their refusals and frames"
+# with its sentence), a command golden each, and a stored frame each. So are the four design-system kinds whose data is
+# our own tokens: a palette's swatches and the mark of its first readable step, a contrast check's engine ratios and their
+# verdicts, a spacing scale whose 4px step is a 4px box, and a type scale whose 40px row is three cells — with their
+# refusals, their goldens, the generated specs' cmp (solid/test.sh) and the terminal's rows
+echo "figure: twelve kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes; their refusals and frames"
 # the text half of the same layout: every spec as characters within the width, each bar in cells against the terminal
 # host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
 # invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)

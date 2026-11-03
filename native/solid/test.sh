@@ -335,7 +335,22 @@ fi
 grep -q "a funnel never grows" "$FIG/figure-invalid.log" || {
   echo "FAIL: the growing funnel's refusal does not say why"; exit 1; }
 if [ -f "$FIG/figure-invalid.png" ]; then echo "FAIL: an invalid spec wrote a frame"; exit 1; fi
-echo "figure: six stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
+echo "figure: ten stored frames are the page's, and a growing funnel is refused with its sentence before a frame"
+# ... and the four design-system kinds, whose data is our own tokens: a palette's swatches and the mark of its first
+# readable step, a contrast check's engine ratios and their verdicts, a spacing scale at its own pixel lengths and a type
+# scale at its own sizes (a 40px row is three cells). One stored frame each, and the command goldens are figure.test.ts's.
+bun solid/main.ts figure --spec solid/specs/palette.json --warm 30 --expect solid/frames/figure-palette.png
+bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect solid/frames/figure-contrast.png
+bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
+bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
+# two of the four are regenerable from the data: specs/from-tokens.ts writes them from @cssints/tokens and the engine's
+# contrast (packages/cssints/src/color.ts), so a token change that left the figure stale is this cmp, not a review note
+bun solid/specs/from-tokens.ts "$FIG/specs" >/dev/null
+cmp "$FIG/specs/palette.json" solid/specs/palette.json || {
+  echo "FAIL: solid/specs/palette.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
+cmp "$FIG/specs/contrast.json" solid/specs/contrast.json || {
+  echo "FAIL: solid/specs/contrast.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
+echo "figure: palette and contrast are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
 # ... and the same figure in the browser: browser/solid/figure.ts fetches the same spec file, and browser/figure-check.mjs
 # holds its commands to solid/goldens/figure.json (the desktop's frame, boxes within 4 px, Canvas2D's metrics) and a click
 # to nothing. Its own guard, so the frames above still run on a machine without zig or Chromium
