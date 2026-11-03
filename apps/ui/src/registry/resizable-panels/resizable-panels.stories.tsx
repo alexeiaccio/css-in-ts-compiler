@@ -32,13 +32,21 @@ export const Editor: Story = {
           {
             title: "Editor",
             min: 25,
-            children: <p class="demo-text">The middle pane grows and shrinks; the dividers on either side are splits.</p>,
+            children: (
+              <p class="demo-text">
+                The middle pane grows and shrinks; the dividers on either side are splits.
+              </p>
+            ),
           },
           {
             title: "Preview",
             min: 15,
             collapsible: true,
-            children: <p class="demo-text">A pane with `collapsible` folds away on Enter and comes back at its size.</p>,
+            children: (
+              <p class="demo-text">
+                A pane with `collapsible` folds away on Enter and comes back at its size.
+              </p>
+            ),
           },
         ]}
       />

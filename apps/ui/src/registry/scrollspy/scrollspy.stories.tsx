@@ -29,8 +29,8 @@ export const Contents: Story = {
             <section id={section.id} class="demo-scrollspy__section">
               <h2>{section.text}</h2>
               <p class="demo-text">
-                Scroll this pane: the link of the heading that reached the line is the current one, and its
-                `aria-current="true"` is the only state it carries.
+                Scroll this pane: the link of the heading that reached the line is the current one,
+                and its `aria-current="true"` is the only state it carries.
               </p>
             </section>
           ))}

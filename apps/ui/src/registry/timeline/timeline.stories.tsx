@@ -8,9 +8,30 @@ import { Timeline } from "./timeline.tsx";
 
 const SPANS = [
   { id: "request", label: "GET /checkout", start: 0, end: 1, depth: 0, status: "ok" as const },
-  { id: "auth", label: "auth: verify session", start: 0.03, end: 0.26, depth: 1, status: "ok" as const },
-  { id: "db", label: "db: SELECT cart", start: 0.08, end: 0.22, depth: 2, status: "error" as const },
-  { id: "render", label: "render: checkout page", start: 0.55, end: 0.97, depth: 1, status: "unset" as const },
+  {
+    id: "auth",
+    label: "auth: verify session",
+    start: 0.03,
+    end: 0.26,
+    depth: 1,
+    status: "ok" as const,
+  },
+  {
+    id: "db",
+    label: "db: SELECT cart",
+    start: 0.08,
+    end: 0.22,
+    depth: 2,
+    status: "error" as const,
+  },
+  {
+    id: "render",
+    label: "render: checkout page",
+    start: 0.55,
+    end: 0.97,
+    depth: 1,
+    status: "unset" as const,
+  },
 ];
 
 const meta = { title: "Timeline" } satisfies Meta;

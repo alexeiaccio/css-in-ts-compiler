@@ -15,7 +15,11 @@ const meta = {
 } satisfies Meta<{ label: string; defaultValue: readonly [number, number]; disabled?: boolean }>;
 export default meta;
 
-export const Range: Story<{ label: string; defaultValue: readonly [number, number]; disabled?: boolean }> = {
+export const Range: Story<{
+  label: string;
+  defaultValue: readonly [number, number];
+  disabled?: boolean;
+}> = {
   render: (args) => (
     <div class="demo-column">
       <SliderMultithumb
@@ -24,7 +28,8 @@ export const Range: Story<{ label: string; defaultValue: readonly [number, numbe
         disabled={args.disabled}
       />
       <p class="demo-text">
-        Each thumb is a `role="slider"` of its own: Tab reaches the first, Tab again the second, and neither passes the other.
+        Each thumb is a `role="slider"` of its own: Tab reaches the first, Tab again the second, and
+        neither passes the other.
       </p>
     </div>
   ),

@@ -17,12 +17,11 @@ export const TenThousand: Story = {
         itemSize={32}
         gap={4}
         height={320}
-        renderItem={(index) => (
-          <span class="demo-text">{`Name ${index + 1}`}</span>
-        )}
+        renderItem={(index) => <span class="demo-text">{`Name ${index + 1}`}</span>}
       />
       <p class="demo-text">
-        The scrollport holds 320 px of rows; the rest is one spacer at each end, so the arithmetic and the DOM agree.
+        The scrollport holds 320 px of rows; the rest is one spacer at each end, so the arithmetic
+        and the DOM agree.
       </p>
     </div>
   ),
@@ -31,6 +30,11 @@ export const TenThousand: Story = {
 // A short list is the same component: the window is the whole list, and the spacers are empty.
 export const Short: Story = {
   render: () => (
-    <VirtualList count={12} itemSize={32} height={320} renderItem={(index) => <span class="demo-text">{`Row ${index + 1}`}</span>} />
+    <VirtualList
+      count={12}
+      itemSize={32}
+      height={320}
+      renderItem={(index) => <span class="demo-text">{`Row ${index + 1}`}</span>}
+    />
   ),
 };

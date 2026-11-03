@@ -17,14 +17,22 @@ export const Stack: Story = {
       <div class="demo-column">
         <div class="demo-row">
           <Button onClick={() => toast.show({ title: "Draft saved" })}>Saved</Button>
-          <Button tone="accent" onClick={() => toast.show({ title: "Published", description: "The post is live." })}>
+          <Button
+            tone="accent"
+            onClick={() => toast.show({ title: "Published", description: "The post is live." })}
+          >
             Published
           </Button>
-          <Button tone="quiet" onClick={() => toast.show({ title: "Could not save", tone: "error" })}>
+          <Button
+            tone="quiet"
+            onClick={() => toast.show({ title: "Could not save", tone: "error" })}
+          >
             Failed
           </Button>
         </div>
-        <p class="demo-text">Each press queues one toast; the stack keeps at most three and each leaves on its own.</p>
+        <p class="demo-text">
+          Each press queues one toast; the stack keeps at most three and each leaves on its own.
+        </p>
         <Toaster toast={toast} />
       </div>
     );

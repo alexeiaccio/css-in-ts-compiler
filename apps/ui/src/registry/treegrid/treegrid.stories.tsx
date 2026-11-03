@@ -24,7 +24,9 @@ const meta = { title: "Treegrid" } satisfies Meta;
 export default meta;
 
 export const Files: Story = {
-  render: () => <Treegrid rows={ROWS} columns={COLUMNS} label="Project files" defaultExpanded={["src"]} />,
+  render: () => (
+    <Treegrid rows={ROWS} columns={COLUMNS} label="Project files" defaultExpanded={["src"]} />
+  ),
 };
 
 // Nothing expanded: the two folders are the only rows, and Right on a folder opens it.

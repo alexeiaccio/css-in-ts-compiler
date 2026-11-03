@@ -41,7 +41,8 @@ export const Sheet: Story = {
           <Button onClick={() => setOpen(true)}>Keyboard shortcuts</Button>
         </div>
         <p class="demo-text">
-          The sheet is a modal dialog: `mod` is ⌘ on a Mac and Ctrl elsewhere, and every chord is a chip.
+          The sheet is a modal dialog: `mod` is ⌘ on a Mac and Ctrl elsewhere, and every chord is a
+          chip.
         </p>
         <Shortcuts open={open()} onOpenChange={setOpen} groups={GROUPS} />
       </div>
