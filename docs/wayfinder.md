@@ -4160,3 +4160,35 @@ that is wider than the column scrolls inside it. `apps/ui/test/site.mjs` now fai
 and the page's own overflow), and each story page driven in Chrome with its interaction: knob arrow, listbox selection,
 menubar open, pagination move, panzoom zoom, player play, popover open, reorder Alt+Down, combobox filter, palette command,
 date pick, carousel next, disclosure toggle, drawer Escape, diagram activate, feed load.
+
+## The native storybook's rail is a tablist, not N buttons (2026-11-03)
+
+Asked by the user: the rail was one headless `createButton` per story, so a story was one Tab stop, the arrows did
+nothing and Enter did what a click did — "make the rail a vertical tablist of stories, like the web site's story switcher".
+**Decided: `createTabs` from `native/headless`** — `orientation: "vertical"`, `activation: "automatic"`, the page's own
+`focus` manager — each row `<box {...input.bind(tabs.tabs[i])} {...a11y(tabs.tabs[i])} style={...}>` with the look it
+already had (`row` / `rowOn`, `rowOn` on `tabs.selected()`), the canvas drawing `stories[tabs.selected()]`. Nothing new in
+`native/headless`: it is the part the Widgets page and the web site's switcher (`apps/ui`'s `Tabs`) already use, so the
+arrows, Home/End, wrap-around and the roving `tabindex` are the focus manager's, not the page's — and the rail is one Tab
+stop, entered on the selected story.
+
+Two details the page had to get right:
+
+- **The panels are declared `focusablePanels`.** The canvas is the picked story's own box, not a `tabpanel`, so without
+  it Tab would land on `stories-tabpanel-<n>` — an id no box carries — between the rail and the story. It is the call Sky
+  and Profile already make for the panels they draw no box for, and it leaves the story's own controls as the stops after
+  the rail: one Tab from the rail reaches the disclosure's trigger.
+- **`--story ID` is `defaultSelected`.** The page passes it straight into `createTabs`, so the story is picked before the
+  first frame (a stored frame with no key pressed) and `tabs.selected()` is the page's only selection state — no second
+  signal to keep in step.
+
+**Evidence:** `sh solid/native/build.sh`, then `--expect` on three re-stored frames, all "identical": `storybook.png` at
+rest, `storybook-keys.png` after `--keys Tab,ArrowDown` (the rail's second row focused and the switch drawn — no Enter),
+`storybook-open.png` after `--keys Tab,Tab,Space` (Tab to the rail, Tab to the disclosure's trigger, Space opens it). Read
+back from the PNGs: `rowOn` follows the arrow, the focus ring stays on the rail row, and the canvas swaps the story with it.
+`--story widgets--switch` still opens the switch, and `--click` on a row still picks it (press = focus + select). The
+`SB()` block of `solid/test.sh` states the new keys, and `sh solid/test.sh` is green end to end.
+
+**Left:** there is still no controls panel in native (a story's args are the page's own); the selected story is not in a
+URL or a scene's target; and the rail has two stories to show, so the wrap-around is the tested-in-headless behaviour rather
+than a frame of its own.
