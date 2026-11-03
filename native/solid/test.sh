@@ -54,6 +54,8 @@ SB --story widgets--tempo --arg speed=16x --expect solid/frames/storybook-arg-se
 SB --story widgets--volume --arg volume=70 --expect solid/frames/storybook-arg-range.png
 SB --story widgets--switch --keys Tab,Tab,Tab,Space --expect solid/frames/storybook-controls.png
 SB --keys Tab,ArrowDown,Tab,Space --expect solid/frames/storybook-rail-tab.png
+# a story as a file: the scene names the page and the story, and its steps are the input — the native half of a link
+bun solid/main.ts --scene solid/scenes/storybook-switch.json --expect solid/frames/storybook-scene.png
 # the settings tree, 12 Tabs in: the ring on Network, the first visible row; Down moves it without selecting;
 # Right on the closed Display opens it; Space selects the roving node
 TREE="Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab"

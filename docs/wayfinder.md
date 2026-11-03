@@ -4224,7 +4224,7 @@ accessibility snapshot reads it as a switch, a radio group, a slider or a textbo
 (`{ [storyId]: Args }` over `picked().args`), and the canvas is `<Show keyed when={`${id}:${serial}`}>`: a write bumps the
 key, the old story's subtree is disposed and the view is called with the new args. A story is a function of its args —
 `createSwitch({ defaultValue: args.on })` reads them once — so a view that did not remount would keep drawing the old
-state. A story's *own* widget state is not written back (flipping the story's switch does not move the `on` arg): the arg
+state. A story's _own_ widget state is not written back (flipping the story's switch does not move the `on` arg): the arg
 is what the story was rendered with, as in Storybook.
 
 Two things fell out of the remount, both fixed at the cause:
@@ -4240,7 +4240,7 @@ Two things fell out of the remount, both fixed at the cause:
   subtree that remounts, and a test states it.
 
 Also refused: reading the args reactively in the panel's rows. The controls read their starting values once, when the
-panel mounts; a row rebuilt on every write would lose focus mid-keystroke, and the panel is keyed on the *story*, not on
+panel mounts; a row rebuilt on every write would lose focus mid-keystroke, and the panel is keyed on the _story_, not on
 the args.
 
 **And a mount reads its story from the key it is given, never from the rail.** The first version had the panel's rows read
@@ -4274,3 +4274,27 @@ story-level case.
 needs a range, a typed number field is not there) and shares the slider's path, so it has no stored frame; the arg is the
 story's starting state, not its live one (a widget's own change is not written back, so a control and the story's part
 can disagree once both are used); and `text` has no IME, the primitive's own gap shared with the Field page.
+
+## A story as a file: the scene learns `storybook` (2026-11-03)
+
+The last piece left by the controls round: a native story had no address. A web story is its hash; a native one had only
+`--story` on the command line, which is a frame, not a link. **The scene format carries it now**: `"page": "storybook"` is
+one of the pages a scene may name (`PAGES` in `solid/src/scene.ts`), and an optional `"story": "widgets--switch"` says which
+one opens — so a story's state and the keys that reached it are one small file, replayable into the same frame by every host,
+the way `sensors-click.json` already is. A `story` on any other page is a **parse error**, not a silently ignored field: a
+page that has no stories saying it has one is a file that lies. `solid/scenes/storybook-switch.json` opens the switch story
+and tabs into its controls; `solid/frames/storybook-scene.png` is stored from it, and `sh solid/test.sh` compares it with
+the other 102 frames. The page's own `story` is the starting state (`defaultSelected`), so the file is the state _and_ the
+route to it — the native equivalent of `#widgets--switch`.
+
+## A story as a file: the scene learns `storybook` (2026-11-03)
+
+The last piece left by the controls round: a native story had no address. A web story is its hash; a native one had only
+`--story` on the command line, which is a frame, not a link. **The scene format carries it now**: `"page": "storybook"` is
+one of the pages a scene may name (`PAGES` in `solid/src/scene.ts`), and an optional `"story": "widgets--switch"` says which
+one opens — so a story's state and the keys that reached it are one small file, replayable into the same frame by every host,
+the way `sensors-click.json` already is. A `story` on any other page is a **parse error**, not a silently ignored field: a
+page with no stories saying it has one is a file that lies. `solid/scenes/storybook-switch.json` opens the switch story and
+tabs into its controls; `solid/frames/storybook-scene.png` is stored from it, and `sh solid/test.sh` compares it with the
+other 102 frames. The story is the starting state (`defaultSelected`), so the file is the state _and_ the route to it — the
+native equivalent of `#widgets--switch`.

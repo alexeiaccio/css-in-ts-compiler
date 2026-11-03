@@ -17,7 +17,7 @@ import { setReducedMotion } from "./motion.ts";
 import { El, render, type Node } from "./renderer.ts";
 
 /** The pages a scene may name (`bun solid/main.ts <page>`). */
-export const PAGES = ["sensors", "widgets", "dialog", "form", "list", "sky"] as const;
+export const PAGES = ["sensors", "widgets", "dialog", "form", "list", "sky", "storybook"] as const;
 export type ScenePage = (typeof PAGES)[number];
 /** The steps a scene may carry. */
 export const KINDS = ["key", "text", "pointer", "wheel", "settle", "frame"] as const;
@@ -51,6 +51,8 @@ export interface Scene {
   /** The stored frame it reproduces (`solid/frames/<name>.png`), and the name a failure prints. */
   readonly name: string;
   readonly page: ScenePage;
+  /** The story a `storybook` scene opens (`widgets--switch`): the page's other half, so a frame names what it shows. */
+  readonly story?: string;
   /** The window's size in pixels: it must be the page's own, and a future C or wasm host lays out at it. */
   readonly size: readonly [number, number];
   readonly theme: "dark" | "light";
@@ -96,6 +98,10 @@ export function parseScene(text: string, source = "scene"): Scene {
   const theme = raw.theme;
   if (theme !== "dark" && theme !== "light") fail(`theme ${JSON.stringify(theme)} is not "dark" or "light"`);
   if (raw.reducedMotion !== undefined && raw.reducedMotion !== true) fail("reducedMotion is true, or left out");
+  // the story is the storybook's, and only its: a file that names one for another page says something it does not mean
+  if (raw.story !== undefined && (typeof raw.story !== "string" || raw.story === ""))
+    fail("story must be a non-empty string, or left out");
+  if (raw.story !== undefined && page !== "storybook") fail(`page ${JSON.stringify(page)} has no stories`);
   if (!Array.isArray(raw.steps)) fail("steps must be an array");
 
   const steps: Step[] = [];
@@ -155,6 +161,7 @@ export function parseScene(text: string, source = "scene"): Scene {
   return {
     name,
     page: page as ScenePage,
+    ...(raw.story === undefined ? {} : { story: raw.story as string }),
     size: [size[0] as number, size[1] as number],
     theme,
     reducedMotion: raw.reducedMotion === true,
@@ -175,6 +182,7 @@ export interface SceneRun {
 /** The page's module, its size and the element `main.ts` renders for it: the one table of what a scene's page is. */
 async function pageOf(
   page: ScenePage,
+  story: string | undefined,
   host: { input: Input; motion: Motion; drag: Drag; theme: () => string | undefined },
 ): Promise<{ size: { width: number; height: number }; element: () => Node }> {
   switch (page) {
@@ -200,6 +208,13 @@ async function pageOf(
     case "list": {
       const { List, size } = await import("../app/List.tsx");
       return { size, element: () => List({ input: host.input, motion: host.motion }) };
+    }
+    case "storybook": {
+      const { Storybook, size } = await import("../app/Storybook.tsx");
+      return {
+        size,
+        element: () => Storybook({ input: host.input, motion: host.motion, start: story }),
+      };
     }
     case "sky": {
       const { Sky, size } = await import("../app/Sky.tsx");
@@ -227,7 +242,7 @@ export async function runScene(scene: Scene): Promise<SceneRun> {
   const drag: Drag = {};
   const motion: Motion = {};
   const host = { input, motion, drag, theme: () => theme };
-  const { size, element } = await pageOf(scene.page, host);
+  const { size, element } = await pageOf(scene.page, scene.story, host);
   if (scene.size[0] !== size.width || scene.size[1] !== size.height)
     throw new Error(
       `page ${scene.page} is ${size.width}x${size.height}, the scene ${scene.size[0]}x${scene.size[1]}`,

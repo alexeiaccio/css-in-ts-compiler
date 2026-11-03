@@ -2292,6 +2292,11 @@ bun solid/main.ts --scene solid/scenes/list-select.json --expect solid/frames/li
 bun solid/scene.test.ts                                    # four scenes in-process: steps, frames, ending state, mutations
 ```
 
+A scene's `page` is one of the pages `main.ts` takes, and **`storybook` is one of them**: the optional `story` field names
+the story it opens (`solid/scenes/storybook-switch.json`), so a story's state and the keys that reached it are one file —
+the native half of a link (`--story` is the other half, for a frame written from the command line). A `story` on any other
+page is a parse error, because that page has no stories.
+
 The file:
 
 | field | what it is |
