@@ -1,6 +1,6 @@
 {
   "name": "@cssints/reactive",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "CSS-first interactions for cssints: state as custom properties, writes only in events, conditions and DOM output in plain CSS, wired by a ~1 kB runtime",
   "license": "MIT",
   "repository": {
