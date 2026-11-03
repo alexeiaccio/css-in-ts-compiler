@@ -20,6 +20,9 @@ a {
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8125rem;
+  /* a path or a token is one long word: it wraps instead of pushing the page sideways (the add command keeps its own
+     `nowrap` and scrolls) */
+  overflow-wrap: anywhere;
 }
 
 .docs {
@@ -80,6 +83,8 @@ code {
 
 .docs__main {
   display: grid;
+  /* the column is the page's width, not the widest story: a table or a long line scrolls inside the preview */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   align-content: start;
   min-width: 0;
@@ -98,6 +103,8 @@ code {
 
 .docs__section {
   display: grid;
+  /* a source block is as wide as the page: its own `overflow-x` scrolls it, the section does not grow */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -134,6 +141,10 @@ code {
 
 .docs__preview {
   display: grid;
+  /* A track sized by max-content let a wide story (a table, a long line of prose) push the page sideways: the column
+     takes the main grid's width and the story scrolls inside it. */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   place-items: center;
   padding: var(--space-8);
   border: 1px solid var(--color-border);
@@ -158,6 +169,7 @@ code {
 }
 
 .docs__file {
+  min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -169,6 +181,7 @@ code {
 }
 
 .docs__code {
+  max-width: 100%;
   overflow-x: auto;
   max-height: 28rem;
   margin: 0;

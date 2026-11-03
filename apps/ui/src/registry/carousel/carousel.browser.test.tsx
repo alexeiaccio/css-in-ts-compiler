@@ -511,6 +511,8 @@ describe("Carousel", () => {
     await settle();
 
     expect(rotation(root).hasAttribute("hidden")).toBe(true);
+    // the attribute has to mean hidden: no display in the control's class may override the UA's `[hidden] { display: none }`
+    expect(getComputedStyle(rotation(root)).display).toBe("none");
     expect(controller.phase()).toBe("idle");
     expect(clock.pending()).toBe(0);
     clock.advance(5000);

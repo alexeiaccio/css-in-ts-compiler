@@ -484,10 +484,13 @@ export const Carousel = (props: CarouselProps): JSX.Element => {
 
   // The primitive's own rotation control: its label is "Stop automatic slide show" exactly while `rotating()`, which is
   // the clock's `waiting`. It is hidden when `autoRotate` is off, as the APG asks (no rotation, no control).
+  // `autoRotate: false` hides the control through the `hidden` attribute, and the control's own `display` would override
+  // the UA's `[hidden] { display: none }`: the attribute gets a rule of its own, and a hidden rotation control does not
+  // paint (found by a story; the test now reads the computed display, not the attribute).
   const rotation = merge(carousel.rotationProps, {
     "data-part": "carousel-rotation",
     get class() {
-      return controlClass;
+      return css.cn(controlClass, css.attr("hidden")(css.display("none")));
     },
   });
 

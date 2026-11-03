@@ -141,8 +141,17 @@ try {
   await page.goto(`${base}#table--issues`);
   assert.equal(await preview.getByRole("row").count(), 7);
   await page.goto(`${base}#virtual-list--ten-thousand`);
+  // a hash-only navigation keeps the previous page's DOM for a moment: wait for the story before measuring the page
+  await page.waitForFunction(
+    () => document.querySelector(".docs__story code")?.textContent === "virtual-list--ten-thousand",
+  );
   const windowed = await preview.locator("[data-part=virtual-list-item]").count();
   assert.ok(windowed > 0 && windowed < 40, `a window of rows, got ${windowed}`);
+  // a wide story scrolls inside the preview: the page itself never scrolls sideways
+  const sideways = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  assert.ok(sideways <= 0, `the page scrolled sideways by ${sideways}px`);
 
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });
