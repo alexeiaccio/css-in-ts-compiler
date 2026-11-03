@@ -3056,6 +3056,26 @@ on `--page figure`: it prints the same module's text before the grid opens, so t
 An invalid spec is refused with every sentence on stderr, exit 1, and **no figure on stdout**, as the desktop and the
 terminal refuse before a frame.
 
+**The export half.** `solid/src/figure/export/` writes the same layout twice more, with no host:
+`svg(spec, { width, scale })` is one standalone `<svg>` (`bun solid/figure.ts <spec> --svg <file>`, `-` for stdout) — the
+viewBox is the layout's cells × 8/16, every item is one element (a box a `<rect>`, a bar its track and fill, a text a
+`<text>` at its baseline, a swatch its own `#rrggbb`, a marker a triangle, a space nothing), the title and the source are
+in it, and no font file, script or external stylesheet is. `html(spec)` (`--html <file>`) is one page: the SVG **inline
+and verbatim, once**, with the title, the intent, the `►` focus line and the source around it, `<title>` and
+`<meta name="description">` from the spec, `prefers-color-scheme` dark and light on the page's own role variables, a
+print sheet and `forced-colors` rules. It carries **no JavaScript**, so the one thing it drops is the kit's arrival (a
+figure growing in on view — the still is the export; the live colour probe and the ↺ replay go with it), and the meaning
+survives without colour because every number is text. `NO_COLOR` is an environment variable a page with no script cannot
+read; the page is colour-independent by construction instead. Text is XML-escaped, so a label with `&` or `<` still
+parses; `font-family="Roboto, Helvetica, Arial, sans-serif"` ships no font, so a viewer without Roboto measures `Aa` with
+its own fallback and the cells, boxes and bars do not move (the one caveat of a fontless file). Both writes validate
+first: an invalid spec prints `check`'s sentences, exits 1 and writes no file. The output is deterministic; `solid/test.sh`
+runs each twice and `cmp`s, and ships `docs/exports/palette.html` (28,736 B) and `docs/exports/pipeline.svg` (2,573 B)
+from their specs. `solid/figure-export.test.ts` holds every spec's SVG to the layout (well-formed XML by a hand-check, its
+`<text>`s in the layout's order, every `<rect>`'s x/width the layout's own number, worst error **0.000 px**), the page to
+one verbatim SVG and no `<script>`, and Chromium's rendered boxes to the SVG's numbers (worst **0.000 px**, tolerance
+**1 px**).
+
 **The docs draw themselves.** The eight figures below are drawn by the renderer from their specs, and `test.sh` regenerates
 them (`bun solid/figure.ts --redraw native/README.md`) and `cmp`s the result with this file, so a figure here cannot drift
 from its spec — the same discipline as the generated C and the goldens. The line above each fence names the spec, relative

@@ -1042,7 +1042,10 @@ whose rows differ: a 40px line is three cells). `src/figure/text.ts` draws all t
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
 `bun terminal/solid.ts --page figure --spec ... --text` prints it from the terminal host. `solid/figure-text.test.ts`
 holds each bar's text cells to the terminal's (within half a cell, the same tolerance) and the docs' figures to a
-byte-identical `--redraw`; `native/README.md`'s eight figures are that renderer's.
+byte-identical `--redraw`; `native/README.md`'s eight figures are that renderer's. `--svg <file>` and `--html <file>`
+write the same layout as one standalone SVG and one self-contained page (`-` for stdout); both `parse`/`check` first, so
+an invalid spec writes nothing. `src/figure/export/` is the pair (the page embeds the SVG verbatim, once), and
+`figure-export.test.ts` holds it to the layout, to Chromium's rendered boxes (1 px) and to two `cmp`-identical runs.
 
 ## The accessibility tree
 

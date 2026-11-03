@@ -89,7 +89,8 @@ Its text half is the same layout as characters (`solid/src/figure/text.ts`, `sol
 `█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
 eight figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure
 cannot drift from its spec. A future kind needs only to return its rows from `layout`: the text renderer reads no kind's
-data.
+data. As files, the same layout is `docs/exports/palette.html` (one self-contained page) and `docs/exports/pipeline.svg`
+(one standalone SVG), both written by `solid/figure.ts --html`/`--svg` and regenerated and `cmp`'d by `solid/test.sh`.
 
 ## Where Solid runs
 
