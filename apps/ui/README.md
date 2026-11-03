@@ -11,7 +11,8 @@ modules into entries with Storybook's ids (`button--accent`), and the
 id is the hash, so a story is a link. A story's `argTypes` declares the controls under the canvas
 (`src/stories/controls.tsx`, on the kit's own Field, Select, Switch and Slider); a story that declares none shows no panel.
 The shell is the kit too: the story switcher is `Tabs`, the theme switch a `Switch` writing the theme's `data-mode` scope,
-the tint a `RadioGroup`, the copies `Button`s.
+the tint a `RadioGroup`, the copies `Button`s. The rail's search is the kit's `Input`: `/` reaches it from anywhere but a
+field, an item matches by its title or by one of its stories, and Escape clears it.
 
 - `bun run dev` — the site and the components' browser tests share `vitest.browser.config.ts`; `bun run test` runs the
   conformance of every starter in this directory and of any copy in `src/components/ui/`.

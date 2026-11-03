@@ -153,6 +153,21 @@ try {
   );
   assert.ok(sideways <= 0, `the page scrolled sideways by ${sideways}px`);
 
+  // The rail's search: `/` reaches it from the page, an item and its stories both match, and Escape clears it.
+  await page.keyboard.press("/");
+  const search = page.getByRole("searchbox", { name: "Search components and their stories" });
+  assert.equal(await search.evaluate((element) => element === document.activeElement), true);
+  await search.fill("car");
+  assert.equal(await page.getByRole("link", { name: "Carousel", exact: true }).count(), 1);
+  assert.equal(await page.getByRole("link", { name: "Tabs", exact: true }).count(), 0);
+  // a story's name finds its page: `toggle` is a Button story
+  await search.fill("toggle");
+  assert.equal(await page.getByRole("link", { name: "Button", exact: true }).count(), 1);
+  await search.fill("no-such-thing");
+  assert.equal(await page.getByText(/No component or story matches/).count(), 1);
+  await search.press("Escape");
+  assert.equal(await page.getByRole("link", { name: "Tabs", exact: true }).count(), 1);
+
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });
   const pageBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);

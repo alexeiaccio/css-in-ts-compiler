@@ -59,6 +59,11 @@ code {
   gap: 2px;
 }
 
+/* the rail's search sits above the list it filters */
+.docs__search {
+  margin-bottom: var(--space-1);
+}
+
 .docs__link {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);

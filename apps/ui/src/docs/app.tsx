@@ -8,6 +8,7 @@ import { componentFile, items, type CatalogItem } from "./catalog.ts";
 import { For, Show, createEffect, createSignal, onCleanup } from "solid-js";
 import { GUIDES, type Guide } from "./guides.tsx";
 import { Button } from "../registry/button/button.tsx";
+import { Input } from "../registry/input/input.tsx";
 import { RadioGroup } from "../registry/radio/radio.tsx";
 import { Switch } from "../registry/switch/switch.tsx";
 import { Tabs } from "../registry/tabs/tabs.tsx";
@@ -92,6 +93,23 @@ export const Docs = (): JSX.Element => {
   const [story, setStory] = createSignal(start.story);
   const [tint, setTint] = createSignal(TINTS[0] ?? { name: "neutral", hue: "0", chroma: "0" });
   const [copied, setCopied] = createSignal("");
+  // The rail's search: an item matches by its title, or by a story of it (`toggle` finds Button). It filters the list, not
+  // the page: a query that hides the drawn item leaves it drawn, so a reader can keep reading what they opened.
+  const [query, setQuery] = createSignal("");
+  const shown = (): ReadonlyArray<CatalogItem> => {
+    const needle = query().trim().toLowerCase();
+    if (needle === "") {
+      return items;
+    }
+    return items.filter(
+      (entry) =>
+        entry.title.toLowerCase().includes(needle) ||
+        storiesOf(entry.name).some(
+          (story) =>
+            story.name.toLowerCase().includes(needle) || story.id.toLowerCase().includes(needle),
+        ),
+    );
+  };
 
   // The tint is two custom properties every scale token is computed from at `:root`, so it is set there: on the preview
   // section alone the declarations would already be resolved and nothing would move.
@@ -122,6 +140,25 @@ export const Docs = (): JSX.Element => {
     setName(next.name || first());
     setStory(next.story);
   };
+  // `/` reaches the search from anywhere but a field (the shortcut every documentation site has), and Escape clears it
+  let search: HTMLInputElement | undefined;
+  const onKey = (event: KeyboardEvent): void => {
+    const target = event.target;
+    const typing =
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof HTMLElement && target.isContentEditable);
+    if (event.key === "/" && !typing) {
+      event.preventDefault();
+      search?.focus();
+      search?.select();
+    }
+  };
+  window.addEventListener("keydown", onKey);
+  onCleanup(() => {
+    window.removeEventListener("keydown", onKey);
+  });
+
   // one-shot: the listener is attached once, in the component body, and removed with it
   window.addEventListener("hashchange", follow);
   onCleanup(() => {
@@ -221,7 +258,27 @@ export const Docs = (): JSX.Element => {
         </nav>
         <nav aria-label="Components">
           <p class="docs__label">Components</p>
-          <For each={items}>
+          <Input
+            ref={(element: HTMLInputElement) => {
+              search = element;
+            }}
+            class="docs__search"
+            type="search"
+            value={query()}
+            aria-label="Search components and their stories"
+            placeholder="Search · /"
+            onInput={(event) => setQuery(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setQuery("");
+                event.currentTarget.blur();
+              }
+            }}
+          />
+          <Show when={shown().length === 0}>
+            <p class="docs__note">No component or story matches “{query()}”.</p>
+          </Show>
+          <For each={shown()}>
             {(entry) => (
               <a
                 class={`docs__link${entry.name === name() ? " docs__link--active" : ""}`}

@@ -4192,3 +4192,16 @@ back from the PNGs: `rowOn` follows the arrow, the focus ring stays on the rail 
 **Left:** there is still no controls panel in native (a story's args are the page's own); the selected story is not in a
 URL or a scene's target; and the rail has two stories to show, so the wrap-around is the tested-in-headless behaviour rather
 than a frame of its own.
+
+## The rail's search, and the grouping it did not get (2026-11-03)
+
+Asked ("the rest"): a rail of 54 pages is a list to scroll, not to find in. **The search is the kit's `Input`**, above the
+components list, `/` reaches it from anywhere but a field and Escape clears it. An item matches by its title **or by one of
+its stories**: typing `toggle` finds Button, whose `Toggle` story is the thing the reader remembers. The query filters the
+list only — a query that hides the drawn page leaves it drawn, so a reader does not lose what they were reading, and the
+empty state names the query. **Grouping was left out on purpose**: the registry has no category (`r/<name>.json` carries a
+title and a description, and the 54 items are one flat list), so a group would be a second taxonomy to keep in step with
+the files — the search answers the same question with no data to maintain. If a category arrives in the registry build,
+grouping becomes a `For` over it. **Evidence:** `apps/ui/test/site.mjs` — `/` focuses the field, `car` leaves Carousel and
+drops Tabs, `toggle` reaches Button, a nonsense query shows the empty line, Escape restores the list — plus a screenshot of
+the rail with `ta` typed.
