@@ -6,6 +6,7 @@
 //   kinds/flows.ts      flow, branchFlow, stateMachine
 //   kinds/structure.ts  journeyMap, tree
 //   kinds/systems.ts    palette, spacingScale, typeScale
+//   kinds/motion.ts     easing, frameStrip, motionTiming, stagger
 //   kinds/shared.ts     what they all use — cells, the item builders, `finish`, the raw-JSON readers — and no kind
 //
 // To add a kind, three steps, none of them in another kind's file:
@@ -23,6 +24,7 @@
 // has every kind registered too.
 import "./kinds/flows.ts";
 import "./kinds/metrics.ts";
+import "./kinds/motion.ts";
 import "./kinds/structure.ts";
 import "./kinds/systems.ts";
 

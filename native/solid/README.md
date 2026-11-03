@@ -1047,6 +1047,13 @@ whose rows differ: a 40px line is three cells). `src/figure/text.ts` draws all t
 `▲` for a marker — so the text half still reads items and has no kind in it. Their goldens are `figure-palette.json`,
 `figure-contrast.json`, `figure-spacing.json` and `figure-type-scale.json`, and the browser reads `?spec=` of each.
 
+**The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
+their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
+`solid/test.sh` regenerates and `cmp`s them, so the areas are now five (`metrics`, `flows`, `structure`, `systems`,
+`motion`) and the specs sixteen. `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
+strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
+terminal's rows and the browser's `?spec=` of each.
+
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
 `bun terminal/solid.ts --page figure --spec ... --text` prints it from the terminal host. `solid/figure-text.test.ts`

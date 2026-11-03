@@ -60,10 +60,12 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Twelve kinds are here: `barChart`, `branchFlow`, `compare`, `contrast`, `flow`, `funnel`,
-`journeyMap`, `palette`, `spacingScale`, `stateMachine`, `tree` and `typeScale`. A kind is one file under
-`solid/src/figure/kinds/` — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, over `shared.ts` — its layout and its
-refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other kind's;
+terminal at one cell. Sixteen kinds are here: `barChart`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`,
+`frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `palette`, `spacingScale`, `stagger`, `stateMachine`, `tree` and
+`typeScale`. A kind is one file under
+`solid/src/figure/kinds/` — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `motion.ts`, over `shared.ts` — its
+layout and its refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other
+kind's;
 `solid/src/figure/kinds.ts` is the door that loads those files and `registry.ts` the table a kind is looked up in. Four of
 them are the design system's half and their data is our own tokens: `palette` (`@cssints/tokens`' Open Props blue and
 grey on their page, a swatch and its contrast a step, `▲` on the first step at 4.5 to 1) and `contrast` (the docs' own
@@ -88,6 +90,10 @@ native/README.md --bench: 0.30, 0.077, 0.08 ms
 
 `pipeline.json` is this pipeline's own flow (declaration → Clay → commands → ThorVG / cells / Canvas2D); `funnel.json`
 and `compare.json` are the kit's examples, adapted. `native/README.md`'s "Figures from specs" chapter is the whole of it.
+Its four **motion** kinds (`motionTiming`, `easing`, `stagger`, `frameStrip`) are the other half's and the first whose
+data is `solid/src/motion.ts`'s **own**: `solid/specs/from-motion.ts` runs the solver at 1/60 and writes `motion-timing`,
+`easing`, `stagger` and `frame-strip.json`, `solid/test.sh` regenerates and `cmp`s them, and the check re-runs the same
+spring from the data — so a motion figure is the trajectory the pages take, not a drawing of one.
 Its text half is the same layout as characters (`solid/src/figure/text.ts`, `solid/figure.ts`): the title, the rows with
 `█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
 eight figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure
@@ -1335,6 +1341,16 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    item 2 — its selection, which the wheel leaves behind, is a declared range of its own, and a measured feed is declared
    once in one frame and then virtualized, so neither the column's layout nor the content's end moves
    (`solid/list.test.ts`, `solid/virtual.test.ts`).
+   **Done: the motion as a figure** (2026-11-03). The four motion kinds of the figure format (`motionTiming`, `easing`,
+   `stagger`, `frameStrip`, `solid/src/figure/kinds/motion.ts`) draw `motion.ts`'s **own** samples: `from-motion.ts`
+   writes the Dialog's panel out (`spatial(0.2, 0)`) and menu in (`spatial(0.22, 0.1)`), the same travel on `effect(0.22)`,
+   the Sky cards' 50ms stagger and the panel's drop beside the feed's fling (`decay(87.03 px/s)`, landing on 54.95) at
+   1/60, and `solid/figure-motion.test.ts` re-runs the spring from each spec's parameters — so the samples the panels took
+   are the ones the figure prints (the entry `149.88, 151.07, 153.49 …` and the menu `-10.00, -10.85 …` are the README's
+   own lists, to 0.00px; the exit's fourth frame is 170.40 against the page's measured 170.39). So what is left of the
+   motion items is what a figure cannot carry — a second gradient on one element, the thread screen, a finger on real
+   glass, and the other targets' pages: a track's trajectory is no longer one of them, it is a figure read on the desktop,
+   the terminal and the browser, and nothing about a page's behaviour moved.
 3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
    two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
    a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160

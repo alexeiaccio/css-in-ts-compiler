@@ -3003,11 +3003,11 @@ measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline thi
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
 **Not here** (and honest about it): the kit's other **28 kinds** (cohort, heatmap, forecast, sparkline, meter,
-journeyMap, tree, the wireframes…), its **motion** (funnels falling, arrival orders), its
-exports to **HTML, decks, SVG, PDF and PNG**, its **text renderer** (a figure as characters with `█▓▒`), its `@file` data,
-`lang` and the SAMPLE DATA stamp, and its `label`. The next one would be the **text renderer** — the same layout drawn as
-cells, which this repository already has half of in `terminal/solid.ts`'s dump — then `journeyMap` and `tree`, whose
-boxes and arrows are the same row of panel boxes with a second row under it.
+journeyMap, tree, the wireframes…), its **motion**'s `intentCard`, `transitionSpec` and `easingTable` (the four kinds that
+are here are below), its exports to **HTML, decks, SVG, PDF and PNG**, its **text renderer** (a figure as characters with
+`█▓▒`), its `@file` data, `lang` and the SAMPLE DATA stamp, and its `label`. The next one would be the **text renderer** —
+the same layout drawn as cells, which this repository already has half of in `terminal/solid.ts`'s dump — then `journeyMap`
+and `tree`, whose boxes and arrows are the same row of panel boxes with a second row under it.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
@@ -3283,5 +3283,26 @@ apps/docs/src/tokens.json (fontSize, lineHeight) and src/prose.ts's roles
 ```
 
 What remains of the kit's systems half: `colourRoles` (a role's light and dark value with a verdict), `stateMatrix`,
-`layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its motion, and its exports to HTML,
-decks, SVG, PDF and PNG.
+`layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its `intentCard`/`transitionSpec`, and its
+exports to decks, PDF and PNG.
+
+**The four motion kinds.** `motionTiming`, `easing`, `stagger` and `frameStrip` (`solid/src/figure/kinds/motion.ts`) are
+the first kinds whose data is not typed but **solved**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own
+`Track.at` and `Decay.at` at 1/60 and writes `motion-timing.json`, `easing.json`, `stagger.json` and `frame-strip.json`,
+and `solid/test.sh` regenerates them into a temp directory and `cmp`s (`--check` does both) — so a change to the spring
+changes the figure in the same commit. `motionTiming` is a track's samples a bar a row, the settle marked;
+`easing` is a curve a block of dots (the instants across, the values down, one scale for both curves, and the `v = 0`/peak
+note under it); `stagger` is an item a row with its delay as an indent and its span as a bar; `frameStrip` is glyph-kit's
+filmstrip, a frame a row with the box at its offset in cells. The data is the repository's own motion: the Dialog's panel
+out on `spatial(0.2, 0)` and its menu in on `spatial(0.22, 0.1)`, the panel's entry on `spatial(0.22, 0.1)` against
+`effect(0.22)` for the same travel, the Sky cards' 50ms stagger, and the panel's drop beside the feed's fling
+(`decay(87.03 px/s)`, landing on 54.95px). **The README's own numbers are the script's check**: the panel's entry
+`149.88, 151.07, 153.49, 156.07, 158.33` and the menu's `-10.00, -10.85, -12.58, -14.42, -16.04` are the solver's at 1/60 to
+**0.00px**, the exit's fourth frame is **170.40** against the page's measured `170.39` (the page ticks on the window's
+clock, the script on 1/60), and the cards' 50ms is three frames of a sixtieth. Each has a stored frame
+(`solid/frames/figure-{motion-timing,easing,stagger,frame-strip}.png`) and a command golden, and
+`solid/figure-motion.test.ts` holds the samples to `Track.at` (worst 0.0044px), each dot to its sample (half a value level
+is 1.17px), each strip's box to the track's offset (0.47 of a cell) and the stagger's bars to the items' own delays, then
+the terminal's rows to the frame's words and the browser to `?spec=` of each file. What the figures do not carry: a
+figure is one track's or one run's trajectory, so a retarget mid-flight (the Dialog's reopen) is still a test's number,
+and the kit's `intentCard`, `transitionSpec` and `easingTable` are not kinds here.

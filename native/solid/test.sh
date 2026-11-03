@@ -393,6 +393,8 @@ bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
 cmp "$TEXTDOC/README.md" README.md || {
   echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
 echo "figure text: native/README.md's four figures are the renderer's, byte for byte (cmp)"
+# the four motion kinds' numbers are solid/src/motion.ts's own: specs/from-motion.ts writes them and cmps (a change to the spring is this line)
+bun solid/specs/from-motion.ts --check
 # The export half (solid/src/figure/export/*, solid/figure-export.test.ts): the same layout as one standalone SVG and one
 # self-contained page, with no host, no framework and no build step. The test holds every spec's SVG to the layout
 # (well-formed XML, its texts in order, every x/width the layout's number), the page to one verbatim SVG and no script,
