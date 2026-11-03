@@ -4090,3 +4090,21 @@ for the packument**, not the version, so `release:check` — and with it the who
 packument did. Both waits are recorded in RELEASING.md. 0.29.0 then published all 30 through OIDC in one run, with no tlog
 retry, and `@cssints/stories@0.29.0` carries a `provenance` attestation from `release.yml` (its hand-published 0.28.0, from
 a token, does not).
+
+## The docs' code leaves Shiki for Pierre (2026-11-03, cssints-sbce)
+
+Asked by the user, continuing the highlighting decision of `native/docs/map.md`: the terminal's code pane is tree-sitter's,
+and the docs' code was to read `@pierre/highlights`. It does now, at build time: `plugin/code.ts` paints the files of an
+example's Result/Code panel, the README blocks that the type-check skips (css, bash, the package READMEs) and the landing
+page's three samples; Shiki renders only the ts blocks twoslash type-checks, because the hovers are its transformer's, and
+those blocks now use a Shiki theme built from the same table. **One palette, two highlighters:** each kind's colour is the
+default palette's RYBitten cube at the accent's hue (`keyword` at 0°, `string` at −90°, `tag` at +90°, …) at a contrast
+floor — 4.6:1 light, 7:1 dark — on the code's own paper, and both emit the same `--shiki-light-*`/`--shiki-dark-*`
+custom properties, so `src/prose.ts`'s existing mode switch paints either. The paper is fixed (`src/code.ts`: the default
+palette's `bgSubtle` in each mode) rather than a token: Munsell's warm `bgSubtle` takes fixed syntax colours to 3.5:1, and
+the site promises 4.5 for small text in every palette. **Evidence:** `test/code.mjs` measures every colour and pins the
+paper to the palette; `test/build.mjs` asserts the paper's two rules and the font-style switch; frames, browser and build are
+green. **Cost:** the 276 kB wasm runs at build time only and is not in the client; the pages' size is unchanged. **Left:**
+highlighting in the browser — a live pane (fetch a file, highlight on demand) is what the wasm in the client is for, and
+nothing yet needs it. `toCSS` was not used: the variables are already ours, and a CSS-variable theme would have put the
+colours beyond `test/code.mjs`'s reach.

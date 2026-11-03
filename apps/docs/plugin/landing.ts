@@ -1,16 +1,16 @@
 // The landing page (/), made at build time like the pages of the markdown. The showcase is the compiler's own output:
 // src/landing/button.ts goes through the cssints plugin on a Vite server of its own (as packages/mcp compiles a module), and the
-// module it makes, its stylesheet and the error of a misspelt value are highlighted with Shiki. That is the data of landing() in
+// module it makes, its stylesheet and the error of a misspelt value are highlighted with Pierre. That is the data of landing() in
 // src/landing/page.ts, a cssints module whose classes are css.cn: plugin/docs.ts writes the string this server makes of it into
 // the document of "/", and the virtual module virtual:docs/landing calls landing() with the same data in the build, so the
 // app renders the same string and the classes are in the build's sheet.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import cssints from "cssints/vite";
-import { createHighlighter } from "shiki";
 import { createServer, type ViteDevServer } from "vite";
 
 import type { LandingData } from "../src/landing/page.ts";
+import { highlight } from "./code.ts";
 
 const root = join(import.meta.dirname, "..");
 const button = join(root, "src/landing/button.ts");
@@ -73,19 +73,9 @@ export const compile = () => withServer((_, made) => Promise.resolve(made));
 
 // `base` ends with a slash, as in plugin/docs.ts: the data of the page, and the html this server makes of it
 export async function landing(base: string): Promise<{ data: LandingData; html: string }> {
-  const highlighter = createHighlighter({
-    themes: ["github-light", "github-dark"],
-    langs: ["ts", "css", "bash"],
-  });
   return withServer(async (server, c) => {
     if (!c.error) throw new Error("the misspelt colour of src/landing compiled");
-    const h = await highlighter;
-    const code = (text: string, lang: string) =>
-      h.codeToHtml(text.trim(), {
-        lang,
-        themes: { light: "github-light", dark: "github-dark" },
-        defaultColor: false,
-      });
+    const code = (text: string, lang: string) => highlight(text.trim(), lang);
     const data: LandingData = {
       base,
       install: code("npm install --save-dev cssints", "bash"),

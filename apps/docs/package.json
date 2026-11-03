@@ -7,7 +7,7 @@
     "build": "vp build",
     "preview": "vp preview",
     "typecheck": "node scripts/tokens-types.mjs --check && node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
-    "test": "node test/search.mjs && node test/settings.mjs && node test/contrast.mjs && node test/pds.mjs && node test/build.mjs && node test/browser.mjs && node test/frames.mjs && node test/playground.mjs && node test/tui.mjs",
+    "test": "node test/search.mjs && node test/settings.mjs && node test/contrast.mjs && node test/code.mjs && node test/pds.mjs && node test/build.mjs && node test/browser.mjs && node test/frames.mjs && node test/playground.mjs && node test/tui.mjs",
     "tokens:types": "node scripts/tokens-types.mjs",
     "deploy": "alchemy deploy --stage prod",
     "destroy": "alchemy destroy --stage prod"
@@ -33,6 +33,7 @@
     "@opencode/client": "2.0.26",
     "@oxc-parser/binding-wasm32-wasi": "0.149.0",
     "@oxc-transform/binding-wasm32-wasi": "0.149.0",
+    "@pierre/highlights": "^0.3.0",
     "@shikijs/twoslash": "^3.0.0",
     "@solidjs/vite-plugin": "3.0.0-next.47",
     "@wasm-fmt/oxc_fmt": "0.2.9",

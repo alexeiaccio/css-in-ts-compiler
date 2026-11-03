@@ -1,5 +1,6 @@
-// README.md and docs/API.md to pages: split at the headings, highlight the code (Shiki, with twoslash hovers on the ts blocks) and
-// resolve the links between the two files. Node only (the Vite plugin calls it); the browser gets the result as data.
+// README.md and docs/API.md to pages: split at the headings, highlight the code (Pierre, and Shiki where twoslash puts its
+// hovers on the ts blocks) and resolve the links between the two files. Node only (the Vite plugin calls it); the browser gets
+// the result as data.
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
@@ -9,6 +10,7 @@ import { createHighlighter } from "shiki";
 import ts from "typescript";
 
 import { exampleHash } from "../src/playground/share.ts";
+import { highlight, shikiThemeNames, shikiThemes } from "./code.ts";
 import { PDS_FILES, docsSource, loadPdsPages, pdsConfig } from "./pds.ts";
 
 const root = join(import.meta.dirname, "../../..");
@@ -205,8 +207,8 @@ export async function buildPages(base = "/"): Promise<Page[]> {
   };
 
   const highlighter = await createHighlighter({
-    themes: ["github-light", "github-dark"],
-    langs: ["ts", "tsx", "css", "bash"],
+    themes: [shikiThemes.light, shikiThemes.dark],
+    langs: ["ts", "tsx"],
   });
   // The panel of a page's example: the tabs Result and Code, radio inputs that the styles of src/prose.ts read (no script), and the
   // files of the project highlighted as the blocks of the page are, the entry first, with a switcher (prose.ts has rules for six).
@@ -221,11 +223,7 @@ export async function buildPages(base = "/"): Promise<Page[]> {
     assert(names.length <= 6, `${slug}: ${names.length} files, the styles have a switcher for six`);
     const id = `ex-${slug}`;
     const code = names.map((n) =>
-      highlighter.codeToHtml(readFileSync(join(dir, n), "utf8").trimEnd(), {
-        lang: n.endsWith("x") ? "tsx" : "ts",
-        themes: { light: "github-light", dark: "github-dark" },
-        defaultColor: false,
-      }),
+      highlight(readFileSync(join(dir, n), "utf8").trimEnd(), n.endsWith("x") ? "tsx" : "ts"),
     );
     const radios = names.map(
       (_, i) => `<input type="radio" name="${id}-file" id="${id}-f${i}"${i ? "" : " checked"}>`,
@@ -275,13 +273,16 @@ declare namespace JSX {
           // the blocks of a package README are highlighted, not type-checked (docs.mjs checks API.md and README.md only)
           const skip =
             meta.includes("skip") || !/^tsx?$/.test(language) || file.startsWith("packages/");
-          const out = highlighter.codeToHtml(text, {
-            lang: highlighter.getLoadedLanguages().includes(language) ? language : "text",
-            themes: { light: "github-light", dark: "github-dark" },
-            defaultColor: false,
-            meta: { __raw: skip ? "notwoslash" : "" },
-            transformers: hovers ? [twoslash] : [],
-          });
+          // a block twoslash type-checks is Shiki's (the hovers are its transformer's); every other is Pierre's
+          const out = skip
+            ? highlight(text, language)
+            : highlighter.codeToHtml(text, {
+                lang: language,
+                themes: shikiThemeNames,
+                defaultColor: false,
+                meta: { __raw: "" },
+                transformers: hovers ? [twoslash] : [],
+              });
           // a type in an error message is named by its file: not this machine's path
           const html = out.replaceAll(`${root}/`, "");
           // the README's example is the project of the playground's picker: on the Install page the block, with its hovers, is the example
