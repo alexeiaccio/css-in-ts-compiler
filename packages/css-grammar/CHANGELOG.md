@@ -1,5 +1,9 @@
 # @cssints/css-grammar
 
+## 0.30.1
+
+No changes in this release.
+
 ## 0.30.0
 
 No changes in this release.

@@ -2,6 +2,16 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.30.1 (2026-11-03)
+
+### Patch changes
+
+- `TableProps` declares the `role: "table"` it has always returned.
+  
+  The object `tableProps` has carried the role since 0.30.0 — that is what makes a `display: contents`
+  skin keep the table's place in the accessibility tree — but the interface left it out, so a skin
+  written in TypeScript could spread it and still not read it. No behaviour changes.
+
 ## 0.30.0 (2026-11-03)
 
 ### Minor changes
