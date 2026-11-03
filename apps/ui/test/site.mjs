@@ -137,6 +137,13 @@ try {
     "false",
   );
 
+  // The data starters: a table of six rows under its header, and a list of ten thousand that keeps a window of them.
+  await page.goto(`${base}#table--issues`);
+  assert.equal(await preview.getByRole("row").count(), 7);
+  await page.goto(`${base}#virtual-list--ten-thousand`);
+  const windowed = await preview.locator("[data-part=virtual-list-item]").count();
+  assert.ok(windowed > 0 && windowed < 40, `a window of rows, got ${windowed}`);
+
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });
   const pageBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
