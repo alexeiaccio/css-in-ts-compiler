@@ -41,7 +41,9 @@ parseHash("#button--publish"); // { name: "button", story: "button--publish" }
   does not care how.
 - **The controls.** `argTypes` is the model (`boolean`, `select` with `options`, `text`, `number`, `range` with
   `min`/`max`/`step`). Storybook infers a control from a component's props; a Solid component carries none at run time, so
-  a story declares what it wants by hand. The panel is the app's: a row per declared arg.
+  a story declares what it wants by hand. The meta's controls are the file's, and a story's own `argTypes` are merged over
+  them per arg (CSF 3's story-level `argTypes`), so a file whose stories have different args gives each its own. The panel
+  is the app's: a row per declared arg.
 - **Nothing else.** No DOM, no styles, no routing: the chrome (a rail, a tablist, a native window) is the app's, and so is
   the renderer — `entries<Node>()` returns views of whatever the app renders, so the same loader serves the web site, the
   lab and cssints-native.

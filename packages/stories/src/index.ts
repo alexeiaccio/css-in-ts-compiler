@@ -40,6 +40,8 @@ export interface Story<Props extends object = Record<string, unknown>, Node = un
   readonly name?: string;
   /** Arguments this story adds to the meta's. */
   readonly args?: Partial<Props>;
+  /** Controls this story adds to the meta's, per arg: a file whose stories have different args declares them here. */
+  readonly argTypes?: ArgTypes;
   /** Markup instead of the meta's component: a story that composes several widgets. */
   readonly render?: (args: Props) => Node;
 }
@@ -127,7 +129,7 @@ export const entries = <Node = unknown>(
         title: meta.title,
         name,
         args: { ...meta.args, ...story.args },
-        argTypes: meta.argTypes ?? {},
+        argTypes: { ...meta.argTypes, ...story.argTypes },
         view: viewOf(meta, story),
       });
     }

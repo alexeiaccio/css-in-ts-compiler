@@ -18,6 +18,8 @@ const modules = {
     Primary: { args: { tone: "accent", children: "Publish" } },
     // a render story: the view is the render, and the args it is given are its own
     Quiet: { args: { tone: "quiet" }, render: (args) => args },
+    // a story's own controls, over the meta's
+    Loaded: { argTypes: { tone: { type: "select", options: ["quiet"] } }, render: () => "loaded" },
     // what the plugin adds to a compiled module: not a story
     __cssints_hoisted: 1,
     $$moduleUrl: "/src/registry/button/button.stories.tsx",
@@ -31,15 +33,15 @@ const modules = {
 const stories = entries(modules);
 assert.deepEqual(
   stories.map((story) => story.id),
-  ["button--primary", "button--quiet", "card--default"],
+  ["button--loaded", "button--primary", "button--quiet", "card--default"],
 );
 assert.deepEqual(
   stories.map((story) => story.item),
-  ["button", "button", "card"],
+  ["button", "button", "button", "card"],
 );
 
 // the meta's args and the story's, the story's over them
-const primary = stories[0];
+const primary = stories[1];
 assert.equal(primary.title, "Button");
 assert.equal(primary.name, "Primary");
 assert.deepEqual(primary.args, { tone: "accent", size: "md", children: "Publish" });
@@ -50,11 +52,13 @@ assert.deepEqual(primary.view(primary.args), {
   props: { tone: "accent", size: "md", children: "Publish" },
 });
 // a render story draws itself
-assert.deepEqual(stories[1].view(stories[1].args), { tone: "quiet", size: "md" });
+assert.deepEqual(stories[2].view(stories[2].args), { tone: "quiet", size: "md" });
+// a story declares controls of its own, over the meta's per arg
+assert.deepEqual(stories[0].argTypes, { tone: { type: "select", options: ["quiet"] } });
 // a story with no argTypes has none, and one with no story args takes the meta's (none here)
-assert.deepEqual(stories[2].argTypes, {});
-assert.deepEqual(stories[2].args, {});
-assert.equal(stories[2].view({}), "card");
+assert.deepEqual(stories[3].argTypes, {});
+assert.deepEqual(stories[3].args, {});
+assert.equal(stories[3].view({}), "card");
 
 // the item can be named by the app instead of the path's directory
 const flat = entries(

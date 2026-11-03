@@ -3973,9 +3973,10 @@ const stories = entries(modules); // [{ id: "button--default", item: "button", v
   (`button`) and the story, so an app's hash is a link to a story.
 - **`argTypes`** is the controls model: `{ type: "boolean" }`, `{ type: "select", options }`, `{ type: "text" }`,
   `{ type: "number", min?, max?, step? }`, `{ type: "range", min, max, step? }`. Storybook infers a control from a
-  component's props; a Solid component carries none at run time, so a story declares what it wants. **The panel is the
-  app's**: the site draws it on the kit's `Field`, `Select`, `Switch` and `Slider`, and a story with no `argTypes` gets no
-  panel.
+  component's props; a Solid component carries none at run time, so a story declares what it wants. The meta's are the
+  file's, and a story's own `argTypes` are merged over them per arg (CSF 3's story-level `argTypes`), so a file whose
+  stories have different args gives each its own. **The panel is the app's**: the site draws it on the kit's `Field`,
+  `Select`, `Switch` and `Slider`, and a story with no `argTypes` gets no panel.
 - **`Node`** is a type parameter: `entries<JSX.Element>(modules)` on the web, `entries<NativeNode>(modules)` in
   `cssints-native`, and the package never names a renderer. `solid-js` is a peer (for `createComponent` alone).
 
