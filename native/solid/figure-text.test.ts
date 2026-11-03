@@ -11,7 +11,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { layout, PADDING_X, PADDING_Y, type Bar } from "./src/figure/kinds.ts";
+import { layoutOf, PADDING_X, PADDING_Y, type Bar } from "./src/figure/kinds.ts";
 import { parse, type Spec } from "./src/figure/spec.ts";
 import { cellWidth, fillBlocks, FOCUS_MARK, markdown, redrawDoc, render } from "./src/figure/text.ts";
 
@@ -95,7 +95,7 @@ let worstWhere = "";
 
 for (const name of SPECS) {
   const s = spec(name);
-  const l = layout(s);
+  const l = layoutOf(s);
   const text = render(s, { width: WIDTH });
   const lines = text.split("\n");
 
@@ -169,7 +169,7 @@ let fractions = 0;
 let blockWhere = "";
 for (const name of SPECS) {
   const s = spec(name);
-  const l = layout(s);
+  const l = layoutOf(s);
   const lines = render(s, { width: WIDTH }).split("\n");
   l.bars.forEach((bar) => {
     const want = fraction(bar);
@@ -188,7 +188,7 @@ for (const name of SPECS) {
 if (fractions) ok("the eighth blocks", `${fractions} bar(s) draw the remainder they have (e.g. ${blockWhere})`);
 
 const synthetic = (value: number, track = 10) =>
-  layout({ kind: "barChart", source: "Sample", data: [{ label: "x", value }], options: { width: track, max: 10 } }).bars[0]!;
+  layoutOf({ kind: "barChart", source: "Sample", data: [{ label: "x", value }], options: { width: track, max: 10 } }).bars[0]!;
 const half = fillBlocks(synthetic(3.5));
 const whole = fillBlocks(synthetic(4));
 const nearly = fillBlocks(synthetic(3.96));
@@ -236,7 +236,7 @@ else bad("--markdown: the ► line", "no ► line with the focus's say");
 // them; a journey's feeling word and its notes under the bar. The text half reads items, so neither needed a branch here.
 {
   const s = spec("tree");
-  const l = layout(s);
+  const l = layoutOf(s);
   const rows = render(s, { width: WIDTH }).split("\n");
   const wanted = l.lines.map((line) => line.items.flatMap((item) => (item.kind === "box" ? [item.text] : [])));
   const got = rows.map((line) => [...line.matchAll(/\[([^\]]*)\]/g)].map((match) => match[1]!));
@@ -253,7 +253,7 @@ else bad("--markdown: the ► line", "no ► line with the focus's say");
 }
 {
   const s = spec("journey-map");
-  const l = layout(s);
+  const l = layoutOf(s);
   const text = render(s, { width: WIDTH });
   const words = l.bars.filter((bar) => text.includes(bar.text));
   const notes = s.data.filter(
@@ -272,7 +272,7 @@ else bad("--markdown: the ► line", "no ► line with the focus's say");
 // agreement the bars have, a swatch at a time.
 {
   const s = spec("palette");
-  const l = layout(s);
+  const l = layoutOf(s);
   const lines = render(s, { width: WIDTH }).split("\n");
   const ansi = join(work, "palette-swatch.ansi");
   const gridRows = l.lines.reduce((n, line) => n + (line.height ?? 1), 0) + 2;

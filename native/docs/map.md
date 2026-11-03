@@ -61,10 +61,13 @@ in pixels, so a terminal page has its own styles under the same member names.
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
 terminal at one cell. Twelve kinds are here: `barChart`, `branchFlow`, `compare`, `contrast`, `flow`, `funnel`,
-`journeyMap`, `palette`, `spacingScale`, `stateMachine`, `tree` and `typeScale`. Four of them are the design system's half
-and their data is our own tokens: `palette` (`@cssints/tokens`' Open Props blue and grey on their page, a swatch and its
-contrast a step, `▲` on the first step at 4.5 to 1) and `contrast` (the docs' own colour pairs at WCAG's floors) are
-**generated** by `solid/specs/from-tokens.ts` from those files and the engine's contrast
+`journeyMap`, `palette`, `spacingScale`, `stateMachine`, `tree` and `typeScale`. A kind is one file under
+`solid/src/figure/kinds/` — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, over `shared.ts` — its layout and its
+refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other kind's;
+`solid/src/figure/kinds.ts` is the door that loads those files and `registry.ts` the table a kind is looked up in. Four of
+them are the design system's half and their data is our own tokens: `palette` (`@cssints/tokens`' Open Props blue and
+grey on their page, a swatch and its contrast a step, `▲` on the first step at 4.5 to 1) and `contrast` (the docs' own
+colour pairs at WCAG's floors) are **generated** by `solid/specs/from-tokens.ts` from those files and the engine's contrast
 (`packages/cssints/src/color.ts`), with `cmp` in `solid/test.sh`; `spacingScale` (`apps/docs`' `space`) and `typeScale`
 (its `fontSize` with the roles' line heights) are hand-written from `apps/docs/src/tokens.json`. A palette's swatch and a
 type line's own size are what the layout gained — an item kind `swatch`, an item kind `marker`, and a text's `size` with a
