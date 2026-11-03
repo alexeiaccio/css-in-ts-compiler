@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const { capture } = await import("./dump.ts");
-const { layout, CELL_WIDTH } = await import("./src/figure/kinds.ts");
+const { layoutOf, CELL_WIDTH } = await import("./src/figure/kinds.ts");
 const { check, parse } = await import("./src/figure/spec.ts");
 const { variant } = await import("./src/pack.ts");
 const { format } = await import("./src/format.ts");
@@ -111,7 +111,7 @@ let worstWhere = "";
 // (a)-(d) the layout read back from each frame: the bars' geometry, the numbers' text, the rows' order, the funnel's ratios
 for (const name of SPECS) {
   const s = spec(name);
-  const l = layout(s);
+  const l = layoutOf(s);
   const dump = await capture("figure", undefined, { spec: s, warm: 2 });
   const lines = rowsOfFrame(dump);
   const kind = s.kind;
@@ -600,7 +600,7 @@ for (const [file, sentence] of [
 
 // (g) the states the path does not visit: a walk that stops before the machine's last state lists it under the path
 {
-  const partly = layout({
+  const partly = layoutOf({
     kind: "stateMachine",
     data: {
       states: ["idle", "saving", "saved", "failed"],
@@ -621,7 +621,7 @@ for (const [file, sentence] of [
 // (h) the mutations, as the asserts they break: a branch drawn without its connector, a path that skips a transition
 // with the sentence the check must print, and a path with a box dropped
 {
-  const branch = layout(spec("branch-flow"));
+  const branch = layoutOf(spec("branch-flow"));
   const branches = branch.connectors.filter((connector) => connector.role === "branch").length;
   const countBranches = (connectors: readonly { role: string }[]) =>
     connectors.filter((connector) => connector.role === "branch").length === branches;
@@ -649,7 +649,7 @@ for (const [file, sentence] of [
   if (check(skip).includes(skipSentence)) ok("mutation: a path that skips a transition", skipSentence);
   else bad("mutation: a path that skips a transition", `the check printed no ${JSON.stringify(skipSentence)}`);
 
-  const machine = layout(spec("state-machine"));
+  const machine = layoutOf(spec("state-machine"));
   const path = machine.labels.length;
   if (machine.boxes.length === path) ok("mutation: the state boxes", `${path} states on the path, ${machine.boxes.length} boxes`);
   else bad("mutation: the state boxes", `${path} states on the path, ${machine.boxes.length} boxes`);
@@ -658,7 +658,7 @@ for (const [file, sentence] of [
     ok("mutation: a dropped state box", `${path} states on the path, ${dropped.length} boxes: the count differs`);
   else bad("mutation: a dropped state box", "the count did not move");
 
-  const tree = layout(spec("tree"));
+  const tree = layoutOf(spec("tree"));
   const nodes = tree.boxes.length;
   const edges = tree.connectors.length;
   if (edges === nodes - 1) ok("mutation: the tree's edges", `${nodes} nodes, ${edges} connectors, one a child`);
@@ -715,7 +715,7 @@ for (const [file, sentence] of [
   }
   // a spacing bar drawn from the index instead of the value is off by a cell or more, and the numbers say where
   {
-    const spacing = layout(spec("spacing"));
+    const spacing = layoutOf(spec("spacing"));
     const track = spacing.bars[0]!.track;
     const wrong = spacing.bars.map((bar, i) => ({ step: bar.label, value: bar.value, want: (track * bar.value) / bar.max, drawn: i + 1 }));
     const worst = wrong.reduce((a, b) => (Math.abs(b.drawn - b.want) > Math.abs(a.drawn - a.want) ? b : a));
@@ -731,8 +731,8 @@ for (const [file, sentence] of [
 
 // the kind's own two edges, from the layout: a value past `max` fills the track and prints "+", and a positive value
 // too small for a cell still draws one
-const past = layout({ kind: "barChart", source: "Sample", data: [{ label: "over", value: 50 }], options: { width: 10, max: 10 } });
-const tiny = layout({ kind: "barChart", source: "Sample", data: [{ label: "tiny", value: 0.01 }], options: { width: 10, max: 100 } });
+const past = layoutOf({ kind: "barChart", source: "Sample", data: [{ label: "over", value: 50 }], options: { width: 10, max: 10 } });
+const tiny = layoutOf({ kind: "barChart", source: "Sample", data: [{ label: "tiny", value: 0.01 }], options: { width: 10, max: 100 } });
 if (past.bars[0]!.fill === 10 && past.bars[0]!.text === "50+")
   ok("a bar past max", `fills all 10 cells and prints "${past.bars[0]!.text}"`);
 else bad("a bar past max", `${past.bars[0]!.fill}/${past.bars[0]!.track} cells, ${JSON.stringify(past.bars[0]!.text)}`);
@@ -745,7 +745,7 @@ else bad("a bar too small to see", `${tiny.bars[0]!.fill} cells, ${JSON.stringif
 const dark = [...(variant(styles.probe.problem, undefined).text ?? [])].slice(0, 3);
 const light = [...(variant(styles.probe.problem, "light").text ?? [])].slice(0, 3);
 const ink = [...(variant(styles.probe.ink, undefined).text ?? [])].slice(0, 3);
-const funnel = layout(spec("funnel"));
+const funnel = layoutOf(spec("funnel"));
 const focused = funnel.bars.find((bar) => bar.label === "paid")!;
 const focusedDump = await capture("figure", undefined, { spec: spec("funnel"), warm: 2 });
 const label = focusedDump.commands.find((c) => c.type === "text" && c.text === focused.label);

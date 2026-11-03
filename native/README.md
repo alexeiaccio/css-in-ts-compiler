@@ -2914,9 +2914,24 @@ glyph shaping, a shadow's raster or a gradient's dither: the raster stays the fi
 A **figure** here is a JSON *spec*, and every target draws that one file. The format is [glyph-kit](https://github.com/alextraykov/glyph-kit)'s
 (MIT): `skills/glyph-kit/reference/spec.md`, its `areas/metrics.md` and `areas/flows.md` are the reference, and **no code
 is taken** from it — the shape of the object, the six kinds' data and the sentences of its refusals are ported by hand,
-in plain TypeScript, over our own Clay tree. `solid/src/figure/spec.ts` is the format and the check;
-`solid/src/figure/kinds.ts` is the six kinds as a layout; `solid/app/Figure.tsx` declares that layout, once, for all
-three hosts.
+in plain TypeScript, over our own Clay tree. `solid/src/figure/spec.ts` is the format and the check; a kind is one file in
+`solid/src/figure/kinds/`, reached through `solid/src/figure/kinds.ts` (below); `solid/app/Figure.tsx` declares that
+layout, once, for all three hosts.
+
+**Where a kind lives.** `solid/src/figure/spec.ts` is the format, the `parse` and the checks about the spec as a whole (a
+source, a focus's names, the width); a kind itself is **one file** under `solid/src/figure/kinds/`, its layout and its own
+refusals side by side — `metrics.ts` (barChart, compare, contrast, funnel), `flows.ts` (flow, branchFlow, stateMachine),
+`structure.ts` (journeyMap, tree) and `systems.ts` (palette, spacingScale, typeScale), over `shared.ts` (the cell helpers,
+the item builders, `finish`, the raw-JSON readers a refusal reads) — and one `register("<kind>", { layout, check })` at
+the bottom of the file that holds it. `solid/src/figure/registry.ts` is the table and the lookups (`layoutOf(spec)`,
+`checkOf(kind, data, options)`, `namesOf`, `sizeOf`), `solid/src/figure/kinds.ts` is the door that loads the four areas
+and re-exports the types and the table, and `solid/figure-registry.test.ts` is the test the seam has: both halves of a
+kind, the list the docs and the refusal print, and a throwaway kind registered in the test alone that draws through
+`text.ts` and on the desktop. So a new kind is three steps, none of them in another kind's file: (1) its spec type and its
+name in `KINDS`, in `spec.ts`; (2) its layout and its check beside its area's, with the one `register` at the bottom of
+that file; (3) a spec in `solid/specs` when this repository draws the figure. Nothing else learns the name: `Figure.tsx`,
+`text.ts`, the terminal host and the browser declare what `layoutOf` returns, which is why `journeyMap` and `tree` needed
+no change in any of them.
 
 | Field | What it is | Here |
 | --- | --- | --- |
