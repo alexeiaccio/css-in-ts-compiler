@@ -292,6 +292,15 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row",
   },
   {
+    name: "stat",
+    tested: true,
+    // the tile draws its samples with `Sparkline`, so the line is one component and not a copy of it
+    with: ["sparkline/sparkline.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Stat",
+    description:
+      "A stat tile: the metric's name, the value as `<data>`, the change in words on a chip and its samples as a sparkline",
+  },
+  {
     name: "heatmap",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
