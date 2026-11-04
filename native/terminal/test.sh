@@ -142,6 +142,30 @@ grep -q -- "-2 bad" "$FIG/solid-figure-journey.txt" || { echo "FAIL: the bad sta
 grep -q "Why did my dates break?" "$FIG/solid-figure-journey.txt" || {
   echo "FAIL: a stage's thinking is not under its bar"; exit 1; }
 identical "the journey map: a bar a stage, its feeling's word, and the stage's doing and thinking under it"
+# the three planning kinds, the map's own plan: a timeline (its spans, its numbers and the axis's ends), the status key's
+# three words and sentences, and the board's three columns of cards
+$SOLID --page figure --spec solid/specs/timeline.json --cols 80 --rows 13 --dump "$FIG/solid-figure-timeline.txt"
+grep -q "The plan's order, one step a row" "$FIG/solid-figure-timeline.txt" || {
+  echo "FAIL: the timeline drew no title"; exit 1; }
+grep -q "0 step" "$FIG/solid-figure-timeline.txt" || { echo "FAIL: the timeline's axis has no start"; exit 1; }
+grep -q "7–8 step" "$FIG/solid-figure-timeline.txt" || { echo "FAIL: the timeline's last step is not in the cells"; exit 1; }
+identical "the timeline: a step a row, its span in cells, and the axis's two ends under it"
+$SOLID --page figure --spec solid/specs/statusKey.json --cols 80 --rows 7 --dump "$FIG/solid-figure-status-key.txt"
+grep -q "What the map's statuses mean" "$FIG/solid-figure-status-key.txt" || {
+  echo "FAIL: the status key drew no title"; exit 1; }
+for status in Done Left Blocked; do
+  grep -q "\. $status" "$FIG/solid-figure-status-key.txt" || { echo "FAIL: no $status row in the key"; exit 1; }
+done
+identical "the status key: a mark and its word a status, with the sentence beside it"
+$SOLID --page figure --spec solid/specs/nowNextLater.json --cols 80 --rows 40 --dump "$FIG/solid-figure-board.txt"
+grep -q "What the map has left, now, next, later" "$FIG/solid-figure-board.txt" || {
+  echo "FAIL: the board drew no title"; exit 1; }
+for column in NOW NEXT LATER; do
+  grep -q "$column" "$FIG/solid-figure-board.txt" || { echo "FAIL: the board has no $column column"; exit 1; }
+done
+grep -q "termbox2 reports no" "$FIG/solid-figure-board.txt" || {
+  echo "FAIL: the board's now column has no card"; exit 1; }
+identical "the board: three columns of cards, a card's words wrapped in its column"
 # a press on a figure is nothing: the page declares no control of its own
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --dump "$FIG/solid-figure-base.txt"
 $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 20,4 --dump "$FIG/solid-figure-click.txt"

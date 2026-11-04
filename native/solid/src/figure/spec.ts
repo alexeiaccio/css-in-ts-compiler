@@ -1,8 +1,7 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with sixteen kinds here
-// (`barChart`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`,
-// `palette`, `spacingScale`, `stagger`, `stateMachine`, `tree`, `typeScale`) where the kit has thirty-four. `check`
-// returns **every** problem as a sentence, in
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 19 kinds here
+// (`barChart`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `spacingScale`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
 //
@@ -44,9 +43,12 @@ export const KINDS = [
   "flow",
   "funnel",
   "journeyMap",
+  "nowNextLater",
   "palette",
   "spacingScale",
   "stateMachine",
+  "statusKey",
+  "timeline",
   "tree",
   "typeScale",
   "easing",
@@ -331,6 +333,55 @@ export interface FrameStripSpec extends Base {
   options?: { readonly width?: number };
 }
 
+/** One row of a timeline: its label, the span it covers on the shared axis, and what the source recorded of it. */
+export interface TimelineEntry {
+  label: string;
+  /** The span's start on the axis's own unit (a step of the plan here, not hours). */
+  start: number;
+  /** The span's end: after `start`, or the row is refused. */
+  end: number;
+  /** The status a planning figure gives it (`Done`, `Left`, `Blocked`), for the status key's role. */
+  status?: string;
+  /** A recorded date that is an axis of its own: a row's may not come before the row above it. */
+  date?: string;
+  /** A recorded note that is not an axis (a date the source mentions): printed after the span. */
+  note?: string;
+  tone?: Tone;
+}
+
+export interface TimelineSpec extends Base {
+  kind: "timeline";
+  data: readonly TimelineEntry[];
+  /** `width` is the shared axis in cells; `start`, `end` and `unit` label its two ends. */
+  options?: { width?: number; start?: number; end?: number; unit?: string };
+}
+
+/** One status of a key: glyph-kit's `label`, and the sentence that says what the status means here. */
+export interface StatusEntry {
+  label: string;
+  sentence: string;
+  tone?: Tone;
+}
+
+export interface StatusKeySpec extends Base {
+  kind: "statusKey";
+  data: readonly StatusEntry[];
+  /** `used` is the declared set of statuses the planning figures here draw; a key may name no other. */
+  options?: { used?: readonly string[] };
+}
+
+/** glyph-kit's `board`: three columns of cards, a card a string. */
+export interface BoardData {
+  now: readonly string[];
+  next: readonly string[];
+  later: readonly string[];
+}
+
+export interface NowNextLaterSpec extends Base {
+  kind: "nowNextLater";
+  data: BoardData;
+}
+
 export type Spec =
   | BarChartSpec
   | BranchFlowSpec
@@ -339,9 +390,12 @@ export type Spec =
   | FlowSpec
   | FunnelSpec
   | JourneyMapSpec
+  | NowNextLaterSpec
   | PaletteSpec
   | SpacingSpec
   | StateMachineSpec
+  | StatusKeySpec
+  | TimelineSpec
   | TreeSpec
   | TypeScaleSpec
   | EasingSpec

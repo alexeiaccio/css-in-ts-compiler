@@ -60,12 +60,11 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Sixteen kinds are here: `barChart`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`,
-`frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `palette`, `spacingScale`, `stagger`, `stateMachine`, `tree` and
-`typeScale`. A kind is one file under
-`solid/src/figure/kinds/` — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `motion.ts`, over `shared.ts` — its
-layout and its refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other
-kind's;
+terminal at one cell. Nineteen kinds are here: `barChart`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`,
+`frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `spacingScale`, `stagger`,
+`stateMachine`, `statusKey`, `timeline`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
+`metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `planning.ts`, `motion.ts`, over `shared.ts` — its layout and its
+refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other kind's;
 `solid/src/figure/kinds.ts` is the door that loads those files and `registry.ts` the table a kind is looked up in. Four of
 them are the design system's half and their data is our own tokens: `palette` (`@cssints/tokens`' Open Props blue and
 grey on their page, a swatch and its contrast a step, `▲` on the first step at 4.5 to 1) and `contrast` (the docs' own
@@ -75,7 +74,13 @@ colour pairs at WCAG's floors) are **generated** by `solid/specs/from-tokens.ts`
 type line's own size are what the layout gained — an item kind `swatch`, an item kind `marker`, and a text's `size` with a
 line's `height` — so the halfway kinds still print through the same text renderer. The last of the original eight draws a
 second row: a tree's level is a row of boxes with `| - +` connectors between the levels, and a journey stage is a bar row
-with its doing and thinking under it. The
+with its doing and thinking under it. The three **planning** kinds are this repository's own plan: `timeline` is the
+eight steps of this page's order of work, one a row on a shared axis (the span is the step's place in the order, not
+hours; the dates a step records are notes), and it is **generated** from this file by `solid/specs/from-map.ts` and
+`cmp`'d in `solid/test.sh`, so a step added or renamed here cannot leave the figure stale; `nowNextLater` is the `Left:`
+lists as three columns of cards, hand-written because those lines mix remaining work with notes of what came later, and
+held to this file's words by `solid/figure-planning.test.ts`; `statusKey` is the legend of the statuses the two use
+(`Done`, `Left`, and `Blocked`, this page's word for work that waits). The
 numbers are geometry: a bar's fill is a box whose width is `value/max` of its track, read back
 from the frame in `solid/figure.test.ts` (worst error 0.49 of a cell). One of the figures is this repository's own
 measurements (`solid/specs/bars.json`, native/README.md's `--bench`):
@@ -86,6 +91,24 @@ desktop   ███████████████████████�
 terminal  ██████                    0.077 ms
 browser   ██████                    0.08 ms
 native/README.md --bench: 0.30, 0.077, 0.08 ms
+```
+
+The plan on this page, drawn from `solid/specs/timeline.json` (the fence is the renderer's, and `solid/test.sh` redraws
+and `cmp`s it):
+
+<!-- glyph-kit: ../solid/specs/timeline.json -->
+```text
+The plan's order, one step a row
+cssints/clay          ████                            0–1 step
+desktop window            ████                        1–2 step  2026-10-19
+states, tokens, fonts         ████                    2–3 step  2026-10-19
+Solid on the desktop              ████                3–4 step  2026-10-31
+JSX to C                              ████            4–5 step
+the terminal renderer                     ████        5–6 step
+Back to the board                             ████    6–7 step  2026-10-19
+the browser                                       ████ 7–8 step  2026-10-29
+                      0 step                    8 step
+native/docs/map.md, steps 1-8; a span is the order, a date is a note
 ```
 
 `pipeline.json` is this pipeline's own flow (declaration → Clay → commands → ThorVG / cells / Canvas2D); `funnel.json`

@@ -997,10 +997,10 @@ focus line. No state, no input, no entry: the page at rest is the frame its lite
 
 `src/figure/` is five files and one directory: `spec.ts` (the format, `parse`, and the checks about the spec as a whole —
 a source, a focus's names, the width), `registry.ts` (the `Layout`/`Item` types, the cell constants, `sizeOf`, and the
-table from a kind's name to its layout and its check), `kinds.ts` (the door: the four areas loaded once and the types and
+table from a kind's name to its layout and its check), `kinds.ts` (the door: the five areas loaded once and the types and
 the table re-exported), `contrast.ts` (WCAG's two functions, no dependency) and `text.ts` (the same layout as characters);
-`kinds/` is an area a file — `metrics.ts`, `flows.ts`, `structure.ts`, `systems.ts` — each holding its kinds' layouts and
-checks side by side over `kinds/shared.ts`'s item builders, with one `register` call a kind. `solid/figure-registry.test.ts`
+`kinds/` is an area a file — `metrics.ts`, `flows.ts`, `planning.ts`, `structure.ts`, `systems.ts` — each holding its kinds'
+layouts and checks side by side over `kinds/shared.ts`'s item builders, with one `register` call a kind. `solid/figure-registry.test.ts`
 is the seam's test: both halves of every kind, the list the docs and the `unknown kind` sentence print, and a throwaway
 kind registered in the test alone that draws through `text.ts` and on the desktop.
 
@@ -1015,12 +1015,13 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The twelve specs are `solid/specs/bars.json` (this repository's own
-`--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the two flow kinds `branch-flow.json`
+width), prints them and exits 1, so no PNG is written. The fifteen specs are `solid/specs/bars.json` (this repository's
+own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the two flow kinds `branch-flow.json`
 (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's `presence`), the tree
 `tree.json` (this repository's own map: the four targets under one root, their pages as children), the journey
-`journey-map.json` (glyph-kit's first-week example, adapted), and the four design-system kinds below; `invalid-funnel.json`,
-`invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the refusals the test uses.
+`journey-map.json` (glyph-kit's first-week example, adapted), the four design-system kinds below, and the three planning
+kinds (the map's own plan); `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and
+`invalid-journey.json` are the refusals the test uses.
 
 The layout speaks **cells** (8x16 px, the terminal's), so a length here is `cells * 8` across and a line is one cell down;
 a width is data and a style is a literal, so every item's width — and a bar's fill — is written through the value channel
@@ -1053,6 +1054,19 @@ their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1
 `motion`) and the specs sixteen. `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
 strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
 terminal's rows and the browser's `?spec=` of each.
+
+The three **planning** kinds are the kit's `areas/planning.md` half, and their data is `native/docs/map.md`:
+`timeline` is the map's eight steps of work, a step a row on one shared axis (the span is the step's place in the order,
+not hours; a recorded date is a `note`); `statusKey` is the legend of the statuses the figures use (Done, Left, and
+Blocked, the map's word for work that waits); `nowNextLater` is the map's `Left:` lists as three columns of cards.
+`timeline.json` is **generated** by `specs/from-map.ts` from the map's step headings and `cmp`'d in `solid/test.sh`, and
+the map draws that timeline under a `<!-- glyph-kit: ../solid/specs/timeline.json -->` fence, redrawn and `cmp`'d too;
+`nowNextLater.json` is hand-written — the `Left:` lines mix remaining work with notes of what came later — and
+`solid/figure-planning.test.ts` holds every card's words and every status's name to the map's. That test also reads the
+timeline's bars back from the frame (each span's start and length within half a cell), the axis's two ends, the key's
+entries against the statuses the timeline uses, the board's cards and their order, the refusals with their sentences, the
+three command goldens (`figure-timeline.json`, `figure-status-key.json`, `figure-now-next-later.json`) and the same rows
+on the terminal.
 
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
