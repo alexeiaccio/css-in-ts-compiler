@@ -4408,3 +4408,25 @@ afterwards, which is what the user asked for while it was being written. The sha
 bean (`cssints-d266`) — a different table and a different test, sharing only the name. **Evidence:** four conformance tests
 (the figure and the reading order, the heights' ratio, the page's `max` and `format`, a flat chart and a wrapping name), the
 story (the article's latency distribution, a short chart, a flat one), `r/columns.json`, the site page, and a screenshot.
+
+## The charts' accessibility bar, applied to the first three of them (2026-11-04)
+
+The epic's `cssints-xww8`, started while three more charts were being built in parallel. **The bar lives in
+`apps/ui/README.md`** — nine checks a new chart copies (the data is the markup; no value is pointer-only; a named figure; the
+reading order; colour never alone; contrast; nothing truncates a value; motion asks; the test reads the page). The sparkline
+and the heatmap, both shipped before the bar existed, had the same gap: their values were readable by a screen reader (the
+numbers are the cells' and the points' text) but **not by a sighted keyboard user**.
+
+- **Sparkline**: a `<figure>` with a `<figcaption>` that says what the line shows in words — "from 1310 to 1350; lowest 1310,
+  highest 1490" — computed from the samples. A pointer still gets a sample's value; nobody needs it.
+- **Heatmap**: a "Show the numbers" toggle (`aria-pressed`, the component's only state). It swaps the squares for the same
+  table read as a table — every value in place, rows grown, colour set aside. A `<details>` was tried first and does not work:
+  it _hides_ its content, so the chart's own squares disappeared while the numbers were shown.
+- **Columns** was written to the bar from the start (see its entry): the figure, the reading order, wrapping names, no
+  hover-only value.
+
+**Evidence:** the sparkline's six and the heatmap's five conformance tests (the caption's sentence; the toggle's `aria-pressed`,
+its two labels, the value's font size and position and the cell's aspect ratio before and after), the site test, and the
+README section itself. **Left:** the bar over the three charts being written in parallel (bars, donut, stat), and one honest
+sub-check — a heatmap cell's colour pairs two theme tokens that `check.contrast` cannot compare a rectangle against; the
+scale line says "darker is more" and every value is in the table, which is the argument this kit makes.

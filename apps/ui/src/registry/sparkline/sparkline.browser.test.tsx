@@ -26,6 +26,18 @@ const items = (root: HTMLElement): HTMLElement[] => [
 ];
 
 describe("Sparkline", () => {
+  it("is a named figure whose caption says what the line shows, without a pointer", () => {
+    const { root, dispose } = mount(() => (
+      <Sparkline label="Requests per second" values={[1310, 1490, 1350]} />
+    ));
+    const caption = root.querySelector("figcaption")?.textContent ?? "";
+    // the label, then the range in words: a keyboard user and a printed page get the shape
+    expect(caption).toContain("Requests per second");
+    expect(caption).toContain("from 1310 to 1350; lowest 1310, highest 1490");
+    expect(root.querySelector("figure")).not.toBeNull();
+    dispose();
+  });
+
   it("draws one item per sample, with the number as its data", () => {
     const { root, dispose } = mount(() => <Sparkline label="Requests" values={[3, 5, 4, 6]} />);
     const rows = items(root);

@@ -84,6 +84,32 @@ describe("Heatmap", () => {
     dispose();
   });
 
+  it("shows every number without a pointer, from its own toggle", async () => {
+    const { root, dispose } = mount(() => (
+      <Heatmap label="Deploys" columns={COLUMNS} rows={ROWS} />
+    ));
+    const toggle = root.querySelector<HTMLButtonElement>('[data-part="heatmap-toggle"]')!;
+    const cell = cells(root)[1]!;
+    const value = cell.querySelector<HTMLElement>("span")!;
+
+    // the colours first: the value is out of the way, and the button says what pressing it does
+    expect(toggle.textContent?.trim()).toBe("Show the numbers");
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    expect(getComputedStyle(value).fontSize).toBe("0px");
+    expect(getComputedStyle(cell).aspectRatio).toBe("1 / 1");
+
+    toggle.click();
+    // the same table, read: every number in place, the squares grown to their rows
+    await Promise.resolve();
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(toggle.textContent?.trim()).toBe("Show the colours");
+    expect(getComputedStyle(value).fontSize).not.toBe("0px");
+    expect(getComputedStyle(value).position).toBe("static");
+    expect(getComputedStyle(cell).aspectRatio).toBe("auto");
+    expect(cell.textContent?.trim()).toBe("4");
+    dispose();
+  });
+
   it("reads an empty cell as empty and puts the scale in words", () => {
     const { root, dispose } = mount(() => (
       <Heatmap

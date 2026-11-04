@@ -112,6 +112,11 @@ const value = css.cn(
   css.within(css.hover)(css.opacity(1)),
 );
 
+// The frame and its caption: a chart reads as a named figure, and the caption says in words what the line shows — the range
+// and the two extremes — so a reader who cannot hover (a keyboard, a screen reader, a printed page) still gets the shape.
+const frame = css.cn(css.display("grid"), css.width("100%"), css.margin(0), css.gap(t.space._1));
+const caption = css.cn(css.fontSize(t.font.sizeSm), css.color(t.color.muted));
+
 const number = (sampleValue: number): string => String(sampleValue);
 
 /**
@@ -130,6 +135,17 @@ export const Sparkline = (props: SparklineProps): JSX.Element => {
   };
   const samples = (): ReadonlyArray<number> => props.values;
   const mutedTone = (): boolean => props.tone === "muted";
+  const format = (sampleValue: number): string => (props.format ?? number)(sampleValue);
+  // "from 1310 to 1350, lowest 1310, highest 1530": the first and last samples, then the extremes
+  const summary = (): string => {
+    const all = samples();
+    const first = all[0];
+    const last = all.at(-1);
+    if (first === undefined || last === undefined) return "";
+    const lowest = Math.min(...all);
+    const highest = Math.max(...all);
+    return `from ${format(first)} to ${format(last)}; lowest ${format(lowest)}, highest ${format(highest)}`;
+  };
 
   const own = {
     "data-part": "sparkline",
@@ -144,34 +160,41 @@ export const Sparkline = (props: SparklineProps): JSX.Element => {
         height: props.height ?? "3rem",
       } as never;
     },
-    "aria-label": props.label,
   } as unknown as PartProps;
 
-  return renderPart(props, own, undefined, (part) => (
-    <ol {...part}>
-      <For each={samples()}>
-        {(sampleValue, index) => {
-          const before = (): number => samples()[index() - 1] ?? sampleValue;
-          return (
-            <li
-              data-part="sparkline-sample"
-              class={mutedTone() ? sampleMuted : sample}
-              style={
-                {
-                  "--a": before(),
-                  "--b": sampleValue,
-                  "--y0": "calc((var(--a) - var(--min)) / (var(--max) - var(--min)))",
-                  "--y1": "calc((var(--b) - var(--min)) / (var(--max) - var(--min)))",
-                } as never
-              }
-            >
-              <data value={number(sampleValue)} class={value} data-part="sparkline-value">
-                {(props.format ?? number)(sampleValue)}
-              </data>
-            </li>
-          );
-        }}
-      </For>
-    </ol>
-  ));
+  return (
+    <figure data-part="sparkline-frame" class={frame}>
+      <figcaption data-part="sparkline-caption" class={caption}>
+        {props.label}
+        {samples().length === 0 ? "" : `. ${summary()}`}
+      </figcaption>
+      {renderPart(props, own, undefined, (part) => (
+        <ol {...part} aria-label={props.label}>
+          <For each={samples()}>
+            {(sampleValue, index) => {
+              const before = (): number => samples()[index() - 1] ?? sampleValue;
+              return (
+                <li
+                  data-part="sparkline-sample"
+                  class={mutedTone() ? sampleMuted : sample}
+                  style={
+                    {
+                      "--a": before(),
+                      "--b": sampleValue,
+                      "--y0": "calc((var(--a) - var(--min)) / (var(--max) - var(--min)))",
+                      "--y1": "calc((var(--b) - var(--min)) / (var(--max) - var(--min)))",
+                    } as never
+                  }
+                >
+                  <data value={number(sampleValue)} class={value} data-part="sparkline-value">
+                    {(props.format ?? number)(sampleValue)}
+                  </data>
+                </li>
+              );
+            }}
+          </For>
+        </ol>
+      ))}
+    </figure>
+  );
 };

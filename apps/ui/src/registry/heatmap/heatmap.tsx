@@ -3,7 +3,7 @@
 // No SVG and no canvas: the square is the cell, and the grid is the table's rows joining one grid with `display: contents`.
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { For } from "solid-js";
+import { For, createSignal } from "solid-js";
 
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
 import { t } from "../theme.ts" with { type: "cssints" };
@@ -91,6 +91,18 @@ const cell = css.cn(
   ),
 );
 
+// The numbers view: the square grows to its row, the colour steps aside and the value is text in place. It is a class the
+// host's own toggle swaps, not a media or attribute condition — the state is a control's, and a checkbox cannot reach a
+// sibling without `:has()`, which the engine does not offer.
+const cellOpen = css.cn(
+  cell,
+  css.aspectRatio("auto"),
+  css.padding("2px 6px"),
+  css.textAlign("end"),
+  css.bg(t.color.surface),
+  css.border("1px solid", t.color.border),
+);
+
 const empty = css.cn(cell, css.bg(t.color.buttonBackground));
 
 // The value is the cell's own text: at rest it is there for a reader and out of the way of the colour, and the pointer's
@@ -116,7 +128,31 @@ const text = css.cn(
   ),
 );
 
+// In the numbers view every value is visible in place, with nothing to hover.
+const textOpen = css.cn(
+  text,
+  css.position("static"),
+  css.fontSize(t.font.size),
+  css.bg("transparent"),
+  css.pointerEvents("auto"),
+  css.opacity(1),
+);
+
+// The switch: one button, `aria-pressed` says which view is on, and it is the only state the component owns.
+const toggle = css.cn(
+  css.width("max-content"),
+  css.padding("2px 8px"),
+  css.border("1px solid", t.color.border),
+  css.borderRadius(t.radius.sm),
+  css.bg(t.color.surface),
+  css.color(t.color.text),
+  css.fontSize(t.font.sizeSm),
+  css.cursor("pointer"),
+  css.attr("aria-pressed", "true")(css.bg(t.color.highlight), css.color(t.color.onHighlight)),
+);
+
 const scale = css.cn(css.margin("0"), css.fontSize(t.font.sizeSm), css.color(t.color.muted));
+const toggles = css.cn(css.justifySelf("start"));
 
 // The figure fills the page it is on: a table of 24 columns does not shrink to its caption, and the preview centres its items.
 const frame = css.cn(css.display("grid"), css.width("100%"), css.margin(0), css.gap(t.space._1));
@@ -128,6 +164,8 @@ const frame = css.cn(css.display("grid"), css.width("100%"), css.margin(0), css.
  * a reader on a screen reader or with the stylesheet off gets the rows, the headers and the numbers.
  */
 export const Heatmap = (props: HeatmapProps): JSX.Element => {
+  // the one thing the component owns: which of the two views is on
+  const [numbers, setNumbers] = createSignal(false);
   const values = (): ReadonlyArray<number> =>
     props.rows.flatMap((entry) => entry.values).filter((value) => Number.isFinite(value));
   const low = (): number => props.min ?? 0;
@@ -160,6 +198,15 @@ export const Heatmap = (props: HeatmapProps): JSX.Element => {
 
   return (
     <figure data-part="heatmap-frame" class={frame}>
+      <button
+        type="button"
+        data-part="heatmap-toggle"
+        class={css.cn(toggle, toggles)}
+        aria-pressed={numbers() ? "true" : "false"}
+        onClick={() => setNumbers((on) => !on)}
+      >
+        {numbers() ? "Show the colours" : "Show the numbers"}
+      </button>
       {renderPart(props, own, undefined, (part) => (
         <table {...part}>
           <caption data-part="heatmap-caption" class={caption}>
@@ -192,14 +239,14 @@ export const Heatmap = (props: HeatmapProps): JSX.Element => {
                       return (
                         <td
                           data-part="heatmap-cell"
-                          class={value() === undefined ? empty : cell}
+                          class={value() === undefined ? empty : numbers() ? cellOpen : cell}
                           style={
                             {
                               "--v": value() ?? low(),
                             } as never
                           }
                         >
-                          <span class={text}>
+                          <span class={numbers() ? textOpen : text}>
                             {value() === undefined ? "" : show(value() as number)}
                           </span>
                         </td>
