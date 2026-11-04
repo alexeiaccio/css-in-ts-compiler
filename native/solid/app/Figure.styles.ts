@@ -15,6 +15,10 @@ const DARK = {
   line: "rgb(45 51 61)",
   problem: "rgb(230 60 60)",
   good: "rgb(90 190 120)",
+  shade0: "rgb(45 51 61)",
+  shade1: "rgb(90 100 112)",
+  shade2: "rgb(139 152 165)",
+  shade3: "rgb(230 233 236)",
 } as const;
 const LIGHT = {
   page: "rgb(243 245 247)",
@@ -25,6 +29,10 @@ const LIGHT = {
   line: "rgb(213 220 228)",
   problem: "rgb(190 30 40)",
   good: "rgb(20 130 70)",
+  shade0: "rgb(213 220 228)",
+  shade1: "rgb(170 180 190)",
+  shade2: "rgb(86 99 111)",
+  shade3: "rgb(15 20 25)",
 } as const;
 
 export const t = css.createTokens({
@@ -38,6 +46,10 @@ export const t = css.createTokens({
     line: { $value: DARK.line },
     problem: { $value: DARK.problem },
     good: { $value: DARK.good },
+    shade0: { $value: DARK.shade0 },
+    shade1: { $value: DARK.shade1 },
+    shade2: { $value: DARK.shade2 },
+    shade3: { $value: DARK.shade3 },
   },
 });
 css.createGlobalTheme(t, "light", { color: { ...LIGHT } });
@@ -133,6 +145,19 @@ const fill = {
 // pixel targets draw a mark and the text half draws the glyph.
 const swatch = css.cn(cell, css.bg(t.color.line));
 const marker = css.cn(cell, css.bg(t.color.good));
+// a sparkline's point: a cell whose bar is written tall as the point's eighth and stands on the line's floor (the bar is
+// bottom-aligned in its cell), and the glyph the terminal and the text half print (Roboto has no ▁, so a pixel target
+// draws the bar and the glyph is the text command the terminal's row is compared by)
+const sparkCell = css.cn(css.height(16), css.flexDirection("row"), css.alignItems("flex-end"));
+const sparkBar = css.cn(css.width("stretch"), css.bg(t.color.accent));
+const sparkGlyph = css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(8), css.lineHeight(8), css.whiteSpace("nowrap"));
+// a heatmap's cell: one of four shades, the ramp a value's WCAG band is drawn at
+const shade = {
+  0: css.cn(css.height(16), css.bg(t.color.shade0)),
+  1: css.cn(css.height(16), css.bg(t.color.shade1)),
+  2: css.cn(css.height(16), css.bg(t.color.shade2)),
+  3: css.cn(css.height(16), css.bg(t.color.shade3)),
+};
 const text = { title, muted, ink, problem, good };
 
 // the token probe the invariant test reads: the two focus roles with nothing else, in both themes
@@ -142,4 +167,4 @@ export const probe = {
   ink: css.cn(css.color(t.color.ink)),
 };
 
-export const s = { t, font, root, line, cell, box, track, fill, swatch, marker, typeSize, typeCell, text };
+export const s = { t, font, root, line, cell, box, track, fill, swatch, marker, sparkCell, sparkBar, sparkGlyph, shade, typeSize, typeCell, text };

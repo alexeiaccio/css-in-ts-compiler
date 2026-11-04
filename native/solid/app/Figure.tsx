@@ -40,6 +40,9 @@ function rgbOf(value: string): [number, number, number] {
   return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 }
 
+/** A sparkline point's glyph, the same eight of `text.ts`'s `SPARK` (the page keeps its own copy: text.ts reads files). */
+const SPARK = "▁▂▃▄▅▆▇█";
+
 /** Every item's width, a bar's fill, a swatch's colour and a line's height, written for the frame about to be declared
  *  (the channel is a frame's). */
 function apply(l: Layout, motion: Motion | undefined): void {
@@ -50,6 +53,8 @@ function apply(l: Layout, motion: Motion | undefined): void {
       for (const item of line.items) {
         fixedWidth(item.id, item.cells * 8);
         if (item.kind === "bar") fixedWidth(item.fillId, item.fill * 8);
+        // a sparkline's point is its bar's height, an eighth of the cell a step: 2px a step of the 16px cell
+        if (item.kind === "spark") fixedHeight(item.fillId, (item.eighth + 1) * 2);
         if (item.kind === "swatch") {
           const [r, g, b] = rgbOf(item.value);
           put(item.id, FIELDS.BACKGROUND, r);
@@ -77,6 +82,18 @@ function ItemView(props: { item: Item }) {
   // a palette's two: the swatch's colour and the marker's role are the value channel's and the style's, not the data's
   if (it.kind === "swatch") return <box id={it.id} style={s.s.swatch} />;
   if (it.kind === "marker") return <box id={it.id} style={s.s.marker} />;
+  // a heatmap's cell is its band's shade, and a sparkline's point a bar of its eighth with the glyph the terminal prints
+  if (it.kind === "shade") return <box id={it.id} style={s.s.shade[it.level]} />;
+  if (it.kind === "spark")
+    return (
+      <box id={it.id} style={s.s.sparkCell}>
+        <box id={it.fillId} style={s.s.sparkBar}>
+          <text id={it.textId} style={s.s.sparkGlyph}>
+            {SPARK[it.eighth] ?? ""}
+          </text>
+        </box>
+      </box>
+    );
   if (it.kind === "space") return <box id={it.id} style={s.s.cell} />;
   // a type scale's specimen is drawn at its own size: a sized text gets a cell as tall as its line, so a 40px "Aa" is
   // not centred in a 16px row and does not reach the row above it

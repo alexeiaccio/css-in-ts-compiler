@@ -365,6 +365,7 @@ bun solid/main.ts figure --spec solid/specs/palette.json --warm 30 --expect soli
 bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect solid/frames/figure-contrast.png
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
+bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png
 # ... and the three planning kinds, whose data is the map's own plan: the eight steps as a timeline on one axis, the
 # status legend, and the Left: lists as a board. One stored frame each; the timeline is regenerated below and cmp'd.
 bun solid/main.ts figure --spec solid/specs/timeline.json --warm 30 --expect solid/frames/figure-timeline.png
@@ -383,6 +384,7 @@ cmp "$FIG/specs/palette.json" solid/specs/palette.json || {
 cmp "$FIG/specs/contrast.json" solid/specs/contrast.json || {
   echo "FAIL: solid/specs/contrast.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
 echo "figure: palette and contrast are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
+bun solid/specs/from-charts.ts "$FIG/specs" >/dev/null && cmp "$FIG/specs/meter.json" solid/specs/meter.json && cmp "$FIG/specs/heatmap.json" solid/specs/heatmap.json || { echo "FAIL: solid/specs/meter.json or heatmap.json is not what specs/from-charts.ts writes; commit its output"; exit 1; }
 # the timeline is the map's own plan: specs/from-map.ts parses the step headings of native/docs/map.md, and this cmp is
 # what makes a step added or renamed there a rewrite of the spec and not a stale figure. The board and the key are
 # hand-written (the Left: lines are prose; figure-planning.test.ts holds them to it), so only the timeline is cmp'd.

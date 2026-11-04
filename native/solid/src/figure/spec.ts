@@ -1,6 +1,6 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 22 kinds here
-// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `spacingScale`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 27 kinds here
+// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -48,7 +48,9 @@ export const KINDS = [
   "contrast",
   "flow",
   "funnel",
+  "heatmap",
   "journeyMap",
+  "meter",
   "nowNextLater",
   "palette",
   "qaChecklist",
@@ -56,6 +58,7 @@ export const KINDS = [
   "responsivePair",
   "screen",
   "spacingScale",
+  "sparkline",
   "stateMachine",
   "statusKey",
   "timeline",
@@ -237,6 +240,63 @@ export interface ContrastPair {
 export interface ContrastSpec extends Base {
   kind: "contrast";
   data: readonly ContrastPair[];
+}
+
+/** One series: a label, its points, and the unit a point's number reads in (`ms`). */
+export interface SparklineData {
+  label: string;
+  values: readonly number[];
+  unit?: string;
+}
+
+export interface SparklineSpec extends Base {
+  kind: "sparkline";
+  data: SparklineData;
+}
+
+/**
+ * One value against its range and a floor: a contrast ratio (the engine's, from `fg` on `bg`) held to WCAG's floor
+ * `min`, in a range whose top is `max` (21 by default, WCAG's end).
+ */
+export interface MeterData {
+  label: string;
+  fg: string;
+  bg: string;
+  /** The floor the value is held to: 3, 4.5 or 7, WCAG's three floors. */
+  min: number;
+  /** The engine's ratio of `fg` on `bg`; `check` refuses a value its colours do not make. */
+  value: number;
+  /** The range's top; absent, 21. */
+  max?: number;
+}
+
+export interface MeterSpec extends Base {
+  kind: "meter";
+  data: MeterData;
+}
+
+/** One ink of a heatmap: its name and the `#rrggbb` it is. */
+export interface HeatmapRow {
+  label: string;
+  fg: string;
+}
+
+/** One page a heatmap's inks are read on: its name and the `#rrggbb` it is. */
+export interface HeatmapColumn {
+  label: string;
+  bg: string;
+}
+
+/** A matrix of contrast ratios: a row an ink, a column a page, `values[row][column]` their engine ratio. */
+export interface HeatmapData {
+  rows: readonly HeatmapRow[];
+  columns: readonly HeatmapColumn[];
+  values: readonly (readonly number[])[];
+}
+
+export interface HeatmapSpec extends Base {
+  kind: "heatmap";
+  data: HeatmapData;
 }
 
 /** One step of a spacing scale: its token's name and its length in pixels. */
@@ -523,7 +583,9 @@ export type Spec =
   | ContrastSpec
   | FlowSpec
   | FunnelSpec
+  | HeatmapSpec
   | JourneyMapSpec
+  | MeterSpec
   | NowNextLaterSpec
   | PaletteSpec
   | QaChecklistSpec
@@ -531,6 +593,7 @@ export type Spec =
   | ResponsivePairSpec
   | ScreenSpec
   | SpacingSpec
+  | SparklineSpec
   | StateMachineSpec
   | StatusKeySpec
   | TimelineSpec
