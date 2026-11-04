@@ -268,6 +268,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "columns",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Columns",
+    description:
+      "A column chart as a list: one bar per category, its height the value, and the number in text above it",
+  },
+  {
     name: "heatmap",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

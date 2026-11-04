@@ -38,6 +38,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - skeleton: A placeholder box that pulses only when the reader has not asked for less motion. `add @cssints/skeleton`
 - alert: APG alert: a title and a body in a live region, with an `invalid` tone. `add @cssints/alert`
 - dropzone: A file drop target: a dashed zone, a browse button over the primitive's hidden input, and a live region for the last batch. `add @cssints/dropzone`
+- columns: A column chart as a list: one bar per category, its height the value, and the number in text above it. `add @cssints/columns`
 - heatmap: A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale. `add @cssints/heatmap`
 - meter: APG meter: a track and the fill of the value, on `createMeter`. `add @cssints/meter`
 - sparkline: A sparkline as a list of samples: the line is CSS (`hypot` and `atan2`), with no SVG and no canvas. `add @cssints/sparkline`

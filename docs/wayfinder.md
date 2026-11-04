@@ -4389,3 +4389,22 @@ declares.
 the table and two cells of the same value family a different colour; the value shown on hover without moving the grid; an
 empty cell empty and the scale in words), the story (a week of the article's own data, a wider `max`, a small map, a gap), the
 site page, and a screenshot of the week at rest.
+
+## The third chart: columns, built to the accessibility checklist (2026-11-04)
+
+`cssints-bxdp`'s first half — a column chart — and the first chart written _to_ the Chartability checks rather than fixed
+afterwards, which is what the user asked for while it was being written. The shape that satisfies them without a second view:
+
+- **A named figure over a list.** `<figure>` + `<figcaption>` names the chart and says what it is; the `<ol>` under it is the
+  data: one `<li>` per category, in reading order the name and then its value.
+- **No hover-only value.** Every number is text above its bar (`--columns-height` less 1.5em of headroom, so the tallest bar
+  never pushes its own number out of the frame) — a pointer adds nothing a reader needs.
+- **The name wraps, it does not clip.** `overflow-wrap: anywhere` instead of `text-overflow: ellipsis`: a truncated category
+  is a lost value. `order: 1` puts the name under the bar for the eye while the DOM keeps "name, value".
+- **Colour is never the only channel**, and the bar is `aria-hidden`: the height is the value and the value is written.
+- **A flat chart still stands**: the scale is `1` when every value is equal, instead of dividing by nothing.
+
+**Split, and recorded:** the bar chart (several series, the header row as a legend, checkboxes hiding a series) is its own
+bean (`cssints-d266`) — a different table and a different test, sharing only the name. **Evidence:** four conformance tests
+(the figure and the reading order, the heights' ratio, the page's `max` and `format`, a flat chart and a wrapping name), the
+story (the article's latency distribution, a short chart, a flat one), `r/columns.json`, the site page, and a screenshot.
