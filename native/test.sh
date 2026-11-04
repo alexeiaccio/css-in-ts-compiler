@@ -77,6 +77,8 @@ bun solid/figure-planning.test.ts
 # host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
 # invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)
 bun solid/figure-text.test.ts
+# the four motion kinds' figures (solid/figure-motion.test.ts): motion.ts's own samples, their goldens, their stored frames, the terminal's rows and the browser by name
+bun solid/figure-motion.test.ts
 # the registry's own test (solid/figure-registry.test.ts): every kind has a layout and a check, the registry's list is the
 # one `unknown kind` refuses with and the one native/docs/map.md prints, and a throwaway kind registered in that test alone
 # draws through text.ts and declares on the desktop — the seam a new kind goes through, proved in one file

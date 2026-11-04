@@ -172,6 +172,7 @@ $SOLID --page figure --spec solid/specs/funnel.json --cols 70 --rows 9 --click 2
 cmp "$FIG/solid-figure-base.txt" "$FIG/solid-figure-click.txt" || {
   echo "FAIL: a click on the figure changed its cells"; exit 1; }
 identical "a click on the figure changes nothing (no control, no state)"
+for s in motion-timing easing stagger frame-strip; do $SOLID --page figure --spec "solid/specs/$s.json" --cols 80 --rows 40 --dump "$FIG/solid-figure-$s.txt" && [ -s "$FIG/solid-figure-$s.txt" ] || { echo "FAIL: the motion figure $s drew no cells"; exit 1; }; done; identical "the four motion kinds' cells (motion-timing, easing, stagger, frame-strip)"
 
 # the cost: the frame (declare + Clay + the commands into cells) and the same cells as ANSI, on this machine
 bench=$($SOLID --bench 20)

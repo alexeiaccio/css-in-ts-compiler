@@ -406,6 +406,9 @@ mkdir -p "$TEXTDOC"
 bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
 cmp "$TEXTDOC/README.md" README.md || {
   echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
+echo "figure text: native/README.md's four figures are the renderer's, byte for byte (cmp)"
+# the four motion kinds' numbers are solid/src/motion.ts's own: specs/from-motion.ts writes them and cmps (a change to the spring is this line)
+bun solid/specs/from-motion.ts --check
 # ... and the map draws its own plan: the same redraw, under the marker above the timeline's fence
 bun solid/figure.ts --redraw docs/map.md > "$TEXTDOC/map.md"
 cmp "$TEXTDOC/map.md" docs/map.md || {
