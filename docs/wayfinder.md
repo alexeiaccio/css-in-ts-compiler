@@ -4320,3 +4320,18 @@ angle and as long as the step, the value shown on hover and the head's dot alway
 page, a flat line given a range), the site page, and a screenshot of the drawn line. **Left:** the registry's `r/*.json`
 were stale against the source (the carousel's `[hidden]` fix and the table's grid change were not regenerated), which the
 `node scripts/registry-json.ts` run beside this one brought up to date.
+
+## Charts are held to Chartability, not to "it has a table" (2026-11-04)
+
+Frank Elavsky's [Accessibility in Data Visualization](https://openvisualizationacademy.org/courses/accessibility-in-data-visualization/introduction/introduction/)
+(Open Visualization Academy, September 2025) is the framework the charts epic is judged by, and Chartability is its testable
+form. **The decision: every chart starter gets an accessibility pass before the epic closes**, as its own bean
+(`cssints-xww8`) rather than as prose here — the checks a new chart can copy, the five charts held to them, and a test per
+gap. The sparkline already has two: its value is hover-only (a keyboard user sees the line and cannot read a sample), and it
+has no summary of the series in words. Its markup is already the right shape (an ordered list of `<data value>`, so the
+numbers are the data and the line is decoration) — which is the article's own first principle, and the reason this kit can
+meet the bar without a second, accessible view.
+
+Recorded so a chart written later does not have to rediscover it: **the picture is decoration over a list, table or meter**;
+hover may be an enhancement but never the only way to a value; colour never carries the meaning alone; motion asks
+`prefers-reduced-motion`; and 320px at 200% text must not clip a number.
