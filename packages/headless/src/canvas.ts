@@ -44,6 +44,7 @@ import {
   sole,
   toggled,
   union,
+  worldToScreen,
   zoomRequest,
 } from "./canvas-math";
 import { type Prefs, withPrefs } from "./prefs";
@@ -317,6 +318,22 @@ export interface Canvas {
   readonly isCulled: (id: string) => boolean;
   /** Live position (whole units): the committed one plus the drag delta of a dragged node. */
   readonly position: (id: string) => { readonly x: number; readonly y: number };
+  /**
+   * The whole world unit under a viewport point (screen px), against the LIVE camera: a host can
+   * hit-test or place an overlay outside the pointer pipeline, at any time, mid-tween included.
+   */
+  readonly screenToWorld: (point: { readonly x: number; readonly y: number }) => {
+    readonly x: number;
+    readonly y: number;
+  };
+  /**
+   * The screen px (viewport-relative) a whole world unit lands on, against the LIVE camera: what a
+   * host needs to draw a remote cursor or another world-space overlay.
+   */
+  readonly worldToScreen: (point: { readonly x: number; readonly y: number }) => {
+    readonly x: number;
+    readonly y: number;
+  };
   readonly viewportProps: CanvasViewportProps;
   readonly layerProps: CanvasLayerProps;
   readonly nodeProps: (id: string) => CanvasNodeProps;
@@ -1475,6 +1492,14 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
     isSelected: (id) => memosFor(id).selected(),
     isCulled: (id) => memosFor(id).culled(),
     position: (id) => ({ x: memosFor(id).x(), y: memosFor(id).y() }),
+    screenToWorld: (point) => ({
+      x: roundHalfUp(screenToWorld(point.x, state.tx, state.z) / TONE),
+      y: roundHalfUp(screenToWorld(point.y, state.ty, state.z) / TONE),
+    }),
+    worldToScreen: (point) => ({
+      x: worldToScreen(point.x * TONE, state.tx, state.z),
+      y: worldToScreen(point.y * TONE, state.ty, state.z),
+    }),
     viewportProps,
     layerProps,
     nodeProps: (id) => slotFor(id).props,
