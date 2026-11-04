@@ -276,6 +276,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A column chart as a list: one bar per category, its height the value, and the number in text above it",
   },
   {
+    name: "bars",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Bars",
+    description:
+      "A multi-series bar chart as a table: each bar a background sized by its value, and the header row a legend of checkboxes that hide a series",
+  },
+  {
     name: "heatmap",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
