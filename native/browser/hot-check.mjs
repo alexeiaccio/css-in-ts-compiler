@@ -389,7 +389,25 @@ async function main() {
         if (reloadsAfter !== reloadsBefore) bad("(a) the server pushed no reload", `${reloadsAfter - reloadsBefore} reload(s) among the saves`);
         else ok("(a) the server pushed no reload", `${hot.length} hot events, no reload`);
 
-        // (e) the arrow: three re-mounts, one loop
+        // (e) the arrow: three re-mounts, one loop. The page is given a moment to quiesce first: a frame queued by the
+        // last re-mount (and the hover fade it settles) is a draw the page owes, and measuring across it would count
+        // motion as a leak. `settle` waits, bounded, for the draw counter to stand still for three samples; a page that
+        // never stops drawing fails here, which is the thing this check is for.
+        const settle = async (quiet = 3, bound = 4000) => {
+            const start = Date.now();
+            let last = await page.evaluate(() => window.__page.draws());
+            let still = 0;
+            while (Date.now() - start < bound) {
+                await sleep(100);
+                const now = await page.evaluate(() => window.__page.draws());
+                still = now === last ? still + 1 : 0;
+                last = now;
+                if (still >= quiet) return { draws: last, still: true, ms: Date.now() - start };
+            }
+            return { draws: last, still: false, ms: Date.now() - start };
+        };
+        const rest = await settle();
+        if (!rest.still) bad("(e) the page at rest", `draws were still moving after ${rest.ms} ms: the page never stopped`);
         const frames0 = await page.evaluate(() => window.__page.frames());
         const draws0 = await page.evaluate(() => window.__page.draws());
         await sleep(600);
