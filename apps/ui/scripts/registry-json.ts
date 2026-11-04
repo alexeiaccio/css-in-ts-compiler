@@ -268,6 +268,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "heatmap",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Heatmap",
+    description:
+      "A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale",
+  },
+  {
     name: "meter",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

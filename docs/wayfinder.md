@@ -4369,3 +4369,23 @@ is text and a pseudo-element's `content` is not (and `group()` stays on the item
 **Evidence:** the five conformance tests now read the pseudo-elements (`getComputedStyle(row, "::before").content` is `""`,
 the segment's `rotate` is an angle, the dot's opacity 0 → 1 on hover and 1 on the head), the site test, and a screenshot with
 a sample hovered (`1510` above its point). `r/sparkline.json` was regenerated with the source.
+
+## The second chart: a heatmap, and a style key Solid drops (2026-11-04)
+
+`cssints-mrew`, the epic's second: a heatmap as a table — one row per day, one cell per hour, every value the cell's own text,
+and the colour `color-mix(in oklab, var(--heat-hot) <share>, var(--heat-cold))`. `display: contents` on `thead`, `tbody` and
+`tr` makes the cells the grid items of the table itself, so the columns stay aligned without a table's boxes; the label column
+is `minmax(2.5rem, max-content)`, the rest `minmax(0, 1fr)`.
+
+**Two findings worth the entry.** (1) **The grid's column count is the caller's**, and `repeat()` cannot take a custom
+property, so `grid-template-columns` is spelled out in the element's style — and a **camelCase key in Solid's style object is
+dropped**: `gridTemplateColumns` never reached the element while the `--min`/`--max` keys beside it did. The kebab-case key
+(`"grid-template-columns"`) is written and works; the component says so where it happens. (2) **A token is build-time text**:
+`t.color.highlight` inside a run-time `style` getter is erased with the import, and the page fails with `t is not defined` —
+the colours come in as `var(--color-highlight)` and `var(--color-button-background)`, which is what the theme actually
+declares.
+
+**Evidence:** four conformance tests (a header per column, a label per row, one cell per pair with its number; the scale on
+the table and two cells of the same value family a different colour; the value shown on hover without moving the grid; an
+empty cell empty and the scale in words), the story (a week of the article's own data, a wider `max`, a small map, a gap), the
+site page, and a screenshot of the week at rest.
