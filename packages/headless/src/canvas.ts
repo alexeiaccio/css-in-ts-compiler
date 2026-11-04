@@ -78,7 +78,10 @@ export {
  * fixed point, zoom `value * 4096`, translation `world units * 256`, `screen = (world + t) * z`,
  * round half up, top-left-anchored resize, the viewport origin bounded to +-1e6 units, a clamp
  * re-anchors the zoom, a 4 px SCREEN drag threshold, an 8 px SCREEN snap threshold on a 50-unit
- * grid, reduced motion jumps to the same end state a tween reaches. Pointer positions are rounded
+ * grid, reduced motion jumps to the same end state a tween reaches. A pointer drag exposes its
+ * landing (`landingX` / `landingY` in pointer.qnt): the origin the release will commit, for a host
+ * to preview. The drop's from/to correction is presentation (`TWEEN_TICKS` linear frames), not
+ * model state, exactly like the camera's easing. Pointer positions are rounded
  * to whole CSS px.
  *
  * Accessibility (effects-of-atmosphere-h9vk): every node is a real focusable element (`role`,
@@ -156,6 +159,30 @@ export interface CanvasMove {
   readonly id: string;
   readonly x: number;
   readonly y: number;
+}
+
+/**
+ * Where a pointer drag would put the pressed node if it were released now: its origin once snapped,
+ * WHOLE world units, already clamped into the world bound like the commit. The host draws the
+ * preview (the primitive renders no elements); on release the node commits exactly here. With
+ * snapping off it follows the pointer off the grid. `null` unless a drag runs.
+ */
+export interface CanvasLanding {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * A drop whose visual origin differs from the committed one: the node was rendered at `from` when
+ * the pointer was released and now sits at `to` (`position(id)` already reads `to`). Exposed for
+ * `TWEEN_TICKS` frames so a host can animate the correction itself; the primitive renders nothing.
+ * `null` under reduced motion or when the drag already rendered the committed origin.
+ */
+export interface CanvasDrop {
+  readonly id: string;
+  readonly from: { readonly x: number; readonly y: number };
+  readonly to: { readonly x: number; readonly y: number };
 }
 
 export interface CanvasMessages {
@@ -239,6 +266,19 @@ export interface CanvasSnapshot {
   readonly culled: readonly string[];
   readonly announcements: number;
   readonly announcement: string;
+  /**
+   * The slot a pointer drag would commit its pressed node to, or `null` when no drag runs. Present
+   * with snapping off too (then it is the free pointer origin). A landing preview: the host draws
+   * it, the primitive only says where it is.
+   */
+  readonly landing: CanvasLanding | null;
+  /**
+   * The drop the last release left, for `TWEEN_TICKS` frames: `from` is the origin the drag
+   * rendered, `to` the committed one. `position(id)` is already `to`, so a host that draws
+   * `position(id)` may animate the difference; one that does not simply jumps. Reduced motion
+   * never starts one.
+   */
+  readonly drop: CanvasDrop | null;
 }
 
 /**
@@ -359,8 +399,9 @@ export interface Canvas {
   /** Zoom to `zoom` (fixed point), clamped and re-anchored. */
   readonly zoomTo: (zoom: number, anchor?: readonly [number, number]) => void;
   readonly animateTo: (goal: CanvasGoal) => void;
-  /** One animation frame of a running tween. */
+  /** One animation frame of a running tween (camera or drop). */
   readonly tick: () => void;
+  /** Stop the camera where it is; a running drop lands on its commit (the truth cannot be cancelled). */
   readonly cancelTween: () => void;
   /** Enter / leave editing of the single selected node (idle only). */
   readonly toggleEdit: () => void;
@@ -429,6 +470,16 @@ interface NodeMeta {
   readonly roleDescription: string;
 }
 
+/** One node's drop tween: the origin the drag left it at and the committed origin it lands on. */
+interface DropTween {
+  readonly id: string;
+  readonly fx: number;
+  readonly fy: number;
+  readonly tx: number;
+  readonly ty: number;
+  readonly tp: number;
+}
+
 interface State extends Boxes {
   /** Per node, parallel to the geometry arrays; every index below is a position in here. */
   readonly meta: readonly NodeMeta[];
@@ -472,6 +523,7 @@ interface State extends Boxes {
   readonly ddy: number;
   readonly guideX: boolean;
   readonly guideY: boolean;
+  readonly drop: DropTween | null;
   readonly annCount: number;
   readonly annSel: IndexSet;
   readonly annText: string;
@@ -634,7 +686,7 @@ const animated = (s: State, goal: CanvasGoal): State => {
   };
 };
 
-const ticked = (s: State): State => {
+const cameraTicked = (s: State): State => {
   if (!s.active) {
     return s;
   }
@@ -653,10 +705,51 @@ const ticked = (s: State): State => {
   };
 };
 
+const ticked = (s: State): State => {
+  const camera = cameraTicked(s);
+  const drop = camera.drop;
+  if (drop === null) {
+    return camera;
+  }
+  const p = drop.tp + 1;
+  // the last frame drops the tween: `position` then reads the committed positions, which are the
+  // target, so the node lands exactly there without a second source of truth
+  return { ...camera, drop: p >= TWEEN_TICKS ? null : { ...drop, tp: p } };
+};
+
 const liveX = (s: State, i: number): number =>
   at(s.xs, i) + (s.mode === "dragging" && s.sel.has(i) ? s.ddx : 0);
 const liveY = (s: State, i: number): number =>
   at(s.ys, i) + (s.mode === "dragging" && s.sel.has(i) ? s.ddy : 0);
+
+/** The origin a release would commit the pressed node to right now (clamped like the commit), or none. */
+const landingOf = (s: State): CanvasLanding | null => {
+  if (s.mode !== "dragging" || s.tgt < 0) {
+    return null;
+  }
+  return {
+    id: idAt(s, s.tgt),
+    x: clampPos(liveX(s, s.tgt), at(s.ws, s.tgt)),
+    y: clampPos(liveY(s, s.tgt), at(s.hs, s.tgt)),
+  };
+};
+
+/**
+ * The drop a release leaves behind: the live origin the drag rendered against the committed one,
+ * for a host that wants to animate the correction. `null` - no frames - under reduced motion or
+ * when the commit is where the drag already was, which is the ordinary case: the drag renders the
+ * snapped slot. Only a clamp into the world bound makes the two differ.
+ */
+const dropTweenFor = (s: State, xs: readonly number[], ys: readonly number[]): DropTween | null => {
+  if (s.mode !== "dragging" || s.rm || s.tgt < 0) {
+    return null;
+  }
+  const fx = liveX(s, s.tgt);
+  const fy = liveY(s, s.tgt);
+  const tx = at(xs, s.tgt);
+  const ty = at(ys, s.tgt);
+  return fx === tx && fy === ty ? null : { id: idAt(s, s.tgt), fx, fy, tx, ty, tp: 0 };
+};
 
 const inView = (s: State, i: number): boolean =>
   liveX(s, i) * TONE < screenToWorld(s.vw, s.tx, s.z) &&
@@ -726,6 +819,7 @@ const initialState = (nodes: readonly CanvasNodeInput[], options: CanvasOptions)
   ddy: 0,
   guideX: false,
   guideY: false,
+  drop: null,
   annCount: 0,
   annSel: new Set(),
   annText: "",
@@ -802,6 +896,15 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
     culled: s.xs.flatMap((_, i) => (culled(s, i) ? [idAt(s, i)] : [])),
     announcements: s.annCount,
     announcement: s.annText,
+    landing: landingOf(s),
+    drop:
+      s.drop === null
+        ? null
+        : {
+            id: s.drop.id,
+            from: { x: s.drop.fx, y: s.drop.fy },
+            to: { x: s.drop.tx, y: s.drop.ty },
+          },
   });
 
   const orderedIds = (s: State): readonly string[] => spatialOrder(s).map((i) => idAt(s, i));
@@ -913,7 +1016,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
     }
     notify(prev, next);
     const schedule = frameScheduler();
-    if (next.active && !frameQueued && schedule !== undefined) {
+    if ((next.active || next.drop !== null) && !frameQueued && schedule !== undefined) {
       frameQueued = true;
       schedule(() => {
         frameQueued = false;
@@ -971,6 +1074,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       selSnap: s.sel,
       cursor: grabbed ? hit : s.cursor,
       editing: -1,
+      drop: null,
     });
     if (grabbed) {
       focusNode(hit);
@@ -1015,6 +1119,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
     ddy: 0,
     guideX: false,
     guideY: false,
+    drop: null,
   });
 
   const pointerUp = (id: number): void => {
@@ -1027,10 +1132,13 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       values.map((value, i) =>
         dragged && s.sel.has(i) ? clampPos(value + d, at(extents, i)) : value,
       );
+    const xs = committedAt(s.xs, s.ws, s.ddx);
+    const ys = committedAt(s.ys, s.hs, s.ddy);
     commit({
       ...finish(s, selectionAfterUp(s)),
-      xs: committedAt(s.xs, s.ws, s.ddx),
-      ys: committedAt(s.ys, s.hs, s.ddy),
+      xs,
+      ys,
+      drop: dropTweenFor(s, xs, ys),
     });
   };
 
@@ -1087,7 +1195,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
         height,
       );
     }
-    commit(derive({ ...s, xs, ys, ws, hs }));
+    commit(derive({ ...s, xs, ys, ws, hs, drop: null }));
   };
 
   const setOrder = (ids: readonly string[]): void => {
@@ -1142,6 +1250,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
         ws: [...s.ws, ...placed.map(({ width }) => width)],
         hs: [...s.hs, ...placed.map(({ height }) => height)],
         ranks: [...s.ranks, ...placed.map((_, k) => s.ranks.length + k)],
+        drop: null,
       }),
     );
     const clamped = placed.flatMap(({ node, x, y }) =>
@@ -1195,6 +1304,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       cursor: renumber(s.cursor),
       editing: renumber(s.editing),
       tgt: renumber(s.tgt),
+      drop: null,
     };
     // the pressed node is gone: the gesture has nothing to act on, so it ends like a cancel
     const settled =
@@ -1236,6 +1346,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       ...s,
       xs,
       ys,
+      drop: null,
       annCount: s.annCount + 1,
       annText: prefs.announce
         ? messages().moved(labelAt(s, index), direction, at(xs, index), at(ys, index))
@@ -1518,7 +1629,8 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
     setSnap: (on) => whileIdle((s) => ({ ...s, snapOn: on })),
     resize: (width, height) => commit({ ...state, vw: width, vh: height }),
     setReducedMotion: (reduced) => {
-      const s = state;
+      // motion off settles both tweens on their targets: a node's committed position is the truth
+      const s = reduced && state.drop !== null ? { ...state, drop: null } : state;
       commit(
         reduced && s.active
           ? { ...rest(s, s.ttx, s.tty, s.tz), rm: true }
@@ -1544,7 +1656,10 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       commit(zoomedTo(state, target, anchor?.[0] ?? state.px, anchor?.[1] ?? state.py)),
     animateTo: (goal) => commit(animated(state, goal)),
     tick: () => commit(ticked(state)),
-    cancelTween: () => commit(rest(state, state.tx, state.ty, state.z)),
+    cancelTween: () =>
+      commit(
+        rest(state.drop === null ? state : { ...state, drop: null }, state.tx, state.ty, state.z),
+      ),
     toggleEdit,
     setGeometry,
     setOrder,

@@ -31,8 +31,8 @@ const specEvent = (
  *   `layer`   `--canvas-x` `--canvas-y` `--canvas-zoom`   the rendered camera custom properties
  *   `node<i>` `aria-selected` `--node-x` `--node-y` `content-visibility`
  *   `live`    `text`                                      the live region
- *   `state`   `mode owner selection cursor editing guides culled announcements`  (pointer)
- *             `camera viewport tweening reducedMotion`                           (camera)
+ *   `state`   `mode owner selection cursor editing guides culled announcements landing`  (pointer)
+ *             `camera viewport tweening reducedMotion`                                   (camera)
  * `state` reads the primitive's own snapshot (`Canvas.peek()`), JSON-formatted by `formatValue`.
  *
  * Not an oracle: `culled` is an independent TS port of the spec's `culled` def (defs are not
@@ -630,6 +630,28 @@ const culledNodes = (state: QuintModelValue): string[] => {
 
 const idOf = (index: number): string | null => NODES[index]?.id ?? null;
 
+/** pointer.qnt's WB: the world bound `clampPos` uses. */
+const WB = 1_000_000;
+
+/**
+ * pointer.qnt's `landingOn` / `landingX` / `landingY`: the origin a release would commit the
+ * pressed node to (its live origin clamped into the world bound), or `null` when no drag runs.
+ */
+const landingOf = (state: QuintModelValue): { id: string; x: number; y: number } | null => {
+  const index = num(state["tgt"]);
+  const node = NODES[index];
+  if (state["mode"] !== "dragging" || node === undefined) {
+    return null;
+  }
+  const clamp = (value: number, extent: number): number =>
+    Math.min(Math.max(value, -WB), WB - extent);
+  return {
+    id: node.id,
+    x: clamp(num(state[`n${index}x`]) + num(state["ddx"]), node.width),
+    y: clamp(num(state[`n${index}y`]) + num(state["ddy"]), node.height),
+  };
+};
+
 type PointerValue = {
   readonly mode: string;
   readonly owner: number | null;
@@ -639,6 +661,7 @@ type PointerValue = {
   readonly guides: { readonly x: boolean; readonly y: boolean };
   readonly culled: ReadonlyArray<string>;
   readonly announcements: number;
+  readonly landing: { readonly id: string; readonly x: number; readonly y: number } | null;
 };
 
 export const pointerValue = (state: QuintModelValue): PointerValue => ({
@@ -653,6 +676,7 @@ export const pointerValue = (state: QuintModelValue): PointerValue => ({
   },
   culled: culledNodes(state),
   announcements: num(state["annCount"]),
+  landing: landingOf(state),
 });
 
 /** The text the primitive's default messages give a settled selection. */
@@ -794,6 +818,7 @@ export const pointerProbe: Probe = {
     ["state", "guides"],
     ["state", "culled"],
     ["state", "announcements"],
+    ["state", "landing"],
     ["live", "text"],
     ...NODES.flatMap(
       (_, index): Array<readonly [string, string]> => [

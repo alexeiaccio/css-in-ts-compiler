@@ -1,6 +1,6 @@
 {
   "generatedFrom": "../../specs/canvas/pointer.qnt",
-  "specHash": "6372995bcbfe2ef343cd80a010edeb84100414348350d5c41e11884af35c02f5",
+  "specHash": "7ba3fa056769a9174eba9cb3184060723d063e682efdbb7307a7da6fbd617783",
   "module": "canvas_pointer",
   "vars": [
     {
@@ -4603,6 +4603,146 @@
         ]
       }
     },
+    "landingOn": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "mode"
+              },
+              {
+                "kind": "str",
+                "value": "dragging"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tgt"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tgt"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "landingX": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "landingOn"
+          },
+          {
+            "kind": "app",
+            "opcode": "clampPos",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "liveX",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tgt"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "NW",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tgt"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "landingY": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "landingOn"
+          },
+          {
+            "kind": "app",
+            "opcode": "clampPos",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "liveY",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tgt"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "NH",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tgt"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
     "inView": {
       "kind": "function",
       "params": [
@@ -7168,6 +7308,226 @@
                       {
                         "kind": "int",
                         "value": "0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LandingIsTheSnappedOrigin": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "landingOn"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "landingX"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "clampPos",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "liveX",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tgt"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "NW",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tgt"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "landingY"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "clampPos",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "liveY",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tgt"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "NH",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tgt"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "snapOn"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "not",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "bit",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "guide"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "0"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "imod",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "landingX"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "GRID"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "not",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "bit",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "guide"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "1"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "imod",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "landingY"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "GRID"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }

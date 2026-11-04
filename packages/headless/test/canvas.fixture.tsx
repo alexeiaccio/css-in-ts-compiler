@@ -137,6 +137,34 @@ export const mountCanvas = (config: CanvasFixtureConfig): CanvasMounted => {
                 );
               }}
             </For>
+            {/* The landing preview is the host's to draw: the primitive only says where the
+                pressed node will be committed. It sits above the nodes so its outline shows even
+                though the live drag already renders the snapped slot under it. */}
+            <Show when={canvas.state().landing}>
+              {(landing) => {
+                const size = (): { width: number; height: number } => {
+                  const node = nodes.find(({ id }) => id === landing().id);
+                  return { width: node?.width ?? 0, height: node?.height ?? 0 };
+                };
+                return (
+                  <div
+                    data-part="ghost"
+                    style={{
+                      position: "absolute",
+                      left: "0px",
+                      top: "0px",
+                      width: `${size().width}px`,
+                      height: `${size().height}px`,
+                      transform: `translate(${landing().x}px, ${landing().y}px)`,
+                      outline: "2px dashed #b85c38",
+                      "outline-offset": "2px",
+                      "pointer-events": "none",
+                      "z-index": "9999",
+                    }}
+                  />
+                );
+              }}
+            </Show>
           </div>
         </div>
         <div data-part="live" {...canvas.liveRegionProps}>
