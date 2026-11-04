@@ -1,11 +1,11 @@
 ---
 # cssints-xww8
 title: 'charts: the accessibility pass (Chartability, over the five)'
-status: in-progress
+status: completed
 type: feature
 priority: high
 created_at: 2026-11-04T06:00:24Z
-updated_at: 2026-11-04T07:51:45Z
+updated_at: 2026-11-04T08:21:10Z
 parent: cssints-6pih
 ---
 
@@ -28,3 +28,8 @@ Done when: each of the five charts passes the checklist, the checks live in one 
 ## Progress (2026-11-04)
 
 The bar is in `apps/ui/README.md` (nine checks a new chart copies). Sparkline: a figure with a caption that says the range and the extremes in words. Heatmap: a "Show the numbers" toggle that reads the same table as a table (a `<details>` was tried and hides the chart, so it is a button with `aria-pressed`). Columns was written to the bar from the start. Left: the same pass over bars, donut and stat once they land.
+
+
+## Outcome (2026-11-04)
+
+The bar is in `apps/ui/README.md` and all six charts meet it: the three earlier ones were fixed (the sparkline got a figure and a caption that says the range and the extremes in words; the heatmap a "Show the numbers" toggle that reads the same table as a table), and `columns`, `bars`, `donut` and `stat` were written to it from the start (named figures, values as text, no pointer-only value, names wrapping, the legend as real checkboxes, a hidden series leaving the table, 320px at 200% checked).

@@ -1,11 +1,11 @@
 ---
 # cssints-udc5
 title: 'charts: a donut from a list'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-04T05:45:36Z
-updated_at: 2026-11-04T05:45:36Z
+updated_at: 2026-11-04T08:21:09Z
 parent: cssints-6pih
 ---
 

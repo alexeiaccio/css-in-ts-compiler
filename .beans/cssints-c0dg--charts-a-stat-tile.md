@@ -1,11 +1,11 @@
 ---
 # cssints-c0dg
 title: 'charts: a stat tile'
-status: todo
+status: completed
 type: feature
 priority: low
 created_at: 2026-11-04T05:45:36Z
-updated_at: 2026-11-04T05:45:36Z
+updated_at: 2026-11-04T08:21:10Z
 parent: cssints-6pih
 ---
 

@@ -4430,3 +4430,36 @@ its two labels, the value's font size and position and the cell's aspect ratio b
 README section itself. **Left:** the bar over the three charts being written in parallel (bars, donut, stat), and one honest
 sub-check — a heatmap cell's colour pairs two theme tokens that `check.contrast` cannot compare a rectangle against; the
 scale line says "darker is more" and every value is in the table, which is the argument this kit makes.
+
+## Three charts at once: bars, donut, stat (2026-11-04)
+
+The epic's last three, built in parallel by three agents in their own worktrees, each told to meet the README's accessibility
+bar from the start and to leave `r/`, `llms.txt`, the docs and the site test to one hand (they share the generated registry,
+so three regenerations would have fought). **Merged one by one onto master**, the only conflict the `STARTERS` array — resolved
+by keeping every entry; then one regeneration for all of them and the two charts whose sources the accessibility pass changed.
+
+- **`bars`** (`cssints-d266`): a table whose header row _is_ the legend — one checkbox per series — with each bar a
+  `linear-gradient` background sized by the value and `padding-inline-start: min(…, 100% - 4.5rem)` so the number starts at
+  the bar's end and never leaves the plot. Hiding a series is state (the component's, or the page's with `onHiddenChange`);
+  the cells and the header leave the table rather than sit there empty. Rows are grids with one computed track list, so a
+  hidden column collapses without breaking the alignment.
+- **`donut`** (`cssints-udc5`): a list whose slices are the items' `::before` — `conic-gradient()` between two angles, masked
+  to a ring and `clip-path`ed to its own wedge (without the clip the transparent pixels catch the pointer and the last circle
+  wins every hover). `--from`/`--to` come from the component: CSS cannot total earlier siblings. At 320px it stacks.
+- **`stat`** (`cssints-c0dg`): an article with a heading, the value as `<data>`, the change in words with its sign
+  ("▲ Up 3 % — better"), and the line reused from `sparkline.tsx` rather than copied — which is why its registry entry lists
+  `sparkline/sparkline.tsx` in `with`.
+
+**Two findings.** (1) **The `@counter-style` sign cannot be written by this engine**: the browser takes `system: fixed -1` and
+prints `−±+`, but `css.global()` takes a selector and an at-rule has none, so the sign is the component's; the values
+(`--value`, `--previous`, `--better`, `--pct`) are still on the element. (2) **A token as a string in `color-mix()` does not
+ship the token's rule**: `color-mix(in srgb, var(--color-invalid) …)` left the colour unresolved (the engine warns "pass the
+token itself"), so the tile's tone is a `data-tone` attribute with the theme's tokens used as tokens.
+
+**The accessibility pass over all six (`cssints-xww8`) closes here.** Reading the three new charts against the bar: each is a
+named figure over the data (a `caption` for the two tables, a `figcaption` for the donut and the tile), every value is text,
+the legend's controls are real checkboxes, a hidden series leaves the table, colour is never alone, names wrap, and the
+charts were checked at 320px with 200% text. **Evidence:** bars 6, donut 6 and stat 5 conformance tests; the site test now
+draws a page of each (the legend's boxes, the donut's five rows, the tile's `<data value>`); `r/` regenerated for all six;
+screenshots of the bar chart (12:00 hovered, a series hidden, 320px), the donut (at rest, hovering Asia, 320px) and the tile
+(light, dark, a row of three).
