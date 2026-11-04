@@ -1,11 +1,11 @@
 ---
 # cssints-6sib
 title: Drop zone
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-30T18:05:01Z
+updated_at: 2026-11-04T09:57:17Z
 parent: cssints-65eb
 ---
 
@@ -27,3 +27,8 @@ Native file input exists in cms-admin and kocharin; there is no drag target, no 
 - `packages/headless/test/dropzone.browser.test.tsx` (real Chromium, 9 tests); README "Drop zone", `docs/API.md` entry, `.changeset/dropzone.md` (minor).
 
 Remaining: adoption in cms-admin / kocharin, and progress-per-file / cancel.
+
+
+## Closed (2026-11-04)
+
+Extended in 0.22.0 with `maxFiles`, `labels.labelledby` and `formatMessage`; adopted by cms-admin image field. The adoptions are tracked in the effects-of-atmosphere repo; progress-per-file and cancel stay open in the primitive (no `onProgress`, no cancel yet).

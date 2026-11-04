@@ -4463,3 +4463,43 @@ charts were checked at 320px with 200% text. **Evidence:** bars 6, donut 6 and s
 draws a page of each (the legend's boxes, the donut's five rows, the tile's `<data value>`); `r/` regenerated for all six;
 screenshots of the bar chart (12:00 hovered, a series hidden, 320px), the donut (at rest, hovering Asia, 320px) and the tile
 (light, dark, a row of three).
+
+## Declarative dragging: the idea we keep, the library we do not take (2026-11-04)
+
+Sent to look at: [Declarative Dragging](https://declarative-dragging.github.io/) (Horowitz, Blinn, Heer; UIST 2026 best paper)
+and its library Dragology. The inversion is the interesting part: instead of writing the geometry, the feedback and the
+animations of a drag, the author declares **which future model states dragging should lead to**; the engine speculatively
+renders them, reads where the dragged element lands in each, and synthesises the interaction from those landing places.
+
+**Why it is not a dependency for this kit.** Every drag we ship is a _widget value_ with APG keyboard semantics: a slider's
+number, a splitter's ratio, a knob's angle, a list's order (`reorder`'s handle drag writes the same order its Alt+Arrow
+moves write). Their models are one number or one array; Dragology's is a view tree it renders speculatively, in SVG — a
+second rendering model under components that are plain DOM and attribute objects, and the copy would not carry the
+keyboard path, which is the half we have to own.
+
+**What is worth keeping.** The rule "declare the reachable states, synthesise the feedback" is a good way to describe what
+`reorder` and `resizable-panels` already do by hand, and it is the right frame for a starter whose drag is free-form
+placement rather than a value — a card pile, a kanban, a node canvas — where the demo gallery's card piles are the shape to
+copy. Recorded as `cssints-2cxd` (low priority, deferred): an experiment, not a plan, and only if such a starter is wanted.
+
+## The starter pins its Solid compiler to its runtime (templates/solid-vite, 2026-11-04)
+
+The starter smoke went red on one item, `bars`, with a message naming no file of ours: `The requested module
+'@solidjs/web' does not provide an export named 'setStatefulProperty'`. The name is a Solid **rc.17** helper: dev builds
+write `value`/`checked`/`selected` bindings through it instead of `el.name = value`. The template pinned `solid-js` and
+`@solidjs/web` at `2.0.0-rc.13`, but `@solidjs/vite-plugin` 3.0.0-next.47 depends on `@solidjs/compiler` with the range
+`^2.0.0-rc.13`, which npm now resolves to **rc.21** — so a fresh install compiled the kit with rc.21 and ran it on the
+rc.13 runtime, and only a component that actually binds a stateful property noticed (`bars` is the one item with a
+checkbox; the other charts do not, and the repo's own `bun.lock` still pinned rc.13 for both, which is why `apps/ui`
+never saw it).
+
+The fix is the boring one: the template names `@solidjs/compiler` and `@solidjs/babel-plugin` at rc.13 as its own
+devDependencies. They satisfy the plugin's range, so npm dedupes onto them instead of floating; the alternative — bumping
+the runtime to rc.21 — would have meant shipping a starter on a Solid the repo does not test, and rc.17 changed effect
+and cleanup semantics beyond this helper. The smoke is the guard, at the honest granularity: one item that renders an
+input fails loudly if the pin ever stops applying.
+
+**Left out, and true.** The repo's own installs still rely on `bun.lock` for this, not on an override: a regenerated lock
+would float the compiler the same way, and the kit's own `bars` test would then fail in `apps/ui` before the smoke did.
+Nothing checks that the four Solid versions match (a `npm ls` assertion in the smoke would); only a rendered stateful
+binding reveals a skew.

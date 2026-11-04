@@ -142,6 +142,20 @@ grep -q -- "-2 bad" "$FIG/solid-figure-journey.txt" || { echo "FAIL: the bad sta
 grep -q "Why did my dates break?" "$FIG/solid-figure-journey.txt" || {
   echo "FAIL: a stage's thinking is not under its bar"; exit 1; }
 identical "the journey map: a bar a stage, its feeling's word, and the stage's doing and thinking under it"
+# the two wireframe kinds: the Widgets page's own command stream cut to the cell grid (its boxes as + - | and its own
+# runs in its words), and the Sky page at 240 and 360px side by side, each side captioned with its size
+$SOLID --page figure --spec solid/specs/screen.json --cols 104 --rows 52 --dump "$FIG/solid-figure-screen.txt"
+grep -q "The Widgets page, as a wireframe" "$FIG/solid-figure-screen.txt" || {
+  echo "FAIL: the screen drew no title"; exit 1; }
+grep -q -F -- "+---" "$FIG/solid-figure-screen.txt" || { echo "FAIL: the screen drew no box edge"; exit 1; }
+grep -q "Wi-Fi" "$FIG/solid-figure-screen.txt" || { echo "FAIL: the screen drew none of the page's runs"; exit 1; }
+identical "the screen: the Widgets page's own boxes and runs, 45 cells of its 360px"
+$SOLID --page figure --spec solid/specs/responsive-pair.json --cols 100 --rows 53 --dump "$FIG/solid-figure-pair.txt"
+grep -q "The Sky page, at two widths" "$FIG/solid-figure-pair.txt" || {
+  echo "FAIL: the pair drew no title"; exit 1; }
+grep -q "narrow 240x760" "$FIG/solid-figure-pair.txt" || { echo "FAIL: the pair has no narrow caption"; exit 1; }
+grep -q "wide 360x760" "$FIG/solid-figure-pair.txt" || { echo "FAIL: the pair has no wide caption"; exit 1; }
+identical "the responsive pair: the Sky page at 240 and 360px, side by side (30 + 2 + 45 cells)"
 # the three planning kinds, the map's own plan: a timeline (its spans, its numbers and the axis's ends), the status key's
 # three words and sentences, and the board's three columns of cards
 $SOLID --page figure --spec solid/specs/timeline.json --cols 80 --rows 13 --dump "$FIG/solid-figure-timeline.txt"

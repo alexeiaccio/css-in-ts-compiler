@@ -166,6 +166,8 @@ async function main() {
       ["timeline", "The plan's order, one step a row"],
       ["statusKey", "What the map's statuses mean"],
       ["nowNextLater", "What the map has left, now, next, later"],
+      ["screen", "The Widgets page, as a wireframe"],
+      ["responsive-pair", "The Sky page, at two widths"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);
       await page.waitForFunction(() => window.__page, null, { timeout: 20000 });

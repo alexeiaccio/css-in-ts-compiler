@@ -71,6 +71,84 @@
       "notes": "The three moves sit 2.2, 4 and 5 px from the press (squared distance 5, 16, 25 against DRAG_PX^2 = 16): only the third leaves `pointing`. The node follows the pointer live but its committed position (and the callback) only change on pointerup."
     },
     {
+      "id": "pointer.contract.a-drag-previews-its-snapped-landing",
+      "area": "drag",
+      "config": { "snap": true },
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        {
+          "expect": {
+            "attrs": { "state": { "mode": "pointing", "landing": null } }
+          }
+        },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "dragging",
+                "landing": "{\"id\":\"0\",\"x\":100,\"y\":100}"
+              },
+              "node0": { "--node-x": "100", "--node-y": "100" }
+            }
+          }
+        },
+        { "event": "pointermove", "target": "p8" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "landing": "{\"id\":\"0\",\"x\":270,\"y\":190}"
+              },
+              "node0": { "--node-x": "270", "--node-y": "190" }
+            }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "idle", "landing": null },
+              "node0": { "--node-x": "270", "--node-y": "190" }
+            },
+            "events": { "onNodesMove": [[{ "id": "0", "x": 270, "y": 190 }]] }
+          }
+        }
+      ],
+      "notes": "The landing is the dragged node's live origin: a 5 px move snaps back to the grid line (100, 100), a 170 x 90 px move is out of the 8 px reach and previews the free origin (270, 190). It is the origin the release commits, and it is gone the moment the gesture is."
+    },
+    {
+      "id": "pointer.contract.a-drag-previews-its-free-origin-with-snap-off",
+      "area": "drag",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "dragging",
+                "landing": "{\"id\":\"0\",\"x\":105,\"y\":100}"
+              },
+              "node0": { "--node-x": "105", "--node-y": "100" }
+            }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "idle", "landing": null },
+              "node0": { "--node-x": "105", "--node-y": "100" }
+            },
+            "events": { "onNodesMove": [[{ "id": "0", "x": 105, "y": 100 }]] }
+          }
+        }
+      ],
+      "notes": "With snapping off there is still a landing - it is where the release would commit - and it follows the pointer off the grid (105 is not a 50 unit multiple)."
+    },
+    {
       "id": "pointer.contract.shift-click-toggles-from-the-pointerdown-snapshot",
       "area": "selection",
       "config": {},

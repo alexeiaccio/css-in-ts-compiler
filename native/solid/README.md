@@ -1068,6 +1068,17 @@ verdicts painted by the `good`, `problem` and `muted` roles. Their goldens are `
 `figure-before-after.json` and `figure-qa-checklist.json`, their frames are `solid/frames/figure-{redline,before-after,qa-checklist}.png`,
 and the browser reads `?spec=` of each (`browser/figure-handoff-check.mjs`).
 
+**The two wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen` and `responsivePair`, and their data is a
+**page's own captured frame**: `specs/from-page.ts` runs `dump.ts`'s `capture` and writes the Widgets page's
+`rectangle`/`border` boxes and `text` runs into `screen.json` (360x760: 45x48 cells, 23 boxes of 29, 30 runs, 1
+shortened) and the Sky feed's into `responsive-pair.json` (240x760 and 360x760: 30x48 and 45x48 cells, 8 boxes and 22
+runs a side, side by side at 77 of 80 cells, above/below at 60). A box is its page rect at `round(x/8)`, `round(y/16)`,
+`round(w/8)`, `round(h/16)`, so the wireframe is 1/8 scale and not pixel-accurate — the worst edge is half a cell (4px
+across, 8px down) and a 1px rule rounds away; a run is one cell a character, marked `…` when shortened.
+`figure-wireframe.test.ts` holds the count, the rects, the runs' order, the pair's sizes, the refusals (an unknown page, a
+width over `options.width`, a narrow side wider than the wide, an empty frame, no boxes), the three mutations, the two
+goldens and the terminal's rows; `solid/test.sh` regenerates both specs and `cmp`s.
+
 **The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
 their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
 `solid/test.sh` regenerates and `cmp`s them, so the areas are now five (`metrics`, `flows`, `structure`, `systems`,

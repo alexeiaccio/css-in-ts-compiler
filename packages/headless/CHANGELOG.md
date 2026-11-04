@@ -1,5 +1,15 @@
 # @cssints/headless
 
+## 0.32.0
+
+### Minor Changes
+
+- 45c14e8: The canvas handle converts between screen and world points (`screenToWorld`, `worldToScreen`), so a host can draw a remote cursor or hit-test outside the pointer pipeline.
+
+### Patch Changes
+
+- @cssints/machine@0.32.0
+
 ## 0.31.0
 
 ### Patch Changes

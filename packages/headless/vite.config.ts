@@ -17,7 +17,7 @@ export default defineConfig({
     },
   ],
   test: {
-    include: ["test/**/*.browser.test.tsx"],
+    include: ["test/**/*.browser.test.tsx", "test/**/*.test.ts"],
     // The differential walks are bounded by `runs` x `steps`, not by wall time, and one walk of the treeview's seven
     // nodes costs seconds on a quiet machine: beside other suites (a dozen worktrees of this repo run theirs in
     // parallel) the vitest default of 15 s is the load average talking, not a hung primitive. A genuinely stuck walk

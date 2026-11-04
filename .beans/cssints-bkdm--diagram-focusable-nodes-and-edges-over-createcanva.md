@@ -1,11 +1,11 @@
 ---
 # cssints-bkdm
 title: 'Diagram: focusable nodes and edges over createCanvas'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-31T10:25:46Z
+updated_at: 2026-11-04T09:57:17Z
 parent: cssints-65eb
 ---
 
@@ -21,3 +21,15 @@ statechart positions node divs absolutely with no roles, and edges are buttons d
 `createDiagramFocus` in `packages/headless/src/diagram.ts`, exported from `@cssints/headless`; oracle `packages/headless/test/diagram.browser.test.tsx` (15 tests). README `## Diagram`, docs/API.md, minor changeset. Still open: adopt in apps/statechart.
 
 PR: https://github.com/alexeiaccio/css-in-ts-compiler/pull/103
+
+
+## Closed (2026-11-04)
+
+Shipped as `createDiagramFocus` in 0.24.0 (PR #103) and adopted by apps/statechart (effects-of-atmosphere#5).
+
+- Node roving tab stop over the real layout: arrows go to the nearest node in that direction by centre distance (wrap at the edge), Home/End to the ends, Enter/Space activates.
+- Edges are reachable from the active node (`e`, arrows, Enter, Escape) instead of being `disabled` buttons.
+- One polite live region announces the node and its transitions.
+- `nodeProps(id)` carries an element id and every move calls `focus()`, so DOM focus and the tab stop never diverge.
+
+Feedback for the next round: `status()` is a fixed sentence a host can only render, not replace (a translated app wants the parts); `edgeProps` assumes an HTML element, so an SVG edge needs an overlay.

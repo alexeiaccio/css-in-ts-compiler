@@ -31,5 +31,6 @@ import "./kinds/motion.ts";
 import "./kinds/planning.ts";
 import "./kinds/structure.ts";
 import "./kinds/systems.ts";
+import "./kinds/wireframe.ts";
 
 export * from "./registry.ts";

@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/canvas/pointer.qnt
-// Spec hash (sha256): 6372995bcbfe2ef343cd80a010edeb84100414348350d5c41e11884af35c02f5
+// Spec hash (sha256): 7ba3fa056769a9174eba9cb3184060723d063e682efdbb7307a7da6fbd617783
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";

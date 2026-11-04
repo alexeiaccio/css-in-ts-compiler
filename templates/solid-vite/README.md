@@ -3,6 +3,13 @@
 **Solid 2 (`2.0.0-rc.13`) is required.** `@cssints/headless` is built on Solid 2's reactivity, so
 the plugin is `@solidjs/vite-plugin` 3.x; `vite-plugin-solid` 2.x will not run this template.
 
+The runtime, the compiler and the babel plugin are pinned to **the same** release, and they stay
+pinned: `@solidjs/vite-plugin` asks for `^2.0.0-rc.13`, so a fresh install otherwise pairs the
+rc.13 runtime with the newest compiler — and a compiler from rc.17 on writes stateful properties
+(`value`, `checked`) through a helper the older runtime does not have, which fails a **rendered**
+input or checkbox at import with `does not provide an export named 'setStatefulProperty'`. Bump
+all three together.
+
 ## Get it
 
 Copy this directory out of the repository (it is private for now, so there is no `npm create` package yet):

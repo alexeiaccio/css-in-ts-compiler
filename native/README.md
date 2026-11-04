@@ -3363,6 +3363,37 @@ What remains of the kit's systems half: `colourRoles` (a role's light and dark v
 `layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its `intentCard`/`transitionSpec`, and its
 exports to decks, PDF and PNG.
 
+**The two wireframe kinds: a page, not a drawing.** `screen` and `responsivePair` (`solid/src/figure/kinds/wireframe.ts`)
+are the first kinds whose data is a **real page's own command stream**. `specs/from-page.ts` captures the page with
+`solid/dump.ts`'s `capture` — the call the goldens are stored with — and writes the frame's `rectangle`/`border` boxes
+and its `text` runs into the spec: `screen.json` is the Widgets page at 360x760, and `responsive-pair.json` is the Sky
+feed at 240x760 (30x48 cells) and 360x760 (45x48), 30 + 2 + 45 = **77 cells** side by side at the default 80,
+above/below at 60. The data's fields are `page`, `width`, `height` and the frame's `boxes` and `texts`; `check` refuses
+a page this repository does not draw (naming `dialog, list, sensors, sheet, sky, widgets`), a page wider than
+`options.width`, a narrow side wider than the wide, an empty frame and a frame with no boxes. `solid/test.sh` regenerates
+both specs into a temp directory and `cmp`s — a page edit that moved a box or a run is a `cmp` line in the same commit,
+not a stale figure.
+
+The reconciliation is the cell: a box's cell rect is `round(x/8)`, `round(y/16)`, `round(w/8)`, `round(h/16)` of the
+page's own box, so a wireframe is at 1/8 scale and **not pixel-accurate** — an edge is up to **half a cell** out (4px
+across, 8px down; today's worst is 0.50 of a cell on every box of both figures), a 4px inset rounds to nothing, and a
+1px rule (0 rows) is skipped. Of the screen's Widgets page **29 rectangles and borders, 23 are drawn** (the switch's 8x8
+knob is 1x1 cells, and five 3–4px rules round to 0 rows: an outline needs two cells across and one down) and **30 text
+runs** are placed in the page's order, one cell a character, **1 shortened** to `Ital…` where a panel edge or the run
+beside it left less room. The pair's Sky page is 8 boxes and 22 runs a side (4 shortened at 360, 11 at 240, whose
+narrower page puts one run outside its cells, so the wireframe does not draw it). The pixel frame splits each row into a
+muted `connector` segment (its `+ - |` edges) and an ink `label` run (the page's words), so it reads as a line drawing on
+all three targets; the terminal and the text renderer are exact cells, the desktop's Roboto is proportional, which is
+what remains: a monospace style (or a real outline item) would make the pixels' columns line up as the cells do.
+
+The frames are `solid/frames/figure-{screen,responsive-pair}.png` and the command goldens
+`solid/goldens/figure-{screen,responsive-pair}.json` (108 and 186 commands); `solid/figure-wireframe.test.ts` holds the
+count, the rects' worst rounding, the runs' order and their `…`, the pair's two sizes and both layouts, the refusals,
+the three mutations (a box rounded to pixels — 280 cells out; a run cut by bytes — `监控摄…` 7 cells against `监控…` 5;
+the pair's halves swapped — its sentence), the goldens and the terminal's rows. What remains: the kit's other wireframe
+types (`appShell`, `cardGrid`, `listDetail`, `modal`), a page at a scroll offset (a capture is one frame, at rest), and
+the pixel columns above.
+
 **The four motion kinds.** `motionTiming`, `easing`, `stagger` and `frameStrip` (`solid/src/figure/kinds/motion.ts`) are
 the first kinds whose data is not typed but **solved**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own
 `Track.at` and `Decay.at` at 1/60 and writes `motion-timing.json`, `easing.json`, `stagger.json` and `frame-strip.json`,

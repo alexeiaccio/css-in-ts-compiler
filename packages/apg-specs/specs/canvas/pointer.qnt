@@ -27,6 +27,10 @@
 //   - SNAPPING, host policy reduced to a grid (candidates every GRID = 50 units on the dragged node's
 //     origin): SNAP_PX = 8 SCREEN px, converted by the zoom (a world distance d snaps iff d * z <=
 //     8 * ZONE). Guides are an OUTPUT cleared on every non-drag state.
+//   - THE LANDING: while a drag runs, `landingX` / `landingY` are the origin a release would commit
+//     the pressed node to - its live origin, clamped into the world bound like `up`'s `committed`.
+//     It is an OUTPUT for a preview (a ghost the host draws); with snapping off it follows the
+//     pointer off the grid. No drag, no landing.
 //   - MARQUEE, mode a parameter (contain default, as Excalidraw; tldraw touch / xyflow full differ),
 //     selection live while the rectangle changes, shift = additive over the pointerdown snapshot.
 //     contain is checked to be a subset of overlap (ContainSubsetOfOverlap).
@@ -54,8 +58,8 @@
 // DragIsSnapshotPlusDelta); contain selects a subset of overlap (ContainSubsetOfOverlap) and a marquee
 // selects exactly its mode's hits (MarqueeSelectionExact). Also IdleIsClean, GestureTargetConsistent,
 // PointingWithinThreshold, TargetIsTopmostHit, SnappedPositionOnGrid, NoMissedSnap,
-// GuidesOnlyWhileSnapping, PanKeepsGrabUnderPointer, CameraInBound, NodesInWorldBound,
-// MarqueeAdditiveKeepsBase, ExemptNodesNeverCulled, CulledOnlyWhenOffscreen,
+// LandingIsTheSnappedOrigin, GuidesOnlyWhileSnapping, PanKeepsGrabUnderPointer, CameraInBound,
+// NodesInWorldBound, MarqueeAdditiveKeepsBase, ExemptNodesNeverCulled, CulledOnlyWhenOffscreen,
 // EditingIsTheSingleSelection, AnnouncementsTrackSelection. The two culling invariants restate the
 // `culled` def and cannot fail on their own; the test mutates the def to show they catch a forgetful
 // implementation. Not achieved: "a node stays within bounds while resizing" (no resize here).
@@ -240,6 +244,13 @@ module canvas_pointer {
   // live (on screen) node origin: a dragged node is its committed position + the live delta
   def liveX(i: int): int = pick(i, n0x, n1x, n2x) + (if (and(mode == "dragging", bit(sel, i))) ddx else 0)
   def liveY(i: int): int = pick(i, n0y, n1y, n2y) + (if (and(mode == "dragging", bit(sel, i))) ddy else 0)
+  // The landing: the origin a release would commit the pressed node to, i.e. its live origin on each
+  // axis clamped into the world bound - exactly what `up`'s `committed` writes. It exists for the
+  // whole drag, snapping or not: with snapping off it simply follows the pointer off the grid.
+  // `landingOn` is the spec's way of saying "the landing is null": no drag, no landing.
+  def landingOn: bool = and(mode == "dragging", tgt >= 0, tgt <= 2)
+  def landingX: int = if (landingOn) clampPos(liveX(tgt), NW(tgt)) else 0
+  def landingY: int = if (landingOn) clampPos(liveY(tgt), NH(tgt)) else 0
   def inView(i: int): bool =
     and(
       liveX(i) * TONE < screenToWorld(VW, tx, z), (liveX(i) + NW(i)) * TONE > screenToWorld(0, tx, z),
@@ -797,6 +808,20 @@ module canvas_pointer {
   val SnappedPositionOnGrid: bool = or(mode != "dragging", and(
     or(not(bit(guide, 0)), (primX + ddx) % GRID == 0),
     or(not(bit(guide, 1)), (primY + ddy) % GRID == 0)
+  ))
+  // The landing is the dragged node's live origin, clamped as `up` commits it. With snapping on a
+  // snapped axis lands on the grid; with snapping off the landing may sit off it - the preview
+  // follows the pointer, which is the point of showing it before the release.
+  val LandingIsTheSnappedOrigin: bool = or(not(landingOn), and(
+    landingX == clampPos(liveX(tgt), NW(tgt)),
+    landingY == clampPos(liveY(tgt), NH(tgt)),
+    or(
+      not(snapOn),
+      and(
+        or(not(bit(guide, 0)), landingX % GRID == 0),
+        or(not(bit(guide, 1)), landingY % GRID == 0)
+      )
+    )
   ))
   val NoMissedSnap: bool = or(mode != "dragging", not(snapOn), and(
     bit(guide, 0) == snapHit(primX + ddx, true, z),

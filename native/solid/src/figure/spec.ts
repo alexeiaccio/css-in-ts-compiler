@@ -1,6 +1,6 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 22 kinds here
-// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `spacingScale`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 27 kinds here
+// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -55,6 +55,8 @@ export const KINDS = [
   "palette",
   "qaChecklist",
   "redline",
+  "responsivePair",
+  "screen",
   "spacingScale",
   "sparkline",
   "stateMachine",
@@ -522,6 +524,57 @@ export interface NowNextLaterSpec extends Base {
   data: BoardData;
 }
 
+/**
+ * One box of a captured page, in pixels from its top-left corner: the `box` of a `rectangle` or a `border` command.
+ * The data is the frame itself, not a drawing of it, so a wireframe cannot drift from the page it names.
+ */
+export interface WireBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** One text run of a captured page: where its command starts and the string it draws, in the page's own order. */
+export interface WireText {
+  x: number;
+  y: number;
+  text: string;
+}
+
+/** One page's frame as a spec's data: the page's size and the boxes and texts its last frame carries. */
+export interface WireSide {
+  width: number;
+  height: number;
+  boxes: readonly WireBox[];
+  texts: readonly WireText[];
+}
+
+/** A wireframe of one page this repository draws: its name, its size, and its own frame. */
+export interface ScreenData extends WireSide {
+  page: string;
+}
+
+export interface ScreenSpec extends Base {
+  kind: "screen";
+  data: ScreenData;
+  /** `width` is the layout's widest allowed cells; a page wider than this is refused. */
+  options?: { width?: number };
+}
+
+/** The same page at two widths, each its own captured frame: `narrow` is the narrower of the two. */
+export interface ResponsivePairData {
+  page: string;
+  narrow: WireSide;
+  wide: WireSide;
+}
+
+export interface ResponsivePairSpec extends Base {
+  kind: "responsivePair";
+  data: ResponsivePairData;
+  options?: { width?: number };
+}
+
 export type Spec =
   | BarChartSpec
   | BeforeAfterSpec
@@ -537,6 +590,8 @@ export type Spec =
   | PaletteSpec
   | QaChecklistSpec
   | RedlineSpec
+  | ResponsivePairSpec
+  | ScreenSpec
   | SpacingSpec
   | SparklineSpec
   | StateMachineSpec
