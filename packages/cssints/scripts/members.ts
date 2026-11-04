@@ -58,7 +58,8 @@ const propDoc = (p: string) =>
   );
 const pseudoDoc = (n: string) => {
   const { text } = PSEUDOS[n]!;
-  return doc("", `css.selectors.${text.slice(1)}`, selectorPages[text]?.mdn_url);
+  // `:hover` and `::before` are both `css.selectors.<name>` in BCD; only the selector text keeps the colons
+  return doc("", `css.selectors.${text.replace(/^:+/u, "")}`, selectorPages[text]?.mdn_url);
 };
 // The css functions (extract.mjs): the syntax of mdn-data, the BCD row of `css.types.<name>` (or of its group), and the page.
 const fnPages = need("mdn-data/css/functions.json") as Record<

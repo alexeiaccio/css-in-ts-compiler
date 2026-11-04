@@ -4335,3 +4335,24 @@ meet the bar without a second, accessible view.
 Recorded so a chart written later does not have to rediscover it: **the picture is decoration over a list, table or meter**;
 hover may be an enhancement but never the only way to a value; colour never carries the meaning alone; motion asks
 `prefers-reduced-motion`; and 320px at 200% text must not clip a number.
+
+## Pseudo-elements are wrappers (2026-11-04)
+
+The user, on the first chart: "there are no pseudo-elements in the API — that's strange, there should be." They were right,
+and the doc said it twice ("not part of 0.1"): the engine's conditions were pseudo-classes, `attr()`, `within()` and the
+at-rules, and a `::before` could only be written as a `global()` rule or a plugin's kernel. The chart article that started
+the charts epic leans on `::before`/`::after` for every segment, so the gap was in the way.
+
+**Now `PSEUDOS` holds the standard pseudo-elements too** (`lib.ts` reads them from the same mdn-data `selectors.json`,
+without arguments), each with `element: true`. They join the subject itself, so the chain decides the selector: an element
+must be **innermost** and there is one of them — `hover(before(x))` prints `.k:hover::before`, and `before(hover(x))` is a
+build error at the `before` call naming the selector it would have printed. An at-rule wraps either way (it becomes the
+block around the rule), and `within()` stays outside (`:where(._g:hover) .k::before`). `::marker` collides with the `marker`
+property, so its wrapper is `markerElement`, mirroring `Fn` for functions named like a condition. The class hash already
+includes the chain, so a state on a pseudo-element is a different class from the element's own rule.
+
+**Evidence:** `packages/cssints/test/pseudo-elements.mjs` — the names (and that functional ones are not wrappers), the place
+in the chain, the sheet (`.k::before{content:"•"}`, `.k:hover::before`, `[aria-invalid="true"]::after`, `::placeholder`,
+`::selection`, `::marker`, an at-rule around all of it) and the order error; the existing `test/conditions.mjs` names check
+updated. **Left:** the charts can now use `::before` as the article does (the sparkline's segment spans are one `before()`
+away from being the source's own markup), and the `content` of a pseudo-element is still the caller's to declare.
