@@ -1,11 +1,11 @@
 ---
 # cssints-jzwx
 title: Drawer / sheet shell over dialog-modal
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:10Z
-updated_at: 2026-10-31T14:52:12Z
+updated_at: 2026-11-04T09:57:17Z
 parent: cssints-65eb
 ---
 
@@ -31,3 +31,8 @@ Remaining: the kocharin artwork popup, a separate change in another repository (
 
 The desktop column is untouched: above 900 px the drawer is `modal: false` and its panel is not rendered, so `#sidebar` is still the same sticky `<nav>` (same width, `aria-current="page"` links, no backdrop, no lock). The panel keeps its slide: `hidden` (display: none) is not spread, `visibility` is, with the delay on the close so the focus lands in a visible panel.
 `apps/docs/test/browser.mjs` adds the phone case (trigger state, Tab trap, Escape and focus return, no scroll behind, outside dismiss, a link closing it) and pins the column (no `role`, hidden backdrop, no lock, no panel). See docs/wayfinder.md, "The docs' sidebar drawer".
+
+
+## Closed (2026-11-04)
+
+`createDrawer` on `createDialogModal`; adopted by the kocharin artwork popup (another repo, tracked in effects-of-atmosphere).

@@ -1107,6 +1107,15 @@ byte-identical `--redraw`; `native/README.md`'s eight figures are that renderer'
 write the same layout as one standalone SVG and one self-contained page (`-` for stdout); both `parse`/`check` first, so
 an invalid spec writes nothing. `src/figure/export/` is the pair (the page embeds the SVG verbatim, once), and
 `figure-export.test.ts` holds it to the layout, to Chromium's rendered boxes (1 px) and to two `cmp`-identical runs.
+`--deck a.json b.json … -o deck.html [--title T]` is a deck: one self-contained page, a slide a spec, each slide that
+same `svg(spec)` inline and once, the title on the first slide, `:target` navigation (each slide a Previous and a Next
+anchor, the first slide the no-fragment default — CSS only, so no arrow keys and no overview), `prefers-color-scheme`,
+`forced-colors` and `@page { size: A4 landscape; margin: 12mm }` + `break-after: page` per slide. `--png <spec> -o
+out.png [--scale N]` wraps the desktop host (`bun solid/main.ts figure --spec … --warm 30 --png`, a child process, with
+`--density N`: the layout in cells × 8 × N by × 16 × N pixels, default 2). `--pdf a.json b.json … -o deck.pdf` prints
+that deck through Playwright's Chromium (`page.pdf()`, A4 landscape, 12 mm margins, one page a slide). All three
+`parse`/`check` every spec first, so one bad spec writes no file; `figure-export-deck.test.ts` counts the slides, pages
+and pixels, reads the PDF's titles back as text, `cmp`s two runs and mutates the deck, the print CSS and the 2× raster.
 
 ## The accessibility tree
 

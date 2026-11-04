@@ -7,13 +7,15 @@ import { createServer } from "vite";
 import { hashClass, minWidth, PROPS, PSEUDOS } from "../src/lib.ts";
 import cssints from "../src/plugin.ts";
 
-// Names: pseudo-class wrappers are the simple standard pseudo-classes, and clash with no property.
+// Names: the state wrappers are the simple standard pseudo-classes, and clash with no property (the one pseudo-element
+// whose name is a property takes the `Element` suffix; test/pseudo-elements.mjs holds those).
 assert.deepEqual(
   Object.keys(PSEUDOS).filter((n) => n in PROPS),
   [],
 );
 assert.ok(["hover", "focusVisible", "firstChild", "disabled"].every((n) => n in PSEUDOS));
-assert.ok(!["default", "before", "nthChild", "host"].some((n) => n in PSEUDOS));
+assert.ok(["before", "selection", "markerElement"].every((n) => PSEUDOS[n]?.element));
+assert.ok(!["default", "nthChild", "host"].some((n) => n in PSEUDOS));
 assert.ok(PSEUDOS.hover.rank < PSEUDOS.focus.rank && PSEUDOS.focus.rank < PSEUDOS.active.rank);
 
 // min-width in px, narrow first; what cannot be read stays 0 (the order of its text).

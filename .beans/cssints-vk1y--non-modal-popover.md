@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:10Z
-updated_at: 2026-10-31T14:52:53Z
+updated_at: 2026-11-04T09:57:17Z
 parent: cssints-65eb
 ---
 
@@ -42,3 +42,8 @@ trigger props on the header button, content props on the panel in a `Portal` on 
 `attach(trigger, content)` from the refs. The panel is controlled so Escape closes it after Tab has left the content — the
 native popover closed on Escape wherever the focus was. The panel keeps a `z-index: 40` because it is no longer in the
 top layer, and it is measured in page space, so it follows the trigger on scroll (the native fixed one did not).
+
+
+## Closed (2026-11-04)
+
+`createPopover` (anchor/placement, dismiss, focus return); adopted by the docs settings menu. Tracked in effects-of-atmosphere.

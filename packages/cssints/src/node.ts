@@ -25,6 +25,8 @@ export interface Cond {
   ancestor?: true;
   nest?: true;
   own?: true;
+  /** A pseudo-element (`::before`): it joins the subject itself, after every state, so it is innermost in the chain. */
+  element?: true;
 }
 /**
  * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other

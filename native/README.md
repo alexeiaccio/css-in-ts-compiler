@@ -3092,6 +3092,41 @@ from their specs. `solid/figure-export.test.ts` holds every spec's SVG to the la
 one verbatim SVG and no `<script>`, and Chromium's rendered boxes to the SVG's numbers (worst **0.000 px**, tolerance
 **1 px**).
 
+**The three a review needs.** The same two files are not a review, so the export half writes three more from the same
+layout and no second drawer. `--deck a.json b.json … -o deck.html [--title T]` is **one self-contained page with a slide a
+spec**, in the given order: each slide carries that spec's `svg(spec)` **inline, verbatim, once** (so a slide and the
+`.svg` file cannot disagree — the test counts one `<svg>` a spec and holds each slide's figure to `svg(spec)` byte for
+byte), its number (`Slide 2 of 3`), the title and intent above it, the `►` focus line and the source under it, and a
+Previous/Next pair. The navigation is **CSS only**: a slide is `display: none` until it is the URL's fragment (`:target`,
+`#s2`), and the first slide is the default when no fragment names one (the deck's `:has()`). The links are the only way to
+move, so there are no arrow keys, no swipe and no overview — a page with no script cannot hear the keyboard, and the
+browser's back button is the way back; a browser without `:has()` shows no slide until a link is followed. The page has
+the HTML export's `prefers-color-scheme` roles and `forced-colors` rules and adds the print sheet: `@page { size: A4
+landscape; margin: 12mm }` and `break-after: page` on every slide (the last `auto`, so no blank sheet) with
+`break-inside: avoid` — **Print is one page a slide**, and a figure larger than the printable box is scaled into it by CSS
+with its viewBox unchanged. `docs/exports/review.html` (`palette`, `bars`, `timeline`, title "The review: a palette, a
+frame and the plan") is **40,384 B** for 3 slides, and two runs are `cmp`-identical; every spec is validated before the
+file is opened, so a deck with one invalid spec prints that spec's sentences and writes nothing.
+
+`--png <spec> -o out.png [--scale N]` is the figure as a **raster through the desktop host**: `png.ts` spawns
+`bun solid/main.ts figure --spec … --warm 30 --density N --png out.png` — the frame the stored
+`solid/frames/figure-*.png` are, at rest, not a re-drawing — because `capture`, the tests' path, never draws. The scale is
+the host's pixel density, not a resample: the layout stays in cells (8x16 px) and `--density 2` draws it into twice the
+pixels each way, so 1× is `cells * 8` by `cells * 16` and 2× twice that. `docs/exports/bars.png` is **400x112**
+(13,730 B) and `docs/exports/bars@2x.png` **800x224** (33,739 B) — `bars.json`'s 50x7 cells. The test holds the 2× frame
+to the 1× one: every flat shape pixel is the same colour at twice its position (29,522 of them: page, track and fill) and
+the widest bar is twice as long at twice its `x`; the glyph edges are rasterised again at the density, so it is a real 2×
+draw and not a nearest-neighbour doubling. Two runs are `cmp`-identical.
+
+`--pdf a.json b.json … -o deck.pdf [--title T]` prints that deck through **Playwright's Chromium** (`page.pdf()`, the
+dependency the browser checks already use) on the deck's own sheet: A4 landscape, 12 mm margins (`preferCSSPageSize`),
+backgrounds printed. **A figure a page**: `page.pdf()`'s page count is the specs' count (3), and the text is **text** —
+Chromium embeds a subset face and writes glyph ids with a `ToUnicode` map per font, and `pdf.ts`'s `pdfText()` reads them
+back (the objects, the page's content stream through zlib, the `/Fn … Tf` and `<hex> Tj` runs through each font's
+`bfchar`/`bfrange`), so the test finds every spec's title in its own page's glyph stream. No new dependency. The PDF is
+61,115 B for 3 pages, and two runs differ only in the two dates Chromium stamps (`/CreationDate`, `/ModDate`), which the
+test masks before `cmp`.
+
 **The docs draw themselves.** The eight figures below are drawn by the renderer from their specs, and `test.sh` regenerates
 them (`bun solid/figure.ts --redraw native/README.md`) and `cmp`s the result with this file, so a figure here cannot drift
 from its spec — the same discipline as the generated C and the goldens. The line above each fence names the spec, relative

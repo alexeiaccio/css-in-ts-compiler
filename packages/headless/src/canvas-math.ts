@@ -46,6 +46,8 @@ export const roundHalfUp = (value: number): number => Math.floor(value + 0.5);
 // ---- camera -----------------------------------------------------------------------------
 
 export const screenToWorld = (s: number, t: number, zf: number): number => rdiv(s * TZ, zf) - t;
+/** The inverse: the screen px a world point (world units * TONE) lands on. */
+export const worldToScreen = (w: number, t: number, zf: number): number => rdiv((w + t) * zf, TZ);
 export const clampZ = (zf: number): number => clampI(zf, ZMIN, ZMAX);
 export const clampT = (t: number): number => clampI(t, -WT, WT);
 /** Zoom to `zf2` about screen point `s`; the translation is solved for the CLAMPED zoom. */

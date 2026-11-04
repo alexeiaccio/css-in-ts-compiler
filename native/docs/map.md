@@ -133,7 +133,11 @@ Its text half is the same layout as characters (`solid/src/figure/text.ts`, `sol
 eight figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure
 cannot drift from its spec. A future kind needs only to return its rows from `layout`: the text renderer reads no kind's
 data. As files, the same layout is `docs/exports/palette.html` (one self-contained page) and `docs/exports/pipeline.svg`
-(one standalone SVG), both written by `solid/figure.ts --html`/`--svg` and regenerated and `cmp`'d by `solid/test.sh`.
+(one standalone SVG), both written by `solid/figure.ts --html`/`--svg` and regenerated and `cmp`'d by `solid/test.sh`;
+and for a review, `docs/exports/review.html` (a three-slide deck — `palette`, `bars`, `timeline` — with `:target`
+navigation and a print sheet that is a page a slide) and `docs/exports/bars.png`/`bars@2x.png` (the desktop host's frame
+at 1× and 2×, 400×112 and 800×224), written by `--deck`/`--png` and regenerated and `cmp`'d the same way; `--pdf` prints
+that deck to a PDF, one page a slide, through Playwright's Chromium.
 
 ## Where Solid runs
 

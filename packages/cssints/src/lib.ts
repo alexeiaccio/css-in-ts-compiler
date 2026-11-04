@@ -85,9 +85,13 @@ export const CONTEXTS: Record<string, string[]> = {
 };
 
 // Pseudo-class wrappers: every standard pseudo-class of the Selectors module without arguments, camelCased
-// (`focus-visible` -> `focusVisible`); `default` is a reserved word. Pseudo-elements and functional pseudo-classes
-// (`:nth-child()`) are not wrappers. The order of the rules in a layer is this list: the classic link, visited, hover,
-// focus, active first (a later one wins at equal specificity), the rest as mdn-data lists them.
+// (`focus-visible` -> `focusVisible`); `default` is a reserved word. Functional pseudo-classes (`:nth-child()`) are not
+// wrappers. The order of the rules in a layer is this list: the classic link, visited, hover, focus, active first (a later
+// one wins at equal specificity), the rest as mdn-data lists them.
+//
+// Pseudo-elements are wrappers too, after them: they join the subject itself, so `hover(before(x))` is
+// `.k:hover::before` and the element has to be the innermost condition (macro.ts refuses the other order, which would print
+// `.k::before:hover`). `::before` and `::after` need a `content` to paint: that is the caller's, as it is in CSS.
 const SELECTORS = createRequire(import.meta.url)("mdn-data/css/selectors.json") as Record<
   string,
   { status: string; groups: string[] } | undefined
@@ -108,12 +112,22 @@ const pseudoNames = Object.entries(SELECTORS)
   )
   .map(([k]) => k.slice(1))
   .filter((n) => n !== "default");
-export const PSEUDOS: Record<string, Cond> = Object.fromEntries(
-  [...FIRST, ...pseudoNames.filter((n) => !FIRST.includes(n))].map((n, i) => [
-    camel(n),
-    { text: `:${n}`, rank: i },
+// every standard pseudo-element without arguments, from the same file (`::before`, `::placeholder`, `::selection`, ...)
+const elementNames = Object.entries(SELECTORS)
+  .filter(([k, v]) => /^::[a-z-]+$/.test(k) && v?.status === "standard")
+  .map(([k]) => k.slice(2));
+
+export const PSEUDOS: Record<string, Cond> = Object.fromEntries([
+  ...([...FIRST, ...pseudoNames.filter((n) => !FIRST.includes(n))] as const).map(
+    (n, i): [string, Cond] => [camel(n), { text: `:${n}`, rank: i }],
+  ),
+  ...elementNames.map((n, i): [string, Cond] => [
+    // `::marker` is also the `marker` property (`marker-start` and its family): the wrapper takes the `Element` suffix,
+    // as a function named like a pseudo-class takes `Fn`. No other standard element collides.
+    n in PROPS ? `${camel(n)}Element` : camel(n),
+    { text: `::${n}`, rank: FIRST.length + pseudoNames.length + i, element: true },
   ]),
-);
+]);
 
 // Not properties of `css`: the builders macro.ts defines itself.
 export const BUILDERS = new Set([

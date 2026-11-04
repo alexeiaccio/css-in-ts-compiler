@@ -268,11 +268,60 @@ const STARTERS: ReadonlyArray<Starter> = [
     also: ["@cssints/button"],
   },
   {
+    name: "columns",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Columns",
+    description:
+      "A column chart as a list: one bar per category, its height the value, and the number in text above it",
+  },
+  {
+    name: "bars",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Bars",
+    description:
+      "A multi-series bar chart as a table: each bar a background sized by its value, and the header row a legend of checkboxes that hide a series",
+  },
+  {
+    name: "donut",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Donut",
+    description:
+      "A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row",
+  },
+  {
+    name: "stat",
+    tested: true,
+    // the tile draws its samples with `Sparkline`, so the line is one component and not a copy of it
+    with: ["sparkline/sparkline.tsx", "render.tsx", "theme.ts", "tokens.ts"],
+    title: "Stat",
+    description:
+      "A stat tile: the metric's name, the value as `<data>`, the change in words on a chip and its samples as a sparkline",
+  },
+  {
+    name: "heatmap",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Heatmap",
+    description:
+      "A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale",
+  },
+  {
     name: "meter",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Meter",
     description: "APG meter: a track and the fill of the value, on `createMeter`",
+  },
+  {
+    name: "sparkline",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Sparkline",
+    description:
+      "A sparkline as a list of samples: the line is CSS (`hypot` and `atan2`), with no SVG and no canvas",
   },
   {
     name: "breadcrumb",

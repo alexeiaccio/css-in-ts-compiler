@@ -274,6 +274,25 @@ interface Wrapper {
 const isWrapper = (v: unknown): v is Wrapper =>
   typeof v === "function" && Predicate.hasProperty(v, "__cond");
 
+// A pseudo-element joins the subject itself, so `.k:hover::before` works and `.k::before:hover` is a selector no browser
+// applies. An element is therefore innermost in the chain — inside the states, outside the at-rules, which wrap the whole
+// rule — and one element takes one. Every other order is a build error at the call that added the outer condition.
+const statesOf = (cond: Cond, inner: ReadonlyArray<Cond>): void => {
+  const chain = [cond, ...inner];
+  const elements = chain.filter((c) => c.element);
+  if (elements.length === 0) return;
+  if (elements.length > 1)
+    throw fail(
+      `cssints: an element takes one pseudo-element, not ${elements.map((c) => c.text).join(" and ")}; wrap one inside the other's place`,
+    );
+  const at = chain.findIndex((c) => c.element);
+  const states = chain.slice(at + 1).filter((c) => !c.text.startsWith("@"));
+  if (states.length)
+    throw fail(
+      `cssints: ${chain[at]!.text} joins the element itself, so ${states.map((c) => c.text).join(" and ")} has to wrap it, not the other way round: a browser applies .k${states[0]!.text}${chain[at]!.text}, never .k${chain[at]!.text}${states[0]!.text}`,
+    );
+};
+
 const wrapper = (cond: Cond): Wrapper =>
   Object.assign(
     (...styles: unknown[]) => {
@@ -297,6 +316,7 @@ const wrapper = (cond: Cond): Wrapper =>
                 throw fail(
                   `cssints: a style takes at most ${MAX_CONDS} conditions (layers ${LAYER[0]} to ${LAYER[MAX_CONDS]}); this one has ${inner.length + 1}: ${[cond, ...inner].map((c) => c.text).join(" > ")}`,
                 );
+              statesOf(cond, inner);
               return [p, v, [cond, ...inner], fallbacks, join];
             }),
           ),
