@@ -6,6 +6,7 @@
 //   kinds/flows.ts      flow, branchFlow, stateMachine
 //   kinds/structure.ts  journeyMap, tree
 //   kinds/systems.ts    palette, spacingScale, typeScale
+//   kinds/handoff.ts    beforeAfter, qaChecklist, redline
 //   kinds/motion.ts     easing, frameStrip, motionTiming, stagger
 //   kinds/shared.ts     what they all use — cells, the item builders, `finish`, the raw-JSON readers — and no kind
 //
@@ -23,6 +24,7 @@
 // `spec.ts` imports this file for the areas' registration, so a check read on its own — the CLI, a terminal, a browser —
 // has every kind registered too.
 import "./kinds/flows.ts";
+import "./kinds/handoff.ts";
 import "./kinds/metrics.ts";
 import "./kinds/motion.ts";
 import "./kinds/planning.ts";

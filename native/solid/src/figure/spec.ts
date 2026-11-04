@@ -1,6 +1,6 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 19 kinds here
-// (`barChart`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `spacingScale`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 22 kinds here
+// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `spacingScale`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -15,6 +15,11 @@
 //
 // A kind's own data rule — the funnel's "a funnel never grows", a branch's `no`, the path's transitions, the tree's one
 // root, a journey's range, the palette's direction, a pair's ratio against its own colours, a scale that grows — is in
+// the file that draws it, beside its layout: `./kinds/metrics.ts`, `./kinds/flows.ts`, `./kinds/structure.ts`,
+// `./kinds/systems.ts` and `./kinds/handoff.ts`, reached through `./registry.ts` (`./kinds.ts` is the door and loads
+// all five). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no
+// other kind's file is opened. So a sentence here that is about one kind's data belongs there, and a sentence about every
+// spec stays here.
 // the file that draws it, beside its layout: `./kinds/metrics.ts`, `./kinds/flows.ts`, `./kinds/structure.ts`,
 // `./kinds/systems.ts` and `./kinds/motion.ts`, reached through `./registry.ts` (`./kinds.ts` is the door and loads all
 // five). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no other
@@ -32,11 +37,12 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the twelve this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the fifteen this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
   "barChart",
+  "beforeAfter",
   "branchFlow",
   "compare",
   "contrast",
@@ -45,6 +51,8 @@ export const KINDS = [
   "journeyMap",
   "nowNextLater",
   "palette",
+  "qaChecklist",
+  "redline",
   "spacingScale",
   "stateMachine",
   "statusKey",
@@ -252,6 +260,78 @@ export interface TypeScaleSpec extends Base {
   data: readonly TypeStep[];
 }
 
+/** One part of a redline: a rectangle inside the component's box, in pixels, measured from the box's top-left corner. */
+export interface RedlinePart {
+  label: string;
+  /** The part's left inset from the box's left edge, in pixels. */
+  x: number;
+  /** The part's top inset from the box's top edge, in pixels. */
+  y: number;
+  width: number;
+  height: number;
+  /** A padding or a gap: the space between two parts, drawn as a dotted leader and counted in the row like a part. */
+  inset?: boolean;
+}
+
+/** A redline: the component's box (`width` x `height`) and the parts inside it, in the order they tile its width. */
+export interface RedlineData {
+  box: { label: string; width: number; height: number };
+  parts: readonly RedlinePart[];
+}
+
+export interface RedlineSpec extends Base {
+  kind: "redline";
+  data: RedlineData;
+}
+
+/** One measure of a before/after state: what it is, and how it reads (`"the track"`, `"60,64,78"`). */
+export interface Measure {
+  label: string;
+  value: string;
+}
+
+/** One state of a before/after: its caption, its box, and the measures the two states share. */
+export interface BeforeAfterState {
+  caption: string;
+  box: { width: number; height: number };
+  measures: readonly Measure[];
+}
+
+/** The two states of one component, measured the same way; the numbers that differ are the figure's. */
+export interface BeforeAfterData {
+  before: BeforeAfterState;
+  after: BeforeAfterState;
+}
+
+export interface BeforeAfterSpec extends Base {
+  kind: "beforeAfter";
+  data: BeforeAfterData;
+}
+
+/** A checklist's verdict, the three the key names. */
+export const VERDICTS = ["pass", "fail", "n/a"] as const;
+export type Verdict = (typeof VERDICTS)[number];
+
+/** One comparison of a checklist: what it checks, the suite's area, its verdict, and the script that prints it. */
+export interface ChecklistRow {
+  check: string;
+  area: string;
+  verdict: Verdict;
+  /** The script that prints the comparison, like `native/solid/test.sh`. */
+  source: string;
+}
+
+/** A checklist: the rows and the summary `"<pass> of <rows> pass"`, which `check` holds to the rows. */
+export interface ChecklistData {
+  summary: string;
+  rows: readonly ChecklistRow[];
+}
+
+export interface QaChecklistSpec extends Base {
+  kind: "qaChecklist";
+  data: ChecklistData;
+}
+
 /**
  * What a motion is, in the terms `solid/src/motion.ts` takes: a spring's class and its `(duration, bounce)` in
  * milliseconds, or a fling's velocity in px/s. The spec stores milliseconds because a figure's rows are read in them;
@@ -384,6 +464,7 @@ export interface NowNextLaterSpec extends Base {
 
 export type Spec =
   | BarChartSpec
+  | BeforeAfterSpec
   | BranchFlowSpec
   | CompareSpec
   | ContrastSpec
@@ -392,6 +473,8 @@ export type Spec =
   | JourneyMapSpec
   | NowNextLaterSpec
   | PaletteSpec
+  | QaChecklistSpec
+  | RedlineSpec
   | SpacingSpec
   | StateMachineSpec
   | StatusKeySpec
