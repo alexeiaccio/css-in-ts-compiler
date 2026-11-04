@@ -445,3 +445,5 @@ fi
 
 # Not here: spike/hershey/run.sh (a monoline stroke font against the raster path). It is a measurement — 300 runs a
 # frame for 90 seconds — and not a gate; the number it produced is in docs/map.md (checked, not adopted) and README.md.
+# Not here either: spike/nicegraf/run.sh (the Sensors quads through nicegraf's Metal backend). It clones a library from
+# the network, needs a GPU and a cmake build, and it is a measurement (~10 s); its numbers are in the same two files.

@@ -1594,6 +1594,66 @@ or compute) and a GLSL generator.
 Verdict: keep as the named option for a browser effects layer or a GPU-renderer prototype, with `browser/render.js`
 (the same commands, WebGPU instead of Canvas2D) as the entry point. Not a dependency of anything today.
 
+### nicegraf: the floor a GPU path starts from, and what it does not buy (2026-11-04)
+
+[nicegraf](https://github.com/nicebyte/nicegraf) is a thin C abstraction over Vulkan/Metal/D3D12 — pipelines, resource
+tables, command buffers — with no 2D renderer, no shapes and no text. It is the smallest thing a GPU path for this host
+could stand on, so the question was: what does it cost to get a frame through it, and is that faster than ThorVG's CPU
+raster? `native/spike/nicegraf/`: a shallow clone at `c7b2739` (nothing vendored; `run.sh` fetches it), the Metal
+backend from `cmake` in **2-4 s**, and `quad.cpp` — 325 lines including the shaders as MSL source, the bench and a PNG
+writer — drawing the Sensors frame's geometry as six quads (the fill, the pill, four 1px border strips) through one
+pipeline, one vertex buffer, **one draw call**, into a 360x360 offscreen target, with the pixels copied back.
+
+**It built, and what it needed.** The tree does not compile with Xcode 16's clang: `ngfi::fixed_array {ptr, len}` is
+class-template argument deduction on an *alias* template, which clang rejects ("argument deduction only allowed for
+class templates"); spelling `fixed_array<char>` is the whole two-line patch, applied by `build.sh`. Two more things the
+abstraction does not hide, both met on the way to the first pixel: an **offscreen-only context cannot begin a frame**
+(`ngf_create_context` with a NULL swapchain makes the frame semaphore with capacity 0, so `ngf_begin_frame` blocks
+forever — the spike never calls it and starts command buffers directly, which the Metal backend allows), and a shader
+is **MSL text plus a `NGF_NATIVE_BINDING_MAP` comment**, because the backend parses its binding table out of a comment
+(niceshade writes it; hand-written MSL must too). The first frame also came out as confetti because MSL's
+`{float2, float4}` is 32 bytes, not 24: the layout rules are still yours. `run.sh` prints the table below, the smallest
+of three back-to-back runs, Apple M2 / 8 cores, load average **4.4** (the same table at load 13 ran 5-45% higher, the
+readback most of all).
+
+| the 360x360 Sensors geometry (six quads) | ms a frame |
+| --- | --- |
+| nicegraf/Metal, record + submit (the CPU side) | **0.037** |
+| nicegraf/Metal, GPU throughput with no readback (300 frames, one wait) | **0.045** |
+| nicegraf/Metal, draw + wait (a round trip, still no readback) | 0.126 |
+| the readback alone — `copyFromTexture`, wait, map | **0.087-0.127** |
+| nicegraf/Metal, a frame that comes back to the CPU | **0.155-0.187** |
+| ThorVG's CPU raster, the same six quads | **0.019** |
+| ThorVG's CPU raster, the real frame (10 commands: text, border, radius) | 0.304 |
+| 502 quads: GPU no readback / with readback / ThorVG CPU | 0.045 / 0.154-0.181 / 0.250-0.268 |
+
+**The floor is 0.045 ms, and the readback is 0.09-0.13 of a 0.16-0.19 frame** (the readback is the noisiest line
+here: two runs at the same load read 0.087 and 0.127). On this frame the CPU raster of the same shapes is
+**8x faster than the GPU path that comes back to the CPU, and still 2.4x faster than the GPU path that keeps the frame
+on the GPU** — the frame is a fill and a pill, and ThorVG's spans are cheaper than the submit. The GPU only pulls ahead
+when the frame is many shapes: at 502 quads it is 6x faster than the CPU raster without a readback, **1.7x** with one.
+That is the same wall the WebGPU probe hit (0.62 against 2.19 ms at 1080²), and it decides the thing for us: any target
+that must show pixels through the CPU — this host's ThorVG buffer and PNG goldens, the browser's Canvas2D, the board —
+pays the readback, and that is 30-40% of the 0.30 ms CPU frame before a single glyph is drawn.
+
+**What a renderer on top of this would still owe** — all of it, since nicegraf draws triangles: text shaping and a
+glyph atlas (the seven text commands are 70% of the Sensors frame's commands and most of its 0.30 ms), AA (edges here
+are hard and the golden's are not), borders as even-odd rings and corners as radii (a real renderer tessellates the
+path it is given, not four strips), gradients with our dither, shadows and backdrop blur (today ThorVG's scene effects,
+`Effects` above), images, and a scissor stack for clipping. That work is the same for Vulkan and Metal and it is where
+the months are, not in the 327 lines above.
+
+**What it does not help, whatever the number:** the board (no GPU at all — 17.8 of its 22.8 ms is ThorVG's raster on the
+S3's CPU), the browser (Canvas2D and WebGPU are not Metal; `@typegpu/gl` is the browser's version of this spike), and
+the terminal (cells). A GPU path would be a *fifth* raster for the one target that already has the fastest one.
+
+Verdict: checked, not adopted; the abstraction is small and honest and the build is a coffee, but a GPU path starts at
+0.045 ms of a frame the CPU draws in 0.019, needs the readback (0.09-0.13) wherever it must be seen, and owes every glyph,
+edge and radius the CPU raster already has. **What would change it:** a window that owns a `CAMetalLayer` and presents
+this pipeline's target directly (nicegraf's swapchain, no readback), on a page whose frames are hundreds of shapes and
+little text — and a host whose text and AA path already exists on the GPU to be reused. Until then the CPU raster stays
+the default and the number to beat is ThorVG's 0.30 ms full frame, not 0.045.
+
 ## Effects (2026-10-23)
 
 The raster can do more than we ask of it. ThorVG 1.1.3 (the installed one) already ships scene effects and masks, and

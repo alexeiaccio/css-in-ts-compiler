@@ -1204,6 +1204,42 @@ Not measured: other stroke faces, kerning (neither side has any), a cached strok
 text at 2x density, and the board itself — 17.8 ms of a 22.8 ms frame is ThorVG's raster there too, so a 1.3-1.9x text
 share would be measured against the same raster, not a GPU.
 
+## The nicegraf spike: a GPU pipeline against the CPU raster
+
+The question after the WebGPU probes (the map, "Probed 2026-10-21") was how much of the GPU path was ThorVG and how much
+was the GPU. [nicegraf](https://github.com/nicebyte/nicegraf) is the smallest layer that can answer it: pipelines,
+command buffers and resource tables over Metal/D3D12/Vulkan, with no renderer, no shapes, no text.
+`native/spike/nicegraf/`: `run.sh` fetches it (shallow, `c7b2739`), builds the Metal backend (**2-4 s**, one two-line
+patch: clang 16 rejects `ngfi::fixed_array {ptr, len}` on an alias template), and `quad.cpp` — **325 lines** with the
+shaders as MSL source, the bench and a PNG writer — draws the Sensors frame's six quads (fill, pill, four 1px border
+strips) through one pipeline, one vertex buffer, one draw call, into a 360x360 offscreen target, and reads the pixels back.
+The binary is 372,696 bytes with all three nicegraf static libraries in it; no submodules, one vendored header
+(metal-cpp) is all it needed on this Mac.
+
+Smallest of three back-to-back runs, Apple M2, 8 cores, load average 4.4, 300 frames a phase:
+
+| | ms a frame |
+| --- | --- |
+| nicegraf/Metal, record + submit | 0.037 |
+| nicegraf/Metal, GPU throughput, no readback | **0.045** |
+| nicegraf/Metal, draw + wait, no readback | 0.126 |
+| the readback alone (copy, wait, map) | **0.087-0.127** |
+| nicegraf/Metal, a frame with its readback | 0.155-0.187 |
+| ThorVG's CPU raster, the same six quads | **0.019** |
+| ThorVG's CPU raster, the real frame (text, border, radius) | 0.304 |
+| 502 quads: GPU no readback / with readback / ThorVG CPU | 0.045 / 0.154-0.181 / 0.250-0.268 |
+
+Verdict: checked, not adopted. The floor is real — 0.045 ms of GPU time for the shapes — but the frame the CPU raster
+draws in 0.019 ms does not need it, the readback that makes a frame visible costs 0.09-0.13 ms (the wall the WebGPU probe
+hit at 1080², 0.62 against 2.19), and everything the page actually is — seven text commands, AA edges, corner radii,
+the border ring, gradients, shadows, images, a scissor stack — is what a renderer on top of nicegraf would still have to
+build. The board has no GPU, the browser's Canvas2D/WebGPU is not Metal and the terminal is cells, so a GPU path is a
+fifth raster for the one target that already has the fastest one. What would change it: a window that presents this
+pipeline's target from its own `CAMetalLayer` (no readback) carrying a frame of hundreds of shapes and little text.
+
+`sh native/spike/nicegraf/run.sh` prints the table and fails if a number is missing. Not in `test.sh` — it fetches a
+library and needs a GPU, and it is a measurement, not a gate (the same reason the Hershey spike is out).
+
 ## Test
 
 ```sh
