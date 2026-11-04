@@ -1,11 +1,11 @@
 ---
 # cssints-6ca5
 title: Toast queue and a polite status region
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:10Z
-updated_at: 2026-10-31T16:35:43Z
+updated_at: 2026-11-04T09:57:17Z
 parent: cssints-65eb
 ---
 
@@ -28,3 +28,7 @@ Toast and status shipped in `packages/headless/src/toast.ts` and `status.ts` (PR
 - Regenerated `apps/ui/r/*.json` from master's sources.
 - Adoption evidence: `apps/docs/src/playground/Playground.tsx` uses `createStatus()` (line 32) and one `statusProps` region (line 247) for its copy feedback; the kocharin dashboard is another repository and stays open.
 
+
+## Closed (2026-11-04)
+
+`createStatus` gained `from` in 0.22.0; adopted in the docs copy feedback and cms-admin. The adoptions are tracked in the effects-of-atmosphere repo.

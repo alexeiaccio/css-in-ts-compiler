@@ -1,11 +1,11 @@
 ---
 # cssints-qzkr
 title: Scrollspy table of contents
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-30T10:51:11Z
-updated_at: 2026-10-31T14:52:44Z
+updated_at: 2026-11-04T09:57:17Z
 parent: cssints-65eb
 ---
 
@@ -25,3 +25,8 @@ apps/docs Page.tsx keeps a scroll listener and sets aria-current="location" by h
 ## Adopted
 
 The docs' aside is the host: `apps/docs/src/Page.tsx`'s `Outline` calls `createScrollspy({ entries: props.entries.map(...), offset: ANCHOR })`, attaches after the first settle (`onSettled(() => spy.attach())`), and writes `aria-current="location"` from `spy.active()`. `ANCHOR` is 56 + 16 px (the sticky header plus the page's `scrollPaddingTop`), the same line the old hand-rolled listener used. The remaining box is not adoption work: the links are plain `#id` targets and no smooth-scroll hook exists on purpose (see Notes); the app sets no `scroll-behavior`, so there was nothing to wire.
+
+
+## Closed (2026-11-04)
+
+`createScrollspy` (passive scroll listener, one `aria-current=location`); adopted by the docs Outline. Tracked in effects-of-atmosphere.
