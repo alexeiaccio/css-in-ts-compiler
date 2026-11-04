@@ -4463,3 +4463,21 @@ charts were checked at 320px with 200% text. **Evidence:** bars 6, donut 6 and s
 draws a page of each (the legend's boxes, the donut's five rows, the tile's `<data value>`); `r/` regenerated for all six;
 screenshots of the bar chart (12:00 hovered, a series hidden, 320px), the donut (at rest, hovering Asia, 320px) and the tile
 (light, dark, a row of three).
+
+## Declarative dragging: the idea we keep, the library we do not take (2026-11-04)
+
+Sent to look at: [Declarative Dragging](https://declarative-dragging.github.io/) (Horowitz, Blinn, Heer; UIST 2026 best paper)
+and its library Dragology. The inversion is the interesting part: instead of writing the geometry, the feedback and the
+animations of a drag, the author declares **which future model states dragging should lead to**; the engine speculatively
+renders them, reads where the dragged element lands in each, and synthesises the interaction from those landing places.
+
+**Why it is not a dependency for this kit.** Every drag we ship is a _widget value_ with APG keyboard semantics: a slider's
+number, a splitter's ratio, a knob's angle, a list's order (`reorder`'s handle drag writes the same order its Alt+Arrow
+moves write). Their models are one number or one array; Dragology's is a view tree it renders speculatively, in SVG — a
+second rendering model under components that are plain DOM and attribute objects, and the copy would not carry the
+keyboard path, which is the half we have to own.
+
+**What is worth keeping.** The rule "declare the reachable states, synthesise the feedback" is a good way to describe what
+`reorder` and `resizable-panels` already do by hand, and it is the right frame for a starter whose drag is free-form
+placement rather than a value — a card pile, a kanban, a node canvas — where the demo gallery's card piles are the shape to
+copy. Recorded as `cssints-2cxd` (low priority, deferred): an experiment, not a plan, and only if such a starter is wanted.
