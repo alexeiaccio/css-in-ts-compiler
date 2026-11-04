@@ -23,6 +23,7 @@
 //
 // `spec.ts` imports this file for the areas' registration, so a check read on its own — the CLI, a terminal, a browser —
 // has every kind registered too.
+import "./kinds/charts.ts";
 import "./kinds/flows.ts";
 import "./kinds/handoff.ts";
 import "./kinds/metrics.ts";

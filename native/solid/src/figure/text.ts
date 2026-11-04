@@ -20,6 +20,10 @@ import { parse, type Spec } from "./spec.ts";
 
 /** The eighth blocks, 1/8 of a cell wide to 7/8: a bar's fractional cell, as glyph-kit draws it. */
 export const EIGHTHS = "▏▎▍▌▋▊▉";
+/** The eighth blocks standing up, 1/8 of a cell high to the whole cell: a sparkline's point. */
+export const SPARK = "▁▂▃▄▅▆▇█";
+/** A heatmap's four shades, the lightest to the darkest. */
+export const SHADES = "░▒▓█";
 /** glyph-kit's mark for the focus line (re-exported from kinds.ts, which the pixel page also uses). */
 export { FOCUS_MARK } from "./kinds.ts";
 
@@ -35,6 +39,16 @@ export const COMPACT: Readonly<Record<string, string>> = {
   "▉": "=",
   "►": ">",
   "▲": "*",
+  "▁": "_",
+  "▂": "_",
+  "▃": "_",
+  "▄": "_",
+  "▅": "_",
+  "▆": "_",
+  "▇": "_",
+  "░": ".",
+  "▒": ":",
+  "▓": "+",
   "…": ".",
 };
 
@@ -112,6 +126,9 @@ function itemText(item: Item, bars: ReadonlyMap<string, Bar>, afterMeasure: bool
   // mark of the first step that reads as words is its `▲` — a pixel target paints the same cell by the `good` role
   if (item.kind === "swatch") return padEnd("██".repeat(Math.ceil(item.cells / 2)).slice(0, item.cells), item.cells);
   if (item.kind === "marker") return padEnd("▲", item.cells);
+  // a sparkline's point stands up in its cell, and a heatmap's cell is its band's shade repeated across it
+  if (item.kind === "spark") return padEnd(SPARK[item.eighth] ?? "", item.cells);
+  if (item.kind === "shade") return padEnd((SHADES[item.level] ?? "").repeat(item.cells), item.cells);
   // a number's own cell is right-aligned (glyph-kit's numbers on the right); a label and a heading read from the left
   return afterMeasure ? padStart(item.text, item.cells) : padEnd(item.text, item.cells);
 }

@@ -82,7 +82,23 @@ export interface SwatchItem extends BaseItem {
 export interface MarkerItem extends BaseItem {
   kind: "marker";
 }
-export type Item = TextItem | BoxItem | BarItem | SpaceItem | SwatchItem | MarkerItem;
+/** One point of a sparkline: its eighth of a cell as a `▁`..`█` in text, and a bar of that height on a pixel target. */
+export interface SparkItem extends BaseItem {
+  kind: "spark";
+  /** The bar's id, whose height the page writes: `(eighth + 1) * 2` px of a 16px cell. */
+  fillId: string;
+  /** The glyph's text id, so the terminal draws the same point the pixel target's bar is. */
+  textId: string;
+  /** 0 is `▁` (an eighth) and 7 is `█` (the whole cell). */
+  eighth: number;
+}
+/** One cell of a heatmap: one of four shades, `░▒▓█` in text and a step of the shade ramp on a pixel target. */
+export interface ShadeItem extends BaseItem {
+  kind: "shade";
+  /** 0 is the lightest, 3 the darkest; what a value's band is (see kinds/charts.ts). */
+  level: 0 | 1 | 2 | 3;
+}
+export type Item = TextItem | BoxItem | BarItem | SpaceItem | SwatchItem | MarkerItem | SparkItem | ShadeItem;
 export interface LayoutLine {
   /** The box's id, so a line's own height can travel the value channel (a type scale's rows are not all one cell).
    *  `finish` numbers them `fig-line-<n>`, the title and the source included. */

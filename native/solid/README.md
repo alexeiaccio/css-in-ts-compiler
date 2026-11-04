@@ -1088,6 +1088,15 @@ entries against the statuses the timeline uses, the board's cards and their orde
 three command goldens (`figure-timeline.json`, `figure-status-key.json`, `figure-now-next-later.json`) and the same rows
 on the terminal.
 
+The three **chart** kinds (`src/figure/kinds/charts.ts`) are `sparkline` (a recorded series as eighths, its min and max
+labelled and its last value printed), `meter` (one ratio against a 0..21 track and WCAG's floor, the verdict the engine's
+comparison) and `heatmap` (our Open Props grey inks 5..12 on the three pages, a cell one of four shades by its WCAG band).
+`specs/from-charts.ts` writes `meter.json` and `heatmap.json` from the palette and `color.ts` and `solid/test.sh`
+regenerates and `cmp`s them; `sparkline.json` is hand-written from twelve `--bench 200` draw ms, a recorded series and not
+a measurement at render time. The layout gained the `spark` and `shade` items, `text.ts` draws them in two branches, and
+`solid/figure-charts.test.ts` holds the eighths, the fill and the verdict, every cell's band and engine ratio, the
+refusals, the goldens, the terminal's rows and the mutations.
+
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
 `bun terminal/solid.ts --page figure --spec ... --text` prints it from the terminal host. `solid/figure-text.test.ts`

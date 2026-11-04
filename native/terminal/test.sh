@@ -174,6 +174,7 @@ cmp "$FIG/solid-figure-base.txt" "$FIG/solid-figure-click.txt" || {
 identical "a click on the figure changes nothing (no control, no state)"
 sh terminal/figure-handoff.sh
 for s in motion-timing easing stagger frame-strip; do $SOLID --page figure --spec "solid/specs/$s.json" --cols 80 --rows 40 --dump "$FIG/solid-figure-$s.txt" && [ -s "$FIG/solid-figure-$s.txt" ] || { echo "FAIL: the motion figure $s drew no cells"; exit 1; }; done; identical "the four motion kinds' cells (motion-timing, easing, stagger, frame-strip)"
+for s in sparkline meter heatmap; do $SOLID --page figure --spec "solid/specs/$s.json" --cols 80 --rows 40 --dump "$FIG/solid-figure-$s.txt" && [ -s "$FIG/solid-figure-$s.txt" ] || { echo "FAIL: the chart figure $s drew no cells"; exit 1; }; done; identical "the three chart kinds' cells (sparkline, meter, heatmap)"
 
 # the cost: the frame (declare + Clay + the commands into cells) and the same cells as ANSI, on this machine
 bench=$($SOLID --bench 20)

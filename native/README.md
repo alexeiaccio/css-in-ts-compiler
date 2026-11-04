@@ -3385,3 +3385,37 @@ next, 3 later — each wrapped to 20 cells and every segment a text command. The
 `solid/frames/figure-{timeline,status-key,now-next-later}.png`, the command goldens `solid/goldens/figure-*.json`, the
 browser draws `?spec=timeline`, `?spec=statusKey` and `?spec=nowNextLater`, and the terminal's rows are the pixel
 figure's.
+
+**The three chart kinds: a recorded series, a ratio against its floor, and our palette's own matrix.** `sparkline`,
+`meter` and `heatmap` (`solid/src/figure/kinds/charts.ts`) are the kit's `areas/metrics.md` ordinary charts, with this
+repository's numbers:
+
+| kind | data | the figure |
+| --- | --- | --- |
+| `sparkline` | `{ label, values: [number], unit? }` | a point an eighth of a cell (`▁▂▃▄▅▆▇█`), the min and max labelled under the row and the last value printed after it |
+| `meter` | `{ label, fg, bg, min, value, max? }` | a 0..`max` track (21 cells, a cell a point), the fill `value/max`, the ratio and `pass`/`fails min:1` (the engine's comparison, painted by `good`/`problem`) |
+| `heatmap` | `{ rows: [{ label, fg }], columns: [{ label, bg }], values: [[number]] }` | a row an ink, a column a page, a cell one of four shades by its ratio's WCAG band (under 3:1, 3–4.5, 4.5–7, 7:1+) |
+
+`solid/specs/sparkline.json` is **hand-written and says so**: the desktop frame's draw phase over twelve back-to-back
+`bun solid/main.ts --bench 200` runs on the Sensors page (Apple M2, 2026-11-04, load average 8.3), `0.333, 0.318, 0.318,
+0.315, 0.311, 0.315, 0.314, 0.415, 0.325, 0.326, 0.312, 0.310` ms. It is a **recorded series, not a benchmark at render
+time**: the frame draws the numbers in the file and never runs `--bench`, so a slow machine does not move the figure.
+`meter.json` and `heatmap.json` are **generated** by `specs/from-charts.ts` from the docs' open-props light palette and
+the engine's contrast (`packages/cssints/src/color.ts`): the meter is `link on bgSubtle` at 4.5:1 (4.51 passes by a
+hundredth), and the heatmap is the Open Props grey inks 5..12 on `bg`, `bgSubtle` and `bgMuted`; `solid/test.sh`
+regenerates both and `cmp`s, so a token change that left a ratio stale is a suite line.
+
+The layout gained two items for them, beside a palette's `swatch` and `marker`: `spark` (its `eighth`; a bottom-aligned
+bar on the pixel targets, and the same point's `▁`..`█` in text — Roboto has no `▁`, so the pixel target draws the bar and
+the glyph is the text command the terminal prints and the row comparison reads) and `shade` (a level; `░▒▓█` in text and
+one step of `Figure.styles.ts`'s four-shade ramp on a pixel target). `text.ts` draws both in two branches and knows no
+kind. `solid/figure-charts.test.ts` reads each sparkline point's eighth back from its fill's height (worst **0.00 of an
+eighth**), the meter's fill (**4.51 of 21 cells, 0.00 off**) and its verdict against the engine's comparison, every
+heatmap cell's band and colour (**24 cells**, 8 inks × 3 pages: 5 under 3:1, 1 at 3–4.5, 1 at 4.5–7, 17 at 7:1+), every
+ratio the engine's, the three specs' refusals, their command goldens, the terminal's rows and three mutations (a
+sparkline drawn evenly: 7 eighths off; a flipped meter verdict: the engine disagrees; a heatmap shade from the cell's
+index: 17 of 24 cells wrong). The frames are `solid/frames/figure-{sparkline,meter,heatmap}.png` (512x112, 624x80,
+640x224), the goldens `solid/goldens/figure-*.json`, and the browser draws `?spec=` of each. What remains: the SVG/HTML
+export half draws neither `spark` nor `shade` yet (it draws the boxes, bars, texts, swatches and markers it knows), which
+is the export work's, not a kind's.
+
