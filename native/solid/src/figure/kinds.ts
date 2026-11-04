@@ -7,6 +7,7 @@
 //   kinds/structure.ts  journeyMap, tree
 //   kinds/systems.ts    palette, spacingScale, typeScale
 //   kinds/handoff.ts    beforeAfter, qaChecklist, redline
+//   kinds/motion.ts     easing, frameStrip, motionTiming, stagger
 //   kinds/shared.ts     what they all use — cells, the item builders, `finish`, the raw-JSON readers — and no kind
 //
 // To add a kind, three steps, none of them in another kind's file:
@@ -25,6 +26,8 @@
 import "./kinds/flows.ts";
 import "./kinds/handoff.ts";
 import "./kinds/metrics.ts";
+import "./kinds/motion.ts";
+import "./kinds/planning.ts";
 import "./kinds/structure.ts";
 import "./kinds/systems.ts";
 

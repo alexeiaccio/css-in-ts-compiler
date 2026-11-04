@@ -68,11 +68,17 @@ bun solid/figure.test.ts
 # our own tokens: a palette's swatches and the mark of its first readable step, a contrast check's engine ratios and their
 # verdicts, a spacing scale whose 4px step is a 4px box, and a type scale whose 40px row is three cells — with their
 # refusals, their goldens, the generated specs' cmp (solid/test.sh) and the terminal's rows
-echo "figure: twelve kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes; their refusals and frames"
+echo "figure: fifteen kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns; their refusals and frames"
+# the three planning kinds' own invariants (solid/figure-planning.test.ts): a timeline bar at the cells its span says, the
+# axis's labels, the status key's entries against the statuses the figures use, the board's cards and their order, each
+# refusal, the same rows on the terminal, the three command goldens, and the map's words in the hand-written specs
+bun solid/figure-planning.test.ts
 # the text half of the same layout: every spec as characters within the width, each bar in cells against the terminal
 # host's own count, the eighth block against the remainder, compact's ASCII, markdown's parts, the docs' redraw, and an
 # invalid spec refused with its sentences and no figure (solid/figure-text.test.ts)
 bun solid/figure-text.test.ts
+# the four motion kinds' figures (solid/figure-motion.test.ts): motion.ts's own samples, their goldens, their stored frames, the terminal's rows and the browser by name
+bun solid/figure-motion.test.ts
 # the registry's own test (solid/figure-registry.test.ts): every kind has a layout and a check, the registry's list is the
 # one `unknown kind` refuses with and the one native/docs/map.md prints, and a throwaway kind registered in that test alone
 # draws through text.ts and declares on the desktop — the seam a new kind goes through, proved in one file

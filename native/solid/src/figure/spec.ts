@@ -1,8 +1,7 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with fifteen kinds here
-// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `flow`, `funnel`, `journeyMap`, `palette`,
-// `qaChecklist`, `redline`, `spacingScale`, `stateMachine`, `tree`, `typeScale`) where the kit has thirty-four. `check`
-// returns **every** problem as a sentence, in
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 22 kinds here
+// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `journeyMap`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `spacingScale`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
 //
@@ -21,6 +20,11 @@
 // all five). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no
 // other kind's file is opened. So a sentence here that is about one kind's data belongs there, and a sentence about every
 // spec stays here.
+// the file that draws it, beside its layout: `./kinds/metrics.ts`, `./kinds/flows.ts`, `./kinds/structure.ts`,
+// `./kinds/systems.ts` and `./kinds/motion.ts`, reached through `./registry.ts` (`./kinds.ts` is the door and loads all
+// five). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no other
+// kind's file is opened. So a sentence here that is about one kind's data belongs there, and a sentence about every spec
+// stays here.
 //
 // The contrast pair's `ratio` is a number in the data, and it is the **engine's** — packages/cssints/src/color.ts's
 // `luminance`/`ratio`, which `solid/specs/from-tokens.ts` writes the spec with. The contrast kind's own check recomputes
@@ -45,13 +49,20 @@ export const KINDS = [
   "flow",
   "funnel",
   "journeyMap",
+  "nowNextLater",
   "palette",
   "qaChecklist",
   "redline",
   "spacingScale",
   "stateMachine",
+  "statusKey",
+  "timeline",
   "tree",
   "typeScale",
+  "easing",
+  "frameStrip",
+  "motionTiming",
+  "stagger",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -321,6 +332,136 @@ export interface QaChecklistSpec extends Base {
   data: ChecklistData;
 }
 
+/**
+ * What a motion is, in the terms `solid/src/motion.ts` takes: a spring's class and its `(duration, bounce)` in
+ * milliseconds, or a fling's velocity in px/s. The spec stores milliseconds because a figure's rows are read in them;
+ * the solver is handed seconds (its own unit).
+ */
+export type MotionClass =
+  | { readonly kind: "spatial"; readonly duration: number; readonly bounce: number }
+  | { readonly kind: "effect"; readonly duration: number }
+  | { readonly kind: "decay"; readonly velocity: number };
+
+/** One instant of a track: when (`ms` from its start) and where (`Track.at`'s x, in px). */
+export interface MotionSample {
+  readonly ms: number;
+  readonly value: number;
+}
+
+/** One track of a `motionTiming` figure: its spring, its range and the samples it takes. */
+export interface MotionTrack {
+  readonly label: string;
+  readonly start: number;
+  readonly target: number;
+  readonly motion: MotionClass;
+  readonly samples: readonly MotionSample[];
+}
+
+export interface MotionTimingSpec extends Base {
+  kind: "motionTiming";
+  data: { readonly tracks: readonly MotionTrack[] };
+  options?: { readonly width?: number };
+}
+
+/** One curve of an `easing` figure: a spring reaching the same target, sampled. */
+export interface EasingCurve {
+  readonly label: string;
+  readonly start: number;
+  readonly target: number;
+  readonly motion: MotionClass;
+  readonly samples: readonly MotionSample[];
+}
+
+export interface EasingSpec extends Base {
+  kind: "easing";
+  data: { readonly curves: readonly EasingCurve[] };
+  options?: { readonly width?: number; readonly rows?: number };
+}
+
+/** One element of a stagger: the delay before it starts and how long it takes, in ms. */
+export interface StaggerItem {
+  readonly label: string;
+  readonly delay: number;
+  readonly duration: number;
+}
+
+export interface StaggerSpec extends Base {
+  kind: "stagger";
+  data: { readonly items: readonly StaggerItem[] };
+  options?: { readonly width?: number };
+}
+
+/** One frame of a strip: the instant and the box's position, in px. */
+export interface StripFrame {
+  readonly ms: number;
+  readonly value: number;
+}
+
+/** One strip of a `frameStrip` figure: the motion and the frames it is shown at. A spring's range ends at `target`; a
+ *  fling's at `decay(...).project()`, which is why `target` is absent for one. */
+export interface FrameStrip {
+  readonly label: string;
+  readonly start: number;
+  readonly target?: number;
+  readonly motion: MotionClass;
+  readonly frames: readonly StripFrame[];
+}
+
+export interface FrameStripSpec extends Base {
+  kind: "frameStrip";
+  data: { readonly strips: readonly FrameStrip[] };
+  options?: { readonly width?: number };
+}
+
+/** One row of a timeline: its label, the span it covers on the shared axis, and what the source recorded of it. */
+export interface TimelineEntry {
+  label: string;
+  /** The span's start on the axis's own unit (a step of the plan here, not hours). */
+  start: number;
+  /** The span's end: after `start`, or the row is refused. */
+  end: number;
+  /** The status a planning figure gives it (`Done`, `Left`, `Blocked`), for the status key's role. */
+  status?: string;
+  /** A recorded date that is an axis of its own: a row's may not come before the row above it. */
+  date?: string;
+  /** A recorded note that is not an axis (a date the source mentions): printed after the span. */
+  note?: string;
+  tone?: Tone;
+}
+
+export interface TimelineSpec extends Base {
+  kind: "timeline";
+  data: readonly TimelineEntry[];
+  /** `width` is the shared axis in cells; `start`, `end` and `unit` label its two ends. */
+  options?: { width?: number; start?: number; end?: number; unit?: string };
+}
+
+/** One status of a key: glyph-kit's `label`, and the sentence that says what the status means here. */
+export interface StatusEntry {
+  label: string;
+  sentence: string;
+  tone?: Tone;
+}
+
+export interface StatusKeySpec extends Base {
+  kind: "statusKey";
+  data: readonly StatusEntry[];
+  /** `used` is the declared set of statuses the planning figures here draw; a key may name no other. */
+  options?: { used?: readonly string[] };
+}
+
+/** glyph-kit's `board`: three columns of cards, a card a string. */
+export interface BoardData {
+  now: readonly string[];
+  next: readonly string[];
+  later: readonly string[];
+}
+
+export interface NowNextLaterSpec extends Base {
+  kind: "nowNextLater";
+  data: BoardData;
+}
+
 export type Spec =
   | BarChartSpec
   | BeforeAfterSpec
@@ -330,13 +471,20 @@ export type Spec =
   | FlowSpec
   | FunnelSpec
   | JourneyMapSpec
+  | NowNextLaterSpec
   | PaletteSpec
   | QaChecklistSpec
   | RedlineSpec
   | SpacingSpec
   | StateMachineSpec
+  | StatusKeySpec
+  | TimelineSpec
   | TreeSpec
-  | TypeScaleSpec;
+  | TypeScaleSpec
+  | EasingSpec
+  | FrameStripSpec
+  | MotionTimingSpec
+  | StaggerSpec;
 
 /** Does the data hold a number anywhere? A spec with numbers needs a source, as the kit's guard refuses without one. */
 function hasNumbers(value: unknown): boolean {
