@@ -2,7 +2,7 @@
   "kind": "sparkline",
   "title": "The desktop frame, twelve runs",
   "intent": "The draw phase of the Sensors page over twelve back-to-back --bench runs: a recorded series, not a live benchmark.",
-  "source": "--bench 200 draw ms, 12 runs, Apple M2, 2026-11-04; recorded",
+  "source": "--bench 200 draw ms, 12 runs, Apple M2, load 8.3, 2026-11-04; recorded",
   "data": {
     "label": "draw",
     "values": [0.333, 0.318, 0.318, 0.315, 0.311, 0.315, 0.314, 0.415, 0.325, 0.326, 0.312, 0.31],

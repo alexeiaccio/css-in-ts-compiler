@@ -3414,7 +3414,7 @@ eighth**), the meter's fill (**4.51 of 21 cells, 0.00 off**) and its verdict aga
 heatmap cell's band and colour (**24 cells**, 8 inks × 3 pages: 5 under 3:1, 1 at 3–4.5, 1 at 4.5–7, 17 at 7:1+), every
 ratio the engine's, the three specs' refusals, their command goldens, the terminal's rows and three mutations (a
 sparkline drawn evenly: 7 eighths off; a flipped meter verdict: the engine disagrees; a heatmap shade from the cell's
-index: 17 of 24 cells wrong). The frames are `solid/frames/figure-{sparkline,meter,heatmap}.png` (512x112, 624x80,
+index: 17 of 24 cells wrong). The frames are `solid/frames/figure-{sparkline,meter,heatmap}.png` (592x112, 624x80,
 640x224), the goldens `solid/goldens/figure-*.json`, and the browser draws `?spec=` of each. What remains: the SVG/HTML
 export half draws neither `spark` nor `shade` yet (it draws the boxes, bars, texts, swatches and markers it knows), which
 is the export work's, not a kind's.
