@@ -99,6 +99,9 @@ export interface Rest {
   readonly warm?: number;
   readonly keys?: readonly string[];
   readonly settle?: number;
+  /** A page's own size, when it is not its stored one: a responsive pair captures one page at two widths. */
+  readonly width?: number;
+  readonly height?: number;
   /** The Figure page's spec, when it is not the stored one (`PAGES.figure` reads bars.json). */
   readonly spec?: Spec;
 }
@@ -135,7 +138,7 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
   // the Figure page's size is its spec's layout, not a number in the table: the placeholder is replaced here so a caller
   // may pass another spec (figure.test.ts does, for all four)
   const spec = rest.spec ?? (stored.figure ? readSpec(stored.figure) : undefined);
-  const size = spec ? sizeOf(spec) : { width: stored.width, height: stored.height };
+  const size = spec ? sizeOf(spec) : { width: rest.width ?? stored.width, height: rest.height ?? stored.height };
   const { width, height } = size;
   if (!started) {
     const font = new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname;
