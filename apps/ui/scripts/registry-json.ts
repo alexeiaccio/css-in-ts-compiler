@@ -275,6 +275,14 @@ const STARTERS: ReadonlyArray<Starter> = [
     description: "APG meter: a track and the fill of the value, on `createMeter`",
   },
   {
+    name: "sparkline",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Sparkline",
+    description:
+      "A sparkline as a list of samples: the line is CSS (`hypot` and `atan2`), with no SVG and no canvas",
+  },
+  {
     name: "breadcrumb",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

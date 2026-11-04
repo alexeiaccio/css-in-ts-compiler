@@ -4298,3 +4298,25 @@ page with no stories saying it has one is a file that lies. `solid/scenes/storyb
 tabs into its controls; `solid/frames/storybook-scene.png` is stored from it, and `sh solid/test.sh` compares it with the
 other 102 frames. The story is the starting state (`defaultSelected`), so the file is the state _and_ the route to it — the
 native equivalent of `#widgets--switch`.
+
+## The first chart: a sparkline, and what CSS can and cannot say (2026-11-04)
+
+Asked ("cut the beans and start with the first"), from Keith Cirkel's html-graphs: charts as semantic HTML and CSS. The kit's
+first is `sparkline` (`cssints-1wx2`): an `<ol>` of samples, the line drawn by the items' own segments. **What the engine
+said on the way:** `hypot()` and `atan2()` are accepted inside `calc()` (`css.rotate("calc(atan2(...))")` builds), the values
+in `--a`/`--b`/`--y0`/`--y1` are conditions-free custom properties, and `container-type: size` on the item gives the segment
+its `cqw`/`cqh` units. **Three things the article's approach needed adapting to this engine:**
+
+- **No `::before`.** Pseudo-elements are not part of the API (`docs/API.md`), so the segment and the dot are real spans
+  (`data-part="sparkline-segment"` / `-point`), and the hover that reveals a sample's value is `within(hover)` on the item's
+  `group()` — the ancestor-state helper, not a descendant selector.
+- **`sibling-index()`/`sibling-count()` are not used.** The caller knows how many samples there are, so the count arrives as
+  `--n` and the first column hangs back `calc(-50% / var(--n))`; no browser-support question and no numbered markup.
+- **The scale is the caller's or the samples' own** (`min`/`max`), because CSS cannot find a maximum; the normalised heights
+  are computed in CSS from those two numbers, so the markup keeps the numbers a reader wants.
+
+**Evidence:** five conformance tests (one item per sample with `<data value>`, a segment turned by an
+angle and as long as the step, the value shown on hover and the head's dot always, the scale from the samples and from the
+page, a flat line given a range), the site page, and a screenshot of the drawn line. **Left:** the registry's `r/*.json`
+were stale against the source (the carousel's `[hidden]` fix and the table's grid change were not regenerated), which the
+`node scripts/registry-json.ts` run beside this one brought up to date.
