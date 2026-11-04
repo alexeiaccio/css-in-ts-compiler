@@ -2,6 +2,13 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.32.0 (2026-11-04)
+
+### Minor changes
+
+- Pseudo-elements are wrappers: `css.before(...)`, `css.after(...)`, `css.placeholder(...)`, `css.selection(...)`, `css.markerElement(...)` and the rest of the standard set without arguments, from mdn-data. They join the element itself, so they are the innermost condition — `hover(before(...))` is `.k:hover::before`, and the other order is a build error at its call. `::marker` is also the `marker` property, so its wrapper is `markerElement`, as a function named like a pseudo-class takes `Fn`. A pseudo-element that paints still needs its `content`, as in CSS.
+- The canvas handle converts between screen and world points (`screenToWorld`, `worldToScreen`), so a host can draw a remote cursor or hit-test outside the pointer pipeline.
+
 ## 0.31.0 (2026-11-03)
 
 ### Minor changes
