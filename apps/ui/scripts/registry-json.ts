@@ -284,6 +284,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A multi-series bar chart as a table: each bar a background sized by its value, and the header row a legend of checkboxes that hide a series",
   },
   {
+    name: "donut",
+    tested: true,
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Donut",
+    description:
+      "A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row",
+  },
+  {
     name: "heatmap",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],
