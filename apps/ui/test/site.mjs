@@ -35,8 +35,15 @@ try {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
-    if (message.type() === "error" && !message.location().url.endsWith("/favicon.ico")) {
-      errors.push(message.text());
+    // a page asks the registry host for its preflight result: an item that is not published yet answers 404, and the page
+    // hides the section on purpose — the browser's own "Failed to load resource" line for it is not an error of the page
+    const text = message.text();
+    if (
+      message.type() === "error" &&
+      !message.location().url.endsWith("/favicon.ico") &&
+      !/Failed to load resource: the server responded with a status of 404/.test(text)
+    ) {
+      errors.push(text);
     }
   });
 
@@ -167,6 +174,20 @@ try {
   assert.equal(await page.getByText(/No component or story matches/).count(), 1);
   await search.press("Escape");
   assert.equal(await page.getByRole("link", { name: "Tabs", exact: true }).count(), 1);
+
+  // The charts: a bar chart whose legend hides a series, a donut whose rows carry their shares, and a stat tile.
+  await page.goto(`${base}#bars--by-region`);
+  // the header row is the legend: one box per series, and the table under it is the chart (the toggle is the item's own test)
+  assert.equal(await preview.getByRole("checkbox").count(), 3);
+  assert.match(await preview.locator("caption:visible").innerText(), /Requests by region/);
+  await page.goto(`${base}#donut--traffic`);
+  // the tab panel keeps the other story mounted: only the drawn one counts
+  assert.equal(await preview.locator('[data-part="donut-slice"]:visible').count(), 5);
+  await page.goto(`${base}#stat--default`);
+  assert.equal(
+    await preview.locator('[data-part="stat-value"]:visible').getAttribute("value"),
+    "1350",
+  );
 
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });

@@ -1089,24 +1089,42 @@ export declare const zoom: Prop<"zoom">;
 
 /** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:active) */
 export declare const active: StateWrap;
+/** Chrome 1, Edge 12, Firefox 1.5, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/::after) */
+export declare const after: StateWrap;
 /** Chrome 65, Edge 79, Firefox 50, Safari 9, iOS 9, Android 65. [MDN](https://developer.mozilla.org/docs/Web/CSS/:any-link) */
 export declare const anyLink: StateWrap;
 /** Chrome 110, Edge 110, Firefox 86, Safari 15, iOS 15, Android 110. [MDN](https://developer.mozilla.org/docs/Web/CSS/:autofill) */
 export declare const autofill: StateWrap;
+/** Chrome 37, Edge 79, Firefox 47, Safari 15.4, iOS 15.4, Android 37. [MDN](https://developer.mozilla.org/docs/Web/CSS/::backdrop) */
+export declare const backdrop: StateWrap;
+/** Chrome 1, Edge 12, Firefox 1.5, Safari 4, iOS 3, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/::before) */
+export declare const before: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:buffering) */
 export declare const buffering: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 3.1, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:checked) */
 export declare const checked: StateWrap;
+/** Chrome 133, Edge 133, Firefox no, Safari 27, iOS 27, Android 133. [MDN](https://developer.mozilla.org/docs/Web/CSS/::checkmark) */
+export declare const checkmark: StateWrap;
+/** Chrome 26, Edge 79, Firefox 55, Safari 7, iOS 7, Android 26. [MDN](https://developer.mozilla.org/docs/Web/CSS/::cue) */
+export declare const cue: StateWrap;
 /** Chrome 54, Edge 79, Firefox 63, Safari 10, iOS 10, Android 54. [MDN](https://developer.mozilla.org/docs/Web/CSS/:defined) */
 export declare const defined: StateWrap;
+/** Chrome 131, Edge 131, Firefox 143, Safari 18.4, iOS 18.4, Android 131. [MDN](https://developer.mozilla.org/docs/Web/CSS/::details-content) */
+export declare const detailsContent: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 3.1, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:disabled) */
 export declare const disabled: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 3.1, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:empty) */
 export declare const empty: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 3.1, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:enabled) */
 export declare const enabled: StateWrap;
+/** Chrome 89, Edge 89, Firefox 82, Safari 14.1, iOS 14.5, Android 89. [MDN](https://developer.mozilla.org/docs/Web/CSS/::file-selector-button) */
+export declare const fileSelectorButton: StateWrap;
 /** Chrome 4, Edge 12, Firefox 3, Safari 3.1, iOS 4, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:first-child) */
 export declare const firstChild: StateWrap;
+/** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/::first-letter) */
+export declare const firstLetter: StateWrap;
+/** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/::first-line) */
+export declare const firstLine: StateWrap;
 /** Chrome 1, Edge 12, Firefox 3.5, Safari 3.1, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:first-of-type) */
 export declare const firstOfType: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:focus) */
@@ -1119,6 +1137,8 @@ export declare const focusWithin: StateWrap;
 export declare const fullscreen: StateWrap;
 /** Chrome 23, Edge 79, Firefox no, Safari 7, iOS 7, Android 25. [MDN](https://developer.mozilla.org/docs/Web/CSS/:future) */
 export declare const future: StateWrap;
+/** Chrome 121, Edge 121, Firefox no, Safari 17.4, iOS 17.4, Android 121. [MDN](https://developer.mozilla.org/docs/Web/CSS/::grammar-error) */
+export declare const grammarError: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 2, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:hover) */
 export declare const hover: StateWrap;
 /** Chrome 10, Edge 13, Firefox 29, Safari 5.1, iOS 5, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:in-range) */
@@ -1133,6 +1153,8 @@ export declare const lastChild: StateWrap;
 export declare const lastOfType: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:link) */
 export declare const link: StateWrap;
+/** Chrome 86, Edge 86, Firefox 68, Safari 11.1, iOS 11.3, Android 86. [MDN](https://developer.mozilla.org/docs/Web/CSS/::marker) */
+export declare const markerElement: StateWrap;
 /** Chrome 105, Edge 105, Firefox 103, Safari 15.6, iOS 15.6, Android 105. [MDN](https://developer.mozilla.org/docs/Web/CSS/:modal) */
 export declare const modal: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:muted) */
@@ -1151,8 +1173,12 @@ export declare const outOfRange: StateWrap;
 export declare const past: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:paused) */
 export declare const paused: StateWrap;
+/** Chrome 133, Edge 133, Firefox no, Safari 27, iOS 27, Android 133. [MDN](https://developer.mozilla.org/docs/Web/CSS/::picker-icon) */
+export declare const pickerIcon: StateWrap;
 /** Chrome 110, Edge 110, Firefox 153, Safari 13.1, iOS 13.4, Android 110. [MDN](https://developer.mozilla.org/docs/Web/CSS/:picture-in-picture) */
 export declare const pictureInPicture: StateWrap;
+/** Chrome 57, Edge 79, Firefox 51, Safari 10.1, iOS 10.3, Android 57. [MDN](https://developer.mozilla.org/docs/Web/CSS/::placeholder) */
+export declare const placeholder: StateWrap;
 /** Chrome 47, Edge 79, Firefox 51, Safari 9, iOS 9, Android 47. [MDN](https://developer.mozilla.org/docs/Web/CSS/:placeholder-shown) */
 export declare const placeholderShown: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:playing) */
@@ -1171,16 +1197,24 @@ export declare const root: StateWrap;
 export declare const scope: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:seeking) */
 export declare const seeking: StateWrap;
+/** Chrome 1, Edge 12, Firefox 62, Safari 1.1, iOS no, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/::selection) */
+export declare const selection: StateWrap;
+/** Chrome 121, Edge 121, Firefox no, Safari 17.4, iOS 17.4, Android 121. [MDN](https://developer.mozilla.org/docs/Web/CSS/::spelling-error) */
+export declare const spellingError: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:stalled) */
 export declare const stalled: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 1.3, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:target) */
 export declare const target: StateWrap;
+/** Chrome 89, Edge 89, Firefox 131, Safari 18.2, iOS 18.2, Android 89. [MDN](https://developer.mozilla.org/docs/Web/CSS/::target-text) */
+export declare const targetText: StateWrap;
 /** Chrome 119, Edge 119, Firefox 88, Safari 16.5, iOS 16.5, Android 119. [MDN](https://developer.mozilla.org/docs/Web/CSS/:user-invalid) */
 export declare const userInvalid: StateWrap;
 /** Chrome 119, Edge 119, Firefox 88, Safari 16.5, iOS 16.5, Android 119. [MDN](https://developer.mozilla.org/docs/Web/CSS/:user-valid) */
 export declare const userValid: StateWrap;
 /** Chrome 10, Edge 12, Firefox 4, Safari 5, iOS 5, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:valid) */
 export declare const valid: StateWrap;
+/** Chrome 109, Edge 109, Firefox 144, Safari 18, iOS 18, Android 109. [MDN](https://developer.mozilla.org/docs/Web/CSS/::view-transition) */
+export declare const viewTransition: StateWrap;
 /** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:visited) */
 export declare const visited: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:volume-locked) */
@@ -1387,7 +1421,7 @@ export declare const targetCounter: Fn<"target-counter", ", ">;
 /** `target-counters( [ <string> | <url> ] , <custom-ident> , <string> , <counter-style>? )` */
 export declare const targetCounters: Fn<"target-counters", ", ">;
 /** `target-text( [ <string> | <url> ] , [ content | before | after | first-letter ]? )` */
-export declare const targetText: Fn<"target-text", ", ">;
+export declare const targetTextFn: Fn<"target-text", ", ">;
 /** `translate3d( <length-percentage> , <length-percentage> , <length> )`. Chrome 12, Edge 12, Firefox 10, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-function/translate3d) */
 export declare const translate3d: Fn<"translate3d", ", ">;
 /** `translate( <length-percentage> , <length-percentage>? )`. Chrome 1, Edge 12, Firefox 3.5, Safari 3.1, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-function/translate) */

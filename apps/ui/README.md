@@ -40,3 +40,25 @@ tree with the tabs.
 
 The same skin's `narrow` mode renders those sections as an accordion, one open, below the host's 800 px breakpoint
 (`matchMedia("(max-width: 799px)")` in `tabs.fixture.tsx`); the primitive is untouched.
+
+## Charts: the accessibility bar
+
+Every chart starter is held to the same checks, taken from Frank Elavsky's _Accessibility in Data Visualization_ (Open
+Visualization Academy) and Chartability. A new chart copies them, and its test asserts them:
+
+- **The data is the markup.** A list, a table or a meter with the numbers; the picture is decoration over it. With the
+  stylesheet off the page still reads as rows.
+- **No value is reachable only with a pointer.** If the resting view hides the numbers (a heatmap's squares, a sparkline's
+  points), there is a keyboard-reachable way to read them: a toggle that turns the squares into a table, a caption that says
+  the range and the extremes, or text that is there all along.
+- **The chart is a named figure.** A `figcaption` or a `caption` says what it is and what the numbers are; the sentence is
+  visible, not only an `aria-label`.
+- **The reading order is "the name, then the value".** CSS `order` may move the name for the eye; it never moves it for a
+  reader.
+- **Colour is never the only channel.** The value is also text, a height or a position; a chart that hides or recolours
+  something says so in words too.
+- **Contrast holds.** Marks are graphics against the page (3:1, asserted by `check.contrast` in `theme.ts`); the text around
+  them is text (4.5:1), in light and in dark.
+- **Nothing truncates a value.** Names wrap; 320px at 200% text still shows the numbers.
+- **Motion asks.** An enter animation or a pulse is declared inside `prefers-reduced-motion: no-preference`.
+- **The test reads the page, not the stylesheet**: the DOM, the computed boxes, the keyboard and the toggle.

@@ -4298,3 +4298,168 @@ page with no stories saying it has one is a file that lies. `solid/scenes/storyb
 tabs into its controls; `solid/frames/storybook-scene.png` is stored from it, and `sh solid/test.sh` compares it with the
 other 102 frames. The story is the starting state (`defaultSelected`), so the file is the state _and_ the route to it — the
 native equivalent of `#widgets--switch`.
+
+## The first chart: a sparkline, and what CSS can and cannot say (2026-11-04)
+
+Asked ("cut the beans and start with the first"), from Keith Cirkel's html-graphs: charts as semantic HTML and CSS. The kit's
+first is `sparkline` (`cssints-1wx2`): an `<ol>` of samples, the line drawn by the items' own segments. **What the engine
+said on the way:** `hypot()` and `atan2()` are accepted inside `calc()` (`css.rotate("calc(atan2(...))")` builds), the values
+in `--a`/`--b`/`--y0`/`--y1` are conditions-free custom properties, and `container-type: size` on the item gives the segment
+its `cqw`/`cqh` units. **Three things the article's approach needed adapting to this engine:**
+
+- **No `::before`.** Pseudo-elements are not part of the API (`docs/API.md`), so the segment and the dot are real spans
+  (`data-part="sparkline-segment"` / `-point`), and the hover that reveals a sample's value is `within(hover)` on the item's
+  `group()` — the ancestor-state helper, not a descendant selector.
+- **`sibling-index()`/`sibling-count()` are not used.** The caller knows how many samples there are, so the count arrives as
+  `--n` and the first column hangs back `calc(-50% / var(--n))`; no browser-support question and no numbered markup.
+- **The scale is the caller's or the samples' own** (`min`/`max`), because CSS cannot find a maximum; the normalised heights
+  are computed in CSS from those two numbers, so the markup keeps the numbers a reader wants.
+
+**Evidence:** five conformance tests (one item per sample with `<data value>`, a segment turned by an
+angle and as long as the step, the value shown on hover and the head's dot always, the scale from the samples and from the
+page, a flat line given a range), the site page, and a screenshot of the drawn line. **Left:** the registry's `r/*.json`
+were stale against the source (the carousel's `[hidden]` fix and the table's grid change were not regenerated), which the
+`node scripts/registry-json.ts` run beside this one brought up to date.
+
+## Charts are held to Chartability, not to "it has a table" (2026-11-04)
+
+Frank Elavsky's [Accessibility in Data Visualization](https://openvisualizationacademy.org/courses/accessibility-in-data-visualization/introduction/introduction/)
+(Open Visualization Academy, September 2025) is the framework the charts epic is judged by, and Chartability is its testable
+form. **The decision: every chart starter gets an accessibility pass before the epic closes**, as its own bean
+(`cssints-xww8`) rather than as prose here — the checks a new chart can copy, the five charts held to them, and a test per
+gap. The sparkline already has two: its value is hover-only (a keyboard user sees the line and cannot read a sample), and it
+has no summary of the series in words. Its markup is already the right shape (an ordered list of `<data value>`, so the
+numbers are the data and the line is decoration) — which is the article's own first principle, and the reason this kit can
+meet the bar without a second, accessible view.
+
+Recorded so a chart written later does not have to rediscover it: **the picture is decoration over a list, table or meter**;
+hover may be an enhancement but never the only way to a value; colour never carries the meaning alone; motion asks
+`prefers-reduced-motion`; and 320px at 200% text must not clip a number.
+
+## Pseudo-elements are wrappers (2026-11-04)
+
+The user, on the first chart: "there are no pseudo-elements in the API — that's strange, there should be." They were right,
+and the doc said it twice ("not part of 0.1"): the engine's conditions were pseudo-classes, `attr()`, `within()` and the
+at-rules, and a `::before` could only be written as a `global()` rule or a plugin's kernel. The chart article that started
+the charts epic leans on `::before`/`::after` for every segment, so the gap was in the way.
+
+**Now `PSEUDOS` holds the standard pseudo-elements too** (`lib.ts` reads them from the same mdn-data `selectors.json`,
+without arguments), each with `element: true`. They join the subject itself, so the chain decides the selector: an element
+must be **innermost** and there is one of them — `hover(before(x))` prints `.k:hover::before`, and `before(hover(x))` is a
+build error at the `before` call naming the selector it would have printed. An at-rule wraps either way (it becomes the
+block around the rule), and `within()` stays outside (`:where(._g:hover) .k::before`). `::marker` collides with the `marker`
+property, so its wrapper is `markerElement`, mirroring `Fn` for functions named like a condition. The class hash already
+includes the chain, so a state on a pseudo-element is a different class from the element's own rule.
+
+**Evidence:** `packages/cssints/test/pseudo-elements.mjs` — the names (and that functional ones are not wrappers), the place
+in the chain, the sheet (`.k::before{content:"•"}`, `.k:hover::before`, `[aria-invalid="true"]::after`, `::placeholder`,
+`::selection`, `::marker`, an at-rule around all of it) and the order error; the existing `test/conditions.mjs` names check
+updated. **Left:** the charts can now use `::before` as the article does (the sparkline's segment spans are one `before()`
+away from being the source's own markup), and the `content` of a pseudo-element is still the caller's to declare.
+
+## The sparkline on pseudo-elements, as the article writes it (2026-11-04)
+
+Follow-up to the engine change: the sparkline's segment and dot were `<span data-part=…>` because `::before` was not
+expressible. Now they are the item's own `::before` and `::after` — the markup of the item is one `<data>` and nothing else,
+which is the source article's markup and the reason the pseudo-element wrappers were worth adding. The two state rules read
+the way the source does: `hover(after(...))` is `.k:hover::after` (the dot under the pointer) and `lastChild(after(...))` is
+`.k:last-child::after` (the line's head, always drawn). One thing stayed: the value label is a `<data>` element, because it
+is text and a pseudo-element's `content` is not (and `group()` stays on the item for its `within(hover)`).
+
+**Evidence:** the five conformance tests now read the pseudo-elements (`getComputedStyle(row, "::before").content` is `""`,
+the segment's `rotate` is an angle, the dot's opacity 0 → 1 on hover and 1 on the head), the site test, and a screenshot with
+a sample hovered (`1510` above its point). `r/sparkline.json` was regenerated with the source.
+
+## The second chart: a heatmap, and a style key Solid drops (2026-11-04)
+
+`cssints-mrew`, the epic's second: a heatmap as a table — one row per day, one cell per hour, every value the cell's own text,
+and the colour `color-mix(in oklab, var(--heat-hot) <share>, var(--heat-cold))`. `display: contents` on `thead`, `tbody` and
+`tr` makes the cells the grid items of the table itself, so the columns stay aligned without a table's boxes; the label column
+is `minmax(2.5rem, max-content)`, the rest `minmax(0, 1fr)`.
+
+**Two findings worth the entry.** (1) **The grid's column count is the caller's**, and `repeat()` cannot take a custom
+property, so `grid-template-columns` is spelled out in the element's style — and a **camelCase key in Solid's style object is
+dropped**: `gridTemplateColumns` never reached the element while the `--min`/`--max` keys beside it did. The kebab-case key
+(`"grid-template-columns"`) is written and works; the component says so where it happens. (2) **A token is build-time text**:
+`t.color.highlight` inside a run-time `style` getter is erased with the import, and the page fails with `t is not defined` —
+the colours come in as `var(--color-highlight)` and `var(--color-button-background)`, which is what the theme actually
+declares.
+
+**Evidence:** four conformance tests (a header per column, a label per row, one cell per pair with its number; the scale on
+the table and two cells of the same value family a different colour; the value shown on hover without moving the grid; an
+empty cell empty and the scale in words), the story (a week of the article's own data, a wider `max`, a small map, a gap), the
+site page, and a screenshot of the week at rest.
+
+## The third chart: columns, built to the accessibility checklist (2026-11-04)
+
+`cssints-bxdp`'s first half — a column chart — and the first chart written _to_ the Chartability checks rather than fixed
+afterwards, which is what the user asked for while it was being written. The shape that satisfies them without a second view:
+
+- **A named figure over a list.** `<figure>` + `<figcaption>` names the chart and says what it is; the `<ol>` under it is the
+  data: one `<li>` per category, in reading order the name and then its value.
+- **No hover-only value.** Every number is text above its bar (`--columns-height` less 1.5em of headroom, so the tallest bar
+  never pushes its own number out of the frame) — a pointer adds nothing a reader needs.
+- **The name wraps, it does not clip.** `overflow-wrap: anywhere` instead of `text-overflow: ellipsis`: a truncated category
+  is a lost value. `order: 1` puts the name under the bar for the eye while the DOM keeps "name, value".
+- **Colour is never the only channel**, and the bar is `aria-hidden`: the height is the value and the value is written.
+- **A flat chart still stands**: the scale is `1` when every value is equal, instead of dividing by nothing.
+
+**Split, and recorded:** the bar chart (several series, the header row as a legend, checkboxes hiding a series) is its own
+bean (`cssints-d266`) — a different table and a different test, sharing only the name. **Evidence:** four conformance tests
+(the figure and the reading order, the heights' ratio, the page's `max` and `format`, a flat chart and a wrapping name), the
+story (the article's latency distribution, a short chart, a flat one), `r/columns.json`, the site page, and a screenshot.
+
+## The charts' accessibility bar, applied to the first three of them (2026-11-04)
+
+The epic's `cssints-xww8`, started while three more charts were being built in parallel. **The bar lives in
+`apps/ui/README.md`** — nine checks a new chart copies (the data is the markup; no value is pointer-only; a named figure; the
+reading order; colour never alone; contrast; nothing truncates a value; motion asks; the test reads the page). The sparkline
+and the heatmap, both shipped before the bar existed, had the same gap: their values were readable by a screen reader (the
+numbers are the cells' and the points' text) but **not by a sighted keyboard user**.
+
+- **Sparkline**: a `<figure>` with a `<figcaption>` that says what the line shows in words — "from 1310 to 1350; lowest 1310,
+  highest 1490" — computed from the samples. A pointer still gets a sample's value; nobody needs it.
+- **Heatmap**: a "Show the numbers" toggle (`aria-pressed`, the component's only state). It swaps the squares for the same
+  table read as a table — every value in place, rows grown, colour set aside. A `<details>` was tried first and does not work:
+  it _hides_ its content, so the chart's own squares disappeared while the numbers were shown.
+- **Columns** was written to the bar from the start (see its entry): the figure, the reading order, wrapping names, no
+  hover-only value.
+
+**Evidence:** the sparkline's six and the heatmap's five conformance tests (the caption's sentence; the toggle's `aria-pressed`,
+its two labels, the value's font size and position and the cell's aspect ratio before and after), the site test, and the
+README section itself. **Left:** the bar over the three charts being written in parallel (bars, donut, stat), and one honest
+sub-check — a heatmap cell's colour pairs two theme tokens that `check.contrast` cannot compare a rectangle against; the
+scale line says "darker is more" and every value is in the table, which is the argument this kit makes.
+
+## Three charts at once: bars, donut, stat (2026-11-04)
+
+The epic's last three, built in parallel by three agents in their own worktrees, each told to meet the README's accessibility
+bar from the start and to leave `r/`, `llms.txt`, the docs and the site test to one hand (they share the generated registry,
+so three regenerations would have fought). **Merged one by one onto master**, the only conflict the `STARTERS` array — resolved
+by keeping every entry; then one regeneration for all of them and the two charts whose sources the accessibility pass changed.
+
+- **`bars`** (`cssints-d266`): a table whose header row _is_ the legend — one checkbox per series — with each bar a
+  `linear-gradient` background sized by the value and `padding-inline-start: min(…, 100% - 4.5rem)` so the number starts at
+  the bar's end and never leaves the plot. Hiding a series is state (the component's, or the page's with `onHiddenChange`);
+  the cells and the header leave the table rather than sit there empty. Rows are grids with one computed track list, so a
+  hidden column collapses without breaking the alignment.
+- **`donut`** (`cssints-udc5`): a list whose slices are the items' `::before` — `conic-gradient()` between two angles, masked
+  to a ring and `clip-path`ed to its own wedge (without the clip the transparent pixels catch the pointer and the last circle
+  wins every hover). `--from`/`--to` come from the component: CSS cannot total earlier siblings. At 320px it stacks.
+- **`stat`** (`cssints-c0dg`): an article with a heading, the value as `<data>`, the change in words with its sign
+  ("▲ Up 3 % — better"), and the line reused from `sparkline.tsx` rather than copied — which is why its registry entry lists
+  `sparkline/sparkline.tsx` in `with`.
+
+**Two findings.** (1) **The `@counter-style` sign cannot be written by this engine**: the browser takes `system: fixed -1` and
+prints `−±+`, but `css.global()` takes a selector and an at-rule has none, so the sign is the component's; the values
+(`--value`, `--previous`, `--better`, `--pct`) are still on the element. (2) **A token as a string in `color-mix()` does not
+ship the token's rule**: `color-mix(in srgb, var(--color-invalid) …)` left the colour unresolved (the engine warns "pass the
+token itself"), so the tile's tone is a `data-tone` attribute with the theme's tokens used as tokens.
+
+**The accessibility pass over all six (`cssints-xww8`) closes here.** Reading the three new charts against the bar: each is a
+named figure over the data (a `caption` for the two tables, a `figcaption` for the donut and the tile), every value is text,
+the legend's controls are real checkboxes, a hidden series leaves the table, colour is never alone, names wrap, and the
+charts were checked at 320px with 200% text. **Evidence:** bars 6, donut 6 and stat 5 conformance tests; the site test now
+draws a page of each (the legend's boxes, the donut's five rows, the tile's `<data value>`); `r/` regenerated for all six;
+screenshots of the bar chart (12:00 hovered, a series hidden, 320px), the donut (at rest, hovering Asia, 320px) and the tile
+(light, dark, a row of three).

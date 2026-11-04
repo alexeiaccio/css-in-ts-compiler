@@ -429,4 +429,32 @@ cmp "$FIG/palette.html" docs/exports/palette.html || {
 cmp "$FIG/pipeline.svg" docs/exports/pipeline.svg || {
   echo "FAIL: docs/exports/pipeline.svg is not what 'bun solid/figure.ts solid/specs/pipeline.json --svg' writes; commit its output"; exit 1; }
 echo "figure export: every spec's SVG and page are the layout's (57 checks), and docs/exports/{palette.html,pipeline.svg} are regenerated and cmp'd"
+# ... and the three forms a review needs, on the same layout and no second drawer: a **deck** (`--deck`, one self-
+# contained page with a slide a spec, `:target` navigation and an `@page`/`break-after` print that is a page a slide), a
+# **raster** (`--png`, the desktop host's own frame through `bun solid/main.ts figure --png`, at `--scale 1` and `2`:
+# `--density` is the pixel count, so 2x is the layout at twice the pixels) and a **PDF** (`--pdf`, the deck printed by
+# Playwright's Chromium, a page a slide, the text still text). `figure-export-deck.test.ts` counts the slides and the
+# `<svg>`s and holds each slide to `svg(spec)` verbatim, refuses a `<script>`, opens the file in Chromium (one slide at
+# a time, every slide inside the printable box of the PDF's own page size), counts `page.pdf()`'s pages, reads every
+# title back out of the PDF's glyph streams through each font's ToUnicode map, checks the 2x raster against the 1x one,
+# `cmp`s two runs of each, and mutates the deck (a repeated figure), the print CSS (one page) and the 2x raster (the 1x
+# size). The three shipped files are regenerated here and compared, as the two above are.
+bun solid/figure-export-deck.test.ts
+bun solid/figure.ts solid/specs/palette.json solid/specs/bars.json solid/specs/timeline.json \
+  --deck -o "$FIG/review.html" --title "The review: a palette, a frame and the plan"
+cmp "$FIG/review.html" docs/exports/review.html || {
+  echo "FAIL: docs/exports/review.html is not what 'bun solid/figure.ts palette.json bars.json timeline.json --deck' writes; commit its output"
+  exit 1; }
+bun solid/figure.ts --png solid/specs/bars.json -o "$FIG/bars.png" --scale 1
+cmp "$FIG/bars.png" docs/exports/bars.png || {
+  echo "FAIL: docs/exports/bars.png is not what 'bun solid/figure.ts --png solid/specs/bars.json --scale 1' writes it; commit its output"
+  exit 1; }
+bun solid/figure.ts --png solid/specs/bars.json -o "$FIG/bars@2x.png" --scale 2
+cmp "$FIG/bars@2x.png" docs/exports/bars@2x.png || {
+  echo "FAIL: docs/exports/bars@2x.png is not what 'bun solid/figure.ts --png solid/specs/bars.json --scale 2' writes it; commit its output"
+  exit 1; }
+# ... and the PDF from the CLI itself, a page a slide (`page.pdf()` is behind it; the test above is the check)
+bun solid/figure.ts solid/specs/palette.json solid/specs/bars.json solid/specs/timeline.json \
+  --pdf -o "$FIG/review.pdf"
+echo "figure export: the deck (3 slides), its PDF (3 pages) and the raster at 1x and 2x (400x112, 800x224); docs/exports/{review.html,bars.png,bars@2x.png} are regenerated and cmp'd"
 sh solid/figure-handoff.sh
