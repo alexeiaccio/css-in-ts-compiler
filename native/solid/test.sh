@@ -371,6 +371,10 @@ bun solid/main.ts figure --spec solid/specs/timeline.json --warm 30 --expect sol
 bun solid/main.ts figure --spec solid/specs/statusKey.json --warm 30 --expect solid/frames/figure-status-key.png
 bun solid/main.ts figure --spec solid/specs/nowNextLater.json --warm 30 --expect solid/frames/figure-now-next-later.png
 echo "figure: the map's plan — a timeline of its eight steps, the status key, and its Left: lists as a board (three stored frames)"
+# the two wireframe kinds: a page of this repository as its own boxes and text runs, and another at two widths
+bun solid/main.ts figure --spec solid/specs/screen.json --warm 30 --expect solid/frames/figure-screen.png
+bun solid/main.ts figure --spec solid/specs/responsive-pair.json --warm 30 --expect solid/frames/figure-responsive-pair.png
+echo "figure: the Widgets page's own frame as a wireframe, and the Sky page narrow and wide (two stored frames)"
 # two of the four are regenerable from the data: specs/from-tokens.ts writes them from @cssints/tokens and the engine's
 # contrast (packages/cssints/src/color.ts), so a token change that left the figure stale is this cmp, not a review note
 bun solid/specs/from-tokens.ts "$FIG/specs" >/dev/null
@@ -387,6 +391,15 @@ bun solid/specs/from-map.ts "$FIG/specs-map" >/dev/null
 cmp "$FIG/specs-map/timeline.json" solid/specs/timeline.json || {
   echo "FAIL: solid/specs/timeline.json is not what specs/from-map.ts writes from native/docs/map.md; commit its output"; exit 1; }
 echo "figure: timeline.json is regenerated from native/docs/map.md's steps, byte for byte (cmp)"
+# the two wireframe kinds' data is the pages' own frames: specs/from-page.ts captures the Widgets page with dump.ts and
+# writes the boxes and texts, so a page edit that moved a box or a run is this cmp, not a review note
+mkdir -p "$FIG/specs-page"
+bun solid/specs/from-page.ts "$FIG/specs-page" >/dev/null
+cmp "$FIG/specs-page/screen.json" solid/specs/screen.json || {
+  echo "FAIL: solid/specs/screen.json is not what specs/from-page.ts captures of the Widgets page; commit its output"; exit 1; }
+cmp "$FIG/specs-page/responsive-pair.json" solid/specs/responsive-pair.json || {
+  echo "FAIL: solid/specs/responsive-pair.json is not what specs/from-page.ts captures; commit its output"; exit 1; }
+echo "figure: screen.json and responsive-pair.json are from-page.ts's captures of the Widgets page, byte for byte (cmp)"
 # ... and the same figure in the browser: browser/solid/figure.ts fetches the same spec file, and browser/figure-check.mjs
 # holds its commands to solid/goldens/figure.json (the desktop's frame, boxes within 4 px, Canvas2D's metrics) and a click
 # to nothing. Its own guard, so the frames above still run on a machine without zig or Chromium
