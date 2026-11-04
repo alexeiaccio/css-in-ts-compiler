@@ -132,6 +132,7 @@ describe("canvas pointer (spec-only)", () => {
       "DragIsSnapshotPlusDelta",
       "DragPreservesGrabOffset",
       "SnappedPositionOnGrid",
+      "LandingIsTheSnappedOrigin",
       "NoMissedSnap",
       "GuidesOnlyWhileSnapping",
       "PanKeepsGrabUnderPointer",
@@ -325,6 +326,13 @@ describe("canvas pointer (spec-only)", () => {
     const away = run(initial, [...click(0), move(1, 10), zoomTo(4)]);
     expect(violatedInvariants(model, away)).toEqual([]);
     expect(violatedInvariants(forgetful, away)).toContain("ExemptNodesNeverCulled");
+
+    // a landing that forgets the live drag delta would preview the COMMITTED origin instead of the
+    // slot the release will take
+    const staleLanding = mutated("landingX", name("primX"));
+    const draggedOut = run(initial, [down(1, 0), move(1, 4)]);
+    expect(violatedInvariants(model, draggedOut)).toEqual([]);
+    expect(violatedInvariants(staleLanding, draggedOut)).toContain("LandingIsTheSnappedOrigin");
   });
 
   it("keeps the camera defs identical to camera.qnt (the copy contract)", () => {
