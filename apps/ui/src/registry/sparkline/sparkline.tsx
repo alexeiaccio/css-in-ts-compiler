@@ -42,51 +42,56 @@ const list = css.cn(
   css.position("relative"),
 );
 
-// The item is one sample's column: the point sits on its middle, and the segment arrives from the previous item's middle.
-// `group()` is what lets the item's own children read its hover (`within(hover)` below); the first column hangs back half a
-// step so the line starts at the rail's left edge.
+// The item is one sample's column: the point sits on its middle, and its `::before` is the segment that arrives at it. The
+// first column hangs back half a step, so the line starts at the rail's left edge; the count is `--n` and not
+// `sibling-count()`, because the caller knows how many samples it has.
 const sample = css.cn(
+  // `group()` is the marker the value label reads with `within(hover)`; the marks themselves are pseudo-elements of this
+  // item, so their state is the item's own (`hover(after(...))`).
   css.group(),
-  css.flex(1),
+  css.flex("1"),
   css.minWidth("0"),
   css.position("relative"),
   css.containerType("size"),
   css.firstChild(css.marginLeft("calc(-50% / var(--n))")),
+  // the segment back to the previous sample: from the previous point, 2px thick and as long as the distance between the two
+  css.before(
+    css.content('""'),
+    css.position("absolute"),
+    css.height("2px"),
+    css.left("calc(-50cqw - 1px)"),
+    css.bottom("calc(var(--y0) * 100% - 1px)"),
+    css.width("calc(hypot(100cqw, (var(--y1) - var(--y0)) * 100cqh) + 3px)"),
+    css.transformOrigin("1px 50%"),
+    css.rotate("calc(atan2((var(--y0) - var(--y1)) * 100cqh, 100cqw))"),
+    css.borderRadius("1px"),
+    css.bg(t.color.highlight),
+  ),
+  // the dot on this sample: shown while the sample is hovered, and always on the last one (the line's head)
+  css.after(
+    css.content('""'),
+    css.boxSizing("border-box"),
+    css.position("absolute"),
+    css.left("50%"),
+    css.bottom("calc(var(--y1) * 100% - 3px)"),
+    css.width("6px"),
+    css.height("6px"),
+    css.marginLeft("-3px"),
+    css.borderRadius("999px"),
+    css.border("2px solid", t.color.surface),
+    css.bg(t.color.highlight),
+    css.opacity(0),
+  ),
+  css.hover(css.after(css.opacity(1))),
+  css.lastChild(css.after(css.opacity(1))),
 );
 
-// The segment back to the previous sample: from the previous point, 2px thick and as long as the distance between the two.
-const segment = css.cn(
-  css.position("absolute"),
-  css.height("2px"),
-  css.left("calc(-50cqw - 1px)"),
-  css.bottom("calc(var(--y0) * 100% - 1px)"),
-  css.width("calc(hypot(100cqw, (var(--y1) - var(--y0)) * 100cqh) + 3px)"),
-  css.transformOrigin("1px 50%"),
-  css.rotate("calc(atan2((var(--y0) - var(--y1)) * 100cqh, 100cqw))"),
-  css.borderRadius("1px"),
-  css.bg(t.color.highlight),
+// The quiet tone repaints both marks and changes nothing else.
+const sampleMuted = css.cn(
+  sample,
+  css.before(css.bg(t.color.muted)),
+  css.after(css.bg(t.color.muted)),
 );
-
-const segmentMuted = css.cn(segment, css.bg(t.color.muted));
-
-// The dot on this sample: shown while the sample is hovered, and always on the last one (the line's head).
-const point = css.cn(
-  css.position("absolute"),
-  css.left("50%"),
-  css.bottom("calc(var(--y1) * 100% - 3px)"),
-  css.width("6px"),
-  css.height("6px"),
-  css.marginLeft("-3px"),
-  css.borderRadius("999px"),
-  css.border("2px solid", t.color.surface),
-  css.bg(t.color.highlight),
-  css.opacity(0),
-  css.within(css.hover)(css.opacity(1)),
-);
-
-const pointMuted = css.cn(point, css.bg(t.color.muted));
-const pointHead = css.cn(point, css.opacity(1));
-const pointHeadMuted = css.cn(pointMuted, css.opacity(1));
 
 // The value above its point, while the sample is hovered: `pointer-events: none` keeps it from stealing the hover, and the
 // room it needs is the item's own, so nothing moves.
@@ -147,11 +152,10 @@ export const Sparkline = (props: SparklineProps): JSX.Element => {
       <For each={samples()}>
         {(sampleValue, index) => {
           const before = (): number => samples()[index() - 1] ?? sampleValue;
-          const head = (): boolean => index() === samples().length - 1;
           return (
             <li
               data-part="sparkline-sample"
-              class={sample}
+              class={mutedTone() ? sampleMuted : sample}
               style={
                 {
                   "--a": before(),
@@ -161,24 +165,6 @@ export const Sparkline = (props: SparklineProps): JSX.Element => {
                 } as never
               }
             >
-              <span
-                aria-hidden="true"
-                data-part="sparkline-segment"
-                class={mutedTone() ? segmentMuted : segment}
-              />
-              <span
-                aria-hidden="true"
-                data-part="sparkline-point"
-                class={
-                  head()
-                    ? mutedTone()
-                      ? pointHeadMuted
-                      : pointHead
-                    : mutedTone()
-                      ? pointMuted
-                      : point
-                }
-              />
               <data value={number(sampleValue)} class={value} data-part="sparkline-value">
                 {(props.format ?? number)(sampleValue)}
               </data>

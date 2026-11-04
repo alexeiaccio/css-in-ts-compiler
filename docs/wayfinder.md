@@ -4356,3 +4356,16 @@ in the chain, the sheet (`.k::before{content:"•"}`, `.k:hover::before`, `[aria
 `::selection`, `::marker`, an at-rule around all of it) and the order error; the existing `test/conditions.mjs` names check
 updated. **Left:** the charts can now use `::before` as the article does (the sparkline's segment spans are one `before()`
 away from being the source's own markup), and the `content` of a pseudo-element is still the caller's to declare.
+
+## The sparkline on pseudo-elements, as the article writes it (2026-11-04)
+
+Follow-up to the engine change: the sparkline's segment and dot were `<span data-part=…>` because `::before` was not
+expressible. Now they are the item's own `::before` and `::after` — the markup of the item is one `<data>` and nothing else,
+which is the source article's markup and the reason the pseudo-element wrappers were worth adding. The two state rules read
+the way the source does: `hover(after(...))` is `.k:hover::after` (the dot under the pointer) and `lastChild(after(...))` is
+`.k:last-child::after` (the line's head, always drawn). One thing stayed: the value label is a `<data>` element, because it
+is text and a pseudo-element's `content` is not (and `group()` stays on the item for its `within(hover)`).
+
+**Evidence:** the five conformance tests now read the pseudo-elements (`getComputedStyle(row, "::before").content` is `""`,
+the segment's `rotate` is an angle, the dot's opacity 0 → 1 on hover and 1 on the head), the site test, and a screenshot with
+a sample hovered (`1510` above its point). `r/sparkline.json` was regenerated with the source.

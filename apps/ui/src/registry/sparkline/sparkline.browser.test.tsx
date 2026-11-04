@@ -44,32 +44,36 @@ describe("Sparkline", () => {
     expect(root.querySelector("ol")?.getAttribute("aria-label")).toBe("Requests");
   });
 
-  it("turns a segment by an angle, and makes it as long as the step between two points", () => {
+  it("draws the segment as the item's ::before, turned and as long as the step", () => {
     const { root, dispose } = mount(() => (
       <Sparkline label="Requests" values={[0, 10]} height="100px" />
     ));
-    const segment = items(root)[1]?.querySelector<HTMLElement>('[data-part="sparkline-segment"]');
-    const style = getComputedStyle(segment!);
+    const rows = items(root);
+    const segment = getComputedStyle(rows[1]!, "::before");
+    // the pseudo-element exists and paints itself: `content` is what makes a ::before a box
+    expect(segment.content).toBe('""');
+    expect(segment.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     // a rising line turns the bar; the computed value is an angle, not `none`
-    expect(style.rotate).toMatch(/-?[\d.]+(deg|grad|rad|turn)/);
+    expect(segment.rotate).toMatch(/-?[\d.]+(deg|grad|rad|turn)/);
     // the bar is longer than its 2px thickness: it spans the step horizontally and the rise vertically
-    expect(Number.parseFloat(style.width)).toBeGreaterThan(2);
+    expect(Number.parseFloat(segment.width)).toBeGreaterThan(2);
     dispose();
   });
 
-  it("shows a sample's value while its item is hovered, and the head's dot always", async () => {
+  it("shows a sample's value and dot on hover, and the head's dot always", async () => {
     const { root, dispose } = mount(() => <Sparkline label="Requests" values={[1, 4, 2]} />);
     const rows = items(root);
     const value = (row: HTMLElement): HTMLElement => row.querySelector<HTMLElement>("data")!;
-    const dot = (row: HTMLElement): HTMLElement =>
-      row.querySelector<HTMLElement>('[data-part="sparkline-point"]')!;
+    const dot = (row: HTMLElement): CSSStyleDeclaration => getComputedStyle(row, "::after");
 
     expect(getComputedStyle(value(rows[1]!)).opacity).toBe("0");
+    expect(dot(rows[1]!).opacity).toBe("0");
     await userEvent.hover(rows[1]!);
     expect(getComputedStyle(value(rows[1]!)).opacity).toBe("1");
+    expect(dot(rows[1]!).opacity).toBe("1");
     // the last sample's dot is the line's head: it is drawn without a hover
-    expect(getComputedStyle(dot(rows[2]!)).opacity).toBe("1");
-    expect(getComputedStyle(dot(rows[0]!)).opacity).toBe("0");
+    expect(dot(rows[2]!).opacity).toBe("1");
+    expect(dot(rows[2]!).content).toBe('""');
     dispose();
   });
 
