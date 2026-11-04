@@ -83,6 +83,8 @@ Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, bu
 
 Membership, sizes and z-order are **not modelled** in `pointer.qnt` (its node set is fixed at three): the spec owns the camera, the gesture machine and the selection, the host owns the geometry. Bad input to any of these throws before anything changes.
 
+**Coordinates.** `screenToWorld(point)` and `worldToScreen(point)` convert between viewport px and whole world units against the **live** camera — a running tween's current frame, not its target — so a host may call them at any time. That is what the pointer pipeline does not cover: drawing a remote cursor where a collaborator's point is, anchoring an overlay to a world position, or hit-testing a drop target the pointer never reached.
+
 **Culling is the host's job.** `isCulled(id)` means a node is off screen and not selected / focused / editing. The host drops that node's **body** and keeps its **shell** — role, accessible name, tab stop — so culling never costs a tab stop. The shell's `content-visibility: auto` is a free extra, not the mechanism: its skip distance grows with zoom, so it skips almost nothing at 16x.
 
 **Snapping** is `snapCandidates({ axis, value, id, width, height }) => readonly number[]`, whole world units, defaulting to the 50-unit grid. `value` is the dragged node's origin, so right-edge alignment is `target - width`. The 8 screen px threshold and "nearest candidate, ties to the larger" are the primitive's; the candidate policy is the host's.

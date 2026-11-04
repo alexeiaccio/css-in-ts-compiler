@@ -146,6 +146,26 @@ describe("createCanvas x spec (differential walk)", () => {
   }
 });
 
+// The host's own drawing needs a screen <-> world pair against the LIVE camera (a remote cursor, a
+// hit test outside the pointer pipeline); the handle reads `state`, so a mid-tween frame counts.
+describe("createCanvas x coordinates", () => {
+  it("the handle's two conversions invert each other and the centre is the camera's anchor", () => {
+    const mounted = mountCanvas({ kind: "camera", reducedMotion: true });
+    try {
+      const { canvas } = mounted;
+      canvas.animateTo({ kind: "centre", x: 300, y: 200 });
+      const viewport = canvas.peek().viewport;
+      const centre = { x: viewport.width / 2, y: viewport.height / 2 };
+      expect(canvas.screenToWorld(centre)).toEqual({ x: 300, y: 200 });
+      // 1x with a whole-unit translation: the screen px round trip is exact.
+      const screen = { x: 123, y: 87 };
+      expect(canvas.worldToScreen(canvas.screenToWorld(screen))).toEqual(screen);
+    } finally {
+      mounted.dispose();
+    }
+  });
+});
+
 // One check per honoured pref: a primitive that ignores its `prefs` input fails here.
 describe("createCanvas x prefs", () => {
   const nodes = [{ id: "far", x: 5000, y: 4000, width: 100, height: 80, label: "Far" }];
