@@ -19,7 +19,7 @@ import type { Spec } from "../spec.ts";
 import { escapeXml, svg } from "./svg.ts";
 
 /** The dark palette, `app/Figure.styles.ts`' tokens as hex: what a dark page and the standalone SVG start from. */
-const DARK = {
+export const DARK = {
   page: "#101316",
   panel: "#1b2026",
   ink: "#e6e9ec",
@@ -30,7 +30,7 @@ const DARK = {
   good: "#5abe78",
 } as const;
 /** The light palette, the page's `createGlobalTheme` override. */
-const LIGHT = {
+export const LIGHT = {
   page: "#f3f5f7",
   panel: "#ffffff",
   ink: "#0f1419",
@@ -41,18 +41,39 @@ const LIGHT = {
   good: "#148246",
 } as const;
 
-const vars = (palette: typeof DARK): string =>
+/** One palette as the page's role variables, four spaces in: what `:root` and its light/print overrides are made of. */
+export const paletteVars = (palette: typeof DARK): string =>
   Object.entries(palette)
     .map(([role, value]) => `  --${role}: ${value};`)
     .join("\n");
 
+/** The figure's roles: the inline SVG follows the page's palette, so one markup serves light, dark, print and contrast. */
+export const FIGURE_ROLES = `.fig-page { fill: var(--page); }
+.fig-box { fill: var(--panel); }
+.fig-track { fill: var(--line); }
+.fig-fill, .fig-fill--plain { fill: var(--accent); }
+.fig-fill--problem { fill: var(--problem); }
+.fig-fill--good { fill: var(--good); }
+.fig-ink { fill: var(--ink); }
+.fig-muted { fill: var(--muted); }
+.fig-problem { fill: var(--problem); }
+.fig-good { fill: var(--good); }
+.fig-marker { fill: var(--good); }
+.fig-swatch { stroke: var(--line); stroke-width: 1; }`;
+
+/** The figure in high contrast: the palette dropped, the boxes' outlines and the numbers (text) still meaning it. */
+export const FIGURE_FORCED = `  .fig-page, .fig-track { fill: Canvas; }
+  .fig-box, .fig-swatch { fill: Canvas; stroke: CanvasText; stroke-width: 1; }
+  .fig-fill, .fig-fill--plain, .fig-fill--problem, .fig-fill--good, .fig-marker { fill: Highlight; }
+  .fig-ink, .fig-muted, .fig-problem, .fig-good, .fig-title, .fig-specimen { fill: CanvasText; }`;
+
 const STYLE = `:root {
   color-scheme: dark light;
-${vars(DARK)}
+${paletteVars(DARK)}
 }
 @media (prefers-color-scheme: light) {
   :root {
-${vars(LIGHT)}
+${paletteVars(LIGHT)}
   }
 }
 * { box-sizing: border-box; }
@@ -73,22 +94,11 @@ figcaption { margin-top: 12px; color: var(--muted); font-size: 12px; }
 figcaption .focus { color: var(--ink); }
 figcaption .source { display: block; margin-top: 2px; }
 /* The roles: the inline SVG follows the page's palette; the file's own literals are the standalone fallback. */
-.fig-page { fill: var(--page); }
-.fig-box { fill: var(--panel); }
-.fig-track { fill: var(--line); }
-.fig-fill, .fig-fill--plain { fill: var(--accent); }
-.fig-fill--problem { fill: var(--problem); }
-.fig-fill--good { fill: var(--good); }
-.fig-ink { fill: var(--ink); }
-.fig-muted { fill: var(--muted); }
-.fig-problem { fill: var(--problem); }
-.fig-good { fill: var(--good); }
-.fig-marker { fill: var(--good); }
-.fig-swatch { stroke: var(--line); stroke-width: 1; }
+${FIGURE_ROLES}
 @media print {
   :root {
     color-scheme: light;
-${vars(LIGHT)}
+${paletteVars(LIGHT)}
   }
   body { background: #fff; }
   main { max-width: none; padding: 0; }
@@ -97,10 +107,7 @@ ${vars(LIGHT)}
 }
 /* High contrast: the palette is dropped, the numbers (text) and the boxes' outlines keep the meaning. */
 @media (forced-colors: active) {
-  .fig-page, .fig-track { fill: Canvas; }
-  .fig-box, .fig-swatch { fill: Canvas; stroke: CanvasText; stroke-width: 1; }
-  .fig-fill, .fig-fill--plain, .fig-fill--problem, .fig-fill--good, .fig-marker { fill: Highlight; }
-  .fig-ink, .fig-muted, .fig-problem, .fig-good, .fig-title, .fig-specimen { fill: CanvasText; }
+${FIGURE_FORCED}
 }`;
 
 /**
