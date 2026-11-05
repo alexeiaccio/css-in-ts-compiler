@@ -160,6 +160,7 @@ async function main() {
       ["contrast", "The docs' colour roles, on their pages"],
       ["colour-roles", "The docs' roles, in both modes"],
       ["layer-stack", "The Dialog's layers, back to front"],
+      ["state-matrix", "The pages' states, a style a row"],
       ["spacing", "The docs' spacing scale"],
       ["type-scale", "The docs' type scale"],
       ["sparkline", "The desktop frame, twelve runs"],

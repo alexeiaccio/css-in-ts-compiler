@@ -1,9 +1,9 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 30 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 31 kinds here
 // (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
 // `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`, `nowNextLater`, `palette`,
 // `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
-// `statusKey`, `timeline`, `tree`, `typeScale`)
+// `stateMatrix`, `statusKey`, `timeline`, `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-one this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
@@ -62,6 +62,7 @@ export const KINDS = [
   "spacingScale",
   "sparkline",
   "stateMachine",
+  "stateMatrix",
   "statusKey",
   "timeline",
   "tree",
@@ -375,6 +376,27 @@ export interface LayerStackSpec extends Base {
   data: readonly Layer[];
 }
 
+/** One row of a state matrix: a style, and the columns it declares a state for. */
+export interface StateMatrixRow {
+  name: string;
+  states: readonly string[];
+}
+
+/**
+ * A matrix of styles against states: the columns are the states a page's styles can declare (`hover`, `focus`, `active`),
+ * the rows are the styles, and a cell is whether that style has that state. The data is generated from the pages' own
+ * style modules (`solid/specs/from-styles.ts`), so a state added to a style is the figure's next row, not a typo.
+ */
+export interface StateMatrixData {
+  columns: readonly string[];
+  rows: readonly StateMatrixRow[];
+}
+
+export interface StateMatrixSpec extends Base {
+  kind: "stateMatrix";
+  data: StateMatrixData;
+}
+
 /** One part of a redline: a rectangle inside the component's box, in pixels, measured from the box's top-left corner. */
 export interface RedlinePart {
   label: string;
@@ -671,6 +693,7 @@ export type Spec =
   | HeatmapSpec
   | JourneyMapSpec
   | LayerStackSpec
+  | StateMatrixSpec
   | MeterSpec
   | NowNextLaterSpec
   | PaletteSpec

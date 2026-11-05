@@ -1017,14 +1017,15 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 30 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 31 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
 the journey `journey-map.json` (glyph-kit's first-week example, adapted), the design-system kinds (`palette`, `contrast`,
-`colour-roles`, `spacing`, `type-scale`) and the Dialog's layers (`layer-stack`), the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds
-(`motion-timing`, `easing`, `stagger`, `frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`),
-the charts (`sparkline`, `meter`, `heatmap`) and the wireframes (`screen`, `anatomy`, `responsive-pair`);
+`colour-roles`, `spacing`, `type-scale`), the Dialog's layers (`layer-stack`) and the pages' states (`state-matrix`),
+the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (`motion-timing`, `easing`, `stagger`,
+`frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`), the charts (`sparkline`, `meter`,
+`heatmap`) and the wireframes (`screen`, `anatomy`, `responsive-pair`);
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
 

@@ -4,6 +4,7 @@
 //   palette      a step a row, a hue a column: the marker, the step's swatch, its value and its contrast on the page
 //   colourRoles  a role pair a row, light and dark side by side: the two swatches, the ratio and the verdict per mode
 //   layerStack   a layer a row, back to front: its z as a bar, its box, its fill's alpha, its radius, its blur and shadow
+//   stateMatrix  a style a row, a state a column: whether the style declares that state, as a + or a -
 //   spacingScale a step a row: its name, a bar of value/largest (a 4px step of a 48px scale is half a cell), its pixels
 //   typeScale    a size a row: its name, a bar of size/largest, size/lineHeight, and a specimen at its own size
 //
@@ -21,7 +22,14 @@
 import { contrastOf, HEX, luminance, shown, WORDS } from "../contrast.ts";
 import type { Bar, Item, Layout, LayoutLine, Paint, Pair, Swatch, TextItem } from "../registry.ts";
 import { CELL_HEIGHT, CELL_WIDTH, register } from "../registry.ts";
-import type { ColourRolesSpec, LayerStackSpec, PaletteSpec, SpacingSpec, TypeScaleSpec } from "../spec.ts";
+import type {
+  ColourRolesSpec,
+  LayerStackSpec,
+  PaletteSpec,
+  SpacingSpec,
+  StateMatrixSpec,
+  TypeScaleSpec,
+} from "../spec.ts";
 import {
   barLine,
   cells,
@@ -321,6 +329,73 @@ function layerNames(data: unknown): string[] {
 }
 
 /**
+ * A state matrix: a style a row, a state a column, a `+` where the style declares that state and a `-` where it does not.
+ * The rows come from the pages' own style modules (`solid/specs/from-styles.ts` walks their `s` maps and the Sensors
+ * page's exports for a `:hover`/`:focus`/`:active` key), so the figure is the styles' own matrix: a state added to a
+ * style is a `+` in the same commit, and the terminal draws the same cells.
+ */
+function stateMatrix(spec: StateMatrixSpec): Layout {
+  const focus = focusOf(spec);
+  const { columns, rows } = spec.data;
+  const nameWidth = longest(rows.map((row) => row.name)) + 1;
+  const columnWidths = columns.map((column) => Math.max(cells(column), 2) + 2);
+  const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const head = [pad("style", nameWidth), ...columns.map((column, c) => pad(column, columnWidths[c]!))]
+    .join("")
+    .trimEnd();
+  const lines: LayoutLine[] = [{ items: [textItem("fig-states-head", head, cells(head), "muted", "label")] }];
+  const labels: Layout["labels"] = [];
+  rows.forEach((row, i) => {
+    const items: Item[] = [textItem(`fig-style-${i}`, row.name, nameWidth, paintOf(focus, row.name))];
+    labels.push({ textId: `fig-style-${i}`, text: row.name });
+    columns.forEach((column, c) => {
+      const on = row.states.includes(column);
+      items.push(textItem(`fig-state-${i}-${c}`, on ? "+" : "-", columnWidths[c]!, on ? "good" : "muted", "value"));
+    });
+    lines.push({ items });
+  });
+  return finish(spec, "stateMatrix", cells(head), lines, [], labels);
+}
+
+/** A state matrix: its columns, its rows, and a row's states all being columns. */
+function stateMatrixProblems(data: unknown): string[] {
+  if (!isObject(data)) return ['A state matrix needs its columns and rows: { "columns": ["hover"], "rows": [{ "name": "widgets.button", "states": ["hover"] }] }.'];
+  const columns = rowsOf(data.columns);
+  const rows = rowsOf(data.rows);
+  const out: string[] = [];
+  const columnNames = columns.filter((column): column is string => typeof column === "string" && !!column.trim());
+  if (!columnNames.length) out.push('A state matrix needs its columns: ["hover", "focus", "active"].');
+  if (columnNames.length !== new Set(columnNames).size) {
+    const twice = columnNames.find((column, i) => columnNames.indexOf(column) !== i);
+    out.push(`"${twice}" is two columns: one name, one column.`);
+  }
+  if (!rows.length) out.push('A state matrix needs its rows: [{ "name": "widgets.button", "states": ["hover"] }].');
+  const names = new Set<string>();
+  for (const [i, row] of rows.entries()) {
+    if (!isObject(row) || typeof row.name !== "string" || !row.name.trim()) {
+      out.push(`Row ${i + 1} needs a name: the style, like "widgets.button".`);
+      continue;
+    }
+    const name = row.name;
+    if (names.has(name)) out.push(`"${name}" is two rows: one style, one row.`);
+    names.add(name);
+    const states = rowsOf(row.states);
+    for (const state of states)
+      if (typeof state !== "string" || !columnNames.includes(state))
+        out.push(`${name} declares ${say(state)}, which is not one of the columns (${columnNames.join(", ")}).`);
+    if (states.length !== new Set(states).size) out.push(`${name} declares a state twice: one state, one cell.`);
+  }
+  return out;
+}
+
+/** A state matrix's names are its rows' own: a focus points at a style as it is drawn. */
+function stateMatrixNames(data: unknown): string[] {
+  return isObject(data)
+    ? rowsOf(data.rows).flatMap((row) => (isObject(row) && typeof row.name === "string" ? [row.name] : []))
+    : [];
+}
+
+/**
  * A spacing scale: a step a row — its name, a bar of `value/largest`, its pixels. A cell is 8px and the track is the
  * largest step, so the scale maps to cells at its own length: a 4px step of a 48px scale is **half a cell** (`▌` in the
  * text half, 4px of fill on the pixel targets), not "one cell", and every step's fill is exactly its value's.
@@ -529,6 +604,7 @@ function stepNames(data: unknown): string[] {
 
 register("colourRoles", { layout: colourRoles, check: colourRolesProblems });
 register("layerStack", { layout: layerStack, check: layerStackProblems, names: layerNames });
+register("stateMatrix", { layout: stateMatrix, check: stateMatrixProblems, names: stateMatrixNames });
 register("palette", { layout: palette, check: paletteProblems, names: paletteNames });
 register("spacingScale", { layout: spacingScale, check: spacingProblems, names: stepNames });
 register("typeScale", { layout: typeScale, check: typeProblems, names: stepNames });

@@ -365,6 +365,7 @@ bun solid/main.ts figure --spec solid/specs/palette.json --warm 30 --expect soli
 bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect solid/frames/figure-contrast.png
 bun solid/main.ts figure --spec solid/specs/colour-roles.json --warm 30 --expect solid/frames/figure-colour-roles.png
 bun solid/main.ts figure --spec solid/specs/layer-stack.json --warm 30 --expect solid/frames/figure-layer-stack.png
+bun solid/main.ts figure --spec solid/specs/state-matrix.json --warm 30 --expect solid/frames/figure-state-matrix.png
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
 bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png
@@ -390,6 +391,12 @@ cmp "$FIG/specs/contrast.json" solid/specs/contrast.json || {
 cmp "$FIG/specs/colour-roles.json" solid/specs/colour-roles.json || {
   echo "FAIL: solid/specs/colour-roles.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
 echo "figure: palette, contrast and colour-roles are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
+# the state matrix is the pages' own style modules: specs/from-styles.ts walks their s maps and the Sensors exports for
+# a :hover/:focus/:active key, so a state added to a style is this cmp, not a review note
+bun solid/specs/from-styles.ts "$FIG/specs" >/dev/null
+cmp "$FIG/specs/state-matrix.json" solid/specs/state-matrix.json || {
+  echo "FAIL: solid/specs/state-matrix.json is not what specs/from-styles.ts writes from the pages' styles; commit its output"; exit 1; }
+echo "figure: state-matrix.json is regenerated from the pages' style modules, byte for byte (cmp)"
 bun solid/specs/from-charts.ts "$FIG/specs" >/dev/null && cmp "$FIG/specs/meter.json" solid/specs/meter.json && cmp "$FIG/specs/heatmap.json" solid/specs/heatmap.json || { echo "FAIL: solid/specs/meter.json or heatmap.json is not what specs/from-charts.ts writes; commit its output"; exit 1; }
 # the timeline is the map's own plan: specs/from-map.ts parses the step headings of native/docs/map.md, and this cmp is
 # what makes a step added or renamed there a rewrite of the spec and not a stale figure. The board and the key are
