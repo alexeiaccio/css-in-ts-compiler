@@ -35,6 +35,7 @@ const SPECS = [
   "journey-map",
   "palette",
   "contrast",
+  "colour-roles",
   "spacing",
   "type-scale",
 ] as const;
@@ -46,6 +47,7 @@ const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "journey-map": "figure-journey-map",
   "palette": "figure-palette",
   "contrast": "figure-contrast",
+  "colour-roles": "figure-colour-roles",
   "spacing": "figure-spacing",
   "type-scale": "figure-type-scale",
 };
@@ -338,6 +340,45 @@ for (const name of SPECS) {
     else bad(`${name}: the scale`, `the worst fill is ${worst.toFixed(2)} cells off`);
   }
 
+  // A colour-roles figure: a row a role pair, a mode a column. The pair's two swatches are their own colours, its ratio
+  // is the engine's for those two colours, and its verdict is its floor's, painted by the good or the problem role.
+  if (s.kind === "colourRoles") {
+    const colourOf = (hex: string) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+    const swatches = l.lines.flatMap((line) => line.items.filter((item) => item.kind === "swatch"));
+    const wrong = swatches.filter((swatch) => {
+      const box = commandOf(dump, swatch.id);
+      const want = colourOf(swatch.value);
+      return !box || ![0, 1, 2].every((i) => Math.abs(Number(box.color?.[i]) - want[i]!) <= 1);
+    });
+    if (swatches.length === s.data.length * 4 && !wrong.length)
+      ok(
+        `${name}: the swatches`,
+        `${swatches.length} boxes: ${s.data.length} pairs x light/dark x fg/bg, each its own #rrggbb`,
+      );
+    else bad(`${name}: the swatches`, `${swatches.length} boxes for ${s.data.length} pairs, ${wrong.length} not their colour`);
+    const printed = s.data.every((role) =>
+      (["light", "dark"] as const).every((mode) =>
+        dump.commands.some(
+          (c) => c.type === "text" && c.text === `${shown(engineRatio(role[mode].fg, role[mode].bg))}:1`,
+        ),
+      ),
+    );
+    if (printed) ok(`${name}: the ratios`, `${s.data.length * 2} ratios, each the engine's for its two colours`);
+    else bad(`${name}: the ratios`, "a pair's ratio is not the engine's for its own colours");
+    const good = [...(variant(styles.probe.good, undefined).text ?? [])].slice(0, 3);
+    const problem = [...(variant(styles.probe.problem, undefined).text ?? [])].slice(0, 3);
+    const verdicts = l.pairs.filter((pair) => {
+      const command = dump.commands.find(
+        (c) => c.type === "text" && c.text === `${pair.pass ? "pass" : "fails"} ${pair.min}:1`,
+      );
+      const want = pair.pass ? good : problem;
+      return !command || ![0, 1, 2].every((i) => Math.abs(Number(command.color?.[i]) - want[i]!) <= 1);
+    });
+    if (l.pairs.length === s.data.length * 2 && !verdicts.length)
+      ok(`${name}: the verdicts`, `${l.pairs.length} verdicts, each its floor's, in the good or the problem role`);
+    else bad(`${name}: the verdicts`, `${l.pairs.length} verdicts for ${s.data.length * 2}, ${verdicts.length} wrong`);
+  }
+
   // A spacing scale: a step's box is its own value in pixels, not "one cell" — a 4px step of a 48px scale is half a cell.
   if (s.kind === "spacingScale") {
     const errors = l.bars.map((bar) => {
@@ -442,7 +483,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, statusKey, timeline, tree, typeScale.');
+  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, statusKey, timeline, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",

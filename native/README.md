@@ -3280,24 +3280,27 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
 nothing at run time pays for them.
 
-**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and four of
+**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and five of
 its kinds are here — the half whose data is **ours**, so the figure cannot disagree with the design system it documents:
 
 | kind | data | the figure |
 | --- | --- | --- |
 | `palette` | `{ page, hues: [{ name, steps: [{ name, value }] }] }` | a step a row, a hue a column: the mark (the first step at 4.5 to 1 on the page), the step's swatch, its `#rrggbb` and its contrast — both computed |
 | `contrast` | `[{ label, fg, bg, min, ratio }]` | a pair a row: a track of 21 cells (a cell a point of the ratio), the ratio and pass/fails against WCAG's floor (3, 4.5 or 7) |
+| `colourRoles` | `[{ label, min, light: { fg, bg, ratio }, dark: { fg, bg, ratio } }]` | a role pair a row, a mode a column: the foreground's and the background's swatch, the ratio and its verdict per mode |
 | `spacingScale` | `[{ name, value }]` | a step a row: a bar of `value/largest` and its pixels — a cell is 8px, so a 4px step is **half a cell** |
 | `typeScale` | `[{ name, size, lineHeight }]` | a size a row: a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` **at its own size** |
 
 `palette.json` is `@cssints/tokens`' Open Props blue and grey scales (`packages/tokens/src/open-props.ts`, measured on
 their own `gray.0`) — Open Props and not Radix because its scales are one flat object of hex values that reads step for
 step into the figure, where Radix's light and dark are two sets of overrides. `contrast.json` is the six pairs the
-documentation site draws and checks: `apps/docs/src/palettes.ts`'s `open-props` light palette at `src/theme.ts`'s floors.
-**Those two are generated** — `node native/solid/specs/from-tokens.ts` writes them from those files and **the engine's own
-contrast**, `packages/cssints/src/color.ts`'s `luminance` and `ratio`, the functions `css.check.contrast` measures with —
-and `solid/test.sh` regenerates them into a temp directory and `cmp`s, so a token change that left a figure stale is a
-line of the suite and not a reviewer's memory. The other two are **hand-written and say so**: `spacing.json`
+documentation site draws and checks: `apps/docs/src/palettes.ts`'s `open-props` light palette at `src/theme.ts`'s floors,
+and `colour-roles.json` is seven of those pairs in **both** modes (the secondary inks, the link, the accent as a mark, the
+ink on the accent, the strong accent on its soft fill), each mode's value the palette's and each ratio the engine's.
+**Those three are generated** — `node native/solid/specs/from-tokens.ts` writes them from those files and **the engine's
+own contrast**, `packages/cssints/src/color.ts`'s `luminance` and `ratio`, the functions `css.check.contrast` measures
+with — and `solid/test.sh` regenerates them into a temp directory and `cmp`s, so a token change that left a figure stale
+is a line of the suite and not a reviewer's memory. The other two are **hand-written and say so**: `spacing.json`
 (`space.xs` 4px … `space.3xl` 48px) and `type-scale.json` (12/17 … 40/48) are `apps/docs/src/tokens.json`, where a size's
 line height is the role's choice (`prose.ts`'s 1.7 on prose, 1.2 on the headings) and not a token.
 
@@ -3434,9 +3437,8 @@ What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"
 cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
 the wireframe section below.
 
-What remains of the kit's systems half: `colourRoles` (a role's light and dark value with a verdict), `stateMatrix`,
-`layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its `intentCard`/`transitionSpec`, and its
-exports to decks, PDF and PNG.
+What remains of the kit's systems half: `stateMatrix`, `layerStack`, `tokenTable` and `table` — and, as before, the
+kit's other kinds and its motion's `intentCard`/`transitionSpec`.
 
 **The three wireframe kinds: a page, not a drawing.** `screen`, `anatomy` and `responsivePair`
 (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.

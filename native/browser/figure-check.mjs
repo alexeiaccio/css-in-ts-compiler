@@ -158,6 +158,7 @@ async function main() {
       ["journey-map", "The first week, in three stages"],
       ["palette", "The blue and grey scales, on the page"],
       ["contrast", "The docs' colour roles, on their pages"],
+      ["colour-roles", "The docs' roles, in both modes"],
       ["spacing", "The docs' spacing scale"],
       ["type-scale", "The docs' type scale"],
       ["sparkline", "The desktop frame, twelve runs"],

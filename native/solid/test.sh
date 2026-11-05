@@ -363,6 +363,7 @@ echo "figure: thirteen stored frames are the page's, and a growing funnel is ref
 # scale at its own sizes (a 40px row is three cells). One stored frame each, and the command goldens are figure.test.ts's.
 bun solid/main.ts figure --spec solid/specs/palette.json --warm 30 --expect solid/frames/figure-palette.png
 bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect solid/frames/figure-contrast.png
+bun solid/main.ts figure --spec solid/specs/colour-roles.json --warm 30 --expect solid/frames/figure-colour-roles.png
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
 bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png
@@ -385,7 +386,9 @@ cmp "$FIG/specs/palette.json" solid/specs/palette.json || {
   echo "FAIL: solid/specs/palette.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
 cmp "$FIG/specs/contrast.json" solid/specs/contrast.json || {
   echo "FAIL: solid/specs/contrast.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
-echo "figure: palette and contrast are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
+cmp "$FIG/specs/colour-roles.json" solid/specs/colour-roles.json || {
+  echo "FAIL: solid/specs/colour-roles.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
+echo "figure: palette, contrast and colour-roles are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
 bun solid/specs/from-charts.ts "$FIG/specs" >/dev/null && cmp "$FIG/specs/meter.json" solid/specs/meter.json && cmp "$FIG/specs/heatmap.json" solid/specs/heatmap.json || { echo "FAIL: solid/specs/meter.json or heatmap.json is not what specs/from-charts.ts writes; commit its output"; exit 1; }
 # the timeline is the map's own plan: specs/from-map.ts parses the step headings of native/docs/map.md, and this cmp is
 # what makes a step added or renamed there a rewrite of the spec and not a stale figure. The board and the key are

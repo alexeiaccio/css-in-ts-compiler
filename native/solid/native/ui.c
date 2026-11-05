@@ -103,7 +103,8 @@ static int draw_count, present_count;
 // string, and a text's node is where its alignment and wrap are kept (Clay's text command carries the colour and the
 // font but not those two, which the layout consumed). Both are interned per node in ui_open / ui_text.
 static unsigned char text_align[CLAY_THORVG_MAX_TREE], text_wrap[CLAY_THORVG_MAX_TREE];
-// ponytail: 512 named elements a process; later ids are unnamed in a dump (a page's ids are the same every frame)
+// ponytail: 512 named elements a page (ui_init starts the table over); later ids are unnamed in a dump (a page's
+// ids are the same every frame)
 #define MAX_ID_NAMES 512
 static ClayDumpName id_names[MAX_ID_NAMES];
 static int id_name_count;
@@ -176,6 +177,10 @@ static int retarget(float scale)
 static int init(int w, int h, int want_gpu)
 {
     width = w, height = h;
+    // a page's ids start empty: ui_init is a new page (the golden test captures every spec in one process, and the dump
+    // names only what this page declared), and the names are ours to free
+    for (int i = 0; i < id_name_count; i++) free(id_names[i].name);
+    id_name_count = 0;
     uint32_t size = Clay_MinMemorySize();
     Clay_Initialize(Clay_CreateArenaWithCapacityAndMemory(size, malloc(size)), (Clay_Dimensions){w, h},
                     (Clay_ErrorHandler){on_error});
