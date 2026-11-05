@@ -60,13 +60,17 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Twenty-seven kinds are here: `barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`,
-`heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`,
-`screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree` and `typeScale`.`statusKey`, `timeline`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
-`metrics.ts`, `charts.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `planning.ts`, `motion.ts`, `handoff.ts` and `wireframe.ts`, over `shared.ts` — its layout andits refusals side by side and one `register` call at the bottom, so a new kind is its own file and no other kind's;
+terminal at one cell. Twenty-eight kinds are here: `anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `compare`,
+`contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`,
+`palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
+`statusKey`, `timeline`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
+`metrics.ts`, `charts.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `planning.ts`, `motion.ts`, `handoff.ts` and
+`wireframe.ts`, over `shared.ts` — its layout and its refusals side by side and one `register` call at the bottom, so a
+new kind is its own file and no other kind's;
 `solid/src/figure/kinds.ts` is the door that loads those files and `registry.ts` the table a kind is looked up in. A
-`screen` is a page of this repository's own frame cut to the cell grid, and a `responsivePair` is a page at two
-widths — the data is the captured command stream, so a wireframe is the page and cannot drift from it. Four of
+`screen` is a page of this repository's own frame cut to the cell grid, an `anatomy` is one region of that page with
+numbered callouts and their legend, and a `responsivePair` is a page at two widths — the data is the captured command
+stream, so a wireframe is the page and cannot drift from it. Four of
 them are the design system's half and their data is our own tokens: `palette` (`@cssints/tokens`' Open Props blue and
 grey on their page, a swatch and its contrast a step, `▲` on the first step at 4.5 to 1) and `contrast` (the docs' own
 colour pairs at WCAG's floors) are **generated** by `solid/specs/from-tokens.ts` from those files and the engine's contrast
@@ -82,9 +86,7 @@ through `src/pack.ts`) by `solid/figure-handoff.test.ts`; `beforeAfter` is the s
 measures' numbers are the two stored frames' commands (`solid/specs/from-frames.ts` writes `before-after.json` from them,
 and `solid/test.sh` regenerates and `cmp`s); `qaChecklist` is a dozen of the suite's own printed comparisons — the stored
 frames `solid/test.sh` compares and the terminal comparisons `terminal/test.sh` prints — with a summary the rows count
-and a refusal for a row naming a comparison no script prints. The numbers are geometry: a bar's fill is a box whose
-width is `value/max` of its track, read back
-with its doing and thinking under it. The three **planning** kinds are this repository's own plan: `timeline` is the
+and a refusal for a row naming a comparison no script prints. The three **planning** kinds are this repository's own plan: `timeline` is the
 eight steps of this page's order of work, one a row on a shared axis (the span is the step's place in the order, not
 hours; the dates a step records are notes), and it is **generated** from this file by `solid/specs/from-map.ts` and
 `cmp`'d in `solid/test.sh`, so a step added or renamed here cannot leave the figure stale; `nowNextLater` is the `Left:`

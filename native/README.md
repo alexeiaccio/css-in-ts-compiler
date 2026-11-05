@@ -3039,12 +3039,11 @@ metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figu
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's other **28 kinds** (cohort, heatmap, forecast, sparkline, meter,
-journeyMap, tree, the wireframes…), its **motion**'s `intentCard`, `transitionSpec` and `easingTable` (the four kinds that
-are here are below), its exports to **HTML, decks, SVG, PDF and PNG**, its **text renderer** (a figure as characters with
-`█▓▒`), its `@file` data, `lang` and the SAMPLE DATA stamp, and its `label`. The next one would be the **text renderer** —
-the same layout drawn as cells, which this repository already has half of in `terminal/solid.ts`'s dump — then `journeyMap`
-and `tree`, whose boxes and arrows are the same row of panel boxes with a second row under it.
+**Not here** (and honest about it): the kit's `cohort` and `forecast` (kinds whose data this repository does not have), its
+other wireframe types (`appShell`, `cardGrid`, `listDetail`, `modal`), its systems half (`colourRoles`, `stateMatrix`,
+`layerStack`, `tokenTable`, `table`), its motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data, its
+`lang`, its SAMPLE DATA stamp and its `label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF,
+PNG) and the 28 kinds below are here; each section says what its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
@@ -3391,24 +3390,25 @@ The desktop frames are `solid/frames/figure-{redline,before-after,qa-checklist}.
 `?spec=before-after` and `?spec=qa-checklist` from the same files (`browser/figure-handoff-check.mjs`, boxes within 4px).
 The terminal draws all three cells for cells (`terminal/figure-handoff.sh`).
 
-What remains of the kit's handoff half: `anatomy` (a numbered component drawing, which a cell figure cannot carry), a
-checklist's `note` ("waiting on brand"), and the redline's vertical leaders — a cell is 16px tall, so an inset of 4px is a
-number here and not a drawn line.
+What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"), and the redline's vertical leaders — a
+cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
+the wireframe section below.
 
 What remains of the kit's systems half: `colourRoles` (a role's light and dark value with a verdict), `stateMatrix`,
 `layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its `intentCard`/`transitionSpec`, and its
 exports to decks, PDF and PNG.
 
-**The two wireframe kinds: a page, not a drawing.** `screen` and `responsivePair` (`solid/src/figure/kinds/wireframe.ts`)
-are the first kinds whose data is a **real page's own command stream**. `specs/from-page.ts` captures the page with
-`solid/dump.ts`'s `capture` — the call the goldens are stored with — and writes the frame's `rectangle`/`border` boxes
-and its `text` runs into the spec: `screen.json` is the Widgets page at 360x760, and `responsive-pair.json` is the Sky
+**The three wireframe kinds: a page, not a drawing.** `screen`, `anatomy` and `responsivePair`
+(`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.
+`specs/from-page.ts` captures the page with `solid/dump.ts`'s `capture` — the call the goldens are stored with — and
+writes the frame's `rectangle`/`border` boxes and its `text` runs into the spec: `screen.json` is the Widgets page at
+360x760, `anatomy.json` is a 296x120 region of it with four numbered callouts, and `responsive-pair.json` is the Sky
 feed at 240x760 (30x48 cells) and 360x760 (45x48), 30 + 2 + 45 = **77 cells** side by side at the default 80,
 above/below at 60. The data's fields are `page`, `width`, `height` and the frame's `boxes` and `texts`; `check` refuses
 a page this repository does not draw (naming `dialog, list, sensors, sheet, sky, widgets`), a page wider than
 `options.width`, a narrow side wider than the wide, an empty frame and a frame with no boxes. `solid/test.sh` regenerates
-both specs into a temp directory and `cmp`s — a page edit that moved a box or a run is a `cmp` line in the same commit,
-not a stale figure.
+all three specs into a temp directory and `cmp`s — a page edit that moved a box or a run is a `cmp` line in the same
+commit, not a stale figure.
 
 The reconciliation is the cell: a box's cell rect is `round(x/8)`, `round(y/16)`, `round(w/8)`, `round(h/16)` of the
 page's own box, so a wireframe is at 1/8 scale and **not pixel-accurate** — an edge is up to **half a cell** out (4px
@@ -3422,13 +3422,30 @@ muted `connector` segment (its `+ - |` edges) and an ink `label` run (the page's
 all three targets; the terminal and the text renderer are exact cells, the desktop's Roboto is proportional, which is
 what remains: a monospace style (or a real outline item) would make the pixels' columns line up as the cells do.
 
-The frames are `solid/frames/figure-{screen,responsive-pair}.png` and the command goldens
-`solid/goldens/figure-{screen,responsive-pair}.json` (108 and 186 commands); `solid/figure-wireframe.test.ts` holds the
-count, the rects' worst rounding, the runs' order and their `…`, the pair's two sizes and both layouts, the refusals,
-the three mutations (a box rounded to pixels — 280 cells out; a run cut by bytes — `监控摄…` 7 cells against `监控…` 5;
-the pair's halves swapped — its sentence), the goldens and the terminal's rows. What remains: the kit's other wireframe
-types (`appShell`, `cardGrid`, `listDetail`, `modal`), a page at a scroll offset (a capture is one frame, at rest), and
-the pixel columns above.
+**`anatomy`: the same page, one part at a time.** The kit's anatomy is an illustrated component with numbered callouts;
+here it is the page's own frame cut to one **crop**, with the numbers on it and a legend under it — so the drawing is
+still the page and cannot drift, and only the numbers are the author's. `anatomy.json` is a 296x120 crop at 32,56 of the
+Widgets page — 37x8 cells, the button and the two checkbox rows — with four callouts: the button, its label, the Wi-Fi
+checkbox, and the same control one row down. The crop's boxes are clipped to it and moved to its corner, the page's own
+background rectangle is **dropped** (it is the window, not a component: a cut of it would ring the drawing with an edge
+the page never drew around the part), and a box under 2x1 cells is not drawn, as for a wireframe. A callout is
+`{ "n": 1, "x": 40, "y": 72, "label": "the button" }`, its point in the page's pixels, and its digit lands at
+`round((x-crop.x)/8)`, `round((y-crop.y)/16)` — one cell, so `n` is **1 to 9**, and the digit replaces exactly that cell
+(a wide glyph's two cells become the digit and a space). `check` refuses a crop outside the page, a crop wider than
+`options.width`, a number that is not one digit, a callout with no label or no point, a callout outside the crop, and two
+callouts on one cell. What a cell drawing cannot carry is the kit's **leader lines**: a row is 16px, so a 4px leader
+rounds away (the same number the redline records) — the digit sits in the cell beside its part instead.
+
+The frames are `solid/frames/figure-{screen,anatomy,responsive-pair}.png` and the command goldens
+`solid/goldens/figure-{screen,anatomy,responsive-pair}.json` (108, 25 and 186 commands); `solid/figure-wireframe.test.ts`
+holds the count, the rects' worst rounding, the runs' order and their `…`, the pair's two sizes and both layouts, the
+refusals, the three mutations (a box rounded to pixels — 280 cells out; a run cut by bytes — `监控摄…` 7 cells against
+`监控…` 5; the pair's halves swapped — its sentence), the goldens and the terminal's rows, and
+`solid/figure-anatomy.test.ts` the crop's cells, each digit's cell and the characters around it, the legend, the
+background dropped, the six refusals, the golden and the terminal's rows, and three mutations (a callout rounded from the
+page instead of the crop — cell 4 against cell 0; a callout a row out; the background kept — six boxes against five).
+What remains: the kit's other wireframe types (`appShell`, `cardGrid`, `listDetail`, `modal`), a page at a scroll offset
+(a capture is one frame, at rest), and the pixel columns above.
 
 **The four motion kinds.** `motionTiming`, `easing`, `stagger` and `frameStrip` (`solid/src/figure/kinds/motion.ts`) are
 the first kinds whose data is not typed but **solved**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own

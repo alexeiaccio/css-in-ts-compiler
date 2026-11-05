@@ -1017,15 +1017,16 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The fifteen specs are `solid/specs/bars.json` (this repository's own
-`--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the two flow kinds `branch-flow.json`
-width), prints them and exits 1, so no PNG is written. The fifteen specs are `solid/specs/bars.json` (this repository's
-own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the two flow kinds `branch-flow.json`
-(this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's `presence`), the tree
-`tree.json` (this repository's own map: the four targets under one root, their pages as children), the journey
-`journey-map.json` (glyph-kit's first-week example, adapted), the four design-system kinds below, and the three planning
-kinds (the map's own plan); `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and
-`invalid-journey.json` are the refusals the test uses.
+width), prints them and exits 1, so no PNG is written. The 28 drawable specs are `solid/specs/bars.json` (this
+repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
+`branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
+`presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
+the journey `journey-map.json` (glyph-kit's first-week example, adapted), the design-system kinds (`palette`, `contrast`,
+`spacing`, `type-scale`), the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds
+(`motion-timing`, `easing`, `stagger`, `frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`),
+the charts (`sparkline`, `meter`, `heatmap`) and the wireframes (`screen`, `anatomy`, `responsive-pair`);
+`invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
+refusals the test uses.
 
 The layout speaks **cells** (8x16 px, the terminal's), so a length here is `cells * 8` across and a line is one cell down;
 a width is data and a style is a literal, so every item's width — and a bar's fill — is written through the value channel
@@ -1068,21 +1069,28 @@ verdicts painted by the `good`, `problem` and `muted` roles. Their goldens are `
 `figure-before-after.json` and `figure-qa-checklist.json`, their frames are `solid/frames/figure-{redline,before-after,qa-checklist}.png`,
 and the browser reads `?spec=` of each (`browser/figure-handoff-check.mjs`).
 
-**The two wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen` and `responsivePair`, and their data is a
-**page's own captured frame**: `specs/from-page.ts` runs `dump.ts`'s `capture` and writes the Widgets page's
+**The three wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen`, `anatomy` and `responsivePair`, and their
+data is a **page's own captured frame**: `specs/from-page.ts` runs `dump.ts`'s `capture` and writes the Widgets page's
 `rectangle`/`border` boxes and `text` runs into `screen.json` (360x760: 45x48 cells, 23 boxes of 29, 30 runs, 1
-shortened) and the Sky feed's into `responsive-pair.json` (240x760 and 360x760: 30x48 and 45x48 cells, 8 boxes and 22
-runs a side, side by side at 77 of 80 cells, above/below at 60). A box is its page rect at `round(x/8)`, `round(y/16)`,
-`round(w/8)`, `round(h/16)`, so the wireframe is 1/8 scale and not pixel-accurate — the worst edge is half a cell (4px
-across, 8px down) and a 1px rule rounds away; a run is one cell a character, marked `…` when shortened.
+shortened), a 296x120 crop of the same page and four callouts into `anatomy.json` (37x8 cells, 5 boxes, 3 runs), and the
+Sky feed's into `responsive-pair.json` (240x760 and 360x760: 30x48 and 45x48 cells, 8 boxes and 22 runs a side, side by
+side at 77 of 80 cells, above/below at 60). A box is its page rect at `round(x/8)`, `round(y/16)`, `round(w/8)`,
+`round(h/16)`, so the wireframe is 1/8 scale and not pixel-accurate — the worst edge is half a cell (4px across, 8px
+down) and a 1px rule rounds away; a run is one cell a character, marked `…` when shortened. An anatomy crops before it
+cuts: a box crossing the crop is clipped to it and moved to its corner, the page's own background rectangle is dropped
+(it is the window, not a component), and each callout's `{ n, x, y, label }` digit lands at `round((x-crop.x)/8)`,
+`round((y-crop.y)/16)` — one cell, so `n` is 1 to 9 — over the drawing, with the legend under it.
 `figure-wireframe.test.ts` holds the count, the rects, the runs' order, the pair's sizes, the refusals (an unknown page, a
 width over `options.width`, a narrow side wider than the wide, an empty frame, no boxes), the three mutations, the two
-goldens and the terminal's rows; `solid/test.sh` regenerates both specs and `cmp`s.
+goldens and the terminal's rows; `figure-anatomy.test.ts` the crop's clipped boxes and dropped background, each digit's
+cell and the characters around it, the legend, its six refusals, its golden, the terminal's rows and three mutations; and
+`solid/test.sh` regenerates all three specs and `cmp`s.
 
 **The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
 their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
-`solid/test.sh` regenerates and `cmp`s them, so the areas are now five (`metrics`, `flows`, `structure`, `systems`,
-`motion`) and the specs sixteen. `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
+`solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`, `structure`, `systems`,
+`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 28 specs are drawable.
+`figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
 strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
 terminal's rows and the browser's `?spec=` of each.
 

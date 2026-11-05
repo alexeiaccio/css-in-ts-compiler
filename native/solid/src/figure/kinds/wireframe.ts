@@ -1,7 +1,8 @@
-// The wireframe area: a page's own last frame, cut into the cell grid. Two kinds, one file, their layouts and their
+// The wireframe area: a page's own last frame, cut into the cell grid. Three kinds, one file, their layouts and their
 // refusals side by side, because that is what a kind costs here (a layout, a check, one `register` at the bottom):
 //
 //   screen          one page (its name and its size) as boxes and text runs, at 1/8 of a cell across and 1/16 down
+//   anatomy         one region of that page with numbered callouts and their legend — a component drawing, in cells
 //   responsivePair  the same page captured at two widths, side by side when they fit, above/below when they do not
 //
 // The data is **not a drawing**: `solid/specs/from-page.ts` captures each page with `solid/dump.ts`'s `capture` — the
@@ -28,10 +29,18 @@
 // A wireframe is drawn with ASCII (`+ - |`) because Roboto has no box-drawing glyph and ThorVG has no fallback (the same
 // reason flows.ts's connectors are ASCII). A border run is a `connector` role (muted) and the page's own run a `label`
 // (ink), so the pixel targets paint a line drawing and its words, not one grey rectangle.
-import type { BoxRecord, Item, Layout, LayoutLine } from "../registry.ts";
+import type { BoxRecord, Item, Layout, LayoutLine, Paint, TextRole } from "../registry.ts";
 import { register } from "../registry.ts";
-import type { ResponsivePairSpec, ScreenSpec, WireBox, WireSide, WireText } from "../spec.ts";
-import { cells, finish, isObject, number, rowsOf, say } from "./shared.ts";
+import type {
+  AnatomyCrop,
+  AnatomySpec,
+  ResponsivePairSpec,
+  ScreenSpec,
+  WireBox,
+  WireSide,
+  WireText,
+} from "../spec.ts";
+import { cells, finish, isObject, number, rowsOf, say, textItem, type Json } from "./shared.ts";
 
 /** The pages `solid/dump.ts` captures: a static page at rest, with no loader and no argument of its own. `figure` is
  *  not one: a wireframe of the wireframe's own page would recurse through a spec the frame has not drawn yet. */
@@ -410,7 +419,7 @@ function sideProblems(raw: unknown, label: string): RawSide {
 }
 
 /** A side's cells against `options.width`: a page wider than the figure is refused, with both numbers. */
-function widthProblem(side: RawSide, label: string, options: unknown): string[] {
+function widthProblem(side: { width?: number }, label: string, options: unknown): string[] {
   if (side.width === undefined) return [];
   const across = cellsAcross(side.width);
   const limit = limitOf(options);
@@ -466,5 +475,265 @@ function pairNames(data: unknown): string[] {
   return names;
 }
 
+// ---- anatomy --------------------------------------------------------------------------------------------------------
+
+/** The page's background: the window, not a component. A cut of it would ring the crop with an outline the page never drew
+ *  around the part, so an anatomy drops the one rectangle that covers the page. */
+const isBackground = (box: WireBox, side: WireSide): boolean =>
+  box.x <= 0 && box.y <= 0 && box.width >= side.width && box.height >= side.height;
+
+/**
+ * The region an anatomy draws: the page's boxes and texts, cut to `crop` and moved to its corner. A box that crosses the
+ * crop's edge is clipped to it (the drawing shows the part inside); a box under 2x1 cells, or one fully outside, is not
+ * drawn, the same rule `frameOf` states for a wireframe. The page's own background is dropped (see `isBackground`).
+ */
+function cropOf(side: WireSide, crop: AnatomyCrop): WireSide {
+  const right = crop.x + crop.width;
+  const bottom = crop.y + crop.height;
+  const boxes: WireBox[] = [];
+  for (const box of side.boxes) {
+    if (isBackground(box, side)) continue;
+    const x = Math.max(box.x, crop.x);
+    const y = Math.max(box.y, crop.y);
+    const width = Math.min(box.x + box.width, right) - x;
+    const height = Math.min(box.y + box.height, bottom) - y;
+    if (width <= 0 || height <= 0) continue;
+    if (Math.round(width / CELL_X) < 2 || Math.round(height / CELL_Y) < 1) continue;
+    boxes.push({ x: x - crop.x, y: y - crop.y, width, height });
+  }
+  const across = Math.max(1, Math.round(crop.width / CELL_X));
+  const down = Math.max(1, Math.round(crop.height / CELL_Y));
+  const texts = side.texts
+    .filter((text) => {
+      const col = Math.round((text.x - crop.x) / CELL_X);
+      const row = Math.round((text.y - crop.y) / CELL_Y);
+      return col >= 0 && col < across && row >= 0 && row < down;
+    })
+    .map((text) => ({ x: text.x - crop.x, y: text.y - crop.y, text: text.text }));
+  return { width: crop.width, height: crop.height, boxes, texts };
+}
+
+/** One cell of a drawing row: what it draws, how many cells it takes (2 for a wide glyph), and its paint. A wide glyph's
+ *  second cell is a continuation (`cells` 0, text ""). */
+interface DrawingCell {
+  text: string;
+  cells: number;
+  paint: Paint;
+  role?: TextRole;
+}
+
+/** The wireframe's grid as cells: the edges first, the page's own runs laid over them. */
+function drawingRows(wire: Wireframe): DrawingCell[][] {
+  return wire.edges.map((edges, row) => {
+    const slots: DrawingCell[] = edges.map((edge) =>
+      edge === " "
+        ? { text: edge, cells: 1, paint: "ink" }
+        : { text: edge, cells: 1, paint: "muted", role: "connector" },
+    );
+    for (const text of wire.texts) {
+      if (text.row !== row || text.cols <= 0) continue;
+      let col = text.col;
+      for (const ch of text.drawn) {
+        const width = codeWidth(ch.codePointAt(0) ?? 0);
+        slots[col] = { text: ch, cells: width, paint: "ink", role: "label" };
+        for (let k = 1; k < width; k++) slots[col + k] = { text: "", cells: 0, paint: "ink", role: "label" };
+        col += width;
+      }
+    }
+    return slots;
+  });
+}
+
+/**
+ * One callout's digit on its row, replacing the cell it lands on. A digit over a wide glyph takes the whole glyph: the
+ * digit and the space its second cell becomes, so a run's cells stay the drawing's.
+ */
+function stamp(row: DrawingCell[], col: number, digit: string): void {
+  const hit = row[col];
+  if (!hit) return;
+  let start = col;
+  while (start > 0 && row[start]!.cells === 0) start--;
+  const span = Math.max(1, row[start]!.cells);
+  row[start] = { text: digit.padEnd(span, " "), cells: span, paint: "good", role: "value" };
+  for (let k = 1; k < span; k++) row[start + k] = { text: "", cells: 0, paint: "good", role: "value" };
+}
+
+/** One drawing row as items: runs of one paint and role, blanks as a space, in the row's order. */
+function drawingLine(row: DrawingCell[], prefix: string, index: number): LayoutLine {
+  const items: Item[] = [];
+  let at = 0;
+  while (at < row.length) {
+    const paint = row[at]!.paint;
+    const role = row[at]!.role;
+    let end = at + 1;
+    while (end < row.length && row[end]!.paint === paint && row[end]!.role === role) end++;
+    const text = row
+      .slice(at, end)
+      .map((cell) => cell.text)
+      .join("");
+    const width = end - at;
+    if (text.trim() === "") items.push({ kind: "space", id: `${prefix}-${index}-${at}-gap`, cells: width, paint: "ink" });
+    else
+      items.push({
+        kind: "text",
+        id: `${prefix}-${index}-${at}-cell`,
+        textId: `${prefix}-${index}-${at}`,
+        text,
+        cells: width,
+        paint,
+        role,
+      });
+    at = end;
+  }
+  return { items };
+}
+
+/** One callout's legend row: the number in the accent, then its label. */
+const legendLine = (part: { n: number; label: string }, prefix: string): LayoutLine => ({
+  items: [
+    textItem(`${prefix}-legend-${part.n}`, String(part.n), 1, "good", "value"),
+    textItem(`${prefix}-legend-${part.n}-label`, ` ${part.label}`, wireCells(part.label) + 1, "ink", "label"),
+  ],
+});
+
+/** Where a callout's digit lands, in the drawing's cells: its point rounded to the nearest cell of the crop. */
+const calloutCell = (part: { x: number; y: number }, crop: AnatomyCrop) => ({
+  col: Math.round((part.x - crop.x) / CELL_X),
+  row: Math.round((part.y - crop.y) / CELL_Y),
+});
+
+/**
+ * A component drawing: one region of a page's own frame, cut to cells, with numbered callouts on it and a legend below.
+ * The drawing is the page's (it cannot drift); the numbers and their words are the spec's annotation, which is why this
+ * kind reads the frame *and* the author's parts, where a wireframe reads only the frame.
+ */
+function anatomy(spec: AnatomySpec): Layout {
+  const crop = spec.data.crop ?? { x: 0, y: 0, width: spec.data.width, height: spec.data.height };
+  const wire = wireframeOf(cropOf(spec.data, crop));
+  const rows = drawingRows(wire);
+  for (const part of spec.data.parts) {
+    const cell = calloutCell(part, crop);
+    if (cell.row < 0 || cell.row >= rows.length || cell.col < 0 || cell.col >= wire.width) continue;
+    stamp(rows[cell.row]!, cell.col, String(part.n));
+  }
+  const lines: LayoutLine[] = rows.map((row, index) => drawingLine(row, "fig-anatomy", index));
+  lines.push({ items: [{ kind: "space", id: "fig-anatomy-space", cells: 1, paint: "ink" }] });
+  for (const part of spec.data.parts) lines.push(legendLine(part, "fig-anatomy"));
+  const labels: Layout["labels"] = [
+    ...spec.data.parts.map((part) => ({ textId: `fig-anatomy-legend-${part.n}-label`, text: part.label })),
+    ...wire.texts.map((text, i) => ({ textId: `fig-anatomy-run-${i}`, text: text.text })),
+  ];
+  return finish(spec, "anatomy", wire.width, lines, [], labels, boxRecords(wire, "fig-anatomy-box"));
+}
+
+/** The crop a spec's data names, or the whole page's, with the sentences for whatever is not one. */
+function cropProblems(data: Json, side: RawSide): { crop?: AnatomyCrop; problems: string[] } {
+  if (side.width === undefined || side.height === undefined) return { problems: [] };
+  const whole: AnatomyCrop = { x: 0, y: 0, width: side.width, height: side.height };
+  if (data.crop === undefined) return { crop: whole, problems: [] };
+  if (!isObject(data.crop))
+    return {
+      crop: whole,
+      problems: [`The crop needs its region: { "x": 32, "y": 56, "width": 296, "height": 120 }, in the page's pixels.`],
+    };
+  const x = number(data.crop.x);
+  const y = number(data.crop.y);
+  const width = number(data.crop.width);
+  const height = number(data.crop.height);
+  if (x === undefined || y === undefined || width === undefined || height === undefined)
+    return {
+      crop: whole,
+      problems: [`The crop needs x, y, width and height, in the page's pixels: ${say(data.crop)} is not one.`],
+    };
+  const pinned: AnatomyCrop = { x, y, width, height };
+  const inside = x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= side.width && y + height <= side.height;
+  if (!inside)
+    return {
+      crop: whole,
+      problems: [
+        `The crop ${x},${y} ${width}x${height} is not a region of the ${side.width}x${side.height} page: ` +
+          `a crop starts inside the page and ends inside it.`,
+      ],
+    };
+  return { crop: pinned, problems: [] };
+}
+
+/** A callout's number, point and label, and the two callouts that cannot share a cell. */
+function partProblems(raw: unknown, crop: AnatomyCrop, across: number, down: number): string[] {
+  const parts = rowsOf(raw);
+  if (!parts.length)
+    return ['An anatomy needs its numbered parts: [ { "n": 1, "x": 40, "y": 76, "label": "the button" } ].'];
+  const out: string[] = [];
+  const numbers = new Set<number>();
+  const places = new Map<string, number>();
+  for (const [i, part] of parts.entries()) {
+    if (!isObject(part)) {
+      out.push(`Part ${i + 1} of the anatomy is not an object: it needs n, x, y and a label.`);
+      continue;
+    }
+    const n = number(part.n);
+    const label = typeof part.label === "string" && part.label.trim() ? part.label : undefined;
+    const x = number(part.x);
+    const y = number(part.y);
+    if (n === undefined || !Number.isInteger(n) || n < 1 || n > 9) {
+      out.push(`Callout ${say(part.n)} needs a number from 1 to 9: one cell holds one digit.`);
+      continue;
+    }
+    if (!label) out.push(`Callout ${n} needs its label: what the part is, in words.`);
+    if (x === undefined || y === undefined) {
+      out.push(`Callout ${n} needs its point x and y, in the page's pixels: ${say(part.x)},${say(part.y)} is not a point.`);
+      continue;
+    }
+    if (numbers.has(n)) out.push(`Callout ${n} is numbered twice: one number, one part.`);
+    numbers.add(n);
+    const col = Math.round((x - crop.x) / CELL_X);
+    const row = Math.round((y - crop.y) / CELL_Y);
+    if (col < 0 || col >= across || row < 0 || row >= down) {
+      out.push(
+        `Callout ${n} is at ${x},${y}, outside the crop ${crop.x},${crop.y} ${crop.width}x${crop.height}: ` +
+          `a number is drawn on the drawing.`,
+      );
+      continue;
+    }
+    const cell = `${col},${row}`;
+    const other = places.get(cell);
+    if (other !== undefined) out.push(`Callout ${other} and callout ${n} share the drawing's cell ${cell}: move one of them.`);
+    else places.set(cell, n);
+  }
+  return out;
+}
+
+/** An anatomy: a page this repository draws, a crop of it, and at least one callout with a number, a point and a label. */
+function anatomyProblems(data: unknown, options: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'An anatomy needs its page, its crop and its numbered parts: { "page": "widgets", "crop": { ... }, "parts": [...] } ' +
+        "and the frame's boxes and texts.",
+    ];
+  const out: string[] = [];
+  const page = pageProblem(data.page);
+  if (page) out.push(page);
+  const label = typeof data.page === "string" ? `${data.page} page` : "page";
+  const side = sideProblems(data, label);
+  out.push(...side.problems);
+  const crop = cropProblems(data, side);
+  out.push(...crop.problems);
+  if (!crop.crop) return out;
+  out.push(...widthProblem({ width: crop.crop.width }, "crop", options));
+  const across = Math.max(1, Math.round(crop.crop.width / CELL_X));
+  const down = Math.max(1, Math.round(crop.crop.height / CELL_Y));
+  out.push(...partProblems(data.parts, crop.crop, across, down));
+  return out;
+}
+
+/** An anatomy's names are its callouts' labels and the page runs it draws. */
+function anatomyNames(data: unknown): string[] {
+  if (!isObject(data)) return [];
+  const names = rowsOf(data.parts).flatMap((part) => (isObject(part) && typeof part.label === "string" ? [part.label] : []));
+  for (const text of rowsOf(data.texts)) if (isObject(text) && typeof text.text === "string") names.push(text.text);
+  return names;
+}
+
+register("anatomy", { layout: anatomy, check: anatomyProblems, names: anatomyNames });
 register("screen", { layout: screen, check: screenProblems, names: screenNames });
 register("responsivePair", { layout: responsivePair, check: pairProblems, names: pairNames });
