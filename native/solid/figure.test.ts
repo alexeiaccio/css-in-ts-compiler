@@ -37,6 +37,7 @@ const SPECS = [
   "contrast",
   "colour-roles",
   "layer-stack",
+  "state-matrix",
   "spacing",
   "type-scale",
 ] as const;
@@ -50,6 +51,7 @@ const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "contrast": "figure-contrast",
   "colour-roles": "figure-colour-roles",
   "layer-stack": "figure-layer-stack",
+  "state-matrix": "figure-state-matrix",
   "spacing": "figure-spacing",
   "type-scale": "figure-type-scale",
 };
@@ -411,6 +413,28 @@ for (const name of SPECS) {
     else bad(`${name}: the frames`, "the spec's layers are not what the frames give (regenerate with specs/from-frames.ts)");
   }
 
+  // A state matrix: a style a row, a state a column, a + where the style declares it. The cells are the data's own, in
+  // the data's order, and a + is painted by the good role.
+  if (s.kind === "stateMatrix") {
+    const want = s.data.rows.flatMap((row) => s.data.columns.map((column) => (row.states.includes(column) ? "+" : "-")));
+    const cells = l.lines.slice(1).flatMap((line) => line.items.filter((item) => item.role === "value"));
+    const got = cells.map((item) => (item.kind === "text" ? item.text : ""));
+    if (JSON.stringify(got) === JSON.stringify(want))
+      ok(
+        `${name}: the cells`,
+        `${got.length} cells from ${s.data.rows.length} styles x ${s.data.columns.length} states, a + where the style declares it`,
+      );
+    else bad(`${name}: the cells`, `${JSON.stringify(got.slice(0, 6))} is not ${JSON.stringify(want.slice(0, 6))}`);
+    const good = [...(variant(styles.probe.good, undefined).text ?? [])].slice(0, 3);
+    // a text command carries no element id (only a box does): the cells are found by what they draw
+    const plus = dump.commands.filter((c) => c.type === "text" && c.text === "+");
+    const wrong = plus.filter((c) => ![0, 1, 2].every((k) => Math.abs(Number(c.color?.[k]) - good[k]!) <= 1));
+    const declared = s.data.rows.reduce((n, row) => n + row.states.length, 0);
+    if (plus.length === declared && !wrong.length)
+      ok(`${name}: the + cells`, `${plus.length} of ${got.length} cells in the good role (${good.join(",")}); the rest muted`);
+    else bad(`${name}: the + cells`, `${plus.length} for ${declared}, ${wrong.length} not the good role's`);
+  }
+
   // A spacing scale: a step's box is its own value in pixels, not "one cell" — a 4px step of a 48px scale is half a cell.
   if (s.kind === "spacingScale") {
     const errors = l.bars.map((bar) => {
@@ -515,7 +539,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, statusKey, timeline, tree, typeScale.');
+  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, timeline, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",

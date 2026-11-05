@@ -3280,8 +3280,9 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
 nothing at run time pays for them.
 
-**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and six of
-its kinds are here — the half whose data is **ours**, so the figure cannot disagree with the design system it documents:
+**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and seven of
+its kinds are here — the half whose data is **ours** (the token sets, the Dialog's frames, the pages' styles), so the
+figure cannot disagree with the design system it documents:
 
 | kind | data | the figure |
 | --- | --- | --- |
@@ -3289,6 +3290,7 @@ its kinds are here — the half whose data is **ours**, so the figure cannot dis
 | `contrast` | `[{ label, fg, bg, min, ratio }]` | a pair a row: a track of 21 cells (a cell a point of the ratio), the ratio and pass/fails against WCAG's floor (3, 4.5 or 7) |
 | `colourRoles` | `[{ label, min, light: { fg, bg, ratio }, dark: { fg, bg, ratio } }]` | a role pair a row, a mode a column: the foreground's and the background's swatch, the ratio and its verdict per mode |
 | `layerStack` | `[{ name, z, box: { width, height }, alpha, radius, blur?, shadow? }]` | a layer a row, back to front: its z as a bar, its box, its fill's alpha, its corner radius, its backdrop blur and its shadow |
+| `stateMatrix` | `{ columns: ["hover", "focus", "active"], rows: [{ name, states }] }` | a style a row, a state a column: a `+` where the style declares that state, painted in the good role |
 | `spacingScale` | `[{ name, value }]` | a step a row: a bar of `value/largest` and its pixels — a cell is 8px, so a 4px step is **half a cell** |
 | `typeScale` | `[{ name, size, lineHeight }]` | a size a row: a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` **at its own size** |
 
@@ -3312,6 +3314,11 @@ each layer's z, box, fill alpha, radius, backdrop blur and shadow read from the 
 layer's and not the entry's) and writes the spec, `solid/figure-handoff.sh` regenerates and `cmp`s it, and
 `figure.test.ts` recomputes every row from two fresh captures, so the figure is the Dialog measured, not a z scale typed
 into a spec.
+
+`state-matrix.json` is the seventh and the pages' own: `specs/from-styles.ts` walks the Widgets, Sky and List pages' `s`
+maps and the Sensors page's exports, asks each style which `:hover`/`:focus`/`:active` keys it carries, and writes a row
+a style and a state a column. `solid/test.sh` regenerates and `cmp`s it, and `figure.test.ts` reads the cells back from
+the frame (69 cells, a `+` in the good role where the style declares the state, a muted `-` where it does not).
 
 **The ratio is the engine's, twice.** A pair's number is written by `from-tokens.ts` with `color.ts` and printed at two
 places (`shown`, which floors: 4.499 does not read as the 4.5 it misses). `check` refuses a pair whose ratio is not the
@@ -3446,8 +3453,8 @@ What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"
 cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
 the wireframe section below.
 
-What remains of the kit's systems half: `stateMatrix`, `tokenTable` and `table` — and, as before, the kit's other kinds
-and its motion's `intentCard`/`transitionSpec`.
+What remains of the kit's systems half: `tokenTable` and `table` — and, as before, the kit's other kinds and its
+motion's `intentCard`/`transitionSpec`.
 
 **The three wireframe kinds: a page, not a drawing.** `screen`, `anatomy` and `responsivePair`
 (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.
