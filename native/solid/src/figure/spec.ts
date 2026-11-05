@@ -1,9 +1,9 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 29 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 30 kinds here
 // (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
-// `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`,
-// `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`,
-// `tree`, `typeScale`)
+// `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`, `nowNextLater`, `palette`,
+// `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
+// `statusKey`, `timeline`, `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the twenty-nine this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
@@ -51,6 +51,7 @@ export const KINDS = [
   "funnel",
   "heatmap",
   "journeyMap",
+  "layerStack",
   "meter",
   "nowNextLater",
   "palette",
@@ -341,6 +342,37 @@ export interface ColourRole {
 export interface ColourRolesSpec extends Base {
   kind: "colourRoles";
   data: readonly ColourRole[];
+}
+
+/** A layer's shadow: its offset and its blur, in pixels, as the frame's effect table gives them. */
+export interface LayerShadow {
+  x: number;
+  y: number;
+  blur: number;
+}
+
+/**
+ * One layer of a stack, back to front: the page, then whatever floats over it. The numbers are the frame's own — the
+ * command's box, its fill's alpha and corner radius, and the effect tables' blur and shadow — so a layer stack is the
+ * page's overlays measured, not a z scale typed into a spec.
+ */
+export interface Layer {
+  name: string;
+  /** The stacking order: a layer after another one does not sit below it. */
+  z: number;
+  box: { width: number; height: number };
+  /** The layer's fill alpha, 0 to 1 (a scrim's 0.55, an opaque surface's 1). */
+  alpha: number;
+  /** The corner radius, in pixels: 0 for a rectangle. */
+  radius: number;
+  /** A backdrop's blur, in pixels, when the layer blurs what is behind it. */
+  blur?: number;
+  shadow?: LayerShadow;
+}
+
+export interface LayerStackSpec extends Base {
+  kind: "layerStack";
+  data: readonly Layer[];
 }
 
 /** One part of a redline: a rectangle inside the component's box, in pixels, measured from the box's top-left corner. */
@@ -638,6 +670,7 @@ export type Spec =
   | FunnelSpec
   | HeatmapSpec
   | JourneyMapSpec
+  | LayerStackSpec
   | MeterSpec
   | NowNextLaterSpec
   | PaletteSpec

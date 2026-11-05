@@ -1,10 +1,11 @@
-// `solid/specs/before-after.json`, written from two frames of the Widgets page: the switch off (focused) and on (focused),
-// captured the way solid/goldens stores a page's last frame (solid/dump.ts). The tree is the same in both frames, so a
+// `solid/specs/before-after.json` and `solid/specs/layer-stack.json`, written from frames this script captures: the
+// Widgets page's switch off and on, and the Dialog's modal and menu frames — captured the way solid/goldens stores a
+// page's last frame (solid/dump.ts). The tree is the same in both frames, so a
 // command's index is the same element, and the numbers a before/after is about are the commands whose fields differ: the
 // track's colour and the thumb's x. Nothing in the spec is typed by hand but the two states' captions and the two parts'
 // names, and `solid/figure-handoff.test.ts` recomputes the same difference to hold the spec to the frames.
 //
-//   bun solid/specs/from-frames.ts                  # write solid/specs/before-after.json
+//   bun solid/specs/from-frames.ts                  # write both specs, here
 //   bun solid/specs/from-frames.ts "$TMPDIR/specs"  # ... or into another directory, for solid/test.sh's cmp
 //
 // Both frames are taken with the switch focused (`Tab,Tab`) and the second with Space after it, so the focus ring is the
@@ -15,7 +16,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Command, FrameDump } from "../src/dump.ts";
-import { check, type BeforeAfterData } from "../src/figure/spec.ts";
+import { check, type BeforeAfterData, type LayerStackData } from "../src/figure/spec.ts";
 
 /** The keys the off frame is taken with: two Tabs reach the Wi-Fi switch and focus it. */
 export const OFF_KEYS = ["Tab", "Tab"] as const;
@@ -94,6 +95,59 @@ export function dataOf(off: FrameDump, on: FrameDump): BeforeAfterData {
   };
 }
 
+/** The keys the Dialog's modal frame is taken with: Tab reaches the "Settings" control, Enter opens it. */
+export const MODAL_KEYS = ["Tab", "Enter"] as const;
+/** ... and the menu's: two Tabs reach the "Zoom" control. */
+export const MENU_KEYS = ["Tab", "Tab", "Enter"] as const;
+/** The frames at rest after the overlay opens: the entry's group and shadow have settled (a property read mid-fade is
+ *  the animation's, not the layer's). */
+export const SETTLE = 40;
+
+/** One layer's rectangle and effect rows: the page's own numbers, not a z scale typed into the spec. */
+const layerOf = (name: string, frame: FrameDump, element: string) => {
+  const command = frame.commands.find((c) => c.element === element && c.type === "rectangle");
+  if (!command) throw new Error(`layerStack: ${element} is not a rectangle of its frame`);
+  const [width, height] = [command.box[2]!, command.box[3]!];
+  const blur = frame.effects.backdrops.find((backdrop) => backdrop.element === element)?.blur;
+  const shadow = frame.effects.shadows.find((row) => row.element === element);
+  return {
+    name,
+    z: command.z,
+    box: { width, height },
+    alpha: (command.color?.[3] ?? 255) / 255,
+    radius: command.radii?.[0] ?? 0,
+    ...(blur === undefined ? {} : { blur }),
+    ...(shadow === undefined ? {} : { shadow: { x: shadow.x, y: shadow.y, blur: shadow.blur } }),
+  };
+};
+
+/**
+ * The Dialog's layers, back to front: the page, the modal's scrim and the dialog (its modal frame), and the menu (its
+ * menu frame). Each row's z, box, alpha, radius, blur and shadow are that frame's own command and effect row for the
+ * element, so a page that moves a float moves the figure.
+ */
+export function layersOf(modal: FrameDump, menu: FrameDump): LayerStackData {
+  return [
+    layerOf("the page", modal, "Root"),
+    layerOf("the dialog's scrim", modal, "settings-backdrop"),
+    layerOf("the dialog", modal, "settings-dialog"),
+    layerOf("the menu", menu, "zoom-menu"),
+  ];
+}
+
+/** The layer stack's spec: the Dialog's own overlays, measured where each one opens. */
+export function layerSpecOf(data: LayerStackData) {
+  return {
+    kind: "layerStack" as const,
+    title: "The Dialog's layers, back to front",
+    intent:
+      "The page and the three surfaces the Dialog stacks over it, each read from its own frame: the scrim's alpha, " +
+      "the dialog's shadow and the menu's glass are the page's, not a z scale's.",
+    source: "solid/specs/from-frames.ts, the Dialog's modal and menu frames (settled)",
+    data,
+  };
+}
+
 /** The spec, with the two states' numbers and the source of every one of them. */
 export function specOf(data: BeforeAfterData) {
   return {
@@ -110,16 +164,24 @@ if (import.meta.main) {
   const { capture } = await import("../dump.ts");
   const off = await capture("widgets", undefined, { keys: [...OFF_KEYS] });
   const on = await capture("widgets", undefined, { keys: [...ON_KEYS] });
+  const modal = await capture("dialog", undefined, { keys: [...MODAL_KEYS], settle: SETTLE });
+  const menu = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: SETTLE });
   const spec = specOf(dataOf(off, on));
-  const problems = check(spec);
-  if (problems.length) throw new Error(`before-after.json would not draw: ${problems.join(" ")}`);
+  const layers = layerSpecOf(layersOf(modal, menu));
+  for (const one of [spec, layers]) {
+    const problems = check(one);
+    if (problems.length) throw new Error(`${one.kind} would not draw: ${problems.join(" ")}`);
+  }
   const dir = process.argv[2] ?? new URL(".", import.meta.url).pathname;
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "before-after.json"), `${JSON.stringify(spec, null, 2)}\n`);
+  for (const [name, one] of [["before-after.json", spec], ["layer-stack.json", layers]] as const) {
+    writeFileSync(join(dir, name), `${JSON.stringify(one, null, 2)}\n`);
+    console.log(`${name}: ${join(dir, name)}`);
+  }
   const before = spec.data.before;
   const after = spec.data.after;
   console.log(
-    `before-after.json: ${before.caption} -> ${after.caption}, the box ${before.box.width}x${before.box.height}, ` +
-      `${before.measures.map((measure, i) => `${measure.label} ${measure.value} -> ${after.measures[i]!.value}`).join(", ")}`,
+    `from-frames: the switch ${before.caption} -> ${after.caption}, ${before.box.width}x${before.box.height}; ` +
+      `the layer stack ${layers.data.map((layer) => `${layer.name} z${layer.z}`).join(", ")}`,
   );
 }

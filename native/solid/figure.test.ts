@@ -36,6 +36,7 @@ const SPECS = [
   "palette",
   "contrast",
   "colour-roles",
+  "layer-stack",
   "spacing",
   "type-scale",
 ] as const;
@@ -48,6 +49,7 @@ const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "palette": "figure-palette",
   "contrast": "figure-contrast",
   "colour-roles": "figure-colour-roles",
+  "layer-stack": "figure-layer-stack",
   "spacing": "figure-spacing",
   "type-scale": "figure-type-scale",
 };
@@ -379,6 +381,36 @@ for (const name of SPECS) {
     else bad(`${name}: the verdicts`, `${l.pairs.length} verdicts for ${s.data.length * 2}, ${verdicts.length} wrong`);
   }
 
+  // A layer stack: a layer a row, back to front. The z bar is the depth, the numbers are the Dialog's frames, and a
+  // second capture of those frames recomputes every row through specs/from-frames.ts's own `layersOf`.
+  if (s.kind === "layerStack") {
+    const worst = Math.max(
+      ...l.bars.map((bar) => Math.abs(commandOf(dump, bar.fillId)!.box[2]! / CELL_WIDTH - bar.value)),
+    );
+    if (worst <= HALF_CELL)
+      ok(
+        `${name}: the z bars`,
+        `${l.bars.length} layers at ${l.bars.map((bar) => `z${bar.value}`).join(", ")}, the worst fill ${worst.toFixed(2)} of a cell`,
+      );
+    else bad(`${name}: the z bars`, `the worst fill is ${worst.toFixed(2)} cells off`);
+    const boxes = s.data.map((layer) => `${Math.round(layer.box.width)}x${Math.round(layer.box.height)}`);
+    const printed =
+      boxes.every((text) => dump.commands.some((c) => c.type === "text" && c.text === text)) &&
+      s.data.every((layer) => dump.commands.some((c) => c.type === "text" && c.text === shown(layer.alpha)));
+    if (printed) ok(`${name}: the numbers`, `${boxes.length} boxes and ${s.data.length} alphas, as the frames gave them`);
+    else bad(`${name}: the numbers`, "a box or an alpha is not printed");
+    const { layersOf, MODAL_KEYS, MENU_KEYS, SETTLE } = await import("./specs/from-frames.ts");
+    const modal = await capture("dialog", undefined, { keys: [...MODAL_KEYS], settle: SETTLE });
+    const menu = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: SETTLE });
+    const again = layersOf(modal, menu);
+    if (JSON.stringify(again) === JSON.stringify(s.data))
+      ok(
+        `${name}: the frames`,
+        `${again.length} layers, every z, box, alpha, radius, blur and shadow recomputed from two fresh captures`,
+      );
+    else bad(`${name}: the frames`, "the spec's layers are not what the frames give (regenerate with specs/from-frames.ts)");
+  }
+
   // A spacing scale: a step's box is its own value in pixels, not "one cell" — a 4px step of a 48px scale is half a cell.
   if (s.kind === "spacingScale") {
     const errors = l.bars.map((bar) => {
@@ -483,7 +515,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, statusKey, timeline, tree, typeScale.');
+  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, statusKey, timeline, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",

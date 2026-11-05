@@ -3280,7 +3280,7 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
 nothing at run time pays for them.
 
-**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and five of
+**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and six of
 its kinds are here — the half whose data is **ours**, so the figure cannot disagree with the design system it documents:
 
 | kind | data | the figure |
@@ -3288,6 +3288,7 @@ its kinds are here — the half whose data is **ours**, so the figure cannot dis
 | `palette` | `{ page, hues: [{ name, steps: [{ name, value }] }] }` | a step a row, a hue a column: the mark (the first step at 4.5 to 1 on the page), the step's swatch, its `#rrggbb` and its contrast — both computed |
 | `contrast` | `[{ label, fg, bg, min, ratio }]` | a pair a row: a track of 21 cells (a cell a point of the ratio), the ratio and pass/fails against WCAG's floor (3, 4.5 or 7) |
 | `colourRoles` | `[{ label, min, light: { fg, bg, ratio }, dark: { fg, bg, ratio } }]` | a role pair a row, a mode a column: the foreground's and the background's swatch, the ratio and its verdict per mode |
+| `layerStack` | `[{ name, z, box: { width, height }, alpha, radius, blur?, shadow? }]` | a layer a row, back to front: its z as a bar, its box, its fill's alpha, its corner radius, its backdrop blur and its shadow |
 | `spacingScale` | `[{ name, value }]` | a step a row: a bar of `value/largest` and its pixels — a cell is 8px, so a 4px step is **half a cell** |
 | `typeScale` | `[{ name, size, lineHeight }]` | a size a row: a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` **at its own size** |
 
@@ -3303,6 +3304,14 @@ with — and `solid/test.sh` regenerates them into a temp directory and `cmp`s, 
 is a line of the suite and not a reviewer's memory. The other two are **hand-written and say so**: `spacing.json`
 (`space.xs` 4px … `space.3xl` 48px) and `type-scale.json` (12/17 … 40/48) are `apps/docs/src/tokens.json`, where a size's
 line height is the role's choice (`prose.ts`'s 1.7 on prose, 1.2 on the headings) and not a token.
+
+`layer-stack.json` is the half's other kind and the exception: its data is not a token set but **the Dialog's own
+layers**, back to front — the page, the modal's scrim and dialog (its modal frame) and the menu (its menu frame) — with
+each layer's z, box, fill alpha, radius, backdrop blur and shadow read from the command and the effect row that draw it.
+`specs/from-frames.ts` captures the two frames (settled forty frames after the overlay opens, so a property is the
+layer's and not the entry's) and writes the spec, `solid/figure-handoff.sh` regenerates and `cmp`s it, and
+`figure.test.ts` recomputes every row from two fresh captures, so the figure is the Dialog measured, not a z scale typed
+into a spec.
 
 **The ratio is the engine's, twice.** A pair's number is written by `from-tokens.ts` with `color.ts` and printed at two
 places (`shown`, which floors: 4.499 does not read as the 4.5 it misses). `check` refuses a pair whose ratio is not the
@@ -3437,8 +3446,8 @@ What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"
 cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
 the wireframe section below.
 
-What remains of the kit's systems half: `stateMatrix`, `layerStack`, `tokenTable` and `table` — and, as before, the
-kit's other kinds and its motion's `intentCard`/`transitionSpec`.
+What remains of the kit's systems half: `stateMatrix`, `tokenTable` and `table` — and, as before, the kit's other kinds
+and its motion's `intentCard`/`transitionSpec`.
 
 **The three wireframe kinds: a page, not a drawing.** `screen`, `anatomy` and `responsivePair`
 (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.

@@ -364,6 +364,7 @@ echo "figure: thirteen stored frames are the page's, and a growing funnel is ref
 bun solid/main.ts figure --spec solid/specs/palette.json --warm 30 --expect solid/frames/figure-palette.png
 bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect solid/frames/figure-contrast.png
 bun solid/main.ts figure --spec solid/specs/colour-roles.json --warm 30 --expect solid/frames/figure-colour-roles.png
+bun solid/main.ts figure --spec solid/specs/layer-stack.json --warm 30 --expect solid/frames/figure-layer-stack.png
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
 bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png

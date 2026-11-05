@@ -159,6 +159,7 @@ async function main() {
       ["palette", "The blue and grey scales, on the page"],
       ["contrast", "The docs' colour roles, on their pages"],
       ["colour-roles", "The docs' roles, in both modes"],
+      ["layer-stack", "The Dialog's layers, back to front"],
       ["spacing", "The docs' spacing scale"],
       ["type-scale", "The docs' type scale"],
       ["sparkline", "The desktop frame, twelve runs"],
