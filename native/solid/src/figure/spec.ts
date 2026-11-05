@@ -1,6 +1,9 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 27 kinds here
-// (`barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 28 kinds here
+// (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`,
+// `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`,
+// `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`,
+// `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -14,17 +17,13 @@
 //     or a column heading as it is drawn."), and a tone that is not one of the three.
 //
 // A kind's own data rule — the funnel's "a funnel never grows", a branch's `no`, the path's transitions, the tree's one
-// root, a journey's range, the palette's direction, a pair's ratio against its own colours, a scale that grows — is in
-// the file that draws it, beside its layout: `./kinds/metrics.ts`, `./kinds/flows.ts`, `./kinds/structure.ts`,
-// `./kinds/systems.ts` and `./kinds/handoff.ts`, reached through `./registry.ts` (`./kinds.ts` is the door and loads
-// all five). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no
-// other kind's file is opened. So a sentence here that is about one kind's data belongs there, and a sentence about every
-// spec stays here.
-// the file that draws it, beside its layout: `./kinds/metrics.ts`, `./kinds/flows.ts`, `./kinds/structure.ts`,
-// `./kinds/systems.ts` and `./kinds/motion.ts`, reached through `./registry.ts` (`./kinds.ts` is the door and loads all
-// five). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no other
-// kind's file is opened. So a sentence here that is about one kind's data belongs there, and a sentence about every spec
-// stays here.
+// root, a journey's range, the palette's direction, a pair's ratio against its own colours, a scale that grows, an
+// anatomy's callouts — is in the file that draws it, beside its layout: `./kinds/metrics.ts`, `./kinds/flows.ts`,
+// `./kinds/structure.ts`, `./kinds/systems.ts`, `./kinds/handoff.ts`, `./kinds/motion.ts`, `./kinds/planning.ts`,
+// `./kinds/charts.ts` and `./kinds/wireframe.ts`, reached through `./registry.ts` (`./kinds.ts` is the door and loads
+// all nine). One file to a kind's area is what makes the next kind cheap: a layout, a check and one `register`, and no
+// other kind's file is opened. So a sentence here that is about one kind's data belongs there, and a sentence about
+// every spec stays here.
 //
 // The contrast pair's `ratio` is a number in the data, and it is the **engine's** — packages/cssints/src/color.ts's
 // `luminance`/`ratio`, which `solid/specs/from-tokens.ts` writes the spec with. The contrast kind's own check recomputes
@@ -37,10 +36,11 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the fifteen this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the twenty-eight this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
+  "anatomy",
   "barChart",
   "beforeAfter",
   "branchFlow",
@@ -575,7 +575,38 @@ export interface ResponsivePairSpec extends Base {
   options?: { width?: number };
 }
 
+/** The region of a page an anatomy draws, in the page's own pixels. */
+export interface AnatomyCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** One numbered part of a component drawing: the digit's point in the page's pixels, and what it names. */
+export interface AnatomyPart {
+  n: number;
+  x: number;
+  y: number;
+  label: string;
+}
+
+/** A component drawing: a page's own frame cut to one region, with numbered callouts and their legend. */
+export interface AnatomyData extends WireSide {
+  page: string;
+  /** The region drawn; absent, the whole page. */
+  crop?: AnatomyCrop;
+  parts: readonly AnatomyPart[];
+}
+
+export interface AnatomySpec extends Base {
+  kind: "anatomy";
+  data: AnatomyData;
+  options?: { width?: number };
+}
+
 export type Spec =
+  | AnatomySpec
   | BarChartSpec
   | BeforeAfterSpec
   | BranchFlowSpec

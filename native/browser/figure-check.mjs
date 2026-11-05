@@ -150,7 +150,7 @@ async function main() {
       bad("?spec=funnel", `the focus line is ${JSON.stringify(focus?.text)}`);
     else ok("?spec=funnel", `the figure is the spec's ("${focus.text}"), not bars.json's`);
 
-    // (d) the fifteen kinds are specs by name too: the page needs no code for them, only the file
+    // (d) the kinds are specs by name too: the page needs no code for them, only the file
     for (const [name, title] of [
       ["branch-flow", "One spec, from its file to a frame"],
       ["state-machine", "A dialog's presence, one open"],
@@ -167,6 +167,7 @@ async function main() {
       ["statusKey", "What the map's statuses mean"],
       ["nowNextLater", "What the map has left, now, next, later"],
       ["screen", "The Widgets page, as a wireframe"],
+      ["anatomy", "The Widgets switch, part by part"],
       ["responsive-pair", "The Sky page, at two widths"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);
