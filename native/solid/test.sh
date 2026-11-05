@@ -366,6 +366,7 @@ bun solid/main.ts figure --spec solid/specs/contrast.json --warm 30 --expect sol
 bun solid/main.ts figure --spec solid/specs/colour-roles.json --warm 30 --expect solid/frames/figure-colour-roles.png
 bun solid/main.ts figure --spec solid/specs/layer-stack.json --warm 30 --expect solid/frames/figure-layer-stack.png
 bun solid/main.ts figure --spec solid/specs/state-matrix.json --warm 30 --expect solid/frames/figure-state-matrix.png
+bun solid/main.ts figure --spec solid/specs/token-table.json --warm 30 --expect solid/frames/figure-token-table.png
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
 bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png
@@ -390,7 +391,9 @@ cmp "$FIG/specs/contrast.json" solid/specs/contrast.json || {
   echo "FAIL: solid/specs/contrast.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
 cmp "$FIG/specs/colour-roles.json" solid/specs/colour-roles.json || {
   echo "FAIL: solid/specs/colour-roles.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
-echo "figure: palette, contrast and colour-roles are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
+cmp "$FIG/specs/token-table.json" solid/specs/token-table.json || {
+  echo "FAIL: solid/specs/token-table.json is not what specs/from-tokens.ts writes; commit its output"; exit 1; }
+echo "figure: palette, contrast, colour-roles and token-table are regenerated from the tokens, byte for byte (cmp); spacing and type-scale are hand-written from apps/docs/src/tokens.json"
 # the state matrix is the pages' own style modules: specs/from-styles.ts walks their s maps and the Sensors exports for
 # a :hover/:focus/:active key, so a state added to a style is this cmp, not a review note
 bun solid/specs/from-styles.ts "$FIG/specs" >/dev/null
