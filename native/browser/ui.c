@@ -39,6 +39,9 @@
 #include <string.h>
 
 #include "../desktop/clay_dump.c" // the one emitter every host dumps through
+// the terminal's cells, reused rather than ported: the console target is the terminal's grid, printed instead of drawn
+#include "../terminal/cells.h"
+#include "../terminal/render.h"
 
 #define EXPORT(name) __attribute__((export_name(name)))
 
@@ -101,6 +104,12 @@ static char arena[ARENA_SIZE];
 static int arena_used;
 static int width, height, errors;
 static Clay_RenderCommandArray cmds;
+// the console sink's grid, made from the first frame (the layout's size / 8x16), its previous frame and its output
+static Cells term_grid;
+static int term_ready;
+static Text term_text;
+static Cells term_prev;
+static int term_prev_ok;
 static uint64_t frame_hash = 0xcbf29ce484222325ull;
 static int draw_count;
 // the host's paints (ui_present): the page's raster is JS's, so the dev panel's `presents` is the shell's own count
@@ -903,6 +912,38 @@ EXPORT("dump") int32_t ui_dump(void)
 }
 
 EXPORT("dump_ptr") char *ui_dump_bytes(void) { return dump_bytes; }
+
+// ---- the console sink: the same cells the terminal draws, as a console.log call -------------------------------------
+
+/** The last frame's commands as the terminal's cells (terminal/render.c): the rows, or 0 before a frame. */
+EXPORT("ui_term_render") int32_t ui_term_render(void)
+{
+    const int cols = width / 8, rows = height / 16;
+    if (!term_ready || term_grid.cols != cols || term_grid.rows != rows) {
+        if (term_ready) cells_free(&term_grid);
+        cells_init(&term_grid, cols, rows);
+        term_ready = 1;
+    }
+    cells_clear(&term_grid);
+    term_render(&term_grid, &cmds);
+    return term_grid.rows;
+}
+
+/** The frame as the console call's JSON: mode 0 the whole frame, 1 the rows changed since the last mode 1, 2 the whole
+ *  frame again (a test's broken sink). The rows written; the bytes at ui_term_console_ptr() for ui_term_console_len(). */
+EXPORT("ui_term_console") int32_t ui_term_console(int32_t mode)
+{
+    if (!term_ready) return 0;
+    const int written = cells_console_text(&term_grid, mode == 1 && term_prev_ok ? &term_prev : NULL, &term_text);
+    if (mode == 1) {
+        if (term_prev_ok) cells_free(&term_prev);
+        cells_copy(&term_prev, &term_grid);
+        term_prev_ok = 1;
+    }
+    return written;
+}
+EXPORT("ui_term_console_ptr") char *ui_term_console_bytes(void) { return term_text.bytes; }
+EXPORT("ui_term_console_len") int32_t ui_term_console_size(void) { return term_text.len; }
 
 EXPORT("cmd_count") int32_t ui_command_count(void) { return command_count; }
 EXPORT("cmd_size") int32_t ui_command_size(void) { return (int32_t)sizeof(WebCommand); }

@@ -89,6 +89,12 @@ export interface Options {
   stats?: [number, number, number, number][];
   /** A dev server's `hot` event re-mounts this page instead of reloading it (`?hot=0` takes the reload back). */
   hot?: boolean;
+  /** The display: the canvas (the default) or the console — the terminal's cells, printed as a console.log call a
+   *  frame. A console page keeps the canvas dark: `paint` is never called. */
+  sink?: "console";
+  /** A console page's cell plan, run each frame after the page's motion and before the tree is declared: the value
+   *  channel is read when an element opens, so a cell length must be written here (terminal/solid.ts's `cellStyle`). */
+  beforeTree?: (dt: number) => void;
 }
 
 /** A page on the host: what a save replaces. */
@@ -146,6 +152,20 @@ export async function mountPage(options: Options): Promise<void> {
   }
 }
 
+/** The terminal's measure, for a console page (terminal/measure.c): one cell a UTF-8 code point, one cell a line. The
+ *  wasm's `env.measure` writes its answer into the C's own slot, which Clay reads in the same call. */
+function cellMeasure(ptr: number, len: number): void {
+  const bytes = new Uint8Array(wasm.memory.buffer, ptr, len);
+  let count = 0;
+  for (let i = 0; i < len; count++) {
+    const b = bytes[i]!;
+    i += b < 0x80 ? 1 : (b >> 5) === 6 ? 2 : (b >> 4) === 14 ? 3 : (b >> 3) === 30 ? 4 : 1;
+  }
+  const slot = new Float32Array(wasm.memory.buffer, wasm.measure_slot(), 2);
+  slot[0] = count * 8;
+  slot[1] = 16;
+}
+
 /** The page load's host, made by the first page and found by a re-mounted one (a bundle has its own copy of this file). */
 function hostFor(options: Options): Promise<Host> {
   const globals = globalThis as typeof globalThis & { __shellHost?: Promise<Host> };
@@ -160,7 +180,12 @@ async function createHost(options: Options): Promise<Host> {
   canvas.width = width * dpr;
   canvas.height = height * dpr;
   const surface = createSurface(ctx, { width, height, dpr });
-  setMeasure((ptr, len, fontId, size) => surface.measure(wasm, ptr, len, fontId, size));
+  // a console page has no canvas text: its measure is the terminal's (terminal/measure.c), one cell a UTF-8 code point
+  setMeasure(
+    options.sink === "console"
+      ? cellMeasure
+      : (ptr, len, fontId, size) => surface.measure(wasm, ptr, len, fontId, size),
+  );
   bindCanvas(ctx, dpr);
 
   // the font the frame is measured and drawn with: a FontFace is in document.fonts once it is loaded, and Clay's measure
@@ -300,7 +325,10 @@ function sessionFor(host: Host, options: Options): Session {
     // a press that no element with `onPress` was under: a click on empty space blurs, as a browser's does
     onPressMiss: () => options.input?.pressMiss(),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
-    tick: (dt) => motion.tick?.(dt),
+    tick: (dt) => {
+      motion.tick?.(dt);
+      options.beforeTree?.(dt);
+    },
     stats: options.stats,
   });
   const draw = createDrawer(frame, options.stats);
@@ -318,12 +346,29 @@ function sessionFor(host: Host, options: Options): Session {
     ui.present(); // the desktop's window present: what the dev panel's `presents` counts
   }
 
+  /** The console's display: the terminal's cells for the last frame, printed only when a cell changed (the sink's
+   *  diff is [] at rest, and a console has no double buffer: a frame written every tick would scroll). */
+  function consolePaint(): void {
+    ui.termRender();
+    if (ui.termConsole(1) === 0) return;
+    const bytes = new Uint8Array(wasm.memory.buffer, ui.termConsolePtr(), ui.termConsoleLen());
+    console.log(...(JSON.parse(new TextDecoder().decode(bytes)) as [string, ...string[]]));
+  }
+
+  /** The last frame's cells as the sink's JSON (the whole frame), for a check: no console line, no diff state. */
+  function cells(): string {
+    ui.termRender();
+    ui.termConsole(0);
+    return new TextDecoder().decode(new Uint8Array(wasm.memory.buffer, ui.termConsolePtr(), ui.termConsoleLen()));
+  }
+
   /** One iteration of the desktop's window loop: the wheel, then the frame; the canvas is drawn when the drawer drew. */
   function step(dt: number, discrete = false): boolean {
     pumpWheel();
     host.steps++;
     const painted = draw(host.px, host.py, host.down, dt, discrete, host.touch);
-    if (painted) paint();
+    if (options.sink === "console") consolePaint();
+    else if (painted) paint();
     return painted;
   }
 
@@ -386,6 +431,8 @@ function sessionFor(host: Host, options: Options): Session {
           return new TextDecoder().decode(new Uint8Array(wasm.memory.buffer, wasm.dump_ptr(), length));
         },
         a11y: () => snapshot(root),
+        /** A console page's whole frame as the sink's JSON (what it would log, whether or not a cell changed). */
+        cells,
         /** A box of the last frame's layout, as [x, y, w, h] (the element's own, clipped or not), or undefined for an id
          *  the page did not declare. The bytes are made once an id, as every id is. */
         bounds(id: string) {
@@ -404,8 +451,11 @@ function sessionFor(host: Host, options: Options): Session {
           const t0 = performance.now();
           for (let i = 0; i < n; i++) {
             frame(host.px, host.py, host.down, 1 / 60, false, host.touch);
-            paint();
-            ctx.getImageData(0, 0, 1, 1); // a readback, so the raster is done, not just queued
+            if (options.sink === "console") consolePaint();
+            else {
+              paint();
+              ctx.getImageData(0, 0, 1, 1); // a readback, so the raster is done, not just queued
+            }
           }
           return (performance.now() - t0) / n;
         },

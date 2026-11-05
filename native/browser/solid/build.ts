@@ -1,7 +1,7 @@
 // The Solid pages' bundles, for the browser: browser/solid/page.ts (Sensors), browser/solid/widgets.ts (the Widgets page,
-// which takes keys) and the desktop's own modules, compiled by Bun. Two entry points, two bundles: page.js and widgets.js
-// are separate files with their own copies of the firmware they share (the shell, the renderer, Clay's binding), because a
-// page loaded alone should need nothing from the other's; the shared code is one source, not one chunk.
+// which takes keys), browser/solid/console.ts (the Sensors page printed as cells) and the desktop's own modules, compiled
+// by Bun. A bundle an entry point: each has its own copy of the firmware it shares (the shell, the renderer, Clay's
+// binding), because a page loaded alone should need nothing from another's; the shared code is one source, not one chunk.
 //
 //   bun browser/solid/build.ts [out.directory]   -> <out>/page.js and <out>/widgets.js (default ${TMPDIR:-/tmp}/cssints-native-web/solid)
 //
@@ -73,6 +73,7 @@ const result = await Bun.build({
     join(here, "dev.ts"),
     join(here, "sheet.ts"),
     join(here, "figure.ts"),
+    join(here, "console.ts"),
   ],
   target: "browser",
   root: here, // [dir] names nothing, so the bundles are flat in outdir whatever directory the build started in

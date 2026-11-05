@@ -26,8 +26,8 @@ zig cc -target wasm32-wasi -mexec-model=reactor -Oz -Wall -Wno-unused-function -
 # float array is written into the linear memory at an address it got from malloc (a libc allocation is not exported by
 # a reactor unless it is asked for).
 zig cc -target wasm32-wasi -mexec-model=reactor -Oz -Wall -Wno-unused-function -Wno-missing-field-initializers \
-  -Wno-unused-variable -I "$ROOT/vendor/clay" \
-  "$ROOT/browser/ui.c" \
+  -Wno-unused-variable -I "$ROOT/vendor/clay" -I "$ROOT/terminal" \
+  "$ROOT/browser/ui.c" "$ROOT/terminal/cells.c" "$ROOT/terminal/render.c" \
   -Wl,--strip-all -Wl,--export=malloc -Wl,--export=free -o "$OUT/ui.wasm"
 
 echo "$OUT/page.wasm ($(wc -c < "$OUT/page.wasm" | tr -d ' ') bytes)"

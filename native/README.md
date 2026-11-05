@@ -1386,7 +1386,7 @@ in the page as it does on the desktop (`window.__page.a11y()`), and it is what t
 
 | What            | Size                                    |
 | --------------- | --------------------------------------- |
-| `ui.wasm`       | 141,104 B (52,269 B gzip)               |
+| `ui.wasm`       | 147,210 B (54,754 B gzip): the console's `render.c`/`cells.c` are in it |
 | `page.js`       | 154,464 B (38,752 B gzip), unminified   |
 | `sky.js`        | 300,229 B (71,434 B gzip), unminified   |
 | `sky.html`      | 1,301 B                                 |
@@ -1395,7 +1395,7 @@ in the page as it does on the desktop (`window.__page.a11y()`), and it is what t
 | a frame, Sky     | 0.73-0.80 ms: the same, with the effect tables read and the avatars drawn from bitmaps |
 | What             | Size                                    |
 | ---------------- | --------------------------------------- |
-| `ui.wasm`        | 136,338 B (50,291 B gzip)               |
+| `ui.wasm`        | 147,210 B (54,754 B gzip): the console's `render.c`/`cells.c` are in it |
 | `page.js`        | 239,871 B (57,445 B gzip), unminified   |
 | `index.html`     | 1,320 B                                 |
 | `widgets.js`     | 335,796 B (74,582 B gzip), unminified   |
@@ -2314,6 +2314,46 @@ is what a web build gets. `native` is a workspace of the repository's `bun.lock`
 has no `test` script, so `bun run test` at the root (`vp run -r test`) does not need a C toolchain, SDL3 or ThorVG; the
 script is `test:native`. `headless/` is a workspace too (`native/headless` in the root `workspaces`; TypeScript 7 and `@types/bun` of its own, the specs from
 `@cssints/apg-specs`); its scripts are `typecheck:native` and `test:native` for the same reason, and `test.sh` runs them.
+
+## The console: the terminal's cells as a console.log call
+
+A fourth screen for the same cells: `terminal/cells.c`'s `cells_console` turns a grid into one browser
+`console.log` call — a `%c` run a foreground/background pair, a row a console line, every cell of the row (the trailing
+spaces carry the background), a literal `%` doubled so the format does not read it — and the reference is
+[textjs](https://github.com/anomalyco/textjs) (MIT), whose **numbers** this takes and whose React + Yoga stack it does
+not: the console is a **sink on the cells path**, not a second framework and not a `cssints` member (the engine owns
+styles, a renderer owns the screen). The sink is one C function in two hosts: `libterm` for Bun
+(`terminal/solid.ts --console` / `--console-frames`) and the browser's `ui.wasm`, where the terminal's `render.c` and
+`cells.c` are compiled beside Clay (`browser/ui.c`, `sh browser/build.sh`) and the Solid page reads the bytes out of the
+wasm's memory.
+
+**The rule a console needs.** A console has no double buffer: every write scrolls, so a frame at rest must write nothing
+and a changed frame must write as little as it can. The sink diffs the new grid against the frame before it and writes
+**only the rows that changed** — a console line starts at column 1, so a run of changed cells cannot be printed on its own
+— and a row with nothing changed writes nothing at all: thirty idle frames are thirty `[]` lines, 90 bytes and no console
+line. Tab on the Sensors pill writes its three rows, whole. That is the desktop's hash rule (`ui.hash` → 0 draws) one
+level down; the reference arrived at it independently, which is a corroboration, not a port.
+
+**The numbers** (M2, 80x20 cells, one frame, file write included in both ms): Sensors **3,315 B** a console call against
+the ANSI dump's **3,018 B** (1.10x), **0.09-0.14 ms** against **0.13-0.23 ms**; the busier Sky feed **5,449 B**, 98 runs.
+The browser page's `console.js` is **174 KB** (the shell, the renderer, Clay's binding and the same wasm) and a frame
+0.04-0.07 ms. The cells are the frame's cost, as they are for the terminal and the ANSI dump; what the sink adds is the
+run-length encoding and the JSON.
+
+**The page** (`browser/solid/console.ts` + `console.html`): the Sensors page at 80x20 cells, the terminal's cell plan
+(`Root`'s two cells, the pill's three rows, the ring) through the browser's value channel, the terminal's measure
+(`measure.c`: one cell a code point) instead of Canvas2D's, the canvas dark (the display is the console), Tab the ring and
+Space/Enter the pill (the page's own press). `terminal/console.mjs` parses the call back to the ANSI dump's cells and SGR
+colours — 1,600 cells, glyph and both truecolours — and the text dump a cell for a cell, holds the diff and a no-diff
+mutation, and prints the bytes and ms; `browser/console-check.mjs` runs the terminal's three frames and holds the page to
+them cell for cell (at rest, after Tab, after a press on the pill and after Space, which presses it again), 20 frames at rest with no console line, and a canvas
+with no pixels.
+
+**What it cannot be**: accessible (a console has no tree), typed (a console takes the page's keys, not a text field: the
+Field page cannot run here), typographic (monospace; a cell's width is the console's, so a proportional console font or a
+wide glyph breaks a row the sink cannot know), or portable (a phone has no console, and Firefox's and Safari's consoles
+render `%c` and scroll differently). Not here: FIGlet titles (deferred; the Hershey spike already said a data font's
+niche is a ROM-bound board at one signage size).
 
 ## A scene as a file
 

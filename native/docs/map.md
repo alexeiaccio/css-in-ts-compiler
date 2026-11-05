@@ -140,6 +140,34 @@ navigation and a print sheet that is a page a slide) and `docs/exports/bars.png`
 at 1× and 2×, 400×112 and 800×224), written by `--deck`/`--png` and regenerated and `cmp`'d the same way; `--pdf` prints
 that deck to a PDF, one page a slide, through Playwright's Chromium.
 
+**The console as a fourth screen** (2026-11-05). The terminal's cells, printed to a browser's console instead of drawn:
+`terminal/cells.c`'s `cells_console` makes one `console.log` call of a grid — a `%c` run a foreground/background pair, a
+row a console line, every cell of the row (the trailing spaces carry the background), a literal `%` doubled so the format
+does not read it. One C function, two hosts: `libterm` for Bun (`terminal/solid.ts --console`, `--console-frames`) and
+the browser's `ui.wasm`, where `terminal/render.c` and `terminal/cells.c` are compiled beside Clay (`browser/ui.c`) and a
+Solid page reads the bytes out of the wasm's memory (`browser/solid/console.ts`). The reference is
+[textjs](https://github.com/anomalyco/textjs) (MIT): its **numbers** and its rule, not its React + Yoga stack — the console
+is a **sink on our cells path**, not a second framework, and not a `cssints` member (the engine owns styles, a renderer
+owns the screen; a React + Yoga port would fork the layout engine and the component model the "each target is a renderer"
+rule forbids). What it buys: a fourth screen for the same page and the same Clay numbers, a debugging channel that prints
+a whole frame, and a cheap demonstration that one tree reaches many displays.
+
+**The rule a console needs**: no double buffer, so every write scrolls. The sink compares the new grid with the frame
+before it and writes **only the rows that changed** — a console line starts at column 1, so a run of changed cells cannot
+be printed alone — and a frame at rest writes nothing: 30 idle frames are 30 `[]` lines, 90 bytes, no console line. Tab on
+the Sensors pill writes its 3 rows, whole. This is the desktop's hash rule (`ui.hash` → `0 draws`) one level down; the
+reference arrived at it independently: a corroboration, not a port. Numbers (M2, 80x20 cells, file write included in both):
+Sensors **3,315 B** against the ANSI dump's **3,018 B** (1.10x), **0.09-0.14 ms** against **0.13-0.23 ms**; Sky **5,449 B**
+and 98 runs; the browser page's bundle **174 KB** and a frame **0.04-0.07 ms**. Checks: `terminal/console.mjs` (the JSON
+parses back to the ANSI dump's cells and SGR truecolours, 1,600 cells, glyph and both colours; the text dump a cell for a
+cell; the diff, 30 idle frames, the no-diff mutation, the bytes and ms) and `browser/console-check.mjs` (the browser page's
+frame is the terminal's, cell for cell, at rest, after Tab, after a press on the pill and after Space; 20 frames at rest write no line;
+the canvas has no pixels). **What it cannot be**: accessible (a console has no tree), typed (the page's keys, not a text
+field: the Field page cannot run here), typographic (monospace; a cell's width is the console's, so a proportional font or
+a wide glyph breaks a row the sink cannot know), or portable (a phone has no console; Firefox's and Safari's consoles
+render `%c` and scroll differently). Not here: FIGlet titles, deferred — the Hershey spike already said a data font's niche
+is a ROM-bound board at one signage size.
+
 ## Where Solid runs
 
 | Target   | Solid                                                                     |

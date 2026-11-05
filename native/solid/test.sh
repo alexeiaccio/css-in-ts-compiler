@@ -413,6 +413,10 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   bun browser/solid/build.ts >/dev/null
   node browser/figure-check.mjs
+  # the console page (browser/solid/console.ts): the Sensors page as the terminal's cells, printed with console.log.
+  # console-check.mjs runs the terminal's own frames and holds the page to them cell for cell — at rest, after Tab and
+  # after a press on the pill — and to the console's rule (20 frames at rest write no line) and a dark canvas
+  node browser/console-check.mjs
 else
   echo "figure, in a browser: no zig, bun or Playwright chromium, skipped (bun browser/solid/build.ts && node browser/figure-check.mjs)"
 fi

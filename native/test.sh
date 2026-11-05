@@ -425,6 +425,12 @@ fi
 # terminal/test.sh prints its comparisons, and the system theme's pty checks are there
 # too (a scripted OSC answer, the timeout's fallback, and the wrong-channel and no-timeout mutations).
 NATIVE_OUT="$OUT" sh terminal/test.sh
+# ... and the console sink (terminal/console.mjs): the terminal's cells as a browser console.log call — one %c run a
+# colour pair, a row a line, every cell of every row (trailing spaces carry the background) — parsed back to the ANSI
+# dump's cells and SGR truecolours; the diff ([] at rest, 30 frames of 90 bytes; a key's rows whole), the no-diff
+# mutation, the text dump a cell for a cell, and the bytes/ms against the ANSI dump. The browser's console page is
+# solid/test.sh's, with the other Chromium checks.
+node terminal/console.mjs
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no
 # emscripten), drawn on a canvas by browser/render.js. The check builds it, opens browser/index.html in Chromium

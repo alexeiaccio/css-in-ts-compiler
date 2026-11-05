@@ -314,6 +314,32 @@ int term_ansi(const char *path)
     return 0;
 }
 
+// The console sink's own state: the frame before this one, which a diff reads. Not the page's.
+static Cells console_prev;
+static int console_prev_ok;
+
+/**
+ * The last frame as a browser console.log call (cells_console): `diff` prints only the rows that changed since the last
+ * diff frame (a line appended a frame, the way a console writes) and returns the rows written; without it the whole
+ * frame is written over the file. The cells' cost is the frame's, as the ANSI dump's is: this is a formatter on top.
+ */
+int term_console(const char *path, int mode)
+{
+    // mode 0: the whole frame, over the file; 1: the rows that changed since the last diff call, appended (a console
+    // line a frame); 2: the whole frame appended — the test's deliberately broken sink, which never diffs
+    FILE *f = open_out(path, mode ? "a" : "w");
+    if (!f) return -1;
+    const int written = cells_console(&grid, mode == 1 && console_prev_ok ? &console_prev : NULL, f);
+    fputc('\n', f);
+    if (f != stdout) fclose(f);
+    if (mode == 1) {
+        if (console_prev_ok) cells_free(&console_prev);
+        cells_copy(&console_prev, &grid);
+        console_prev_ok = 1;
+    }
+    return written;
+}
+
 /** True when the pointer is over the element of that id in the layout of the last frame. */
 int term_over(const char *id, int len)
 {
@@ -377,4 +403,5 @@ void term_close(void)
     term_render_report();
     if (tty) term_tb2_close();
     cells_free(&grid);
+    if (console_prev_ok) cells_free(&console_prev);
 }
