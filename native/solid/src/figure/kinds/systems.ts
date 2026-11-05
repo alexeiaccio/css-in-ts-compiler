@@ -3,6 +3,7 @@
 //
 //   palette      a step a row, a hue a column: the marker, the step's swatch, its value and its contrast on the page
 //   colourRoles  a role pair a row, light and dark side by side: the two swatches, the ratio and the verdict per mode
+//   layerStack   a layer a row, back to front: its z as a bar, its box, its fill's alpha, its radius, its blur and shadow
 //   spacingScale a step a row: its name, a bar of value/largest (a 4px step of a 48px scale is half a cell), its pixels
 //   typeScale    a size a row: its name, a bar of size/largest, size/lineHeight, and a specimen at its own size
 //
@@ -20,7 +21,7 @@
 import { contrastOf, HEX, luminance, shown, WORDS } from "../contrast.ts";
 import type { Bar, Item, Layout, LayoutLine, Paint, Pair, Swatch, TextItem } from "../registry.ts";
 import { CELL_HEIGHT, CELL_WIDTH, register } from "../registry.ts";
-import type { ColourRolesSpec, PaletteSpec, SpacingSpec, TypeScaleSpec } from "../spec.ts";
+import type { ColourRolesSpec, LayerStackSpec, PaletteSpec, SpacingSpec, TypeScaleSpec } from "../spec.ts";
 import {
   barLine,
   cells,
@@ -58,6 +59,7 @@ function palette(spec: PaletteSpec): Layout {
   const slot = 2;
   const cell = slot + 2 + 1 + valueWidth + ratioWidth;
   const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const padStart = (text: string, width: number) => " ".repeat(Math.max(0, width - cells(text))) + text;
   const head = `${" ".repeat(stepWidth + slot)}${hues.map((hue) => pad(hue.name, cell)).join("")}`;
   const lines: LayoutLine[] = [
     { items: [textItem("fig-hues", head, cells(head), "muted", "label")] },
@@ -118,6 +120,7 @@ function colourRoles(spec: ColourRolesSpec): Layout {
   // a mode's block: the foreground's swatch, a cell, the background's, a cell, the ratio, a cell, the verdict
   const modeWidth = 2 + 1 + 2 + 1 + ratioWidth + 1 + verdictWidth;
   const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const padStart = (text: string, width: number) => " ".repeat(Math.max(0, width - cells(text))) + text;
   const head = `${pad("role", labelWidth)}${pad("light", modeWidth)}${pad("dark", modeWidth)}`.trimEnd();
   const lines: LayoutLine[] = [{ items: [textItem("fig-modes", head, cells(head), "muted", "label")] }];
   const records: Pair[] = [];
@@ -194,6 +197,127 @@ function colourRolesProblems(data: unknown): string[] {
     }
   }
   return out;
+}
+
+/**
+ * A layer stack: a layer a row, back to front — its z as a bar on the stack's own depth, the box the frame gave it, the
+ * alpha of its fill, its corner radius, and the blur and shadow its effects table carries. The data is the Dialog's own
+ * overlays measured from their frames (`solid/specs/from-frames.ts`), so the figure cannot invent a z scale: the page,
+ * the scrim, the dialog and the menu are each a command (or a table row) of the frame they open in.
+ */
+function layerStack(spec: LayerStackSpec): Layout {
+  const focus = focusOf(spec);
+  const layers = spec.data;
+  const maxZ = Math.max(1, ...layers.map((layer) => layer.z));
+  const labelWidth = longest(layers.map((layer) => layer.name)) + 1;
+  const boxes = layers.map((layer) => `${Math.round(layer.box.width)}x${Math.round(layer.box.height)}`);
+  const alphas = layers.map((layer) => shown(layer.alpha));
+  const radii = layers.map((layer) => `${Math.round(layer.radius)}px`);
+  const blurs = layers.map((layer) => (layer.blur === undefined ? "-" : `blur ${Math.round(layer.blur)}`));
+  const shadows = layers.map((layer) =>
+    layer.shadow === undefined
+      ? "-"
+      : `${Math.round(layer.shadow.x)},${Math.round(layer.shadow.y)} ${Math.round(layer.shadow.blur)}`,
+  );
+  const numberWidth = Math.max(2, String(maxZ).length) + 2;
+  const boxWidth = longest(boxes) + 1;
+  const alphaWidth = Math.max(cells("alpha"), longest(alphas)) + 1;
+  const radiusWidth = Math.max(cells("radius"), longest(radii)) + 1;
+  const blurWidth = Math.max(cells("blur"), longest(blurs)) + 1;
+  const shadowWidth = Math.max(cells("shadow"), longest(shadows)) + 1;
+  const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const padStart = (text: string, width: number) => " ".repeat(Math.max(0, width - cells(text))) + text;
+  const head =
+    pad("layer", labelWidth) +
+    padStart("z", maxZ + numberWidth) +
+    " " +
+    pad("box", boxWidth) +
+    pad("alpha", alphaWidth) +
+    pad("radius", radiusWidth) +
+    pad("blur", blurWidth) +
+    "shadow";
+  const lines: LayoutLine[] = [{ items: [textItem("fig-layers", head, cells(head), "muted", "label")] }];
+  const bars: Bar[] = [];
+  const labels: Layout["labels"] = [];
+  layers.forEach((layer, i) => {
+    bars.push({
+      fillId: `fig-fill-${i}`,
+      trackId: `fig-track-${i}`,
+      textId: `fig-z-${i}`,
+      label: layer.name,
+      value: layer.z,
+      max: maxZ,
+      fill: layer.z,
+      track: maxZ,
+      text: String(layer.z),
+    });
+    labels.push({ textId: `fig-label-${i}`, text: layer.name });
+    const line = barLine(i, layer.name, layer.z, maxZ, String(layer.z), numberWidth, labelWidth, paintOf(focus, layer.name));
+    // the z number is right-aligned against its bar; a cell keeps it off the box
+    line.items.push(textItem(`fig-z-gap-${i}`, " ", 1, "ink"));
+    for (const [id, text, width] of [
+      ["box", boxes[i]!, boxWidth],
+      ["alpha", alphas[i]!, alphaWidth],
+      ["radius", radii[i]!, radiusWidth],
+      ["blur", blurs[i]!, blurWidth],
+      ["shadow", shadows[i]!, shadowWidth],
+    ] as const)
+      line.items.push(textItem(`fig-${id}-${i}`, text, width, "muted", "value"));
+    lines.push(line);
+  });
+  return finish(spec, "layerStack", cells(head), lines, bars, labels);
+}
+
+/** A layer stack: a layer has a name, a z, a box, an alpha in 0..1 and a radius; the rows are back to front. */
+function layerStackProblems(data: unknown): string[] {
+  const layers = rowsOf(data);
+  if (!layers.length)
+    return [
+      'A layer stack needs its layers, back to front: [{ "name": "the page", "z": 0, "box": { "width": 360, ' +
+        '"height": 480 }, "alpha": 1, "radius": 0 }].',
+    ];
+  const out: string[] = [];
+  const names = new Set<string>();
+  let last = -1;
+  for (const [i, layer] of layers.entries()) {
+    if (!isObject(layer) || typeof layer.name !== "string" || !layer.name.trim()) {
+      out.push(`Layer ${i + 1} needs a name: what the layer is, like "the page".`);
+      continue;
+    }
+    const name = layer.name;
+    if (names.has(name)) out.push(`"${name}" is two layers: one name, one layer.`);
+    names.add(name);
+    const z = number(layer.z);
+    if (z === undefined || z < 0) out.push(`${name} needs its z: 0 or more, 0 being the page.`);
+    else {
+      if (z < last) out.push(`${name} is at z ${z} after a layer at z ${last}: a layer stack is back to front.`);
+      last = Math.max(last, z);
+    }
+    const box = layer.box;
+    if (!isObject(box) || !(number(box.width)! > 0) || !(number(box.height)! > 0))
+      out.push(`${name} needs its box: { "width": 360, "height": 480 }, in pixels.`);
+    const alpha = number(layer.alpha);
+    if (alpha === undefined || alpha < 0 || alpha > 1) out.push(`${name}'s alpha is 0 to 1, not ${say(layer.alpha)}.`);
+    const radius = number(layer.radius);
+    if (radius === undefined || radius < 0)
+      out.push(`${name} needs its radius in pixels: 0 for a rectangle, not ${say(layer.radius)}.`);
+    if (layer.blur !== undefined) {
+      const blur = number(layer.blur);
+      if (blur === undefined || !(blur > 0))
+        out.push(`${name}'s blur is a positive number of pixels, not ${say(layer.blur)}.`);
+    }
+    if (layer.shadow !== undefined) {
+      const shadow = layer.shadow;
+      if (!isObject(shadow) || number(shadow.x) === undefined || number(shadow.y) === undefined || !(number(shadow.blur)! > 0))
+        out.push(`${name}'s shadow needs x, y and a positive blur, in pixels: ${say(shadow)} is not one.`);
+    }
+  }
+  return out;
+}
+
+/** A layer stack's names are its layers' own: a focus points at one as it is drawn. */
+function layerNames(data: unknown): string[] {
+  return rowsOf(data).flatMap((layer) => (isObject(layer) && typeof layer.name === "string" ? [layer.name] : []));
 }
 
 /**
@@ -404,6 +528,7 @@ function stepNames(data: unknown): string[] {
 }
 
 register("colourRoles", { layout: colourRoles, check: colourRolesProblems });
+register("layerStack", { layout: layerStack, check: layerStackProblems, names: layerNames });
 register("palette", { layout: palette, check: paletteProblems, names: paletteNames });
 register("spacingScale", { layout: spacingScale, check: spacingProblems, names: stepNames });
 register("typeScale", { layout: typeScale, check: typeProblems, names: stepNames });

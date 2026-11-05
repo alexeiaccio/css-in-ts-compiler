@@ -1,7 +1,8 @@
 #!/bin/sh
 # The handoff and QA figures' desktop half (kinds/handoff.ts): the three stored frames are the page at rest, and
-# `before-after.json` is what `specs/from-frames.ts` writes from two frames of the Widgets page — the same discipline as
-# `from-tokens.ts`: a stale spec is this `cmp`, not a review note.
+# `before-after.json` is what `specs/from-frames.ts` writes from two frames of the Widgets page, and `layer-stack.json`
+# from the Dialog's modal and menu frames — the same discipline as `from-tokens.ts`: a stale spec is this `cmp`, not a
+# review note.
 #
 #   sh solid/figure-handoff.sh        # from native/, or from anywhere (it cds)
 #
@@ -19,7 +20,11 @@ cmp "$FIG/specs/before-after.json" solid/specs/before-after.json || {
   echo "FAIL: solid/specs/before-after.json is not what specs/from-frames.ts writes from the two Widgets frames; commit its output"
   exit 1
 }
-echo "figure handoff: three stored frames are the page's, and before-after.json is from-frames.ts's two Widgets frames, byte for byte (cmp)"
+cmp "$FIG/specs/layer-stack.json" solid/specs/layer-stack.json || {
+  echo "FAIL: solid/specs/layer-stack.json is not what specs/from-frames.ts writes from the Dialog's modal and menu frames; commit its output"
+  exit 1
+}
+echo "figure handoff: three stored frames are the page's, and before-after.json and layer-stack.json are from-frames.ts's frames, byte for byte (cmp)"
 # ... and the same three in the browser, by name: browser/solid/figure.ts fetches the same files with `?spec=`, and
 # browser/figure-handoff-check.mjs holds each frame to its golden within 4px (Canvas2D's advance against ThorVG's).
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
