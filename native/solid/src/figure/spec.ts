@@ -1,9 +1,9 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 28 kinds here
-// (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`,
-// `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`,
-// `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`, `tree`,
-// `typeScale`)
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 29 kinds here
+// (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
+// `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `meter`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`,
+// `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `statusKey`, `timeline`,
+// `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the twenty-eight this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the twenty-nine this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
@@ -44,6 +44,7 @@ export const KINDS = [
   "barChart",
   "beforeAfter",
   "branchFlow",
+  "colourRoles",
   "compare",
   "contrast",
   "flow",
@@ -320,6 +321,26 @@ export interface TypeStep {
 export interface TypeScaleSpec extends Base {
   kind: "typeScale";
   data: readonly TypeStep[];
+}
+
+/** One role's value in one mode: its foreground and background colours and the ratio they make, which is the engine's. */
+export interface RolePair {
+  fg: string;
+  bg: string;
+  ratio: number;
+}
+
+/** A role pair's two modes, the WCAG floor it is held to, and what it is for. */
+export interface ColourRole {
+  label: string;
+  min: number;
+  light: RolePair;
+  dark: RolePair;
+}
+
+export interface ColourRolesSpec extends Base {
+  kind: "colourRoles";
+  data: readonly ColourRole[];
 }
 
 /** One part of a redline: a rectangle inside the component's box, in pixels, measured from the box's top-left corner. */
@@ -610,6 +631,7 @@ export type Spec =
   | BarChartSpec
   | BeforeAfterSpec
   | BranchFlowSpec
+  | ColourRolesSpec
   | CompareSpec
   | ContrastSpec
   | FlowSpec

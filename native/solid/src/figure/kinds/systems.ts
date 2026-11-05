@@ -2,6 +2,7 @@
 // next kind of this area costs: a layout function, a check, one `register` at the bottom, and nothing else.
 //
 //   palette      a step a row, a hue a column: the marker, the step's swatch, its value and its contrast on the page
+//   colourRoles  a role pair a row, light and dark side by side: the two swatches, the ratio and the verdict per mode
 //   spacingScale a step a row: its name, a bar of value/largest (a 4px step of a 48px scale is half a cell), its pixels
 //   typeScale    a size a row: its name, a bar of size/largest, size/lineHeight, and a specimen at its own size
 //
@@ -17,9 +18,9 @@
 // scale's steps get steadily darker."). The contrast, spacing and type sentences are ours in its voice: the kit's
 // published scripts check only that a spacing value is not negative, and none of them compare a line height with its size.
 import { contrastOf, HEX, luminance, shown, WORDS } from "../contrast.ts";
-import type { Bar, Item, Layout, LayoutLine, Swatch, TextItem } from "../registry.ts";
+import type { Bar, Item, Layout, LayoutLine, Paint, Pair, Swatch, TextItem } from "../registry.ts";
 import { CELL_HEIGHT, CELL_WIDTH, register } from "../registry.ts";
-import type { PaletteSpec, SpacingSpec, TypeScaleSpec } from "../spec.ts";
+import type { ColourRolesSpec, PaletteSpec, SpacingSpec, TypeScaleSpec } from "../spec.ts";
 import {
   barLine,
   cells,
@@ -97,6 +98,102 @@ function palette(spec: PaletteSpec): Layout {
     lines.push({ items });
   });
   return finish(spec, "palette", stepWidth + cell * hues.length, lines, [], labels, [], [], swatches);
+}
+
+/**
+ * A role's light and dark values with a verdict: one row a role pair, a mode a column — the foreground's swatch, the
+ * background's, the ratio and the verdict the pair's floor gives. A swatch is the role's own `#rrggbb` (the one colour a
+ * figure draws as itself, as in a palette), the ratio is recomputed from the pair's two colours by `check`, and the
+ * verdict paints the ratio and its word `good` or `problem`: a role pair that misses its floor is a figure that says so.
+ */
+function colourRoles(spec: ColourRolesSpec): Layout {
+  const focus = focusOf(spec);
+  const roles = spec.data;
+  const modes = ["light", "dark"] as const;
+  const labelWidth = longest(roles.map((role) => role.label)) + 1;
+  const ratioTexts = roles.flatMap((role) => modes.map((mode) => `${shown(role[mode].ratio)}:1`));
+  const verdicts = roles.flatMap((role) => modes.map((mode) => `${role[mode].ratio >= role.min ? "pass" : "fails"} ${role.min}:1`));
+  const ratioWidth = longest(ratioTexts) + 1;
+  const verdictWidth = longest(verdicts) + 1;
+  // a mode's block: the foreground's swatch, a cell, the background's, a cell, the ratio, a cell, the verdict
+  const modeWidth = 2 + 1 + 2 + 1 + ratioWidth + 1 + verdictWidth;
+  const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const head = `${pad("role", labelWidth)}${pad("light", modeWidth)}${pad("dark", modeWidth)}`.trimEnd();
+  const lines: LayoutLine[] = [{ items: [textItem("fig-modes", head, cells(head), "muted", "label")] }];
+  const records: Pair[] = [];
+  const labels: Layout["labels"] = [];
+  roles.forEach((role, i) => {
+    const items: Item[] = [textItem(`fig-role-${i}`, role.label, labelWidth, paintOf(focus, role.label))];
+    labels.push({ textId: `fig-role-${i}`, text: role.label });
+    modes.forEach((mode) => {
+      const pair = role[mode];
+      const pass = pair.ratio >= role.min;
+      const paint: Paint = pass ? "good" : "problem";
+      const id = `fig-role-${i}-${mode}`;
+      items.push(
+        { kind: "swatch", id: `${id}-fg`, cells: 2, paint: "ink", value: pair.fg },
+        textItem(`${id}-gap`, " ", 1, "ink"),
+        { kind: "swatch", id: `${id}-bg`, cells: 2, paint: "ink", value: pair.bg },
+        textItem(`${id}-gap-bg`, " ", 1, "ink"),
+        textItem(`${id}-ratio`, `${shown(pair.ratio)}:1`, ratioWidth, paint, "ratio"),
+        textItem(`${id}-gap2`, " ", 1, "ink"),
+        textItem(`${id}-verdict`, `${pass ? "pass" : "fails"} ${role.min}:1`, verdictWidth, paint, "verdict"),
+      );
+      records.push({
+        textId: `${id}-ratio`,
+        label: `${role.label} (${mode})`,
+        ratio: pair.ratio,
+        min: role.min,
+        pass,
+        verdictId: `${id}-verdict`,
+      });
+    });
+    lines.push({ items });
+  });
+  return finish(spec, "colourRoles", labelWidth + modeWidth * modes.length, lines, [], labels, [], [], [], records);
+}
+
+/** WCAG's three floors: a role pair's floor and a contrast pair's are the same three numbers. */
+const FLOORS = [3, 4.5, 7] as const;
+
+/** A colour-roles figure: every role pair has both modes, six-digit hex colours, and a ratio its colours make. */
+function colourRolesProblems(data: unknown): string[] {
+  const roles = rowsOf(data);
+  if (!roles.length)
+    return [
+      'A colour-roles figure needs its roles: [{ "label": "text on bg", "min": 7, "light": { "fg": "#030507", ' +
+        '"bg": "#f8f9fa", "ratio": 19.37 }, "dark": { "fg": "#f1f3f5", "bg": "#030507", "ratio": 18.35 } }].',
+    ];
+  const out: string[] = [];
+  for (const [i, role] of roles.entries()) {
+    if (!isObject(role) || typeof role.label !== "string" || !role.label.trim()) {
+      out.push(`Role ${i + 1} needs a label: what the pair is for, like "text on bg".`);
+      continue;
+    }
+    const label = role.label;
+    const min = number(role.min);
+    if (min === undefined) out.push(`${label} needs a min: 3, 4.5 or 7, WCAG's three floors.`);
+    else if (!(FLOORS as readonly number[]).includes(min))
+      out.push(`${label}'s min is ${min}: a minimum is 3, 4.5 or 7, WCAG's three floors.`);
+    for (const mode of ["light", "dark"] as const) {
+      const pair = role[mode];
+      if (!isObject(pair)) {
+        out.push(`${label} needs its ${mode} pair: { "fg": "#030507", "bg": "#f8f9fa", "ratio": 19.37 }.`);
+        continue;
+      }
+      for (const [field, value] of [["fg", pair.fg], ["bg", pair.bg]] as const)
+        if (!HEX.test(String(value))) out.push(`${label}'s ${mode} ${field} is a hex value like #030507, not ${say(value)}.`);
+      const ratio = number(pair.ratio);
+      if (ratio === undefined) {
+        out.push(`${label}'s ${mode} pair needs its ratio: the number of ${say(pair.fg)} on ${say(pair.bg)}, to two places.`);
+        continue;
+      }
+      const own = contrastOf(pair.fg, pair.bg);
+      if (own !== undefined && Math.abs(own - ratio) > 0.005)
+        out.push(`${label}'s ${mode} pair says ${shown(ratio)}:1, but ${pair.fg} on ${pair.bg} makes ${shown(own)}:1.`);
+    }
+  }
+  return out;
 }
 
 /**
@@ -306,6 +403,7 @@ function stepNames(data: unknown): string[] {
     .map((step, i) => (typeof step.name === "string" && step.name ? step.name : `row ${i + 1}`));
 }
 
+register("colourRoles", { layout: colourRoles, check: colourRolesProblems });
 register("palette", { layout: palette, check: paletteProblems, names: paletteNames });
 register("spacingScale", { layout: spacingScale, check: spacingProblems, names: stepNames });
 register("typeScale", { layout: typeScale, check: typeProblems, names: stepNames });

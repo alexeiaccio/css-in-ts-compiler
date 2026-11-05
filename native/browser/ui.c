@@ -63,7 +63,7 @@
 // ponytail: 1,024 overrides a frame, as the desktop's and the terminal's (a figure's item writes three; a palette of two
 // hues' thirteen steps is 429)
 #define MAX_VALUES 1024
-// ponytail: 512 names a process, as the desktop's; later ids are unnamed in a dump
+// ponytail: 512 names a page (ui_init starts the table over); later ids are unnamed in a dump
 #define MAX_ID_NAMES 512
 // ponytail: 512 elements a frame (a command of one carries its node for the dump's text alignment and a group's subtree)
 #define MAX_NODES 512
@@ -207,6 +207,10 @@ static uint32_t pack(Clay_Color c)
 EXPORT("ui_init") int32_t ui_init(int32_t w, int32_t h)
 {
     width = w, height = h;
+    // a page's ids start empty: ui_init is a new page (the golden test captures every spec in one process, and the dump
+    // names only what this page declared), and the names are ours to free
+    for (int i = 0; i < id_name_count; i++) free(id_names[i].name);
+    id_name_count = 0;
     const uint32_t needed = Clay_MinMemorySize();
     char *memory = malloc(needed);
     if (!memory) {
