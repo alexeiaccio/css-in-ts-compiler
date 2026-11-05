@@ -24,7 +24,11 @@ cmp "$FIG/specs/layer-stack.json" solid/specs/layer-stack.json || {
   echo "FAIL: solid/specs/layer-stack.json is not what specs/from-frames.ts writes from the Dialog's modal and menu frames; commit its output"
   exit 1
 }
-echo "figure handoff: three stored frames are the page's, and before-after.json and layer-stack.json are from-frames.ts's frames, byte for byte (cmp)"
+cmp "$FIG/specs/modal.json" solid/specs/modal.json || {
+  echo "FAIL: solid/specs/modal.json is not what specs/from-frames.ts writes from the Dialog's modal frame; commit its output"
+  exit 1
+}
+echo "figure handoff: three stored frames are the page's, and before-after.json, layer-stack.json and modal.json are from-frames.ts's frames, byte for byte (cmp)"
 # ... and the same three in the browser, by name: browser/solid/figure.ts fetches the same files with `?spec=`, and
 # browser/figure-handoff-check.mjs holds each frame to its golden within 4px (Canvas2D's advance against ThorVG's).
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&

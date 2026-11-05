@@ -60,8 +60,8 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Thirty-two kinds are here: `anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`,
-`compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`,
+terminal at one cell. Thirty-three kinds are here: `anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`,
+`compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `modal`,
 `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`,
 `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `timeline`, `tokenTable`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
 `metrics.ts`, `charts.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `planning.ts`, `motion.ts`, `handoff.ts` and
@@ -69,8 +69,9 @@ terminal at one cell. Thirty-two kinds are here: `anatomy`, `barChart`, `beforeA
 new kind is its own file and no other kind's;
 `solid/src/figure/kinds.ts` is the door that loads those files and `registry.ts` the table a kind is looked up in. A
 `screen` is a page of this repository's own frame cut to the cell grid, an `anatomy` is one region of that page with
-numbered callouts and their legend, and a `responsivePair` is a page at two widths — the data is the captured command
-stream, so a wireframe is the page and cannot drift from it. Eight of them are the design system's half, and their data
+numbered callouts and their legend, a `modal` is the Dialog's frame with its modal open (the scrim is the page's
+rectangle, the panel inside it, and the panel's box under the drawing), and a `responsivePair` is a page at two widths —
+the data is the captured command stream, so a wireframe is the page and cannot drift from it. Eight of them are the design system's half, and their data
 is ours — five our own token sets, three the system's own sources (the Dialog's frames, the pages' styles, the docs' token
 file): `palette` (`@cssints/tokens`' Open Props blue and grey on
 their page, a swatch and its contrast a step, `▲` on the first step at 4.5 to 1), `contrast` (the docs' own

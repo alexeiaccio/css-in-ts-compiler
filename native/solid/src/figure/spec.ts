@@ -1,5 +1,5 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 32 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 33 kinds here
 // (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
 // `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`, `nowNextLater`, `palette`,
 // `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-two this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-three this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
@@ -53,6 +53,7 @@ export const KINDS = [
   "journeyMap",
   "layerStack",
   "meter",
+  "modal",
   "nowNextLater",
   "palette",
   "qaChecklist",
@@ -693,6 +694,23 @@ export interface AnatomySpec extends Base {
   options?: { width?: number };
 }
 
+/** The Dialog's modal, open: its frame, the keys it was taken with, and the panel the modal is. */
+export interface ModalData extends WireSide {
+  page: string;
+  /** The keys the frame is taken with (`Tab, Enter`: the "Settings" control, then the open). */
+  keys: readonly string[];
+  /** Frames at rest after them, so the panel's entry is over and the frame is the modal, not its animation. */
+  settle: number;
+  /** The dialog's own box, in the page's pixels: what makes the frame this modal's. */
+  panel: WireBox;
+}
+
+export interface ModalSpec extends Base {
+  kind: "modal";
+  data: ModalData;
+  options?: { width?: number };
+}
+
 export type Spec =
   | AnatomySpec
   | BarChartSpec
@@ -706,6 +724,7 @@ export type Spec =
   | HeatmapSpec
   | JourneyMapSpec
   | LayerStackSpec
+  | ModalSpec
   | StateMatrixSpec
   | TokenTableSpec
   | MeterSpec

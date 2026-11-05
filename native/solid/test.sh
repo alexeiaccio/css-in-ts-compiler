@@ -380,6 +380,7 @@ echo "figure: the map's plan — a timeline of its eight steps, the status key, 
 # callouts, and another page at two widths
 bun solid/main.ts figure --spec solid/specs/screen.json --warm 30 --expect solid/frames/figure-screen.png
 bun solid/main.ts figure --spec solid/specs/anatomy.json --warm 30 --expect solid/frames/figure-anatomy.png
+bun solid/main.ts figure --spec solid/specs/modal.json --warm 30 --expect solid/frames/figure-modal.png
 bun solid/main.ts figure --spec solid/specs/responsive-pair.json --warm 30 --expect solid/frames/figure-responsive-pair.png
 echo "figure: the Widgets page's own frame as a wireframe, one part of it with callouts, and the Sky page narrow and wide (three stored frames)"
 # two of the four are regenerable from the data: specs/from-tokens.ts writes them from @cssints/tokens and the engine's
