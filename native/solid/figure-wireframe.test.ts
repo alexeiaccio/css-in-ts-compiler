@@ -1,6 +1,7 @@
 // The screen and pair kinds of the wireframe area, read back from the page and from the frame: a screen is a captured
-// page cut to the cell grid, and a responsive pair is that page at two widths. The area's third kind, `anatomy` (the
-// same cut with numbered callouts), has its own test: solid/figure-anatomy.test.ts. The test is the kind's honesty:
+// page cut to the cell grid, and a responsive pair is that page at two widths. The area's other kinds, `anatomy` (the
+// same cut with numbered callouts) and `modal` (the Dialog, open, with its panel), have their own tests:
+// solid/figure-anatomy.test.ts and solid/figure-modal.test.ts. The test is the kind's honesty:
 //
 //   (a) the wireframe's box count is the page's own rectangles and borders (which commands count, which are skipped);
 //   (b) every box's cell rect is `round(x/8)`, `round(y/16)`, `round(w/8)`, `round(h/16)` of the page's box, with the

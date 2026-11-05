@@ -1,11 +1,11 @@
-// `solid/specs/before-after.json` and `solid/specs/layer-stack.json`, written from frames this script captures: the
-// Widgets page's switch off and on, and the Dialog's modal and menu frames — captured the way solid/goldens stores a
-// page's last frame (solid/dump.ts). The tree is the same in both frames, so a
+// `solid/specs/before-after.json`, `solid/specs/layer-stack.json` and `solid/specs/modal.json`, written from frames this
+// script captures: the Widgets page's switch off and on, and the Dialog's modal and menu frames — captured the way
+// solid/goldens stores a page's last frame (solid/dump.ts). The tree is the same in both frames, so a
 // command's index is the same element, and the numbers a before/after is about are the commands whose fields differ: the
 // track's colour and the thumb's x. Nothing in the spec is typed by hand but the two states' captions and the two parts'
 // names, and `solid/figure-handoff.test.ts` recomputes the same difference to hold the spec to the frames.
 //
-//   bun solid/specs/from-frames.ts                  # write both specs, here
+//   bun solid/specs/from-frames.ts                  # write the three specs, here
 //   bun solid/specs/from-frames.ts "$TMPDIR/specs"  # ... or into another directory, for solid/test.sh's cmp
 //
 // Both frames are taken with the switch focused (`Tab,Tab`) and the second with Space after it, so the focus ring is the
@@ -16,7 +16,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Command, FrameDump } from "../src/dump.ts";
-import { check, type BeforeAfterData, type LayerStackData } from "../src/figure/spec.ts";
+import { frameOf } from "../src/figure/kinds/wireframe.ts";
+import { check, type BeforeAfterData, type LayerStackData, type ModalData } from "../src/figure/spec.ts";
 
 /** The keys the off frame is taken with: two Tabs reach the Wi-Fi switch and focus it. */
 export const OFF_KEYS = ["Tab", "Tab"] as const;
@@ -135,6 +136,34 @@ export function layersOf(modal: FrameDump, menu: FrameDump): LayerStackData {
   ];
 }
 
+/** The Dialog's modal as a wireframe's data: its frame's boxes and runs, the keys it was taken with and the panel. */
+export function modalOf(frame: FrameDump, keys: readonly string[], settle: number): ModalData {
+  const panel = frame.commands.find((c) => c.element === "settings-dialog" && c.type === "rectangle");
+  if (!panel) throw new Error("modal: settings-dialog is not a rectangle of its frame");
+  return {
+    page: "dialog",
+    keys: [...keys],
+    settle,
+    width: frame.size[0],
+    height: frame.size[1],
+    ...frameOf(frame.commands),
+    panel: { x: panel.box[0]!, y: panel.box[1]!, width: panel.box[2]!, height: panel.box[3]! },
+  };
+}
+
+/** The modal's spec: the Dialog with its modal open, the frame's own boxes and runs. */
+export function modalSpecOf(data: ModalData) {
+  return {
+    kind: "modal" as const,
+    title: "The Dialog, open",
+    intent:
+      "The Dialog page's frame with its modal open — the scrim over the whole page and the panel inside it — cut to the " +
+      "cell grid, with the panel's own box under the drawing.",
+    source: `solid/specs/from-frames.ts, the Dialog's modal frame (${data.keys.join(", ")}, settled)`,
+    data,
+  };
+}
+
 /** The layer stack's spec: the Dialog's own overlays, measured where each one opens. */
 export function layerSpecOf(data: LayerStackData) {
   return {
@@ -168,13 +197,18 @@ if (import.meta.main) {
   const menu = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: SETTLE });
   const spec = specOf(dataOf(off, on));
   const layers = layerSpecOf(layersOf(modal, menu));
-  for (const one of [spec, layers]) {
+  const dialog = modalSpecOf(modalOf(modal, MODAL_KEYS, SETTLE));
+  for (const one of [spec, layers, dialog]) {
     const problems = check(one);
     if (problems.length) throw new Error(`${one.kind} would not draw: ${problems.join(" ")}`);
   }
   const dir = process.argv[2] ?? new URL(".", import.meta.url).pathname;
   mkdirSync(dir, { recursive: true });
-  for (const [name, one] of [["before-after.json", spec], ["layer-stack.json", layers]] as const) {
+  for (const [name, one] of [
+    ["before-after.json", spec],
+    ["layer-stack.json", layers],
+    ["modal.json", dialog],
+  ] as const) {
     writeFileSync(join(dir, name), `${JSON.stringify(one, null, 2)}\n`);
     console.log(`${name}: ${join(dir, name)}`);
   }
@@ -182,6 +216,8 @@ if (import.meta.main) {
   const after = spec.data.after;
   console.log(
     `from-frames: the switch ${before.caption} -> ${after.caption}, ${before.box.width}x${before.box.height}; ` +
-      `the layer stack ${layers.data.map((layer) => `${layer.name} z${layer.z}`).join(", ")}`,
+      `the layer stack ${layers.data.map((layer) => `${layer.name} z${layer.z}`).join(", ")}; the modal ` +
+      `${dialog.data.boxes.length} boxes and ${dialog.data.texts.length} runs on ${dialog.data.panel.width}x` +
+      `${dialog.data.panel.height}`,
   );
 }

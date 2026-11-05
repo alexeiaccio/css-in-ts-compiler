@@ -3462,13 +3462,13 @@ the wireframe section below.
 What remains of the kit's systems half: `table` — and, as before, the kit's other kinds and its motion's
 `intentCard`/`transitionSpec`.
 
-**The three wireframe kinds: a page, not a drawing.** `screen`, `anatomy` and `responsivePair`
+**The four wireframe kinds: a page, not a drawing.** `screen`, `anatomy`, `modal` and `responsivePair`
 (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.
 `specs/from-page.ts` captures the page with `solid/dump.ts`'s `capture` — the call the goldens are stored with — and
 writes the frame's `rectangle`/`border` boxes and its `text` runs into the spec: `screen.json` is the Widgets page at
-360x760, `anatomy.json` is a 296x120 region of it with four numbered callouts, and `responsive-pair.json` is the Sky
-feed at 240x760 (30x48 cells) and 360x760 (45x48), 30 + 2 + 45 = **77 cells** side by side at the default 80,
-above/below at 60. The data's fields are `page`, `width`, `height` and the frame's `boxes` and `texts`; `check` refuses
+360x760, `anatomy.json` is a 296x120 region of it with four numbered callouts, `modal.json` is the Dialog's frame with
+its modal open (the keys `Tab, Enter`, settled forty frames), and `responsive-pair.json` is the Sky feed at 240x760
+(30x48 cells) and 360x760 (45x48), 30 + 2 + 45 = **77 cells** side by side at the default 80, above/below at 60. The data's fields are `page`, `width`, `height` and the frame's `boxes` and `texts`; `check` refuses
 a page this repository does not draw (naming `dialog, list, sensors, sheet, sky, widgets`), a page wider than
 `options.width`, a narrow side wider than the wide, an empty frame and a frame with no boxes. `solid/test.sh` regenerates
 all three specs into a temp directory and `cmp`s — a page edit that moved a box or a run is a `cmp` line in the same
@@ -3500,16 +3500,18 @@ the page never drew around the part), and a box under 2x1 cells is not drawn, as
 callouts on one cell. What a cell drawing cannot carry is the kit's **leader lines**: a row is 16px, so a 4px leader
 rounds away (the same number the redline records) — the digit sits in the cell beside its part instead.
 
-The frames are `solid/frames/figure-{screen,anatomy,responsive-pair}.png` and the command goldens
-`solid/goldens/figure-{screen,anatomy,responsive-pair}.json` (108, 25 and 186 commands); `solid/figure-wireframe.test.ts`
-holds the count, the rects' worst rounding, the runs' order and their `…`, the pair's two sizes and both layouts, the
-refusals, the three mutations (a box rounded to pixels — 280 cells out; a run cut by bytes — `监控摄…` 7 cells against
-`监控…` 5; the pair's halves swapped — its sentence), the goldens and the terminal's rows, and
-`solid/figure-anatomy.test.ts` the crop's cells, each digit's cell and the characters around it, the legend, the
+The frames are `solid/frames/figure-{screen,anatomy,modal,responsive-pair}.png` and the command goldens
+`solid/goldens/figure-{screen,anatomy,modal,responsive-pair}.json` (108, 25, 55 and 186 commands); the tests are
+`solid/figure-wireframe.test.ts` for the count, the rects' worst rounding, the runs' order and their `…`, the pair's two
+sizes and both layouts, the refusals, the three mutations (a box rounded to pixels — 280 cells out; a run cut by bytes —
+`监控摄…` 7 cells against `监控…` 5; the pair's halves swapped — its sentence), the goldens and the terminal's rows;
+`solid/figure-anatomy.test.ts` for the crop's cells, each digit's cell and the characters around it, the legend, the
 background dropped, the six refusals, the golden and the terminal's rows, and three mutations (a callout rounded from the
-page instead of the crop — cell 4 against cell 0; a callout a row out; the background kept — six boxes against five).
-What remains: the kit's other wireframe types (`appShell`, `cardGrid`, `listDetail`, `modal`), a page at a scroll offset
-(a capture is one frame, at rest), and the pixel columns above.
+page instead of the crop — cell 4 against cell 0; a callout a row out; the background kept — six boxes against five);
+and `solid/figure-modal.test.ts` for the Dialog's open frame, the panel the frame drew (its cell rect one of the boxes),
+the drawing, the refusals, the golden and the terminal's rows.
+What remains: the kit's other wireframe types (`appShell`, `cardGrid`, `listDetail`), a page at a scroll offset (a capture
+is one frame, at rest), and the pixel columns above.
 
 **The four motion kinds.** `motionTiming`, `easing`, `stagger` and `frameStrip` (`solid/src/figure/kinds/motion.ts`) are
 the first kinds whose data is not typed but **solved**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own

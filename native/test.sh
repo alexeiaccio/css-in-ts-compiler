@@ -63,13 +63,15 @@ sh solid/test.sh
 # rows on the terminal — one spec, three targets
 bun solid/figure.test.ts
 bun solid/figure-charts.test.ts
-# ... and the three wireframe kinds (solid/figure-wireframe.test.ts, solid/figure-anatomy.test.ts): a page's own boxes
+# ... and the four wireframe kinds (solid/figure-wireframe.test.ts, solid/figure-anatomy.test.ts,
+# solid/figure-modal.test.ts): a page's own boxes
 # and text runs cut to the cell grid, one region of it with numbered callouts and their legend, and the same page at two
 # widths — the count from the capture, the 1/8-cell rounding and its worst edge, the runs in the page's order, the
 # crop's clipped boxes and dropped background, each digit's cell, the pair's two sizes, the refusals, the mutations, the
 # goldens and the terminal's rows
 bun solid/figure-wireframe.test.ts
 bun solid/figure-anatomy.test.ts
+bun solid/figure-modal.test.ts
 # the two flow kinds and the two row kinds are in it too: the branch flow's boxes and its branch connectors, the state
 # machine's path and its transitions, the tree's levels and connectors, the journey map's feelings, their refusals (each
 # with its sentence), a command golden each, and a stored frame each. So are the four design-system kinds whose data is

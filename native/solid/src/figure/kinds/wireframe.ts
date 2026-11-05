@@ -1,8 +1,9 @@
-// The wireframe area: a page's own last frame, cut into the cell grid. Three kinds, one file, their layouts and their
+// The wireframe area: a page's own last frame, cut into the cell grid. Four kinds, one file, their layouts and their
 // refusals side by side, because that is what a kind costs here (a layout, a check, one `register` at the bottom):
 //
 //   screen          one page (its name and its size) as boxes and text runs, at 1/8 of a cell across and 1/16 down
 //   anatomy         one region of that page with numbered callouts and their legend — a component drawing, in cells
+//   modal           the Dialog's frame with its modal open: the scrim, the panel and the page under them
 //   responsivePair  the same page captured at two widths, side by side when they fit, above/below when they do not
 //
 // The data is **not a drawing**: `solid/specs/from-page.ts` captures each page with `solid/dump.ts`'s `capture` — the
@@ -34,6 +35,7 @@ import { register } from "../registry.ts";
 import type {
   AnatomyCrop,
   AnatomySpec,
+  ModalSpec,
   ResponsivePairSpec,
   ScreenSpec,
   WireBox,
@@ -326,6 +328,68 @@ function sideLines(side: WireSide, caption: string, prefix: string): { caption: 
     rows,
     wire,
   };
+}
+
+/**
+ * A modal: the Dialog's frame with its modal open, cut to cells exactly as a screen is — the scrim is the page's full
+ * rectangle, the panel and its buttons are inside it — with the panel's own box under the drawing. The data carries the
+ * keys and the settle the frame was taken with, so the figure is the overlay the page opens, not a drawing of one.
+ */
+function modal(spec: ModalSpec): Layout {
+  const wire = wireframeOf(spec.data);
+  const lines = Array.from({ length: wire.height }, (_, row) => lineOf(wire, row, "fig-modal"));
+  const panel = spec.data.panel;
+  const note = `the panel ${Math.round(panel.width)}x${Math.round(panel.height)} at ${Math.round(panel.x)},${Math.round(panel.y)}`;
+  lines.push({ items: [textItem("fig-modal-note", note, cells(note), "muted", "note")] });
+  return finish(spec, "modal", wire.width, lines, [], labelsOf(spec.data, "fig-modal"), [
+    ...boxRecords(wire, "fig-modal-box"),
+    { id: "fig-modal-panel", textId: "fig-modal-note", text: "", role: "step" },
+  ]);
+}
+
+/** A modal: the Dialog's frame, the keys it was taken with, and a panel the frame itself drew. */
+function modalProblems(data: unknown, options: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'A modal needs its page, the keys its frame is taken with and its panel: { "page": "dialog", "keys": ["Tab", ' +
+        '"Enter"], "settle": 40, "panel": { "x": 40, "y": 164, "width": 280, "height": 152 }, "width": 360, ' +
+        '"height": 480, "boxes": [...], "texts": [...] }.',
+    ];
+  const out: string[] = [];
+  if (data.page !== "dialog") out.push(`A modal is the Dialog's open frame: "page" is "dialog", not ${say(data.page)}.`);
+  const keys = rowsOf(data.keys);
+  if (!keys.length || keys.some((key) => typeof key !== "string" || !key.trim()))
+    out.push('A modal needs the keys its frame is taken with: ["Tab", "Enter"].');
+  const settle = number(data.settle);
+  if (settle === undefined || settle < 0 || !Number.isInteger(settle))
+    out.push(`A modal needs its settle: whole frames at rest after the keys, 0 or more, not ${say(data.settle)}.`);
+  const panel = data.panel;
+  const panelBox =
+    isObject(panel) &&
+    [panel.x, panel.y, panel.width, panel.height].every((value) => number(value) !== undefined) &&
+    number(panel.width)! > 0 &&
+    number(panel.height)! > 0
+      ? (panel as unknown as WireBox)
+      : undefined;
+  if (!panelBox)
+    out.push(`A modal needs its panel: { "x": 40, "y": 164, "width": 280, "height": 152 }, in the page's pixels.`);
+  else if (
+    !rowsOf(data.boxes).some(
+      (box) =>
+        isObject(box) &&
+        number(box.x) === panelBox.x &&
+        number(box.y) === panelBox.y &&
+        number(box.width) === panelBox.width &&
+        number(box.height) === panelBox.height,
+    )
+  )
+    out.push(
+      `The modal's panel ${panelBox.x},${panelBox.y} ${panelBox.width}x${panelBox.height} is not one of its frame's ` +
+        `boxes: a modal's panel is what the frame drew.`,
+    );
+  const side = sideProblems(data, "dialog page");
+  out.push(...side.problems, ...widthProblem(side, "dialog page", options));
+  return out;
 }
 
 /**
@@ -735,5 +799,6 @@ function anatomyNames(data: unknown): string[] {
 }
 
 register("anatomy", { layout: anatomy, check: anatomyProblems, names: anatomyNames });
+register("modal", { layout: modal, check: modalProblems, names: screenNames });
 register("screen", { layout: screen, check: screenProblems, names: screenNames });
 register("responsivePair", { layout: responsivePair, check: pairProblems, names: pairNames });

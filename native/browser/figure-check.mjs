@@ -172,6 +172,7 @@ async function main() {
       ["nowNextLater", "What the map has left, now, next, later"],
       ["screen", "The Widgets page, as a wireframe"],
       ["anatomy", "The Widgets switch, part by part"],
+      ["modal", "The Dialog, open"],
       ["responsive-pair", "The Sky page, at two widths"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);

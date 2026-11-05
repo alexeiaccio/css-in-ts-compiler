@@ -1017,7 +1017,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 32 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 33 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
@@ -1070,8 +1070,8 @@ verdicts painted by the `good`, `problem` and `muted` roles. Their goldens are `
 `figure-before-after.json` and `figure-qa-checklist.json`, their frames are `solid/frames/figure-{redline,before-after,qa-checklist}.png`,
 and the browser reads `?spec=` of each (`browser/figure-handoff-check.mjs`).
 
-**The three wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen`, `anatomy` and `responsivePair`, and their
-data is a **page's own captured frame**: `specs/from-page.ts` runs `dump.ts`'s `capture` and writes the Widgets page's
+**The four wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen`, `anatomy`, `modal` and `responsivePair`,
+and their data is a **page's own captured frame**: `specs/from-page.ts` runs `dump.ts`'s `capture` and writes the Widgets page's
 `rectangle`/`border` boxes and `text` runs into `screen.json` (360x760: 45x48 cells, 23 boxes of 29, 30 runs, 1
 shortened), a 296x120 crop of the same page and four callouts into `anatomy.json` (37x8 cells, 5 boxes, 3 runs), and the
 Sky feed's into `responsive-pair.json` (240x760 and 360x760: 30x48 and 45x48 cells, 8 boxes and 22 runs a side, side by
