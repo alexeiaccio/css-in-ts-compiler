@@ -43,6 +43,10 @@ interface Exports {
   ui_presents(): number;
   dump(): number;
   dump_ptr(): Ptr;
+  ui_term_render(): number;
+  ui_term_console(mode: number): number;
+  ui_term_console_ptr(): Ptr;
+  ui_term_console_len(): number;
   cmd_count(): number;
   cmd_size(): number;
   cmds(): Ptr;
@@ -213,6 +217,14 @@ export const ui = {
   /** No file system: the dump goes to the page (`page.ts` reads it out of the memory), not to a path. */
   dumpJson: (_path: string) => -1,
   draws: () => wasm.ui_draws(),
+  /** The terminal's cells for the last frame (terminal/render.c in this wasm): the grid from the layout's size, the
+   *  commands rendered into it, the rows. The console page's display. */
+  termRender: () => wasm.ui_term_render(),
+  /** The frame as the console call's JSON — 0 the whole frame, 1 the rows changed since the last 1, 2 the whole frame
+   *  again — with its length; the bytes are at termConsolePtr. The rows written. */
+  termConsole: (mode: 0 | 1 | 2) => wasm.ui_term_console(mode),
+  termConsolePtr: (): Ptr => wasm.ui_term_console_ptr(),
+  termConsoleLen: () => wasm.ui_term_console_len(),
   /** The frames the shell put on the canvas: browser/draw.js's paint, the desktop's window present. */
   present: () => wasm.ui_present(),
   presents: () => wasm.ui_presents(),

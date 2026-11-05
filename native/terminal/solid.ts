@@ -44,6 +44,10 @@
 //                                          the module solid/figure.ts prints): --compact, --width N
 //   bun terminal/solid.ts --dump [file]    one frame headless, as plain text (cells_dump: '.' is a fill); no file: stdout
 //   bun terminal/solid.ts --ansi [file]    the same frame as ANSI truecolour (SGR runs merged)
+//   bun terminal/solid.ts --console [file] the same frame as a browser console.log call (cells_console: one %c run a
+//                                          colour pair, every cell of every row); a JSON array of the call's arguments
+//   --console-frames [file]                ... appended one line a frame during the run, as the console page writes: the
+//                                          rows that changed since the frame before, or [] when none did
 //   --keys Tab,ArrowDown                   headless: the frame, then each key with a frame after it, as main.c. A `-`
 //                                          is a frame with no input: what a screen needs between its opening and a
 //                                          scroll key, because the page measures its content from the last layout
@@ -122,6 +126,10 @@ const file = (name: string) => {
 };
 const dump = file("--dump");
 const ansi = file("--ansi");
+// the console sink: `--console` writes the last frame once, `--console-frames` appends one JSON line a frame (the diff
+// against the frame before it, "[]" when nothing changed) — the same sink a browser page logs
+const consoleOut = file("--console");
+const consoleFrames = file("--console-frames");
 const keys = arg("--keys")?.[0]?.split(",");
 const click = arg("--click")?.[0]?.split(",").map(Number);
 const cols = Number(arg("--cols")?.[0] ?? 80);
@@ -177,7 +185,7 @@ const framesOut = file("--frames-out");
 const warm = Number(arg("--warm")?.[0] ?? (skyPage ? 60 : 0));
 // live: draw N frames with no input, then quit (a smoke check, as main.c's; 1 is a screen)
 const maxFrames = Number(arg("--frames")?.[0] ?? Infinity);
-const headless = dump !== undefined || ansi !== undefined || bench > 0 || framesOut !== undefined;
+const headless = dump !== undefined || ansi !== undefined || consoleOut !== undefined || consoleFrames !== undefined || bench > 0 || framesOut !== undefined;
 // the theme's two static literals, and the third: the terminal's own colours (`--system-theme`/THEME=system), solved
 let theme: string | undefined = (arg("--theme")?.[0] ?? process.env.THEME) === "light" ? "light" : undefined;
 const systemFlag =
@@ -645,7 +653,13 @@ if (headless) {
   }
   // every frame of the run, beside the commands: PREFIX.N.txt is the dump and PREFIX.N.ansi the truecolour, N from 0
   let frameNo = 0;
+  // the console sink's own line a frame: one JSON array, "[]" when no cell changed (the diff's whole point). A mutation
+  // for terminal/console.mjs: `--mutate console` diffs against the new frame, so every frame writes whole
+  const consoleKeep = () => {
+    if (consoleFrames !== undefined) term.console(consoleFrames, mutate === "console" ? 2 : 1);
+  };
   const keep = () => {
+    consoleKeep();
     if (framesOut === undefined || framesOut === "-") return;
     term.dump(`${framesOut}.${frameNo}.txt`);
     term.ansi(`${framesOut}.${frameNo}.ansi`);
@@ -683,6 +697,7 @@ if (headless) {
   // the motion at rest: after the keys and the click, a page with a track needs frames after the input, not one
   for (let i = 0; i < settle; i++) {
     frame(-1, -1, false);
+    consoleKeep();
     await land();
   }
   if (bench) {
@@ -705,9 +720,20 @@ if (headless) {
       `terminal, the same frame as ANSI: ${ansiMs.toFixed(3)} ms (cells -> SGR runs, ${bytes.length} bytes, file write ` +
         `included)`,
     );
+    if (consoleOut !== undefined) {
+      const t3 = performance.now();
+      for (let i = 0; i < bench; i++) term.console(path, 0);
+      const consoleMs = (performance.now() - t3) / bench;
+      const json = await Bun.file(path).text();
+      console.log(
+        `terminal, the same frame as a console.log call: ${consoleMs.toFixed(3)} ms (cells -> %c runs, ${json.length} ` +
+          `bytes, file write included)`,
+      );
+    }
   }
   if (dump !== undefined) term.dump(dump);
   if (ansi !== undefined) term.ansi(ansi);
+  if (consoleOut !== undefined) term.console(consoleOut, 0);
   if (showOffset && skyPage) {
     const o = term.scrollOffset("sky-feed");
     console.log(`offset ${o} px (${(o / CELL_H).toFixed(2)} rows)`);

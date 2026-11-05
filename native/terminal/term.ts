@@ -31,6 +31,7 @@ const open = () =>
     term_scroll_put: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.f32 },
     term_dump: { args: [T.cstring], returns: T.i32 },
     term_ansi: { args: [T.cstring], returns: T.i32 },
+    term_console: { args: [T.cstring, T.i32], returns: T.i32 },
     term_ask: { args: [T.cstring, T.ptr, T.i32, T.i32], returns: T.i32 },
     term_errors: { args: [], returns: T.i32 },
     term_close: { args: [], returns: T.void },
@@ -110,6 +111,10 @@ export const term = {
   dump: (path: string) => lib().term_dump(cstr(path)),
   /** The last frame as ANSI truecolour: "-" is stdout. 0 on success. */
   ansi: (path: string) => lib().term_ansi(cstr(path)),
+  /** The last frame as a browser console.log call: mode 0 writes the whole frame over the file, 1 appends only the rows
+   *  that changed since the last mode-1 call (one line a frame, as a console writes), 2 appends whole frames (a test's
+   *  deliberately broken sink). The rows written, -1 when the file cannot be opened. */
+  console: (path: string, mode: 0 | 1 | 2) => lib().term_console(cstr(path), mode),
   /** Writes a query to /dev/tty and reads the terminal's answer into `out` for at most `ms` (a quiet gap ends a real
    *  answer sooner); the byte count, 0 without a terminal. */
   ask: (query: string, out: Uint8Array, ms: number) =>
