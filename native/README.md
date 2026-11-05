@@ -3280,9 +3280,9 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
 nothing at run time pays for them.
 
-**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and seven of
-its kinds are here — the half whose data is **ours** (the token sets, the Dialog's frames, the pages' styles), so the
-figure cannot disagree with the design system it documents:
+**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and eight of
+its kinds are here — the half whose data is **ours** (the token sets, the Dialog's frames, the pages' styles, the docs'
+token file), so the figure cannot disagree with the design system it documents:
 
 | kind | data | the figure |
 | --- | --- | --- |
@@ -3291,6 +3291,7 @@ figure cannot disagree with the design system it documents:
 | `colourRoles` | `[{ label, min, light: { fg, bg, ratio }, dark: { fg, bg, ratio } }]` | a role pair a row, a mode a column: the foreground's and the background's swatch, the ratio and its verdict per mode |
 | `layerStack` | `[{ name, z, box: { width, height }, alpha, radius, blur?, shadow? }]` | a layer a row, back to front: its z as a bar, its box, its fill's alpha, its corner radius, its backdrop blur and its shadow |
 | `stateMatrix` | `{ columns: ["hover", "focus", "active"], rows: [{ name, states }] }` | a style a row, a state a column: a `+` where the style declares that state, painted in the good role |
+| `tokenTable` | `[{ group, name, value }]` | a token a row, its group a heading over the run: the token's name and its resolved value, one table for every length and number group |
 | `spacingScale` | `[{ name, value }]` | a step a row: a bar of `value/largest` and its pixels — a cell is 8px, so a 4px step is **half a cell** |
 | `typeScale` | `[{ name, size, lineHeight }]` | a size a row: a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` **at its own size** |
 
@@ -3307,8 +3308,7 @@ is a line of the suite and not a reviewer's memory. The other two are **hand-wri
 (`space.xs` 4px … `space.3xl` 48px) and `type-scale.json` (12/17 … 40/48) are `apps/docs/src/tokens.json`, where a size's
 line height is the role's choice (`prose.ts`'s 1.7 on prose, 1.2 on the headings) and not a token.
 
-`layer-stack.json` is the half's other kind and the exception: its data is not a token set but **the Dialog's own
-layers**, back to front — the page, the modal's scrim and dialog (its modal frame) and the menu (its menu frame) — with
+`layer-stack.json` is the half's sixth kind and its data is not a token set but **the Dialog's own layers**, back to front — the page, the modal's scrim and dialog (its modal frame) and the menu (its menu frame) — with
 each layer's z, box, fill alpha, radius, backdrop blur and shadow read from the command and the effect row that draw it.
 `specs/from-frames.ts` captures the two frames (settled forty frames after the overlay opens, so a property is the
 layer's and not the entry's) and writes the spec, `solid/figure-handoff.sh` regenerates and `cmp`s it, and
@@ -3319,6 +3319,12 @@ into a spec.
 maps and the Sensors page's exports, asks each style which `:hover`/`:focus`/`:active` keys it carries, and writes a row
 a style and a state a column. `solid/test.sh` regenerates and `cmp`s it, and `figure.test.ts` reads the cells back from
 the frame (69 cells, a `+` in the good role where the style declares the state, a muted `-` where it does not).
+
+`token-table.json` is the eighth and the token file's own: `from-tokens.ts` reads `apps/docs/src/tokens.json`'s seven
+length and number groups (space, radius, fontSize, lineHeight, fontWeight, border, layout), resolves each `calc(Npx *
+{scale.k})` with the scale the file declares, and writes 30 rows — one table, a group's name once over its run.
+`solid/test.sh` regenerates and `cmp`s it, and `figure.test.ts` reads every name, value and one-heading-a-group back
+from the frame.
 
 **The ratio is the engine's, twice.** A pair's number is written by `from-tokens.ts` with `color.ts` and printed at two
 places (`shown`, which floors: 4.499 does not read as the 4.5 it misses). `check` refuses a pair whose ratio is not the
@@ -3453,8 +3459,8 @@ What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"
 cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
 the wireframe section below.
 
-What remains of the kit's systems half: `tokenTable` and `table` — and, as before, the kit's other kinds and its
-motion's `intentCard`/`transitionSpec`.
+What remains of the kit's systems half: `table` — and, as before, the kit's other kinds and its motion's
+`intentCard`/`transitionSpec`.
 
 **The three wireframe kinds: a page, not a drawing.** `screen`, `anatomy` and `responsivePair`
 (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.

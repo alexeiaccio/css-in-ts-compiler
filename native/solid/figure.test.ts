@@ -1,5 +1,5 @@
-// The Figure page's invariants, read back from the frame and not from a string: for every spec in solid/specs (the
-// eight kinds), the bar's fill box against its track's, the number's text command, the rows' order, the funnel's ratios,
+// The Figure page's invariants, read back from the frame and not from a string: for every spec in SPECS, the bar's fill
+// box against its track's, the number's text command, the rows' order, the funnel's ratios,
 // the branch flow's boxes and connectors, the state machine's path, the tree's levels and edges, the journey's feelings;
 // then `check`'s own refusals in their sentences; then the same spec on the terminal, cell for cell.
 //
@@ -38,6 +38,7 @@ const SPECS = [
   "colour-roles",
   "layer-stack",
   "state-matrix",
+  "token-table",
   "spacing",
   "type-scale",
 ] as const;
@@ -52,6 +53,7 @@ const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "colour-roles": "figure-colour-roles",
   "layer-stack": "figure-layer-stack",
   "state-matrix": "figure-state-matrix",
+  "token-table": "figure-token-table",
   "spacing": "figure-spacing",
   "type-scale": "figure-type-scale",
 };
@@ -435,6 +437,23 @@ for (const name of SPECS) {
     else bad(`${name}: the + cells`, `${plus.length} for ${declared}, ${wrong.length} not the good role's`);
   }
 
+  // A token table: a token a row, its group a heading. Every name and value is printed, and a group's name is one heading
+  // on its first row (not repeated down the run).
+  if (s.kind === "tokenTable") {
+    const printed = s.data.every((row) => dump.commands.some((c) => c.type === "text" && c.text === row.value));
+    const names = s.data.every((row) => dump.commands.some((c) => c.type === "text" && c.text === row.name));
+    const groups = [...new Set(s.data.map((row) => row.group))];
+    const headings = groups.every(
+      (group) => dump.commands.filter((c) => c.type === "text" && c.text === group).length === 1,
+    );
+    if (printed && names && headings)
+      ok(
+        `${name}: the table`,
+        `${s.data.length} tokens in ${groups.length} groups, every name and value in the frame, a group's heading once`,
+      );
+    else bad(`${name}: the table`, `values ${printed}, names ${names}, headings ${headings}`);
+  }
+
   // A spacing scale: a step's box is its own value in pixels, not "one cell" — a 4px step of a 48px scale is half a cell.
   if (s.kind === "spacingScale") {
     const errors = l.bars.map((bar) => {
@@ -539,7 +558,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, timeline, tree, typeScale.');
+  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, timeline, tokenTable, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",

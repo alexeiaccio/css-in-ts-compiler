@@ -1,9 +1,9 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 31 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 32 kinds here
 // (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
 // `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`, `nowNextLater`, `palette`,
 // `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
-// `stateMatrix`, `statusKey`, `timeline`, `tree`, `typeScale`)
+// `stateMatrix`, `statusKey`, `timeline`, `tokenTable`, `tree`, `typeScale`)
 // where the kit has thirty-four. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-one this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-two this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
@@ -65,6 +65,7 @@ export const KINDS = [
   "stateMatrix",
   "statusKey",
   "timeline",
+  "tokenTable",
   "tree",
   "typeScale",
   "easing",
@@ -397,6 +398,18 @@ export interface StateMatrixSpec extends Base {
   data: StateMatrixData;
 }
 
+/** One token of a token table: its group, its name in that group, and its value as the token file resolves it. */
+export interface TokenRow {
+  group: string;
+  name: string;
+  value: string;
+}
+
+export interface TokenTableSpec extends Base {
+  kind: "tokenTable";
+  data: readonly TokenRow[];
+}
+
 /** One part of a redline: a rectangle inside the component's box, in pixels, measured from the box's top-left corner. */
 export interface RedlinePart {
   label: string;
@@ -694,6 +707,7 @@ export type Spec =
   | JourneyMapSpec
   | LayerStackSpec
   | StateMatrixSpec
+  | TokenTableSpec
   | MeterSpec
   | NowNextLaterSpec
   | PaletteSpec

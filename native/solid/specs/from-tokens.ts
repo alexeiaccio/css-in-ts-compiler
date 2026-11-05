@@ -1,7 +1,7 @@
-// The three design-system specs whose numbers are our data: `palette.json`, `contrast.json` and `colour-roles.json`. This
-// script writes them from the token set and the engine's own contrast, so a token change cannot leave a figure stale —
-// `solid/test.sh` regenerates them into a temp directory and `cmp`s them with the files in this directory (a drift is a
-// `cmp` line).
+// The four design-system specs whose numbers are our data: `palette.json`, `contrast.json`, `colour-roles.json` and
+// `token-table.json`. This script writes them from the token set and the engine's own contrast, so a token change cannot
+// leave a figure stale — `solid/test.sh` regenerates them into a temp directory and `cmp`s them with the files in this
+// directory (a drift is a `cmp` line).
 //
 //   node native/solid/specs/from-tokens.ts            rewrites the three here in place
 //   node native/solid/specs/from-tokens.ts <dir>      writes them into <dir> (the check's own way: it writes nothing)
@@ -24,7 +24,7 @@
 //     promise 3:1 and the figure would have to say "fails" about a colour that is doing its job.
 // The other two of the four are hand-written, and say so: spacing.json and type-scale.json are apps/docs/src/tokens.json
 // (`space` and `fontSize`), where the line height is a role's choice (prose.ts's 1.7, the headings' 1.2) and not a token.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -71,6 +71,45 @@ const contrastSpec = {
   data: floors.map(([label, fg, bg, min]) => ({ label, fg, bg, min, ratio: contrast(fg, bg) })),
 };
 
+// the docs' tokens as one table: the length and number groups of apps/docs/src/tokens.json, each value resolved the way
+// the file means it (a `calc(Npx * {scale.k})` with the scale the file declares, or a { value, unit } pair)
+const TOKEN_GROUPS = ["space", "radius", "fontSize", "lineHeight", "fontWeight", "border", "layout"] as const;
+const tokens = JSON.parse(readFileSync(`${REPO}/apps/docs/src/tokens.json`, "utf8")) as Record<string, Record<string, unknown>>;
+const scales = tokens.scale!;
+const scaleOf = (name: string): number => {
+  const token = scales[name] as { $value?: number } | undefined;
+  return typeof token?.$value === "number" ? token.$value : 1;
+};
+const resolveToken = (raw: unknown): string | undefined => {
+  if (typeof raw === "number") return String(raw);
+  if (typeof raw === "string") {
+    const calc = /^calc\(([\d.]+)px \* \{scale\.(\w+)\}\)$/.exec(raw);
+    return calc ? `${Number(calc[1]) * scaleOf(calc[2]!)}px` : raw;
+  }
+  if (raw && typeof raw === "object" && "value" in raw) {
+    const { value, unit } = raw as { value: number; unit?: string };
+    return `${value}${unit ?? ""}`;
+  }
+  return undefined;
+};
+const tokenRows = TOKEN_GROUPS.flatMap((group) =>
+  Object.entries(tokens[group] ?? {})
+    .filter(([name]) => !name.startsWith("$"))
+    .flatMap(([name, token]) => {
+      const value = resolveToken((token as { $value?: unknown }).$value);
+      return value === undefined ? [] : [{ group, name, value }];
+    }),
+);
+const tokenTable = {
+  kind: "tokenTable",
+  title: "The docs' tokens, in one table",
+  intent:
+    `The documentation site's ${tokenRows.length} length and number tokens in ${TOKEN_GROUPS.length} groups, each value ` +
+    `as the token file resolves it (the scale the file declares applied to its calc() forms).`,
+  source: "apps/docs/src/tokens.json (the dimension, length and weight groups)",
+  data: tokenRows,
+};
+
 // the same pairs in both modes, each mode's ratio the engine's: a role's value is the palette's, never typed
 const dark = palette0.dark;
 const rolePairs: [string, keyof typeof light, keyof typeof light, number][] = [
@@ -108,6 +147,7 @@ for (const [name, spec] of [
   ["palette.json", palette],
   ["contrast.json", contrastSpec],
   ["colour-roles.json", colourRoles],
+  ["token-table.json", tokenTable],
 ] as const) {
   writeFileSync(resolve(out, name), `${JSON.stringify(spec, null, 2)}\n`);
   console.log(`from-tokens: ${resolve(out, name)}`);

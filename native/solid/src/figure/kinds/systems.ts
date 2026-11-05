@@ -5,6 +5,7 @@
 //   colourRoles  a role pair a row, light and dark side by side: the two swatches, the ratio and the verdict per mode
 //   layerStack   a layer a row, back to front: its z as a bar, its box, its fill's alpha, its radius, its blur and shadow
 //   stateMatrix  a style a row, a state a column: whether the style declares that state, as a + or a -
+//   tokenTable   a token a row, its group a heading: the group's name once and its tokens under it, with the value
 //   spacingScale a step a row: its name, a bar of value/largest (a 4px step of a 48px scale is half a cell), its pixels
 //   typeScale    a size a row: its name, a bar of size/largest, size/lineHeight, and a specimen at its own size
 //
@@ -28,6 +29,7 @@ import type {
   PaletteSpec,
   SpacingSpec,
   StateMatrixSpec,
+  TokenTableSpec,
   TypeScaleSpec,
 } from "../spec.ts";
 import {
@@ -396,6 +398,70 @@ function stateMatrixNames(data: unknown): string[] {
 }
 
 /**
+ * A token table: a token a row, its group a heading — the group's name on the group's first row and blank under it, the
+ * token's own name, and its value as the token file resolves it (`4px`, `1.2`, `400`). The data is `apps/docs`'
+ * `tokens.json` (`solid/specs/from-tokens.ts` resolves the `calc(Npx * {scale.k})` forms with the scale the file
+ * declares), so the table cannot disagree with the design system it lists; a group is one run of rows, in the file's
+ * order.
+ */
+function tokenTable(spec: TokenTableSpec): Layout {
+  const rows = spec.data;
+  const groupWidth = longest(rows.map((row) => row.group)) + 2;
+  const nameWidth = longest(rows.map((row) => row.name)) + 2;
+  const valueWidth = longest([...rows.map((row) => row.value), "value"]) + 1;
+  const pad = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cells(text)));
+  const head = `${pad("group", groupWidth)}${pad("token", nameWidth)}value`;
+  const lines: LayoutLine[] = [{ items: [textItem("fig-tokens-head", head, cells(head), "muted", "label")] }];
+  const labels: Layout["labels"] = [];
+  rows.forEach((row, i) => {
+    const first = i === 0 || rows[i - 1]!.group !== row.group;
+    labels.push({ textId: `fig-token-${i}`, text: row.name });
+    lines.push({
+      items: [
+        textItem(`fig-group-${i}`, first ? row.group : " ".repeat(cells(row.group)), groupWidth, "muted", "label"),
+        textItem(`fig-token-${i}`, row.name, nameWidth, "ink", "label"),
+        textItem(`fig-token-value-${i}`, row.value, valueWidth, "ink", "value"),
+      ],
+    });
+  });
+  return finish(spec, "tokenTable", cells(head), lines, [], labels);
+}
+
+/** A token table: every row has a group, a name and a value, and a group's rows are one run (a table cannot reopen one). */
+function tokenTableProblems(data: unknown): string[] {
+  const rows = rowsOf(data);
+  if (!rows.length)
+    return ['A token table needs its tokens: [{ "group": "space", "name": "xs", "value": "4px" }].'];
+  const out: string[] = [];
+  const closed = new Set<string>();
+  let group = "";
+  const names = new Map<string, Set<string>>();
+  for (const [i, row] of rows.entries()) {
+    if (!isObject(row)) {
+      out.push(`Token ${i + 1} is not an object: it needs a group, a name and a value.`);
+      continue;
+    }
+    const ok = (field: "group" | "name" | "value") => typeof row[field] === "string" && !!(row[field] as string).trim();
+    if (!ok("group") || !ok("name") || !ok("value")) {
+      out.push(`Token ${i + 1} needs its group, its name and its value: ${say(row)} is not one.`);
+      continue;
+    }
+    const rowGroup = row.group as string;
+    const rowName = row.name as string;
+    if (rowGroup !== group) {
+      if (closed.has(rowGroup)) out.push(`"${rowGroup}" appears twice: a group is one run of rows.`);
+      closed.add(group);
+      group = rowGroup;
+    }
+    const seen = names.get(rowGroup) ?? new Set<string>();
+    if (seen.has(rowName)) out.push(`${rowGroup}.${rowName} is two tokens: one name, one row.`);
+    seen.add(rowName);
+    names.set(rowGroup, seen);
+  }
+  return out;
+}
+
+/**
  * A spacing scale: a step a row — its name, a bar of `value/largest`, its pixels. A cell is 8px and the track is the
  * largest step, so the scale maps to cells at its own length: a 4px step of a 48px scale is **half a cell** (`▌` in the
  * text half, 4px of fill on the pixel targets), not "one cell", and every step's fill is exactly its value's.
@@ -605,6 +671,7 @@ function stepNames(data: unknown): string[] {
 register("colourRoles", { layout: colourRoles, check: colourRolesProblems });
 register("layerStack", { layout: layerStack, check: layerStackProblems, names: layerNames });
 register("stateMatrix", { layout: stateMatrix, check: stateMatrixProblems, names: stateMatrixNames });
+register("tokenTable", { layout: tokenTable, check: tokenTableProblems });
 register("palette", { layout: palette, check: paletteProblems, names: paletteNames });
 register("spacingScale", { layout: spacingScale, check: spacingProblems, names: stepNames });
 register("typeScale", { layout: typeScale, check: typeProblems, names: stepNames });
