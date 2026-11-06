@@ -119,17 +119,18 @@ export interface RadioGroup<T = unknown> {
  *
  * Roving (the default) is the platform's `focusgroup="radiogroup"` contract
  * (`shared/focusgroup.qnt`, `./focusgroup`): arrows along both axes, Home / End,
- * wrap and the item `tabindex` are the browser's (Chromium 150+) or the
- * `@microsoft/focusgroup-polyfill`'s, and the primitive never picks the stop. Two
- * deltas stay the library's, because the shared contract explicitly leaves
- * selection, activation and `aria-orientation` to the pattern:
+ * wrap, the single tab stop and the item `tabindex` are the browser's (Chromium
+ * 150+) or the `@microsoft/focusgroup-polyfill`'s. Two deltas stay the library's,
+ * because the shared contract explicitly leaves selection, activation and the
+ * entry point to the pattern:
  * - selection follows focus: the owner's `focusin` handler checks the radio the
  *   platform landed on (an arrow, Home or End), while a focus that arrives from
  *   outside (Tab, a click) only moves the focus state;
- * - the tab stop is the checked radio, else the first enabled one, wherever the
- *   focus happens to be. That is the APG rule the platform cannot express (it
- *   makes the focused item the tab stop), so the definition is `nomemory` with
- *   a `focusgroupstart` marker on that radio, re-derived after every focus move.
+ * - the entry point, `focusgroupstart`: the checked radio, else the first enabled
+ *   one. While focus is inside the group the platform's stop is the focused radio
+ *   (the primitive does not re-seat it — a native engine keeps the stop in its
+ *   focus controller), and `nomemory` makes the next Tab entry land on the marker
+ *   again, which is the APG rule users see.
  * A disabled radio is out of the group's roving set (`focusgroup="none"`, as
  * `shared/focusgroup.qnt` prescribes for an item the platform must skip) and
  * keeps `tabindex="-1"` out of the tab order — the rule this spec has always
@@ -362,7 +363,12 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     }
   };
 
-  /** The platform reads the DOM, so re-derive its tab stop after a render. */
+  /**
+   * The platform reads the DOM — its item set, the `focusgroupstart` marker it
+   * enters on — so reconcile after the render that changed them. Deferred a
+   * microtask, because a ref or a setter runs before Solid's commit has written
+   * the attributes of the same pass.
+   */
   const reconcile = (): void => {
     if (reconcilePending) {
       return;
@@ -408,11 +414,10 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
   };
 
   /**
-   * After the provider's own focusin listener, so the tab stop it just moved is
-   * re-derived from the start marker: the APG tab stop is the checked radio, not
-   * the radio the arrow landed on. Deferred to a microtask, because the platform
-   * is still inside its own move (it writes the old item's `tabindex` after
-   * `focus()` returns, which would overwrite the correction).
+   * After the provider's own focusin listener: the platform has moved the stop and
+   * the DOM focus, so the primitive only records where the focus went — and, when
+   * the move came from an arrow / Home / End rather than an entry, requests the
+   * check that focusgroup leaves to the pattern.
    */
   const focusIn = (event: FocusEvent): void => {
     if (flavor() !== "roving") {
@@ -428,7 +433,6 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     if (moved) {
       select(index);
     }
-    reconcile();
   };
 
   /**

@@ -266,10 +266,11 @@ describe("createRadioGroup x the native focusgroup (real keys)", () => {
   );
 
   it.skipIf(!supportsFocusGroup())(
-    "keeps the tab stop on the checked radio while a rejected request moves the focus",
+    "re-enters on the checked radio after a rejected request moved the focus",
     async () => {
-      // the host pins the check at "c" and ignores the request: focus moves to 3,
-      // the check stays 2, so the tab stop (and re-entry) must stay on 2
+      // the host pins the check at "c" and ignores the request: focus moves to 3
+      // and the engine's stop follows it, while the entry marker stays on the
+      // checked radio 2 — so Tab out and back lands on 2
       const group = mountNative({ pinned: "c" });
       group.before.focus();
       await tab();
