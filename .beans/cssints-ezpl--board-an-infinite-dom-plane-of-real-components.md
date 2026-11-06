@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-06T10:15:47Z
-updated_at: 2026-11-06T10:45:53Z
+updated_at: 2026-11-06T11:12:00Z
 ---
 
 A plane you place real components on: the starter the dragging note (`cssints-2cxd`) named as the right home for free-form
@@ -48,3 +48,10 @@ plane's transform and the selection. Decisions recorded in `docs/wayfinder.md`.
 Shipped as a **design system map** rather than a generic canvas: `apps/ui/src/registry/board/` with token cards (swatch, text value, the rule behind it), part cards holding real components (Button, Badge) in an `inert` body, an edge per use, a current card that dims what it does not reach, pointer drag with a plane clamp, arrow nudge, and `createPanZoom` for pan/zoom (its roledescription overridden to "board"). The edge geometry was extracted to `apps/ui/src/registry/route.ts` and is shared with the diagram. 6 conformance tests, the site test drives the page, the map is in the registry (`r/board.json`) and in wayfinder.
 
 Left for this bean: editing a token value on the board (the management action), an outline view, and curved/avoiding edge routing (where pave would enter).
+
+
+## Round two (2026-11-06)
+
+The owner asked for perfect-arrows, arrows over the cards, one big canvas with all the connections and settings, and pointed at the mise-en-mode layer. Shipped: the whole theme on one plane (19 tokens, 5 real components, 23 uses), the plane given its own content size (`width`/`height`) so pan/zoom/Fit explore a 1354x808 map, arrows from perfect-arrows drawn over the cards without a casing, a settings bar with Fit, the zoom value and a mode switch that sets `data-mode` on the viewport (the theme's look), and a layout that is a function of the token lists. 8 conformance tests.
+
+Left from the bean: editing a token value on the board (the management action) and an outline view. Curved routing is done; routing *around* cards is not (and is where pave would enter if a real map needs it).

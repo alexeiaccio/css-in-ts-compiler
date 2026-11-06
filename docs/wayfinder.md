@@ -4575,3 +4575,54 @@ the site test driving `#board--design-system` (7 cards, a token made current, th
 build, `bun run typecheck` and `diff:check`. Screenshots: the map at rest, the same map in dark, and `color.highlight`
 current. **Left:** the management action itself (editing a token's value on the board), an outline view for a plane that
 grows past one screen, and curved routing if a real map needs it.
+
+## The board, round two: perfect-arrows, on top, one canvas, and the mode switch (2026-11-06)
+
+Three notes from the owner ("we have the mise-en-mode layer; use perfect-arrows for the arrows; they should be over the
+cards, or mermaid style; and one big canvas with all the connections and settings") turned the board from a seven-card
+sketch into the whole system.
+
+- **The arrows are perfect-arrows'**. `getBoxToBoxArrow` from [perfect-arrows](https://github.com/steveruizok/perfect-arrows)
+  (Steve Ruiz, MIT) computes the curve and the head's angle from both boxes, so a line leaves and enters a card at a place
+  that follows the layout instead of a centre that points through it. **The npm package is broken**: `0.3.7` ships only its
+  `src/index.ts` with no `dist/` and no sibling modules, so an import fails at build time; `0.3.5` has a working `dist/` and
+  types, and that is the pinned version (`apps/ui` only — the library is not a dependency of a published package).
+- **Over the cards, thin, no halo.** A connection is a fact about the map, so it is never hidden by a card it crosses; a
+  casing in the page's colour was tried first and read as damage to the cards, so the line is 1.25 px and the head is a
+  small filled triangle. The SVG is `aria-hidden` and `pointer-events: none`: the relationships live in the cards' text.
+- **One canvas.** The plane's content has its own size (`width` / `height` props; the frame is still the viewport), so the
+  map is 1354 × 808 with a world wrapper centred on the plane, and pan, the wheel, the keys and Fit work over all of it. The
+  plane's smallest scale is `0.5`, so `0` (and Fit) is the overview; the stories open at `0.5` — the whole system first,
+  detail by zooming.
+- **The settings bar is the mise-en-mode layer.** A mode switch sets `data-mode` on the viewport, so every card, swatch and
+  arrow follows the theme's registered look (`look(t, "dark", "app", darkTheme)` in `theme.ts`) with no second dataset. The
+  Dark story opens under it. Fit and the zoom value sit beside it.
+- **All of it is data.** Nineteen tokens (the ten colours and the nine steps and type sizes the theme publishes) and five
+  parts (Button, Badge, Switch, Input, Tabs) with twenty-three uses; positions come from the lists, so a token added to the
+  theme moves the map. Each part card holds the real component, `inert` (a card is not a control).
+
+**Two things learned the hard way.** A `css.*` call cannot read a signal — `css.fill(live ? a : b)` is a build error, the
+variants must be precomputed classes. And `overflow: hidden` on the transformed plane clips to the _scaled_ box (366 px at
+half scale), not to the frame: the viewport clips, the plane must not.
+
+**Evidence:** 8 conformance tests (the reading order and the name; every relationship as text; current + dim + Escape; a
+pointer drag with the clamp; the arrow nudge against the plane pan; the dark look on the plane and back; Fit at 50%; zoom and
+the live value), the site test driving the page (24 cards, a token made current, the mode switch), build, typecheck,
+`diff:check`. Screenshots: the whole map, its dark look, `color.highlight` current, and Fit.
+
+## Numbers from layout: the noscript.ing reference for `reactive` (2026-11-06)
+
+[Computing with CSS Layout](https://noscript.ing/compute) (Agustin Capeletto) is the read side of everything `reactive`
+does: **layout itself as the calculator**. One element is a query container (`container-type: inline-size`) whose width the
+browser already computed, and `round(100cqw / 1px)` into an `@property`-registered `<integer>` turns that width into a
+number a stylesheet can use. The article's primitives: an auto grid column is `max()`, a hug-width flex row is a sum,
+`order` sorts (the median is the middle column read), `anchor()` gives a distance and therefore a rank, `sibling-index()` an
+index; a counter prints the number. The cost table is the argument: for 300 changing numbers, item-by-index is 99 ms and
+31 KB of generated CSS in `calc()` against 3.9 ms with layout helping, rank 95 ms and 5 MB against 6 ms.
+
+**Why it is a reference and not a change.** `reactive` writes state into the DOM and computes attributes from it; this
+computes _derived values from content_ with no state at all. The kit already divides `100cqw` / `100cqh` in the sparkline, but
+only as lengths inside `hypot` / `atan2` — it never reads a length back as a number, and the engine has no member for a
+typed `@property`, though `surface.ts` emits one by hand. The fit is a starter, not a package: a meter or a column chart whose
+scale is `max()` of its siblings, read back and printed, would prove the pattern on real components. Recorded as
+`cssints-rl3n` with that one experiment as its done-when — and **not** taken as a dependency or a rewrite.
