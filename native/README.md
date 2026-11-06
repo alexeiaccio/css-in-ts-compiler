@@ -3093,9 +3093,9 @@ metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figu
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data,
-its `lang`, its SAMPLE DATA stamp and its `label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF,
-PNG) and the 39 kinds below are here; each section says what its half still cannot carry.
+**Not here** (and honest about it): the kit's `@file` data, its `lang`, its SAMPLE DATA stamp and its `label`. The text
+renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 42 kinds below are here; each section says what
+its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
@@ -3497,8 +3497,8 @@ What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"
 cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
 the wireframe section below.
 
-What remains of the kit's systems half: nothing — its nine kinds are here. As before, the kit's other kinds and its
-motion's `intentCard`/`transitionSpec` are not.
+What remains of the kit's systems half: nothing — its nine kinds are here, and the kit's own `cohort`, `forecast` and
+`listDetail` are here too; its motion half is complete (the sections below).
 
 **The seven wireframe kinds: a page, not a drawing.** `screen`, `anatomy`, `appShell`, `cardGrid`, `listDetail`, `modal`
 and `responsivePair` (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command
@@ -3598,11 +3598,14 @@ rows (48 of 90 cells), the note, the six refusals, the mutation (a pane 4px off 
 `check` refuses it), the golden and the terminal's rows (18 checks).
 What remains: a page at a scroll offset (a capture is one frame, at rest), and the pixel columns above.
 
-**The four motion kinds.** `motionTiming`, `easing`, `stagger` and `frameStrip` (`solid/src/figure/kinds/motion.ts`) are
-the first kinds whose data is not typed but **solved**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own
-`Track.at` and `Decay.at` at 1/60 and writes `motion-timing.json`, `easing.json`, `stagger.json` and `frame-strip.json`,
-and `solid/test.sh` regenerates them into a temp directory and `cmp`s (`--check` does both) — so a change to the spring
-changes the figure in the same commit. `motionTiming` is a track's samples a bar a row, the settle marked;
+**The seven motion kinds.** `motionTiming`, `easing`, `stagger`, `frameStrip`, `intentCard`, `transitionSpec` and
+`easingTable` (`solid/src/figure/kinds/motion.ts`) are the first kinds whose data is not typed but **solved** and
+**captured**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own `Track.at` and `Decay.at` at 1/60 and writes
+`motion-timing.json`, `easing.json`, `stagger.json`, `frame-strip.json` and `easing-table.json`, and `solid/test.sh`
+regenerates them into a temp directory and `cmp`s (`--check` does both) — so a change to the spring changes the figure in
+the same commit. `solid/specs/from-frames.ts` captures the pages for the other two: `intent-card.json` is the Sky feed's
+third card at nine frames, each frame's group effect its alpha and y, and `transition-spec.json` is the Dialog's menu at
+the `dialog-menu` scene's entry (`settle 0`) and its settle (`settle 40`); `figure-handoff.sh` cmps both. `motionTiming` is a track's samples a bar a row, the settle marked;
 `easing` is a curve a block of dots (the instants across, the values down, one scale for both curves, and the `v = 0`/peak
 note under it); `stagger` is an item a row with its delay as an indent and its span as a bar; `frameStrip` is glyph-kit's
 filmstrip, a frame a row with the box at its offset in cells. The data is the repository's own motion: the Dialog's panel
@@ -3616,8 +3619,27 @@ clock, the script on 1/60), and the cards' 50ms is three frames of a sixtieth. E
 `solid/figure-motion.test.ts` holds the samples to `Track.at` (worst 0.0044px), each dot to its sample (half a value level
 is 1.17px), each strip's box to the track's offset (0.47 of a cell) and the stagger's bars to the items' own delays, then
 the terminal's rows to the frame's words and the browser to `?spec=` of each file. What the figures do not carry: a
-figure is one track's or one run's trajectory, so a retarget mid-flight (the Dialog's reopen) is still a test's number,
-and the kit's `intentCard`, `transitionSpec` and `easingTable` are not kinds here.
+figure is one track's or one run's trajectory, so a retarget mid-flight (the Dialog's reopen) is still a test's number.
+
+**The card, the transition and the easing table.** `intentCard` is one animation as a card: the `@cssints/motion` preset
+whose fields it moves (the package's `presets` table, by name, in `solid/specs/from-frames.ts`'s `presetOf`), the two
+properties and the values they run between, the duration and delay, the trigger, and the frames the page actually took —
+the Sky feed's third card at 16.67, 33.33, 66.67, 116.67, 166.67, 233.33, 333.33, 500 and 666.67ms, waiting its 100ms
+before its 300ms entry, its alpha 0 → 255 and its y 12 → 0 read from the group effect each captured frame drew (a bar a
+property a frame, filled by the frame's own progress). `transitionSpec` is one transition before and after: the
+`dialog-menu` scene's keys in two captures give the menu's box at the entry's start (`40, 224.16 · 150x133`) and at its
+settle (`40, 214.16 · 150x133`) and the five properties between them — the offset y `224.16 → 214.16px`, the alpha
+`225 → 255`, the scale `96 → 100%`, the tilt `-2 → 0°` and the shadow's blur `0 → 14px` — with the 220ms the Dialog's
+longest track names and no delay. `easingTable` is the app's curves in one table: a row a curve (the panel's entry, the
+menu's slide, the scrim's fade, the panel's exit, the card's entry, the card's fade and a hover's fade), its class, its
+duration and bounce, and its progress at 0, 25, 50, 75 and 100% of its duration — computed by `from-motion.ts` calling
+`Track.at` at those instants, so the entry's 220ms `spatial(0.22, 0.1)` reads 0.00, 49.40, 86.85, 98.04 and 100.04%.
+The springs and the numbers a page starts an entry from are `solid/src/animations.ts`'s, imported by `app/Dialog.tsx`,
+`app/Sky.tsx` and the two generators, so a timing cannot drift from the figure. Each has a stored frame
+(`solid/frames/figure-{intent-card,transition-spec,easing-table}.png`, 73, 15 and 85 commands) and a command golden, and
+`solid/figure-{intent-card,transition-spec,easing-table}.test.ts` holds the card to nine re-captures of the page's group
+rows, the transition to a re-capture of both frames and the Dialog's constants, and the table to the solver at every
+point, then the drawing, the refusals, the terminal's rows and a mutation each (16, 16 and 14 checks).
 `layerStack`, `tokenTable` and `table` — and, as before, the kit's other kinds, its motion, and its exports to HTML,
 decks, SVG, PDF and PNG.
 

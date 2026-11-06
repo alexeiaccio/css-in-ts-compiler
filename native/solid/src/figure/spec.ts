@@ -1,10 +1,11 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 39 kinds here
-// (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `colourRoles`, `compare`, `contrast`,
-// `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`,
-// `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`,
-// `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`,
-// `typeScale`).
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 42 kinds here
+// (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `cohort`,
+// `colourRoles`, `compare`, `contrast`, `easing`, `easingTable`, `flow`, `forecast`, `frameStrip`,
+// `funnel`, `heatmap`, `intentCard`, `journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`,
+// `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`,
+// `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`,
+// `timeline`, `tokenTable`, `transitionSpec`, `tree`, `typeScale`).
 // `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -37,7 +38,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: these are the thirty-nine this repository draws. The runtime list is the registry's (`kinds()` in
+// The kinds' **types**: these are the forty-two this repository draws. The runtime list is the registry's (`kinds()` in
 // ./registry.ts, alphabetical), and figure-registry.test.ts holds this list, the registry and native/docs/map.md
 // together — so a kind added here without its area file fails there. The kit's own types that are still not drawn are
 // named in native/README.md's "Not here", with the reason each waits.
@@ -53,11 +54,13 @@ export const KINDS = [
   "compare",
   "contrast",
   "easing",
+  "easingTable",
   "flow",
   "forecast",
   "frameStrip",
   "funnel",
   "heatmap",
+  "intentCard",
   "journeyMap",
   "layerStack",
   "listDetail",
@@ -79,6 +82,7 @@ export const KINDS = [
   "table",
   "timeline",
   "tokenTable",
+  "transitionSpec",
   "tree",
   "typeScale",
 ];
@@ -659,6 +663,103 @@ export interface FrameStripSpec extends Base {
   options?: { readonly width?: number };
 }
 
+/** One property an animation changes: its name, the two values it runs between, and the unit those values read in. */
+export interface CardProperty {
+  readonly name: string;
+  readonly from: number;
+  readonly to: number;
+  /** `"of 255"`, `"px"`, `"%"`, `"deg"`: what the numbers mean, printed beside them. */
+  readonly unit: string;
+}
+
+/** One recorded frame of a card: the instant it was taken at, and a value for each of the card's properties. */
+export interface CardFrame {
+  readonly ms: number;
+  readonly values: readonly number[];
+}
+
+/**
+ * One animation as a card: what it is for, the `@cssints/motion` preset whose fields are the ones it changes, the page
+ * it runs on and the trigger it answers, its duration and delay, the properties and the values they run between, and the
+ * frames it actually took. `solid/specs/from-frames.ts` writes it from the page's own frames, so the numbers are the
+ * page's.
+ */
+export interface IntentCardData {
+  /** What animates: `the feed's third card`. */
+  readonly label: string;
+  /** The page it runs on, as `native/solid/app` names it: `Sky`. */
+  readonly page: string;
+  /** What starts it: `the feed's first mount`. */
+  readonly trigger: string;
+  /** The preset's name, from `@cssints/motion`'s table: the fields it sets are the properties this card changes. */
+  readonly preset: string;
+  /** The animation's duration, in ms. */
+  readonly duration: number;
+  /** What it waits before it starts, in ms. */
+  readonly delay: number;
+  readonly properties: readonly CardProperty[];
+  readonly frames: readonly CardFrame[];
+}
+
+export interface IntentCardSpec extends Base {
+  kind: "intentCard";
+  data: IntentCardData;
+}
+
+/** One property a transition moves: the same two numbers a card's property has, so a figure reads the same either way. */
+export type TransitionProperty = CardProperty;
+
+/** The two boxes one transition moves between: the animating element's own box at the start and at the end. */
+export interface TransitionBoxes {
+  readonly from: WireBox;
+  readonly to: WireBox;
+}
+
+/**
+ * One transition, before and after: the recorded scene it was taken from, what triggers it, the element's box in each
+ * frame, the properties that move (with the two values each runs between), and the duration and delay of the motion that
+ * moves them. `solid/specs/from-frames.ts` writes it from two captured frames of `solid/scenes/*.json`, so the boxes and
+ * the properties are the frames', and the duration is the page's own spring.
+ */
+export interface TransitionSpecData extends TransitionBoxes {
+  /** What moves: `the menu`. */
+  readonly label: string;
+  /** The page it runs on: `dialog`. */
+  readonly page: string;
+  /** The recorded scene the frames were taken from: `dialog-menu`. */
+  readonly scene: string;
+  /** What starts it: `Enter on the Zoom control`. */
+  readonly trigger: string;
+  readonly properties: readonly TransitionProperty[];
+  /** The motion's duration, in ms: the longest track driving the properties. */
+  readonly duration: number;
+  readonly delay: number;
+}
+
+export interface TransitionSpecSpec extends Base {
+  kind: "transitionSpec";
+  data: TransitionSpecData;
+}
+
+/** One row of an easing table: a curve as the app uses it, and the progress it makes at five points of its duration. */
+export interface EasingRow {
+  /** Where the curve is used, as the app names it: `the panel's entry`. */
+  readonly label: string;
+  readonly motion: MotionClass;
+  /** The progress at 0, 25, 50, 75 and 100% of the duration, in percent of the travel. */
+  readonly progress: readonly number[];
+}
+
+/**
+ * The app's easing curves in one table: a row a curve, its class, its duration and bounce, and its progress at 0, 25, 50,
+ * 75 and 100% of the duration — `solid/specs/from-motion.ts` calls `solid/src/motion.ts`'s own solver at those instants,
+ * so a row is the model's, not a table of numbers.
+ */
+export interface EasingTableSpec extends Base {
+  kind: "easingTable";
+  data: { readonly rows: readonly EasingRow[] };
+}
+
 /** One row of a timeline: its label, the span it covers on the shared axis, and what the source recorded of it. */
 export interface TimelineEntry {
   label: string;
@@ -929,9 +1030,12 @@ export type Spec =
   | TreeSpec
   | TypeScaleSpec
   | EasingSpec
+  | EasingTableSpec
   | FrameStripSpec
+  | IntentCardSpec
   | MotionTimingSpec
-  | StaggerSpec;
+  | StaggerSpec
+  | TransitionSpecSpec;
 
 /** Does the data hold a number anywhere? A spec with numbers needs a source, as the kit's guard refuses without one. */
 function hasNumbers(value: unknown): boolean {

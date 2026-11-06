@@ -1,11 +1,12 @@
-// The four motion specs' numbers are **the solver's**, not typed: this script runs `solid/src/motion.ts` itself at a
-// fixed clock and writes motion-timing.json, easing.json, stagger.json and frame-strip.json, so a change to the spring
-// changes the figure in the same commit — `solid/test.sh` regenerates them into a temp directory and `cmp`s (`--check`
-// does both and exits non-zero with cmp's line).
+// The motion specs' numbers are **the solver's and the pages'**, not typed: this script runs `solid/src/motion.ts` itself
+// at a fixed clock and writes motion-timing.json, easing.json, stagger.json, frame-strip.json and easing-table.json, so a
+// change to the spring — or to a constant in `solid/src/animations.ts`, which the pages run on — changes the figure in
+// the same commit. `solid/test.sh` regenerates them into a temp directory and `cmp`s (`--check` does both and exits
+// non-zero with cmp's line). The card and the transition come from the pages' own frames (`from-frames.ts`).
 //
-//   node native/solid/specs/from-motion.ts            rewrites the four specs here in place
-//   node native/solid/specs/from-motion.ts <dir>      writes them into <dir> (the check's own way: it writes nothing)
-//   node native/solid/specs/from-motion.ts --check    writes into a temp dir and cmps; a drift is a cmp line, exit 1
+//   bun native/solid/specs/from-motion.ts            rewrites the five specs here in place
+//   bun native/solid/specs/from-motion.ts <dir>      writes them into <dir> (the check's own way: it writes nothing)
+//   bun native/solid/specs/from-motion.ts --check    writes into a temp dir and cmps; a drift is a cmp line, exit 1
 //
 // The clock is passed in (`Track` never reads the time), so a headless run is exact: every sample below is `at(1/60 · n)`
 // or a step of it, in the order the page would present them. Which numbers the README already records, checked here so
@@ -20,6 +21,16 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
+import {
+  CARD_ENTRY,
+  CARD_ENTRY_A,
+  CARD_ENTRY_Y,
+  GROW,
+  HOVER,
+  OUT,
+  OUT_SLIDE,
+  SLIDE,
+} from "../src/animations.ts";
 import { decay, effect, spatial, track, type Spring } from "../src/motion.ts";
 
 /** The clock every sample is taken on: one sixtieth of a second, the frame a headless page runs at. */
@@ -77,10 +88,11 @@ const settleFrame = (from: number, to: number, spring: Spring): number => {
 };
 
 const PANEL = { start: 149.88, target: 163.88 }; // the panel's box y, 14px below its trigger's corner
-const PANEL_IN = spatial(0.22, 0.1); // Dialog.tsx's GROW: the panel's entry
-const PANEL_OUT = spatial(0.2, 0); // ... and OUT_SLIDE: its exit
-const MENU_IN = spatial(0.22, 0.1); // the menu's slide out of its trigger (offset y -10 → -20)
-const CARD = spatial(0.3); // Sky.tsx's entry: each card 12px low, on spatial(0.3)
+// the pages' own springs, from src/animations.ts: the figure and Dialog.tsx/Sky.tsx read one constant, so the figure's
+// samples cannot drift from the motion a page runs
+const PANEL_IN = GROW; // Dialog.tsx's panel entry
+const PANEL_OUT = OUT_SLIDE; // ... and its exit
+const MENU_IN = SLIDE; // the menu's slide out of its trigger (offset y -10 → -20)
 
 const motionTiming = {
   kind: "motionTiming",
@@ -136,8 +148,8 @@ const easing = {
   },
 };
 
-const STAGGER = 50; // ms: 3 frames at 60Hz, each card after the one above it
-const CARD_MS = 300; // the card's entry duration
+const STAGGER = Math.round(CARD_ENTRY.delay * 1000); // ms: 3 frames at 60Hz, each card after the one above it
+const CARD_MS = Math.round(CARD_ENTRY.time * 1000); // the card's entry duration
 const stagger = {
   kind: "stagger",
   title: "The feed's three cards, 50ms apart",
@@ -209,14 +221,61 @@ function recorded(): string[] {
       `${settleFrame(163.88, 177.88, PANEL_OUT)}ms; the menu at ${settleFrame(-10, -20, MENU_IN)}ms`,
   );
   out.push(`the feed's fling lands on ${decay(FLING.start, FLING.velocity).project().toFixed(2)}px (sky.test.ts: 54.95)`);
+  out.push(
+    `the easing table: ${easingTable.data.rows.length} curves, ${easingTable.data.rows[0]!.label} at ` +
+      `${easingTable.data.rows[0]!.progress.map((p) => `${p.toFixed(2)}%`).join(", ")} of its 0/25/50/75/100%`,
+  );
   return out;
 }
+
+// The app's five points of a curve's duration, and the progress the solver makes at each: the easing table's data.
+const POINTS = [0, 25, 50, 75, 100] as const;
+
+/** A spring as the spec names it: `spatial` (which may overshoot) or `effect` (clamped, critically damped). */
+function springClass(spring: Spring) {
+  return spring.clamp
+    ? { kind: "effect" as const, duration: Math.round(spring.duration * 1000) }
+    : { kind: "spatial" as const, duration: Math.round(spring.duration * 1000), bounce: spring.bounce };
+}
+
+/** The progress a spring makes at a percent of its duration: `Track.at`'s x, from 0 to 100, in percent. */
+function progressOf(spring: Spring, percent: number): number {
+  const t = track(0, spring);
+  t.target = 100;
+  return value(t.at((spring.duration * percent) / 100).x);
+}
+
+const easingTable = {
+  kind: "easingTable",
+  title: "The app's easing curves",
+  intent:
+    "The springs the Dialog and the Sky page really run on, a row a curve: its class, its duration and bounce, and where " +
+    "it is at 0, 25, 50, 75 and 100% of its duration — the solver's own numbers, so a curve's end is where its span " +
+    "ends, not where it stops.",
+  source: "solid/src/animations.ts's springs, sampled by solid/src/motion.ts",
+  data: {
+    rows: [
+      ["the panel's entry", GROW],
+      ["the menu's slide", SLIDE],
+      ["the scrim's fade", OUT],
+      ["the panel's exit", OUT_SLIDE],
+      ["the card's entry", CARD_ENTRY_Y],
+      ["the card's fade", CARD_ENTRY_A],
+      ["a hover's fade", HOVER],
+    ].map(([label, spring]) => ({
+      label,
+      motion: springClass(spring as Spring),
+      progress: POINTS.map((point) => progressOf(spring as Spring, point)),
+    })),
+  },
+};
 
 const SPECS = [
   ["motion-timing.json", motionTiming],
   ["easing.json", easing],
   ["stagger.json", stagger],
   ["frame-strip.json", frameStrip],
+  ["easing-table.json", easingTable],
 ] as const;
 
 const here = dirname(fileURLToPath(import.meta.url));

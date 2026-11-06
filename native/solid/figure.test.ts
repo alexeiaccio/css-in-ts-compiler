@@ -560,7 +560,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are anatomy, appShell, barChart, beforeAfter, branchFlow, cardGrid, cohort, colourRoles, compare, contrast, easing, flow, forecast, frameStrip, funnel, heatmap, journeyMap, layerStack, listDetail, meter, modal, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, table, timeline, tokenTable, tree, typeScale.');
+  'unknown kind "pieChart": the ones here are anatomy, appShell, barChart, beforeAfter, branchFlow, cardGrid, cohort, colourRoles, compare, contrast, easing, easingTable, flow, forecast, frameStrip, funnel, heatmap, intentCard, journeyMap, layerStack, listDetail, meter, modal, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, table, timeline, tokenTable, transitionSpec, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",

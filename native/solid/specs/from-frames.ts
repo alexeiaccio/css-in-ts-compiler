@@ -20,17 +20,24 @@ import "../plugin.ts";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import type { Preset } from "../../../packages/motion/src/presets.ts";
+import { presets } from "../../../packages/motion/src/presets.ts";
+import { BLUR, CARD_ENTRY, GROW, OUT, SLIDE } from "../src/animations.ts";
 import type { Command, FrameDump } from "../src/dump.ts";
 import { frameOf, gridOf } from "../src/figure/kinds/wireframe.ts";
 import {
   check,
   type AppShellData,
   type BeforeAfterData,
+  type CardFrame,
   type CardGridData,
+  type IntentCardData,
   type LayerStackData,
   type ListDetailData,
   type ListPane,
   type ModalData,
+  type TransitionSpecData,
+  type WireBox,
 } from "../src/figure/spec.ts";
 import type { Loader } from "../app/Sky.tsx";
 
@@ -237,6 +244,185 @@ export function cardGridOf(frame: FrameDump, prefix = CARD_PREFIX): CardGridData
   return { page: "sky", width: frame.size[0], height: frame.size[1], ...frameOf(frame.commands), prefix, cards, columns, gap, columnGap };
 }
 
+
+// ---- one animation as a card, and one transition before and after ----------------------------------------------------
+
+/** The card an intent card is about: the feed's third card, the one that waits two 50ms steps after the first. */
+export const CARD_INDEX = 2;
+/** The frames it is captured at, after the mount: the first the card is drawn on, then a step of a few frames. */
+export const CARD_FRAMES = [1, 2, 4, 7, 10, 14, 20, 30, 40] as const;
+/** The one number a property of this file rounds to: the figure's two places. */
+const rounded = (value: number, places = 2): number => Math.round(value * 10 ** places) / 10 ** places;
+/** A frame's instant, in ms: the clock `from-motion.ts` samples on. */
+const instant = (frames: number): number => Math.round(frames * (1000 / 60) * 100) / 100;
+
+/** A property's name as an animation writes it, and the preset field it is: the two vocabularies the card joins. */
+const FIELD_OF: Readonly<Record<string, "opacity" | "x" | "y" | "scale" | "blur">> = {
+  opacity: "opacity",
+  "translate x": "x",
+  "translate y": "y",
+  scale: "scale",
+  blur: "blur",
+};
+
+/**
+ * The `@cssints/motion` preset whose fields are exactly `fields`, in `dir`, on the side the value it starts from names:
+ * a slide's sign says up/down or left/right, so `slide-in-up` is a positive y that settles to 0. No preset with exactly
+ * these fields is a failure, not a guess: the card's preset is the package's name for what it moves.
+ */
+export function presetOf(
+  fields: readonly string[],
+  dir: "in" | "out",
+  signs: Readonly<Record<string, number>>,
+): string {
+  const axes = ["opacity", "x", "y", "scale", "blur"] as const;
+  const candidates = (Object.entries(presets) as [string, Preset][]).filter(([, preset]) => {
+    if (preset.dir !== dir) return false;
+    const keys = axes.filter((axis) => preset[axis] !== undefined);
+    return keys.length === fields.length && keys.every((key) => fields.includes(key));
+  });
+  const sideOf = (name: string): "x" | "y" | undefined => {
+    if (name.endsWith("-up") || name.endsWith("-down")) return "y";
+    if (name.endsWith("-left") || name.endsWith("-right")) return "x";
+    return undefined;
+  };
+  const sided = candidates.filter(([name]) => {
+    const axis = sideOf(name);
+    if (!axis) return true;
+    const positive = (signs[axis] ?? 0) > 0;
+    return name.endsWith(positive ? (axis === "y" ? "up" : "left") : axis === "y" ? "down" : "right");
+  });
+  if (sided.length !== 1)
+    throw new Error(
+      `no @cssints/motion preset has exactly the fields ${fields.join(", ")} (${dir}) on that side: ` +
+        `${sided.map(([name]) => name).join(", ") || "none"}`,
+    );
+  return sided[0]![0];
+}
+
+/**
+ * The card's data: the feed's third card, its entry's two properties (opacity and the 12px slide, from the page's own
+ * constants), and the frames the page actually took — each one the group effect of the card's element, so a frame is the
+ * alpha and the y the frame drew, not a sample of a model. The preset is the package's name for that field set.
+ */
+export function intentCardOf(frames: readonly { frame: FrameDump; n: number }[]): IntentCardData {
+  const element = `${CARD_PREFIX}${CARD_INDEX}`;
+  const properties = [
+    { name: "opacity", from: 0, to: 255, unit: "of 255" },
+    { name: "translate y", from: CARD_ENTRY.y, to: 0, unit: "px" },
+  ];
+  const card: CardFrame[] = frames.map(({ frame, n }) => {
+    const group = frame.effects.groups.find((row) => row.element === element);
+    return {
+      ms: instant(n),
+      values: [group?.alpha ?? 255, rounded(group?.ty ?? 0)],
+    };
+  });
+  return {
+    label: `the feed's card ${CARD_INDEX + 1}`,
+    page: "Sky",
+    trigger: "the feed's first mount",
+    preset: presetOf(
+      properties.map((property) => FIELD_OF[property.name]!),
+      "in",
+      { y: CARD_ENTRY.y },
+    ),
+    duration: Math.round(CARD_ENTRY.time * 1000),
+    delay: Math.round(CARD_INDEX * CARD_ENTRY.delay * 1000),
+    properties,
+    frames: card,
+  };
+}
+
+/** The card's spec: one animation as a card, its sentence the page's own reason for it. */
+export function intentCardSpecOf(data: IntentCardData) {
+  return {
+    kind: "intentCard" as const,
+    title: "The feed's third card, in",
+    intent:
+      "The Sky feed's card entry as one card: the preset whose fields it moves, the two properties and the values they " +
+      "run between, the 100ms it waits its turn, and the frames the page actually took — a bar each, from the group's " +
+      "own alpha and y.",
+    source: "solid/app/Sky.tsx's card entry, its frames captured by specs/from-frames.ts",
+    data,
+  };
+}
+
+/** The element the transition moves: the Dialog's menu, which slides out of its Zoom trigger. */
+export const TRANSITION_ELEMENT = "zoom-menu";
+
+/** A frame's rectangle for an element, as the transition's box: the command's own four numbers. */
+function boxOf(frame: FrameDump, element: string): WireBox {
+  const command = frame.commands.find((row) => row.element === element && row.type === "rectangle");
+  if (!command) throw new Error(`transitionSpec: ${element} is not a rectangle of its frame`);
+  return {
+    x: rounded(command.box[0]!),
+    y: rounded(command.box[1]!),
+    width: rounded(command.box[2]!),
+    height: rounded(command.box[3]!),
+  };
+}
+
+/**
+ * The transition's data, from two frames of one element: its box in each (the two boxes it moves between), and the
+ * properties the frame tables say moved — the offset y (the box), the group's alpha, scale and rotation, and the
+ * shadow's blur. A field the frame leaves out is the neutral one, which is what a settled group is.
+ */
+export function transitionOf(start: FrameDump, rest: FrameDump, scene: string, trigger: string): TransitionSpecData {
+  const element = TRANSITION_ELEMENT;
+  const from = boxOf(start, element);
+  const to = boxOf(rest, element);
+  const groupOf = (frame: FrameDump) => frame.effects.groups.find((row) => row.element === element);
+  const shadowOf = (frame: FrameDump) => frame.effects.shadows.find((row) => row.element === element);
+  const properties = [
+    { name: "offset y", from: from.y, to: to.y, unit: "px" },
+    { name: "alpha", from: groupOf(start)?.alpha ?? 255, to: groupOf(rest)?.alpha ?? 255, unit: "of 255" },
+    {
+      name: "scale",
+      from: rounded((groupOf(start)?.scale ?? 1) * 100),
+      to: rounded((groupOf(rest)?.scale ?? 1) * 100),
+      unit: "%",
+    },
+    {
+      name: "rotate",
+      from: rounded(groupOf(start)?.rotate ?? 0),
+      to: rounded(groupOf(rest)?.rotate ?? 0),
+      unit: "deg",
+    },
+    {
+      name: "shadow blur",
+      from: rounded(shadowOf(start)?.blur ?? 0),
+      to: rounded(shadowOf(rest)?.blur ?? 0),
+      unit: "px",
+    },
+  ].filter((property) => property.from !== property.to);
+  return {
+    label: "the menu",
+    page: "dialog",
+    scene,
+    trigger,
+    from,
+    to,
+    properties,
+    // the longest track driving the properties: the offset's, the blur's and the group's are 220ms, the fade's 200
+    duration: Math.round(Math.max(SLIDE.duration, BLUR.duration, OUT.duration, GROW.duration) * 1000),
+    delay: 0,
+  };
+}
+
+/** The transition's spec: one recorded transition, before and after. */
+export function transitionSpecOf(data: TransitionSpecData) {
+  return {
+    kind: "transitionSpec" as const,
+    title: "The Dialog's menu, in",
+    intent:
+      "The menu's arrival as one transition: the box the frame draws at the entry's start and at its settle, and the " +
+      "five properties that move between them — the offset, the group's alpha, scale and tilt, and the shadow's blur.",
+    source: "solid/app/Dialog.tsx's springs, two frames of the dialog-menu scene",
+    data,
+  };
+}
+
 /** The shell's spec: the Sky page's own bands, each the element the frame drew. */
 export function shellSpecOf(data: AppShellData) {
   return {
@@ -345,10 +531,18 @@ export function specOf(data: BeforeAfterData) {
 
 if (import.meta.main) {
   const { capture } = await import("../dump.ts");
+  // the menu's keys are the recorded scene's own: the transition is what the file replays, not a second script
+  const scene = JSON.parse(
+    readFileSync(new URL("../scenes/dialog-menu.json", import.meta.url), "utf8"),
+  ) as { name: string; steps: { kind: string; name: string; down: boolean }[] };
+  const sceneKeys = scene.steps.filter((step) => step.kind === "key" && step.down).map((step) => step.name);
+  if (sceneKeys.join(",") !== MENU_KEYS.join(","))
+    throw new Error(`scenes/dialog-menu.json opens on ${sceneKeys.join(", ")}, not ${MENU_KEYS.join(", ")}`);
   const off = await capture("widgets", undefined, { keys: [...OFF_KEYS] });
   const on = await capture("widgets", undefined, { keys: [...ON_KEYS] });
   const modal = await capture("dialog", undefined, { keys: [...MODAL_KEYS], settle: SETTLE });
   const menu = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: SETTLE });
+  const entry = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: 0 });
   const sky = await capture("sky");
   const wide = await capture("sky", undefined, {
     width: LIST_DETAIL_WIDTH,
@@ -356,13 +550,22 @@ if (import.meta.main) {
     settle: LIST_DETAIL_SETTLE,
     load: offlineLoader(),
   });
+  const cardFrames = [];
+  for (const n of CARD_FRAMES) {
+    const frame = await capture("sky", undefined, { warm: 0, settle: n });
+    cardFrames.push({ frame, n });
+  }
   const spec = specOf(dataOf(off, on));
   const layers = layerSpecOf(layersOf(modal, menu));
   const dialog = modalSpecOf(modalOf(modal, MODAL_KEYS, SETTLE));
   const shell = shellSpecOf(appShellOf(sky));
   const grid = gridSpecOf(cardGridOf(sky));
   const panes = listDetailSpecOf(listDetailOf(wide));
-  for (const one of [spec, layers, dialog, shell, grid, panes]) {
+  const card = intentCardSpecOf(intentCardOf(cardFrames));
+  const transition = transitionSpecOf(
+    transitionOf(entry, menu, scene.name, "Enter on the Zoom control"),
+  );
+  for (const one of [spec, layers, dialog, shell, grid, panes, card, transition]) {
     const problems = check(one);
     if (problems.length) throw new Error(`${one.kind} would not draw: ${problems.join(" ")}`);
   }
@@ -375,6 +578,8 @@ if (import.meta.main) {
     ["app-shell.json", shell],
     ["card-grid.json", grid],
     ["list-detail.json", panes],
+    ["intent-card.json", card],
+    ["transition-spec.json", transition],
   ] as const) {
     writeFileSync(join(dir, name), `${JSON.stringify(one, null, 2)}\n`);
     console.log(`${name}: ${join(dir, name)}`);
@@ -396,5 +601,11 @@ if (import.meta.main) {
       `${panes.data.list.width}x${panes.data.list.height} at ${panes.data.list.x},${panes.data.list.y}, the detail ` +
       `${panes.data.detail.element} ${panes.data.detail.width}x${panes.data.detail.height} at ${panes.data.detail.x},` +
       `${panes.data.detail.y}`,
+  );
+  console.log(
+    `from-frames: the card ${card.data.label} on ${card.data.preset}, ${card.data.frames.length} frames from ` +
+      `${card.data.frames[0]!.ms}ms; the transition ${transition.data.label} ` +
+      `${transition.data.from.y} -> ${transition.data.to.y}px, ${transition.data.properties.length} properties, ` +
+      `${transition.data.duration}ms`,
   );
 }

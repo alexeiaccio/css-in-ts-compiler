@@ -71,11 +71,12 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Thirty-nine kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
-`cardGrid`, `cohort`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`,
-`journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`,
-`redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`,
-`table`, `timeline`, `tokenTable`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
+terminal at one cell. Forty-two kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
+`cardGrid`, `cohort`, `colourRoles`, `compare`, `contrast`, `easing`, `easingTable`, `flow`, `forecast`, `frameStrip`,
+`funnel`, `heatmap`, `intentCard`, `journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`, `motionTiming`,
+`nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`,
+`stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `transitionSpec`, `tree`,
+`typeScale`. A kind is one file under `solid/src/figure/kinds/` —
 `metrics.ts`, `charts.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `planning.ts`, `motion.ts`, `handoff.ts` and
 `wireframe.ts`, over `shared.ts` — its layout and its refusals side by side and one `register` call at the bottom, so a
 new kind is its own file and no other kind's;
@@ -159,10 +160,32 @@ native/docs/map.md, steps 1-8; a span is the order, a date is a note
 
 `pipeline.json` is this pipeline's own flow (declaration → Clay → commands → ThorVG / cells / Canvas2D); `funnel.json`
 and `compare.json` are the kit's examples, adapted. `native/README.md`'s "Figures from specs" chapter is the whole of it.
-Its four **motion** kinds (`motionTiming`, `easing`, `stagger`, `frameStrip`) are the other half's and the first whose
-data is `solid/src/motion.ts`'s **own**: `solid/specs/from-motion.ts` runs the solver at 1/60 and writes `motion-timing`,
-`easing`, `stagger` and `frame-strip.json`, `solid/test.sh` regenerates and `cmp`s them, and the check re-runs the same
-spring from the data — so a motion figure is the trajectory the pages take, not a drawing of one.
+Its seven **motion** kinds (`motionTiming`, `easing`, `stagger`, `frameStrip`, `intentCard`, `transitionSpec`,
+`easingTable`) are the other half's and the first whose data is `solid/src/motion.ts`'s **own**: `solid/specs/from-motion.ts`
+runs the solver at 1/60 and writes `motion-timing`, `easing`, `stagger`, `frame-strip` and `easing-table.json`,
+`solid/test.sh` regenerates and `cmp`s them, and the check re-runs the same spring from the data — so a motion figure is
+the trajectory the pages take, not a drawing of one.
+
+**The motion half is complete** (2026-11-06). The kit's three remaining motion types are here too, and their data is the
+repository's own.
+
+`intentCard` is one animation as a card: the `@cssints/motion` preset whose fields it moves (the package's `presets`
+table, by name), the properties and the two values each runs between, the duration and delay, the trigger, and the frames
+the page actually took — `solid/specs/from-frames.ts` captures the Sky feed's third card at nine frames and reads each
+frame's group effect, so the card's alpha and y are the pixels the page drew, not a model's samples.
+
+`transitionSpec` is one transition before and after: the `dialog-menu` scene's own frames give the menu's box at the
+entry's start (`40, 224.16`) and at its settle (`40, 214.16`), and the five properties that move between them — the
+offset, the alpha, the scale, the tilt and the shadow's blur — with the duration the Dialog's longest track names (220ms).
+
+`easingTable` is the app's curves in one table: a row a curve, its class, its duration and bounce, and its progress at 0,
+25, 50, 75 and 100% of its duration, which `from-motion.ts` computes by calling `motion.ts`'s `Track.at` at those
+instants (a spring's duration is its period, so a row's 100% is 100.04%, not its settle).
+
+The springs the pages run on and the numbers a page starts an entry from are `solid/src/animations.ts`'s now, imported by
+the pages and the generators both, so a duration changed in a page changes the figure in the same commit.
+`from-motion.ts --check` guards the easing table beside the four earlier specs, and `figure-handoff.sh` cmps the card and
+the transition against the frames they come from.
 `forecast` is the thirty-seventh kind and the one whose data is this repository's own cadence: `CHANGELOG.md`'s 40 dated
 release headings are a daily series (26 days, 2026-10-10 to 2026-11-04, a quiet day a zero), and
 `solid/specs/from-releases.ts` counts them, fits the **last 14 days** (their mean, 2.50 a day, and their population
@@ -1473,7 +1496,9 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    own lists, to 0.00px; the exit's fourth frame is 170.40 against the page's measured 170.39). So what is left of the
    motion items is what a figure cannot carry — a second gradient on one element, the thread screen, a finger on real
    glass, and the other targets' pages: a track's trajectory is no longer one of them, it is a figure read on the desktop,
-   the terminal and the browser, and nothing about a page's behaviour moved.
+   the terminal and the browser, and nothing about a page's behaviour moved. The half is complete now (2026-11-06): the
+   kit's `intentCard`, `transitionSpec` and `easingTable` are kinds 37–39, on the pages' own frames and the solver's own
+   numbers, so no motion type of the kit is missing any more.
 3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
    two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
    a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160

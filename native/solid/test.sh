@@ -465,6 +465,14 @@ cmp "$TEXTDOC/README.md" README.md || {
 echo "figure text: native/README.md's nine figures are the renderer's, byte for byte (cmp)"
 # the four motion kinds' numbers are solid/src/motion.ts's own: specs/from-motion.ts writes them and cmps (a change to the spring is this line)
 bun solid/specs/from-motion.ts --check
+# ... and the motion half's three remaining kinds' stored frames: the card's frames are the Sky page's own group effects
+# (from-frames.ts writes intent-card.json), the transition's two boxes are the Dialog's menu at the entry's start and at
+# its settle (transition-spec.json, cmp'd with the five other frame-derived specs in figure-handoff.sh), and the easing
+# table is the solver's progress at five points of each of the app's curves (from-motion.ts writes easing-table.json)
+bun solid/main.ts figure --spec solid/specs/intent-card.json --warm 30 --expect solid/frames/figure-intent-card.png
+bun solid/main.ts figure --spec solid/specs/transition-spec.json --warm 30 --expect solid/frames/figure-transition-spec.png
+bun solid/main.ts figure --spec solid/specs/easing-table.json --warm 30 --expect solid/frames/figure-easing-table.png
+echo "figure: the motion half's card, transition and easing table are three stored frames; their specs are the page's own frames and the solver's numbers"
 # ... and the map draws its own plan: the same redraw, under the marker above the timeline's fence
 bun solid/figure.ts --redraw docs/map.md > "$TEXTDOC/map.md"
 cmp "$TEXTDOC/map.md" docs/map.md || {
@@ -482,7 +490,7 @@ cmp "$FIG/palette.html" docs/exports/palette.html || {
   echo "FAIL: docs/exports/palette.html is not what 'bun solid/figure.ts solid/specs/palette.json --html' writes; commit its output"; exit 1; }
 cmp "$FIG/pipeline.svg" docs/exports/pipeline.svg || {
   echo "FAIL: docs/exports/pipeline.svg is not what 'bun solid/figure.ts solid/specs/pipeline.json --svg' writes; commit its output"; exit 1; }
-echo "figure export: every spec's SVG and page are the layout's (57 checks), and docs/exports/{palette.html,pipeline.svg} are regenerated and cmp'd"
+echo "figure export: every spec's SVG and page are the layout's (165 checks), and docs/exports/{palette.html,pipeline.svg} are regenerated and cmp'd"
 # ... and the three forms a review needs, on the same layout and no second drawer: a **deck** (`--deck`, one self-
 # contained page with a slide a spec, `:target` navigation and an `@page`/`break-after` print that is a page a slide), a
 # **raster** (`--png`, the desktop host's own frame through `bun solid/main.ts figure --png`, at `--scale 1` and `2`:
