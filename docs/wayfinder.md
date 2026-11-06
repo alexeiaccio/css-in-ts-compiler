@@ -4738,3 +4738,83 @@ checkbox-group and command-palette still compute their own movement (another fou
 listbox's own `disabled` mask is static (an item's own `disabled` field may change, and the collection re-reads
 it on `update()`); and hidden options are still handed to the polyfill rather than filtered, which is the
 adapter's documented limit, not this widget's.
+||||||| parent of 4a516140 (docs: focusGrid in the API reference and the wayfinder)
+
+## The V2 grid as our own runtime, on the attribute the platform will read (2026-11-06)
+
+The other half of `focusgroup`: the V1 linear behaviours (toolbar, tablist, radiogroup, listbox, menu, menubar) are
+shipped by Chromium 150+/the polyfill and modelled once in `shared/focusgroup.qnt`, while **V2** — `grid` and
+`grid manual` — exists only as an explainer (last updated 2026-08-10) and in `microsoft/polyfills`' `main`. So we
+wrote the runtime and its contract instead of waiting, with the attribute kept exactly the one a native
+implementation will read.
+
+**Why it is ours, with the pins.** No engine reports `focusGroup.supports("grid")`. npm's latest
+`@microsoft/focusgroup-polyfill` is 1.6.0 (2026-07-30) and carries no `grid` at all — measured against the
+installed tarball: its `BehaviorToken` stops at `menubar`, `focusgrouprow` does not appear, and there is no grid item
+collection. `main` merged grid in `53d8a15` (PR #64, 2026-09-29) and `focusgroupstart` for grids in `f2584a5`
+(PR #78, 2026-10-23), but has no built `dist`, so it cannot even be a git dependency. And the published polyfill
+would not help anyway: its low-level `FocusGroup` navigates a `grid` definition **linearly** unless it is handed a
+`GridItemCollection`, which is the unpublished part. `itemcontrols` — the `grid` default modifier — is unsupported
+upstream (PR #66).
+
+**The contract** is `packages/apg-specs/specs/patterns/focusgrid.qnt`, a pattern spec (not an APG one: the APG grid
+is the widget, `specs/apg/grid.qnt`, whose selection/edit/ARIA it does not touch and which does not import it yet).
+State: the current cell and the tab stop as row-major linear indices, the focus bit, `focusgroupstart`, memory, the
+manual flag, one edge per axis, and an `outcome` (`none` / `moved` / `blocked` / `ignored`) with snapshots so the
+invariants have teeth. Events: `focus_in`, `focus_out`, `click(cell)`, `key(k)`, and the host props `set_memory`,
+`set_manual`, `set_row_edge`, `set_col_edge`, `set_start`. Fourteen invariants, each of which a hand-built bad state
+violates: `CurInRange`, `StopInRange`, `StartInRange`, `ExactlyOneTabStop`, `StopIsEntry` (the stop is the focused
+cell, else the remembered one, else `focusgroupstart` — one `stopOf` def, so `nomemory` and the entry priority are
+one rule), `FocusImpliesCurrent`, `EdgesKnown`, `OutcomeKnown`, `MovedImpliesFocus`, `IgnoredKeepsFocus`,
+`BlockedKeepsFocus`, `MovedChangesFocus` (a "moved" outcome is a real move — this is the explainer's "if wrapping
+resolves to the starting target, focus does not move and the operation is not consumed"), `ManualDoesNotMove`,
+`SnapshotsInRange`.
+
+**The measured rules, read off the explainer and `main`'s `grid-item-collection.js`.** Inline commands move within the
+row, block commands preserve the column; `Home`/`End` are the row's ends and `Ctrl+Home`/`Ctrl+End` the grid's (no
+PageUp/PageDown — a grid defines none, and that stays the APG grid's extra). The edges are per axis and **hard by
+default**: `rowEdge` (rowwrap/rowflow) resolves inline overflow, `colEdge` (colwrap/colflow) block overflow; `wrap`
+never leaves the row or column, `flow` continues into the next one and wraps at the outer edge, and the two behave
+differently in exactly one place — flow also moves the other coordinate (`rowEdge: flow` from the row's end moves to
+the next row's opposite end, `colEdge: flow` from a column's end moves to the adjacent column). A definition here
+takes the RESOLVED edges, so the token grammar's broad tokens and conflicts are the caller's parse and the attribute
+we emit is canonical (`rowwrap`, never `wrap`).
+
+**The runtime** is `packages/headless/src/focusgrid.ts`: `focusGrid(owner, { definition, items })` →
+`{ attribute, update, destroy }`, items carrying `row` / `col` (and `cell` when the target is a descendant).
+It renders the attribute, writes the single tab stop over the authors' values (saved, restored by `destroy()`),
+moves focus on `keydown` (arrows both axes, row ends, grid ends, per-axis edges, the native key-conflict guard, and
+`preventDefault` only when a destination takes focus), follows `focusin` / `focusout` for the memory, marks a
+`manual` topology's rows with `focusgrouprow`, and is inert when the coordinates it is handed are not a rectangle.
+`supportsFocusGrid(manual?)` is the provider switch: where the engine reports the token, only the attribute and the
+row markers are written and the browser owns the movement. No `MutationObserver`, no `@microsoft/*` import, no
+`@cssints/machine` (the movement is arithmetic): the only new code is this file and its spec.
+
+**Where the model and the DOM had to agree.** (1) The stop is always the current cell, so the model keeps both as
+vars and one invariant ties them — that is what gives `ExactlyOneTabStop` teeth. (2) The coordinate survives a leave
+in both memory modes; only the stop follows it, and `nomemory` shows on the next leave (with a start reset if
+`nomemory` is switched while focus is outside), which is the explainer's "changes do not move focus merely to repair
+state" read literally. (3) A key step names `grid`, never a cell: keys go to the focused element, and a `focus` on a
+cell is the model's `click`. (4) The fixture always writes `focusgroupstart` on the entry cell, including the first —
+the model's `start` is a cell, so the probe can compare the attribute instead of inferring it.
+
+**What the tests prove.** `packages/headless/test/focusgrid.browser.test.tsx` (31 tests): the twelve scenarios of
+`scenarios/patterns/focusgrid.spec.json` on the real DOM; a differential walk of 6 runs x 30 steps for seven
+configurations (default, both axes wrapping, both axes flowing, `nomemory`, `manual`, a non-first `focusgroupstart`,
+and a mixed one) comparing focus, the owner's attribute and every cell's `tabindex` and `focusgroupstart` after every
+step; then the things a model cannot hold — one tab stop in the markup, Tab in and out and back onto the remembered
+cell, Shift+Tab, each edge modifier on its own axis, a body with a ragged last row that decorates nothing and moves
+nothing, a row added under `update()` reached by `Ctrl+End`, `focusgrouprow` marks written and taken back (an
+author's marker kept), the authors' `["2", null, "-1"]` back after `destroy()` and no key moving anything after it, an
+`<input>` cell target keeping its own keys, and `supportsFocusGrid` agreeing with the engine's own token table (false
+here, so the runtime is the provider). `packages/apg-specs/test/patterns/focusgrid.test.ts` is the spec-only half: the
+invariant list, the bad-state teeth, the movements, entry/memory/start, `manual`, and a bounded exploration with no
+violation.
+
+**Left out, and next.** Spans, ragged rows, virtualisation, edit mode, selection, sort and the ARIA indices stay the
+widget's — and so do `itemcontrols`, PageUp/PageDown and the layout-grid wrapping the APG grid describes, which a
+V2 grid simply does not have. Adopting the runtime in `grid.ts` / `table.ts` / `treegrid.ts` is the next step: those
+three hand-roll the same movement today (`grid.ts`'s `rightIdx` / `downIdx` / `pageDownIdx` / `keyTarget`), and
+`grid.ts` must keep its `mode`, its selection rectangle, its sort, its cell/widget focus target and its page-sized
+movement while delegating the roving stop and the four edges. A native implementation needs nothing from us but the
+attribute, which is why it is rendered from the same definition object.

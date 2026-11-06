@@ -2689,6 +2689,66 @@ supportsFocusGroup(); // 'focusGroup' in HTMLElement.prototype
   engine stays out of the group, and hides the `focusGroup` IDL property for the one constructor call the
   polyfill's own feature detect guards.
 
+### Headless: `focusGrid` (`@cssints/headless`)
+
+The platform layer of `focusgroup="grid"` (V2): two-dimensional directional navigation over a rectangular, spanless
+body, one tab stop, entry / memory — the behaviour `packages/apg-specs/specs/patterns/focusgrid.qnt` models. It is
+**ours** because V2 is unpublished: no engine ships `grid`, and `@microsoft/focusgroup-polyfill` 1.6.0 (npm's latest)
+has no grid token at all, while its `main` branch (merged 2026-09-29) has no built `dist`. One definition renders the
+attribute the platform will read and drives our movement.
+
+```ts skip
+focusGrid(owner: HTMLElement, options: {
+  definition: {
+    manual?: boolean; // "grid manual": the rows are focusgrouprow children, not a native table
+    rowEdge?: "none" | "wrap" | "flow"; // the INLINE edges: rowwrap / rowflow
+    colEdge?: "none" | "wrap" | "flow"; // the BLOCK edges: colwrap / colflow
+    memory?: boolean; // false emits `nomemory`
+  };
+  items: () => ReadonlyArray<{
+    element: HTMLElement; // the cell target of the coordinate
+    row: number;
+    col: number;
+    cell?: HTMLElement; // when `element` is a descendant of its cell
+  }>;
+}): {
+  attribute: string; // the definition as the focusgroup attribute
+  update(definition?: definition): void;
+  destroy(): void; // idempotent
+};
+
+focusgridAttribute(definition); // "grid manual rowflow colwrap nomemory"
+supportsFocusGrid(manual?); // focusGroup.supports("grid") (and "manual")
+```
+
+- **What it owns.** The `focusgroup` attribute, exactly one `tabindex="0"` cell (the authors' values are saved and
+  restored by `destroy()`), arrows on both axes, `Home` / `End` for the row's ends, `Ctrl+Home` / `Ctrl+End` for the
+  grid's, the per-axis wrap / flow edges, `focusgroupstart` as the entry target, the last-focused memory and
+  `nomemory`, and the `focusgrouprow` markers of a `manual` topology. A hard edge does not move focus and does not
+  cancel the key.
+- **The edges are resolved, not tokenised.** `rowEdge` / `colEdge` are the per-axis result, so the attribute's broad
+  `wrap` / `flow` (both axes) and its conflicts (`wrap flow`, `nowrap` with either) are the caller's parse; the
+  attribute we emit is canonical — `rowwrap`, never `wrap` — and a hard axis emits nothing. A grid's default is hard
+  (the explainer: wrapping "can disorient users in data grids"), which is the opposite of the V1 behaviours.
+- **`manual` is topology only.** It renders `grid manual` and marks each row with `focusgrouprow`; it changes no
+  coordinate, no key and no tab stop. The host owns row discovery either way: `items` gives the coordinates, and a
+  body that is not a rectangle (a ragged row, a span, a duplicate coordinate) decorates nothing and moves nothing —
+  the explainer's "invalid grids do not run".
+- **A native control keeps its keys.** A cell target that is an `<input>` (not a checkbox or radio), `<textarea>`,
+  `<select>`, `contenteditable`, `<iframe>` / `<object>`, or a `<video>` / `<audio>` with controls does not move the
+  grid: its own behaviour claims the arrow, Home and End.
+- **Call `update()`** when the body, a `focusgroupstart` marker or the definition changes. Like `focusGroup`, the
+  adapter observes nothing; a host that must consume a key first registers its own listener **before** calling
+  `focusGrid` (a delegated Solid `onKeyDown` runs at the document, after this one).
+- **Native first, the same definition.** Where `focusGroup.supports("grid")` (and `"manual"`, for a manual topology)
+  the runtime writes only the attribute and its row markers and the browser owns the movement and the tab stop — so
+  the host authors `tabindex` on each cell target, as the explainer's markup does. The polyfill's compatibility trap
+  (it polyfills `grid` even where a browser ships it) does not apply: this is not the polyfill.
+- **What it does not do** (the widget's, `specs/apg/grid.qnt` and `createGrid`): edit mode, selection, sort,
+  activation, `PageUp` / `PageDown`, spans, ragged rows, virtualisation, `itemcontrols` (default for a grid,
+  unsupported upstream), `aria-rowindex` / `aria-colindex` / role inference, and Tab / Shift+Tab (HTML sequential
+  navigation, observed here only as focusout).
+
 ### Headless: `createToolbar` (`@cssints/headless`)
 
 The APG Toolbar: a row or column of controls behind one tab stop, with the platform's `focusGroup` and the
