@@ -354,6 +354,13 @@ declare const tokens: {
         "unit": "px"
       }
     },
+    "threadWidth": {
+      "$value": {
+        "value": 400,
+        "unit": "px"
+      },
+      "$description": "the pane of a thread opened from the feed, beside the 600 px column from the right rail's breakpoint; the rail yields to it"
+    },
     "headerHeight": {
       "$value": {
         "value": 52,

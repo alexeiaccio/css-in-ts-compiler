@@ -26,6 +26,7 @@ import {
   width,
 } from "cssints" with { type: "cssints" };
 import { createEffect, createMemo, createSignal, Errored, For, Loading, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import type { JSX } from "@solidjs/web";
 
 import { threadScreen } from "../api.ts";
@@ -239,9 +240,34 @@ function View(props: { data: Awaited<ReturnType<typeof threadScreen>> }) {
 
 export default function Thread(props: { handle: string; rkey: string }) {
   const data = createMemo(() => threadScreen(props.handle, props.rkey));
+  const navigate = useNavigate();
+  let heading: HTMLHeadingElement | undefined;
+
+  // Opening the thread moves the focus into it (its title), without scrolling away from the post the view brought into
+  // view; Escape is the back button, and the focus goes back to the timestamp link of the card that opened the thread.
+  createEffect(
+    () => [props.handle, props.rkey],
+    () => heading?.focus({ preventScroll: true }),
+  );
+  createEffect(
+    () => [props.handle, props.rkey],
+    () => {
+      const href = `/profile/${props.handle}/post/${props.rkey}`;
+      const close = (e: KeyboardEvent) => {
+        if (e.key !== "Escape" || e.defaultPrevented) return;
+        e.preventDefault();
+        // the browser's back button; a thread opened by its URL has no page behind it, so it closes onto the feed
+        if (history.length > 1) navigate(-1);
+        else navigate("/");
+        find(`main a[href="${href}"]`);
+      };
+      document.addEventListener("keydown", close);
+      return () => document.removeEventListener("keydown", close);
+    },
+  );
   return (
     <>
-      <Header title="Post" />
+      <Header title="Post" heading={(el) => (heading = el)} />
       <Errored
         fallback={(err, reset) => (
           <p class={message}>
@@ -255,4 +281,16 @@ export default function Thread(props: { handle: string; rkey: string }) {
       </Errored>
     </>
   );
+}
+
+// Focus the element once the screen behind the thread is drawn (it may still be loading its first page), giving up after a
+// second; the feed is kept mounted, so usually it is there at once.
+function find(selector: string) {
+  let frames = 0;
+  const look = () => {
+    const el = document.querySelector<HTMLElement>(selector);
+    if (el) el.focus();
+    else if (++frames < 60) requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
 }
