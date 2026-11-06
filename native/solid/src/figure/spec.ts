@@ -1,7 +1,7 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
 // one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 37 kinds here
 // (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `colourRoles`, `compare`, `contrast`,
-// `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `modal`,
+// `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`,
 // `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`,
 // `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`,
 // `typeScale`).
@@ -59,6 +59,7 @@ export const KINDS = [
   "heatmap",
   "journeyMap",
   "layerStack",
+  "listDetail",
   "meter",
   "modal",
   "motionTiming",
@@ -841,6 +842,32 @@ export interface CardGridSpec extends Base {
   options?: { width?: number };
 }
 
+/**
+ * One pane of a list/detail page: the page's own element for it (`sky-feed-pane`) and that element's box. A pane is not a
+ * rectangle an author drew — `check` looks it up in the frame's own boxes.
+ */
+export interface ListPane {
+  element: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A page as two panes: the list and the detail. Each is an element the frame drew, and the two tile the page. */
+export interface ListDetailData extends WireSide {
+  page: string;
+  list: ListPane;
+  detail: ListPane;
+}
+
+export interface ListDetailSpec extends Base {
+  kind: "listDetail";
+  data: ListDetailData;
+  /** `width` is the layout's widest allowed cells; a page wider than this is refused. */
+  options?: { width?: number };
+}
+
 export type Spec =
   | AnatomySpec
   | AppShellSpec
@@ -857,6 +884,7 @@ export type Spec =
   | HeatmapSpec
   | JourneyMapSpec
   | LayerStackSpec
+  | ListDetailSpec
   | ModalSpec
   | StateMatrixSpec
   | TokenTableSpec

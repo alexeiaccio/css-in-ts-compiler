@@ -70,22 +70,23 @@ bun solid/figure-forecast.test.ts
 # ... and the six wireframe kinds (solid/figure-wireframe.test.ts, solid/figure-anatomy.test.ts,
 # solid/figure-modal.test.ts, solid/figure-app-shell.test.ts, solid/figure-card-grid.test.ts): a page's own boxes
 # and text runs cut to the cell grid, one region of it with numbered callouts and their legend, the same page at two
-# widths, the Sky page's own shell bands and its feed's cards — the count from the capture, the 1/8-cell rounding and its
-# worst edge, the runs in the page's order, the crop's clipped boxes and dropped background, each digit's cell, the pair's
-# two sizes, each band's element and each card's box, the grid the boxes make, the refusals, the mutations, the goldens and
-# the terminal's rows
+# widths, the Sky page's own shell bands, its feed's cards, and its wide form's two panes — the count from the capture,
+# the 1/8-cell rounding and its worst edge, the runs in the page's order, the crop's clipped boxes and dropped
+# background, each digit's cell, the pair's two sizes, each band's element, each card's box, the grid the boxes make, the
+# two panes' elements and their union, the refusals, the mutations, the goldens and the terminal's rows
 bun solid/figure-wireframe.test.ts
 bun solid/figure-anatomy.test.ts
 bun solid/figure-modal.test.ts
 bun solid/figure-app-shell.test.ts
 bun solid/figure-card-grid.test.ts
+bun solid/figure-list-detail.test.ts
 # the two flow kinds and the two row kinds are in it too: the branch flow's boxes and its branch connectors, the state
 # machine's path and its transitions, the tree's levels and connectors, the journey map's feelings, their refusals (each
 # with its sentence), a command golden each, and a stored frame each. So are the four design-system kinds whose data is
 # our own tokens: a palette's swatches and the mark of its first readable step, a contrast check's engine ratios and their
 # verdicts, a spacing scale whose 4px step is a 4px box, and a type scale whose 40px row is three cells — with their
 # refusals, their goldens, the generated specs' cmp (solid/test.sh) and the terminal's rows
-echo "figure: thirty-seven kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns, the widget page's wireframe, anatomy, pair, the Sky page's shell and cards, the Targets table, the release forecast; their refusals and frames"
+echo "figure: thirty-eight kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns, the widget page's wireframe, anatomy, pair, the Sky page's shell, cards and two panes, the Targets table, the release forecast; their refusals and frames"
 # the three planning kinds' own invariants (solid/figure-planning.test.ts): a timeline bar at the cells its span says, the
 # axis's labels, the status key's entries against the statuses the figures use, the board's cards and their order, each
 # refusal, the same rows on the terminal, the three command goldens, and the map's words in the hand-written specs

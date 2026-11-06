@@ -177,6 +177,7 @@ async function main() {
       ["responsive-pair", "The Sky page, at two widths"],
       ["app-shell", "The Sky page's shell"],
       ["card-grid", "The Sky feed's cards"],
+      ["list-detail", "The Sky page's thread, beside its feed"],
       ["table", "The map's targets, one a row"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);

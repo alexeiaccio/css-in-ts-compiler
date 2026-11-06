@@ -1,26 +1,42 @@
-// `solid/specs/before-after.json`, `solid/specs/layer-stack.json`, `solid/specs/modal.json`, `solid/specs/app-shell.json`
-// and `solid/specs/card-grid.json`, written from frames this script captures: the Widgets page's switch off and on, the
-// Dialog's modal and menu frames, and the Sky page at rest — captured the way solid/goldens stores a page's last frame
-// (solid/dump.ts). The tree is the same in both switch frames, so a command's index is the same element, and the numbers a
-// before/after is about are the commands whose fields differ: the track's colour and the thumb's x. A shell's bands and a
-// grid's cards are the frame's own elements — `sky-bar`, `sky-feed`, `sky-status`, `sky-card-<i>` — so their boxes are
-// looked up by the element's id, never typed. Nothing in the spec is typed by hand but the two states' captions, the two
-// parts' names and the shell bands' role words, and `solid/figure-handoff.test.ts` recomputes the same difference to hold
-// the spec to the frames.
+// `solid/specs/before-after.json`, `solid/specs/layer-stack.json`, `solid/specs/modal.json`, `solid/specs/app-shell.json`,
+// `solid/specs/card-grid.json` and `solid/specs/list-detail.json`, written from frames this script captures: the Widgets
+// page's switch off and on, the Dialog's modal and menu frames, and the Sky page at rest — captured the way solid/goldens
+// stores a page's last frame (solid/dump.ts). The tree is the same in both switch frames, so a command's index is the same
+// element, and the numbers a before/after is about are the commands whose fields differ: the track's colour and the
+// thumb's x. A shell's bands, a grid's cards and a list/detail page's panes are the frame's own elements — `sky-bar`,
+// `sky-feed`, `sky-status`, `sky-card-<i>`, `sky-feed-pane`, `sky-thread` — so their boxes are looked up by the element's
+// id, never typed. Nothing in the spec is typed by hand but the two states' captions, the two parts' names and the shell
+// bands' role words, and the figures' own tests recompute the same numbers from fresh captures to hold the spec to the
+// frames.
 //
-//   bun solid/specs/from-frames.ts                  # write the five specs, here
+//   bun solid/specs/from-frames.ts                  # write the six specs, here
 //   bun solid/specs/from-frames.ts "$TMPDIR/specs"  # ... or into another directory, for solid/test.sh's cmp
 //
 // Both switch frames are taken with the switch focused (`Tab,Tab`) and the second with Space after it, so the focus ring is
-// the same command in both and the only fields that move are the two the figure is about.
+// the same command in both and the only fields that move are the two the figure is about. The list/detail one is the Sky
+// page at 720px — the wide form — with its second card's thread open, settled: the page's own two panes.
 import "../plugin.ts";
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Command, FrameDump } from "../src/dump.ts";
 import { frameOf, gridOf } from "../src/figure/kinds/wireframe.ts";
-import { check, type AppShellData, type BeforeAfterData, type CardGridData, type LayerStackData, type ModalData } from "../src/figure/spec.ts";
+import {
+  check,
+  type AppShellData,
+  type BeforeAfterData,
+  type CardGridData,
+  type LayerStackData,
+  type ListDetailData,
+  type ListPane,
+  type ModalData,
+} from "../src/figure/spec.ts";
+import type { Loader } from "../app/Sky.tsx";
+
+// the page itself is imported dynamically: a static import of a page is resolved before the plugin registers, and Bun
+// would load solid-js's server build (dump.ts's header says the same of `main.ts`)
+const { screenOf } = await import("../app/Sky.tsx");
 
 /** The keys the off frame is taken with: two Tabs reach the Wi-Fi switch and focus it. */
 export const OFF_KEYS = ["Tab", "Tab"] as const;
@@ -247,6 +263,61 @@ export function gridSpecOf(data: CardGridData) {
   };
 }
 
+/** The Sky page in its wide form: the list's element and the detail's, one either side of the page's 720px. */
+export const LIST_DETAIL_ELEMENTS = ["sky-feed-pane", "sky-thread"] as const;
+
+/** The width the wide Sky page is captured at (`app/Sky.tsx`'s `WIDE_AT`): two 360px columns. */
+export const LIST_DETAIL_WIDTH = 720;
+/** The element the capture presses, to open a thread: the second card's body (a wide card's middle is its author row). */
+export const LIST_DETAIL_CLICK = "sky-body-1";
+/** The frames at rest after that press: the thread's entry is 0.3s and its rows are the loader's answer at once. */
+export const LIST_DETAIL_SETTLE = 40;
+
+/** apps/csssky's recorded getPostThread answer, the screen an offline frame draws (`src/skyload.ts` reads the same one). */
+export function offlineLoader(): Loader {
+  const fixture = new URL("../../../apps/csssky/test/fixtures/thread.json", import.meta.url);
+  let screen: ReturnType<typeof screenOf> | undefined;
+  return () => (screen ??= screenOf((JSON.parse(readFileSync(fixture, "utf8")) as { thread: unknown }).thread));
+}
+
+/** One pane of the frame: the element's own rectangle, or the sentence the script fails with. */
+function paneOf(frame: FrameDump, element: string): ListPane {
+  const command = frame.commands.find(
+    (candidate) => candidate.element === element && (candidate.type === "rectangle" || candidate.type === "border"),
+  );
+  if (!command) throw new Error(`listDetail: ${element} is not a rectangle of its frame`);
+  return { element, x: command.box[0]!, y: command.box[1]!, width: command.box[2]!, height: command.box[3]! };
+}
+
+/** The wide Sky page's two panes as a list/detail figure's data: each the box its element drew, plus the whole frame. */
+export function listDetailOf(frame: FrameDump): ListDetailData {
+  const [list, detail] = LIST_DETAIL_ELEMENTS;
+  return {
+    page: "sky",
+    width: frame.size[0],
+    height: frame.size[1],
+    ...frameOf(frame.commands),
+    list: paneOf(frame, list),
+    detail: paneOf(frame, detail),
+  };
+}
+
+/** The list/detail spec: the Sky page's thread beside its feed, the panes the wide page's frame drew. */
+export function listDetailSpecOf(data: ListDetailData) {
+  return {
+    kind: "listDetail" as const,
+    title: "The Sky page's thread, beside its feed",
+    intent:
+      "The Sky page in its wide form: the feed's column and the thread's, side by side at 720px — each pane the element " +
+      "the page drew, and the two of them the page.",
+    // the figure's source line is held to 76 characters, as every one of them is
+    source: `solid/specs/from-frames.ts, the Sky page at ${LIST_DETAIL_WIDTH}px, its thread open`,
+    // the page's own width in cells: a 720px page is 90 cells, and the figure is drawn at the size its page is
+    options: { width: Math.round(data.width / 8) },
+    data,
+  };
+}
+
 /** The layer stack's spec: the Dialog's own overlays, measured where each one opens. */
 export function layerSpecOf(data: LayerStackData) {
   return {
@@ -279,12 +350,19 @@ if (import.meta.main) {
   const modal = await capture("dialog", undefined, { keys: [...MODAL_KEYS], settle: SETTLE });
   const menu = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: SETTLE });
   const sky = await capture("sky");
+  const wide = await capture("sky", undefined, {
+    width: LIST_DETAIL_WIDTH,
+    clickOn: LIST_DETAIL_CLICK,
+    settle: LIST_DETAIL_SETTLE,
+    load: offlineLoader(),
+  });
   const spec = specOf(dataOf(off, on));
   const layers = layerSpecOf(layersOf(modal, menu));
   const dialog = modalSpecOf(modalOf(modal, MODAL_KEYS, SETTLE));
   const shell = shellSpecOf(appShellOf(sky));
   const grid = gridSpecOf(cardGridOf(sky));
-  for (const one of [spec, layers, dialog, shell, grid]) {
+  const panes = listDetailSpecOf(listDetailOf(wide));
+  for (const one of [spec, layers, dialog, shell, grid, panes]) {
     const problems = check(one);
     if (problems.length) throw new Error(`${one.kind} would not draw: ${problems.join(" ")}`);
   }
@@ -296,6 +374,7 @@ if (import.meta.main) {
     ["modal.json", dialog],
     ["app-shell.json", shell],
     ["card-grid.json", grid],
+    ["list-detail.json", panes],
   ] as const) {
     writeFileSync(join(dir, name), `${JSON.stringify(one, null, 2)}\n`);
     console.log(`${name}: ${join(dir, name)}`);
@@ -311,5 +390,11 @@ if (import.meta.main) {
   console.log(
     `from-frames: the shell ${shell.data.regions.map((region) => `${region.band} ${region.element}`).join(", ")}; ` +
       `the grid ${grid.data.cards.length} cards in ${grid.data.columns} column(s), a ${grid.data.gap}px gap`,
+  );
+  console.log(
+    `from-frames: the list/detail page ${panes.data.width}x${panes.data.height} — the list ${panes.data.list.element} ` +
+      `${panes.data.list.width}x${panes.data.list.height} at ${panes.data.list.x},${panes.data.list.y}, the detail ` +
+      `${panes.data.detail.element} ${panes.data.detail.width}x${panes.data.detail.height} at ${panes.data.detail.x},` +
+      `${panes.data.detail.y}`,
   );
 }
