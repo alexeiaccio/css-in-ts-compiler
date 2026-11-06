@@ -20,6 +20,22 @@ const kindOfLabel = (label: string): ToolbarItemKind => {
 
 const isMenuTriggerToken = (label: string): boolean => label.toLowerCase().includes("menutrigger");
 
+/**
+ * The walk's `key` steps are programmatic (`prop` steps), so they become a real
+ * keydown on the focused item: the platform moves focus, the primitive prevents
+ * the keys an embedded control owns. The walk alphabet spells arrows short.
+ */
+const dispatchKey = (target: HTMLElement, key: string): void => {
+  const named = ["Left", "Right", "Up", "Down"].includes(key) ? `Arrow${key}` : key;
+  target.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: named === "Space" ? " " : named,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+};
+
 // The open-key axis: perpendicular to the toolbar's own navigation axis.
 const isPerpendicularKey = (orientation: "horizontal" | "vertical", key: string): boolean =>
   orientation === "horizontal" ? key === "Up" || key === "Down" : key === "Left" || key === "Right";
@@ -38,9 +54,11 @@ const asRecord = (value: Json | undefined): Record<string, Json> => {
  * composes `createMenu` with `createToolbar` HERE in the fixture — the headless
  * `toolbar.ts` primitive never imports `menu.ts` (effects-of-atmosphere-gzzk).
  * The menu popup is a `data-part="popup"` sibling of the toolbar, so menu keys
- * never bubble into the toolbar's roving handler. DOM focus is synced to the
- * primitive's `focus` (item:N) and, while the menu is open, to the menu's own
- * focus (menuitem:N).
+ * never reach the toolbar. The walk drives the polyfill provider (see the
+ * `provider` option below), so a `key` step is a real `keydown` on the focused
+ * item and the platform moves focus. DOM focus is synced to the primitive's
+ * `focus` (item:N) and, while the menu is open, to the menu's own focus
+ * (menuitem:N).
  */
 export const mountToolbar = (config: ToolbarConfig): Mounted => {
   const root = document.createElement("div");
@@ -66,6 +84,10 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
       orientation: config.orientation,
       wrap: config.wrap,
       disabled: config.disabled,
+      // the walk dispatches its keys as untrusted events and probes the rendered
+      // `tabindex`: native focusgroup ignores untrusted keydown and writes no
+      // tabindex, the polyfill does both. The adapter test covers the native path.
+      provider: "polyfill",
       onActivate: (index) => {
         events.set("onActivate", [...(events.get("onActivate") ?? []), `item:${index}`]);
       },
@@ -140,6 +162,21 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
                   toolbar.clickItem(index);
                   menu.clickTrigger();
                 }}
+                onKeyDown={(event) => {
+                  // a vertical toolbar owns Up / Down along its axis; the menu opens
+                  // on the perpendicular key only (the `key` branch below), so the
+                  // menu's own trigger handler must not see the axis keys
+                  const key = event.key.startsWith("Arrow")
+                    ? event.key.slice("Arrow".length)
+                    : event.key;
+                  const vertical = api?.orientation() === "vertical";
+                  const along = vertical
+                    ? key === "Up" || key === "Down"
+                    : key === "Left" || key === "Right";
+                  if (!along) {
+                    menu.triggerProps.onKeyDown(event);
+                  }
+                }}
               >
                 {item.label}
               </button>
@@ -194,6 +231,9 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
           } else {
             api?.clickItem(index);
             if (index === triggerIndex) {
+              // a real pointer press focuses the trigger before the menu takes focus,
+              // and the platform's tab stop follows the DOM focus
+              itemElements()[index]?.focus();
               menuApi?.openMenu();
             }
           }
@@ -225,7 +265,11 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
               menuApi.setFocusItem(menuApi.items.length - 1);
             }
           } else {
-            api?.keyDown(key);
+            const index = api?.focus() ?? -1;
+            const target = index >= 0 ? itemElements()[index] : undefined;
+            if (target !== undefined) {
+              dispatchKey(target, key);
+            }
           }
           break;
         }
