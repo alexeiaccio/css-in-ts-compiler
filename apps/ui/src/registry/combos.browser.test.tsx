@@ -344,7 +344,7 @@ describe("the kit composes", () => {
     expect(links[2]!.getAttribute("href")).toBe("#report");
   });
 
-  it("opens the menu from its trigger, moves the highlight with a key, and gives focus back", () => {
+  it("opens the menu from its trigger, moves the highlight with a key, and gives focus back", async () => {
     const root = mount(() => <Menus />);
     const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
     const menu = root.querySelector<HTMLElement>('[data-part="menu"]')!;
@@ -361,29 +361,28 @@ describe("the kit composes", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(menu.getAttribute("role")).toBe("menu");
     expect(trigger.getAttribute("aria-controls")).toBe(menu.id);
-    // the highlight is the roving tab stop the widget announces, and the DOM focus is on that row
+    // the highlight is the row the widget announces, and the DOM focus is on it. The item `tabindex` is the provider's
+    // (the native engine writes none, so every row is a `<button>` reporting `tabIndex === 0`): the focus is the reading.
     const items = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
     expect(items.map((item) => item.getAttribute("role"))).toEqual([
       "menuitem",
       "menuitem",
       "menuitem",
     ]);
-    expect(items[0]!.tabIndex).toBe(0);
-    expect(items[1]!.tabIndex).toBe(-1);
     expect(document.activeElement).toBe(items[0]);
     expect(style(items[0]!).backgroundColor).not.toBe(style(items[1]!).backgroundColor);
-    // an arrow key moves the highlight: the tab stop and the styled row follow it
-    items[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    // an arrow key moves the highlight: the styled row and the DOM focus follow it. A real key event, because the move
+    // is the platform's `focusgroup` — the native engine ignores an untrusted `keydown` (the polyfill path is walked in
+    // `apps/ui/src/registry/menu/menu.browser.test.tsx`)
+    await userEvent.keyboard("{ArrowDown}");
     flush();
-    expect(items[1]!.tabIndex).toBe(0);
-    expect(items[0]!.tabIndex).toBe(-1);
     expect(document.activeElement).toBe(items[1]);
     expect(style(items[1]!).backgroundColor).not.toBe(style(items[2]!).backgroundColor);
     // a disabled item stays focusable and says so (APG note 1)
     expect(items[2]!.getAttribute("aria-disabled")).toBe("true");
     expect(style(items[2]!).cursor).toBe("not-allowed");
     // Escape closes it and the focus goes back to what opened it
-    items[1]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await userEvent.keyboard("{Escape}");
     flush();
     expect(menu.hidden).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");

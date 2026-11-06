@@ -1877,6 +1877,10 @@ createMenu(options: {
 - **A row must be focusable by nature.** The native engine writes no `tabindex` and only moves focus to an item
   that is tabbable already, so render a `<button>` or an `<a href>` per row (the polyfill decorates whatever the
   collection holds, and restores an authored `tabindex`). A `<div>` row works only on the polyfill.
+- **A test presses real keys.** The movement is the platform's, and a native engine ignores an untrusted
+  `KeyboardEvent` dispatched from script: a test that presses an arrow declares it with `userEvent.keyboard`, or
+  runs the widget on `provider: "polyfill"` (which is what `apps/ui/src/registry/menu/menu.browser.test.tsx`'s
+  walks do, because their `tabindex` probe needs the rendered stop).
 - **It keeps the keys the platform does not infer**: Enter / Space activation, Escape, Tab (which closes and
   leaves), typeahead, and on a menubar the cross-axis keys — the open keys of the bar, `Right` into a submenu,
   `Left` back to the parent row or the previous bar item. The arrows along the axis, Home and End are not in
