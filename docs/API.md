@@ -2489,12 +2489,17 @@ The APG Radio Group: one `radiogroup` with `role="radio"` items, where selection
 behaviour is `packages/apg-specs/specs/apg/radio.qnt`, replayed by
 `packages/headless/test/radio.browser.test.tsx` against the ported ariakit, base-ui and React Aria scenarios
 and a differential walk in six configurations (unchecked, checked, disabled, `activedescendant`, and a
-controlled host that accepts or holds a request). `values` is the option list (a getter is fine, so a list
-that arrives later is still one widget), `defaultValue` is the uncontrolled check and `value` +
-`onValueChange` make the host own it.
+controlled host that accepts or holds a request). The same file proves the native path with real keys. `values`
+is the option list (a getter is fine, so a list that arrives later is still one widget), `defaultValue` is the
+uncontrolled check and `value` + `onValueChange` make the host own it.
 
 `value` may be a getter, and then `undefined` means "nothing checked" as a controlled state: it is the bare
 `undefined` prop that says uncontrolled.
+
+The roving flavor is the platform's `focusgroup="radiogroup"` contract (the browser's where it has one,
+`@microsoft/focusgroup-polyfill` otherwise, `provider: "polyfill"` forces the polyfill): both axes, Home / End,
+wrap and the item `tabindex` are its. The library keeps two deltas — selection follows focus, and the APG tab
+stop (the checked radio, else the first enabled one) — plus Space, which focusgroup does not provide.
 
 ```ts skip
 createRadioGroup<T>(options: {
@@ -2504,21 +2509,21 @@ createRadioGroup<T>(options: {
   flavor?: "roving" | "activedescendant"; // "roving"
   disabled?: ReadonlyArray<number>; // indices never focused, checked or picked as the tab stop
   orientation?: "horizontal" | "vertical"; // sets aria-orientation only
-  dir?: "ltr" | "rtl"; // "ltr": under rtl the horizontal arrows swap
+  dir?: "ltr" | "rtl"; // forwarded to the DOM: the platform reads it for the horizontal arrows
   id?: string; // base of `<id>-radio-<i>`
   describedby?: string | undefined; // aria-describedby on every radio
+  provider?: "auto" | "polyfill"; // "auto"; "polyfill" forces the polyfill (a test, or a host that needs it)
   onValueChange?(value: T): void; // a request the host may ignore
   onFocus?(target: string): void; // "radio:<index>"
   onBlur?(target: string): void;
 }): {
   checked(): number | null; // the index, null when nothing is checked
-  focused(): number | null;
+  focused(): number | null; // follows the DOM's focusin
   flavor(): RadioFlavor;
   values: ReadonlyArray<T>;
   value(): T | null;
-  focus(): void;
+  focus(): void; // moves the focus *state*; the host moves the DOM focus
   blur(): void;
-  keyDown(key: string): void;
   click(index: number): void;
   setDisabled(indices: ReadonlyArray<number>): void;
   setFlavor(flavor: RadioFlavor): void;
@@ -2528,6 +2533,9 @@ createRadioGroup<T>(options: {
     "aria-orientation";
     "aria-activedescendant": string | undefined; // only the activedescendant flavor
     tabindex: 0 | undefined; // 0 only in the activedescendant flavor
+    focusgroup: string | undefined; // the roving definition ("radiogroup wrap nomemory"), absent otherwise
+    dir: "ltr" | "rtl" | undefined; // the option, forwarded
+    ref: (element: HTMLElement) => void; // builds the platform's provider
     onKeyDown;
     onFocus;
     onBlur;
@@ -2539,21 +2547,34 @@ createRadioGroup<T>(options: {
     "aria-disabled": "true" | "false";
     "aria-describedby";
     type: "button"; // keeps a surrounding form from submitting
-    tabindex: 0 | -1 | undefined; // roving only: 0 for the tab stop
+    focusgroupstart: "" | undefined; // roving: the platform's start marker, on the tab-stop radio
+    focusgroup: "none" | undefined; // roving: opts a disabled radio out of the group
+    tabindex: 0 | -1 | undefined; // the author value the platform needs; it owns the roving stop
+    ref: (element: HTMLElement) => void;
     onClick;
     onFocus;
   };
 };
 ```
 
-- **Two flavors, one machine.** `"roving"` (the default) keeps the tab stop on the radios: `tabindex=0` on
-  the checked radio, or on the first enabled one while nothing is checked, `-1` on the rest.
-  `"activedescendant"` puts the tab stop on the group (`tabindex=0` there, nothing on the radios) and names
-  the focused radio in `aria-activedescendant`; the host keeps the DOM focus on the group. The primitive
-  moves no DOM focus in either flavor: `focused()` reads synchronously, so the host applies it.
-- **Selection follows the focus.** An arrow moves to the next enabled radio (wrapping) and requests it, Space
-  requests the focused one, a click focuses and requests, and Tab enters on the tab stop. `setPreselect`
+- **Two flavors, one machine.** `"roving"` (the default) is the platform's tab stop: an arrow, Home or End
+  moves DOM focus, the primitive never renders a roving `tabindex` (the polyfill writes `0` / `-1`; the native
+  engine writes nothing and keeps the stop in its focus controller), and a focus that arrives from outside
+  only moves the state. `"activedescendant"` puts the tab stop on the group (`tabindex=0` there, nothing on
+  the radios) and names the focused radio in `aria-activedescendant`: focusgroup models DOM focus moving
+  between items, so this flavor keeps its keyboard in the primitive.
+- **Selection follows the focus.** An arrow moves to the next enabled radio (wrapping) _and requests_ it —
+  the `focusin` the platform causes is the library's, since focusgroup leaves selection to the pattern. Space
+  requests the focused one, a click focuses and requests, and Tab enters on the checked radio. `setPreselect`
   starts the check without a request, and `setDisabled` / `setFlavor` reset the focus.
+- **The tab stop is the checked radio, not the focused one.** That is the APG rule the platform cannot
+  express, so the definition is `nomemory` with `focusgroupstart` on that radio and the primitive re-derives
+  the stop after every focus move: a controlled host that rejects a request leaves the focus on the requested
+  radio and the tab stop where the check is.
+- **A disabled radio is out of the group** (`focusgroup="none"`, `tabindex="-1"`): arrows and the tab stop
+  skip it and Tab never lands on it. Against the native engine every other radio carries `tabindex="0"`,
+  because that engine navigates only items with `tabIndex > -1` and a `<div role="radio">` is otherwise not
+  focusable at all; the engine still gives the group one tab stop.
 - **Config remounts fire no request.** `setDisabled`, `setFlavor` and `setPreselect` write the uncontrolled
   local directly; with `value` set, what is checked is the prop's, so they only move the focus.
 - **Two divergences:** React Aria renders native `<input type="radio">` elements and carries the HTML
@@ -2562,8 +2583,8 @@ createRadioGroup<T>(options: {
 
 ArrowDown / ArrowRight are forward and ArrowUp / ArrowLeft backward, with `dir: "rtl"` swapping the
 horizontal pair; both axes work whatever `orientation` says, since that option only sets `aria-orientation`.
-The arrows wrap past the ends and skip every disabled index; Home / End are not handled, as the pattern has
-no such key.
+The arrows wrap past the ends and skip every disabled index; Home / End come from the platform, so the roving
+flavor handles them too (the spec has no such key).
 
 ### Headless: `createTooltipGroup` (`@cssints/headless`)
 

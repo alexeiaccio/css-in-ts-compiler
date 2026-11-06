@@ -4890,3 +4890,66 @@ Which of the remaining widgets with a roving model (`listbox`, `radio`, `menu`, 
 `menu-button`, `feed`, `grid`, `checkbox-group`, `command-palette`) move next is unchanged, but the shape is now
 settled twice over: the pattern keeps selection, the platform keeps the stop, and a spec that pins the stop to
 the selection is modelling the provider.
+||||||| parent of f69da799 (docs: what the radio group kept, and what the platform now owns)
+
+## The radio group: the platform moves, the pattern selects (2026-11-06)
+
+`createRadioGroup` was the second widget on the adapter (`./focusgroup`), and the first whose _spec_ needs
+something focusgroup refuses to own. `specs/apg/radio.qnt` says two things the platform does not: an arrow
+**checks** the radio it lands on (selection is explicitly decoupled from focus in `shared/focusgroup.qnt`),
+and the tab stop is the **checked** radio, not the one that has the focus. Both stayed in `radio.ts`:
+
+- **Selection follows focus** is the owner's `focusin` listener. A keydown on the owner (registered before
+  the provider's, so it runs first) marks an arrow / Home / End as a move; the `focusin` the platform causes
+  then requests the radio it landed on. A focus that arrives from outside — Tab, a click — only moves the
+  focus state, which is why the flag exists rather than "any focusin checks".
+- **The tab stop** is expressed in the platform's own vocabulary: `nomemory` (the model's `enter` always lands
+  on `tabStop`, never on the last focused radio) plus a `focusgroupstart` marker on the checked radio, else
+  the first enabled one, re-derived after every focus move. Without that marker the polyfill starts every
+  group on its first item, so a checked third radio would not be the Tab stop.
+- **Activedescendant stays in the primitive.** focusgroup models DOM focus moving between items; this flavor
+  deliberately keeps the focus on the group and names the radio in `aria-activedescendant`, which is the
+  adapter's own gap ("`aria-activedescendant` focus models are not a focusgroup"). Both flavors still share
+  the check, the request/commit split and the callbacks.
+
+**What this measurement found, and cost.**
+
+- The adapter's array collection is the _whole_ eligibility story: unlike the polyfill's own
+  `TreeWalkerItemCollection` it does not check whether an item is focusable, so a radio the group must skip
+  (disabled, and never the tab stop per this spec) is simply left out of `items()` — and opted out of the
+  native group with `focusgroup="none"`, the token the shared spec prescribes. A radio that leaves the set
+  keeps the stop it had (the platform never touches it again), so the primitive pins it to `-1`; the walk
+  caught exactly that when a checked radio became disabled and the model still read `-1`.
+- **A `<div role=radio>` is not focusable**, and the native engine navigates only items with `tabIndex > -1`
+  (measured: a group of `tabindex="-1"` divs is skipped by Tab entirely; with `tabindex="0"` the engine enters
+  on the start marker and still leaves one stop). So the native path renders `tabindex="0"` on every radio and
+  the polyfill path a constant `-1`, which is also what makes the polyfill's re-decoration harmless: it
+  restores the _author_ `tabindex` on every `update()`, and removing it from the focused div blurred it.
+- The polyfill does not infer the behaviour token: `wrap` and the axis must be stated on the definition it is
+  handed, or a `radiogroup` gets `nowrap` and an arrow at the end stops. `dir` is forwarded to the DOM, so
+  both providers read the direction they swap the horizontal pair for (the native engine honours it too).
+
+**What the walk proved, and did not.** The differential walk runs unchanged on the forced polyfill — its key
+steps are real keydowns on the focused radio, its probe reads the rendered `tabindex` — and the six
+configurations now agree with the model, including the two where a controlled host rejects the request: the
+focus moves, the check does not, and the tab stop stays on the checked radio. The native path is a focused
+test in the same file with `userEvent`'s trusted keys: Tab enters on the checked radio, arrows move and check
+on both axes with wrapping, a disabled radio is skipped and never in the tab order, a rejected request leaves
+the tab stop and re-entry on the checked radio, Space requests, and `dir="rtl"` swaps the horizontal pair.
+The fixture's deferred focus had to `flush()` first (Solid 2 commits on a flush; a stale `focused()` blurred
+the radio the walk had just focused), and `key` steps dispatch on the group in the activedescendant flavor.
+
+**The break.** `radiogroupProps` gained `focusgroup`, `ref` and `dir`; `RadioGroup.keyDown` is gone (the
+platform moves) and `RadioProps` no longer carries a roving `tabindex` — what it carries is the author value
+the platform needs (`focusgroupstart`, `focusgroup="none"` and `-1` on a disabled radio, `0` only where the
+native engine runs). Migration: spread `radiogroupProps` on the owner (its `ref` builds the provider — a host
+that has its own `ref` must call it), `radioProps(i)` on each radio, and delete any roving `tabindex`; a
+`minor` changeset, since `@cssints/headless` is 0.x.
+
+**Left out, and true.** Home / End come free from the platform and are not in the spec (the roving flavor now
+handles them, with a check); the `.qnt` still has no `aria-orientation` axis (the option only sets the
+attribute, as before), no RTL (the scenarios' `direction` is proven by the polyfill and the native test, not
+by the model's `radioTabindex`), and no Home / End. `checkbox-group` does not share this shape (every checkbox
+is its own tab stop), so it was not touched. Toolbar has no `.qnt` change either: `radio.qnt`'s
+`TabStopIsCheckedOrFirst` and `shared/focusgroup.qnt`'s `fgFocusIsStop` disagree only in the state a rejecting
+controlled host creates, which the primitive resolves with the start marker rather than by editing the model.
