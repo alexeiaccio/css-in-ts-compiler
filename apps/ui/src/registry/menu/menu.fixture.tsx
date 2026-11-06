@@ -53,6 +53,25 @@ const asRecord = (value: Json | undefined): Record<string, Json> => {
 };
 
 /**
+ * The walk's `key` steps are programmatic and its probe reads the rendered `tabindex`: they become a real
+ * keydown where the user's finger is, and the fixture runs the kit on the forced polyfill, because the native
+ * engine ignores an untrusted `keydown` and writes no tabindex (`menu.browser.test.tsx` covers that path).
+ */
+const pressKey = (target: HTMLElement | undefined, key: string): void => {
+  target?.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: key === "Space" ? " " : key,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+};
+
+const rowsOf = (root: HTMLElement): HTMLElement[] => [
+  ...root.querySelectorAll<HTMLElement>('[data-part="menuitem"]'),
+];
+
+/**
  * The kit's trigger and rows are named for the skin (`button`, `menu-item`); the shared DOM driver finds a
  * part by the spec's name, so the conformance fixture renames them through the components' own `render`
  * props. The trigger stays the kit's `Button` (its class and behaviour), with `data-part="trigger"` on the
@@ -118,6 +137,7 @@ export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
         items={config.items}
         variant={config.variant}
         disabled={config.disabled}
+        provider="polyfill"
         value={config.controlled ? readable(host()) : undefined}
         onReady={(menu) => {
           api = menu;
@@ -174,7 +194,16 @@ export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
           if (typeof record["key"] !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(record["key"]);
+          // the checkable menu's level 1 is the trigger (it holds focus while closed)
+          const level = api?.focusLevel();
+          pressKey(
+            level === 2
+              ? rowsOf(root)[api?.focusIndex() ?? 0]
+              : level === 1
+                ? (root.querySelector<HTMLElement>('[data-part="trigger"]') ?? undefined)
+                : undefined,
+            record["key"],
+          );
           break;
         }
         case "setValue":
@@ -227,6 +256,7 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
         items={config.items}
         variant="plain"
         disabled={config.disabled}
+        provider="polyfill"
         open={config.controlled ? host() : undefined}
         onReady={(menu) => {
           api = menu;
@@ -266,7 +296,16 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
           if (typeof record["key"] !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(record["key"]);
+          // the checkable menu's level 1 is the trigger (it holds focus while closed)
+          const level = api?.focusLevel();
+          pressKey(
+            level === 2
+              ? rowsOf(root)[api?.focusIndex() ?? 0]
+              : level === 1
+                ? (root.querySelector<HTMLElement>('[data-part="trigger"]') ?? undefined)
+                : undefined,
+            record["key"],
+          );
           break;
         }
         case "typeahead":

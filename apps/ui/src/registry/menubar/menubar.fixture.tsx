@@ -13,6 +13,22 @@ const asRecord = (value: Json | undefined): Record<string, Json> => {
 };
 
 /**
+ * The walk's `key` steps are programmatic and its probe reads the rendered `tabindex`: they become a real keydown
+ * where the user's finger is, and the fixture runs the kit on the forced polyfill, because the native engine
+ * ignores an untrusted `keydown` and writes no tabindex (`packages/headless`'s `menu.browser.test.tsx` covers
+ * that path).
+ */
+const pressKey = (target: HTMLElement | undefined, key: string): void => {
+  target?.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: key === "Space" ? " " : key,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+};
+
+/**
  * Renders the kit's menubar with the `menu-menubar.qnt` fixed tree: the first bar item's menu has three items with a
  * submenu on the second, the second bar item has a menu of two, the third none.
  */
@@ -39,11 +55,37 @@ export const mountMenubar = (config: MenuMenubarConfig): Mounted => {
     { label: labels[2] ?? "About" },
   ];
 
+  const partsOf = (name: string): HTMLElement[] => [
+    ...root.querySelectorAll<HTMLElement>(`[data-part="${name}"]`),
+  ];
+  const childrenOf = (element: HTMLElement | undefined): HTMLElement[] =>
+    element === undefined
+      ? []
+      : [...element.children].filter((child): child is HTMLElement => child instanceof HTMLElement);
+  /** The row the primitive reports as focused, in the kit's own parts. */
+  const focusedElement = (): HTMLElement | undefined => {
+    const level = api?.focusLevel();
+    if (level === 1) {
+      return partsOf("menubar-trigger")[api?.barStop() ?? 0];
+    }
+    if (level === 2) {
+      return childrenOf(partsOf("menubar-menu")[api?.openTop() ?? 0])[api?.focusIndex() ?? 0];
+    }
+    if (level === 3) {
+      const parent = childrenOf(partsOf("menubar-menu")[api?.openTop() ?? 0])[api?.openSub() ?? 0];
+      const submenu =
+        parent?.querySelector<HTMLElement>('[data-part="menubar-submenu"]') ?? undefined;
+      return childrenOf(submenu)[api?.focusIndex() ?? 0];
+    }
+    return undefined;
+  };
+
   const dispose = render(
     () => (
       <Menubar
         items={tree}
         orientation={config.orientation}
+        provider="polyfill"
         onReady={(menubar) => {
           api = menubar;
         }}
@@ -81,7 +123,7 @@ export const mountMenubar = (config: MenuMenubarConfig): Mounted => {
           if (typeof record["key"] !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(record["key"]);
+          pressKey(focusedElement(), record["key"]);
           break;
         }
         case "typeahead":

@@ -15,6 +15,7 @@ import {
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 import ariakit from "@cssints/apg-specs/scenarios/apg/menubar.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/menubar.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/menu-menubar.model.json";
@@ -31,8 +32,10 @@ const dom = (config: ScenarioConfig) => menubarDriver(mountMenubar(menuMenubarCo
 // gap forces removing the entry.
 const MENUBAR_TREE =
   "the ported scenario describes the upstream fixture tree (menu sizes / which item owns the submenu / a menu-less bar); the primitive renders the menu-menubar.qnt fixed tree";
-const MENUBAR_VERTICAL =
-  "menu-menubar.qnt models a horizontal bar; vertical navigation (Up/Down between bar items, the cross-axis key opening a menu) is not modelled";
+const MENUBAR_ROW_CONTROL =
+  "the upstream fixture's row is a native control (a text input, a link or a button) that keeps the arrows and whose menu stays open; the kit's rows are buttons that the library owns, and activating a leaf closes every menu";
+const MENUBAR_VERTICAL_CROSS_AXIS =
+  "menu-menubar.qnt models a horizontal bar: its Left / Right out of an open menu move along the bar, while a vertical bar's inline pair is the cross axis (upstream closes the menu and returns to the bar item)";
 const MENUBAR_HOVER =
   "store hover-intent opening (APG optional; an ariakit/base-ui extension) is not modelled; menus open on keyboard and click";
 const MENUBAR_POPUP_FOCUS =
@@ -40,12 +43,10 @@ const MENUBAR_POPUP_FOCUS =
 const MENUBAR_CONTAINER_FOCUS =
   "the scenario focuses the menu container; the primitive keeps DOM focus on menu items";
 const DIVERGENCES: Readonly<Record<string, string>> = {
-  "menubar.ariakit.aria-expanded-reflects-open-menu": MENUBAR_VERTICAL,
-  "menubar.ariakit.arrow-down-keeps-focus-on-control-in-vertical-menubar": MENUBAR_VERTICAL,
-  "menubar.ariakit.arrow-keys-keep-focus-on-input-in-vertical-menubar": MENUBAR_VERTICAL,
-  "menubar.ariakit.vertical-arrow-down-moves-between-items-without-opening": MENUBAR_VERTICAL,
-  "menubar.ariakit.vertical-arrow-right-opens-menu": MENUBAR_VERTICAL,
-  "menubar.base-ui.vertical-main-axis-arrow-moves-between-triggers": MENUBAR_VERTICAL,
+  "menubar.ariakit.arrow-down-keeps-focus-on-control-in-vertical-menubar": MENUBAR_ROW_CONTROL,
+  "menubar.ariakit.arrow-down-keeps-focus-on-input-in-vertical-menubar": MENUBAR_ROW_CONTROL,
+  "menubar.ariakit.arrow-keys-keep-focus-on-input-in-vertical-menubar": MENUBAR_ROW_CONTROL,
+  "menubar.ariakit.vertical-arrow-right-opens-menu": MENUBAR_VERTICAL_CROSS_AXIS,
   "menubar.ariakit.hover-switches-open-menu": MENUBAR_HOVER,
   "menubar.base-ui.hover-opens-nested-submenu": MENUBAR_HOVER,
   "menubar.base-ui.hover-switches-open-menu-when-submenu-open": MENUBAR_HOVER,
@@ -125,25 +126,37 @@ const parts = (root: HTMLElement, name: string): HTMLElement[] => [
 ];
 const rowsOf = (menu: HTMLElement): HTMLElement[] =>
   [...menu.children].filter((child): child is HTMLElement => child instanceof HTMLElement);
-const key = (target: HTMLElement, name: string): void => {
-  target.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true }));
+// A real key event on what holds the focus: the platform moves the roving focus only for a trusted keydown (the widget
+// itself reads the keys it owns from both). The highlight is the primitive's announcement, not a tabindex.
+const key = async (name: string): Promise<void> => {
+  await userEvent.keyboard(`{${name}}`);
   flush();
 };
+const highlighted = (rows: ReadonlyArray<HTMLElement>): ReadonlyArray<string | null> =>
+  rows.map((row) => row.getAttribute("data-highlighted"));
 
 describe("Menubar (the kit's DOM)", () => {
-  it("is a menubar with one roving tab stop, an anchor and a hidden menu per item", () => {
+  it("is a menubar focusgroup with an anchor and a hidden menu per item", () => {
     const { root, dispose } = mountBar();
     const bar = parts(root, "menubar")[0]!;
     expect(bar.getAttribute("role")).toBe("menubar");
     expect(bar.getAttribute("aria-orientation")).toBe("horizontal");
+    // the bar is one `focusgroup` segment (`menubar`, the inline axis, wrap): the provider owns the tab stop, so the
+    // markup carries none — the native engine writes no `tabindex` at all
+    expect(bar.getAttribute("focusgroup")).toBe("menubar inline wrap");
     const triggers = parts(root, "menubar-trigger");
     expect(triggers.map((trigger) => trigger.getAttribute("role"))).toEqual([
       "menuitem",
       "menuitem",
       "menuitem",
     ]);
-    // the roving tab stop: one bar item is reachable with Tab, the others move with the arrows
-    expect(triggers.map((trigger) => trigger.tabIndex)).toEqual([0, -1, -1]);
+    // every bar item is a button (focusable) and the same attribute object: no tabindex of its own
+    expect(triggers.map((trigger) => trigger.tagName)).toEqual(["BUTTON", "BUTTON", "BUTTON"]);
+    expect(triggers.map((trigger) => trigger.hasAttribute("tabindex"))).toEqual([
+      false,
+      false,
+      false,
+    ]);
     expect(triggers.map((trigger) => trigger.getAttribute("aria-haspopup"))).toEqual([
       "menu",
       "menu",
@@ -164,7 +177,7 @@ describe("Menubar (the kit's DOM)", () => {
     dispose();
   });
 
-  it("opens a menu under its bar item, focuses the first row and moves the tab stop", () => {
+  it("opens a menu under its bar item, focuses the first row and moves the highlight", async () => {
     const { root, dispose } = mountBar();
     const triggers = parts(root, "menubar-trigger");
     const menu = parts(root, "menubar-menu")[0]!;
@@ -183,28 +196,26 @@ describe("Menubar (the kit's DOM)", () => {
       "menuitem",
       "menuitem",
     ]);
-    expect(rows.map((row) => row.tabIndex)).toEqual([-1, -1, -1]);
-    key(triggers[0]!, "ArrowDown");
-    // the highlight is the row the primitive announces as the tab stop, and the DOM focus went there
-    expect(rows.map((row) => row.tabIndex)).toEqual([0, -1, -1]);
+    await key("ArrowDown");
+    // the highlight is the row the primitive announces, and the DOM focus went there
+    expect(highlighted(rows)).toEqual(["true", null, null]);
     expect(document.activeElement).toBe(rows[0]);
     expect(style(rows[0]!).backgroundColor).not.toBe(style(rows[1]!).backgroundColor);
-    key(rows[0]!, "ArrowDown");
-    expect(rows[0]!.tabIndex).toBe(-1);
-    expect(rows[1]!.tabIndex).toBe(0);
+    await key("ArrowDown");
+    expect(highlighted(rows)).toEqual([null, "true", null]);
     expect(document.activeElement).toBe(rows[1]);
     expect(style(rows[1]!).backgroundColor).not.toBe(style(rows[2]!).backgroundColor);
     dispose();
   });
 
-  it("opens the submenu with Right, paints its chevron from aria-expanded and closes only it", () => {
+  it("opens the submenu with Right, paints its chevron from aria-expanded and closes only it", async () => {
     const { root, dispose } = mountBar();
     const triggers = parts(root, "menubar-trigger");
     const menu = parts(root, "menubar-menu")[0]!;
     triggers[0]!.click();
     flush();
-    key(triggers[0]!, "ArrowDown");
-    key(rowsOf(menu)[0]!, "ArrowDown");
+    await key("ArrowDown");
+    await key("ArrowDown");
     const parent = rowsOf(menu)[1]!;
     const submenu = parent.querySelector<HTMLElement>('[data-part="menubar-submenu"]')!;
     const chevron = parent.querySelector<HTMLElement>('span[aria-hidden="true"]')!;
@@ -215,7 +226,7 @@ describe("Menubar (the kit's DOM)", () => {
     // the marker is the row's announcement: visible because it says it has a popup, and turned when it is open
     expect(style(chevron).visibility).toBe("visible");
     expect(style(chevron).transform).toBe("none");
-    key(parent, "ArrowRight");
+    await key("ArrowRight");
     expect(parent.getAttribute("aria-expanded")).toBe("true");
     expect(submenu.hidden).toBe(false);
     expect(submenu.getAttribute("role")).toBe("menu");
@@ -228,25 +239,26 @@ describe("Menubar (the kit's DOM)", () => {
     expect(subItems.map((row) => row.getAttribute("role"))).toEqual(["menuitem", "menuitem"]);
     expect(document.activeElement).toBe(subItems[0]);
     // Down moves inside the submenu, and Escape leaves it one level at a time
-    key(subItems[0]!, "ArrowDown");
-    expect(subItems[1]!.tabIndex).toBe(0);
-    expect(subItems[0]!.tabIndex).toBe(-1);
+    await key("ArrowDown");
+    expect(highlighted(subItems)).toEqual([null, "true"]);
     expect(document.activeElement).toBe(subItems[1]);
-    key(subItems[1]!, "Escape");
+    await key("Escape");
     expect(submenu.hidden).toBe(true);
     expect(parent.getAttribute("aria-expanded")).toBe("false");
+    // the chevron is painted from `aria-expanded` through a 120 ms transition: let it land before reading it
+    await new Promise((resolve) => setTimeout(resolve, 200));
     expect(style(chevron).transform).toBe("none");
     expect(menu.hidden).toBe(false);
     expect(document.activeElement).toBe(parent);
     const barItem = triggers[0]!;
-    key(parent, "Escape");
+    await key("Escape");
     expect(menu.hidden).toBe(true);
     expect(barItem.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(barItem);
     dispose();
   });
 
-  it("opens the next menu with Right along the bar and leaves the focus on the bar item", () => {
+  it("opens the next menu with Right along the bar and leaves the focus on the bar item", async () => {
     const { root, dispose } = mountBar();
     const triggers = parts(root, "menubar-trigger");
     const menus = parts(root, "menubar-menu");
@@ -256,16 +268,15 @@ describe("Menubar (the kit's DOM)", () => {
     flush();
     // Right on the open menu's first row moves along the bar and opens that item's menu (the APG rule: the menu opens
     // without the focus going into it)
-    key(document.activeElement as HTMLElement, "ArrowRight");
+    await key("ArrowRight");
     expect(menus[0]!.hidden).toBe(true);
     expect(menus[1]!.hidden).toBe(false);
     expect(triggers[1]!.getAttribute("aria-expanded")).toBe("true");
-    expect(triggers[1]!.tabIndex).toBe(0);
-    expect(triggers[0]!.tabIndex).toBe(-1);
+    expect(highlighted(triggers)).toEqual([null, "true", null]);
     expect(document.activeElement).toBe(triggers[1]);
     expect(menus[1]!.contains(document.activeElement)).toBe(false);
     // Down is what enters it
-    key(triggers[1]!, "ArrowDown");
+    await key("ArrowDown");
     expect(document.activeElement).toBe(rowsOf(menus[1]!)[0]);
     dispose();
   });

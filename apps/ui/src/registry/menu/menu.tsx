@@ -51,6 +51,12 @@ export interface MenuProps {
   readonly id?: string;
   /** The primitive, once: a page that drives the menu from elsewhere. */
   readonly onReady?: (menu: MenuController) => void;
+  /**
+   * The primitive's provider: `"auto"` (the native `focusgroup` where the engine has it) by default;
+   * `"polyfill"` forces `@microsoft/focusgroup-polyfill`, which the conformance fixture needs because its
+   * `key` steps are untrusted events and its probe reads the rendered `tabindex`.
+   */
+  readonly provider?: "auto" | "polyfill";
   readonly children?: JSX.Element;
 }
 
@@ -87,7 +93,6 @@ export interface MenuItemProps extends Renderable<MenuItemPartProps, MenuItemSta
 
 const MenuContext = createContext<{
   readonly menu: MenuController;
-  readonly anchor: () => HTMLElement | undefined;
   /** A checkable variant: every row reserves the mark's column, so a mixed menu's plain rows line up. */
   readonly checkable: boolean;
 }>();
@@ -116,19 +121,27 @@ const contentClass = css.cn(
   css.boxShadow(t.shadow.popover),
 );
 
-// The highlight is the roving tab stop the primitive announces (`tabindex="0"` on one row), not a second copy of the
-// state: a pointer hover and an arrow key both move it.
+// The highlight is the row the primitive announces (`data-highlighted`, mirrored from `focusIndex`), not a second copy of
+// the state: a pointer hover and an arrow key both move it. The row is a `<button>` because an item has to be focusable for
+// the platform's `focusgroup` to move focus to it — the native engine writes no `tabindex`, so a `div` would never receive
+// the focus — and a menu item is an action anyway.
 const itemClass = css.cn(
   // the marker `within()` reads: the row's own `aria-checked` is what the mark follows
   css.group(),
   css.display("flex"),
   css.alignItems("center"),
+  css.width("100%"),
+  css.boxSizing("border-box"),
   css.padding(t.space._1, t.space._2),
+  css.border("none"),
   css.borderRadius(t.radius.sm),
+  css.bg("transparent"),
+  css.fontFamily("inherit"),
   css.fontSize(t.font.size),
+  css.textAlign("start"),
   css.color(t.color.text),
   css.cursor("pointer"),
-  css.attr("tabindex", "0")(css.bg(t.color.buttonBackground)),
+  css.attr("data-highlighted", "true")(css.bg(t.color.buttonBackground)),
   css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
   css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
 );
@@ -146,16 +159,15 @@ const markClass = css.cn(
   css.within(css.attr("aria-checked", "true"))(css.visibility("visible")),
 );
 
-const triggerOf = (root: HTMLElement | undefined): HTMLElement | undefined =>
-  root?.querySelector<HTMLElement>('[aria-haspopup="menu"]') ?? undefined;
-
-const rowsOf = (root: HTMLElement | undefined): HTMLElement[] =>
-  root === undefined ? [] : [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
+/** A part by the id the primitive gave it: a `render` may rename `data-part`, the id is the primitive's. */
+const byId = (id: string): HTMLElement | undefined => document.getElementById(id) ?? undefined;
 
 /**
- * APG menu button, styled: `Menu.Trigger` (a `Button`) opens `Menu.Content`, a list of `Menu.Item`s with one roving tab
- * stop. `createMenu` owns the open state, the ARIA, the arrow keys, Escape and the typeahead buffer; the kit adds the
- * anchor the content floats from, the surface, the highlight and the DOM focus, and closes the menu on a click outside.
+ * APG menu button, styled: `Menu.Trigger` (a `Button`) opens `Menu.Content`, a list of `Menu.Item`s with one roving focus
+ * and one tab stop. `createMenu` owns the open state, the ARIA, the movement through the platform's `focusgroup`
+ * (`focusgroup="menu"`: the arrows, Home / End, the wrap and the item `tabindex`), Escape, the typeahead buffer and the
+ * keys across the axis; the kit adds the anchor the content floats from, the surface, the highlight and the DOM focus, and
+ * closes the menu on a click outside.
  *
  * `open` makes it controlled: then every intent (the trigger, a key, Escape, an item, a click outside) is a request the
  * host may ignore, and `open` is the only thing that moves. Without it the primitive owns the state from `defaultOpen`.
@@ -200,6 +212,9 @@ export const Menu = (props: MenuProps): JSX.Element => {
     get onItemClick() {
       return props.onItemClick;
     },
+    get provider() {
+      return props.provider;
+    },
   });
   untrack(() => props.onReady)?.(menu);
   let anchor: HTMLDivElement | undefined;
@@ -219,7 +234,6 @@ export const Menu = (props: MenuProps): JSX.Element => {
     <MenuContext
       value={{
         menu,
-        anchor: () => anchor,
         checkable: props.variant !== undefined && props.variant !== "plain",
       }}
     >
@@ -256,28 +270,29 @@ export const MenuTrigger = (props: MenuTriggerProps): JSX.Element => {
  * row holds the tab stop, and this moves the DOM focus there, so an arrow key lands somewhere — the same split as Tabs.
  */
 export const MenuContent = (props: MenuContentProps): JSX.Element => {
-  const { menu, anchor } = useContext(MenuContext);
+  const { menu } = useContext(MenuContext);
+  // The primitive reports which part holds the focus (`focusLevel` + `focusIndex`); the kit moves the DOM focus there by
+  // the part's id, so a `render` that renames or re-tags a row cannot break the movement.
   createEffect(
     () => [menu.focusLevel(), menu.focusIndex()] as const,
     ([level, index]) => {
       const element =
-        level === 1 ? triggerOf(anchor()) : level === 2 ? rowsOf(anchor())[index] : undefined;
+        level === 1
+          ? byId(menu.triggerProps.id)
+          : level === 2
+            ? byId(menu.items[index]?.id ?? "")
+            : undefined;
       if (element !== undefined && document.activeElement !== element) {
         element.focus();
       }
     },
   );
+  // the primitive's `ref` builds the list's focusgroup and registers its own keydown listener (typeahead included) before
+  // the provider's, so the kit hands the keys to it and keeps none of its own
   const merged = merge(menu.menuProps, () => ({
     "data-part": "menu",
     get class() {
       return css.cn(contentClass, props.class);
-    },
-    onKeyDown: (event: KeyboardEvent) => {
-      menu.menuProps.onKeyDown(event);
-      // typeahead is the primitive's own buffer; its key handler does not feed it, so a letter is handed over here
-      if (event.key.length === 1 && event.key !== " ") {
-        menu.type(event.key);
-      }
     },
   }));
   return renderPart(props, merged, undefined, (part) => (
@@ -288,8 +303,9 @@ export const MenuContent = (props: MenuContentProps): JSX.Element => {
 };
 
 /**
- * One row: its role (`menuitem`, `menuitemcheckbox` or `menuitemradio`), id and tab stop from the primitive, the declared
- * label unless `children` says. A checkable row paints the check from its announced `aria-checked`, not from a kit copy.
+ * One row: its role (`menuitem`, `menuitemcheckbox` or `menuitemradio`), id and focus handling from the primitive, the
+ * declared label unless `children` says. A checkable row paints the check from its announced `aria-checked`, not from a
+ * kit copy, and the highlight from `data-highlighted` — the row the primitive's roving focus sits on.
  */
 export const MenuItem = (props: MenuItemProps): JSX.Element | null => {
   const { menu, checkable } = useContext(MenuContext);
@@ -297,25 +313,29 @@ export const MenuItem = (props: MenuItemProps): JSX.Element | null => {
   if (declared === undefined) {
     return null;
   }
-  const merged = merge(menu.itemProps(props.index), () => ({
-    "data-part": "menu-item",
-    get class() {
-      return css.cn(itemClass, props.class);
-    },
-  }));
   const state: MenuItemState = {
     highlighted: () => menu.focusLevel() === 2 && menu.focusIndex() === props.index,
     disabled: () => declared.disabled,
     checked: () => menu.itemProps(props.index)["aria-checked"] === "true",
   };
+  const merged = merge(menu.itemProps(props.index), () => ({
+    "data-part": "menu-item",
+    get "data-highlighted"() {
+      return state.highlighted() ? "true" : undefined;
+    },
+    get class() {
+      return css.cn(itemClass, props.class);
+    },
+  }));
   return renderPart(props, merged, state, (part) => (
-    <div {...part}>
+    // a `<button>`: the row must be focusable for the platform to move focus to it (the native engine writes no tabindex)
+    <button type="button" {...part}>
       {checkable ? (
         <span aria-hidden="true" class={markClass}>
           ✓
         </span>
       ) : undefined}
       {props.children ?? declared.label}
-    </div>
+    </button>
   ));
 };

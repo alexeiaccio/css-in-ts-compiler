@@ -31,7 +31,7 @@ export interface MenubarMenuProps extends Renderable<PartProps, void> {
 
 export type MenubarTriggerPartProps = PartProps;
 
-export interface MenubarTriggerProps extends Renderable<MenubarTriggerPartProps, void> {
+export interface MenubarTriggerProps extends Renderable<MenubarTriggerPartProps, MenubarItemState> {
   readonly class?: string;
   /** The declared label by default. */
   readonly children?: JSX.Element;
@@ -98,8 +98,10 @@ const barClass = css.cn(css.display("flex"), css.alignItems("center"), css.gap(t
 
 const triggerClass = css.cn(
   css.padding(t.space._1, t.space._2),
+  css.border("none"),
   css.bg("transparent"),
   css.borderRadius(t.radius.sm),
+  css.fontFamily("inherit"),
   css.fontSize(t.font.size),
   css.color(t.color.text),
   css.cursor("pointer"),
@@ -140,19 +142,27 @@ const submenuClass = css.cn(
   surfaceClass,
 );
 
-// The highlight is the roving tab stop the primitive announces (`tabindex="0"` on one row), not a second copy of the
-// state: a pointer hover and an arrow key both move it.
+// The highlight is the row the primitive announces (`data-highlighted`, from `barStop` / `focusIndex`), not a second copy of
+// the state: a pointer hover and an arrow key both move it. Every row is a `<button>` because an item has to be focusable for
+// the platform's `focusgroup` to move focus to it — the native engine writes no `tabindex`, so a `div` would never receive
+// the focus.
 const rowClass = css.cn(
   // the marker `within()` reads: the row's own `aria-expanded` is what the chevron follows
   css.group(),
   css.display("flex"),
   css.alignItems("center"),
+  css.width("100%"),
+  css.boxSizing("border-box"),
   css.padding(t.space._1, t.space._2),
+  css.border("none"),
   css.borderRadius(t.radius.sm),
+  css.bg("transparent"),
+  css.fontFamily("inherit"),
   css.fontSize(t.font.size),
+  css.textAlign("start"),
   css.color(t.color.text),
   css.cursor("pointer"),
-  css.attr("tabindex", "0")(css.bg(t.color.buttonBackground)),
+  css.attr("data-highlighted", "true")(css.bg(t.color.buttonBackground)),
   css.attr("aria-disabled", "true")(css.color(t.color.textDisabled), css.cursor("not-allowed")),
   css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
 );
@@ -188,13 +198,15 @@ const subOf = (
 
 /**
  * APG menu and menubar, styled: a `role="menubar"` bar of top-level items, each a `Menubar.Trigger` (its bar item) with a
- * `Menubar.Content` under it, rows with one roving tab stop, and nested `Menubar.Sub` / `Menubar.SubContent` /
- * `Menubar.SubItem` levels. `createMenubar` owns the ARIA, the roving tab stop, the arrow keys with the menubar rule that
- * Right/Left moves along the bar and opens the next menu without taking focus into it, the submenu keys, Home and End,
- * Escape (one level at a time), Tab, the typeahead and the hover that opens a submenu once its menu is open. The kit adds
- * the anchor each popup floats from, the surfaces, the chevron painted from `aria-expanded`, and the DOM focus: the
- * primitive reports `focusLevel` (0 outside, 1 the bar, 2 a top-level menu, 3 a submenu) and `focusIndex`, and the kit
- * moves focus to that level only. It also listens for a pointerdown outside the bar, which the primitive does not own.
+ * `Menubar.Content` under it, rows with one roving focus and one tab stop, and nested `Menubar.Sub` / `Menubar.SubContent`
+ * / `Menubar.SubItem` levels. `createMenubar` owns the ARIA, the movement through the platform's `focusgroup` (a
+ * `menubar` group on the bar and one `menu` group per level: the arrows along each axis, Home / End, the wrap and the item
+ * `tabindex`), the menubar rule that the cross-axis key moves along the bar and opens the next menu without taking focus
+ * into it, the submenu keys, Escape (one level at a time), Tab, the typeahead, the hover that opens a submenu once its menu
+ * is open, and the keydown listener that registers before the provider's. The kit adds the anchor each popup floats from,
+ * the surfaces, the chevron painted from `aria-expanded`, and the DOM focus: the primitive reports `focusLevel` (0 outside,
+ * 1 the bar, 2 a top-level menu, 3 a submenu) and `focusIndex`, and the kit moves focus to that level only. It also listens
+ * for a pointerdown outside the bar, which the primitive does not own.
  *
  * The bar is declared on `Menubar`, once: the primitive needs the labels for typeahead, and the rows are built from the
  * same tree. Without children the bar is one `Menubar.Menu` per item, with a `Content` where the item has a menu.
@@ -207,13 +219,15 @@ export const Menubar = (props: MenubarProps): JSX.Element => {
     id: props.id,
     prefs: props.prefs,
     suppressFocusWrite: props.suppressFocusWrite,
+    provider: props.provider,
   });
   props.onReady?.(menubar);
 
   let root: HTMLDivElement | undefined;
 
-  // One move for the whole widget, as MenuContent does for one menu: the level says which container and the index which
-  // row. Level 1 is the bar item itself — Right/Left opens a menu there and the focus stays on the bar — so the rule is the
+  // One move for the whole widget, as MenuContent does for one menu: the level says which part and the index which row. The
+  // part is found by the id the primitive gave it, so a `render` that renames `data-part` cannot break the movement. Level 1
+  // is the bar item itself — the cross-axis key opens a menu there and the focus stays on the bar — so the rule is the
   // primitive's `focusLevel`, and the kit never invents a level.
   createEffect(
     () =>
@@ -228,15 +242,16 @@ export const Menubar = (props: MenubarProps): JSX.Element => {
       if (root === undefined) {
         return;
       }
-      const element =
+      const id =
         level === 1
-          ? triggers(root)[stop]
+          ? menubar.barItemProps(stop).id
           : level === 2
-            ? elementWithId(root, menubar.menuProps(top).id)?.children[index]
+            ? menubar.menuItemProps(top, index).id
             : level === 3
-              ? elementWithId(root, menubar.submenuProps(top, sub).id)?.children[index]
+              ? menubar.submenuItemProps(top, sub, index).id
               : undefined;
-      if (element instanceof HTMLElement && document.activeElement !== element) {
+      const element = id === undefined ? undefined : (document.getElementById(id) ?? undefined);
+      if (element !== undefined && document.activeElement !== element) {
         element.focus();
       }
     },
@@ -259,13 +274,6 @@ export const Menubar = (props: MenubarProps): JSX.Element => {
     get class() {
       return css.cn(barClass, props.class);
     },
-    onKeyDown: (event: KeyboardEvent) => {
-      menubar.menubarProps.onKeyDown(event);
-      // typeahead is the primitive's own buffer and its key handler does not feed it, so a letter is handed over here
-      if (event.key.length === 1 && event.key !== " ") {
-        menubar.type(event.key);
-      }
-    },
   }));
   return (
     <MenubarContext value={{ menubar }}>
@@ -274,6 +282,8 @@ export const Menubar = (props: MenubarProps): JSX.Element => {
           {...part}
           ref={(element: HTMLDivElement) => {
             root = element;
+            // the primitive's own ref builds the bar's focusgroup and registers its keydown listener first
+            (part as { ref?: (element: HTMLElement) => void }).ref?.(element);
           }}
         >
           {props.children ??
@@ -293,9 +303,6 @@ const triggers = (root: HTMLElement): HTMLElement[] => [
   ...root.querySelectorAll<HTMLElement>('[data-part="menubar-trigger"]'),
 ];
 
-const elementWithId = (root: HTMLElement, id: string): HTMLElement | undefined =>
-  root.querySelector<HTMLElement>(`[id="${id}"]`) ?? undefined;
-
 /** One top-level item: the box a `Menubar.Trigger` and its `Menubar.Content` share, `position: relative`. */
 export const MenubarMenu = (props: MenubarMenuProps): JSX.Element => {
   const merged = {
@@ -313,19 +320,28 @@ export const MenubarMenu = (props: MenubarMenuProps): JSX.Element => {
   );
 };
 
-/** The bar item: `role="menuitem"` with `aria-haspopup`, `aria-expanded` and the roving tab stop from the primitive. */
+/** The bar item: `role="menuitem"` with `aria-haspopup`, `aria-expanded` and the primitive's focus handling. */
 export const MenubarTrigger = (props: MenubarTriggerProps): JSX.Element => {
   const { menubar } = useContext(MenubarContext);
   const { bar } = useContext(MenubarMenuContext);
   const declared = menubar.items[bar];
+  const state: MenubarItemState = {
+    highlighted: () => menubar.focusLevel() === 1 && menubar.barStop() === bar,
+    disabled: () => declared?.disabled === true,
+  };
   const merged = merge(menubar.barItemProps(bar), () => ({
     "data-part": "menubar-trigger",
+    get "data-highlighted"() {
+      return state.highlighted() ? "true" : undefined;
+    },
     get class() {
       return css.cn(triggerClass, props.class);
     },
   }));
-  return renderPart(props, merged, undefined, (part) => (
-    <div {...part}>{props.children ?? declared?.label ?? ""}</div>
+  return renderPart(props, merged, state, (part) => (
+    <button type="button" {...part}>
+      {props.children ?? declared?.label ?? ""}
+    </button>
   ));
 };
 
@@ -353,7 +369,7 @@ export const MenubarContent = (props: MenubarContentProps): JSX.Element => {
   ));
 };
 
-/** One leaf row: `role="menuitem"`, its id and tab stop from the primitive, the declared label unless `children` says. */
+/** One leaf row: `role="menuitem"`, its id and focus handling from the primitive, the declared label unless `children` says. */
 export const MenubarItem = (props: MenubarItemProps): JSX.Element | null => {
   const { menubar } = useContext(MenubarContext);
   const { bar } = useContext(MenubarMenuContext);
@@ -361,12 +377,6 @@ export const MenubarItem = (props: MenubarItemProps): JSX.Element | null => {
   if (declared === undefined) {
     return null;
   }
-  const merged = merge(menubar.menuItemProps(bar, props.index), () => ({
-    "data-part": "menubar-item",
-    get class() {
-      return css.cn(rowClass, props.class);
-    },
-  }));
   const state: MenubarItemState = {
     highlighted: () =>
       menubar.focusLevel() === 2 &&
@@ -374,8 +384,19 @@ export const MenubarItem = (props: MenubarItemProps): JSX.Element | null => {
       menubar.focusIndex() === props.index,
     disabled: () => declared.disabled,
   };
+  const merged = merge(menubar.menuItemProps(bar, props.index), () => ({
+    "data-part": "menubar-item",
+    get "data-highlighted"() {
+      return state.highlighted() ? "true" : undefined;
+    },
+    get class() {
+      return css.cn(rowClass, props.class);
+    },
+  }));
   return renderPart(props, merged, state, (part) => (
-    <div {...part}>{props.children ?? declared.label}</div>
+    <button type="button" {...part}>
+      {props.children ?? declared.label}
+    </button>
   ));
 };
 
@@ -390,12 +411,6 @@ export const MenubarSub = (props: MenubarSubProps): JSX.Element | null => {
   if (declared === undefined) {
     return null;
   }
-  const merged = merge(menubar.menuItemProps(bar, props.index), () => ({
-    "data-part": "menubar-sub",
-    get class() {
-      return css.cn(subRowClass, props.class);
-    },
-  }));
   const state: MenubarItemState = {
     highlighted: () =>
       menubar.focusLevel() === 2 &&
@@ -403,16 +418,25 @@ export const MenubarSub = (props: MenubarSubProps): JSX.Element | null => {
       menubar.focusIndex() === props.index,
     disabled: () => declared.disabled,
   };
+  const merged = merge(menubar.menuItemProps(bar, props.index), () => ({
+    "data-part": "menubar-sub",
+    get "data-highlighted"() {
+      return state.highlighted() ? "true" : undefined;
+    },
+    get class() {
+      return css.cn(subRowClass, props.class);
+    },
+  }));
   return (
     <MenubarMenuContext value={{ bar, item: props.index }}>
       {renderPart(props, merged, state, (part) => (
-        <div {...part}>
+        <button type="button" {...part}>
           <span>{declared.label}</span>
           <span aria-hidden="true" class={chevronClass}>
             ›
           </span>
           {props.children ?? <MenubarSubContent />}
-        </div>
+        </button>
       ))}
     </MenubarMenuContext>
   );
@@ -437,7 +461,7 @@ export const MenubarSubContent = (props: MenubarSubContentProps): JSX.Element =>
   ));
 };
 
-/** One row of a submenu: `role="menuitem"` and its tab stop from the primitive, the declared label unless `children` says. */
+/** One row of a submenu: `role="menuitem"` and its focus handling from the primitive, the declared label unless `children` says. */
 export const MenubarSubItem = (props: MenubarSubItemProps): JSX.Element | null => {
   const { menubar } = useContext(MenubarContext);
   const context = useContext(MenubarMenuContext);
@@ -446,12 +470,6 @@ export const MenubarSubItem = (props: MenubarSubItemProps): JSX.Element | null =
   if (declared === undefined) {
     return null;
   }
-  const merged = merge(menubar.submenuItemProps(bar, item, props.index), () => ({
-    "data-part": "menubar-subitem",
-    get class() {
-      return css.cn(rowClass, props.class);
-    },
-  }));
   const state: MenubarItemState = {
     highlighted: () =>
       menubar.focusLevel() === 3 &&
@@ -460,7 +478,18 @@ export const MenubarSubItem = (props: MenubarSubItemProps): JSX.Element | null =
       menubar.focusIndex() === props.index,
     disabled: () => declared.disabled,
   };
+  const merged = merge(menubar.submenuItemProps(bar, item, props.index), () => ({
+    "data-part": "menubar-subitem",
+    get "data-highlighted"() {
+      return state.highlighted() ? "true" : undefined;
+    },
+    get class() {
+      return css.cn(rowClass, props.class);
+    },
+  }));
   return renderPart(props, merged, state, (part) => (
-    <div {...part}>{props.children ?? declared.label}</div>
+    <button type="button" {...part}>
+      {props.children ?? declared.label}
+    </button>
   ));
 };

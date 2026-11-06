@@ -58,6 +58,8 @@ const CHECKABLE_SKIP =
   "skipping hidden/disabled items is an ariakit store behaviour; the primitive keeps disabled items focusable";
 const MENU_POPUP_FOCUS =
   "ariakit moves focus to the popup container on pointer open; the primitive focuses the first menu item (APG)";
+const MENU_CONTAINER_KEY =
+  'the scenario dispatches the key at the menu container, which this skin makes focusable (`tabindex="-1"`); the platform\'s movement starts from an item, so the keys belong to the rows and a key at the container itself is a no-op';
 const MENU_OUTSIDE_SENTINEL =
   "the scenario names the part focus lands on after Tab as `outside`; the primitive reports no focused part outside the widget";
 const MENU_LABEL =
@@ -71,6 +73,7 @@ const MENU_ITEM_CALLBACK =
 const MENU_TAB_TRAP =
   "react-aria traps focus and keeps the menu open on Tab; the primitive closes the menu and lets focus leave (APG)";
 const DIVERGENCES: Readonly<Record<string, string>> = {
+  "menu-button.ariakit.checkbox-item-toggles-on-space-at-end": MENU_CONTAINER_KEY,
   "menu-button.ariakit.checkbox-item-toggles-on-click": CHECKABLE_DEFAULT,
   "menu-button.ariakit.syncs-boolean-items-with-menu-values": CHECKABLE_DEFAULT,
   "menu-button.ariakit.checkbox-item-toggles-on-enter": CHECKABLE_FOCUS,
