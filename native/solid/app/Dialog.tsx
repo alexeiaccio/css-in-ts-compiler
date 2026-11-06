@@ -10,9 +10,23 @@ import {
   createMenu,
 } from "../../headless/src/index.ts";
 import { a11y } from "../a11y.ts";
+import {
+  BLUR,
+  DIALOG_ENTRY as ENTRY,
+  DIALOG_EXIT as EXIT,
+  ENTRY_FADE,
+  ENTRY_SCALE,
+  EXIT_SECONDS,
+  GROW,
+  MENU_TILT,
+  OUT,
+  OUT_SLIDE,
+  SLIDE,
+  SHRINK,
+} from "../src/animations.ts";
 import { ui } from "../src/ffi.ts";
 import type { Input } from "../src/input.ts";
-import { channel, effect, presence, spatial, track } from "../src/motion.ts";
+import { channel, presence, track } from "../src/motion.ts";
 import { FIELDS } from "../src/pack.ts";
 
 const t = css.createTokens({
@@ -191,35 +205,11 @@ export const size = { width: 360, height: 480 };
 // numbers of the packed style by the element's id (`ui.value`) — its float's offset y, its shadow's blur (field 45, the
 // one value outside the 45 floats) and, for the backdrop, the alpha of its dim (field 17) — so a settled frame is the
 // frame the literal makes, pixel for pixel. A node that leaves stays mounted while its exit runs (`presence`), and while
-// it fades it passes the press through, so the page under it is reachable the moment it closes.
-const SLIDE = spatial(0.22, 0.1); // a light bounce: the overlay grows out of its trigger, it does not fly in
-const BLUR = effect(0.22); // a blur has no negative side and must not ring: clamped and critically damped
-const OUT_SLIDE = spatial(0.2, 0); // the exit: no bounce, a node on its way out may not overshoot where it came from
-const OUT = effect(0.2); // ... and its blur and the dim: a luminance field goes out quietly, clamped
-// the group: the panel and the menu fade and grow as one subtree (`FIELDS.ALPHA`/`SCALE`), and the menu leans out of a
-// tilt as it comes (`FIELDS.ROTATE`). The scale is a percentage of the element's box, not a fraction: a track's settle
-// rule is 0.5 of its own unit, so 0.96..1 would settle on its first
-// sample — 96..100 settles at 99.5, a 0.5% snap nobody sees. The entry may carry a little velocity (spatial), the exit
-// must not overshoot; the opacity is an effect, as every luminance field here. It fades from ENTRY_FADE, not from 0: a
-// panel at half opacity over the page's own text double-exposes, and the dim behind is doing the darkening — a nearly
-// opaque arrival reads as a fade without the ghost of the page showing through the panel's own glyphs.
-const GROW = spatial(0.22, 0.1);
-const SHRINK = spatial(0.2, 0);
-const ENTRY_SCALE = 96; // percent: the panel and the menu start 4% small
-const ENTRY_FADE = 225; // of 255: the group starts at 88% opacity: a fade that does not double-expose the page under the panel
-// the menu's tilt, in degrees: it settles out of a small counter-clockwise lean as it slides out of its trigger (and
-// leans back on the way out), the one rotation in the value channel (`FIELDS.ROTATE`, about the menu's box centre). It is
-// a scene transform as the scale is: `ui.bounds` does not move. 2° over the menu's 150px is 5px of top edge, which reads
-// as a settle rather than as a spin; larger reads as a wobble in the frames.
-const MENU_TILT = -2;
-// where each arrival starts and where each exit goes, in px from the settled offset y: the menu 10px lower (under its
-// trigger) on the way in and 10px lower on the way out, the panel 14px higher in and 14px lower out, and both shadows
-// from 0 in and to 0 out
-const ENTRY = { menu: 10, panel: -14 };
-const EXIT = { menu: 10, panel: 14 };
-// presence: as long as the tracks above take to settle exactly (the 32px effect falls under the 0.5px/s settle rule at
-// its twenty-first frame, 0.333s), so the last frame an exiting node is on screen is the literal and nothing is cut off
-const EXIT_SECONDS = 0.35;
+// it fades it passes the press through, so the page under it is reachable the moment it closes. The springs and the
+// entry's numbers are `src/animations.ts`'s, where the figures import them too: SLIDE is the offset's light bounce, BLUR
+// the blur's clamped effect, OUT_SLIDE and OUT the exit's, GROW/SHRINK the group's, and ENTRY_FADE, ENTRY_SCALE,
+// MENU_TILT, ENTRY and EXIT the numbers a fresh arrival starts at — the panel and the menu 4% small, the group at 88%
+// opacity, the menu leaning 2° out of its trigger.
 // the backdrop's dim: `rgb(0 0 0 / 0.55)`, whose alpha cssints packs as 140 (0..255)
 const DIM = Math.round(0.55 * 255);
 // the page's own clock, and its writes into the value channel: one call per element a frame
