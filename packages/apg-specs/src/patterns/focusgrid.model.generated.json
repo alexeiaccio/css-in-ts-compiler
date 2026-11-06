@@ -1,0 +1,3723 @@
+{
+  "generatedFrom": "../../specs/patterns/focusgrid.qnt",
+  "specHash": "853d9a0c4ade5e5e115361ebde4bd533ba0abfb2466da95183927e0b3bbb1921",
+  "module": "patterns_focusgrid",
+  "vars": [
+    {
+      "name": "cur",
+      "type": "int"
+    },
+    {
+      "name": "tabStop",
+      "type": "int"
+    },
+    {
+      "name": "hasFocus",
+      "type": "bool"
+    },
+    {
+      "name": "start",
+      "type": "int"
+    },
+    {
+      "name": "memory",
+      "type": "bool"
+    },
+    {
+      "name": "manual",
+      "type": "bool"
+    },
+    {
+      "name": "rowEdge",
+      "type": "str"
+    },
+    {
+      "name": "colEdge",
+      "type": "str"
+    },
+    {
+      "name": "outcome",
+      "type": "str"
+    },
+    {
+      "name": "snapCur",
+      "type": "int"
+    },
+    {
+      "name": "snapStop",
+      "type": "int"
+    },
+    {
+      "name": "lastManual",
+      "type": "bool"
+    }
+  ],
+  "defs": {
+    "ROWS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "3"
+      }
+    },
+    "COLS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "4"
+      }
+    },
+    "CELLS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "imul",
+        "args": [
+          {
+            "kind": "name",
+            "name": "ROWS"
+          },
+          {
+            "kind": "name",
+            "name": "COLS"
+          }
+        ]
+      }
+    },
+    "LAST_ROW": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "isub",
+        "args": [
+          {
+            "kind": "name",
+            "name": "ROWS"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "LAST_COL": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "isub",
+        "args": [
+          {
+            "kind": "name",
+            "name": "COLS"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "rowOf": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "idiv",
+        "args": [
+          {
+            "kind": "name",
+            "name": "i"
+          },
+          {
+            "kind": "name",
+            "name": "COLS"
+          }
+        ]
+      }
+    },
+    "colOf": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "imod",
+        "args": [
+          {
+            "kind": "name",
+            "name": "i"
+          },
+          {
+            "kind": "name",
+            "name": "COLS"
+          }
+        ]
+      }
+    },
+    "lineOf": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "imul",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "c"
+          }
+        ]
+      }
+    },
+    "isInlineKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowRight"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowLeft"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isBlockKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowDown"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowUp"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isRowEdgeKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "End"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isGridEdgeKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Control+Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Control+End"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isGridKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isInlineKey",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isBlockKey",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isRowEdgeKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isGridEdgeKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "delta": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowRight"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowDown"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ArrowLeft"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ArrowUp"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "inlineLand": {
+      "kind": "function",
+      "params": [
+        "i",
+        "d",
+        "edge"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "colOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "colOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "name",
+                "name": "d"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "edge"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "edge"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "wrap"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lineOf",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "rowOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "igt",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "LAST_COL"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lineOf",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "ilt",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "rowOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "d"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "LAST_ROW"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "ilt",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "iadd",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "rowOf",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "i"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "d"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "ROWS"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "rowOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "d"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "igt",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "LAST_COL"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "blockLand": {
+      "kind": "function",
+      "params": [
+        "i",
+        "d",
+        "edge"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "rowOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "rowOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ROWS"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "d"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "edge"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "edge"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "wrap"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lineOf",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "igt",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "LAST_ROW"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "colOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lineOf",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "igt",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "LAST_ROW"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "ilt",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "colOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "d"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "LAST_COL"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "ilt",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "iadd",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "colOf",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "i"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "d"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "COLS"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "colOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "d"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "edgeLand": {
+      "kind": "function",
+      "params": [
+        "i",
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "lineOf",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "rowOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "End"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "lineOf",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "rowOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "LAST_COL"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "Control+Home"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "Control+End"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "isub",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "CELLS"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "land": {
+      "kind": "function",
+      "params": [
+        "k",
+        "i",
+        "re",
+        "ce"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isInlineKey",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "inlineLand",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "delta",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "re"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isBlockKey",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "blockLand",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "delta",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ce"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isRowEdgeKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "edgeLand",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "isGridEdgeKey",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "edgeLand",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stopOf": {
+      "kind": "function",
+      "params": [
+        "focused",
+        "mem",
+        "c",
+        "st"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "focused"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c"
+              },
+              {
+                "kind": "name",
+                "name": "st"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mem"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "c"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c"
+              },
+              {
+                "kind": "name",
+                "name": "st"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tabIndex": {
+      "kind": "function",
+      "params": [
+        "stop",
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tabStops": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "tabIndex",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tabStop"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "edgeKnown": {
+      "kind": "function",
+      "params": [
+        "e"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "wrap"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "e"
+              },
+              {
+                "kind": "str",
+                "value": "flow"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "CurInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "CELLS"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "StopInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "name",
+                "name": "CELLS"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "StartInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "start"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "start"
+              },
+              {
+                "kind": "name",
+                "name": "CELLS"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ExactlyOneTabStop": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "iadd",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "iadd",
+                                        "args": [
+                                          {
+                                            "kind": "app",
+                                            "opcode": "iadd",
+                                            "args": [
+                                              {
+                                                "kind": "app",
+                                                "opcode": "iadd",
+                                                "args": [
+                                                  {
+                                                    "kind": "app",
+                                                    "opcode": "iadd",
+                                                    "args": [
+                                                      {
+                                                        "kind": "app",
+                                                        "opcode": "tabStops",
+                                                        "args": [
+                                                          {
+                                                            "kind": "int",
+                                                            "value": "0"
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "kind": "app",
+                                                        "opcode": "tabStops",
+                                                        "args": [
+                                                          {
+                                                            "kind": "int",
+                                                            "value": "1"
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "kind": "app",
+                                                    "opcode": "tabStops",
+                                                    "args": [
+                                                      {
+                                                        "kind": "int",
+                                                        "value": "2"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "kind": "app",
+                                                "opcode": "tabStops",
+                                                "args": [
+                                                  {
+                                                    "kind": "int",
+                                                    "value": "3"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "kind": "app",
+                                            "opcode": "tabStops",
+                                            "args": [
+                                              {
+                                                "kind": "int",
+                                                "value": "4"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "tabStops",
+                                        "args": [
+                                          {
+                                            "kind": "int",
+                                            "value": "5"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "tabStops",
+                                    "args": [
+                                      {
+                                        "kind": "int",
+                                        "value": "6"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "tabStops",
+                                "args": [
+                                  {
+                                    "kind": "int",
+                                    "value": "7"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "tabStops",
+                            "args": [
+                              {
+                                "kind": "int",
+                                "value": "8"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "tabStops",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "9"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "tabStops",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "10"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "tabStops",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "11"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "StopIsEntry": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "tabStop"
+          },
+          {
+            "kind": "app",
+            "opcode": "stopOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "name",
+                "name": "memory"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "start"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "FocusImpliesCurrent": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "EdgesKnown": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "edgeKnown",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rowEdge"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "edgeKnown",
+            "args": [
+              {
+                "kind": "name",
+                "name": "colEdge"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OutcomeKnown": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "moved"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "blocked"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ignored"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "MovedImpliesFocus": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "outcome"
+              },
+              {
+                "kind": "str",
+                "value": "moved"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        ]
+      }
+    },
+    "IgnoredKeepsFocus": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "outcome"
+              },
+              {
+                "kind": "str",
+                "value": "ignored"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "snapCur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "BlockedKeepsFocus": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "outcome"
+              },
+              {
+                "kind": "str",
+                "value": "blocked"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "snapCur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "MovedChangesFocus": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "outcome"
+              },
+              {
+                "kind": "str",
+                "value": "moved"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "snapCur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ManualDoesNotMove": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lastManual"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "cur"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "snapCur"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tabStop"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "snapStop"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SnapshotsInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "snapCur"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "snapCur"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "CELLS"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "snapStop"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "snapStop"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "CELLS"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_in",
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_out",
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "stopOf",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "memory"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "start"
+              }
+            ]
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "click",
+      "nondet": {
+        "name": "cell",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cell"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "cell"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "key",
+      "nondet": {
+        "name": "k",
+        "kind": "str",
+        "pool": [
+          "ArrowRight",
+          "ArrowLeft",
+          "ArrowDown",
+          "ArrowUp",
+          "Home",
+          "End",
+          "Control+Home",
+          "Control+End",
+          "Shift+ArrowRight",
+          "Alt+Home",
+          "Meta+ArrowDown"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "hasFocus"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isGridKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "land",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "cur"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "rowEdge"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "colEdge"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "hasFocus"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isGridKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "land",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "cur"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "rowEdge"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "colEdge"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              }
+            ]
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "hasFocus"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "isGridKey",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "ignored"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "land",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "cur"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "rowEdge"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "colEdge"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "cur"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "blocked"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "moved"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_memory",
+      "nondet": {
+        "name": "on",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "stopOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "name",
+                "name": "on"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "start"
+              }
+            ]
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "on"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_manual",
+      "nondet": {
+        "name": "flag",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "flag"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_row_edge",
+      "nondet": {
+        "name": "e",
+        "kind": "str",
+        "pool": [
+          "none",
+          "wrap",
+          "flow"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "e"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_col_edge",
+      "nondet": {
+        "name": "e",
+        "kind": "str",
+        "pool": [
+          "none",
+          "wrap",
+          "flow"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "start"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "e"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_start",
+      "nondet": {
+        "name": "i",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "cur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "stopOf",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "name",
+                "name": "memory"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              }
+            ]
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "start",
+          "rhs": {
+            "kind": "name",
+            "name": "i"
+          }
+        },
+        {
+          "field": "memory",
+          "rhs": {
+            "kind": "name",
+            "name": "memory"
+          }
+        },
+        {
+          "field": "manual",
+          "rhs": {
+            "kind": "name",
+            "name": "manual"
+          }
+        },
+        {
+          "field": "rowEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "rowEdge"
+          }
+        },
+        {
+          "field": "colEdge",
+          "rhs": {
+            "kind": "name",
+            "name": "colEdge"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "snapCur",
+          "rhs": {
+            "kind": "name",
+            "name": "cur"
+          }
+        },
+        {
+          "field": "snapStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
+          "field": "lastManual",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "focus_in",
+    "focus_out",
+    "click",
+    "key",
+    "set_memory",
+    "set_manual",
+    "set_row_edge",
+    "set_col_edge",
+    "set_start"
+  ]
+}

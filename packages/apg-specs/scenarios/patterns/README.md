@@ -21,3 +21,10 @@ over time).
 position and the optimistic split between what the host exposes and what the
 machine has committed, `specs/patterns/animation.qnt` (no APG pattern and no CSS
 specification — the source of truth is the protocol itself).
+
+`focusgrid` is the platform contract of `focusgroup="grid"` (V2), not a widget:
+`specs/patterns/focusgrid.qnt` models the one tab stop, the two axes, `Home` / `End` and
+`Ctrl+Home` / `Ctrl+End`, the per-axis wrap and flow edges, entry / memory /
+`focusgroupstart` and `grid` vs `grid manual`, because no engine and no published polyfill
+ships V2 yet. The runtime is `@cssints/headless`'s `focusGrid`; the APG grid keeps its delta
+(`specs/apg/grid.qnt`: edit, selection, sort, spans, virtualisation, page movement).
