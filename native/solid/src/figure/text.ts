@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { layoutOf, type Bar, type Item, type Layout, type LayoutLine } from "./kinds.ts";
+import { cellWidth, truncate } from "./kinds/shared.ts";
 import { parse, type Spec } from "./spec.ts";
 
 /** The eighth blocks, 1/8 of a cell wide to 7/8: a bar's fractional cell, as glyph-kit draws it. */
@@ -52,34 +53,8 @@ export const COMPACT: Readonly<Record<string, string>> = {
   "…": ".",
 };
 
-/** The east Asian ranges whose glyphs take two cells: the simple test this file uses, not a Unicode table. */
-const WIDE: readonly (readonly [number, number])[] = [
-  [0x1100, 0x115f],
-  [0x2e80, 0xa4cf],
-  [0xac00, 0xd7a3],
-  [0xf900, 0xfaff],
-  [0xfe10, 0xfe19],
-  [0xfe30, 0xfe6f],
-  [0xff00, 0xff60],
-  [0xffe0, 0xffe6],
-  [0x1f300, 0x1f64f],
-  [0x1f900, 0x1f9ff],
-  [0x20000, 0x3fffd],
-];
-
-/** One code point's width: 2 in the wide ranges, 1 otherwise. A combining mark is one cell here (labels are prose, not a
- *  typesetter; the kit's own `text.mjs` segments graphemes, which this file does not need to). */
-function codeWidth(code: number): number {
-  for (const [from, to] of WIDE) if (code >= from && code <= to) return 2;
-  return 1;
-}
-
-/** A string's width in display cells: what the terminal and a monospace fence count, not JS characters. */
-export function cellWidth(text: string): number {
-  let width = 0;
-  for (const ch of text) width += codeWidth(ch.codePointAt(0) ?? 0);
-  return width;
-}
+/** A string's width in display cells, `kinds/shared.ts`'s (a table's column and the text half count the same cells). */
+export { cellWidth };
 
 /**
  * A bar's drawn length: whole cells, the eighth its fraction rounds to, and the cells that left. `bar.value / bar.max`
@@ -145,20 +120,6 @@ function lineText(line: LayoutLine, bars: ReadonlyMap<string, Bar>): string {
   return out.replace(/ +$/, "");
 }
 
-/** Cut a line at `width` display cells, `…` (one cell) marking the cut. `width` below one gives `…` alone. */
-function cut(text: string, width: number): string {
-  if (cellWidth(text) <= width) return text;
-  let out = "";
-  let used = 0;
-  for (const ch of text) {
-    const w = codeWidth(ch.codePointAt(0) ?? 0);
-    if (used + w > width - 1) break;
-    out += ch;
-    used += w;
-  }
-  return `${out}…`;
-}
-
 const compactText = (text: string): string =>
   [...text].map((ch) => COMPACT[ch] ?? ch).join("");
 
@@ -176,7 +137,7 @@ function linesOf(spec: Spec, options: TextOptions, drop: ReadonlySet<string> = n
   const bars = new Map(l.bars.map((bar) => [bar.fillId, bar]));
   return l.lines
     .filter((line) => !drop.has(line.items[0]?.textId ?? ""))
-    .map((line) => cut(lineText(line, bars), width));
+    .map((line) => truncate(lineText(line, bars), width));
 }
 
 /** One spec as text: the title, a line a row, the source, the `►` line. */
