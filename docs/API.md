@@ -2498,8 +2498,9 @@ uncontrolled check and `value` + `onValueChange` make the host own it.
 
 The roving flavor is the platform's `focusgroup="radiogroup"` contract (the browser's where it has one,
 `@microsoft/focusgroup-polyfill` otherwise, `provider: "polyfill"` forces the polyfill): both axes, Home / End,
-wrap and the item `tabindex` are its. The library keeps two deltas — selection follows focus, and the APG tab
-stop (the checked radio, else the first enabled one) — plus Space, which focusgroup does not provide.
+wrap and the item `tabindex` are its. The library keeps the deltas — selection follows focus, the entry point
+(`focusgroupstart`: the checked radio, else the first enabled one) and Space, which focusgroup does not
+provide.
 
 ```ts skip
 createRadioGroup<T>(options: {
@@ -2547,7 +2548,7 @@ createRadioGroup<T>(options: {
     "aria-disabled": "true" | "false";
     "aria-describedby";
     type: "button"; // keeps a surrounding form from submitting
-    focusgroupstart: "" | undefined; // roving: the platform's start marker, on the tab-stop radio
+    focusgroupstart: "" | undefined; // roving: the platform's entry marker, on the checked radio
     focusgroup: "none" | undefined; // roving: opts a disabled radio out of the group
     tabindex: 0 | -1 | undefined; // the author value the platform needs; it owns the roving stop
     ref: (element: HTMLElement) => void;
@@ -2567,10 +2568,13 @@ createRadioGroup<T>(options: {
   the `focusin` the platform causes is the library's, since focusgroup leaves selection to the pattern. Space
   requests the focused one, a click focuses and requests, and Tab enters on the checked radio. `setPreselect`
   starts the check without a request, and `setDisabled` / `setFlavor` reset the focus.
-- **The tab stop is the checked radio, not the focused one.** That is the APG rule the platform cannot
-  express, so the definition is `nomemory` with `focusgroupstart` on that radio and the primitive re-derives
-  the stop after every focus move: a controlled host that rejects a request leaves the focus on the requested
-  radio and the tab stop where the check is.
+- **The tab stop is the platform's, and the entry point is the library's.** While focus is inside the group
+  the stop is the focused radio — the native engine keeps it in its focus controller, the polyfill renders
+  `tabindex=0` on it — and the primitive does not re-seat it, so a controlled host that rejects a request
+  leaves the stop on the radio the user moved to. The definition is `nomemory` with `focusgroupstart` on the
+  checked radio (else the first enabled one), so the next Tab entry — and the stop once focus leaves — is the
+  checked radio: the rule users see, `radio.qnt` models the same way via `fgTabIndex` / `fgEntry` /
+  `fgStopOnLeave`.
 - **A disabled radio is out of the group** (`focusgroup="none"`, `tabindex="-1"`): arrows and the tab stop
   skip it and Tab never lands on it. Against the native engine every other radio carries `tabindex="0"`,
   because that engine navigates only items with `tabIndex > -1` and a `<div role="radio">` is otherwise not
