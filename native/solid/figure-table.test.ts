@@ -192,12 +192,15 @@ const cjk: TableSpec = {
   options: { max: 6 },
 };
 const cjkRow = cellText(lineOf(layoutOf(cjk), "fig-cell-0-0")!)[0]!;
-// the mutation: a cut that counts characters (this value is five of them) keeps the value whole and overflows the column
-const byChars = [..."监控摄像头"].length <= 6 ? "监控摄像头".padEnd(6, " ") : "…";
-if (cjkRow.trimEnd() === "监控…" && cellWidth(byChars) > 6 && byChars !== cjkRow)
-  ok("the cut is cells, not characters", `"监控摄像头" is ${cellWidth("监控摄像头")} cells and 5 characters: ` +
-    `drawn "${cjkRow.trimEnd()}" (${cellWidth(cjkRow.trimEnd())} of 6), a character count keeps it ${cellWidth(byChars)} wide`);
-else bad("the cut is cells, not characters", `${JSON.stringify(cjkRow)} against ${JSON.stringify(byChars)}`);
+// the mutations: a cut counted in characters (this value is five of them) keeps the value whole and overflows the
+// column, and one counted in bytes (fifteen) cuts inside the second glyph and marks nothing
+const byChars = "监控摄像头".padEnd(6, " ");
+const byBytes = Buffer.from("监控摄像头", "utf8").subarray(0, 6).toString("utf8");
+if (cjkRow.trimEnd() === "监控…" && cellWidth(byChars) > 6 && !byBytes.endsWith("…") && byChars !== cjkRow)
+  ok("the cut is cells, not characters or bytes", `"监控摄像头" is ${cellWidth("监控摄像头")} cells, 5 characters and ` +
+    `${Buffer.byteLength("监控摄像头")} bytes: drawn "${cjkRow.trimEnd()}" (${cellWidth(cjkRow.trimEnd())} of 6 cells); ` +
+    `a character count keeps it ${cellWidth(byChars)} cells wide, a byte count ${JSON.stringify(byBytes)} with no …`);
+else bad("the cut is cells, not characters or bytes", `${JSON.stringify(cjkRow)} against ${JSON.stringify([byChars, byBytes])}`);
 
 const numeric: TableSpec = {
   kind: "table",
