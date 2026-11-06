@@ -8,6 +8,7 @@
 //   tokenTable   a token a row, its group a heading: the group's name once and its tokens under it, with the value
 //   spacingScale a step a row: its name, a bar of value/largest (a 4px step of a 48px scale is half a cell), its pixels
 //   typeScale    a size a row: its name, a bar of size/largest, size/lineHeight, and a specimen at its own size
+//   table        a row of cells: the title a column, a rule under it, a cell cut to its column's width with `…`
 //
 // These are the half of the kit's `areas/systems.md` whose data is **our own tokens** (packages/tokens,
 // apps/docs/src/tokens.json), so the figure cannot disagree with the design system it documents. They needed three
@@ -29,11 +30,13 @@ import type {
   PaletteSpec,
   SpacingSpec,
   StateMatrixSpec,
+  TableSpec,
   TokenTableSpec,
   TypeScaleSpec,
 } from "../spec.ts";
 import {
   barLine,
+  cellWidth,
   cells,
   exactFill,
   finish,
@@ -45,6 +48,7 @@ import {
   rowsOf,
   say,
   textItem,
+  truncate,
 } from "./shared.ts";
 
 /**
@@ -462,6 +466,132 @@ function tokenTableProblems(data: unknown): string[] {
 }
 
 /**
+ * A table: a heading a column, a row of cells — the generic kind, on the cell grid. A column is as wide as its longest
+ * cell or its heading, capped by `options.max`; a value wider than its column is cut with `…`, counted in **cells** (a
+ * CJK glyph is two) and not in bytes. The heading is drawn once, a rule of `-` separates it from the body unless
+ * `headerRule` is false, and a column may read flush right, which is a number's own alignment. One cell is one line: a
+ * cell has no alpha today, so a zebra stripe would be a second item kind and not a table's business.
+ *
+ * `solid/specs/from-targets.ts` writes this repository's one, from the Targets table of `native/docs/map.md`.
+ */
+function table(spec: TableSpec): Layout {
+  const focus = focusOf(spec);
+  const { columns, rows, headerRule = true } = spec.data;
+  const max = spec.options?.max;
+  const widths = columns.map((column, c) => {
+    const wanted = Math.max(cellWidth(column.title), ...rows.map((row) => cellWidth(row[c] ?? "")));
+    return Math.max(1, max === undefined ? wanted : Math.min(max, wanted));
+  });
+  const padEnd = (text: string, width: number) => text + " ".repeat(Math.max(0, width - cellWidth(text)));
+  const padStart = (text: string, width: number) => " ".repeat(Math.max(0, width - cellWidth(text))) + text;
+  const cellOf = (text: string, c: number): string => {
+    const width = widths[c]!;
+    const cut = truncate(text, width);
+    return columns[c]!.align === "right" ? padStart(cut, width) : padEnd(cut, width);
+  };
+  const gap = (id: string): Item => ({ kind: "space", id, cells: 2, paint: "ink" });
+  const spread = (
+    id: (c: number) => string,
+    text: readonly string[],
+    paint: (c: number) => Paint,
+    role: (c: number) => "label" | "value",
+  ) =>
+    columns.flatMap((_, c): Item[] => [
+      textItem(id(c), text[c]!, widths[c]!, paint(c), role(c)),
+      ...(c < columns.length - 1 ? [gap(`${id(c)}-gap`)] : []),
+    ]);
+  const muted = () => "muted" as const;
+  const lines: LayoutLine[] = [
+    {
+      items: spread(
+        (c) => `fig-head-${c}`,
+        columns.map((column, c) => cellOf(column.title, c)),
+        // a focus may name a heading as well as a row: a heading is drawn, and a name it refuses would be a lie
+        (c) => (focus && focus.on.includes(columns[c]!.title) ? paintOf(focus, columns[c]!.title) : "muted"),
+        () => "label",
+      ),
+    },
+  ];
+  if (headerRule)
+    lines.push({
+      items: spread((c) => `fig-rule-${c}`, columns.map((_, c) => "-".repeat(widths[c]!)), muted, () => "label"),
+    });
+  const labels: Layout["labels"] = [];
+  rows.forEach((row, r) => {
+    const drawn = columns.map((_, c) => cellOf(row[c] ?? "", c));
+    labels.push({ textId: `fig-cell-${r}-0`, text: drawn[0] ?? "" });
+    lines.push({
+      items: spread(
+        (c) => `fig-cell-${r}-${c}`,
+        drawn,
+        // the row's label is the data's first cell, which is what a focus names (the cut is the column's, not the name's)
+        (c) => (c === 0 ? paintOf(focus, row[0] ?? "") : "ink"),
+        (c) => (c === 0 ? "label" : "value"),
+      ),
+    });
+  });
+  const width = widths.reduce((n, w) => n + w, 0) + 2 * Math.max(0, columns.length - 1);
+  return finish(spec, "table", width, lines, [], labels);
+}
+
+/** A table: a heading a column, a cell a column in every row, and a cap that is a whole number of cells. */
+function tableProblems(data: unknown, options: unknown): string[] {
+  if (!isObject(data))
+    return ['A table needs its columns and rows: { "columns": [{ "title": "target" }], "rows": [["Desktop (macOS)"]] }.'];
+  const columns = rowsOf(data.columns);
+  const rows = rowsOf(data.rows);
+  const out: string[] = [];
+  if (!columns.length)
+    out.push('A table needs its columns: [{ "title": "target" }, { "title": "status", "align": "right" }].');
+  const titles: string[] = [];
+  for (const [c, column] of columns.entries()) {
+    if (!isObject(column) || typeof column.title !== "string" || !column.title.trim()) {
+      out.push(`Column ${c + 1} needs a title: the heading it is drawn with.`);
+      continue;
+    }
+    titles.push(column.title);
+    if (column.align !== undefined && column.align !== "left" && column.align !== "right")
+      out.push(`Column ${c + 1}'s align is left or right, not ${say(column.align)}.`);
+  }
+  if (titles.length !== new Set(titles).size) {
+    const twice = titles.find((title, i) => titles.indexOf(title) !== i);
+    out.push(`"${twice}" is two columns: one heading, one column.`);
+  }
+  if (!rows.length) out.push('A table needs its rows: [["Desktop (macOS)", "Clay", "a page in a window"]].');
+  for (const [r, row] of rows.entries()) {
+    if (!Array.isArray(row)) {
+      out.push(`Row ${r + 1} is not a row of cells: [...] is.`);
+      continue;
+    }
+    if (row.length !== columns.length)
+      out.push(`Row ${r + 1} has ${row.length} cell${row.length === 1 ? "" : "s"}: the table has ${columns.length} columns.`);
+    for (const [c, cell] of row.entries())
+      if (typeof cell !== "string") out.push(`Row ${r + 1}'s cell ${c + 1} is not text: ${say(cell)} is not one.`);
+  }
+  if (data.headerRule !== undefined && typeof data.headerRule !== "boolean")
+    out.push(`A table's headerRule is true or false, not ${say(data.headerRule)}.`);
+  const max = isObject(options) ? options.max : undefined;
+  if (max !== undefined) {
+    const n = number(max);
+    if (n === undefined || !Number.isInteger(n) || n <= 0)
+      out.push(`options.max must be a whole number of cells above zero: it is ${say(max)}.`);
+  }
+  return out;
+}
+
+/** A table's names are its columns' headings and its first column's cells: a focus points at one as it is drawn. */
+function tableNames(data: unknown): string[] {
+  if (!isObject(data)) return [];
+  const titles = rowsOf(data.columns).flatMap((column) =>
+    isObject(column) && typeof column.title === "string" ? [column.title] : [],
+  );
+  const firsts = rowsOf(data.rows).flatMap((row) =>
+    Array.isArray(row) && typeof row[0] === "string" ? [row[0]] : [],
+  );
+  return [...titles, ...firsts];
+}
+
+/**
  * A spacing scale: a step a row — its name, a bar of `value/largest`, its pixels. A cell is 8px and the track is the
  * largest step, so the scale maps to cells at its own length: a 4px step of a 48px scale is **half a cell** (`▌` in the
  * text half, 4px of fill on the pixel targets), not "one cell", and every step's fill is exactly its value's.
@@ -675,3 +805,4 @@ register("tokenTable", { layout: tokenTable, check: tokenTableProblems });
 register("palette", { layout: palette, check: paletteProblems, names: paletteNames });
 register("spacingScale", { layout: spacingScale, check: spacingProblems, names: stepNames });
 register("typeScale", { layout: typeScale, check: typeProblems, names: stepNames });
+register("table", { layout: table, check: tableProblems, names: tableNames });

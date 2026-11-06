@@ -26,6 +26,51 @@ export const say = (v: unknown) => (typeof v === "string" ? `"${v}"` : v === und
 export const cells = (text: string): number => [...text].length;
 export const longest = (values: readonly string[]): number => Math.max(0, ...values.map(cells));
 
+/** The east Asian ranges whose glyphs take two cells: the simple test this file uses, not a Unicode table. */
+const WIDE: readonly (readonly [number, number])[] = [
+  [0x1100, 0x115f],
+  [0x2e80, 0xa4cf],
+  [0xac00, 0xd7a3],
+  [0xf900, 0xfaff],
+  [0xfe10, 0xfe19],
+  [0xfe30, 0xfe6f],
+  [0xff00, 0xff60],
+  [0xffe0, 0xffe6],
+  [0x1f300, 0x1f64f],
+  [0x1f900, 0x1f9ff],
+  [0x20000, 0x3fffd],
+];
+
+/** One code point's width: 2 in the wide ranges, 1 otherwise. A combining mark is one cell here (labels are prose, not a
+ *  typesetter; the kit's own `text.mjs` segments graphemes, which this file does not need to). */
+function codeWidth(code: number): number {
+  for (const [from, to] of WIDE) if (code >= from && code <= to) return 2;
+  return 1;
+}
+
+/** A string's width in display cells: what the terminal and a monospace fence count, not JS characters. A layout's
+ *  `cells` is this width (`text.ts` re-exports it), so a CJK table cell is two cells wide and its column is too. */
+export function cellWidth(text: string): number {
+  let width = 0;
+  for (const ch of text) width += codeWidth(ch.codePointAt(0) ?? 0);
+  return width;
+}
+
+/** `text` cut to `width` display cells, `…` (one cell) at the cut — a table's cell is cells wide, not bytes. `width`
+ *  below one gives `…` alone. */
+export function truncate(text: string, width: number): string {
+  if (cellWidth(text) <= width) return text;
+  let out = "";
+  let used = 0;
+  for (const ch of text) {
+    const w = codeWidth(ch.codePointAt(0) ?? 0);
+    if (used + w > width - 1) break;
+    out += ch;
+    used += w;
+  }
+  return `${out}…`;
+}
+
 /** A number as the figure prints it: 12400 is "12,400", 0.077 stays "0.077". */
 export function formatValue(value: number): string {
   if (!Number.isInteger(value)) return String(value);

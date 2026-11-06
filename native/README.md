@@ -2999,7 +2999,7 @@ layout, once, for all three hosts.
 **Where a kind lives.** `solid/src/figure/spec.ts` is the format, the `parse` and the checks about the spec as a whole (a
 source, a focus's names, the width); a kind itself is **one file** under `solid/src/figure/kinds/`, its layout and its own
 refusals side by side — `metrics.ts` (barChart, compare, contrast, funnel), `flows.ts` (flow, branchFlow, stateMachine),
-`structure.ts` (journeyMap, tree), `systems.ts` (palette, spacingScale, typeScale) and `planning.ts` (nowNextLater,
+`structure.ts` (journeyMap, tree), `systems.ts` (palette, spacingScale, typeScale, table) and `planning.ts` (nowNextLater,
 statusKey, timeline), over `shared.ts` (the cell helpers,
 the item builders, `finish`, the raw-JSON readers a refusal reads) — and one `register("<kind>", { layout, check })` at
 the bottom of the file that holds it. `solid/src/figure/registry.ts` is the table and the lookups (`layoutOf(spec)`,
@@ -3082,10 +3082,10 @@ measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline thi
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
 **Not here** (and honest about it): the kit's `cohort` and `forecast` (kinds whose data this repository does not have), its
-other wireframe types (`appShell`, `cardGrid`, `listDetail`, `modal`), its systems half (`colourRoles`, `stateMatrix`,
-`layerStack`, `tokenTable`, `table`), its motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data, its
-`lang`, its SAMPLE DATA stamp and its `label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF,
-PNG) and the 28 kinds below are here; each section says what its half still cannot carry.
+other wireframe types (`appShell`, `cardGrid`, `listDetail`), its motion's `intentCard`, `transitionSpec` and
+`easingTable`, its `@file` data, its `lang`, its SAMPLE DATA stamp and its `label`. The text renderer, the exports (SVG,
+HTML, a deck as a page and as PDF, PNG) and the 34 kinds below are here; each section says what its half still cannot
+carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
@@ -3282,9 +3282,9 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
 nothing at run time pays for them.
 
-**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and eight of
+**The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and nine of
 its kinds are here — the half whose data is **ours** (the token sets, the Dialog's frames, the pages' styles, the docs'
-token file), so the figure cannot disagree with the design system it documents:
+token file, this page's Targets table), so the figure cannot disagree with the source it documents:
 
 | kind | data | the figure |
 | --- | --- | --- |
@@ -3296,6 +3296,7 @@ token file), so the figure cannot disagree with the design system it documents:
 | `tokenTable` | `[{ group, name, value }]` | a token a row, its group a heading over the run: the token's name and its resolved value, one table for every length and number group |
 | `spacingScale` | `[{ name, value }]` | a step a row: a bar of `value/largest` and its pixels — a cell is 8px, so a 4px step is **half a cell** |
 | `typeScale` | `[{ name, size, lineHeight }]` | a size a row: a bar of `size/largest`, `size/lineHeight`, and a specimen `Aa` **at its own size** |
+| `table` | `{ columns: [{ title, align? }], rows: [[string]], headerRule? }` | a heading a column, the heading once with a rule under it, a cell cut to its column with `…` (counted in cells), a column that may read flush right |
 
 `palette.json` is `@cssints/tokens`' Open Props blue and grey scales (`packages/tokens/src/open-props.ts`, measured on
 their own `gray.0`) — Open Props and not Radix because its scales are one flat object of hex values that reads step for
@@ -3327,6 +3328,17 @@ length and number groups (space, radius, fontSize, lineHeight, fontWeight, borde
 {scale.k})` with the scale the file declares, and writes 30 rows — one table, a group's name once over its run.
 `solid/test.sh` regenerates and `cmp`s it, and `figure.test.ts` reads every name, value and one-heading-a-group back
 from the frame.
+
+`table.json` is the ninth and the generic one — not a design system but the kit's `systems.md` table: a heading a column,
+a row of cells, the heading drawn once with a rule of `-` under it (off when `headerRule` is false), and a value cut to
+its column's width with `…`. The cut is counted in **cells**, not characters or bytes: a CJK glyph is two cells, which
+`figure-table.test.ts` holds with a value that is five characters and ten cells (`监控摄像头` of a six-cell column draws
+`监控…`). A column's `align: "right"` pads its cells flush right, which is a number's own alignment. Its data is this
+page: `from-targets.ts` parses the Targets table, keeps the four columns whose cells differ row to row (target, raster, JS
+at run time, status), drops the markdown backticks, and writes 6 rows; `options.max` is 18 cells, so the raster's and the
+status's own sentences are cut (`Clay's SDL3 rende…`). `figure-handoff.sh` regenerates and `cmp`s the spec, the frame is
+`solid/frames/figure-table.png` (79x12 cells, 632x192), the golden `solid/goldens/figure-table.json` (35 commands), the
+browser draws `?spec=table`, and `figure.test.ts` reads the rows' order and the golden back from the frame.
 
 **The ratio is the engine's, twice.** A pair's number is written by `from-tokens.ts` with `color.ts` and printed at two
 places (`shown`, which floors: 4.499 does not read as the 4.5 it misses). `check` refuses a pair whose ratio is not the
@@ -3407,6 +3419,20 @@ A cell is 8px: the track is the largest step, 48px.
 apps/docs/src/tokens.json (space); a cell is native/terminal/cells.h's 8px
 ```
 
+<!-- glyph-kit: solid/specs/table.json -->
+```text
+The map's targets, one a row
+target           raster              js at run time      status
+---------------  ------------------  ------------------  ------------------
+Desktop (macOS)  Clay's SDL3 rende…  optional (Bun)      a page in a window
+ESP32-S3         esp32's render.c,…  none                clay-test's shell…
+Browser (WASM)   canvas 2D           none (the generat…  a static frame an…
+ESP32-P4         CPU + PPA (2D DMA)  none                later, needs a bo…
+Terminal         Clay's termbox2 r…  optional (Bun)      after desktop; re…
+iOS, Android     ThorVG CPU, on a …  none (the generat…  planned; the firs…
+native/docs/map.md, the Targets table
+```
+
 <!-- glyph-kit: solid/specs/type-scale.json -->
 ```text
 The docs' type scale
@@ -3461,8 +3487,8 @@ What remains of the kit's handoff half: a checklist's `note` ("waiting on brand"
 cell is 16px tall, so an inset of 4px is a number here and not a drawn line. The half's `anatomy` is drawn, in cells: see
 the wireframe section below.
 
-What remains of the kit's systems half: `table` — and, as before, the kit's other kinds and its motion's
-`intentCard`/`transitionSpec`.
+What remains of the kit's systems half: nothing — its nine kinds are here. As before, the kit's other kinds and its
+motion's `intentCard`/`transitionSpec` are not.
 
 **The four wireframe kinds: a page, not a drawing.** `screen`, `anatomy`, `modal` and `responsivePair`
 (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.

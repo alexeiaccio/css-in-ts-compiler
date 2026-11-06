@@ -1017,7 +1017,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 33 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 34 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
@@ -1025,7 +1025,7 @@ the journey `journey-map.json` (glyph-kit's first-week example, adapted), the de
 `colour-roles`, `spacing`, `type-scale`), the Dialog's layers (`layer-stack`) and the pages' states (`state-matrix`),
 the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (`motion-timing`, `easing`, `stagger`,
 `frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`), the charts (`sparkline`, `meter`,
-`heatmap`) and the wireframes (`screen`, `anatomy`, `responsive-pair`);
+`heatmap`), the wireframes (`screen`, `anatomy`, `responsive-pair`) and the generic table (`table`);
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
 
@@ -1053,6 +1053,14 @@ pixel target, since Roboto has no `▲`) and a text's `size` with a line's `heig
 whose rows differ: a 40px line is three cells). `src/figure/text.ts` draws all three in two branches — `██` for a swatch,
 `▲` for a marker — so the text half still reads items and has no kind in it. Their goldens are `figure-palette.json`,
 `figure-contrast.json`, `figure-spacing.json` and `figure-type-scale.json`, and the browser reads `?spec=` of each.
+
+The generic **`table`** is the kit's `systems.md` table and not a design system: `table.json` is `native/docs/map.md`'s
+Targets table, **generated** by `specs/from-targets.ts` — the four columns whose cells differ row to row, the markdown
+backticks off, `options.max` 18 cells — and `solid/figure-handoff.sh` regenerates and `cmp`s it. A heading a column, the
+heading once with a rule of `-` under it (off when `headerRule` is false), and a value cut to its column with `…`,
+counted in cells and not characters (a CJK glyph is two cells). `solid/figure-table.test.ts` re-parses the map and holds
+every cell to it, the cut, a right-aligned column's cells, the refusals, the golden and the terminal's rows; the browser
+reads `?spec=table`.
 
 The three **handoff and QA** kinds are the kit's `areas/handoff.md` half, and their data is this repository's own, so a
 figure cannot drift from what is drawn or from what passes. `redline.json` is the Widgets page's Wi-Fi switch row: the

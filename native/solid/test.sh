@@ -370,6 +370,9 @@ bun solid/main.ts figure --spec solid/specs/token-table.json --warm 30 --expect 
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
 bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png
+# the generic table, the systems half's ninth kind: the Targets table of native/docs/map.md (specs/from-targets.ts
+# writes it, figure-handoff.sh regenerates and cmps it), four columns and a cell cut to its column with `…`
+bun solid/main.ts figure --spec solid/specs/table.json --warm 30 --expect solid/frames/figure-table.png
 # ... and the three planning kinds, whose data is the map's own plan: the eight steps as a timeline on one axis, the
 # status legend, and the Left: lists as a board. One stored frame each; the timeline is regenerated below and cmp'd.
 bun solid/main.ts figure --spec solid/specs/timeline.json --warm 30 --expect solid/frames/figure-timeline.png
@@ -435,7 +438,7 @@ if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
 else
   echo "figure, in a browser: no zig, bun or Playwright chromium, skipped (bun browser/solid/build.ts && node browser/figure-check.mjs)"
 fi
-# The text half of a figure (solid/src/figure/text.ts, solid/figure.ts): the docs draw themselves. The four figures in
+# The text half of a figure (solid/src/figure/text.ts, solid/figure.ts): the docs draw themselves. The nine figures in
 # native/README.md are the renderer's output from their specs, and a figure edited by hand is cmp's — the file and the
 # line — before figure-text.test.ts's own comparison runs in native/test.sh. `--redraw` prints the document and writes
 # nothing, so this check cannot change what it checks.
@@ -444,14 +447,14 @@ mkdir -p "$TEXTDOC"
 bun solid/figure.ts --redraw README.md > "$TEXTDOC/README.md"
 cmp "$TEXTDOC/README.md" README.md || {
   echo "FAIL: native/README.md's figures are not what 'bun solid/figure.ts --redraw README.md' draws; commit its output"; exit 1; }
-echo "figure text: native/README.md's four figures are the renderer's, byte for byte (cmp)"
+echo "figure text: native/README.md's nine figures are the renderer's, byte for byte (cmp)"
 # the four motion kinds' numbers are solid/src/motion.ts's own: specs/from-motion.ts writes them and cmps (a change to the spring is this line)
 bun solid/specs/from-motion.ts --check
 # ... and the map draws its own plan: the same redraw, under the marker above the timeline's fence
 bun solid/figure.ts --redraw docs/map.md > "$TEXTDOC/map.md"
 cmp "$TEXTDOC/map.md" docs/map.md || {
   echo "FAIL: native/docs/map.md's timeline is not what 'bun solid/figure.ts --redraw docs/map.md' draws; commit its output"; exit 1; }
-echo "figure text: native/README.md's four figures and native/docs/map.md's timeline are the renderer's, byte for byte (cmp)"
+echo "figure text: native/README.md's nine figures and native/docs/map.md's timeline are the renderer's, byte for byte (cmp)"
 # The export half (solid/src/figure/export/*, solid/figure-export.test.ts): the same layout as one standalone SVG and one
 # self-contained page, with no host, no framework and no build step. The test holds every spec's SVG to the layout
 # (well-formed XML, its texts in order, every x/width the layout's number), the page to one verbatim SVG and no script,

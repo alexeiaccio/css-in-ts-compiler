@@ -1,10 +1,10 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 33 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 34 kinds here
 // (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
 // `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`, `nowNextLater`, `palette`,
 // `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
-// `stateMatrix`, `statusKey`, `timeline`, `tokenTable`, `tree`, `typeScale`)
-// where the kit has thirty-four. `check` returns **every** problem as a sentence, in
+// `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`, `typeScale`)
+// and the kit has thirty-four too. `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
 //
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-three this repository draws, and no more. The
+// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-four this repository draws, and no more. The
 // runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
 // list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
 export const KINDS = [
@@ -73,6 +73,7 @@ export const KINDS = [
   "frameStrip",
   "motionTiming",
   "stagger",
+  "table",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -411,6 +412,32 @@ export interface TokenTableSpec extends Base {
   data: readonly TokenRow[];
 }
 
+/** A table's column: the heading it is drawn with, and how its cells read inside the column's width. */
+export interface TableColumn {
+  title: string;
+  /** "left" (the default), or "right": a number's column reads flush right, as a number does. */
+  align?: "left" | "right";
+}
+
+/**
+ * A table: columns and rows of text, drawn on the cell grid — the header once, a rule under it, a cell cut to its
+ * column's width with `…`. The cells are strings and nothing else: what a table says is what its source says.
+ */
+export interface TableData {
+  columns: readonly TableColumn[];
+  /** A row a list of cells, one the column beside it; every row has one cell a column. */
+  rows: readonly (readonly string[])[];
+  /** A rule of `-` between the header and the body; drawn unless the data says false. */
+  headerRule?: boolean;
+}
+
+export interface TableSpec extends Base {
+  kind: "table";
+  data: TableData;
+  /** `max` caps a column's width in cells: a value wider than its column is cut with `…`, counted in cells. */
+  options?: { max?: number };
+}
+
 /** One part of a redline: a rectangle inside the component's box, in pixels, measured from the box's top-left corner. */
 export interface RedlinePart {
   label: string;
@@ -738,6 +765,7 @@ export type Spec =
   | SparklineSpec
   | StateMachineSpec
   | StatusKeySpec
+  | TableSpec
   | TimelineSpec
   | TreeSpec
   | TypeScaleSpec

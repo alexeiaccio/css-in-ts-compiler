@@ -2,7 +2,7 @@
 # The handoff and QA figures' desktop half (kinds/handoff.ts): the three stored frames are the page at rest, and
 # `before-after.json` is what `specs/from-frames.ts` writes from two frames of the Widgets page, and `layer-stack.json`
 # from the Dialog's modal and menu frames — the same discipline as `from-tokens.ts`: a stale spec is this `cmp`, not a
-# review note.
+# review note. `table.json` is here too: `specs/from-targets.ts` reads the Targets table of `native/docs/map.md`.
 #
 #   sh solid/figure-handoff.sh        # from native/, or from anywhere (it cds)
 #
@@ -28,7 +28,13 @@ cmp "$FIG/specs/modal.json" solid/specs/modal.json || {
   echo "FAIL: solid/specs/modal.json is not what specs/from-frames.ts writes from the Dialog's modal frame; commit its output"
   exit 1
 }
-echo "figure handoff: three stored frames are the page's, and before-after.json, layer-stack.json and modal.json are from-frames.ts's frames, byte for byte (cmp)"
+# the generic table's data is the map's Targets table: a target added, renamed or re-worded there is this cmp
+bun solid/specs/from-targets.ts "$FIG/specs" >/dev/null
+cmp "$FIG/specs/table.json" solid/specs/table.json || {
+  echo "FAIL: solid/specs/table.json is not what specs/from-targets.ts writes from native/docs/map.md's Targets table; commit its output"
+  exit 1
+}
+echo "figure handoff: three stored frames are the page's, and before-after.json, layer-stack.json, modal.json and table.json are from-frames.ts's and from-targets.ts's sources, byte for byte (cmp)"
 # ... and the same three in the browser, by name: browser/solid/figure.ts fetches the same files with `?spec=`, and
 # browser/figure-handoff-check.mjs holds each frame to its golden within 4px (Canvas2D's advance against ThorVG's).
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
