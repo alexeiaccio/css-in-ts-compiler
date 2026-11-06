@@ -1,9 +1,10 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 36 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 37 kinds here
 // (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `colourRoles`, `compare`, `contrast`,
-// `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`,
-// `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`,
-// `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`, `typeScale`).
+// `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `modal`,
+// `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`,
+// `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`,
+// `typeScale`).
 // `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
@@ -36,7 +37,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: these are the thirty-six this repository draws. The runtime list is the registry's (`kinds()` in
+// The kinds' **types**: these are the thirty-seven this repository draws. The runtime list is the registry's (`kinds()` in
 // ./registry.ts, alphabetical), and figure-registry.test.ts holds this list, the registry and native/docs/map.md
 // together — so a kind added here without its area file fails there. The kit's own types that are still not drawn are
 // named in native/README.md's "Not here", with the reason each waits.
@@ -52,6 +53,7 @@ export const KINDS = [
   "contrast",
   "easing",
   "flow",
+  "forecast",
   "frameStrip",
   "funnel",
   "heatmap",
@@ -305,6 +307,45 @@ export interface HeatmapData {
 export interface HeatmapSpec extends Base {
   kind: "heatmap";
   data: HeatmapData;
+}
+
+/** One day of a forecast's series: its date and the count that day (a quiet day is a zero, not a missing day). */
+export interface ForecastDay {
+  /** `YYYY-MM-DD`: the days sort as they read, so a series is increasing when its dates are. */
+  date: string;
+  value: number;
+}
+
+/** One projected day: the date, the model's count a day, and the band the window's spread puts around it. */
+export interface ForecastDayAhead extends ForecastDay {
+  /** The band's bottom: `mean - sd`, clamped at zero, because a count cannot be negative. */
+  low: number;
+  /** The band's top: `mean + sd`. */
+  high: number;
+}
+
+/**
+ * A dated series and the next days a model projects: the days that happened, a day a count, then the days ahead at one
+ * count a day with a band. The data is `solid/specs/from-releases.ts`'s (this repository's own `CHANGELOG.md`), so the
+ * window, the mean and the sd are the generator's arithmetic and the figure only draws them.
+ */
+export interface ForecastSpec extends Base {
+  kind: "forecast";
+  data: {
+    samples: readonly ForecastDay[];
+    /** The days ahead, in date order after the last sample; the figure draws them to the right of a one-cell gap. */
+    projection: readonly ForecastDayAhead[];
+    /** How many days ahead the model looks: a whole number above zero. */
+    horizon: number;
+    /** The window the fit is over, in days: the trailing fortnight here. */
+    window: number;
+    /** The fit's mean count a day, over that window. */
+    mean: number;
+    /** The window's population standard deviation: the band is `mean ± 1 sd`. */
+    sd: number;
+    /** The model in a sentence: which window, which fit, clamped at zero. A forecast without one is refused. */
+    model: string;
+  };
 }
 
 /** One step of a spacing scale: its token's name and its length in pixels. */
@@ -811,6 +852,7 @@ export type Spec =
   | CompareSpec
   | ContrastSpec
   | FlowSpec
+  | ForecastSpec
   | FunnelSpec
   | HeatmapSpec
   | JourneyMapSpec
