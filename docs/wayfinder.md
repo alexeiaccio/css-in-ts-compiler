@@ -4975,3 +4975,74 @@ attribute, as before), no RTL (the scenarios' `direction` is proven by the polyf
 by the model) and no Home / End, and no "a disabled radio loses the check when it disables the checked one
 mid-walk" beyond the existing re-mount pool. `checkbox-group` does not share this shape (every checkbox is its
 own tab stop), so it was not touched.
+||||||| parent of 24e63ad7 (docs: the menu family's per-level focusgroups, and the wayfinder entry)
+
+## The menu family on the same adapter: one segment per level (2026-11-06)
+
+`createMenu` and `createMenubar` were the last big hand-written roving-tabindex machines: a `wrapNext` /
+`wrapPrev` pair per container, a `tabindex` computed from `focusLevel` + `focusIndex`, and an `onKeyDown` prop
+that read every key from the list's spread — a delegated Solid handler, which runs at the document, so it could
+not consume a key before a platform listener on the same element. They now ride the `focusgroup` adapter the
+toolbar opened, with **one owner per level**, because the platform's contract is per segment:
+
+- the menu list is `focusgroup="menu"` (block axis, wrap): a menu button's popup, a checkable menu, and every
+  top-level menu of a bar;
+- the bar is `focusgroup="menubar"` (`inline` for a horizontal bar, `block` for a vertical one, `wrap` from the
+  option the primitive always wrapped anyway);
+- a submenu is its own `menu` segment, nested in its parent row, so the platform's nesting rules apply and the
+  cross-axis keys stay the author's (as the explainer leaves them).
+
+A popup's list is a segment only while the popup is shown, and the platform observes no visibility, so a closed
+popup is suspended with `focusgroup="none"` — the polyfill README's own workaround for exactly this. That is
+also what keeps a _hidden_ list from holding a tab stop, and what makes the model's "no stop while closed"
+reading true again (`menu-button.qnt` derives it from `focusLevel`, not from a stop var of its own).
+
+**What the platform owns now**: the arrows along each level's axis, Home / End, the wrap, the last-focused
+memory and the item `tabindex` — native (Chromium 150+) or `@microsoft/focusgroup-polyfill`, behind the same
+`provider: "auto" | "polyfill"` seam. **What stays**: activation (Enter / Space), Escape, Tab (close and leave),
+typeahead, the cross-axis keys (a submenu, the next / previous bar item, the bar's open keys), the checkable
+state, `aria-haspopup` / `aria-expanded`, and the light dismiss the kit owns. The state's focus moved from "what
+I computed" to "what the DOM's `focusin` says" (`onFocus`), and the kit now moves DOM focus by the part's id, so
+a `render` that renames `data-part` cannot break it.
+
+**What the work found, beyond the toolbar's two measured facts** (the native engine writes no `tabindex`, and it
+ignores an untrusted `keydown`):
+
+- A native focusgroup only ever moves to an item that is **tabbable already** (`tabIndex > -1`, or natively
+  focusable): a `<div tabindex="-1">` is _not_ an item, and a `<button>` is — while the polyfill decorates
+  whatever the collection holds. So a row must be rendered as a focusable control on the native path; the kit's
+  rows became `<button>`s (with the resets a button needs) for that reason, and the fixture renders buttons for
+  the native test and decorated divs for the walk. It also means the native path keeps its single tab stop with
+  _no_ tabindex in the markup: measured, three buttons in a `focusgroup` are one Tab stop.
+- The **vertical menubar** works for free once the axis is the definition's: three ported scenarios that were
+  divergences ("vertical navigation is not modelled") now pass and their entries left the list. What still
+  diverges is narrower and named: the upstream fixtures' rows are native controls (a text input, a link) that
+  keep the arrows and whose menus stay open, and `menu-menubar.qnt` gives `Left` / `Right` from an open menu a
+  _horizontal_ meaning (move along the bar), where a vertical bar's inline pair means "back to the bar".
+- A key dispatched at the **container** rather than at a row is not the platform's business (`#handleKeydown`
+  ignores a key whose target is the owner), so the library does not re-implement the movement for it: the ported
+  scenario that presses `End` at the menu element is a recorded divergence, and the primitive's own contract is
+  "focus on the rows".
+
+**The differential walks** run exactly as they were, on the forced polyfill: their `key` steps become a real
+(untrusted) `keydown` on the focused row, and their `tabindex` probe reads what the polyfill rendered. Two
+fixture details followed. The walk's rows carry an authored `tabindex="-1"` (what the polyfill restores on
+teardown, and what the model's `-1` describes), and the focus effect had to stop deferring the DOM focus by a
+macrotask: a _controlled_ open takes one microtask more (the request lands on the host's write), so the deferred
+focus ran after the driver's single settle and the polyfill's stop stayed on the row it had. The native path has
+its own focused test with **trusted** keys (`userEvent.keyboard`): the flat menu's axis and Escape, the bar's
+axis, the open keys, a submenu in and out, and no tabindex anywhere.
+
+**The break.** `MenuItemProps` no longer carries `tabindex` (the provider writes it) and the item props gained
+`ref`; `menuProps` / `menubarProps` lost `onKeyDown` and gained `focusgroup` and `ref`, and each menu and
+submenu (`menuProps(i)`, `submenuProps(i, j)`) gained the same pair; `keyDown(key)` now takes only the keys the
+library owns. Migration: spread the owner props (which build the provider), spread the row props, delete any
+`tabindex` you bound, and render rows that are focusable by nature. A `minor` changeset.
+
+**Left out, and true.** Open UI's `<menubar>` / `<menulist>` / `<menuitem>` / `<submenu>` elements are still an
+Active Proposal with no implementation, so the split above is `focusgroup` + the library for the visible future.
+`itemcontrols` (the V2 attribute that would let a row name the popup it owns, instead of `aria-controls` by hand)
+is explainer-only and not in the polyfill. Typeahead remains the platform's gap — a focusgroup never has it, so
+`type()` and the buffer stay the library's on every provider. And the menubar has no controlled `openTop` (the
+spec's value/request pair), which is why the kit's walk skips the controlled configs; that is the next rung for
+this family, not part of this one.

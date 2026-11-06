@@ -1828,6 +1828,14 @@ The host owns the box and the look: the viewport's size and `overflow: hidden`, 
 
 The APG menu family (`createMenu` for the menu button and the checkable menus, `createMenubar` for the roving bar) as state and attribute objects. Its behaviour is `specs/apg/menu-button.qnt`, `menu-checkable.qnt` and `menu-menubar.qnt`, and `packages/headless/test/menu-button.browser.test.tsx` and `packages/headless/test/menu.browser.test.tsx` replay the generated models, ported scenarios and seeded differential walks against it.
 
+The movement is the platform's `focusGroup` (`shared/focusgroup.qnt`, `./focusgroup`), one segment per level: the
+list is `focusgroup="menu"` (block axis, wrap), the bar is `focusgroup="menubar"` (the declared orientation and
+`wrap`), and each submenu is its own `menu` segment — the platform's contract is per segment, and a popup's list
+is a segment only while the popup is shown, so a closed one is suspended with `focusgroup="none"`. The arrows
+along each level's axis, Home / End, the wrap and the last-focused memory are the browser's (Chromium 150+) or
+`@microsoft/focusgroup-polyfill`'s, and **the platform owns the item `tabindex`**: the primitive never renders
+one. `provider: "polyfill"` forces the fallback (tests, hosts without the native attribute).
+
 ```ts skip
 createMenu(options: {
   items: ReadonlyArray<string | { label: string; kind?: "item" | "checkbox" | "radio"; checked?: boolean; disabled?: boolean }>;
@@ -1845,6 +1853,7 @@ createMenu(options: {
   disabled?: ReadonlyArray<number>; // focusable, never activated
   id?: string | undefined;
   onItemClick?(index: number): void;
+  provider?: "auto" | "polyfill"; // "auto": the native attribute where the engine has it
 }): {
   open(): boolean;
   focusLevel(): 0 | 1 | 2; // 0 outside, 1 on the trigger, 2 on an item
@@ -1854,10 +1863,38 @@ createMenu(options: {
   value(): number; // the packed view of the same state
   openMenu(): void; // a request, like every intent
   closeMenu(): void;
-  keyDown(key: string): void;
+  keyDown(key: string): void; // the library's keys: Enter / Space, Escape, Tab
   // …items, triggerProps, menuProps, itemProps(index), type(), setFocusItem()
 };
 ```
+
+- **The list is the owner.** `menuProps` carries `role="menu"`, `hidden`, the definition as the `focusgroup`
+  attribute (`"menu"` while shown, `"none"` while hidden) and the `ref` that builds the provider and registers
+  the keydown listener **before** it — that order is what lets the primitive consume a key the platform would
+  otherwise act on, and a delegated Solid `onKeyDown` would run at the document, after focus had moved. The row
+  props carry no `tabindex` and no key handler: `onFocus` is how the primitive hears where the platform put the
+  focus.
+- **A row must be focusable by nature.** The native engine writes no `tabindex` and only moves focus to an item
+  that is tabbable already, so render a `<button>` or an `<a href>` per row (the polyfill decorates whatever the
+  collection holds, and restores an authored `tabindex`). A `<div>` row works only on the polyfill.
+- **It keeps the keys the platform does not infer**: Enter / Space activation, Escape, Tab (which closes and
+  leaves), typeahead, and on a menubar the cross-axis keys — the open keys of the bar, `Right` into a submenu,
+  `Left` back to the parent row or the previous bar item. The arrows along the axis, Home and End are not in
+  `keyDown` and are never `preventDefault`ed by the primitive.
+
+`createMenubar` is the same contract per level: `menubarProps` (`role="menubar"`, `aria-orientation`, the
+`focusgroup` attribute and the `ref`), `barItemProps(i)`, `menuProps(i)` and `submenuProps(i, j)` for the popups,
+`menuItemProps(i, j)` and `submenuItemProps(i, j, k)` for the rows. A vertical bar's own axis is the platform's
+too (`focusgroup="menubar block"`): `Up` / `Down` move between bar items and its cross-axis pair opens the menu,
+the same code path as `Right` / `Left` on a horizontal one. `focusLevel` (1 the bar, 2 a top-level menu, 3 a
+submenu) and `focusIndex` are what a host moves the DOM focus to; reading them is reading the DOM's own focus,
+written back by `onFocus`.
+
+**Migration, if you rendered the item props before:** drop `tabindex` from your row markup and spread
+`menuProps` (or `menubarProps` and each `menuProps(i)` / `submenuProps(i, j)`) on the owner, so its `ref` builds
+the provider; render focusable rows. The row props gained `ref` (the provider's item collection), and
+`menuProps` / `menubarProps` gained `focusgroup` and `ref` and lost `onKeyDown`; `keyDown(key)` now carries only
+the library's keys.
 
 **The checked state has one store and two views.** The readable pair (`checked` + `choice`) is the store; `value` is derived from it as `menu-checkable.qnt`'s `checked(wrap, choice)` (one checkbox bit * 5 + the radio). The pack has one checkbox bit, so only the readable pair can name a checkbox beyond item 0. A host may own either view; each has its request (`onCheckedValuesChange(checked, choice)` and `onCheckedValueChange(value)`), and where both views are given the readable pair wins. `defaultChecked` / `defaultChoice` start the pair and `defaultValue` the packed side.
 
