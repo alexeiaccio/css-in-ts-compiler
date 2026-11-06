@@ -167,6 +167,7 @@ async function main() {
       ["sparkline", "The desktop frame, twelve runs"],
       ["meter", "The link, against the floor it is held to"],
       ["heatmap", "The grey inks, on the three pages"],
+      ["forecast", "A release a day, and the next week projected"],
       ["timeline", "The plan's order, one step a row"],
       ["statusKey", "What the map's statuses mean"],
       ["nowNextLater", "What the map has left, now, next, later"],

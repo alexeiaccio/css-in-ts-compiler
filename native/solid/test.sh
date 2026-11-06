@@ -370,6 +370,9 @@ bun solid/main.ts figure --spec solid/specs/token-table.json --warm 30 --expect 
 bun solid/main.ts figure --spec solid/specs/spacing.json --warm 30 --expect solid/frames/figure-spacing.png
 bun solid/main.ts figure --spec solid/specs/type-scale.json --warm 30 --expect solid/frames/figure-type-scale.png
 bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect solid/frames/figure-sparkline.png; bun solid/main.ts figure --spec solid/specs/meter.json --warm 30 --expect solid/frames/figure-meter.png; bun solid/main.ts figure --spec solid/specs/heatmap.json --warm 30 --expect solid/frames/figure-heatmap.png
+# ... and the chart half's fourth kind, forecast: this repository's own release cadence as columns, the next seven days
+# at the trailing fortnight's mean inside its band (specs/from-releases.ts writes it, figure-handoff.sh cmps it)
+bun solid/main.ts figure --spec solid/specs/forecast.json --warm 30 --expect solid/frames/figure-forecast.png
 # the generic table, the systems half's ninth kind: the Targets table of native/docs/map.md (specs/from-targets.ts
 # writes it, figure-handoff.sh regenerates and cmps it), four columns and a cell cut to its column with `…`
 bun solid/main.ts figure --spec solid/specs/table.json --warm 30 --expect solid/frames/figure-table.png

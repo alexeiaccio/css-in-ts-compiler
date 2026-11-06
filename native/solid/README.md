@@ -1017,7 +1017,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 36 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 37 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
@@ -1025,8 +1025,8 @@ the journey `journey-map.json` (glyph-kit's first-week example, adapted), the de
 `colour-roles`, `spacing`, `type-scale`), the Dialog's layers (`layer-stack`) and the pages' states (`state-matrix`),
 the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (`motion-timing`, `easing`, `stagger`,
 `frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`), the charts (`sparkline`, `meter`,
-`heatmap`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `modal`, `responsive-pair`) and the generic
-table (`table`);
+`heatmap`, `forecast`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `modal`, `responsive-pair`) and the
+generic table (`table`);
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
 
@@ -1109,7 +1109,7 @@ per card, the golden and the terminal's rows (15 checks); `solid/test.sh` regene
 **The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
 their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
 `solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`, `structure`, `systems`,
-`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 36 specs are drawable.
+`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 37 specs are drawable.
 `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
 strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
 terminal's rows and the browser's `?spec=` of each.
@@ -1135,6 +1135,17 @@ regenerates and `cmp`s them; `sparkline.json` is hand-written from twelve `--ben
 a measurement at render time. The layout gained the `spark` and `shade` items, `text.ts` draws them in two branches, and
 `solid/figure-charts.test.ts` holds the eighths, the fill and the verdict, every cell's band and engine ratio, the
 refusals, the goldens, the terminal's rows and the mutations.
+
+The chart half's fourth kind, **`forecast`**, is the one whose data no kit has: this repository's own cadence.
+`specs/from-releases.ts` counts `CHANGELOG.md`'s 40 dated release headings into a daily series (26 days, 2026-10-10 to
+2026-11-04, a quiet day a zero), fits the last 14 (mean 2.50, population sd 2.29) and projects the next 7 at that mean
+with the band `mean ± 1 sd` clamped at zero, and `solid/figure-handoff.sh` regenerates and `cmp`s `forecast.json`. The
+drawing is the cell grid, a cell a count: a column a day of `#`, the projected days as `=` inside the band's `:` cells,
+the series' max at the top and `0` on the baseline, three dates under it, the legend and the fit's own mean and sd — so
+the terminal and the text half print the same characters the pixel figure draws. `solid/figure-forecast.test.ts` (22
+checks) re-derives the series and the fit from `CHANGELOG.md`, reads a day's column back out of the drawing, the
+projected cells' paint and height, the band's width, the legend and the fit, the six refusals, two mutations, the golden
+and the terminal's rows; its frame is `solid/frames/figure-forecast.png` and the browser reads `?spec=forecast`.
 
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and

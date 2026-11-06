@@ -3081,10 +3081,10 @@ metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figu
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's `cohort` and `forecast` (kinds whose data this repository does not have), its
+**Not here** (and honest about it): the kit's `cohort` (a kind whose data this repository does not have), its
 `listDetail` wireframe (no page here draws a list pane and a detail pane of one page, so the kind waits for one), its
 motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data, its `lang`, its SAMPLE DATA stamp and its
-`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 36 kinds below are here;
+`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 37 kinds below are here;
 each section says what its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
@@ -3661,4 +3661,21 @@ index: 17 of 24 cells wrong). The frames are `solid/frames/figure-{sparkline,met
 640x224), the goldens `solid/goldens/figure-*.json`, and the browser draws `?spec=` of each. What remains: the SVG/HTML
 export half draws neither `spark` nor `shade` yet (it draws the boxes, bars, texts, swatches and markers it knows), which
 is the export work's, not a kind's.
+
+**The forecast kind: our own release cadence, projected.** `forecast` (`solid/src/figure/kinds/charts.ts`) is the
+thirty-seventh and the one whose data is this repository's own: `CHANGELOG.md`'s 40 dated headings are a daily series —
+26 days, 2026-10-10 to 2026-11-04, one or two most days, nine on 2026-10-30, a quiet day a zero — and
+`solid/specs/from-releases.ts` counts them, fits the last 14 days (mean **2.50** a day, population sd **2.29**) and
+projects the next 7 at that mean, each day with the band `mean ± 1 sd` clamped at zero. `solid/figure-handoff.sh`
+regenerates and `cmp`s the spec, so a release added to the changelog is the figure's next column. The drawing is the cell
+grid, one cell a count: a column a day of `#`, the projected days to the right of a one-cell gap as `=` inside the band's
+`:` cells (the `good` and `muted` roles), the series' max at the top and `0` on the baseline, three dates under it, the
+legend, and the fit's own mean and sd. Its six refusals are ours: no samples, dates that do not run forward, a horizon
+that is not a whole number above zero, a band below zero, a band upside down, and a model with no sentence.
+`solid/figure-forecast.test.ts` (22 checks) re-derives the series from `CHANGELOG.md` and the fit from the series, reads
+a named day's column back out of the drawing, the projected cells' paint and height, the band's width (5 cells, not the
+projection's own 1), the legend and the fit's words, the six sentences, two mutations, the golden
+(`solid/goldens/figure-forecast.json`, 39 commands) and the terminal's rows. The frame is
+`solid/frames/figure-forecast.png` (632x272), and the browser draws `?spec=forecast`. It is a projection of a count, not
+a promise.
 

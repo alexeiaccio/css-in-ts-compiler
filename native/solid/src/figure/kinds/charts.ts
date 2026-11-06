@@ -6,6 +6,8 @@
 //   meter      one value against its range (0..max, a cell a point) and a floor: the track, the fill `value/max`, the
 //              value, and its verdict (the engine's ratio against the floor)
 //   heatmap    a matrix of ratios: a row an ink, a column a page, a cell one of four shades by the value's WCAG band
+//   forecast   a dated series as columns (`#`), then the days ahead (`=`) inside the band the window's spread puts
+//              around them (`:`), with the window and the fit under it — one cell a count, a column a day
 //
 // The kit has all three (`areas/metrics.md`): a sparkline's "print the first and last values; a sparkline has no axis", a
 // meter's "over 100%, the bar stays full and the word over says the rest", a heatmap's "five levels is the limit people
@@ -14,13 +16,20 @@
 // number, a meter whose value is outside its range or is not the ratio its colours make, a heatmap with ragged rows, a
 // cell outside 1..21, a ratio its pair does not make, or a colour that is not `#rrggbb`.
 //
+// `forecast` is the fourth and the one whose data no kit has: a dated series and a projection of it, drawn as a column
+// chart on the cell grid. Its samples are this repository's own `CHANGELOG.md` by way of `specs/from-releases.ts`, and the
+// figure draws the generator's fit — it never computes the model itself, so what is printed under the drawing is the
+// number the spec was written with. `check` refuses a forecast that cannot be drawn or argued with: no samples, dates
+// that do not run forward, a horizon that is not a whole number above zero, a band below zero or upside down, and a model
+// with no sentence.
+//
 // The two item kinds these needed are additions to the *format*, beside a palette's `swatch` and `marker`: `spark` (a
 // point's `eighth`, a bar on a pixel target and a `▁`..`█` in text) and `shade` (one of four levels, `░▒▓█` in text and a
 // step of `Figure.styles.ts`'s ramp on a pixel target). `text.ts` draws both in two branches and knows no kind.
 import { contrastOf, HEX, shown } from "../contrast.ts";
 import type { Bar, Item, Layout, LayoutLine, Paint, Pair } from "../registry.ts";
 import { register } from "../registry.ts";
-import type { HeatmapSpec, MeterSpec, SparklineSpec } from "../spec.ts";
+import type { ForecastSpec, HeatmapSpec, MeterSpec, SparklineSpec } from "../spec.ts";
 import {
   cells,
   exactFill,
@@ -173,6 +182,139 @@ function heatmap(spec: HeatmapSpec): Layout {
   return finish(spec, "heatmap", width, lines, [], labels);
 }
 
+/**
+ * A forecast: the days that happened as a column each (`#`), then the days ahead to the right of a one-cell gap — the
+ * band's extent as `:` cells and the model's own count as an `=` inside it — with the days' max at the top, `0` on the
+ * baseline, a few dates under it, the legend, and the window and the fit. The chart is a grid of characters, so the
+ * terminal, the text half and the pixel targets draw the same cells: a run of `#` is the word `actual` without colour.
+ */
+function forecast(spec: ForecastSpec): Layout {
+  const focus = focusOf(spec);
+  const { samples, projection, mean, sd, horizon, window } = spec.data;
+  const max = Math.max(1, ...samples.map((day) => day.value));
+  // the three roles the legend names, and the one a focus may paint: a focus on "projection" recolours the days ahead
+  const tone = (role: string, base: Paint): Paint => {
+    const painted = paintOf(focus, role);
+    return painted === "ink" ? base : painted;
+  };
+  const paint = {
+    actual: tone("actual", "ink"),
+    projection: tone("projection", "good"),
+    band: tone("band", "muted"),
+  };
+  /** A count as the cells it fills, clamped to the chart's own scale. */
+  const levelOf = (value: number): number => Math.max(0, Math.min(max, Math.round(value)));
+  const gutter = cells(formatValue(max)) + 1;
+  const days = samples.length;
+  const gap = 1;
+  const span = days + gap + projection.length;
+  const width = gutter + span;
+  const rows: Cell[][] = Array.from({ length: max }, () =>
+    Array.from({ length: width }, () => ({ text: " ", paint: "ink" as Paint })),
+  );
+  const put = (row: number, col: number, text: string, painted: Paint): void => {
+    const cellsOfRow = rows[row];
+    if (cellsOfRow?.[col]) cellsOfRow[col] = { text, paint: painted };
+  };
+  samples.forEach((day, i) => {
+    for (let n = 1; n <= levelOf(day.value); n++) put(max - n, gutter + i, "#", paint.actual);
+  });
+  projection.forEach((day, j) => {
+    const low = Math.max(1, levelOf(day.low));
+    const high = Math.max(low, levelOf(day.high));
+    const col = gutter + days + gap + j;
+    for (let n = low; n <= high; n++) put(max - n, col, ":", paint.band);
+    put(max - Math.max(1, levelOf(day.value)), col, "=", paint.projection);
+  });
+  // the top row's gutter is the scale's top: the series' own maximum, a cell a count
+  const top = rows[0];
+  if (top) for (const [i, ch] of [...formatValue(max)].entries()) top[i] = { text: ch, paint: "muted" };
+  const lines: LayoutLine[] = rows.map((cellsOfRow, r) => cellLine(`fig-plot-${r}`, cellsOfRow));
+  lines.push({
+    items: [
+      textItem("fig-zero", "0", gutter, "muted", "note"),
+      textItem("fig-axis", `+${"-".repeat(span - 1)}`, span, "muted", "connector"),
+    ],
+  });
+  // a few dates under the axis: the first day, the middle one, the last that happened
+  const at = [0, Math.floor((days - 1) / 2), days - 1];
+  const dates: Item[] = [{ kind: "space", id: "fig-dates-gutter", cells: gutter, paint: "ink" }];
+  let cursor = 0;
+  for (const index of at) {
+    const label = samples[index]!.date.slice(5);
+    if (index > cursor)
+      dates.push({ kind: "space", id: `fig-dates-gap-${index}`, cells: index - cursor, paint: "ink" });
+    dates.push(textItem(`fig-date-${index}`, label, cells(label), "muted", "note"));
+    cursor = index + cells(label);
+  }
+  lines.push({ items: dates });
+  const legend: Item[] = [
+    textItem("fig-legend-actual", "#", 1, paint.actual, "value"),
+    textItem("fig-legend-actual-word", " actual", 7, "muted", "label"),
+    { kind: "space", id: "fig-legend-gap-1", cells: 2, paint: "ink" },
+    textItem("fig-legend-projection", "=", 1, paint.projection, "value"),
+    textItem("fig-legend-projection-word", " projected", 10, "muted", "label"),
+    { kind: "space", id: "fig-legend-gap-2", cells: 2, paint: "ink" },
+    textItem("fig-legend-band", ":", 1, paint.band, "value"),
+    textItem("fig-legend-band-word", " the band", 9, "muted", "label"),
+  ];
+  const fit = `mean ${shown(mean)} a day, sd ${shown(sd)}: the last ${window}, the next ${horizon}`;
+  lines.push({ items: [{ kind: "space", id: "fig-legend-gutter", cells: gutter, paint: "ink" }, ...legend] });
+  lines.push({
+    items: [
+      { kind: "space", id: "fig-fit-gutter", cells: gutter, paint: "ink" },
+      textItem("fig-fit", fit, cells(fit), "muted", "note"),
+    ],
+  });
+  const drawn = gutter + Math.max(span, cells(legendText(legend)), cells(fit));
+  return finish(spec, "forecast", drawn, lines, [], []);
+}
+
+/** One cell of the plot: a character and the role it is painted by. */
+interface Cell {
+  text: string;
+  paint: Paint;
+}
+
+/** A row of the plot as items: equal paints merge into one run, and blanks are a `space` (never a text of spaces). */
+function cellLine(id: string, cellsOfRow: readonly Cell[]): LayoutLine {
+  const items: Item[] = [];
+  for (let at = 0; at < cellsOfRow.length; ) {
+    const paint = cellsOfRow[at]!.paint;
+    const blank = cellsOfRow[at]!.text === " ";
+    let end = at + 1;
+    while (
+      end < cellsOfRow.length &&
+      cellsOfRow[end]!.paint === paint &&
+      (cellsOfRow[end]!.text === " ") === blank
+    )
+      end++;
+    if (blank) items.push({ kind: "space", id: `${id}-${at}-gap`, cells: end - at, paint });
+    else
+      items.push({
+        kind: "text",
+        id: `${id}-${at}-cell`,
+        textId: `${id}-${at}`,
+        text: cellsOfRow.slice(at, end).map((cell) => cell.text).join(""),
+        cells: end - at,
+        paint,
+      });
+    at = end;
+  }
+  return { items };
+}
+
+/** A row of items as the characters it draws: what the legend's width is, and what a test reads the words back from. */
+function legendText(items: readonly Item[]): string {
+  return items
+    .map((item) =>
+      item.kind === "text"
+        ? item.text + " ".repeat(Math.max(0, item.cells - cells(item.text)))
+        : " ".repeat(item.cells),
+    )
+    .join("");
+}
+
 /** A sparkline: a label and two or more points, every one a number. */
 function sparklineProblems(data: unknown): string[] {
   if (!isObject(data) || typeof data.label !== "string" || !data.label.trim())
@@ -287,6 +429,76 @@ function heatmapProblems(data: unknown): string[] {
   return out;
 }
 
+/** A date as a forecast writes it: `YYYY-MM-DD`, which sorts as it reads. */
+const DAY_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The three roles the legend names, which is what a focus may point at: a date is a drawn note, not a heading. */
+const FORECAST_ROLES = ["actual", "projection", "band"] as const;
+
+/**
+ * A forecast: the days that happened, in date order with their counts; the days ahead with a band each; a horizon and a
+ * window that are whole days; the fit's mean and sd; and the model in a sentence. A count is never negative, so a band
+ * that starts below zero or upside down is refused before it can be drawn as a cell.
+ */
+function forecastProblems(data: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'A forecast needs its samples: { "samples": [{ "date": "2026-10-10", "value": 1 }], "projection": [{ "date": "2026-11-05", "value": 2.5, "low": 0.21, "high": 4.79 }], "horizon": 7, "window": 14, "mean": 2.5, "sd": 2.29, "model": "…" }.',
+    ];
+  const out: string[] = [];
+  const samples = rowsOf(data.samples);
+  if (!samples.length)
+    out.push("A forecast needs its samples: the days that happened, one a date and a count, a quiet day a zero.");
+  let before: string | undefined;
+  samples.forEach((row, i) => {
+    const date = isObject(row) && typeof row.date === "string" ? row.date : "";
+    const value = isObject(row) ? number(row.value) : undefined;
+    if (!DAY_DATE.test(date))
+      out.push(`Sample ${i + 1}'s date is ${say(isObject(row) ? row.date : row)}: a day, as 2026-10-10 is one.`);
+    if (value === undefined || value < 0)
+      out.push(
+        `${date || `Sample ${i + 1}`} is ${say(isObject(row) ? row.value : undefined)}: a forecast counts releases, ` +
+          "a whole number from zero up.",
+      );
+    if (date && before !== undefined && !(date > before))
+      out.push(`Sample ${i + 1}'s date ${date} is not after ${before}: a forecast's days run forward.`);
+    if (date) before = date;
+  });
+  const mean = number(data.mean);
+  const sd = number(data.sd);
+  const projection = rowsOf(data.projection);
+  if (!projection.length)
+    out.push("A forecast needs its projection: the days ahead, one a date, the model's count and its band.");
+  projection.forEach((row, i) => {
+    const date = isObject(row) && typeof row.date === "string" ? row.date : `Projection ${i + 1}`;
+    const value = isObject(row) ? number(row.value) : undefined;
+    const low = isObject(row) ? number(row.low) : undefined;
+    const high = isObject(row) ? number(row.high) : undefined;
+    if (value === undefined || low === undefined || high === undefined) {
+      out.push(
+        `${date} needs a count and its band: { "date": "2026-11-05", "value": 2.5, "low": 0.21, "high": 4.79 }.`,
+      );
+      return;
+    }
+    if (low < 0) out.push(`${date}'s band starts at ${low}: a count is not negative.`);
+    else if (low > high) out.push(`${date}'s band runs ${low} to ${high}: its low is above its high.`);
+  });
+  const horizon = number(data.horizon);
+  if (horizon === undefined || !Number.isInteger(horizon) || horizon <= 0)
+    out.push(`A forecast's horizon is ${say(data.horizon)}: a whole number of days above zero.`);
+  const window = number(data.window);
+  if (window === undefined || !Number.isInteger(window) || window <= 0)
+    out.push(`A forecast's window is ${say(data.window)}: the whole days the fit is taken over.`);
+  if (mean === undefined) out.push("A forecast needs the fit's mean: the count a day the projection is drawn at.");
+  if (sd === undefined || sd < 0) out.push(`A forecast's sd is ${say(data.sd)}: a spread from zero up.`);
+  if (typeof data.model !== "string" || !data.model.trim())
+    out.push("A forecast needs its model: which window and which fit, in a sentence, so the projection can be argued with.");
+  return out;
+}
+
+/** A forecast's focus names one of the legend's three roles: actual, projection or band. */
+const forecastNames = (): string[] => [...FORECAST_ROLES];
+
 /** A sparkline's or a meter's focus names its label; a heatmap's names an ink or a page. */
 function labelNames(data: unknown): string[] {
   return isObject(data) && typeof data.label === "string" ? [data.label] : [];
@@ -300,6 +512,7 @@ function heatmapNames(data: unknown): string[] {
   ];
 }
 
+register("forecast", { layout: forecast, check: forecastProblems, names: forecastNames });
 register("heatmap", { layout: heatmap, check: heatmapProblems, names: heatmapNames });
 register("meter", { layout: meter, check: meterProblems, names: labelNames });
 register("sparkline", { layout: sparkline, check: sparklineProblems, names: labelNames });
