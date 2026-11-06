@@ -97,6 +97,9 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
       ? createMenu({
           items: MENU_ITEMS,
           triggerMode: "outside",
+          // the walk's menu keys are untrusted keydowns and its rows are divs: the
+          // polyfill renders the tab stop and makes them focusable without one
+          provider: "polyfill",
           id: `${toolbar.items[triggerIndex]?.id ?? "toolbar"}-menu`,
         })
       : undefined;
@@ -190,7 +193,9 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
         {menu !== undefined ? (
           <div data-part="popup" {...menu.menuProps}>
             {menu.items.map((item, index) => (
-              <div data-part="menuitem" {...menu.itemProps(index)}>
+              // a row is focusable (`tabindex="-1"`): the native engine writes no
+              // tabindex, so the platform can only focus an authored one
+              <div data-part="menuitem" tabindex={-1} {...menu.itemProps(index)}>
                 {item.label}
               </div>
             ))}
@@ -245,11 +250,16 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
           if (typeof key !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          // the walk alphabet spells arrows short (`Down`); createMenu wants
-          // the DOM key (`ArrowDown`)
-          const menuKey = ["Left", "Right", "Up", "Down"].includes(key) ? `Arrow${key}` : key;
+          // a real keydown where the user's finger is: the composed menu's own
+          // owner reads the keys it owns, its forced polyfill the arrows
           if (menuApi?.open() === true) {
-            menuApi.keyDown(menuKey);
+            const focused =
+              menuApi.focusLevel() === 2
+                ? menuItemElements()[menuApi.focusIndex()]
+                : itemElements()[triggerIndex];
+            if (focused !== undefined) {
+              dispatchKey(focused, key);
+            }
           } else if (
             menuApi !== undefined &&
             api?.focus() === triggerIndex &&

@@ -1,5 +1,12 @@
-import { type Accessor, createSignal, createUniqueId } from "solid-js";
+import { type Accessor, createSignal, createUniqueId, onCleanup, onSettled } from "solid-js";
 import { createControllable } from "./controllable";
+import {
+  type FocusGroupDefinition,
+  type FocusGroupHandle,
+  focusGroup,
+  focusGroupAttribute,
+  focusGroupPolyfill,
+} from "./focusgroup";
 import { type Prefs, withPrefs } from "./prefs";
 
 /**
@@ -13,8 +20,19 @@ import { type Prefs, withPrefs } from "./prefs";
  * differential-test oracle, see `test/menu-button.browser.test.tsx`).
  *
  * Platform: **hybrid** (map ticket `etfq`). `popover` gives top layer, light
- * dismiss and Esc; `focusgroup` gives the menubar's roving tabindex. The
- * library owns the menu keys, typeahead, submenus and checkable state.
+ * dismiss and Esc; `focusgroup` gives the roving tab stop and the movement
+ * along each level's axis (`shared/focusgroup.qnt`, `./focusgroup`). The
+ * library owns the menu keys (activation, Escape, Tab, typeahead, submenu and
+ * cross-axis keys), the `aria-haspopup` / `aria-expanded` sync, the checkable
+ * state and the light dismiss.
+ *
+ * One owner per level, because the platform's contract is per segment: the menu
+ * list (`menu`, block axis, wrap), the menubar (`menubar`, inline, wrap) and
+ * each submenu (`menu`) are separate groups. A popup's list is a segment only
+ * while the popup is shown, so a closed one is suspended (`focusgroup="none"`):
+ * the platform puts one tab stop in every live group, and a hidden list has
+ * none. The item `tabindex` is the platform's while a group is live — the
+ * primitive never renders one.
  *
  * Request/commit (map ticket `rt1p`): the open state, and the checked items of
  * the checkable variants, are controllable. Uncontrolled by default
@@ -31,6 +49,21 @@ import { type Prefs, withPrefs } from "./prefs";
 // ---------------------------------------------------------------------------
 
 export type MenuItemKind = "item" | "checkbox" | "radio";
+
+/**
+ * A key the platform moves focus on, along a group's axis; Home / End belong to
+ * every axis. The library leaves these alone: no state of its own, no
+ * `preventDefault`.
+ */
+const isPlatformKey = (axis: "inline" | "block", key: string): boolean =>
+  key === "Home" ||
+  key === "End" ||
+  (axis === "inline"
+    ? key === "ArrowLeft" || key === "ArrowRight"
+    : key === "ArrowUp" || key === "ArrowDown");
+
+/** Enter, Space and the DOM's own name for a space. */
+const isActivationKey = (key: string): boolean => key === "Enter" || key === " " || key === "Space";
 
 export interface MenuItemInput {
   readonly label: string;
@@ -108,6 +141,13 @@ export interface MenuOptions {
    * primitive (bean 209r — the differential walk's focus feedback loop).
    */
   readonly suppressFocusWrite?: (() => boolean) | undefined;
+  /**
+   * `"polyfill"` skips the feature detect and drives
+   * `@microsoft/focusgroup-polyfill`'s low-level group even where the engine has
+   * `focusgroup` (a test, or a host that knows it needs the polyfill). `"auto"`
+   * by default.
+   */
+  readonly provider?: "auto" | "polyfill";
 }
 
 export interface MenuItem {
@@ -129,19 +169,32 @@ export interface MenuTriggerProps {
   readonly onFocus: () => void;
 }
 
+/**
+ * Spread onto the menu's list. `focusgroup` states the definition the provider
+ * derives from, and `ref` builds that provider and registers the keydown
+ * listener before it. No `onKeyDown`: a delegated Solid handler runs at the
+ * document, after the polyfill (also on the owner) has moved focus.
+ */
 export interface MenuProps {
   readonly id: string;
   readonly role: "menu";
   readonly hidden: boolean;
-  readonly onKeyDown: (event: KeyboardEvent) => void;
+  /** The definition as the `focusgroup` attribute (`"menu"`; `"none"` while hidden). */
+  readonly focusgroup: string;
+  readonly ref: (element: HTMLElement) => void;
 }
 
+/**
+ * Spread onto a row. No `tabindex`: the platform owns it, and binding one here
+ * would fight it. `onFocus` is how the primitive hears where the platform put
+ * the focus.
+ */
 export interface MenuItemProps {
   readonly id: string;
   readonly role: "menuitem" | "menuitemcheckbox" | "menuitemradio";
   readonly "aria-checked": "true" | "false" | undefined;
   readonly "aria-disabled": "true" | undefined;
-  readonly tabindex: 0 | -1;
+  readonly ref: (element: HTMLElement) => void;
   readonly onClick: () => void;
   readonly onFocus: () => void;
   readonly onMouseEnter: () => void;
@@ -164,6 +217,11 @@ export interface Menu {
   readonly clickTrigger: () => void;
   readonly openMenu: () => void;
   readonly closeMenu: () => void;
+  /**
+   * The keys the library owns: Enter / Space activation, Escape, and Tab (which
+   * closes and leaves). The arrows, Home and End are the platform's, so they are
+   * not here and not `preventDefault`ed anywhere.
+   */
   readonly keyDown: (key: string) => void;
   readonly type: (text: string) => void;
   /** Differential-test hook: typeahead by the spec's letter code. */
@@ -314,6 +372,30 @@ export const createMenu = (options: MenuOptions): Menu => {
       return read();
     };
 
+  // The platform's half: the list is a `menu` segment while its popup is shown,
+  // and no segment at all while it is hidden (a `hidden` list has no tab stop,
+  // and the platform observes no visibility). The provider owns the item
+  // `tabindex` and the movement along the block axis; the primitive collects the
+  // rows itself, because a consumer may wrap them.
+  const definition = (shown: boolean): FocusGroupDefinition =>
+    shown ? { behavior: "menu", axis: "block", wrap: true, memory: true } : { behavior: "none" };
+  const elements = new Map<number, HTMLElement>();
+  const itemElements = (): HTMLElement[] =>
+    [...elements.entries()].sort(([a], [b]) => a - b).map(([, element]) => element);
+  let group: FocusGroupHandle | undefined;
+  let owner: HTMLElement | undefined;
+  let shownGroup: boolean | undefined;
+
+  /** Re-apply the definition the open state asks for (`update()` only when it changed). */
+  const syncGroup = (): void => {
+    const shown = isOpen();
+    if (group === undefined || shown === shownGroup) {
+      return;
+    }
+    shownGroup = shown;
+    group.update(definition(shown));
+  };
+
   // The focus follows the open state (`menu-button.qnt`'s
   // `ExpandedIffFocusInMenu`): level 2 exactly while the menu is open, and
   // `closed` (0 outside, 1 on the trigger) while it is not; `index` is the
@@ -331,6 +413,7 @@ export const createMenu = (options: MenuOptions): Menu => {
   const isDisabled = (i: number): boolean => disabled.has(i);
 
   const sync = (): void => {
+    syncGroup();
     const now = isOpen();
     if (now === seenOpen) {
       return;
@@ -360,6 +443,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       seenOpen = isOpen();
       index = want ? nextIndex : -1;
       closed = nextClosed;
+      syncGroup();
       bump();
     };
     if (isOpen() === want) {
@@ -457,9 +541,11 @@ export const createMenu = (options: MenuOptions): Menu => {
     closeToTrigger();
   };
 
-  const wrapNext = (i: number): number => (i + 1 >= count ? 0 : i + 1);
-  const wrapPrev = (i: number): number => (i <= 0 ? count - 1 : i - 1);
-
+  /**
+   * The keys the library owns: activation, Escape and Tab. The arrows, Home and
+   * End are the platform's (`focusgroup="menu"`), so they are neither here nor
+   * `preventDefault`ed.
+   */
   const keyDown = (key: string): void => {
     switch (key) {
       case "Enter":
@@ -468,30 +554,6 @@ export const createMenu = (options: MenuOptions): Menu => {
       case " ":
       case "Space":
         activate(false);
-        break;
-      case "ArrowDown":
-        if (level() === 1) {
-          openOn(0);
-        } else if (level() === 2) {
-          focusItem(wrapNext(focusedIndex()));
-        }
-        break;
-      case "ArrowUp":
-        if (level() === 1) {
-          openOn(count - 1);
-        } else if (level() === 2) {
-          focusItem(wrapPrev(focusedIndex()));
-        }
-        break;
-      case "Home":
-        if (level() === 2) {
-          focusItem(0);
-        }
-        break;
-      case "End":
-        if (level() === 2) {
-          focusItem(count - 1);
-        }
         break;
       case "Escape":
         if (level() === 2) {
@@ -562,6 +624,59 @@ export const createMenu = (options: MenuOptions): Menu => {
     move(true, i, 1);
   };
 
+  /**
+   * The list's own keydown, registered on the owner before the provider's
+   * listener: the platform moves on the block axis (arrows, Home / End), so only
+   * the keys the library owns are read here — and only those are `preventDefault`ed.
+   * Letters feed the typeahead buffer, which the platform does not have.
+   */
+  const keyDownEvent = (event: KeyboardEvent): void => {
+    const key = event.key;
+    if (isPlatformKey("block", key)) {
+      return;
+    }
+    if (isActivationKey(key)) {
+      event.preventDefault();
+      keyDown(key === "Enter" ? "Enter" : " ");
+      return;
+    }
+    if (key === "Escape" || key === "Tab") {
+      event.preventDefault();
+      keyDown(key);
+      return;
+    }
+    if (key.length === 1) {
+      type(key);
+    }
+  };
+
+  /** The owner's ref: the listener first, then the provider (see `./focusgroup`). */
+  const attach = (element: HTMLElement): void => {
+    if (owner === element) {
+      return;
+    }
+    owner = element;
+    element.addEventListener("keydown", keyDownEvent);
+    const provider = options.provider === "polyfill" ? focusGroupPolyfill : focusGroup;
+    group = provider(element, { definition: definition(isOpen()), items: itemElements });
+    shownGroup = isOpen();
+  };
+
+  onSettled(() => {
+    // the owner's ref may run before its item refs: collect once more after the render.
+    // `shownGroup` (not `isOpen()`) is read here: `onSettled` is not a scope a host's
+    // reactive getter may be read from
+    if (group !== undefined && shownGroup !== undefined) {
+      group.update(definition(shownGroup));
+    }
+  });
+
+  onCleanup(() => {
+    owner?.removeEventListener("keydown", keyDownEvent);
+    group?.destroy();
+    group = undefined;
+  });
+
   return {
     open: track(isOpen),
     focusLevel: track(level),
@@ -592,16 +707,32 @@ export const createMenu = (options: MenuOptions): Menu => {
         return false;
       },
       onClick: clickTrigger,
+      /**
+       * The trigger is no focusgroup owner (it is a single control outside the
+       * list), so the menu's own keys are read here: the open keys, activation,
+       * Escape and Tab. Its arrow keys are the perpendicular axis, which the
+       * platform leaves to the author.
+       */
       onKeyDown: (event) => {
-        if (
-          event.key === "ArrowDown" ||
-          event.key === "ArrowUp" ||
-          event.key === "Enter" ||
-          event.key === " " ||
-          event.key === "Space"
-        ) {
+        const key = event.key;
+        if (isActivationKey(key)) {
           event.preventDefault();
-          keyDown(event.key);
+          keyDown(key === "Enter" ? "Enter" : " ");
+          return;
+        }
+        if (key === "ArrowDown") {
+          event.preventDefault();
+          openOn(0);
+          return;
+        }
+        if (key === "ArrowUp") {
+          event.preventDefault();
+          openOn(count - 1);
+          return;
+        }
+        if (key === "Escape" || key === "Tab") {
+          event.preventDefault();
+          keyDown(key);
         }
       },
       onFocus: () => {
@@ -617,17 +748,13 @@ export const createMenu = (options: MenuOptions): Menu => {
         version();
         return !isOpen();
       },
-      onKeyDown: (event) => {
-        if (
-          event.key === "Tab" ||
-          event.key === "ArrowDown" ||
-          event.key === "ArrowUp" ||
-          event.key === "Home" ||
-          event.key === "End"
-        ) {
-          event.preventDefault();
-        }
-        keyDown(event.key);
+      get focusgroup() {
+        version();
+        // the forced polyfill path keeps the native engine out of the group
+        return options.provider === "polyfill" ? "" : focusGroupAttribute(definition(isOpen()));
+      },
+      get ref() {
+        return attach;
       },
     },
     itemProps: (i) => ({
@@ -652,9 +779,8 @@ export const createMenu = (options: MenuOptions): Menu => {
       get "aria-disabled"() {
         return isDisabled(i) ? "true" : undefined;
       },
-      get tabindex() {
-        version();
-        return level() === 2 && index === i ? 0 : -1;
+      ref: (element: HTMLElement) => {
+        elements.set(i, element);
       },
       onClick: () => {
         if (isDisabled(i)) {
@@ -711,6 +837,13 @@ export interface MenubarOptions {
    * primitive (bean 209r — the differential walk's focus feedback loop).
    */
   readonly suppressFocusWrite?: (() => boolean) | undefined;
+  /**
+   * `"polyfill"` skips the feature detect and drives
+   * `@microsoft/focusgroup-polyfill`'s low-level group even where the engine has
+   * `focusgroup` (a test, or a host that knows it needs the polyfill). `"auto"`
+   * by default.
+   */
+  readonly provider?: "auto" | "polyfill";
 }
 
 export interface MenubarItem {
@@ -737,21 +870,30 @@ export interface Menubar {
   readonly items: ReadonlyArray<MenubarItem>;
   readonly focusIn: () => void;
   readonly leave: () => void;
+  /**
+   * The keys the library owns: activation, Escape, Tab, and the cross-axis keys
+   * (the bar's own axis and each menu's are the platform's). On the bar it also
+   * opens the focused item's menu on the first / last row (`ArrowDown` /
+   * `ArrowUp`), which is the perpendicular pair of a horizontal bar.
+   */
   readonly keyDown: (key: string) => void;
   readonly type: (text: string) => void;
   /** Differential-test hook: typeahead by the spec's letter code. */
   readonly typeaheadCode: (code: number) => void;
+  /** The bar's owner: `focusgroup="menubar"` and the listener the `ref` registers first. */
   readonly menubarProps: {
     readonly role: "menubar";
     readonly "aria-orientation": "horizontal" | "vertical";
-    readonly onKeyDown: (event: KeyboardEvent) => void;
+    /** The definition as the `focusgroup` attribute (`"menubar inline wrap"`). */
+    readonly focusgroup: string;
+    readonly ref: (element: HTMLElement) => void;
   };
   readonly barItemProps: (index: number) => {
     readonly id: string;
     readonly role: "menuitem";
     readonly "aria-haspopup": "menu" | undefined;
     readonly "aria-expanded": "true" | "false" | undefined;
-    readonly tabindex: 0 | -1;
+    readonly ref: (element: HTMLElement) => void;
     readonly onClick: () => void;
     readonly onFocus: () => void;
   };
@@ -759,6 +901,9 @@ export interface Menubar {
     readonly id: string;
     readonly role: "menu";
     readonly hidden: boolean;
+    /** `"menu"` while the menu is shown, `"none"` while it is hidden. */
+    readonly focusgroup: string;
+    readonly ref: (element: HTMLElement) => void;
   };
   readonly menuItemProps: (
     bar: number,
@@ -768,7 +913,7 @@ export interface Menubar {
     readonly role: "menuitem";
     readonly "aria-haspopup": "menu" | undefined;
     readonly "aria-expanded": "true" | "false" | undefined;
-    readonly tabindex: 0 | -1;
+    readonly ref: (element: HTMLElement) => void;
     readonly onClick: () => void;
     readonly onMouseEnter: () => void;
     readonly onFocus: () => void;
@@ -780,6 +925,8 @@ export interface Menubar {
     readonly id: string;
     readonly role: "menu";
     readonly hidden: boolean;
+    readonly focusgroup: string;
+    readonly ref: (element: HTMLElement) => void;
   };
   readonly submenuItemProps: (
     bar: number,
@@ -788,7 +935,7 @@ export interface Menubar {
   ) => {
     readonly id: string;
     readonly role: "menuitem";
-    readonly tabindex: 0 | -1;
+    readonly ref: (element: HTMLElement) => void;
     readonly onClick: () => void;
     readonly onMouseEnter: () => void;
     readonly onFocus: () => void;
@@ -840,6 +987,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
   let bufferTimer: ReturnType<typeof setTimeout> | undefined;
   const [version, setVersion] = createSignal(0);
   const bump = (): void => {
+    syncGroups();
     setVersion((v) => v + 1);
   };
   const track =
@@ -848,6 +996,148 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       version();
       return read();
     };
+
+  // The platform's half, one owner per level because its contract is per
+  // segment: the bar (`menubar`, the declared axis and wrap), every top-level
+  // menu and every submenu (`menu`, the block axis, wrap). A popup's list is a
+  // segment only while the popup is shown — the platform observes no visibility,
+  // and a hidden list has no tab stop — so a closed one is suspended with
+  // `focusgroup="none"`. The item `tabindex` is the platform's while a level is
+  // live; the primitive never renders one.
+  interface LevelOwner {
+    readonly key: string;
+    readonly shown: () => boolean;
+    readonly definition: () => FocusGroupDefinition;
+    readonly rows: () => HTMLElement[];
+    /** The keys the library reads on this level (the platform's axis is not among them). */
+    readonly keys: (event: KeyboardEvent) => void;
+  }
+  interface LevelGroup {
+    readonly element: HTMLElement;
+    readonly handle: FocusGroupHandle;
+    readonly listener: (event: KeyboardEvent) => void;
+    readonly owner: LevelOwner;
+    shown: boolean;
+  }
+
+  const rowStore = new Map<string, Map<number, HTMLElement>>();
+  const rowMap = (key: string): Map<number, HTMLElement> => {
+    let map = rowStore.get(key);
+    if (map === undefined) {
+      map = new Map();
+      rowStore.set(key, map);
+    }
+    return map;
+  };
+  const rowElements = (key: string): HTMLElement[] =>
+    [...rowMap(key).entries()].sort(([a], [b]) => a - b).map(([, element]) => element);
+
+  const axis: "inline" | "block" = orientation === "horizontal" ? "inline" : "block";
+  const wrap = options.wrap ?? true;
+  const listDefinition = (shown: boolean): FocusGroupDefinition =>
+    shown ? { behavior: "menu", axis: "block", wrap: true, memory: true } : { behavior: "none" };
+  const barDefinition = (): FocusGroupDefinition => ({
+    behavior: "menubar",
+    axis,
+    wrap,
+    memory: true,
+  });
+
+  const groups = new Map<string, LevelGroup>();
+  const provider = options.provider === "polyfill" ? focusGroupPolyfill : focusGroup;
+
+  const detach = (key: string): void => {
+    const group = groups.get(key);
+    if (group === undefined) {
+      return;
+    }
+    group.element.removeEventListener("keydown", group.listener);
+    group.handle.destroy();
+    groups.delete(key);
+  };
+
+  /** An owner's ref: the listener first, then the provider (see `./focusgroup`). */
+  const attach = (owner: LevelOwner, element: HTMLElement): void => {
+    const existing = groups.get(owner.key);
+    if (existing?.element === element) {
+      return;
+    }
+    if (existing !== undefined) {
+      detach(owner.key);
+    }
+    const listener = (event: KeyboardEvent): void => {
+      // a key inside a submenu bubbles through its ancestors' owners: only the
+      // level that holds the pressed row reads it
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !owner.rows().includes(target)) {
+        return;
+      }
+      owner.keys(event);
+    };
+    element.addEventListener("keydown", listener);
+    groups.set(owner.key, {
+      element,
+      listener,
+      owner,
+      shown: owner.shown(),
+      handle: provider(element, { definition: owner.definition(), items: owner.rows }),
+    });
+  };
+
+  /** Re-apply a definition only where a level appeared or disappeared. */
+  const syncGroups = (): void => {
+    for (const group of groups.values()) {
+      const shown = group.owner.shown();
+      if (shown === group.shown) {
+        continue;
+      }
+      group.shown = shown;
+      group.handle.update(group.owner.definition());
+    }
+  };
+
+  onSettled(() => {
+    // an owner's ref may run before its rows' refs: collect once more after the render
+    for (const group of groups.values()) {
+      group.handle.update(group.owner.definition());
+    }
+  });
+
+  onCleanup(() => {
+    for (const key of [...groups.keys()]) {
+      detach(key);
+    }
+  });
+
+  const barOwner = (): LevelOwner => ({
+    key: "bar",
+    shown: () => true,
+    definition: barDefinition,
+    rows: () => rowElements("bar"),
+    keys: barKey,
+  });
+  const menuOwner = (b: number): LevelOwner => {
+    const key = `menu:${b}`;
+    const shown = (): boolean => openTop === b;
+    return {
+      key,
+      shown,
+      definition: () => listDefinition(shown()),
+      rows: () => rowElements(key),
+      keys: listKey,
+    };
+  };
+  const subOwner = (b: number, item: number): LevelOwner => {
+    const key = `sub:${b}/${item}`;
+    const shown = (): boolean => openTop === b && openSub === item;
+    return {
+      key,
+      shown,
+      definition: () => listDefinition(shown()),
+      rows: () => rowElements(key),
+      keys: listKey,
+    };
+  };
 
   const menuSize = (b: number): number => items[b]?.menu.length ?? 0;
   const hasMenu = (b: number): boolean => b >= 0 && b < bar && menuSize(b) > 0;
@@ -869,9 +1159,16 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
   };
 
   const wrapNext = (i: number, n: number): number => (n <= 0 ? 0 : i + 1 >= n ? 0 : i + 1);
-  const wrapPrev = (i: number, n: number): number => (n <= 0 ? 0 : i <= 0 ? n - 1 : i - 1);
-  const barNext = (i: number): number => wrapNext(i, bar);
-  const barPrev = (i: number): number => wrapPrev(i, bar);
+  /** The bar's own step: the definition's `wrap` is what the platform does, so it is what the state does. */
+  const stepBar = (i: number, delta: 1 | -1): number => {
+    const next = i + delta;
+    if (next >= 0 && next < bar) {
+      return next;
+    }
+    return wrap ? (next < 0 ? bar - 1 : 0) : i;
+  };
+  const barNext = (i: number): number => stepBar(i, 1);
+  const barPrev = (i: number): number => stepBar(i, -1);
   const follow = (wasOpen: number, next: number): number =>
     wasOpen >= 0 && hasMenu(next) ? next : -1;
   const opensMenu = (): boolean => level === 1 && hasMenu(barStop);
@@ -952,10 +1249,30 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
     bump();
   };
 
+  /**
+   * A cross-axis move from a menu back onto the bar: the new item's menu follows
+   * the focus, as `menu-menubar.qnt`'s `arrow_right` / `arrow_left` have it.
+   */
+  const moveToBar = (next: number): void => {
+    barStop = next;
+    focusIdx = next;
+    openTop = follow(openTop, next);
+    openSub = -1;
+    level = 1;
+    bump();
+  };
+
+  /**
+   * The keys the library owns, in the model's spelling: activation, Escape, Tab,
+   * the cross-axis pair out of a menu, and the bar's open keys. The bar's own
+   * axis and every menu's are the platform's, so those keys are not here and are
+   * never `preventDefault`ed.
+   */
   const keyDown = (key: string): void => {
     switch (key) {
       case "ArrowRight":
-        if (level === 0) {
+        if (level < 2) {
+          // on the bar this is the platform's own step
           return;
         }
         if (entersSub()) {
@@ -965,17 +1282,9 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
           bump();
           return;
         }
-        barStop = barNext(barStop);
-        focusIdx = barStop;
-        openTop = follow(openTop, barStop);
-        openSub = -1;
-        level = 1;
-        bump();
+        moveToBar(barNext(barStop));
         return;
       case "ArrowLeft":
-        if (level === 0) {
-          return;
-        }
         if (level === 3) {
           level = 2;
           focusIdx = openSub;
@@ -983,21 +1292,16 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
           bump();
           return;
         }
-        barStop = barPrev(barStop);
-        focusIdx = barStop;
-        openTop = follow(openTop, barStop);
-        openSub = -1;
-        level = 1;
-        bump();
+        if (level === 2) {
+          moveToBar(barPrev(barStop));
+        }
         return;
       case "ArrowDown":
+        // on the bar this is the perpendicular key: open the menu on its first row
         if (opensMenu()) {
           level = 2;
           focusIdx = 0;
           openTop = barStop;
-          bump();
-        } else if (level >= 2) {
-          focusIdx = wrapNext(focusIdx, containerSize());
           bump();
         }
         return;
@@ -1007,32 +1311,11 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
           focusIdx = menuSize(barStop) - 1;
           openTop = barStop;
           bump();
-        } else if (level >= 2) {
-          focusIdx = wrapPrev(focusIdx, containerSize());
-          bump();
         }
         return;
       case "Home":
-        if (level === 0) {
-          return;
-        }
-        focusIdx = 0;
-        if (level === 1) {
-          barStop = 0;
-          openTop = follow(openTop, 0);
-        }
-        bump();
-        return;
       case "End":
-        if (level === 0) {
-          return;
-        }
-        focusIdx = containerSize() - 1;
-        if (level === 1) {
-          barStop = bar - 1;
-          openTop = follow(openTop, bar - 1);
-        }
-        bump();
+        // every level's Home / End is the platform's
         return;
       case "Enter":
       case " ":
@@ -1100,6 +1383,91 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
     }
   };
 
+  /** The perpendicular open keys of the bar's own axis: the pair the platform leaves alone. */
+  const barKeys =
+    axis === "inline"
+      ? {
+          forward: "ArrowRight",
+          backward: "ArrowLeft",
+          openFirst: "ArrowDown",
+          openLast: "ArrowUp",
+        }
+      : {
+          forward: "ArrowDown",
+          backward: "ArrowUp",
+          openFirst: "ArrowRight",
+          openLast: "ArrowLeft",
+        };
+
+  /**
+   * The bar's half: the platform moves the focus along its axis (and does not
+   * know which menu follows it, so the model's `follow` is read here from the
+   * landing the platform will make), the perpendicular pair opens the menu on its
+   * first / last row, and the rest is the library's.
+   */
+  const barKey = (event: KeyboardEvent): void => {
+    const key = event.key;
+    if (isPlatformKey(axis, key)) {
+      const landing =
+        key === "Home"
+          ? 0
+          : key === "End"
+            ? bar - 1
+            : key === barKeys.forward
+              ? barNext(barStop)
+              : barPrev(barStop);
+      const next = follow(openTop, landing);
+      if (next !== openTop) {
+        openTop = next;
+        openSub = -1;
+        bump();
+      }
+      return;
+    }
+    if (key === barKeys.openFirst || key === barKeys.openLast) {
+      event.preventDefault();
+      keyDown(key === barKeys.openFirst ? "ArrowDown" : "ArrowUp");
+      return;
+    }
+    libraryKey(event);
+  };
+
+  /**
+   * A menu's half: its own axis is the platform's, so only the cross-axis pair
+   * (which `menu-menubar.qnt` gives a meaning: a submenu, or the next / previous
+   * bar item) and the library's keys are read here.
+   */
+  const listKey = (event: KeyboardEvent): void => {
+    const key = event.key;
+    if (isPlatformKey("block", key)) {
+      return;
+    }
+    if (key === "ArrowRight" || key === "ArrowLeft") {
+      event.preventDefault();
+      keyDown(key);
+      return;
+    }
+    libraryKey(event);
+  };
+
+  /** Activation, Escape, Tab and typeahead: no level's platform axis covers them. */
+  const libraryKey = (event: KeyboardEvent): void => {
+    const key = event.key;
+    if (isActivationKey(key)) {
+      event.preventDefault();
+      keyDown("Enter");
+      return;
+    }
+    if (key === "Escape" || key === "Tab") {
+      event.preventDefault();
+      keyDown(key);
+      return;
+    }
+    if (key.length === 1) {
+      type(key);
+    }
+  };
+
   return {
     focusLevel: track(() => level),
     focusIndex: track(() => focusIdx),
@@ -1126,11 +1494,14 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
     menubarProps: {
       role: "menubar",
       "aria-orientation": orientation,
-      onKeyDown: (event) => {
-        if (event.key !== "Tab" && event.key !== "Shift+Tab" && event.key !== " ") {
-          event.preventDefault();
-        }
-        keyDown(event.key);
+      get focusgroup() {
+        // the forced polyfill path keeps the native engine out of the group
+        return options.provider === "polyfill" ? "" : focusGroupAttribute(barDefinition());
+      },
+      get ref() {
+        return (element: HTMLElement) => {
+          attach(barOwner(), element);
+        };
       },
     },
     barItemProps: (i) => ({
@@ -1146,9 +1517,8 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
         }
         return openTop === i ? "true" : "false";
       },
-      get tabindex() {
-        version();
-        return barStop === i ? 0 : -1;
+      ref: (element: HTMLElement) => {
+        rowMap("bar").set(i, element);
       },
       onClick: () => {
         if (hasMenu(i)) {
@@ -1176,6 +1546,17 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
         version();
         return openTop !== i;
       },
+      get focusgroup() {
+        version();
+        return options.provider === "polyfill"
+          ? ""
+          : focusGroupAttribute(listDefinition(openTop === i));
+      },
+      get ref() {
+        return (element: HTMLElement) => {
+          attach(menuOwner(i), element);
+        };
+      },
     }),
     menuItemProps: (b, item) => ({
       id: items[b]?.menu[item]?.id ?? `${base}-menu-${b}-${item}`,
@@ -1190,9 +1571,8 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
         }
         return openTop === b && openSub === item ? "true" : "false";
       },
-      get tabindex() {
-        version();
-        return level === 2 && openTop === b && focusIdx === item ? 0 : -1;
+      ref: (element: HTMLElement) => {
+        rowMap(`menu:${b}`).set(item, element);
       },
       onClick: () => {
         if (hasSub(b, item)) {
@@ -1238,13 +1618,23 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
         version();
         return !(openTop === b && openSub === item);
       },
+      get focusgroup() {
+        version();
+        return options.provider === "polyfill"
+          ? ""
+          : focusGroupAttribute(listDefinition(openTop === b && openSub === item));
+      },
+      get ref() {
+        return (element: HTMLElement) => {
+          attach(subOwner(b, item), element);
+        };
+      },
     }),
     submenuItemProps: (b, item, sub) => ({
       id: items[b]?.menu[item]?.submenu[sub]?.id ?? `${base}-sub-${b}-${item}-${sub}`,
       role: "menuitem",
-      get tabindex() {
-        version();
-        return level === 3 && openTop === b && openSub === item && focusIdx === sub ? 0 : -1;
+      ref: (element: HTMLElement) => {
+        rowMap(`sub:${b}/${item}`).set(sub, element);
       },
       onClick: () => {
         level = 1;

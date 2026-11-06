@@ -10,6 +10,8 @@ import type { JSX } from "@solidjs/web";
 import { createSignal, flush } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { type Menu, createMenu, createMenubar } from "../src";
+import { supportsFocusGroup } from "../src/focusgroup";
+import { userEvent } from "vite-plus/test/browser";
 import { render } from "@solidjs/web";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import {
@@ -25,6 +27,7 @@ import {
   menuMenubarSteps,
 } from "@cssints/apg-specs/apg/menu-menubar.bridge";
 import { mountCheckableMenu, mountMenubar } from "./menu.fixture";
+import { mountMenuButton } from "./menu-button.fixture";
 import ariakit from "@cssints/apg-specs/scenarios/apg/menubar.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/menubar.base-ui.json";
 import checkableDefinition from "@cssints/apg-specs/apg/menu-checkable.model.json";
@@ -54,8 +57,10 @@ const menubarDom = (config: ScenarioConfig) =>
 // must still fail (so closing the gap forces removing it) and says why.
 const MENUBAR_TREE =
   "the ported scenario describes the upstream fixture tree (menu sizes / which item owns the submenu / a menu-less bar); the primitive renders the menu-menubar.qnt fixed tree";
-const MENUBAR_VERTICAL =
-  "menu-menubar.qnt models a horizontal bar; vertical navigation (Up/Down between bar items, the cross-axis key opening a menu) is not modelled";
+const MENUBAR_ROW_CONTROL =
+  "the upstream fixture's row is a native control (a text input, a link or a button) that keeps the arrows and whose menu stays open; the primitive's rows are divs and activating a leaf closes every menu";
+const MENUBAR_VERTICAL_CROSS_AXIS =
+  "menu-menubar.qnt models a horizontal bar: its Left / Right out of an open menu move along the bar, while a vertical bar's inline pair is the cross axis (upstream closes the menu and returns to the bar item)";
 const MENUBAR_HOVER =
   "store hover-intent opening (APG optional; an ariakit/base-ui extension) is not modelled; menus open on keyboard and click";
 const MENUBAR_POPUP_FOCUS =
@@ -63,12 +68,10 @@ const MENUBAR_POPUP_FOCUS =
 const MENUBAR_CONTAINER_FOCUS =
   "the scenario focuses the menu container; the primitive keeps DOM focus on menu items";
 const DIVERGENCES: Readonly<Record<string, string>> = {
-  "menubar.ariakit.aria-expanded-reflects-open-menu": MENUBAR_VERTICAL,
-  "menubar.ariakit.arrow-down-keeps-focus-on-control-in-vertical-menubar": MENUBAR_VERTICAL,
-  "menubar.ariakit.arrow-keys-keep-focus-on-input-in-vertical-menubar": MENUBAR_VERTICAL,
-  "menubar.ariakit.vertical-arrow-down-moves-between-items-without-opening": MENUBAR_VERTICAL,
-  "menubar.ariakit.vertical-arrow-right-opens-menu": MENUBAR_VERTICAL,
-  "menubar.base-ui.vertical-main-axis-arrow-moves-between-triggers": MENUBAR_VERTICAL,
+  "menubar.ariakit.arrow-down-keeps-focus-on-control-in-vertical-menubar": MENUBAR_ROW_CONTROL,
+  "menubar.ariakit.arrow-down-keeps-focus-on-input-in-vertical-menubar": MENUBAR_ROW_CONTROL,
+  "menubar.ariakit.arrow-keys-keep-focus-on-input-in-vertical-menubar": MENUBAR_ROW_CONTROL,
+  "menubar.ariakit.vertical-arrow-right-opens-menu": MENUBAR_VERTICAL_CROSS_AXIS,
   "menubar.ariakit.hover-switches-open-menu": MENUBAR_HOVER,
   "menubar.base-ui.hover-opens-nested-submenu": MENUBAR_HOVER,
   "menubar.base-ui.hover-switches-open-menu-when-submenu-open": MENUBAR_HOVER,
@@ -376,6 +379,117 @@ describe("createMenubar x ported scenarios (real DOM)", () => {
       }
     });
   }
+});
+
+/**
+ * The native path, with trusted keys. The differential walks cannot run here —
+ * the native engine ignores an untrusted `keydown` and writes no `tabindex`, and
+ * the walks need both — so this is the focused test that covers the provider a
+ * real Chromium 150+ page gets: `userEvent.keyboard` is a trusted key event, the
+ * platform moves the focus (invisible in the markup), and the library's own keys
+ * still win.
+ */
+describe("createMenu / createMenubar on the native focusgroup", () => {
+  const rowsOf = (root: HTMLElement): HTMLElement[] => [
+    ...root.querySelectorAll<HTMLElement>('[data-part="menuitem"]'),
+  ];
+  const triggerOf = (root: HTMLElement): HTMLElement =>
+    root.querySelector<HTMLElement>('[data-part="trigger"]') as HTMLElement;
+  const menuOf = (root: HTMLElement): HTMLElement =>
+    root.querySelector<HTMLElement>('[data-part="menu"]') as HTMLElement;
+
+  it.skipIf(!supportsFocusGroup())(
+    "moves along the menu's block axis without writing a tabindex, and Escape closes",
+    async () => {
+      const mounted = mountMenuButton(
+        {
+          items: ["alpha", "bravo", "charlie", "delta"],
+          disabled: [],
+          controlled: false,
+          accepts: true,
+          value: false,
+        },
+        "auto",
+      );
+      const trigger = triggerOf(mounted.root);
+      const rows = rowsOf(mounted.root);
+      trigger.focus();
+      // the trigger is a single control outside the list: its own Down opens
+      await userEvent.keyboard("{ArrowDown}");
+      expect(menuOf(mounted.root).hidden).toBe(false);
+      expect(document.activeElement).toBe(rows[0]);
+      // the native engine writes no tabindex at all: the tab stop is the focus controller's
+      // (the adapter test covers it; here the library owns Tab and closes the menu on it)
+      expect(rows.map((row) => row.getAttribute("tabindex"))).toEqual([null, null, null, null]);
+      await userEvent.keyboard("{ArrowDown}");
+      expect(document.activeElement).toBe(rows[1]);
+      expect(mounted.focus?.()).toBe("menuitem:1");
+      // Home / End wrap to the ends, both of them the platform's
+      await userEvent.keyboard("{End}");
+      expect(document.activeElement).toBe(rows[3]);
+      await userEvent.keyboard("{Home}");
+      expect(document.activeElement).toBe(rows[0]);
+      // Escape is the library's: it closes and returns the focus to the trigger
+      await userEvent.keyboard("{Escape}");
+      expect(menuOf(mounted.root).hidden).toBe(true);
+      expect(document.activeElement).toBe(trigger);
+      expect(rows.map((row) => row.getAttribute("tabindex"))).toEqual([null, null, null, null]);
+      mounted.dispose();
+    },
+  );
+
+  it.skipIf(!supportsFocusGroup())(
+    "moves along the bar with the platform and into a submenu with the library",
+    async () => {
+      const mounted = mountMenubar(
+        {
+          items: ["File", "Edit", "About"],
+          orientation: "horizontal",
+          controlled: false,
+          accepts: true,
+          value: 0,
+        },
+        "auto",
+      );
+      const bar = [
+        ...mounted.root.querySelectorAll<HTMLElement>('[data-part^="menuitem:"]'),
+      ].filter((element) => !element.dataset["part"]?.includes("/"));
+      const first = bar[0] as HTMLElement;
+      const second = bar[1] as HTMLElement;
+      const menuOfBar = (bar: number): HTMLElement =>
+        mounted.root.querySelector<HTMLElement>(`[data-part="menu:${bar}"]`) as HTMLElement;
+      const rowOf = (label: string): HTMLElement =>
+        mounted.root.querySelector<HTMLElement>(`[data-part="${label}"]`) as HTMLElement;
+      first.focus();
+      // the bar's own axis is the platform's: no menu opens, the focus moves
+      await userEvent.keyboard("{ArrowRight}");
+      expect(document.activeElement).toBe(second);
+      expect(menuOfBar(0).hidden).toBe(true);
+      expect(menuOfBar(1).hidden).toBe(true);
+      // the perpendicular key is the library's: it opens the menu on its first row
+      await userEvent.keyboard("{ArrowDown}");
+      expect(menuOfBar(1).hidden).toBe(false);
+      expect(document.activeElement).toBe(rowOf("menuitem:1/0"));
+      // and the platform moves inside the menu
+      await userEvent.keyboard("{End}");
+      expect(document.activeElement).toBe(rowOf("menuitem:1/1"));
+      await userEvent.keyboard("{ArrowLeft}");
+      expect(document.activeElement).toBe(first);
+      expect(menuOfBar(1).hidden).toBe(true);
+      // into the submenu with the cross-axis key, and back out of it
+      await userEvent.keyboard("{ArrowDown}");
+      await userEvent.keyboard("{ArrowDown}");
+      const parent = rowOf("menuitem:0/1");
+      expect(document.activeElement).toBe(parent);
+      await userEvent.keyboard("{ArrowRight}");
+      expect(document.activeElement).toBe(rowOf("menuitem:0/1/0"));
+      expect(rowOf("submenu:1").hidden).toBe(false);
+      await userEvent.keyboard("{ArrowLeft}");
+      expect(document.activeElement).toBe(parent);
+      expect(rowOf("submenu:1").hidden).toBe(true);
+      mounted.dispose();
+    },
+  );
 });
 
 // One check per honoured pref: the typeahead buffer timeout is the injected delay.

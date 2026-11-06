@@ -2,6 +2,7 @@ import { type Menu, createMenu } from "../src/menu";
 import type { Json } from "@cssints/apg-specs/scenario";
 import type { MenuButtonConfig } from "@cssints/apg-specs/apg/menu-button.bridge";
 import type { Mounted } from "./dom-driver";
+import { pressKey } from "./menu.fixture";
 import { createEffect, createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 
@@ -26,7 +27,11 @@ const asRecord = (value: Json | undefined): Record<string, Json> => {
  * signal. The events map records `onOpenChange` / `onItemClick` for the ported
  * scenarios.
  */
-export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
+export const mountMenuButton = (
+  config: MenuButtonConfig,
+  /** See `mountCheckableMenu`: the forced polyfill for the walk, `"auto"` for the native path. */
+  provider: "auto" | "polyfill" = "polyfill",
+): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const events = new Map<string, Json[]>();
@@ -46,6 +51,7 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
       variant: "plain",
       triggerMode: "outside",
       disabled: config.disabled,
+      provider,
       get open() {
         return config.controlled ? host() : undefined;
       },
@@ -73,16 +79,9 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
         if (target !== undefined) {
           const element = target;
           if (document.activeElement !== element) {
-            // defer: user-event re-checks the focused element to fire Enter's
-            // default click after the keydown; moving focus in a macrotask
-            // keeps that click off the (clickable) trigger
-            setTimeout(() => {
-              if (document.activeElement !== element) {
-                suppressing = true;
-                element.focus();
-                suppressing = false;
-              }
-            }, 0);
+            suppressing = true;
+            element.focus();
+            suppressing = false;
           }
         } else {
           const active = document.activeElement;
@@ -98,11 +97,21 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
           Menu
         </button>
         <div data-part="menu" {...menu.menuProps}>
-          {menu.items.map((item, index) => (
-            <div data-part="menuitem" {...menu.itemProps(index)}>
-              {item.label}
-            </div>
-          ))}
+          {/* The native engine writes no tabindex and only moves to an item that is
+              tabbable already, so its rows are `<button>`s; the polyfill decorates the
+              rows itself and restores their authored `tabindex="-1"`, which is what the
+              model's `-1` describes. */}
+          {menu.items.map((item, index) =>
+            provider === "auto" ? (
+              <button data-part="menuitem" {...menu.itemProps(index)}>
+                {item.label}
+              </button>
+            ) : (
+              <div data-part="menuitem" tabindex={-1} {...menu.itemProps(index)}>
+                {item.label}
+              </div>
+            ),
+          )}
         </div>
       </>
     );
@@ -125,7 +134,14 @@ export const mountMenuButton = (config: MenuButtonConfig): Mounted => {
           if (typeof recordValue["key"] !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(recordValue["key"]);
+          const level = api?.focusLevel();
+          const target =
+            level === 2
+              ? items()[api?.focusIndex() ?? 0]
+              : level === 1
+                ? (root.querySelector<HTMLElement>('[data-part="trigger"]') ?? undefined)
+                : undefined;
+          pressKey(target, recordValue["key"]);
           break;
         }
         case "typeahead":

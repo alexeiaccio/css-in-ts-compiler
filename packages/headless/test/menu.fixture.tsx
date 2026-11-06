@@ -17,11 +17,39 @@ const part = (root: HTMLElement, label: string): HTMLElement | undefined =>
   root.querySelector<HTMLElement>(`[data-part="${label}"]`) ?? undefined;
 
 /**
+ * The walk's `key` steps are programmatic and its probe reads the rendered
+ * `tabindex`, so they become a real keydown where the user's finger is: the
+ * platform moves focus (on the forced polyfill, which handles an untrusted
+ * event; the native one ignores it) and the library reads the keys it owns.
+ * The walk alphabet spells space as `Space`; `KeyboardEvent.key` is `" "`.
+ */
+export const pressKey = (target: HTMLElement | undefined, key: string): void => {
+  if (target === undefined) {
+    return;
+  }
+  target.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: key === "Space" ? " " : key,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+};
+
+/**
  * Renders the checkable menu (`menu-checkable.qnt`): the `mixed` variant gives
  * item 1 a `menuitemcheckbox`, items 2-4 one `menuitemradio` group and item 5 a
  * plain `menuitem`. DOM focus is synced to the primitive's focused part.
  */
-export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
+export const mountCheckableMenu = (
+  config: MenuCheckableConfig,
+  /**
+   * The walk's provider: the forced polyfill by default, because its `key` steps
+   * are untrusted events and its probe reads the rendered `tabindex`, and the
+   * native engine honours neither. `"auto"` is the native path a real page gets.
+   */
+  provider: "auto" | "polyfill" = "polyfill",
+): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const events = new Map<string, Json[]>();
@@ -41,6 +69,7 @@ export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
       variant: config.variant,
       triggerMode: "held",
       disabled: config.disabled,
+      provider,
       get value() {
         return config.controlled ? host() : undefined;
       },
@@ -90,11 +119,21 @@ export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
           Menu
         </button>
         <div data-part="menu" {...menu.menuProps}>
-          {menu.items.map((item, index) => (
-            <div data-part="menuitem" {...menu.itemProps(index)}>
-              {item.label}
-            </div>
-          ))}
+          {/* The native engine writes no tabindex and only moves to an item that is
+              tabbable already, so its rows are `<button>`s; the polyfill decorates the
+              rows itself and restores their authored `tabindex="-1"`, which is what the
+              model's `-1` describes. */}
+          {menu.items.map((item, index) =>
+            provider === "auto" ? (
+              <button data-part="menuitem" {...menu.itemProps(index)}>
+                {item.label}
+              </button>
+            ) : (
+              <div data-part="menuitem" tabindex={-1} {...menu.itemProps(index)}>
+                {item.label}
+              </div>
+            ),
+          )}
         </div>
       </>
     );
@@ -113,7 +152,12 @@ export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
           if (typeof recordValue["key"] !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(recordValue["key"]);
+          // the checkable menu's `focusLevel` 1 is the trigger (it holds focus while closed)
+          const level = api?.focusLevel();
+          pressKey(
+            level === 2 ? items()[api?.focusIndex() ?? 0] : part(root, "trigger"),
+            recordValue["key"],
+          );
           break;
         }
         case "setValue":
@@ -149,7 +193,11 @@ export const mountCheckableMenu = (config: MenuCheckableConfig): Mounted => {
  * has a menu of two, the third none. Targets are full `data-part` labels
  * (`menuitem:0`, `menuitem:0/1`, `menuitem:0/1/0`, `submenu:1`).
  */
-export const mountMenubar = (config: MenuMenubarConfig): Mounted => {
+export const mountMenubar = (
+  config: MenuMenubarConfig,
+  /** See `mountCheckableMenu`: the forced polyfill for the walk, `"auto"` for the native path. */
+  provider: "auto" | "polyfill" = "polyfill",
+): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const events = new Map<string, Json[]>();
@@ -179,6 +227,7 @@ export const mountMenubar = (config: MenuMenubarConfig): Mounted => {
     const menubar = createMenubar({
       items: tree,
       orientation: config.orientation,
+      provider,
       suppressFocusWrite: () => suppressing,
     });
     api = menubar;
@@ -209,31 +258,44 @@ export const mountMenubar = (config: MenuMenubarConfig): Mounted => {
         }
       },
     );
+    // The native engine writes no tabindex and only moves to an item that is tabbable
+    // already, so its rows are `<button>`s; the polyfill decorates the rows itself and
+    // restores their authored `tabindex="-1"`, which is what the model's `-1` describes.
+    const Row = (props: {
+      readonly part: string;
+      readonly item: Record<string, unknown>;
+      readonly label: string;
+    }) =>
+      provider === "auto" ? (
+        <button data-part={props.part} {...props.item}>
+          {props.label}
+        </button>
+      ) : (
+        <div data-part={props.part} tabindex={-1} {...props.item}>
+          {props.label}
+        </div>
+      );
     return (
       <div data-part="menubar" {...menubar.menubarProps}>
         {menubar.items.map((item, bar) => (
           <>
-            <div data-part={`menuitem:${bar}`} {...menubar.barItemProps(bar)}>
-              {item.label}
-            </div>
+            <Row part={`menuitem:${bar}`} item={menubar.barItemProps(bar)} label={item.label} />
             <div data-part={`menu:${bar}`} {...menubar.menuProps(bar)}>
               {item.menu.map((menuItem, index) => (
                 <>
-                  <div
-                    data-part={`menuitem:${bar}/${index}`}
-                    {...menubar.menuItemProps(bar, index)}
-                  >
-                    {menuItem.label}
-                  </div>
+                  <Row
+                    part={`menuitem:${bar}/${index}`}
+                    item={menubar.menuItemProps(bar, index)}
+                    label={menuItem.label}
+                  />
                   {menuItem.submenu.length > 0 ? (
                     <div data-part="submenu:1" {...menubar.submenuProps(bar, index)}>
                       {menuItem.submenu.map((subItem, sub) => (
-                        <div
-                          data-part={`menuitem:${bar}/${index}/${sub}`}
-                          {...menubar.submenuItemProps(bar, index, sub)}
-                        >
-                          {subItem.label}
-                        </div>
+                        <Row
+                          part={`menuitem:${bar}/${index}/${sub}`}
+                          item={menubar.submenuItemProps(bar, index, sub)}
+                          label={subItem.label}
+                        />
                       ))}
                     </div>
                   ) : undefined}
@@ -263,7 +325,16 @@ export const mountMenubar = (config: MenuMenubarConfig): Mounted => {
           if (typeof recordValue["key"] !== "string") {
             throw new Error(`key needs a string, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(recordValue["key"]);
+          const level = api?.focusLevel();
+          const label =
+            level === 1
+              ? `menuitem:${api?.barStop()}`
+              : level === 2
+                ? `menuitem:${api?.openTop()}/${api?.focusIndex()}`
+                : level === 3
+                  ? `menuitem:${api?.openTop()}/${api?.openSub()}/${api?.focusIndex()}`
+                  : undefined;
+          pressKey(label === undefined ? undefined : part(root, label), recordValue["key"]);
           break;
         }
         case "typeahead":
