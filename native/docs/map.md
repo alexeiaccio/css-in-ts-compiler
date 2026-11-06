@@ -20,7 +20,7 @@ it needs no runtime on the device.
 | Target            | Styles          | Layout         | Raster                         | JS at run time | Status                        |
 | ----------------- | --------------- | -------------- | ------------------------------ | -------------- | ----------------------------- |
 | Desktop (macOS)   | `cssints/clay`  | Clay           | Clay's SDL3 renderer (GPU)     | optional (Bun) | a page in a window            |
-| ESP32-S3          | `cssints/clay`  | Clay           | esp32's `render.c`, CPU bands  | none           | one element proven on board   |
+| ESP32-S3          | `cssints/clay`  | Clay           | esp32's `render.c`, CPU bands  | none           | clay-test's shell, 22 ms a frame |
 | Browser (WASM)    | `cssints/clay`  | Clay (C→WASM)  | canvas 2D                      | none (the generated C) | a static frame and its `use_g` twin on a canvas |
 | ESP32-P4          | `cssints/clay`  | Clay           | CPU + PPA (2D DMA)             | none           | later, needs a board          |
 | Terminal          | `cssints/clay`  | Clay (cells)   | Clay's `termbox2` renderer     | optional (Bun) | after desktop; replaces `cssints/tui` |
@@ -30,7 +30,16 @@ Facts behind it:
 
 - Clay ships renderers: `SDL3`, `SDL2`, `GLES3`, `sokol`, `raylib`, `cairo`, `web`, `win32_gdi`, `terminal`,
   `termbox2` (checked 2026-10-19). SDL3 3.4.14 is installed here.
-- The ESP32-S3 has no GPU: raster is 17.8 ms of a 22.8 ms frame, layout 3.3 ms (board log, 2026-10-19).
+- The ESP32-S3 has no GPU, and a full 360×360 frame of esp32's `clay-test` shell — 55 render commands, a 256-element
+  arena in PSRAM — measures **layout 3.1–3.3 ms, raster 16.7–19.2 ms, panel push 1.3–1.5 ms, 21.4–24.2 ms a frame**
+  (board log, 2026-11-06, esp32 `f0c55f4`, the app's own `esp_timer` around `ui_frame` and around `draw_bitmap`).
+  The CPU raster is the floor; the 80 MHz QSPI push overlaps the next band's raster, so the panel is not the limit.
+  On the board today: `firmware/clay-test` at `f0c55f4`, `clay_test.bin` 1,247,120 B (19% of the app partition free);
+  the vendor image restores from `vendor/ESP32-S3-Touch-LCD-1.85B/Firmware/…-Factory.bin`.
+- It holds **33.3 fps** drawing every band every pass over 30 s at 74% busy: the loop yields one 10 ms FreeRTOS tick
+  between frames, so 22 ms of work is ~45 fps of headroom. Idle it draws nothing (`drawn 0.0/s`, `busy 1%`): the app
+  diffs its commands and skips layout too. What a *partial* repaint costs was not measured — the only way to change
+  the picture on this firmware is a finger or the clock screen, and the board's HTTP API has no input endpoint.
 - esp32's `ui.c` and `render.c` are plain C with no ESP-IDF; `host/test.c` already runs them on a Mac.
 
 ## Why desktop first
@@ -38,12 +47,14 @@ Facts behind it:
 - It is where the framework has to grow: windows, input, text shaping, a GPU raster, live reload, Solid. The board
   only needs what the desktop already proved, compiled to C.
 - The loop is seconds, not a flash. Every later target is checked against desktop frames.
-- The board is proven at the one point that was risky (generated C equals hand-written C, on the device). It does
-  not block anything, so it waits.
+- The board is proven at the points that were risky: generated C equals hand-written C on the device, and a whole
+  Clay app shell draws there at 33 fps. It does not block anything, so it waits.
 
 Other targets **later, not in parallel**: each one is a renderer choice under the same layout, so doing them after
-the desktop costs a renderer, not a redesign. One exception runs alongside at no cost: `test.sh` keeps checking the
-generated C against esp32's `clay.h`, so the board path cannot rot.
+the desktop costs a renderer, not a redesign. One exception runs alongside at no cost: `check.sh` keeps checking the
+generated C against Clay's header, so the board path cannot rot — by default the vendored `native/vendor/clay/clay.h`,
+and `CLAY_H=$HOME/github/esp32/firmware/clay-test/main` points the same check at the board's own copy of `clay.h`,
+which on 2026-11-06 is byte for byte the vendored one (`062448b8…`).
 
 ## The terminal
 
@@ -214,7 +225,8 @@ Each step ends in a check that fails when it breaks.
     Check: two
    stored frames of its own (`expected-thorvg*.png`). Headless on an M2, the same 360x360 frame, one thread: ThorVG
    0.30 ms, SDL's software renderer 1.2 ms (2026-10-19; it does not transfer to the board). GL/WebGPU engines need a
-   ThorVG built with them; then the ESP32-S3: ThorVG SW against `render.c`'s 17.8 ms, measured on the board.
+   ThorVG built with them; then the ESP32-S3: ThorVG SW against `render.c`'s 16.7–19.2 ms of a 21.4–24.2 ms frame
+   (board, 2026-11-06).
    **Probed 2026-10-21: ThorVG's WebGPU engine is reachable on this Mac, and it is not the faster raster here.**
    `brew` builds thorvg with `-Dengines=cpu` (its formula; `nm` on the dylib has `GlCanvas`/`WgCanvas` as stubs and
    no GL/EGL/Dawn/Metal link, and a probe prints `swcanvas=<ptr> glcanvas=0x0 wgcanvas=0x0`), so the installed one
