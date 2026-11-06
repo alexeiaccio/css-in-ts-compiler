@@ -2644,21 +2644,72 @@ Escape on a trigger hides the tooltip (`escape()`) without moving the focus or t
 reopens it until that trigger is left and entered again — WCAG's dismissable part. No other key is bound:
 focus and hover are the other two ways in, and the pointer handlers above are the hoverable part.
 
+### Headless: `focusGroup` (`@cssints/headless`)
+
+The platform layer of the `focusgroup` contract — one tab stop, arrows along the axis, Home / End, wrap and
+the last-focused memory — the behaviour `packages/apg-specs/shared/focusgroup.qnt` models once for every
+widget. Two providers behind one definition:
+
+```ts skip
+focusGroup(owner: HTMLElement, options: {
+  definition: {
+    behavior: "toolbar" | "tablist" | "radiogroup" | "listbox" | "menu" | "menubar" | "none";
+    wrap?: boolean; // false emits `nowrap`
+    axis?: "inline" | "block"; // "block" for a vertical widget
+    memory?: boolean; // false emits `nomemory`
+  };
+  items: () => ReadonlyArray<HTMLElement>; // read now and on every update()
+}): {
+  attribute: string; // the definition as the focusgroup attribute
+  update(definition?: definition): void;
+  destroy(): void; // idempotent
+};
+
+focusGroupPolyfill(owner, options); // the same, skipping the feature detect
+focusGroupAttribute(definition); // "toolbar block nowrap"
+supportsFocusGroup(); // 'focusGroup' in HTMLElement.prototype
+```
+
+- **Native first.** Where `'focusGroup' in HTMLElement.prototype` (Chromium 150+), the adapter sets the
+  owner's `focusgroup` attribute and stops there: the browser owns the group, and it writes **no** `tabindex`
+  — the tab stop lives in the focus controller, not in the markup.
+- **The polyfill otherwise.** The low-level `FocusGroup` class of `@microsoft/focusgroup-polyfill` (a
+  dependency, MIT, 5.5 KB gz) over an array-backed item collection — never `polyfill()` and never a
+  `MutationObserver`, so the host's own reconciliation drives `update()`. This provider renders the tab stop as
+  `tabindex="0"` / `"-1"`, saving and restoring the author's values.
+- **Call `update()`** when the item set, an item's visibility or the definition changes. The adapter observes
+  nothing.
+- **Teardown, in this order:** `update({ definition: {} })`, which restores the authors' `tabindex`, then
+  `disconnect()`. `disconnect()` alone leaves `tabindex` rewritten (measured in Chromium 153 and 156).
+- **A consumed key** is a `preventDefault()` on `keydown`: both providers honour it. Register the listener
+  that decides _before_ the adapter's own (the polyfill's is on the owner, so a Solid `onKeyDown`, delegated to
+  the document, is too late — attach it in the owner's `ref`, as `createToolbar` does).
+- **`focusGroupPolyfill`** is for a test that must prove the fallback in an engine that has the native feature,
+  and for a host that knows it needs the polyfill. It removes the owner's `focusgroup` attribute so the native
+  engine stays out of the group, and hides the `focusGroup` IDL property for the one constructor call the
+  polyfill's own feature detect guards.
+
 ### Headless: `createToolbar` (`@cssints/headless`)
 
-The APG Toolbar: a row or column of controls behind one tab stop, with the roving tabindex of
-`shared/focusgroup.qnt` and the delta of `packages/apg-specs/specs/apg/toolbar.qnt` (`aria-orientation`, the
-author's wrap choice, disabled-but-focusable items, embedded controls that consume keys, and activation).
+The APG Toolbar: a row or column of controls behind one tab stop, with the platform's `focusGroup` and the
+delta of `packages/apg-specs/specs/apg/toolbar.qnt` (`aria-orientation`, the author's wrap choice,
+disabled-but-focusable items, embedded controls that consume keys, Tab out of a text field, and activation).
 `packages/headless/test/toolbar.browser.test.tsx` replays the ported ariakit, base-ui and React Aria
 scenarios and walks the model horizontally (no wrap) and vertically (wrapping); the fixture composes
-`createMenu` for the spec's menu-button, which the primitive never imports.
+`createMenu` for the spec's menu-button, which the primitive never imports. The walk runs on the polyfill
+provider: native focusgroup ignores an untrusted `keydown` and writes no `tabindex`, and both are what the
+walk's programmatic steps and `tabindex` probe need (the adapter test covers the native path).
 
-Platform: the roving tabindex is the `focusgroup="toolbar"` contract, so ship the
-`@microsoft/focusgroup-polyfill` first and switch to the native attribute when Chrome/Edge is the floor.
+**Migration, if you rendered the item props before:** drop `tabindex` from your item markup and let the
+provider write it. `ToolbarItemProps` no longer carries `tabindex`, and the owner must now take
+`toolbarProps` (which carries `focusgroup`, `role`, `aria-orientation` and the `ref` that builds the
+provider). Nothing else about the item props changes; `toolbarProps` gained `focusgroup` and `ref` and no
+longer carries `onKeyDown`, because the `ref` registers that listener before the provider's.
 
 `items` is fixed at construction, as label strings or `{ label, kind, disabled }`, and `kinds` names a kind per
 index for the string form (`"button"` by default). `defaultFocus` is the index that starts focused, and
-`focus: -1` means "outside the toolbar".
+`focus: -1` means "outside the toolbar". `provider: "polyfill"` forces the fallback (tests, hosts without the
+native attribute).
 
 ```ts skip
 createToolbar(options: {
@@ -2670,6 +2721,7 @@ createToolbar(options: {
   disabled?: ReadonlyArray<number>; // items disabled at mount, still focusable
   id?: string; // base of `<id>-item-<i>`
   onActivate?(index: number): void; // a button item, by click, Enter or Space
+  provider?: "auto" | "polyfill"; // "auto": the native attribute where the engine has it
 }): {
   focus(): number; // -1 when the toolbar is left
   tabStop(): number;
@@ -2679,35 +2731,40 @@ createToolbar(options: {
   focusIn(): void; // Tab into the toolbar: the tab stop
   leave(): void;
   focusItem(index: number): void;
-  keyDown(key: string): void;
   tab(back: boolean): void;
   clickItem(index: number): void;
   activate(): void; // a button item
   toggleDisabled(index: number): void;
-  setOrientation(orientation: "horizontal" | "vertical"): void;
-  setWrap(wrap: boolean): void;
+  setOrientation(orientation: "horizontal" | "vertical"): void; // update()s the provider
+  setWrap(wrap: boolean): void; // update()s the provider
   toolbarProps: {
     role: "toolbar";
     "aria-orientation": "horizontal" | "vertical";
-    onKeyDown;
+    focusgroup: string; // "toolbar", "toolbar block", ... — the definition as the attribute
+    ref: (element: HTMLElement) => void; // builds the provider, registers the key handler first
   };
   itemProps(index: number): {
     id;
     role: "button";
     "aria-disabled": "true" | undefined;
-    tabindex: 0 | -1; // the roving tab stop
+    ref: (element: HTMLElement) => void; // hands the item to the provider
     onClick;
-    onFocus;
+    onFocus; // records the index: `focus` / `tabStop` follow the DOM focus
   };
 };
 ```
 
+- **The provider owns the tab stop.** There is no `tabindex` in `itemProps`, and there is no `keyDown`
+  method: the arrows, Home / End and the wrap are the platform's, and `focus` / `tabStop` follow the DOM
+  `focusin`. A host that needs to move focus calls `focusItem(index)` and focuses the element the props name.
 - **Disabled but focusable.** A disabled item keeps its place in the arrows and the tab-stop order and
   announces `aria-disabled="true"`; it is never activated, so `onActivate` does not fire for it.
-  `toggleDisabled(index)` flips the mask at runtime.
+  `toggleDisabled(index)` flips the mask at runtime. It is `aria-disabled`, not the native attribute, because
+  the platform skips a natively disabled item.
 - **Embedded controls consume their keys.** A `"text"` item swallows the axis navigation keys and a
-  `"spin"` item swallows Up / Down and Home / End, so typing or stepping inside an item never moves the
-  toolbar's focus. The embedded control's own value is not modelled: the host renders it and owns it.
+  `"spin"` item swallows Up / Down and Home / End (`preventDefault` on the owner's keydown, before the
+  provider's listener), so typing or stepping inside an item never moves the toolbar's focus. The embedded
+  control's own value is not modelled: the host renders it and owns it.
 - **Divergences.** base-ui and ariakit skip disabled items in roving navigation, where `toolbar.qnt` keeps
   them focusable; the tab stop starts on item `0` even when that item is disabled, where the abstract
   Composite picks the first non-disabled item; and the primitive renders `role="toolbar"` with
@@ -2715,13 +2772,13 @@ createToolbar(options: {
   not this primitive.
 - **Limits (the source's own):** no separators, no RTL, and `items` does not grow after construction.
 
-`Right` / `Left` on a horizontal toolbar and `Down` / `Up` on a vertical one move the roving tab stop along
-the axis (`ArrowRight` and `Right` are normalised to one key), Home / End jump to the ends, and `wrap`
-decides whether an edge wraps or stops. Enter and Space activate the focused `button` item, and both are
-`preventDefault`ed. Tab from a `button` item leaves the toolbar (the browser moves on); from a `text` item it
-steps to the neighbouring item and only leaves at the edge, which is how Tab escapes a text field inside a
-composite. `focusIn`, `leave` and `tab(back)` are those steps as methods, and `focusItem`, `clickItem` and
-`activate` are the pointer and programmatic paths.
+`Right` / `Left` on a horizontal toolbar and `Down` / `Up` on a vertical one move focus along the axis
+(`ArrowRight` and `Right` are normalised to one key), Home / End jump to the ends, and `wrap` decides whether
+an edge wraps or stops — all of it from the definition the owner's `focusgroup` attribute states. Enter and
+Space activate the focused `button` item, and both are `preventDefault`ed. Tab from a `button` item leaves the
+toolbar (the browser moves on); from a `text` item it steps to the neighbouring item and only leaves at the
+edge, which is how Tab escapes a text field inside a composite. `focusIn`, `leave` and `tab(back)` are those
+steps as methods, and `focusItem`, `clickItem` and `activate` are the pointer and programmatic paths.
 
 ### Headless: `createTextInput` and `createTextArea` (`@cssints/headless`)
 

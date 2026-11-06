@@ -4626,3 +4626,59 @@ only as lengths inside `hypot` / `atan2` — it never reads a length back as a n
 typed `@property`, though `surface.ts` emits one by hand. The fit is a starter, not a package: a meter or a column chart whose
 scale is `max()` of its siblings, read back and printed, would prove the pattern on real components. Recorded as
 `cssints-rl3n` with that one experiment as its done-when — and **not** taken as a dependency or a rewrite.
+
+## The focusgroup contract as one adapter, and the toolbar as its first widget (2026-11-06)
+
+Eleven headless modules were transcribing the platform's `focusgroup` contract by hand — a `delta` / `step` /
+`landing` / `escape` table, a roving `tabindex`, a memory of the last item — in eleven slightly different
+spellings. `packages/apg-specs/shared/focusgroup.qnt` already models that contract once (one tab stop, arrows
+along the axis, Home / End, wrap, last-focused memory, Tab-escape out of a native key-conflict control) and
+`specs/apg/toolbar.qnt` imports it, so the copies were the machine's contract re-implemented beside it.
+
+**The adapter** is `packages/headless/src/focusgroup.ts`: `focusGroup(owner, { definition, items })` returns
+`{ attribute, update, destroy }` and picks the provider with `'focusGroup' in HTMLElement.prototype`.
+
+- Native (Chromium 150+): only the owner's `focusgroup` attribute, derived token-for-token from the same
+  definition object the polyfill would use (`focusGroupAttribute`); the browser is the group.
+- Else: `@microsoft/focusgroup-polyfill` 1.6.0's low-level `FocusGroup` over a plain array-backed item
+  collection (the minimum the README names), not `polyfill()` and not `MutationObserver`, so Solid's
+  reconciliation drives `update()`. It is now a dependency of `@cssints/headless` (MIT, no deps, 5.5 KB gz).
+- `destroy()` is `update({ definition: {} })` then `disconnect()`, in that order: measured, because
+  `disconnect()` alone leaves the polyfill's `tabindex` rewritten over the authors' values. Idempotent.
+- `focusGroupPolyfill` is the second export: the same thing without the feature detect, so a test can prove the
+  fallback in a run whose Chromium has the native feature. The polyfill's own constructor bails where the
+  feature exists, so that path also hides the `focusGroup` IDL property for the one call (restored right after)
+  and removes the owner's attribute, which is what a native engine reads.
+
+**What each widget keeps.** `createToolbar` is the first move: the platform owns arrows / Home / End / wrap /
+memory / the item `tabindex`, the primitive owns `aria-orientation`, the wrap choice (it feeds the definition),
+disabled-but-focusable items (`aria-disabled`, never the native attribute, which the platform skips),
+embedded `text` / `spin` consumers (`preventDefault` on the owner's keydown, registered _before_ the provider's
+listener — a delegated Solid `onKeyDown` runs at the document, after the polyfill has moved focus), Tab out of
+a text field, activation and the menu-button composition. `focus` / `tabStop` are now readings of the DOM
+(`focusin`), not a second source of truth.
+
+**What the work found.** The native engine writes **no** `tabindex`; the tab stop lives in the focus
+controller. The model's `fgTabIndex` is therefore a _rendered_ contract that only the polyfill satisfies, and
+the native engine ignores an untrusted `keydown` — so the toolbar's differential walk (whose key steps are
+programmatic and whose probe reads `tabindex`) runs on the forced polyfill, while the adapter test
+(`packages/headless/test/focusgroup.browser.test.tsx`) proves both providers over the same markup: one tab
+stop, the axis, wrap, block, Tab out and back with memory, a re-reconciled item set, and the authors' values
+after `destroy()`. The walk itself did not change; two fixture details did, both because a real event now
+reaches the composed menu: the trigger is focused before its menu opens, and a vertical toolbar's own Up/Down
+no longer reach the menu's trigger handler (the model opens on the perpendicular axis only).
+
+**The break.** `ToolbarItemProps` no longer carries `tabindex` (the provider writes it) and `Toolbar.keyDown`
+is gone (the platform moves); `toolbarProps` gained `focusgroup` and `ref`, and `onKeyDown` left it. Migration:
+spread `toolbarProps` on the owner and `itemProps(i)` on each item, and delete any `tabindex` you bound; a
+`minor` changeset, since `@cssints/headless` is 0.x.
+
+**Left out, and true.** The other ten widgets (tabs, listbox, radio, treeview's roving half, menubar,
+menu-button, feed, grid, checkbox-group, command-palette) still compute their own movement; each migration is
+the same rung, and `createTabs` is next because its spec already imports the shared module. Item eligibility —
+disabled / hidden / `tabindex=-1` / `focusgroup="none"` — is deliberately not modelled by the shared spec (it
+needs collections, not pure defs), so the collection hands the platform every item and lets it decide.
+Segments, nested groups, insert/remove of _widget_ items (the toolbar's list is fixed) and the ariakit /
+base-ui divergences (disabled items skipped in roving navigation) stay as they were. And the toolbar walk's
+provider is forced: a native run of it would need trusted keys and would lose its `tabindex` probe, which is a
+model question (is the tab stop markup or focus?) for the NEXT person, not a fixture one.
