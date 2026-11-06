@@ -79,6 +79,7 @@ export const Tabs = (props: TabsProps): JSX.Element => {
     activation: props.activation,
     disabled: props.disabled,
     focusablePanels: props.focusablePanels,
+    provider: props.provider,
     get onValueChange() {
       return props.onValueChange;
     },
@@ -106,7 +107,10 @@ export const Tabs = (props: TabsProps): JSX.Element => {
       <Show when={props.narrow !== true}>
         <div
           {...tabs.tablistProps}
+          // the primitive builds the focusgroup provider from its own `ref`; the skin also keeps the
+          // element to move DOM focus, so both run here (a later `ref` prop would replace the first)
           ref={(element) => {
+            tabs.tablistProps.ref(element);
             list = element;
           }}
           data-part="tablist"

@@ -42,6 +42,9 @@ export const mountTabs = (config: TabsConfig): Mounted => {
         activation={config.activation}
         disabled={disabledIndices(config.disabled)}
         focusablePanels={[0]}
+        // the walk dispatches its keys as untrusted events and probes the rendered `tabindex`:
+        // native focusgroup ignores untrusted keydown and writes no tabindex, the polyfill does both
+        provider="polyfill"
         onReady={(controller) => {
           api = controller;
         }}

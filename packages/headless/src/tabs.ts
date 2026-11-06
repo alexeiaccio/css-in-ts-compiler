@@ -1,4 +1,18 @@
-import { type Accessor, createSignal, createUniqueId } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createSignal,
+  createUniqueId,
+  onCleanup,
+  onSettled,
+} from "solid-js";
+import {
+  type FocusGroupDefinition,
+  type FocusGroupHandle,
+  focusGroup,
+  focusGroupAttribute,
+  focusGroupPolyfill,
+} from "./focusgroup";
 import { createControllable } from "./controllable";
 
 export type TabsOrientation = "horizontal" | "vertical";
@@ -17,9 +31,10 @@ export interface TabsOptions {
   readonly defaultSelected?: number;
   readonly orientation?: TabsOrientation;
   /**
-   * Writing direction (default `ltr`) for a horizontal tablist: `rtl` swaps
-   * ArrowLeft / ArrowRight. A vertical tablist keeps Up / Down, as APG says.
-   * The host sets `dir` on the element; the primitive only maps the keys.
+   * Writing direction (default `ltr`) for a horizontal tablist: `rtl` makes
+   * ArrowLeft the forward key, as APG says. The platform reads the direction
+   * from the element, so `tablistProps` emits `dir` and the host may also set it
+   * on an ancestor. A vertical tablist keeps Up / Down.
    */
   readonly dir?: "ltr" | "rtl" | undefined;
   readonly activation?: TabsActivation;
@@ -65,26 +80,58 @@ export interface TabsOptions {
   readonly onClose?: ((index: number) => void) | undefined;
   /** A request to rename a tab with a non-empty label. */
   readonly onRename?: ((index: number, label: string) => void) | undefined;
+  /**
+   * `"polyfill"` skips the feature detect and drives
+   * `@microsoft/focusgroup-polyfill`'s low-level group even where the engine has
+   * `focusgroup` (a test, or a host that knows it needs the polyfill). `"auto"`
+   * by default.
+   */
+  readonly provider?: "auto" | "polyfill";
 }
 
-/** Spread onto the element with `role=tab` (a native `<button>`). */
+/**
+ * Spread onto the element with `role=tab` (a native `<button>`, or any element
+ * the host made focusable). No roving `tabindex`: the focusgroup provider owns
+ * it, and binding it here would fight the platform. `focusgroupstart` marks the
+ * tab the group enters on (the selected one, or the first enabled when the
+ * selected tab is disabled) — the platform's entry point with `nomemory`.
+ *
+ * A disabled tab is not an item of the group: it carries a static
+ * `tabindex=-1`, which both providers skip (the native engine skips a
+ * `tabindex=-1` item, and the primitive leaves it out of the polyfill's
+ * collection). `aria-disabled` alone would still be arrow-reachable, as
+ * `shared/focusgroup.qnt` records.
+ *
+ * `ref` registers the element with the provider; `onFocus` and `onKeyDown` are
+ * the library's half (selection, activation, Delete).
+ */
 export interface TabProps {
   readonly id: string;
   readonly role: "tab";
   readonly "aria-selected": "true" | "false";
   readonly "aria-controls": string;
   readonly "aria-disabled": "true" | undefined;
-  readonly tabindex: 0 | -1;
+  readonly focusgroupstart: "" | undefined;
+  readonly tabindex: -1 | undefined;
+  readonly ref: (element: HTMLElement) => void;
   readonly onClick: () => void;
   readonly onMouseDown: (event: MouseEvent) => void;
   readonly onFocus: () => void;
   readonly onKeyDown: (event: KeyboardEvent) => void;
 }
 
-/** Spread onto the element with `role=tablist`. */
+/**
+ * Spread onto the element with `role=tablist`. The definition is
+ * `tablist nomemory wrap` (the `focusgroup` attribute), with the vertical axis
+ * as `block`; `ref` builds the provider, and `dir` is the writing direction the
+ * platform reads for the arrows.
+ */
 export interface TablistProps {
   readonly role: "tablist";
   readonly "aria-orientation": "vertical" | undefined;
+  readonly focusgroup: string;
+  readonly dir: "ltr" | "rtl" | undefined;
+  readonly ref: (element: HTMLElement) => void;
 }
 
 /** Spread onto the element with `role=tabpanel`. */
@@ -99,7 +146,8 @@ export interface TabpanelProps {
 /**
  * Spread onto the tab's close button. `tabindex=-1` keeps it out of the
  * tablist's tab order (a tablist's stops are its tabs); the Delete key is the
- * keyboard path.
+ * keyboard path. It is not a focusgroup item either: it is absent from the
+ * collection, so the platform neither moves focus to it nor acts on its keys.
  */
 export interface TabCloseProps {
   readonly "aria-label": string;
@@ -142,7 +190,10 @@ export interface Tabs {
   readonly select: (index: number) => void;
   /** Programmatic selection request (may point at a disabled tab, like base-ui). */
   readonly setSelected: (index: number) => void;
-  /** Programmatic focus (does not select). */
+  /**
+   * Ask the host to focus `index`. Under automatic activation the focusin then
+   * selects it, as a user's focus would; under manual it only moves focus.
+   */
   readonly focusTab: (index: number) => void;
   /**
    * The tab that takes focus once `onClose(index)`'s removal lands: the tab
@@ -150,7 +201,6 @@ export interface Tabs {
    * it before the host removes the tab.
    */
   readonly focusAfterClose: (index: number) => number;
-  readonly keyDown: (key: string) => void;
   readonly tablistProps: TablistProps;
   readonly tabProps: (index: number) => TabProps;
   readonly tabpanelProps: (index: number) => TabpanelProps;
@@ -160,17 +210,22 @@ export interface Tabs {
 
 /**
  * APG Tabs (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/): state plus prop
- * objects for a tablist, tabs and panels. Roving tabindex, wrapping arrows,
- * Home/End, automatic vs manual activation and disabled-tab skipping; no
- * styling, no elements. Checked against `specs/apg/tabs.qnt` by the scenario
- * bridge, not by running the generated machine here.
+ * objects for a tablist, tabs and panels. No styling, no elements.
  *
- * Platform: **hybrid** — focusgroup `tablist` owns arrows/wrap/tab stop; the
- * library owns selection, activation mode and panel visibility.
+ * Platform: **hybrid** — focusgroup `tablist` owns the tab stop, arrows along
+ * the axis, Home / End and wrap (`shared/focusgroup.qnt`, `./focusgroup`); the
+ * library owns selection, activation mode, `aria-selected` / `aria-controls`,
+ * panel visibility, close and rename.
+ *
+ * The definition is no memory: the tablist is entered on the **selected** tab
+ * (`focusgroupstart`, or the first enabled tab when the selected one is
+ * disabled), not on wherever focus was last. The library selects on `focusin`
+ * (automatic activation) or on Enter / Space (manual), as the polyfill's tabs
+ * recipe says; a click selects in both modes.
  *
  * Request/commit (map ticket `rt1p`): uncontrolled by default
  * (`defaultSelected`); pass `value` + `onValueChange` to own the selection.
- * Programmatic methods (`select`, `setSelected`, `keyDown`) are requests too.
+ * Programmatic methods (`select`, `setSelected`) are requests too.
  *
  * Close and rename are an **extension** (bean `cssints-gdv2`): the APG spec
  * models a `deletable` flavour but neither a callback nor a rename, and this
@@ -180,10 +235,12 @@ export interface Tabs {
  * the last one closed; closing the last remaining tab is refused, as the spec
  * refuses an empty tablist.
  *
- * Direction: `dir` (default ltr) swaps ArrowLeft / ArrowRight on a horizontal
- * tablist, as `radio.ts` does; a vertical tablist keeps Up / Down. `tabs.qnt`
- * models ltr only, so the ported `direction` scenarios stay `Unsupported` in
- * the differential walk until the spec grows a direction variable.
+ * Direction: `dir` (default from the element) renders on `tablistProps`; the
+ * platform maps ArrowLeft / ArrowRight per direction, so a horizontal rtl
+ * tablist puts the next tab to the left and a vertical one keeps Up / Down.
+ * `tabs.qnt` models ltr only, so the ported `direction` scenarios stay
+ * `Unsupported` in the differential walk until the spec grows a direction
+ * variable.
  */
 export const createTabs = (options: TabsOptions = {}): Tabs => {
   /** The live count: the host shrinks its list after a close, and the options are read lazily. */
@@ -194,7 +251,6 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
 
   const activation = (): TabsActivation => options.activation ?? "automatic";
   const orientation = (): TabsOrientation => options.orientation ?? "horizontal";
-  const direction = (): "ltr" | "rtl" => options.dir ?? "ltr";
   const closable = (): boolean => options.closable ?? false;
   const renamable = (): boolean => options.renamable ?? false;
   const labelOf = (index: number): string => options.label?.(index) ?? `tab ${index + 1}`;
@@ -218,7 +274,11 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
     onChange: () => options.onValueChange,
   });
 
-  /** The tab that carries `tabindex=0`: the selected one, or the first enabled. */
+  /**
+   * The tab the group enters on (`focusgroupstart`): the selected one, or the
+   * first enabled tab when a programmatic selection pointed at a disabled tab
+   * (base-ui's rule: a disabled tab never takes the tab stop).
+   */
   const roving = (): number => (disabled.has(selected()) ? firstEnabled() : selected());
 
   const select = (index: number): void => {
@@ -228,23 +288,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
     request(index);
   };
 
-  const move = (index: number): void => {
-    setFocused(index);
-    if (activation() === "automatic") {
-      select(index);
-    }
-  };
-
-  const step = (from: number, delta: 1 | -1): number => {
-    for (let offset = 1; offset <= count(); offset += 1) {
-      const candidate = (((from + delta * offset) % count()) + count()) % count();
-      if (!disabled.has(candidate)) {
-        return candidate;
-      }
-    }
-    return from;
-  };
-
+  /** The platform's tab stop is the selected tab whenever focus is outside. */
   const [focused, setFocused] = createSignal(-1);
 
   /**
@@ -313,51 +357,99 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
     options.onRename?.(index, trimmed);
   };
 
-  const keyDown = (key: string): void => {
-    // while editing, the input owns the keys: the tablist's roving must not move
+  /**
+   * The library's half of the keyboard. Arrows, Home / End, the axis and wrap
+   * are the platform's, so nothing here prevents them: only the keys the
+   * platform does not own are handled, and only the ones the primitive owns are
+   * prevented (Enter / Space would otherwise synthesize a click on a `<button>`,
+   * and Delete would reach the page).
+   */
+  const keyDown = (event: KeyboardEvent, index: number): void => {
+    // the inline input owns the keys while a rename runs
     if (editing() !== null) {
       return;
     }
-    const current = focused();
-    if (current < 0) {
+    if (event.key === "Enter" || event.key === " " || event.key === "Space") {
+      select(index);
+      event.preventDefault();
       return;
     }
-    // RTL swaps the horizontal arrows only: in a right-to-left tablist the
-    // previous tab is to the right. A vertical tablist is never affected.
-    const rtl = direction() === "rtl";
-    const horizontal = orientation() === "horizontal";
-    const forward = horizontal ? (rtl ? "ArrowLeft" : "ArrowRight") : "ArrowDown";
-    const backward = horizontal ? (rtl ? "ArrowRight" : "ArrowLeft") : "ArrowUp";
-    switch (key) {
-      case forward:
-        move(step(current, 1));
-        break;
-      case backward:
-        move(step(current, -1));
-        break;
-      case "Home":
-        move(firstEnabled());
-        break;
-      case "End": {
-        let last = count() - 1;
-        while (last > 0 && disabled.has(last)) {
-          last -= 1;
-        }
-        move(last);
-        break;
-      }
-      case "Enter":
-      case " ":
-      case "Space":
-        select(current);
-        break;
-      case "Delete":
-        close(current);
-        break;
-      default:
-        break;
+    if (event.key === "Delete" && closable()) {
+      event.preventDefault();
+      close(index);
     }
   };
+
+  /** The item elements the provider moves focus between, in index order. */
+  const elements = new Map<number, HTMLElement>();
+  const itemElements = (): HTMLElement[] =>
+    [...elements.entries()]
+      .sort(([a], [b]) => a - b)
+      .filter(([index]) => !disabled.has(index))
+      .map(([, element]) => element);
+
+  /** One source for the attribute, the polyfill's definition and `dir`. */
+  const definition = (): FocusGroupDefinition => ({
+    behavior: "tablist",
+    wrap: true,
+    axis: orientation() === "vertical" ? "block" : "inline",
+    memory: false,
+  });
+
+  let group: FocusGroupHandle | undefined;
+  let owner: HTMLElement | undefined;
+
+  /**
+   * The owner's ref builds the provider. No keydown listener goes on the owner:
+   * the library's keys (Enter / Space / Delete) are listened for on the tab
+   * itself, and the platform owns every key it acts on.
+   */
+  const attach = (element: HTMLElement): void => {
+    if (owner === element) {
+      return;
+    }
+    owner = element;
+    const provider = options.provider === "polyfill" ? focusGroupPolyfill : focusGroup;
+    group = provider(element, { definition: definition(), items: itemElements });
+  };
+
+  onSettled(() => {
+    // the owner's ref may run before its item refs, so collect once more after the render
+    group?.update();
+  });
+
+  // The host's list and the selection move the entry point (`focusgroupstart`),
+  // which the polyfill renders as the tab stop: it does not observe either, so
+  // the primitive re-reconciles. The native engine reads the attribute itself.
+  createEffect(
+    () => [count(), roving()] as const,
+    () => {
+      group?.update();
+    },
+  );
+
+  // A definition change (the axis) is the one update that also carries it.
+  createEffect(
+    () => orientation(),
+    () => {
+      group?.update(definition());
+    },
+  );
+
+  onCleanup(() => {
+    group?.destroy();
+    group = undefined;
+    owner = undefined;
+  });
+
+  /**
+   * Automatic activation selects on the focusin a gesture causes. A pointer
+   * press on the already-focused tab causes none, so that click has to select
+   * itself: `pressSelects` records it at mousedown, before the browser moves
+   * focus (a press that does move focus leaves the selection to the focusin, so
+   * a controlled host is asked once, not twice).
+   */
+  let pressSelects = false;
 
   return {
     get items() {
@@ -373,16 +465,25 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       }
     },
     focusTab: (index) => {
-      if (index >= 0 && index < count()) {
+      if (index >= 0 && index < count() && !disabled.has(index)) {
         setFocused(index);
       }
     },
     focusAfterClose,
-    keyDown,
     tablistProps: {
       role: "tablist",
       get "aria-orientation"() {
         return orientation() === "vertical" ? "vertical" : undefined;
+      },
+      get focusgroup() {
+        // the forced polyfill path keeps the native engine out of the group
+        return options.provider === "polyfill" ? "" : focusGroupAttribute(definition());
+      },
+      get dir() {
+        return options.dir;
+      },
+      get ref() {
+        return attach;
       },
     },
     tabProps: (index) => ({
@@ -399,39 +500,53 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       get "aria-disabled"() {
         return disabled.has(index) ? "true" : undefined;
       },
+      get focusgroupstart() {
+        return roving() === index ? "" : undefined;
+      },
       get tabindex() {
-        return roving() === index ? 0 : -1;
+        // a disabled tab is not an item of the group; this static opt-out is the
+        // only tabindex the primitive renders
+        return disabled.has(index) ? -1 : undefined;
+      },
+      ref: (element) => {
+        elements.set(index, element);
       },
       onClick: () => {
         if (disabled.has(index)) {
           return;
         }
+        // a press that moved focus already selected on its focusin; one on the
+        // focused tab, or a programmatic click, has to select here
+        const selects =
+          pressSelects ||
+          activation() === "manual" ||
+          document.activeElement !== elements.get(index);
+        pressSelects = false;
         setFocused(index);
-        select(index);
+        if (selects) {
+          select(index);
+        }
       },
       onMouseDown: (event) => {
         if (disabled.has(index)) {
           event.preventDefault();
+          return;
         }
+        pressSelects = document.activeElement === event.currentTarget;
       },
       onFocus: () => {
+        if (disabled.has(index)) {
+          return;
+        }
         setFocused(index);
+        // automatic activation: selection follows focus, as the model's
+        // AutomaticSelectionFollowsFocus says
+        if (activation() === "automatic") {
+          select(index);
+        }
       },
       onKeyDown: (event) => {
-        // the inline input owns the keys while a rename runs
-        if (editing() !== null) {
-          return;
-        }
-        if (event.key === "Delete" && closable()) {
-          event.preventDefault();
-          close(index);
-          return;
-        }
-        const before = focused();
-        keyDown(event.key);
-        if (focused() !== before || event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-        }
+        keyDown(event, index);
       },
     }),
     tabpanelProps: (index) => ({

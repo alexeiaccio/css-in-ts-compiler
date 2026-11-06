@@ -48,7 +48,14 @@ const mount = (options: TabsOptions = {}): Mounted => {
   ];
 
   const dispose = render(() => {
-    const tabs = createTabs({ items: 3, ...options });
+    const tabs = createTabs({
+      items: 3,
+      // the rendered tab stop (`tabindex="0"`) is the polyfill's: the native
+      // engine keeps it in the focus controller and writes no markup, and the
+      // native path has its own test with real keys in tabs.browser.test.tsx
+      provider: "polyfill",
+      ...options,
+    });
     api = tabs;
     createEffect(
       () => tabs.focused(),

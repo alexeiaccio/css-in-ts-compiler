@@ -104,6 +104,10 @@ const mountFiles = (initial: ReadonlyArray<string>): Files => {
                 <div
                   data-part="tab"
                   {...tabs.tabProps(at())}
+                  // a div is not focusable on its own and the primitive no
+                  // longer renders the roving stop; the platform makes exactly
+                  // one of these its tab stop
+                  tabindex={0}
                   onDblClick={tabs.renameProps(at()).onDblClick}
                 >
                   <Show

@@ -86,10 +86,13 @@ const SKIP_DISABLED =
   "the spec and react-aria skip disabled tabs in one keypress; base-ui moves focus onto the disabled tab without activating it";
 const PANEL_CONVENTION =
   "one fixture convention cannot serve both ariakit panel-tabindex files (they assume opposite panels hold focusable content)";
+const FOCUS_SELECTS =
+  "automatic activation is the platform's focusin rule (the polyfill's tabs recipe): a programmatic focus selects, while ariakit leaves the selection alone for screen-reader focus";
 const DIVERGENCES: Readonly<Record<string, string>> = {
   "tabs.react-aria.arrow-vertical": AXIS_ONLY,
   "tabs.base-ui.arrow-focuses-disabled-without-activating": SKIP_DISABLED,
   "tabs.ariakit.panel-tabindex-tabbable": PANEL_CONVENTION,
+  "tabs.ariakit.focus-does-not-select": FOCUS_SELECTS,
 };
 
 describe("Tabs x ported scenarios (real DOM)", () => {

@@ -58,10 +58,11 @@ export interface FocusGroupHandle {
   /** The `focusgroup` attribute string for the definition (`"toolbar block nowrap"`). */
   readonly attribute: string;
   /**
-   * Re-collect the items and re-apply the definition. Call it when items are
-   * added or removed, when one changes visibility, and when the definition
-   * changes; a host must not wait for the adapter to observe anything, it does
-   * not observe.
+   * Re-collect the items, and re-apply the definition when one is passed. Call it
+   * when items are added or removed, when one changes visibility, or when an
+   * item's `focusgroupstart` moves — without a definition, so the provider keeps
+   * the focused item. Pass the definition only when it changed. A host must not
+   * wait for the adapter to observe anything, it does not observe.
    */
   readonly update: (definition?: FocusGroupDefinition) => void;
   /** Undo the provider, then release its listeners. Idempotent. */
@@ -94,11 +95,22 @@ export const supportsFocusGroup = (): boolean => "focusGroup" in HTMLElement.pro
 /** An array-backed item collection: the minimum the polyfill's `FocusGroup` reads. */
 const itemCollection = (items: () => ReadonlyArray<HTMLElement>) => {
   const contains = (element: Element): boolean => items().some((item) => item === element);
+  /**
+   * The entry point: the item carrying `focusgroupstart`. The native engine reads
+   * the attribute itself; this hands the same element to the polyfill, whose
+   * collection is asked for `start` instead (`TreeWalkerItemCollection` does the
+   * same lookup). Outside the collection it is no start at all.
+   */
+  const start = (): HTMLElement | null =>
+    items().find((element) => element.hasAttribute("focusgroupstart")) ?? null;
   return {
     *items() {
       for (const element of items()) {
         yield { element };
       }
+    },
+    get start() {
+      return start();
     },
     first: (): HTMLElement | null => items()[0] ?? null,
     last: (): HTMLElement | null => items().at(-1) ?? null,
@@ -159,9 +171,14 @@ export const focusGroupPolyfill = (
   return {
     attribute: focusGroupAttribute(definition),
     update: (next) => {
-      if (!destroyed) {
-        group.update({ definition: next ?? definition });
+      if (destroyed) {
+        return;
       }
+      // pass a definition only when it changed: with `nomemory` the polyfill
+      // clears its remembered item on every definition update, and a host that
+      // only changed its item set or its `focusgroupstart` must not lose the
+      // focused item to the entry point
+      group.update(next === undefined ? {} : { definition: next });
     },
     destroy: () => {
       if (destroyed) {
