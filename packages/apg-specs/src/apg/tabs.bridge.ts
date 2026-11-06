@@ -307,7 +307,9 @@ export const tabsBridge: SpecBridge = {
         return selected === index ? "true" : "false";
       }
       if (name === "tabindex") {
-        return selected === index ? "0" : "-1";
+        // the platform's single stop, not the selection: they differ in manual
+        // mode and for a controlled host that rejected a request
+        return Number(state["tabStop"]) === index ? "0" : "-1";
       }
       if (name === "aria-controls") {
         return `tabpanel:${index}`;

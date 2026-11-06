@@ -5,21 +5,34 @@
 // Modelled (APG "Keyboard Interaction" + "WAI-ARIA Roles, States, and Properties"):
 //   - Tab: focus enters the tablist on the ACTIVE (selected) tab, the next Tab
 //     leaves the tablist for the tabpanel, then out. Shift+Tab walks it back.
-//   - Roving tabindex: tabindex=0 sits on the selected tab only, every other
-//     tab is -1 (as in both APG examples: arrows move DOM focus by script
-//     without touching tabindex; only selection moves the tab stop).
+//   - Roving tabindex: exactly one tab stop. Movement along the axis, Home / End,
+//     wrap and the last-focused memory are the platform's `focusgroup="tablist"`
+//     contract, imported from shared/focusgroup.qnt and NOT restated here; this
+//     spec models the delta. The definition is `nomemory` (the tablist is
+//     entered on the selected tab, `focusgroupstart`) and the platform's tab
+//     stop is the FOCUSED tab while focus is inside the tablist and the SELECTED
+//     tab once it leaves (`fgStopOnLeave` without memory). In automatic mode the
+//     two coincide; in manual mode (or with a controlled host that rejected a
+//     request) focus and selection are decoupled, and the stop follows focus to
+//     where the user is, not the selection. That is what the engine does (it
+//     keeps the stop in the focus controller) and what the polyfill renders as
+//     `tabindex=0`.
 //   - Left/Right Arrow (horizontal) and Up/Down Arrow (vertical): previous/next
 //     tab, wrapping last->first and first->last. Arrows of the other axis are
 //     ignored.
 //   - Home / End: first / last tab.
 //   - Automatic activation: moving focus selects (tabs-automatic example).
 //     Manual activation: moving focus only moves focus; Enter / Space selects
-//     the focused tab (tabs-manual example).
+//     the focused tab (tabs-manual example). Selection commits on the focusin a
+//     move causes, so a key that does NOT move focus (Home on the first tab
+//     while a controlled host has moved the selection away) selects nothing.
 //   - Delete (optional, `deletable` flavor): removes the focused tab and its
 //     panel; focus goes to the following tab, or the previous one when the
 //     deleted tab was last. A deleted selected tab hands selection to the tab
 //     that receives focus.
-//   - Disabled tabs: skipped by arrows/Home/End/Delete-focus, ignore clicks.
+//   - Disabled tabs: skipped by arrows/Home/End/Delete-focus, ignore clicks. A
+//     disabled tab is not an item of the group at all (the platform's
+//     eligibility rule: `tabindex=-1`); an aria-disabled tab stays reachable.
 //   - Pointer: clicking an enabled tab focuses and selects it in BOTH modes.
 //   - Panel shown = selected tab's panel (aria-selected / aria-controls /
 //     aria-labelledby are derived defs; tab k controls panel k by index).
@@ -59,14 +72,16 @@
 // collections (tabs are bit-masks over a fixed 4 slots), no `const`.
 module apg_tabs {
   import aria.* from "../../shared/aria"
+  import focusgroup.* from "../../shared/focusgroup"
 
   var activation: str  // "automatic" | "manual"
   var orientation: str // "horizontal" | "vertical" (aria-orientation)
   var deletable: bool  // Delete removes the focused tab
   var disabled: int    // bit k set = tab k is aria-disabled
   var present: int     // bit k set = tab k (and panel k) is in the DOM
-  var selected: int    // aria-selected tab (also the tabindex=0 tab)
+  var selected: int    // aria-selected tab (the `focusgroupstart` one)
   var focused: int     // tab that has / last had DOM focus
+  var tabStop: int     // the tab that owns tabindex=0 (the platform's single stop)
   var zone: str        // "outside" | "tablist" | "panel": where DOM focus is
   var controlled: bool // the host owns the selection (`value` prop present)
   var accepting: bool  // controlled host that answers every request with its intent
@@ -140,7 +155,9 @@ module apg_tabs {
   def pressSelected(zn: str, key: str, act: str, o: str, del: bool, sel: int, i: int, p: int, d: int): int =
     if (zn != "tablist") sel
     else if (deleting(zn, key, del, i, p, d)) (if (sel == i) afterDelete(i, p, d) else sel)
-    else if (and(act == "automatic", isNavKey(key, o))) navTarget(key, o, i, p, d)
+    // selection commits on the focusin a move causes: a key that lands on the
+    // tab that already has focus moves nothing and selects nothing
+    else if (and(act == "automatic", isNavKey(key, o))) (if (navTarget(key, o, i, p, d) == i) sel else navTarget(key, o, i, p, d))
     else if (or(key == "Enter", key == " ")) i
     else sel
 
@@ -183,19 +200,20 @@ module apg_tabs {
   // ---- ARIA contract, derived from state ----------------------------------
   // tab k: role=tab, aria-selected, tabindex, aria-disabled
   def ariaSelected(k: int, p: int, sel: int): bool = and(hasBit(p, k), k == sel)
-  def tabIndex(k: int, p: int, sel: int): int = if (ariaSelected(k, p, sel)) 0 else -1
+  // the platform's roving stop (shared/focusgroup.qnt), not a second copy of the rule
+  def tabIndex(k: int, stop: int): int = fgTabIndex(stop, k)
   def ariaDisabled(k: int, d: int): bool = hasBit(d, k)
   // panel k: role=tabpanel, aria-labelledby=tab k; visible iff its tab is selected
   def panelVisible(k: int, p: int, sel: int): bool = ariaSelected(k, p, sel)
   def selectedCount(p: int, sel: int): int =
     one(ariaSelected(0, p, sel)) + one(ariaSelected(1, p, sel)) +
     one(ariaSelected(2, p, sel)) + one(ariaSelected(3, p, sel))
-  def tabStopCount(p: int, sel: int): int =
-    one(tabIndex(0, p, sel) == 0) + one(tabIndex(1, p, sel) == 0) +
-    one(tabIndex(2, p, sel) == 0) + one(tabIndex(3, p, sel) == 0)
-  def tabStopIndex(p: int, sel: int): int =
-    one(tabIndex(1, p, sel) == 0) + 2 * one(tabIndex(2, p, sel) == 0) +
-    3 * one(tabIndex(3, p, sel) == 0)
+  def tabStopCount(p: int, stop: int): int =
+    one(tabIndex(0, stop) == 0) + one(tabIndex(1, stop) == 0) +
+    one(tabIndex(2, stop) == 0) + one(tabIndex(3, stop) == 0)
+  def tabStopIndex(p: int, stop: int): int =
+    one(tabIndex(1, stop) == 0) + 2 * one(tabIndex(2, stop) == 0) +
+    3 * one(tabIndex(3, stop) == 0)
   def visiblePanelCount(p: int, sel: int): int =
     one(panelVisible(0, p, sel)) + one(panelVisible(1, p, sel)) +
     one(panelVisible(2, p, sel)) + one(panelVisible(3, p, sel))
@@ -211,6 +229,7 @@ module apg_tabs {
     present' = 15,
     selected' = 0,
     focused' = 0,
+    tabStop' = 0,
     zone' = "outside",
     controlled' = false,
     accepting' = false,
@@ -236,6 +255,7 @@ module apg_tabs {
       present' = 15,
       selected' = firstTab(15, variantDisabled(flavor)),
       focused' = firstTab(15, variantDisabled(flavor)),
+      tabStop' = firstTab(15, variantDisabled(flavor)),
       zone' = "outside",
       controlled' = false,
       accepting' = false,
@@ -258,6 +278,7 @@ module apg_tabs {
       present' = present,
       selected' = selected,
       focused' = if (enteringTablist(zone, shift)) selected else focused,
+      tabStop' = if (or(enteringTablist(zone, shift), zone == "tablist")) selected else tabStop,
       zone' = nextZone(zone, shift),
       controlled' = controlled,
       accepting' = accepting,
@@ -281,6 +302,7 @@ module apg_tabs {
       present' = if (deleting(zone, key, deletable, focused, present, disabled)) present - pow2(focused) else present,
       selected' = landed(holds, selected, pressSelected(zone, key, activation, orientation, deletable, selected, focused, present, disabled)),
       focused' = pressFocused(zone, key, orientation, deletable, focused, present, disabled),
+      tabStop' = if (zone == "tablist") pressFocused(zone, key, orientation, deletable, focused, present, disabled) else tabStop,
       zone' = zone,
       controlled' = controlled,
       accepting' = accepting,
@@ -304,6 +326,7 @@ module apg_tabs {
       present' = present,
       selected' = landed(holds, selected, clickWant(tab, present, disabled, selected)),
       focused' = if (focusable(tab, present, disabled)) tab else focused,
+      tabStop' = if (focusable(tab, present, disabled)) tab else tabStop,
       zone' = if (focusable(tab, present, disabled)) "tablist" else zone,
       controlled' = controlled,
       accepting' = accepting,
@@ -326,6 +349,7 @@ module apg_tabs {
       present' = present,
       selected' = if (and(controlled, focusable(v, present, disabled))) v else selected,
       focused' = focused,
+      tabStop' = if (and(controlled, focusable(v, present, disabled), zone != "tablist")) v else tabStop,
       zone' = zone,
       controlled' = controlled,
       accepting' = accepting,
@@ -346,6 +370,7 @@ module apg_tabs {
     present' = present,
     selected' = selected,
     focused' = focused,
+    tabStop' = tabStop,
     zone' = zone,
     controlled' = true,
     accepting' = accepting,
@@ -365,6 +390,7 @@ module apg_tabs {
     present' = present,
     selected' = selected,
     focused' = focused,
+    tabStop' = tabStop,
     zone' = zone,
     controlled' = controlled,
     accepting' = true,
@@ -389,9 +415,13 @@ module apg_tabs {
   val FocusedTabIsFocusable: bool = focusable(focused, present, disabled)
   // exactly one tab is aria-selected
   val ExactlyOneSelectedTab: bool = selectedCount(present, selected) == 1
-  // roving tabindex: exactly one tab stop (tabindex=0) and it is the selected tab
-  val ExactlyOneTabStopOnSelected: bool =
-    and(tabStopCount(present, selected) == 1, tabStopIndex(present, selected) == selected)
+  // roving tabindex: exactly one tab stop, and it is where the platform put it —
+  // the focused tab while focus is inside the tablist, the selected tab once
+  // focus has left (nomemory, `focusgroupstart` on the selection)
+  val TabStopInRange: bool = fgStopInRange(4, tabStop)
+  val ExactlyOneTabStop: bool = tabStopCount(present, tabStop) == 1
+  val TabStopFollowsFocusOrStart: bool =
+    tabStop == (if (zone == "tablist") focused else selected)
   // exactly one panel visible and it belongs to the selected tab
   val VisiblePanelIsSelectedTabPanel: bool =
     and(visiblePanelCount(present, selected) == 1, visiblePanelIndex(present, selected) == selected)

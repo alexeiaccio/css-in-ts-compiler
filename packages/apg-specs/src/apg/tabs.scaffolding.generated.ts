@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/tabs.qnt
-// Spec hash (sha256): 67077fb1a797d8e5c5d34acf4c542eeef443f1629bc80968317b109328a5ec74
+// Spec hash (sha256): 651b1bb67adbbbaad893cde3f39889b178c698fc27ae10527c3c9a71ec5d43aa
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
@@ -12,6 +12,7 @@ export const ApgTabsFields = {
     present: Schema.BigInt,
     selected: Schema.BigInt,
     focused: Schema.BigInt,
+    tabStop: Schema.BigInt,
     zone: Schema.String,
     controlled: Schema.Boolean,
     accepting: Schema.Boolean,

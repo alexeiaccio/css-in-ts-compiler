@@ -54,7 +54,9 @@ describe("apg tabs (spec-only)", () => {
       "SelectedTabIsFocusable",
       "FocusedTabIsFocusable",
       "ExactlyOneSelectedTab",
-      "ExactlyOneTabStopOnSelected",
+      "TabStopInRange",
+      "ExactlyOneTabStop",
+      "TabStopFollowsFocusOrStart",
       "VisiblePanelIsSelectedTabPanel",
       "AutomaticSelectionFollowsFocus",
       "OnlyDeletableLosesTabs",
@@ -76,6 +78,8 @@ describe("apg tabs (spec-only)", () => {
         present: 7n,
         selected: 3n,
         focused: 0n,
+        // out of range, so the stop is neither in range nor on any tab
+        tabStop: 7n,
         zone: "tablist",
       }),
     ).toEqual([
@@ -83,7 +87,9 @@ describe("apg tabs (spec-only)", () => {
       "SelectedTabIsFocusable",
       "FocusedTabIsFocusable",
       "ExactlyOneSelectedTab",
-      "ExactlyOneTabStopOnSelected",
+      "TabStopInRange",
+      "ExactlyOneTabStop",
+      "TabStopFollowsFocusOrStart",
       "VisiblePanelIsSelectedTabPanel",
       "AutomaticSelectionFollowsFocus",
       "OnlyDeletableLosesTabs",
@@ -95,6 +101,7 @@ describe("apg tabs (spec-only)", () => {
         controlled: true,
         valueProp: 0n,
         selected: 1n,
+        tabStop: 1n,
       }),
     ).toEqual(["ControlledFollowsProp"]);
     // a rejected request that moved the selection anyway
@@ -104,6 +111,7 @@ describe("apg tabs (spec-only)", () => {
         outcome: "rejected",
         base: 0n,
         selected: 1n,
+        tabStop: 1n,
       }),
     ).toEqual(["RejectedRequestUntouched"]);
     // an accepted request that did not commit its intent
@@ -122,6 +130,7 @@ describe("apg tabs (spec-only)", () => {
       activation: "automatic",
       selected: 0n,
       focused: 0n,
+      tabStop: 0n,
       zone: "outside",
     });
   });
