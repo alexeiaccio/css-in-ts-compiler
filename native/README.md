@@ -936,8 +936,9 @@ Measured (macOS, a 360x760 window at pixel density 2, 2026-10-25):
 
 Not here: a **blocked** poll (`SDL_WaitEventTimeout`) instead of the 16 ms sleep, so the loop would wake only for an
 event and hand back the tick's latency (the sleep bounds the input latency at ≤16 ms, with the frame drawn at once on
-wake); the board's equivalent (its 22 ms frame at rest is where this would pay most, but the board has no hash and no
-loop yet); dirty rects (a changed frame draws all of it — a hover fade re-renders the page, where a wrapped-frame diff
+wake); the board's equivalent (its 22 ms frame is where this would pay most — it draws nothing at rest already,
+though its diff is the firmware's, not a hash); dirty rects (a changed frame draws all of it — a hover fade
+re-renders the page, where a wrapped-frame diff
 could redraw only the boxes that moved); a window-expose present (SDL asks for a redraw when the window is uncovered,
 and an idle loop has none in hand, so the next input redraws it); and the terminal and browser targets, which have no
 hash loop of their own.
@@ -1201,8 +1202,9 @@ Cyrillic is vendored but not drawn: `cyrilc_1.jhf` carries Hershey numbers (2199
 mapping to Unicode, so a reading test would be a guess.
 
 Not measured: other stroke faces, kerning (neither side has any), a cached stroke geometry (the path is 3% of the cost),
-text at 2x density, and the board itself — 17.8 ms of a 22.8 ms frame is ThorVG's raster there too, so a 1.3-1.9x text
-share would be measured against the same raster, not a GPU.
+text at 2x density, and the board itself — there it is a CPU band raster of 16.7–19.2 ms of a 21.4–24.2 ms frame
+(2026-11-06, `native/docs/map.md`), never ThorVG, so a 1.3-1.9x text share would be measured against that raster,
+not a GPU.
 
 ## The nicegraf spike: a GPU pipeline against the CPU raster
 
