@@ -164,6 +164,10 @@ bun solid/sky.test.ts
 # ... and the thread screen's own test: the rows and their indents, its scroll and thumb, back's frame, the history, the
 # entry and reduced motion, the a11y tree, the stored frame, and the mutations
 bun solid/thread.test.ts
+# ... and the page's wide form (app/Sky.tsx): at 720px the thread is a 360px column beside the feed — both panes declared,
+# the feed's offset and its selected card untouched by the open, the thread's rows in the right column — and below it the
+# root float over the feed, as every frame above has it
+bun solid/sky-wide.test.ts
 # the text sheet (the strings and the sizes the app draws) and its oracle: the frame, then the metric against the same
 # lines drawn by CoreText — the ink weight and the shape of every line (solid/text.test.ts). The oracle is a stored PNG;
 # re-draw it with `bun solid/text-oracle.ts --update` (needs swiftc, so only there)
