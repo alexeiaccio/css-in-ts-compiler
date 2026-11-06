@@ -1,4 +1,12 @@
-import { type Accessor, createEffect, createSignal, createUniqueId, onCleanup } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createSignal,
+  createUniqueId,
+  getOwner,
+  onCleanup,
+  runWithOwner,
+} from "solid-js";
 import {
   type FocusGroupDefinition,
   type FocusGroupHandle,
@@ -178,13 +186,23 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
   const [flavor, setFlavorSignal] = createSignal<RadioFlavor>(options.flavor ?? "roving");
 
   // the controlled value prop wins; the bare `undefined` prop is uncontrolled,
-  // while a getter may return `undefined` for "nothing checked"
-  const controlled = (): boolean => options.value !== undefined;
-  const controlledIndex = (): number => {
-    const value = options.value;
-    const current = typeof value === "function" ? (value as () => T | undefined)() : value;
-    return indexOfValue(current);
+  // while a getter may return `undefined` for "nothing checked".
+  //
+  // The prop is read in an effect's *compute* and snapshotted: in Solid 2 reading a
+  // JSX prop creates a computation, which is refused in an effect callback or a ref
+  // — and this state is read from both (the group's `attach`, and a probe during a
+  // flush; a dev build halts reactivity instead of ignoring it).
+  const readHost = (): { readonly controlled: boolean; readonly value: T | undefined } => {
+    const raw = options.value;
+    const value = typeof raw === "function" ? (raw as () => T | undefined)() : raw;
+    return { controlled: raw !== undefined, value };
   };
+  const [host, setHost] = createSignal(readHost());
+  createEffect(readHost, (next) => {
+    setHost(() => next);
+  });
+  const controlled = (): boolean => host().controlled;
+  const controlledIndex = (): number => indexOfValue(host().value);
   const checkedIndex = (): number => (controlled() ? controlledIndex() : localChecked());
   const checked = (): number | null => {
     const index = checkedIndex();
@@ -458,6 +476,11 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     owner = undefined;
   };
 
+  // The ref runs in a phase with no ambient owner, where Solid refuses to create a
+  // computation: the effect and the cleanup below belong to the group's owner, so
+  // they are parented to it explicitly (Solid's `runWithOwner`).
+  const setupOwner = getOwner();
+
   const attach = (element: HTMLElement): void => {
     if (owner !== undefined) {
       return;
@@ -472,20 +495,22 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     }
     element.addEventListener("focusin", focusIn);
     element.addEventListener("focusout", focusOut);
-    onCleanup(detach);
-    createEffect(
-      () => ({ flavor: flavor(), stop: stop() }),
-      (state) => {
-        if (state.flavor !== "roving") {
-          detachGroup();
-          return;
-        }
-        attachGroup(element);
-        // the platform lands Tab on the start marker, so a check that moved it must
-        // reach the platform; the host may also write the controlled value
-        reconcile();
-      },
-    );
+    runWithOwner(setupOwner, () => {
+      onCleanup(detach);
+      createEffect(
+        () => ({ flavor: flavor(), stop: stop() }),
+        (state) => {
+          if (state.flavor !== "roving") {
+            detachGroup();
+            return;
+          }
+          attachGroup(element);
+          // the platform lands Tab on the start marker, so a check that moved it must
+          // reach the platform; the host may also write the controlled value
+          reconcile();
+        },
+      );
+    });
   };
 
   // --- the primitive's half (both flavors) ----------------------------------

@@ -1,6 +1,7 @@
 import {
   type Accessor,
   createEffect,
+  createMemo,
   createSignal,
   createUniqueId,
   onCleanup,
@@ -221,13 +222,34 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     disabledIndices.has(index) || (itemList()[index]?.disabled ?? false);
   const clamp = (index: number): number => Math.max(0, Math.min(index, Math.max(count() - 1, 0)));
 
+  // The host's controlled props are JSX expressions: in Solid 2 reading one creates
+  // a computation, which is refused in an effect callback or a ref (the primitive is
+  // read from both, and by a probe during a flush). Reading them in an effect's
+  // *compute* is allowed, so the value is snapshotted into a signal there and every
+  // other read is a plain signal read.
+  const [hostActive, setHostActive] = createSignal<number | undefined>(options.activeValue);
+  createEffect(
+    () => options.activeValue,
+    (value) => {
+      setHostActive(() => value);
+    },
+  );
+  const [hostValue, setHostValue] = createSignal<ReadonlyArray<number> | undefined>(
+    options.value,
+  );
+  createEffect(
+    () => options.value,
+    (value) => {
+      setHostValue(() => value);
+    },
+  );
   const [active, requestActive] = createControllable<number>({
-    value: () => options.activeValue,
+    value: hostActive,
     initial: clamp(options.defaultActive ?? 0),
     onChange: () => options.onActiveChange,
   });
   const [rawSelected, requestSelection] = createControllable<ReadonlyArray<number>>({
-    value: () => options.value,
+    value: hostValue,
     // Kept as given: `selected()` normalizes against the live count, so a
     // default chosen before the items arrived still lands once they do.
     initial: options.defaultValue ?? options.defaultSelected ?? [],

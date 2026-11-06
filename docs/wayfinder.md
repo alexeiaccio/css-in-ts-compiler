@@ -5046,3 +5046,41 @@ is explainer-only and not in the polyfill. Typeahead remains the platform's gap 
 `type()` and the buffer stay the library's on every provider. And the menubar has no controlled `openTop` (the
 spec's value/request pair), which is why the kit's walk skips the controlled configs; that is the next rung for
 this family, not part of this one.
+
+## A controlled prop is read in a compute, not in an effect (2026-11-06)
+
+The starter smoke went red on the three widgets this session moved onto the focusgroup adapter — `listbox`,
+`radio`, `menu` — with a message that named no file of ours: `[PRIMITIVE_IN_EFFECT_CALLBACK] Cannot create a
+memo, effect or root with no owner inside an effect callback`. Then all of that file's tests failed, because
+Solid 2's dev build **halts the reactive system** at the first violation rather than ignoring it. `apps/ui`
+never saw it: its tests resolve `@cssints/headless` from source through the module runner, where the dev
+checks do not reach — only the copied starter runs the same code with the same Solid the user gets.
+
+**What Solid 2 does.** A component's dynamic prop is compiled into a getter that creates a `memo` **on every
+read** (`get activeValue() { return memo(() => …)() ? … : … }`). Creating a computation is legal during a
+render and in an effect's _compute_; it is refused in an **effect callback** and in a **ref**. Our primitives
+read the host's controlled props from both: the group provider is built in a ref, and a probe reads the
+primitive's accessors during the walk's flush. Each crashed differently in the three widgets, which is why
+the fix is threefold and the rule is one:
+
+- `createRadioGroup` built its `createEffect`/`onCleanup` **inside** `attach` (the ref): they are now parented
+  to the group's owner with `runWithOwner(getOwner())` — the escape Solid names in the message.
+- `createListbox`, `createRadioGroup` and `createMenu` read `activeValue` / `value` / `open` from the host at
+  call time. Those reads now happen in an effect's compute and are snapshotted into a signal
+  (`readHost` + `createEffect(readHost, …)`, `readOpen`), so every other read — accessor, probe, callback,
+  ref — is a plain signal read. Uncontrolled stays uncontrolled: the snapshot carries `controlled` beside the
+  value, because a `false` is a controlled `false`.
+- Nothing in the public API changed; the changeset of each migration still describes its own break.
+
+**How it was found and proved.** The smoke's `--keep` leaves the installed copy, and a copied test can then be
+run alone in seconds (`npx vp test run --config vitest.browser.config.ts src/components/ui/<name>.browser.test.tsx`).
+Editing one prop out of the copied fixture reproduced the crash, which is what identified the read. One trap:
+the optimiser caches the prebundled `@cssints_headless` chunk, so a repacked tarball proves nothing until
+`node_modules/.vite` and the lockfile entry are removed — the first “fix” looked broken for exactly that
+reason.
+
+**Left out, and true.** The pattern is only applied where a controlled prop is read from an effect, a ref or a
+probe; a future primitive that reads one from a callback would hit the same wall, and nothing in `apps/ui`
+would catch it. The long-term answer is a kit-level test run with the same dev diagnostics (the app's
+`vitest.browser.config.ts` could set the module conditions the starter uses), which is worth doing before the
+next widget joins the adapter.

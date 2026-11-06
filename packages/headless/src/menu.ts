@@ -1,4 +1,11 @@
-import { type Accessor, createSignal, createUniqueId, onCleanup, onSettled } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createSignal,
+  createUniqueId,
+  onCleanup,
+  onSettled,
+} from "solid-js";
 import { createControllable } from "./controllable";
 import {
   type FocusGroupDefinition,
@@ -278,8 +285,20 @@ export const createMenu = (options: MenuOptions): Menu => {
   const held = (options.triggerMode ?? "outside") === "held";
   // The open state is a request/commit pair: uncontrolled it commits here,
   // controlled the host's `open` prop is the only thing that changes it.
+  // The host's `open` is a JSX prop: reading it creates a computation in Solid 2,
+  // which is refused in an effect callback or a ref (both reach this state, and so
+  // does a probe during a flush). The read happens in an effect's compute and is
+  // snapshotted; every other read is a plain signal read.
+  const readOpen = (): { readonly controlled: boolean; readonly open: boolean } => {
+    const raw = options.open;
+    return { controlled: raw !== undefined, open: raw === true };
+  };
+  const [hostOpen, setHostOpen] = createSignal(readOpen());
+  createEffect(readOpen, (next) => {
+    setHostOpen(() => next);
+  });
   const [isOpen, requestOpen] = createControllable<boolean>({
-    value: () => options.open,
+    value: () => (hostOpen().controlled ? hostOpen().open : undefined),
     initial: options.defaultOpen === true,
     onChange: () => options.onOpenChange,
   });
@@ -451,7 +470,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       return;
     }
     requestOpen(want);
-    if (options.open === undefined) {
+    if (!hostOpen().controlled) {
       apply();
       return;
     }
