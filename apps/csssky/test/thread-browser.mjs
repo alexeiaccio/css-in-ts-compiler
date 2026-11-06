@@ -38,6 +38,8 @@ const json = (route, body, status = 200) =>
     headers: { "access-control-allow-origin": "*" },
     body,
   });
+// how many times a page asked for the home feed: a thread opened beside it, or closed, must ask again for nothing
+const feeds = { calls: 0 };
 async function open(width, stub, path = "/profile/someone.test/post/3focus") {
   const page = await browser.newPage({ viewport: { width, height: 800 } });
   page.on("pageerror", (e) => assert.fail(String(e)));
@@ -47,6 +49,10 @@ async function open(width, stub, path = "/profile/someone.test/post/3focus") {
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300" fill="#8aa4c8"/></svg>',
     }),
   );
+  await page.route(/getFeed/, (r) => {
+    feeds.calls++;
+    return json(r, fixture("home-discover-1"));
+  });
   await page.route(/getPostThread/, (r) => stub(r));
   await page.goto(`${base}${path.replace(/^\//, "")}`);
   return page;
@@ -248,6 +254,160 @@ try {
     assert.ok(second.verticals > first.verticals);
     out[where] = { lines: first.verticals, opened: n, buttonsLeft: after.buttons.length };
 
+    await page.close();
+  }
+
+  // ---- 1280: a thread opened from the feed sits beside it, and the feed keeps its place ----------------------------
+  {
+    feeds.calls = 0;
+    const page = await open(1280, serve("thread-deep"), "/");
+    await page.waitForFunction(() => document.querySelector("[role=tabpanel] article"));
+    await page.evaluate(() => scrollTo(0, 1200));
+    await page.waitForFunction(() => scrollY === 1200);
+
+    // the card at the top of the window, and the thread's link in it (a click in the page, so nothing scrolls)
+    const card = () =>
+      page.evaluate(() => {
+        const cards = [...document.querySelectorAll("[role=tabpanel] article")];
+        const c = cards.find((el) => el.getBoundingClientRect().top > 60);
+        const link = c.querySelector("a[href*='/post/']");
+        return {
+          text: c.textContent.slice(0, 40),
+          y: c.getBoundingClientRect().top,
+          href: link.getAttribute("href"),
+        };
+      });
+    const before = await card();
+    const asked = feeds.calls;
+
+    const href = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll("[role=tabpanel] article")];
+      const c = cards.find((el) => el.getBoundingClientRect().top > 60);
+      const link = c.querySelector("a[href*='/post/']");
+      link.click();
+      return link.getAttribute("href");
+    });
+    await page.locator('[data-pane="detail"] [data-focus] article').waitFor();
+
+    const m = await page.evaluate(() => {
+      const rect = (el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height };
+      };
+      const feed = document.querySelector('[data-pane="feed"]');
+      const detail = document.querySelector('[data-pane="detail"]');
+      const cards = [...feed.querySelectorAll("article")];
+      const c = cards.find((el) => el.getBoundingClientRect().top > 60);
+      return {
+        feed: {
+          ...rect(feed),
+          scroll: feed.scrollTop,
+          cards: cards.length,
+          display: getComputedStyle(feed).display,
+        },
+        detail: {
+          ...rect(detail),
+          scroll: detail.scrollTop,
+          rows: detail.querySelectorAll("[data-row]").length,
+        },
+        headerBottom: detail.querySelector("header").getBoundingClientRect().bottom,
+        focusTop: detail.querySelector("[data-focus]").getBoundingClientRect().top,
+        rail: document.querySelector("aside") !== null,
+        win: scrollY,
+        title: document.title,
+        active: document.activeElement?.tagName,
+        top: c && { text: c.textContent.slice(0, 40), y: c.getBoundingClientRect().top },
+      };
+    });
+    assert.equal(m.feed.display, "block", "1280: the feed is drawn");
+    assert.ok(m.feed.cards > 10, `1280: the feed keeps its cards (${m.feed.cards})`);
+    near(m.detail.x, m.feed.x + m.feed.w, "1280: the thread is beside the feed", 2);
+    assert.equal(m.feed.h, 800, "1280: the feed is the window's height");
+    assert.equal(m.detail.h, 800, "1280: so is the thread's pane");
+    assert.equal(m.feed.scroll, 1200, `1280: the feed is where it was left (${m.feed.scroll})`);
+    near(m.top.y, before.y, "1280: the same card at the same place");
+    assert.equal(m.top.text, before.text, "1280: the same card");
+    assert.equal(m.win, 0, "1280: the window does not scroll: the panes do");
+    assert.ok(m.detail.rows > 3, `1280: the thread's rows are there (${m.detail.rows})`);
+    assert.ok(
+      m.focusTop >= m.headerBottom - 1 && Math.abs(m.focusTop - m.headerBottom - 8) < 1,
+      `1280: the post is in view in its pane (${m.focusTop} vs ${m.headerBottom})`,
+    );
+    assert.equal(m.rail, false, "1280: the rail yields to the thread");
+    assert.equal(m.active, "H1", "1280: the focus moved into the thread");
+    assert.ok(
+      m.title.endsWith(" · sky") && !m.title.startsWith("Post ·"),
+      `1280: title ${m.title}`,
+    );
+    assert.equal(feeds.calls, asked, "1280: opening the thread asked for no page again");
+
+    // Escape is the back button: the feed's offset, the rail and the focus on the card that opened the thread
+    await page.keyboard.press("Escape");
+    await page.waitForURL(base);
+    await page.waitForFunction(() => scrollY === 1200);
+    const back = await page.evaluate((href) => {
+      const aside = document.querySelector("aside");
+      return {
+        rail: !!aside && getComputedStyle(aside).display !== "none",
+        active: document.activeElement?.matches(`main a[href="${href}"]`) ?? false,
+        y: scrollY,
+        split: document.querySelector("main").hasAttribute("data-split"),
+      };
+    }, href);
+    assert.equal(back.rail, true, "Escape: the rail is back");
+    assert.equal(back.split, false, "Escape: the panes are one column again");
+    assert.equal(back.y, 1200, "Escape: the feed is where it was left");
+    assert.equal(back.active, true, "Escape: the focus is back on the card's link");
+    assert.equal(feeds.calls, asked, "Escape: and nothing was asked again");
+
+    // the browser's back button does the same
+    await page.evaluate(() => {
+      const cards = [...document.querySelectorAll("[role=tabpanel] article")];
+      const c = cards.find((el) => el.getBoundingClientRect().top > 60);
+      c.querySelector("a[href*='/post/']").click();
+    });
+    await page.locator('[data-pane="detail"] [data-focus] article').waitFor();
+    assert.equal(
+      await page.evaluate(() => !!document.querySelector("aside")),
+      false,
+      "back: no rail",
+    );
+    await page.goBack();
+    await page.waitForFunction(() => scrollY === 1200);
+    assert.equal(
+      await page.evaluate(
+        () => getComputedStyle(document.querySelector("aside")).display !== "none",
+      ),
+      true,
+      "back: the rail is back",
+    );
+    assert.equal(feeds.calls, asked, "back: the feed was kept mounted");
+    await page.close();
+  }
+
+  // ---- the deep link at 1280: the same two panes, the feed loaded beside the post --------------------------------
+  {
+    feeds.calls = 0;
+    const page = await open(1280, serve("thread-deep"));
+    await page.locator('[data-pane="detail"] [data-focus] article').waitFor();
+    await page.waitForFunction(() => document.querySelector('[data-pane="feed"] article'));
+    const m = await page.evaluate(() => ({
+      feed: document.querySelectorAll('[data-pane="feed"] article').length,
+      rows: document.querySelectorAll('[data-pane="detail"] [data-row]').length,
+      rail: document.querySelector("aside") !== null,
+      split: document.querySelector("main").hasAttribute("data-split"),
+      title: document.title,
+      active: document.activeElement?.tagName,
+    }));
+    assert.ok(m.feed > 10, `deep 1280: the feed beside the post (${m.feed})`);
+    assert.ok(m.rows > 3, `deep 1280: the thread's rows (${m.rows})`);
+    assert.equal(m.rail, false, "deep 1280: no rail");
+    assert.equal(m.split, true, "deep 1280: two panes");
+    assert.ok(
+      m.title.endsWith(" · sky") && !m.title.startsWith("Post ·"),
+      `deep 1280: title ${m.title}`,
+    );
+    assert.equal(m.active, "H1", "deep 1280: the focus moved into the thread");
     await page.close();
   }
 
