@@ -309,6 +309,23 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale",
   },
   {
+    name: "board",
+    tested: true,
+    // the edge geometry is shared with the diagram, and the two previews are the kit's own button and badge
+    with: [
+      "badge/badge.tsx",
+      "button/button.tsx",
+      "render.tsx",
+      "route.ts",
+      "theme.ts",
+      "tokens.ts",
+    ],
+    title: "Board",
+    description:
+      "A design system on a DOM plane: token cards with their value and their rule, the components that use them, and a line per use",
+    also: ["@cssints/headless"],
+  },
+  {
     name: "meter",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

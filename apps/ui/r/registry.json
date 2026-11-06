@@ -1554,6 +1554,68 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "board",
+      "type": "registry:ui",
+      "title": "Board",
+      "description": "A design system on a DOM plane: token cards with their value and their rule, the components that use them, and a line per use",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme", "@cssints/headless"],
+      "files": [
+        {
+          "path": "board.tsx",
+          "target": "src/components/ui/board.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "badge.tsx",
+          "target": "src/components/ui/badge.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "button.tsx",
+          "target": "src/components/ui/button.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "route.ts",
+          "target": "src/components/ui/route.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "board.browser.test.tsx",
+          "target": "src/components/ui/board.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "meter",
       "type": "registry:ui",
       "title": "Meter",
