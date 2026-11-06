@@ -16,6 +16,7 @@ import {
   makeReferenceModel,
 } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 import {
   listboxMultiBridge,
   listboxMultiConfig,
@@ -43,6 +44,7 @@ import multiDefinitionJson from "@cssints/apg-specs/apg/listbox-multi.model.json
 import reactAria from "@cssints/apg-specs/scenarios/apg/listbox.react-aria.json";
 import singleDefinitionJson from "@cssints/apg-specs/apg/listbox-single.model.json";
 import typeaheadDefinitionJson from "@cssints/apg-specs/apg/listbox-typeahead.model.json";
+import { supportsFocusGroup } from "../src/focusgroup";
 
 interface Machine {
   readonly bridge: SpecBridge;
@@ -228,4 +230,100 @@ describe("createListbox x spec (differential walk)", () => {
       });
     });
   }
+});
+
+// The walk above proves the model on the polyfill, which is the only provider
+// that renders the movement it probes. This is the native half: the same
+// contract under real keys, where the platform keeps the tab stop and writes no
+// `tabindex` (the walk's untrusted keydowns would be ignored there).
+describe("createListbox x focusgroup (the native platform, real keys)", () => {
+  it.skipIf(!supportsFocusGroup())(
+    "Tabs in on the platform's tab stop, and arrows, Home and End move the DOM focus",
+    async () => {
+      const config = listboxSingleConfig({
+        items: ["0", "1", "2", "3"],
+        selectionMode: "single",
+        followsFocus: true,
+      });
+      const mounted = mountListbox(config, "auto");
+      const list = mounted.root.querySelector<HTMLElement>('[data-part="listbox"]');
+      const options = [...mounted.root.querySelectorAll<HTMLElement>('[data-part="option"]')];
+      expect(list?.getAttribute("focusgroup")).toBe("listbox block nowrap");
+      // the items are focusable for the platform, and it owns which of them is
+      // the tab stop: the markup keeps the authored value
+      for (const option of options) {
+        expect(option.getAttribute("tabindex")).toBe("0");
+      }
+
+      const before = document.createElement("button");
+      const after = document.createElement("button");
+      document.body.insertBefore(before, mounted.root);
+      document.body.insertBefore(after, mounted.root.nextSibling);
+      before.focus();
+      await userEvent.tab();
+      expect(document.activeElement).toBe(options[0]);
+      expect(mounted.focus?.()).toBe("option:0");
+      expect(list?.getAttribute("aria-activedescendant")).toBe(options[0]?.id);
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(document.activeElement).toBe(options[1]);
+      expect(mounted.focus?.()).toBe("option:1");
+      // the focus move is a state change the primitive reads, and selection follows it
+      expect(options[1]?.getAttribute("aria-selected")).toBe("true");
+      expect(options[0]?.getAttribute("aria-selected")).toBe("false");
+
+      await userEvent.keyboard("{End}");
+      expect(document.activeElement).toBe(options[3]);
+      await userEvent.keyboard("{ArrowDown}");
+      expect(document.activeElement).toBe(options[3]);
+      await userEvent.keyboard("{Home}");
+      expect(document.activeElement).toBe(options[0]);
+      await userEvent.keyboard("{ArrowUp}");
+      expect(document.activeElement).toBe(options[0]);
+
+      // still one tab stop: Tab leaves the group from wherever focus is
+      await userEvent.tab();
+      expect(document.activeElement).toBe(after);
+      await userEvent.tab({ shift: true });
+      expect(document.activeElement).toBe(options[0]);
+
+      before.remove();
+      after.remove();
+      mounted.dispose();
+    },
+  );
+
+  it.skipIf(!supportsFocusGroup())(
+    "leaves a disabled option out of the arrows and the tab order",
+    async () => {
+      const config = listboxSingleConfig({
+        items: ["0", "1", "2", "3"],
+        selectionMode: "single",
+        disabled: [1],
+      });
+      const mounted = mountListbox(config, "auto");
+      const options = [...mounted.root.querySelectorAll<HTMLElement>('[data-part="option"]')];
+      expect(options[1]?.getAttribute("focusgroup")).toBe("none");
+      expect(options[1]?.getAttribute("tabindex")).toBe("-1");
+
+      const before = document.createElement("button");
+      const after = document.createElement("button");
+      document.body.insertBefore(before, mounted.root);
+      document.body.insertBefore(after, mounted.root.nextSibling);
+      before.focus();
+      await userEvent.tab();
+      expect(document.activeElement).toBe(options[0]);
+      await userEvent.keyboard("{ArrowDown}");
+      expect(document.activeElement).toBe(options[2]);
+      await userEvent.keyboard("{ArrowUp}");
+      expect(document.activeElement).toBe(options[0]);
+      // and the disabled option is not a tab stop of its own
+      await userEvent.tab();
+      expect(document.activeElement).toBe(after);
+
+      before.remove();
+      after.remove();
+      mounted.dispose();
+    },
+  );
 });

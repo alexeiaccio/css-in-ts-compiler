@@ -16,17 +16,50 @@ const asRecord = (value: Json | undefined): Readonly<Record<string, Json>> => {
 };
 
 /**
+ * The walk's `key` steps are programmatic (`prop` steps), so they become a real
+ * keydown on the focused option: the platform moves focus along the block axis,
+ * the primitive prevents the keys it owns. The walk alphabet spells arrows
+ * short (`Down`).
+ */
+const dispatchKey = (target: HTMLElement, value: Json | undefined): void => {
+  const record = asRecord(value);
+  const key = record["key"];
+  if (typeof key !== "string") {
+    throw new Error(`key needs a string key, got ${JSON.stringify(value)}`);
+  }
+  const named = ["Left", "Right", "Up", "Down"].includes(key) ? `Arrow${key}` : key;
+  target.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: named === "Space" ? " " : named,
+      shiftKey: record["shift"] === true,
+      ctrlKey: record["ctrl"] === true,
+      metaKey: record["meta"] === true,
+      altKey: record["alt"] === true,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+};
+
+/**
  * Renders `createListbox` as a `role=listbox` container plus `role=option`
  * children (each option carries `data-part="option"`), and exposes the
  * `Mounted` the DOM driver needs. DOM focus is synced to the active option so
  * the driver's `focus` observation reads `option:N`.
+ *
+ * The walk drives the polyfill provider (see `mountListbox`'s `provider`): its
+ * `key` steps are untrusted keydowns, which a native engine ignores, and the
+ * polyfill moves focus for them exactly as it does for a real key.
  *
  * Controlled, the fixture is the host: it keeps the selection (or, in
  * `selectionMode: 'none'`, the active option) in a signal, passes it as
  * `value` / `activeValue`, and either writes every request back (`accepts`) or
  * ignores the callback.
  */
-export const mountListbox = (config: ListboxMountConfig): Mounted => {
+export const mountListbox = (
+  config: ListboxMountConfig,
+  provider: "auto" | "polyfill" = "polyfill",
+): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const events = new Map<string, Json[]>();
@@ -70,6 +103,10 @@ export const mountListbox = (config: ListboxMountConfig): Mounted => {
       disabled: config.disabled,
       focusOnHover: config.focusOnHover,
       label: config.ariaLabel,
+      // the walk dispatches its keys as untrusted events: the native engine
+      // ignores those and writes no tabindex. `mountListbox(config, "auto")`
+      // is the native path, driven by real keys in the browser test.
+      provider,
       onValueChange: (selected) => {
         // The ported scenarios encode `onSelectionChange` as the current
         // selection keys (not an invocation history), so replace each time;
@@ -136,16 +173,14 @@ export const mountListbox = (config: ListboxMountConfig): Mounted => {
           api?.blur();
           break;
         case "key": {
-          const record = asRecord(value);
-          if (typeof record["key"] !== "string") {
-            throw new Error(`key needs a string key, got ${JSON.stringify(value)}`);
+          // a real keydown on the focused option: the platform moves the active
+          // option, and the primitive's own listener runs its keys; a key step
+          // with focus outside the list is the model's no-op
+          const index = api?.focused() === true ? (api?.active() ?? -1) : -1;
+          const target = index >= 0 ? optionElements()[index] : undefined;
+          if (target !== undefined) {
+            dispatchKey(target, value);
           }
-          api?.keyDown(record["key"], {
-            shift: record["shift"] === true,
-            ctrl: record["ctrl"] === true,
-            meta: record["meta"] === true,
-            alt: record["alt"] === true,
-          });
           break;
         }
         case "type":

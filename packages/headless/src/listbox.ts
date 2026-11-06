@@ -1,5 +1,19 @@
-import { type Accessor, createSignal, createUniqueId } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createSignal,
+  createUniqueId,
+  onCleanup,
+  onSettled,
+} from "solid-js";
 import { createControllable } from "./controllable";
+import {
+  type FocusGroupDefinition,
+  type FocusGroupHandle,
+  focusGroup,
+  focusGroupAttribute,
+  focusGroupPolyfill,
+} from "./focusgroup";
 
 export type ListboxSelectionMode = "single" | "multiple" | "none";
 
@@ -62,6 +76,13 @@ export interface ListboxOptions {
   readonly onSelectionChange?: (selected: ReadonlyArray<number>) => void;
   /** A request to move the active option (the type-ahead focus move). */
   readonly onActiveChange?: (index: number) => void;
+  /**
+   * `"polyfill"` skips the feature detect and drives
+   * `@microsoft/focusgroup-polyfill`'s low-level group even where the engine has
+   * `focusgroup` (a test, or a host that knows it needs the polyfill). `"auto"`
+   * by default.
+   */
+  readonly provider?: "auto" | "polyfill";
 }
 
 export interface ListboxProps {
@@ -69,11 +90,17 @@ export interface ListboxProps {
   readonly "aria-multiselectable": "true" | "false" | undefined;
   readonly "aria-activedescendant": string | undefined;
   readonly "aria-label": string | undefined;
-  readonly onKeyDown: (event: KeyboardEvent) => void;
+  /** The definition as the `focusgroup` attribute (`"listbox block nowrap"`). */
+  readonly focusgroup: string;
+  readonly ref: (element: HTMLElement) => void;
   readonly onFocusOut: (event: FocusEvent) => void;
 }
 
-/** Spread onto an element with `role=option`. */
+/**
+ * Spread onto an element with `role=option`. `focusgroup` is `"none"` on an
+ * option the arrows must not reach, and `tabindex` is the constant focusability
+ * value the platform needs, not the roving stop.
+ */
 export interface ListboxOptionProps {
   readonly id: string;
   readonly role: "option";
@@ -81,7 +108,14 @@ export interface ListboxOptionProps {
   readonly "aria-disabled": "true" | undefined;
   readonly "aria-posinset": number;
   readonly "aria-setsize": number;
+  readonly focusgroup: "none" | undefined;
+  /**
+   * The constant focusability value (`0`, or `-1` when disabled). The platform
+   * owns WHICH option is the group's tab stop; the item only has to be focusable
+   * for it to have a stop at all.
+   */
   readonly tabindex: 0 | -1;
+  readonly ref: (element: HTMLElement) => void;
   readonly onClick: () => void;
   readonly onFocus: () => void;
   readonly onMouseEnter: () => void;
@@ -96,6 +130,11 @@ export interface Listbox {
   /** Focus entry: the first selected option, else the first option. Returns the entry index. */
   readonly focus: () => number;
   readonly blur: () => void;
+  /**
+   * The keys the library owns (activation, the multi-select range modifiers,
+   * type-ahead); the arrows and Home / End are the platform's, so they move
+   * nothing here. A host that wants them programmatically focuses the option.
+   */
   readonly keyDown: (key: string, modifiers?: ListboxModifiers) => void;
   /** Type-ahead input (one printable char). */
   readonly type: (text: string) => void;
@@ -119,6 +158,27 @@ const sameSelection = (a: ReadonlyArray<number>, b: ReadonlyArray<number>): bool
  * single-select (with optional selection-follows-focus), multi-select
  * (recommended model) and type-ahead — and is verified against each generated
  * model by a differential walk in `test/listbox.browser.test.tsx`.
+ *
+ * The roving tabindex is the platform's `focusgroup="listbox"` contract
+ * (`shared/focusgroup.qnt`, `./focusgroup`): arrows along the block axis (no
+ * wrap), Home / End, the last-focused memory and WHICH option is the tab stop
+ * are the browser's (Chromium 150+) or `@microsoft/focusgroup-polyfill`'s, and
+ * the primitive renders only the constant focusability value an item needs to be
+ * in a group at all. `focus` / `active` are readings of the DOM: an option's
+ * `focus` is the move, so a platform arrow (and a host's own `element.focus()`)
+ * lands in the same state. The library owns only the spec's delta — the
+ * selection model, `aria-selected`, range selection, type-ahead, and the
+ * eligibility of a disabled option: the listbox's contract makes it unreachable,
+ * so it is excluded from the item collection and wears `focusgroup="none"`,
+ * because the platform reads only `aria-disabled` and would still move focus onto
+ * it.
+ *
+ * `aria-activedescendant` is still emitted while the widget holds focus: it is
+ * what the spec's bridge probes, and it is the focus model of a host that keeps
+ * DOM focus on the container (a combobox popup, `createRearrangeableListbox`).
+ * The adapter does NOT apply there — a focusgroup is a roving model that moves
+ * real focus between items, an activedescendant listbox moves a highlight — so
+ * that mode keeps its own arrow handling, as `listbox-rearrangeable.ts` does.
  *
  * Request/commit (map ticket `rt1p`): uncontrolled by default
  * (`defaultValue` / `defaultSelected`); pass `value` + `onValueChange` to own
@@ -186,6 +246,73 @@ export const createListbox = (options: ListboxOptions): Listbox => {
   };
 
   const optionId = (index: number): string => itemList()[index]?.id ?? `${base}-option-${index}`;
+
+  /** The option elements the provider moves focus between, in index order. */
+  const elements = new Map<number, HTMLElement>();
+  const itemElements = (): HTMLElement[] =>
+    [...elements.entries()]
+      .sort(([a], [b]) => a - b)
+      // a removed option and a disabled one leave the group: the listbox's own
+      // contract says the arrows cannot reach a disabled option, and the platform
+      // sees only `aria-disabled` on it (a native `disabled` control it would skip)
+      .filter(([index, element]) => element.isConnected && !isDisabled(index))
+      .map(([, element]) => element);
+
+  /** One source for the attribute and for the polyfill's definition. */
+  const definition = (): FocusGroupDefinition => ({
+    behavior: "listbox",
+    axis: "block",
+    wrap: false,
+  });
+
+  let group: FocusGroupHandle | undefined;
+  let owner: HTMLElement | undefined;
+  /**
+   * A pointer press is in progress: the browser focuses the row before its click,
+   * and the click is the gesture's one intent. Set by the owner's `pointerdown`,
+   * cleared by any key, by the click and on leaving the list.
+   */
+  let pointerDown = false;
+  const onPointerDown = (): void => {
+    pointerDown = true;
+  };
+
+  /**
+   * The owner's ref: the keydown listener goes on before the provider, so a key
+   * the primitive consumes is already `preventDefault`ed when the polyfill's own
+   * listener (also on the owner) reads it. A delegated Solid `onKeyDown` would run
+   * at the document, after the polyfill has moved focus.
+   */
+  const attach = (element: HTMLElement): void => {
+    if (owner === element) {
+      return;
+    }
+    owner = element;
+    element.addEventListener("keydown", keyDown);
+    element.addEventListener("pointerdown", onPointerDown);
+    const provider = options.provider === "polyfill" ? focusGroupPolyfill : focusGroup;
+    group = provider(element, { definition: definition(), items: itemElements });
+  };
+
+  // the item set (a getter-backed list) or a disabled flag changed: re-collect
+  createEffect(
+    () => itemList(),
+    () => {
+      group?.update();
+    },
+  );
+
+  onSettled(() => {
+    // the owner's ref may run before its options' refs, so collect once more after the render
+    group?.update();
+  });
+
+  onCleanup(() => {
+    owner?.removeEventListener("keydown", keyDown);
+    owner?.removeEventListener("pointerdown", onPointerDown);
+    group?.destroy();
+    group = undefined;
+  });
 
   function clampActive(index: number): void {
     requestActive(clamp(index));
@@ -345,18 +472,6 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       }
       clearTypeahead();
       switch (key) {
-        case "ArrowDown":
-          moveActive(stepIndex(active(), 1));
-          break;
-        case "ArrowUp":
-          moveActive(stepIndex(active(), -1));
-          break;
-        case "Home":
-          moveActive(firstEnabled());
-          break;
-        case "End":
-          moveActive(lastEnabled());
-          break;
         case " ":
         case "Space":
         case "Enter":
@@ -406,18 +521,6 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       return false;
     }
     switch (key) {
-      case "ArrowDown":
-        clampActive(stepIndex(active(), 1));
-        break;
-      case "ArrowUp":
-        clampActive(stepIndex(active(), -1));
-        break;
-      case "Home":
-        clampActive(firstEnabled());
-        break;
-      case "End":
-        clampActive(lastEnabled());
-        break;
       case " ":
       case "Space":
         toggle(active());
@@ -426,6 +529,53 @@ export const createListbox = (options: ListboxOptions): Listbox => {
         return false;
     }
     return true;
+  }
+
+  /** Where a plain navigation key lands, by the platform's own item set (the enabled options). */
+  function navTarget(key: string): number | null {
+    switch (key) {
+      case "ArrowDown":
+        return stepIndex(active(), 1);
+      case "ArrowUp":
+        return stepIndex(active(), -1);
+      case "Home":
+        return firstEnabled();
+      case "End":
+        return lastEnabled();
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * The DOM half: the primitive prevents the keys it owns — activation, the
+   * selection modifiers and type-ahead — so they never reach the provider, which
+   * owns the movement (arrows, Home / End). Shift / Ctrl / Meta + arrow are
+   * ignored by the platform, so the multi-select range keys move the active
+   * option themselves and the host's focus mirror follows (see the docs).
+   *
+   * One movement the provider cannot report: a key that lands on the active
+   * option already (an edge, or a run of disabled options) fires no `focus`, so
+   * the selection-follows-focus intent for that option is committed here.
+   */
+  function keyDown(event: KeyboardEvent): void {
+    pointerDown = false;
+    const plain = !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
+    if (plain && mode === "single" && followsFlag) {
+      const target = navTarget(event.key);
+      if (target !== null && target === active()) {
+        commit([target]);
+      }
+    }
+    const handled = handleKey(event.key, {
+      shift: event.shiftKey,
+      ctrl: event.ctrlKey,
+      meta: event.metaKey,
+      alt: event.altKey,
+    });
+    if (handled) {
+      event.preventDefault();
+    }
   }
 
   return {
@@ -502,16 +652,12 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       get "aria-label"() {
         return options.label;
       },
-      onKeyDown: (event) => {
-        const handled = handleKey(event.key, {
-          shift: event.shiftKey,
-          ctrl: event.ctrlKey,
-          meta: event.metaKey,
-          alt: event.altKey,
-        });
-        if (handled) {
-          event.preventDefault();
-        }
+      get focusgroup() {
+        // the forced polyfill path keeps the native engine out of the group
+        return options.provider === "polyfill" ? "" : focusGroupAttribute(definition());
+      },
+      get ref() {
+        return attach;
       },
       onFocusOut: (event) => {
         const current = event.currentTarget;
@@ -519,6 +665,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
         if (current instanceof Node && next instanceof Node && current.contains(next)) {
           return;
         }
+        pointerDown = false;
         if (focusedFlag) {
           setFocusedValue(false);
           clearTypeahead();
@@ -538,10 +685,21 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       get "aria-setsize"() {
         return count();
       },
-      get tabindex() {
-        return active() === index ? 0 : -1;
+      get focusgroup() {
+        return isDisabled(index) ? ("none" as const) : undefined;
+      },
+      // the platform owns WHICH option is the tab stop; the item must be
+      // focusable for it to own a stop at all (the polyfill's own recipe is
+      // tabindex="0" on every item), and a disabled option stays out of the
+      // sequential order as well as out of the group
+      get tabindex(): 0 | -1 {
+        return isDisabled(index) ? -1 : 0;
+      },
+      ref: (element: HTMLElement) => {
+        elements.set(index, element);
       },
       onClick: () => {
+        pointerDown = false;
         if (isDisabled(index)) {
           return;
         }
@@ -555,7 +713,20 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       },
       onFocus: () => {
         setFocusedValue(true);
-        clampActive(index);
+        if (pointerDown) {
+          // the browser focuses the row before its click: the click is the intent,
+          // so this move must not also commit the follows-focus selection
+          clampActive(index);
+          return;
+        }
+        // DOM focus is the move: the platform's arrow already moved it here
+        moveActive(index);
+        // a controlled active may refuse the move; the DOM focus has already
+        // moved, so put it back on the option the state names
+        const held = active();
+        if (held !== index) {
+          elements.get(held)?.focus();
+        }
       },
       onMouseEnter: () => {
         if (!focusOnHover || isDisabled(index)) {
