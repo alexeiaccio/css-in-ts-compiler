@@ -320,10 +320,11 @@ const STARTERS: ReadonlyArray<Starter> = [
       "theme.ts",
       "tokens.ts",
     ],
+    // `route.ts` draws the curved edge with perfect-arrows (MIT); the diagram's straight line needs nothing
+    deps: ["perfect-arrows"],
     title: "Board",
     description:
       "A design system on a DOM plane: token cards with their value and their rule, the components that use them, and a line per use",
-    also: ["@cssints/headless"],
   },
   {
     name: "meter",
