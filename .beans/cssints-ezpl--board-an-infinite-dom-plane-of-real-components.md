@@ -1,11 +1,11 @@
 ---
 # cssints-ezpl
 title: 'board: an infinite DOM plane of real components'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-06T10:15:47Z
-updated_at: 2026-11-06T10:15:47Z
+updated_at: 2026-11-06T10:45:53Z
 ---
 
 A plane you place real components on: the starter the dragging note (`cssints-2cxd`) named as the right home for free-form
@@ -41,3 +41,10 @@ One starter `board` in `apps/ui/src/registry/board/`: the plane with pan/zoom (k
 (two kit components, one frame with a title), one or two edges between them, selection with its keyboard path, an inspector
 that edits a card's value and a token, an outline list, a story with a seeded board, and a conformance test that reads the
 plane's transform and the selection. Decisions recorded in `docs/wayfinder.md`.
+
+
+## Progress (2026-11-06)
+
+Shipped as a **design system map** rather than a generic canvas: `apps/ui/src/registry/board/` with token cards (swatch, text value, the rule behind it), part cards holding real components (Button, Badge) in an `inert` body, an edge per use, a current card that dims what it does not reach, pointer drag with a plane clamp, arrow nudge, and `createPanZoom` for pan/zoom (its roledescription overridden to "board"). The edge geometry was extracted to `apps/ui/src/registry/route.ts` and is shared with the diagram. 6 conformance tests, the site test drives the page, the map is in the registry (`r/board.json`) and in wayfinder.
+
+Left for this bean: editing a token value on the board (the management action), an outline view, and curved/avoiding edge routing (where pave would enter).

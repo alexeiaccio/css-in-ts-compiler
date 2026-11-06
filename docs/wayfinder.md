@@ -4536,3 +4536,42 @@ component at `x/y/w/h`; the document is a node list and the styles are tokens; e
 the borders as `diagram` does. The keyboard path is the board's own (a roving tab stop across cards, arrows move, Shift+arrows
 resize, Escape drops the selection, Delete removes, one live region announces), plus an outline view, because a 2-D plane is
 not a document. Refused: the constraint solver, the shader layers, CRDT sync, and any canvas renderer.
+
+## The board, as built: a design system map on a DOM plane (2026-11-06)
+
+The references above, the tldraw sketch and one instruction ("a board attached to the styled components, for managing the
+design system") produced `apps/ui/src/registry/board/`. It is not a general canvas: it is **the design system as a map** —
+token cards on the left, cards that hold real components on the right, a line per use.
+
+- **A token card carries three things.** The painted value (a swatch), the value as text or the role a colour has no number
+  for, and **the rule behind it**. That third line is Design Book's argument (meodai: tokens that keep their reasons): a card
+  that says only `#3b5bdb` keeps the answer and drops the reason. The story's cards read "The one accent." / "Controls inside
+  a card."; the sentence is the design system's, not the board's inference.
+- **The tldraw sketch is the model.** On `effects-of-atmosphere/docs/map.tldraw` the token cluster is text nodes: "colors
+  palette → beans constrains dimensions ramps constrains mode = settings dark/light theme colors in view by intent, mode,
+  user role, user preference", and a second cluster for fonts. So tokens are grouped by **dimension**, a theme is a **mode**
+  over them, and which token applies depends on context — which is exactly a `data-mode` scope here. The board is a view over
+  the theme (`var(--color-…)` strings), never a second copy of the palette: the dark story is the same nodes under
+  `data-mode="dark"`, and the tint switch moves it too.
+- **The cards are the data, the lines are decoration.** A token card says "Used by Button, Badge", a part card says "Uses
+  color.highlight, radius.on-highlight", both derived from the edges so they cannot drift from the picture; the SVG is
+  `aria-hidden`. With the stylesheet off the board is a list of names, values, rules and relationships.
+- **The current card is the management view.** Click a token, or open the story with `defaultSelected`, and the cards and
+  lines it reaches stay lit while the rest step back; the status line says it in a sentence. The lines are z-ordered above
+  the dimmed cards and under the lit ones, so a stroke that crosses a card reads as one reach instead of vanishing behind it.
+- **The plane is `createPanZoom` with `bounds: "free"`.** The primitive's gesture, key and live-value contract is reused as
+  is; its `aria-roledescription="zoomable image"` is overridden to "board" by the skin (the one place a board is not an
+  image), and a card stops the pointer before it reaches the viewport, so a drag moves the card and a drag on the empty plane
+  pans. Cards are clamped to the plane, nudged 8 px (24 with Shift) when focused, and the plane's arrows pan only when the
+  plane has the focus. A preview is `inert`: a card is not a control, and a real Button inside a card would otherwise nest a
+  second control inside the first.
+- **`route.ts` came out of the diagram.** Its border-to-border route, arrow head and label placement are now one module both
+  drawings import (the diagram's 11 tests did not change). The board's lines are still straight: routing around a card, an
+  offset copy or an arrow along a curve is where **pave** would enter, and it is not needed yet.
+
+**Evidence:** the board's 6 conformance tests (named figure and reading order; every relationship as text; current + dim +
+Escape; pointer drag and the clamp; arrow nudge against plane pan; zoom and the live value), the extracted diagram still 11,
+the site test driving `#board--design-system` (7 cards, a token made current, the Badge in and the radius card out), the
+build, `bun run typecheck` and `diff:check`. Screenshots: the map at rest, the same map in dark, and `color.highlight`
+current. **Left:** the management action itself (editing a token's value on the board), an outline view for a plane that
+grows past one screen, and curved routing if a real map needs it.
