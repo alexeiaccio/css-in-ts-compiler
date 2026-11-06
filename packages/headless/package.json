@@ -43,7 +43,8 @@
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
-    "@cssints/machine": "workspace:*"
+    "@cssints/machine": "workspace:*",
+    "@microsoft/focusgroup-polyfill": "^1.6.0"
   },
   "devDependencies": {
     "@cssints/apg-specs": "workspace:*",
