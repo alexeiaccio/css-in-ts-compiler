@@ -1,10 +1,12 @@
 import { container, media } from "cssints" with { type: "cssints" };
 
+import { railQuery } from "./breakpoints.ts";
+
 // Mu's breakpoints (tokens.json has them as data: a custom property cannot sit inside @media).
 export const [gtPhone, gtMobile, gtRail, gtTablet] = media(
   "(width >= 500px)",
   "(width >= 800px)",
-  "(width >= 1100px)",
+  railQuery,
   "(width >= 1300px)",
 );
 
