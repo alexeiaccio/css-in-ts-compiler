@@ -11,8 +11,8 @@
 //     aria-checked true|false on every radio.
 // Examples (variants of the SAME machine, chosen once at init via `flavor`):
 //   - roving   https://www.w3.org/WAI/ARIA/apg/patterns/radio/examples/radio/
-//              DOM focus sits on the radio; tabindex 0 on the tab stop radio,
-//              -1 on the others; the radiogroup has no tabindex.
+//              DOM focus sits on the radio; exactly one radio is the tab stop
+//              (tabindex 0, -1 on the others); the radiogroup has no tabindex.
 //   - activedescendant
 //              https://www.w3.org/WAI/ARIA/apg/patterns/radio/examples/radio-activedescendant/
 //              DOM focus sits on the radiogroup (tabindex 0); radios carry no
@@ -20,6 +20,33 @@
 //              visually-focused radio while focus is inside the group.
 // Disabled radios (task requirement, not in the APG examples): they are never
 // focused, checked or the tab stop; arrows skip them (wrapping across them).
+//
+// The roving tab stop is the PLATFORM's, not a second copy of the rule. Movement
+// along both axes, Home / End, wrap and the memory are the `focusgroup="radiogroup"`
+// contract, imported from shared/focusgroup.qnt and NOT restated here; this spec
+// models only the pattern's delta (selection, aria-orientation, disabled items).
+// The definition is `nomemory`, with the checked radio — else the first enabled one
+// — carrying `focusgroupstart`, and the platform's single stop is:
+//   focus inside the group   the FOCUSED radio (`fgTabIndex` renders 0 on it): on
+//                            entry that is the start marker (`fgEntry`), and every
+//                            move takes the stop along with the focus
+//   focus outside the group  the start marker again (`fgStopOnLeave` without
+//                            memory: the checked radio, else the first enabled one)
+// `radioTabindex` is derived from `fgTabIndex(tabStop, i)` and the entry/leave
+// transitions from `fgEntry` / `fgStopOnLeave`, so a rendered stop the engine
+// cannot produce is not representable here.
+//
+// What the previous model got wrong: it pinned `tabindex=0` to the CHECKED radio in
+// every state (`TabStopIsCheckedOrFirst`). In an uncontrolled group, where an arrow
+// checks the radio it focuses, that is indistinguishable — but a controlled host
+// that REJECTS a request leaves the focus on the radio the user moved to while the
+// check stays behind, and there the platform's stop follows the focus: the native
+// engine keeps the stop in its focus controller and the polyfill rewrites `tabindex`
+// on the item that receives focus. The old invariant described an implementation
+// that scripted the whole roving tabindex, not the contract a native `focusgroup`
+// can be asked to satisfy. The APG rule users see is preserved: Tab enters on the
+// checked radio, which is what `focusgroupstart` + `fgStopOnLeave` give on the next
+// entry, and the walk now checks the stop the engine actually keeps.
 //
 // Request vs commit (map ticket rt1p). The checked radio is the value. Every
 // event a user sees as a change — `arrow_next`, `arrow_prev`, `space`, `click`
@@ -41,8 +68,8 @@
 // radios (bit i = radio i), drawn from a pool that always leaves one enabled;
 // `pick` is the preselected radio (-1 = none). `init` is the literal default
 // (roving, none disabled, none checked); set_flavor / set_disabled / preselect
-// re-mount the widget with other props (focus leaves the group) and follow the
-// controlled value.
+// re-mount the widget with other props (focus leaves the group, so the platform
+// re-seats its stop on the start marker) and follow the controlled value.
 //
 // Sentinels: focus/checked -1 = none. domFocus: 0..3 = a radio, 4 = the
 // radiogroup element, -1 = outside the group. tabindex: -2 = attribute absent.
@@ -56,10 +83,13 @@
 // group is unrolled into index arithmetic. Widen the modulus and weight table
 // to grow it.
 module apg_radio {
+  import focusgroup.* from "../../shared/focusgroup"
+
   var flavor: str  // "roving" | "activedescendant"
   var mask: int     // disabled bitmask (bit i set = radio i disabled)
   var checked: int  // checked radio, -1 = none
   var focus: int    // radio holding (visual) focus, -1 = focus outside the group
+  var tabStop: int  // the radio that owns tabindex=0 (the platform's single stop)
   var controlled: bool // the host owns the check (`value` prop present)
   var accepting: bool  // controlled host that answers every request with its intent
   var valueProp: int   // the controlled value prop (meaningful while controlled)
@@ -99,6 +129,11 @@ module apg_radio {
   def clickWant(t: int, m: int, c: int): int = if (isEnabled(m, t)) t else c
   // a value the host may write: -1 (none) or an enabled radio
   def validPick(v: int, m: int): bool = or(v < 0, isEnabled(m, v))
+  // the check after the host writes `v` (a no-op unless controlled and valid)
+  def written(v: int, m: int, c: int, ctl: bool): int =
+    if (and(ctl, validPick(v, m))) v else c
+  // the check after a remount re-picks it
+  def picked(pick: int, m: int): int = if (and(pick >= 0, isEnabled(m, pick))) pick else -1
   // controlled host that keeps the old value: the request is rejected
   def holds: bool = and(controlled, not(accepting))
   // controlled host that writes the intent back through the value prop
@@ -111,15 +146,17 @@ module apg_radio {
 
   // ---- ARIA contract, derived from state ----
 
-  // the radio Tab lands on: the checked one, else the first enabled one
-  def tabStop(m: int, c: int): int = if (c >= 0) c else firstEnabled(m)
+  // the entry point and post-leave stop: the `focusgroupstart` radio — the checked
+  // one, else the first enabled one
+  def start(m: int, c: int): int = if (c >= 0) c else firstEnabled(m)
 
   def ariaChecked(c: int, i: int): bool = c == i
   def ariaDisabled(m: int, i: int): bool = disabled(m, i)
 
-  // roving: tabindex 0 on the tab stop, -1 elsewhere; activedescendant: absent
-  def radioTabindex(v: str, m: int, c: int, i: int): int =
-    if (v == "roving") (if (i == tabStop(m, c)) 0 else -1) else -2
+  // roving: the platform's rendered stop (shared/focusgroup.qnt `fgTabIndex`);
+  // activedescendant: no radio carries a tabindex
+  def radioTabindex(v: str, s: int, i: int): int =
+    if (v == "roving") fgTabIndex(s, i) else -2
   // activedescendant: the radiogroup itself is the tab stop; roving: absent
   def groupTabindex(v: str): int = if (v == "activedescendant") 0 else -2
   // aria-activedescendant on the radiogroup: the focused radio, -1 = absent
@@ -132,9 +169,9 @@ module apg_radio {
   def checkedCount(c: int): int =
     b2i(ariaChecked(c, 0)) + b2i(ariaChecked(c, 1)) + b2i(ariaChecked(c, 2)) + b2i(ariaChecked(c, 3))
   // tab stops contributed by one radio / the group, summed over the widget
-  def tabStopCount(v: str, m: int, c: int): int =
-    b2i(radioTabindex(v, m, c, 0) == 0) + b2i(radioTabindex(v, m, c, 1) == 0)
-      + b2i(radioTabindex(v, m, c, 2) == 0) + b2i(radioTabindex(v, m, c, 3) == 0)
+  def tabStopCount(v: str, s: int): int =
+    b2i(radioTabindex(v, s, 0) == 0) + b2i(radioTabindex(v, s, 1) == 0)
+      + b2i(radioTabindex(v, s, 2) == 0) + b2i(radioTabindex(v, s, 3) == 0)
       + b2i(groupTabindex(v) == 0)
 
   action init = all {
@@ -142,6 +179,7 @@ module apg_radio {
     mask' = 0,
     checked' = -1,
     focus' = -1,
+    tabStop' = 0,
     controlled' = false,
     accepting' = false,
     valueProp' = -1,
@@ -152,9 +190,10 @@ module apg_radio {
   }
 
   // The three configuration actions model (re)mounting the widget with other
-  // props: they drop focus out of the group, so every later state is reached
-  // through the keyboard/pointer actions below. While controlled they keep the
-  // value prop in step with the check.
+  // props: they drop focus out of the group, and the platform re-seats its stop on
+  // the start marker (`fgStopOnLeave` without memory), so every later state is
+  // reached through the keyboard/pointer actions below. While controlled they keep
+  // the value prop in step with the check.
   action set_flavor = {
     nondet v = Set("roving", "activedescendant").oneOf()
     all {
@@ -162,6 +201,7 @@ module apg_radio {
       mask' = mask,
       checked' = checked,
       focus' = -1,
+      tabStop' = fgStopOnLeave(false, tabStop, start(mask, checked)),
       controlled' = controlled,
       accepting' = accepting,
       valueProp' = valueProp,
@@ -181,6 +221,7 @@ module apg_radio {
       mask' = m,
       checked' = if (and(checked >= 0, isEnabled(m, checked))) checked else -1,
       focus' = -1,
+      tabStop' = fgStopOnLeave(false, tabStop, start(m, if (and(checked >= 0, isEnabled(m, checked))) checked else -1)),
       controlled' = controlled,
       accepting' = accepting,
       valueProp' = if (controlled) (if (and(checked >= 0, isEnabled(m, checked))) checked else -1) else valueProp,
@@ -197,11 +238,12 @@ module apg_radio {
     all {
       flavor' = flavor,
       mask' = mask,
-      checked' = if (and(pick >= 0, isEnabled(mask, pick))) pick else -1,
+      checked' = picked(pick, mask),
       focus' = -1,
+      tabStop' = fgStopOnLeave(false, tabStop, start(mask, picked(pick, mask))),
       controlled' = controlled,
       accepting' = accepting,
-      valueProp' = if (controlled) (if (and(pick >= 0, isEnabled(mask, pick))) pick else -1) else valueProp,
+      valueProp' = if (controlled) picked(pick, mask) else valueProp,
       requested' = requested,
       requests' = requests,
       outcome' = "none",
@@ -209,13 +251,15 @@ module apg_radio {
     }
   }
 
-  // Tab / Shift+Tab into the group: focus the tab stop, never check it.
+  // Tab / Shift+Tab into the group: focus the entry point (`focusgroupstart`),
+  // never check it, and the platform's stop is that radio (`fgEntry`).
   // Already inside: Tab leaves the group, which is `leave`.
   action enter = all {
     flavor' = flavor,
     mask' = mask,
     checked' = checked,
-    focus' = if (focus < 0) tabStop(mask, checked) else focus,
+    focus' = if (focus < 0) start(mask, checked) else focus,
+    tabStop' = if (focus < 0) fgEntry(false, tabStop, start(mask, checked)) else tabStop,
     controlled' = controlled,
     accepting' = accepting,
     valueProp' = valueProp,
@@ -225,11 +269,14 @@ module apg_radio {
     base' = base
   }
 
+  // Tab out of the group: the platform re-seats its stop on the start marker
+  // (`fgStopOnLeave` without memory), which is the radio Tab enters on next.
   action leave = all {
     flavor' = flavor,
     mask' = mask,
     checked' = checked,
     focus' = -1,
+    tabStop' = fgStopOnLeave(false, tabStop, start(mask, checked)),
     controlled' = controlled,
     accepting' = accepting,
     valueProp' = valueProp,
@@ -245,6 +292,7 @@ module apg_radio {
     mask' = mask,
     checked' = landed(holds, checked, nextWant(mask, checked, focus)),
     focus' = if (focus >= 0) nextEnabled(mask, focus) else focus,
+    tabStop' = if (focus >= 0) nextEnabled(mask, focus) else tabStop,
     controlled' = controlled,
     accepting' = accepting,
     valueProp' = propAfter(follows, valueProp, nextWant(mask, checked, focus)),
@@ -260,6 +308,7 @@ module apg_radio {
     mask' = mask,
     checked' = landed(holds, checked, prevWant(mask, checked, focus)),
     focus' = if (focus >= 0) prevEnabled(mask, focus) else focus,
+    tabStop' = if (focus >= 0) prevEnabled(mask, focus) else tabStop,
     controlled' = controlled,
     accepting' = accepting,
     valueProp' = propAfter(follows, valueProp, prevWant(mask, checked, focus)),
@@ -275,6 +324,7 @@ module apg_radio {
     mask' = mask,
     checked' = landed(holds, checked, spaceWant(checked, focus)),
     focus' = focus,
+    tabStop' = tabStop,
     controlled' = controlled,
     accepting' = accepting,
     valueProp' = propAfter(follows, valueProp, spaceWant(checked, focus)),
@@ -292,6 +342,7 @@ module apg_radio {
       mask' = mask,
       checked' = landed(holds, checked, clickWant(target, mask, checked)),
       focus' = if (isEnabled(mask, target)) target else focus,
+      tabStop' = if (isEnabled(mask, target)) target else tabStop,
       controlled' = controlled,
       accepting' = accepting,
       valueProp' = propAfter(follows, valueProp, clickWant(target, mask, checked)),
@@ -302,17 +353,20 @@ module apg_radio {
     }
   }
 
-  // commit: the host writes the controlled check (a no-op while uncontrolled)
+  // commit: the host writes the controlled check (a no-op while uncontrolled).
+  // Focus does not move, so the platform's stop moves only when focus is outside:
+  // the start marker follows the check, and the next entry lands on it.
   action setValue = {
     nondet v = Set(-1, 0, 1, 2, 3).oneOf()
     all {
       flavor' = flavor,
       mask' = mask,
-      checked' = if (and(controlled, validPick(v, mask))) v else checked,
+      checked' = written(v, mask, checked, controlled),
       focus' = focus,
+      tabStop' = if (focus >= 0) tabStop else fgStopOnLeave(false, tabStop, start(mask, written(v, mask, checked, controlled))),
       controlled' = controlled,
       accepting' = accepting,
-      valueProp' = if (and(controlled, validPick(v, mask))) v else valueProp,
+      valueProp' = written(v, mask, valueProp, controlled),
       requested' = requested,
       requests' = requests,
       outcome' = if (controlled) "none" else outcome,
@@ -326,6 +380,7 @@ module apg_radio {
     mask' = mask,
     checked' = checked,
     focus' = focus,
+    tabStop' = tabStop,
     controlled' = true,
     accepting' = accepting,
     valueProp' = checked,
@@ -341,6 +396,7 @@ module apg_radio {
     mask' = mask,
     checked' = checked,
     focus' = focus,
+    tabStop' = tabStop,
     controlled' = controlled,
     accepting' = true,
     valueProp' = valueProp,
@@ -355,15 +411,19 @@ module apg_radio {
   // never more than one radio is aria-checked="true"
   val AtMostOneChecked: bool = checkedCount(checked) <= 1
   // exactly one tab stop for the whole group, in both variants
-  val ExactlyOneTabStop: bool = tabStopCount(flavor, mask, checked) == 1
-  // the tab stop is the checked radio, else the first (enabled) one
-  val TabStopIsCheckedOrFirst: bool =
-    if (checked >= 0) tabStop(mask, checked) == checked else tabStop(mask, checked) == firstEnabled(mask)
+  val ExactlyOneTabStop: bool = tabStopCount(flavor, tabStop) == 1
+  // the stop is a radio, and every state names one
+  val TabStopInRange: bool = fgStopInRange(4, tabStop)
+  // roving: the platform's stop is the focused radio while focus is inside the
+  // group and the `focusgroupstart` radio (checked, else first enabled) once it
+  // leaves; activedescendant keeps no radio stop — the group is its only one
+  val TabStopFollowsFocusOrStart: bool =
+    or(flavor == "activedescendant", tabStop == (if (focus >= 0) focus else start(mask, checked)))
   // a disabled radio is never checked, focused or the tab stop
   val DisabledNeverActive: bool = and(
     or(checked < 0, isEnabled(mask, checked)),
     or(focus < 0, isEnabled(mask, focus)),
-    isEnabled(mask, tabStop(mask, checked))
+    isEnabled(mask, tabStop)
   )
   // focus and checked move together: once a radio is checked, focus inside
   // the group is always on it; before that it can only be on the first radio.

@@ -281,18 +281,6 @@ const asInt = (value: QuintValue | undefined): number => {
 
 const bit = (mask: bigint, index: number): boolean => (mask >> BigInt(index)) % 2n === 1n;
 
-const tabStop = (mask: bigint, checked: number): number => {
-  if (checked >= 0) {
-    return checked;
-  }
-  for (let index = 0; index < 4; index += 1) {
-    if (!bit(mask, index)) {
-      return index;
-    }
-  }
-  return 0;
-};
-
 export const radioBridge: SpecBridge = {
   setup: (config) => {
     const mount = radioConfig(config);
@@ -367,7 +355,9 @@ export const radioBridge: SpecBridge = {
         if (flavor !== "roving") {
           return null;
         }
-        return index === tabStop(mask, checked) ? "0" : "-1";
+        // the platform's single stop, not the check: they differ while a controlled
+        // host has rejected a request that moved the focus
+        return index === asInt(state["tabStop"]) ? "0" : "-1";
       default:
         throw new Unsupported(`attribute ${name} on ${target}`);
     }

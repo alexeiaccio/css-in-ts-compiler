@@ -40,7 +40,8 @@ describe("apg radio (spec-only)", () => {
     expect(invariants).toEqual([
       "AtMostOneChecked",
       "ExactlyOneTabStop",
-      "TabStopIsCheckedOrFirst",
+      "TabStopInRange",
+      "TabStopFollowsFocusOrStart",
       "DisabledNeverActive",
       "FocusFollowsChecked",
       "SomeRadioEnabled",
@@ -54,7 +55,7 @@ describe("apg radio (spec-only)", () => {
   });
 
   it("invariants have teeth on hand-built bad states", () => {
-    // disabled radio 1 checked and focused
+    // disabled radio 1 checked, focused and the platform's stop
     expect(
       violatedInvariants(model, {
         ...initial,
@@ -62,8 +63,31 @@ describe("apg radio (spec-only)", () => {
         mask: 2n,
         checked: 1n,
         focus: 1n,
+        tabStop: 1n,
       }),
     ).toEqual(["DisabledNeverActive"]);
+
+    // a stop the platform never keeps: focus is inside, the stop is elsewhere
+    expect(
+      violatedInvariants(model, {
+        ...initial,
+        flavor: "roving",
+        mask: 0n,
+        checked: 0n,
+        focus: 1n,
+        tabStop: 0n,
+        // controlled, so `FocusFollowsChecked` is the vacuous one here
+        controlled: true,
+        valueProp: 0n,
+      }),
+    ).toEqual(["TabStopFollowsFocusOrStart"]);
+    // a stop outside the four radios: out of range, on no radio, and not the start
+    expect(
+      violatedInvariants(model, {
+        ...initial,
+        tabStop: 7n,
+      }),
+    ).toEqual(["ExactlyOneTabStop", "TabStopInRange", "TabStopFollowsFocusOrStart"]);
 
     // focus drifted away from the checked radio
     expect(
@@ -227,10 +251,25 @@ describe("apg radio (spec-only)", () => {
       { _tag: "arrow_next" },
       { _tag: "leave" },
     ]);
-    expect(left).toMatchObject({ focus: -1n, checked: 2n });
+    // the platform's stop is the checked radio once the focus has left
+    expect(left).toMatchObject({ focus: -1n, checked: 2n, tabStop: 2n });
     expect(step(left, { _tag: "enter" })).toMatchObject({
       focus: 2n,
       checked: 2n,
+    });
+  });
+
+  it("keeps the stop on the focused radio while a rejected request moves only the focus", () => {
+    // the divergence the old model pinned away: the check stays at 0, the focus
+    // and the platform's stop move to 1
+    const controlled = run(initial, [preselect(0n), { _tag: "enter" }, { _tag: "control" }]);
+    const moved = step(controlled, { _tag: "arrow_next" });
+    expect(moved).toMatchObject({ focus: 1n, checked: 0n, tabStop: 1n });
+    // and the platform re-seats the stop on the entry point when the focus leaves
+    expect(step(moved, { _tag: "leave" })).toMatchObject({
+      focus: -1n,
+      checked: 0n,
+      tabStop: 0n,
     });
   });
 

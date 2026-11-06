@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/radio.qnt
-// Spec hash (sha256): 90673b761dfafefb63af681d1db9668c21e7a0a2bf339228cd72b4c21d70d156
+// Spec hash (sha256): cd99c922cec43e61d7f0713ac03e3724441d516115f19c31d9c328add18e191e
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
@@ -9,6 +9,7 @@ export const ApgRadioFields = {
     mask: Schema.BigInt,
     checked: Schema.BigInt,
     focus: Schema.BigInt,
+    tabStop: Schema.BigInt,
     controlled: Schema.Boolean,
     accepting: Schema.Boolean,
     valueProp: Schema.BigInt,

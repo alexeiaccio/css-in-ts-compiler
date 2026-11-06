@@ -1,6 +1,6 @@
 {
   "generatedFrom": "../../specs/apg/radio.qnt",
-  "specHash": "90673b761dfafefb63af681d1db9668c21e7a0a2bf339228cd72b4c21d70d156",
+  "specHash": "cd99c922cec43e61d7f0713ac03e3724441d516115f19c31d9c328add18e191e",
   "module": "apg_radio",
   "vars": [
     {
@@ -17,6 +17,10 @@
     },
     {
       "name": "focus",
+      "type": "int"
+    },
+    {
+      "name": "tabStop",
       "type": "int"
     },
     {
@@ -956,6 +960,114 @@
         ]
       }
     },
+    "written": {
+      "kind": "function",
+      "params": [
+        "v",
+        "m",
+        "c",
+        "ctl"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ctl"
+              },
+              {
+                "kind": "app",
+                "opcode": "validPick",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "v"
+          },
+          {
+            "kind": "name",
+            "name": "c"
+          }
+        ]
+      }
+    },
+    "picked": {
+      "kind": "function",
+      "params": [
+        "pick",
+        "m"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "pick"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isEnabled",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "m"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "pick"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "pick"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
     "holds": {
       "kind": "function",
       "params": [],
@@ -1072,7 +1184,7 @@
         ]
       }
     },
-    "tabStop": {
+    "start": {
       "kind": "function",
       "params": [
         "m",
@@ -1159,8 +1271,7 @@
       "kind": "function",
       "params": [
         "v",
-        "m",
-        "c",
+        "s",
         "i"
       ],
       "body": {
@@ -1183,45 +1294,15 @@
           },
           {
             "kind": "app",
-            "opcode": "ite",
+            "opcode": "fgTabIndex",
             "args": [
               {
-                "kind": "app",
-                "opcode": "eq",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "i"
-                  },
-                  {
-                    "kind": "app",
-                    "opcode": "tabStop",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "m"
-                      },
-                      {
-                        "kind": "name",
-                        "name": "c"
-                      }
-                    ]
-                  }
-                ]
+                "kind": "name",
+                "name": "s"
               },
               {
-                "kind": "int",
-                "value": "0"
-              },
-              {
-                "kind": "app",
-                "opcode": "iuminus",
-                "args": [
-                  {
-                    "kind": "int",
-                    "value": "1"
-                  }
-                ]
+                "kind": "name",
+                "name": "i"
               }
             ]
           },
@@ -1492,8 +1573,7 @@
       "kind": "function",
       "params": [
         "v",
-        "m",
-        "c"
+        "s"
       ],
       "body": {
         "kind": "app",
@@ -1529,11 +1609,7 @@
                                   },
                                   {
                                     "kind": "name",
-                                    "name": "m"
-                                  },
-                                  {
-                                    "kind": "name",
-                                    "name": "c"
+                                    "name": "s"
                                   },
                                   {
                                     "kind": "int",
@@ -1567,11 +1643,7 @@
                                   },
                                   {
                                     "kind": "name",
-                                    "name": "m"
-                                  },
-                                  {
-                                    "kind": "name",
-                                    "name": "c"
+                                    "name": "s"
                                   },
                                   {
                                     "kind": "int",
@@ -1607,11 +1679,7 @@
                               },
                               {
                                 "kind": "name",
-                                "name": "m"
-                              },
-                              {
-                                "kind": "name",
-                                "name": "c"
+                                "name": "s"
                               },
                               {
                                 "kind": "int",
@@ -1647,11 +1715,7 @@
                           },
                           {
                             "kind": "name",
-                            "name": "m"
-                          },
-                          {
-                            "kind": "name",
-                            "name": "c"
+                            "name": "s"
                           },
                           {
                             "kind": "int",
@@ -1739,11 +1803,7 @@
               },
               {
                 "kind": "name",
-                "name": "mask"
-              },
-              {
-                "kind": "name",
-                "name": "checked"
+                "name": "tabStop"
               }
             ]
           },
@@ -1754,24 +1814,42 @@
         ]
       }
     },
-    "TabStopIsCheckedOrFirst": {
+    "TabStopInRange": {
       "kind": "invariant",
       "params": [],
       "body": {
         "kind": "app",
-        "opcode": "ite",
+        "opcode": "fgStopInRange",
+        "args": [
+          {
+            "kind": "int",
+            "value": "4"
+          },
+          {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        ]
+      }
+    },
+    "TabStopFollowsFocusOrStart": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
         "args": [
           {
             "kind": "app",
-            "opcode": "igte",
+            "opcode": "eq",
             "args": [
               {
                 "kind": "name",
-                "name": "checked"
+                "name": "flavor"
               },
               {
-                "kind": "int",
-                "value": "0"
+                "kind": "str",
+                "value": "activedescendant"
               }
             ]
           },
@@ -1780,50 +1858,44 @@
             "opcode": "eq",
             "args": [
               {
-                "kind": "app",
-                "opcode": "tabStop",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "mask"
-                  },
-                  {
-                    "kind": "name",
-                    "name": "checked"
-                  }
-                ]
-              },
-              {
                 "kind": "name",
-                "name": "checked"
-              }
-            ]
-          },
-          {
-            "kind": "app",
-            "opcode": "eq",
-            "args": [
-              {
-                "kind": "app",
-                "opcode": "tabStop",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "mask"
-                  },
-                  {
-                    "kind": "name",
-                    "name": "checked"
-                  }
-                ]
+                "name": "tabStop"
               },
               {
                 "kind": "app",
-                "opcode": "firstEnabled",
+                "opcode": "ite",
                 "args": [
                   {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "focus"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  },
+                  {
                     "kind": "name",
-                    "name": "mask"
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "start",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "mask"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "checked"
+                      }
+                    ]
                   }
                 ]
               }
@@ -1916,18 +1988,8 @@
                 "name": "mask"
               },
               {
-                "kind": "app",
-                "opcode": "tabStop",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "mask"
-                  },
-                  {
-                    "kind": "name",
-                    "name": "checked"
-                  }
-                ]
+                "kind": "name",
+                "name": "tabStop"
               }
             ]
           }
@@ -2417,6 +2479,1617 @@
           }
         ]
       }
+    },
+    "fgBehaviorKnown": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "toolbar"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "tablist"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "radiogroup"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "listbox"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "menu"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "menubar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgDefaultAxis": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "listbox"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "menu"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "block"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "radiogroup"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "both"
+              },
+              {
+                "kind": "str",
+                "value": "inline"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgDefaultWrap": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "str",
+                "value": "toolbar"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "str",
+                "value": "listbox"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgItemRole": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "str",
+                "value": "tablist"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "tab"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "radiogroup"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "radio"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "listbox"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "option"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "b"
+                              },
+                              {
+                                "kind": "str",
+                                "value": "menu"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "b"
+                              },
+                              {
+                                "kind": "str",
+                                "value": "menubar"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "str",
+                        "value": "menuitem"
+                      },
+                      {
+                        "kind": "str",
+                        "value": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgButtonMayTakeRole": {
+      "kind": "function",
+      "params": [
+        "role"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "role"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "tab"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "role"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "radio"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "role"
+              },
+              {
+                "kind": "str",
+                "value": "menuitem"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgInferredOwnerRole": {
+      "kind": "function",
+      "params": [
+        "b",
+        "ownerKind",
+        "ownerHasRole"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ownerKind"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "generic"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ownerHasRole"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "b"
+          },
+          {
+            "kind": "str",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "fgInferredItemRole": {
+      "kind": "function",
+      "params": [
+        "b",
+        "ownerKind",
+        "ownerHasRole",
+        "itemKind",
+        "itemHasRole"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "fgInferredOwnerRole",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ownerKind"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ownerHasRole"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "itemHasRole"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": ""
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "itemKind"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "generic"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "fgItemRole",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "itemKind"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "button"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "fgButtonMayTakeRole",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "fgItemRole",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "b"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "fgItemRole",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": ""
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgInlineDelta": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "str",
+                "value": "block"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Right"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "Left"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgBlockDelta": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "str",
+                "value": "inline"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Down"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "Up"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgDelta": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "fgInlineDelta",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "name",
+                "name": "key"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "fgBlockDelta",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "name",
+                "name": "key"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgIsEdgeKey": {
+      "kind": "function",
+      "params": [
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              },
+              {
+                "kind": "str",
+                "value": "Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              },
+              {
+                "kind": "str",
+                "value": "End"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgIsNavKey": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "fgDelta",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "axis"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "fgIsEdgeKey",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgStep": {
+      "kind": "function",
+      "params": [
+        "n",
+        "wrap",
+        "f",
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrap"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "d"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilte",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "wrap"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "isub",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "n"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "f"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgLanding": {
+      "kind": "function",
+      "params": [
+        "n",
+        "axis",
+        "wrap",
+        "f",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "f"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "f"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Home"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "End"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "fgStep",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "wrap"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "fgDelta",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "axis"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "key"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgEscape": {
+      "kind": "function",
+      "params": [
+        "n",
+        "f",
+        "back"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "back"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgEntry": {
+      "kind": "function",
+      "params": [
+        "memory",
+        "last",
+        "start"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "memory"
+              },
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "last"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "last"
+          },
+          {
+            "kind": "name",
+            "name": "start"
+          }
+        ]
+      }
+    },
+    "fgStopOnLeave": {
+      "kind": "function",
+      "params": [
+        "memory",
+        "current",
+        "start"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "memory"
+          },
+          {
+            "kind": "name",
+            "name": "current"
+          },
+          {
+            "kind": "name",
+            "name": "start"
+          }
+        ]
+      }
+    },
+    "fgTabIndex": {
+      "kind": "function",
+      "params": [
+        "stop",
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgStopInRange": {
+      "kind": "function",
+      "params": [
+        "n",
+        "stop"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgFocusInRange": {
+      "kind": "function",
+      "params": [
+        "n",
+        "focus"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgFocusIsStop": {
+      "kind": "function",
+      "params": [
+        "focus",
+        "stop"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "name",
+                "name": "stop"
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "actions": [
@@ -2461,6 +4134,13 @@
                 "value": "1"
               }
             ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
           }
         },
         {
@@ -2573,6 +4253,37 @@
               {
                 "kind": "int",
                 "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "fgStopOnLeave",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "app",
+                "opcode": "start",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mask"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "checked"
+                  }
+                ]
               }
             ]
           }
@@ -2728,6 +4439,87 @@
           }
         },
         {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "fgStopOnLeave",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "app",
+                "opcode": "start",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "m"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "igte",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "checked"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "isEnabled",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "m"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "checked"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "checked"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "iuminus",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
           "field": "controlled",
           "rhs": {
             "kind": "name",
@@ -2874,55 +4666,15 @@
           "field": "checked",
           "rhs": {
             "kind": "app",
-            "opcode": "ite",
+            "opcode": "picked",
             "args": [
-              {
-                "kind": "app",
-                "opcode": "and",
-                "args": [
-                  {
-                    "kind": "app",
-                    "opcode": "igte",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "pick"
-                      },
-                      {
-                        "kind": "int",
-                        "value": "0"
-                      }
-                    ]
-                  },
-                  {
-                    "kind": "app",
-                    "opcode": "isEnabled",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "mask"
-                      },
-                      {
-                        "kind": "name",
-                        "name": "pick"
-                      }
-                    ]
-                  }
-                ]
-              },
               {
                 "kind": "name",
                 "name": "pick"
               },
               {
-                "kind": "app",
-                "opcode": "iuminus",
-                "args": [
-                  {
-                    "kind": "int",
-                    "value": "1"
-                  }
-                ]
+                "kind": "name",
+                "name": "mask"
               }
             ]
           }
@@ -2936,6 +4688,47 @@
               {
                 "kind": "int",
                 "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "fgStopOnLeave",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "app",
+                "opcode": "start",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mask"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "picked",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "pick"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "mask"
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -2966,55 +4759,15 @@
               },
               {
                 "kind": "app",
-                "opcode": "ite",
+                "opcode": "picked",
                 "args": [
-                  {
-                    "kind": "app",
-                    "opcode": "and",
-                    "args": [
-                      {
-                        "kind": "app",
-                        "opcode": "igte",
-                        "args": [
-                          {
-                            "kind": "name",
-                            "name": "pick"
-                          },
-                          {
-                            "kind": "int",
-                            "value": "0"
-                          }
-                        ]
-                      },
-                      {
-                        "kind": "app",
-                        "opcode": "isEnabled",
-                        "args": [
-                          {
-                            "kind": "name",
-                            "name": "mask"
-                          },
-                          {
-                            "kind": "name",
-                            "name": "pick"
-                          }
-                        ]
-                      }
-                    ]
-                  },
                   {
                     "kind": "name",
                     "name": "pick"
                   },
                   {
-                    "kind": "app",
-                    "opcode": "iuminus",
-                    "args": [
-                      {
-                        "kind": "int",
-                        "value": "1"
-                      }
-                    ]
+                    "kind": "name",
+                    "name": "mask"
                   }
                 ]
               },
@@ -3101,7 +4854,7 @@
               },
               {
                 "kind": "app",
-                "opcode": "tabStop",
+                "opcode": "start",
                 "args": [
                   {
                     "kind": "name",
@@ -3116,6 +4869,61 @@
               {
                 "kind": "name",
                 "name": "focus"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "fgEntry",
+                "args": [
+                  {
+                    "kind": "bool",
+                    "value": false
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tabStop"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "start",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "mask"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "checked"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
               }
             ]
           }
@@ -3204,6 +5012,37 @@
               {
                 "kind": "int",
                 "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "fgStopOnLeave",
+            "args": [
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "app",
+                "opcode": "start",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mask"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "checked"
+                  }
+                ]
               }
             ]
           }
@@ -3348,6 +5187,47 @@
               {
                 "kind": "name",
                 "name": "focus"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "nextEnabled",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mask"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
               }
             ]
           }
@@ -3717,6 +5597,47 @@
           }
         },
         {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "prevEnabled",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mask"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              }
+            ]
+          }
+        },
+        {
           "field": "controlled",
           "rhs": {
             "kind": "name",
@@ -4040,6 +5961,13 @@
           "rhs": {
             "kind": "name",
             "name": "focus"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
           }
         },
         {
@@ -4383,6 +6311,37 @@
           }
         },
         {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isEnabled",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "mask"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "target"
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              }
+            ]
+          }
+        },
+        {
           "field": "controlled",
           "rhs": {
             "kind": "name",
@@ -4685,39 +6644,23 @@
           "field": "checked",
           "rhs": {
             "kind": "app",
-            "opcode": "ite",
+            "opcode": "written",
             "args": [
-              {
-                "kind": "app",
-                "opcode": "and",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "controlled"
-                  },
-                  {
-                    "kind": "app",
-                    "opcode": "validPick",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "v"
-                      },
-                      {
-                        "kind": "name",
-                        "name": "mask"
-                      }
-                    ]
-                  }
-                ]
-              },
               {
                 "kind": "name",
                 "name": "v"
               },
               {
                 "kind": "name",
+                "name": "mask"
+              },
+              {
+                "kind": "name",
                 "name": "checked"
+              },
+              {
+                "kind": "name",
+                "name": "controlled"
               }
             ]
           }
@@ -4727,6 +6670,79 @@
           "rhs": {
             "kind": "name",
             "name": "focus"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "app",
+                "opcode": "fgStopOnLeave",
+                "args": [
+                  {
+                    "kind": "bool",
+                    "value": false
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tabStop"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "start",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "mask"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "written",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "v"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "mask"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "checked"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "controlled"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         },
         {
@@ -4747,39 +6763,23 @@
           "field": "valueProp",
           "rhs": {
             "kind": "app",
-            "opcode": "ite",
+            "opcode": "written",
             "args": [
-              {
-                "kind": "app",
-                "opcode": "and",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "controlled"
-                  },
-                  {
-                    "kind": "app",
-                    "opcode": "validPick",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "v"
-                      },
-                      {
-                        "kind": "name",
-                        "name": "mask"
-                      }
-                    ]
-                  }
-                ]
-              },
               {
                 "kind": "name",
                 "name": "v"
               },
               {
                 "kind": "name",
+                "name": "mask"
+              },
+              {
+                "kind": "name",
                 "name": "valueProp"
+              },
+              {
+                "kind": "name",
+                "name": "controlled"
               }
             ]
           }
@@ -4857,6 +6857,13 @@
           "rhs": {
             "kind": "name",
             "name": "focus"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
           }
         },
         {
@@ -4939,6 +6946,13 @@
           "rhs": {
             "kind": "name",
             "name": "focus"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
           }
         },
         {
