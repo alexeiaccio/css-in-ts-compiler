@@ -1,15 +1,17 @@
-// The wireframe area: a page's own last frame, cut into the cell grid. Four kinds, one file, their layouts and their
+// The wireframe area: a page's own last frame, cut into the cell grid. Six kinds, one file, their layouts and their
 // refusals side by side, because that is what a kind costs here (a layout, a check, one `register` at the bottom):
 //
 //   screen          one page (its name and its size) as boxes and text runs, at 1/8 of a cell across and 1/16 down
 //   anatomy         one region of that page with numbered callouts and their legend — a component drawing, in cells
+//   appShell        a page's own shell bands, each the element the frame drew, labelled with that element's name
+//   cardGrid        a page's repeated cards, each at its own box with its index, and the grid its boxes make
 //   modal           the Dialog's frame with its modal open: the scrim, the panel and the page under them
 //   responsivePair  the same page captured at two widths, side by side when they fit, above/below when they do not
 //
-// The data is **not a drawing**: `solid/specs/from-page.ts` captures each page with `solid/dump.ts`'s `capture` — the
-// same call the goldens are stored with — and writes the frame's own boxes and texts into the spec. `solid/test.sh`
-// regenerates those two specs into a temp dir and `cmp`s them, so a page's layout change changes the wireframe in the
-// same commit. A spec's `source` names the page and the size it was captured at.
+// The data is **not a drawing**: `solid/specs/from-page.ts` and `solid/specs/from-frames.ts` capture each page with
+// `solid/dump.ts`'s `capture` — the same call the goldens are stored with — and write the frame's own boxes and texts into
+// the spec. `solid/test.sh` regenerates those specs into a temp dir and `cmp`s them, so a page's layout change changes the
+// wireframe in the same commit. A spec's `source` names the page and the size it was captured at.
 //
 // What counts as a box, and what is skipped:
 //   — `rectangle` and `border` commands are the boxes. A rectangle is a filled panel, a border is a line, and either way
@@ -35,6 +37,8 @@ import { register } from "../registry.ts";
 import type {
   AnatomyCrop,
   AnatomySpec,
+  AppShellSpec,
+  CardGridSpec,
   ModalSpec,
   ResponsivePairSpec,
   ScreenSpec,
@@ -539,6 +543,398 @@ function pairNames(data: unknown): string[] {
   return names;
 }
 
+// ---- a page's shell and its cards ----------------------------------------------------------------------------------
+
+/** One box of a spec's data, when it has four finite numbers: the raw-JSON reader the two kinds' checks share. */
+function boxOf(raw: unknown): WireBox | undefined {
+  if (!isObject(raw)) return undefined;
+  const x = number(raw.x);
+  const y = number(raw.y);
+  const width = number(raw.width);
+  const height = number(raw.height);
+  return x === undefined || y === undefined || width === undefined || height === undefined
+    ? undefined
+    : { x, y, width, height };
+}
+
+/** Two boxes are the same rectangle: a region's box is the frame's, not a rounding of it. */
+const sameBox = (a: WireBox, b: WireBox): boolean =>
+  a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+
+/** Do two boxes share a pixel? A band that overlaps another is not a band of the page. */
+const overlaps = (a: WireBox, b: WireBox): boolean =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/** The grid a page's card boxes make, in pixels: all three numbers are the boxes', never the spec's to choose. */
+export interface GridLayout {
+  columns: number;
+  gap: number;
+  columnGap: number;
+  /** Every gap down every column, so a check can refuse a card that is not where the column's rhythm says. */
+  gaps: number[];
+  /** Every gap across two columns. */
+  columnGaps: number[];
+}
+
+/**
+ * A card grid's numbers from its cards' real boxes: a column is a distinct `x`, the row gap is the distance between one
+ * card's bottom and the next card's top in the same column, and the column gap is the space between two columns' right
+ * and left edges. Nine cards that happen to be one column are one column, and a gap is a pixel count, not a cell.
+ */
+export function gridOf(cards: readonly WireBox[]): GridLayout {
+  const xs = [...new Set(cards.map((card) => card.x))].sort((a, b) => a - b);
+  const columns = Math.max(1, xs.length);
+  const gaps: number[] = [];
+  const columnGaps: number[] = [];
+  for (const [i, x] of xs.entries()) {
+    const column = cards.filter((card) => card.x === x).sort((a, b) => a.y - b.y);
+    for (let at = 1; at < column.length; at++)
+      gaps.push(column[at]!.y - (column[at - 1]!.y + column[at - 1]!.height));
+    if (i > 0) {
+      const right = Math.max(...cards.filter((card) => card.x === xs[i - 1]!).map((card) => card.x + card.width));
+      columnGaps.push(x - right);
+    }
+  }
+  return { columns, gap: gaps[0] ?? 0, columnGap: columnGaps[0] ?? 0, gaps, columnGaps };
+}
+
+/** One label run of a band: its words, the role's paint, and the text role a target reads it by. */
+interface LabelRun {
+  text: string;
+  paint: Paint;
+  role: TextRole;
+}
+
+/** A blank grid of cells: the page's size, every cell a blank the kind's own characters go on. */
+function blankGrid(width: number, height: number): DrawingCell[][] {
+  return Array.from({ length: height }, () => Array.from({ length: width }, () => ({ text: " ", cells: 1, paint: "ink" as Paint })));
+}
+
+/** One character on the grid, in its paint and role. */
+function mark(grid: DrawingCell[][], row: number, col: number, text: string, paint: Paint, role: TextRole): void {
+  const cell = grid[row]?.[col];
+  if (cell) grid[row]![col] = { text, cells: 1, paint, role };
+}
+
+/** One run on the grid from `col`, cut to `limit` cells with `…`; its width in cells, as written. */
+function writeRun(
+  grid: DrawingCell[][],
+  row: number,
+  col: number,
+  text: string,
+  limit: number,
+  paint: Paint,
+  role: TextRole,
+): number {
+  const { drawn } = shorten(text, limit);
+  let at = col;
+  for (const ch of drawn) {
+    const width = codeWidth(ch.codePointAt(0) ?? 0);
+    if (at + width > col + limit) break;
+    mark(grid, row, at, ch, paint, role);
+    for (let k = 1; k < width; k++) if (grid[row]?.[at + k]) grid[row]![at + k] = { text: "", cells: 0, paint, role };
+    at += width;
+  }
+  return at - col;
+}
+
+/** A band's label from `col`, one cell between its runs, cut to the cell its band leaves: the band's word, then the
+ *  element the frame drew. A label that does not fit ends in `…` and its next run is not drawn. */
+function writeLabel(grid: DrawingCell[][], row: number, col: number, limit: number, runs: readonly LabelRun[]): void {
+  let at = col;
+  let left = limit;
+  for (const [i, run] of runs.entries()) {
+    if (left < 1) return;
+    const width = writeRun(grid, row, at, run.text, left, run.paint, run.role);
+    const shortened = width < wireCells(run.text);
+    at += width;
+    left -= width;
+    if (shortened || i === runs.length - 1) return;
+    // the one cell between two runs
+    at += 1;
+    left -= 1;
+  }
+}
+
+/** A rule of the page's own width: `+` the band's two corners, `-` its span. */
+function bandRule(grid: DrawingCell[][], row: number, left: number, right: number): void {
+  for (let x = left; x <= right; x++) mark(grid, row, x, x === left || x === right ? "+" : "-", "muted", "connector");
+}
+
+/**
+ * One region of the cell grid: the page's own box as a border, with the region's label inside it. A band of three cells
+ * or more has a rule above, a rule below and its label on the first row between them; a band of two (the Sky page's
+ * 32px status line) has no row to spare, so its label is the band's first row and the rule its last. Every character is
+ * at the region's own cell rect, so a band cannot show a box the frame did not give it.
+ */
+function bandOf(grid: DrawingCell[][], box: CellBox, runs: readonly LabelRun[]): void {
+  const width = grid[0]!.length;
+  const height = grid.length;
+  const left = clamp(box.col, 0, width - 1);
+  const right = clamp(box.col + box.cols - 1, left, width - 1);
+  const top = clamp(box.row, 0, height - 1);
+  const bottom = clamp(box.row + box.rows - 1, top, height - 1);
+  if (bottom === top) {
+    writeLabel(grid, top, left + 1, right - left - 1, runs);
+    return;
+  }
+  if (bottom - top >= 2) {
+    bandRule(grid, top, left, right);
+    writeLabel(grid, top + 1, left + 2, right - left - 2, runs);
+  } else {
+    mark(grid, top, left, "|", "muted", "connector");
+    mark(grid, top, right, "|", "muted", "connector");
+    writeLabel(grid, top, left + 2, right - left - 2, runs);
+  }
+  for (let y = top + 1; y < bottom; y++) {
+    mark(grid, y, left, "|", "muted", "connector");
+    mark(grid, y, right, "|", "muted", "connector");
+  }
+  bandRule(grid, bottom, left, right);
+}
+
+/** A grid's rows as the layout's lines, each row's runs grouped by paint and role. */
+const gridLines = (grid: DrawingCell[][], prefix: string): LayoutLine[] =>
+  grid.map((row, index) => drawingLine(row, prefix, index));
+
+/**
+ * An app shell: a page's own bands, each the element the frame drew, its box at the page's own cell rect and its band's
+ * word beside the element's name inside it. The page is the regions' union (the check says so); nothing else is drawn, so
+ * a shell cannot show a band the page does not have.
+ */
+function appShell(spec: AppShellSpec): Layout {
+  const data = spec.data;
+  const grid = blankGrid(Math.max(1, cellsAcross(data.width)), Math.max(1, Math.round(data.height / CELL_Y)));
+  for (const region of data.regions)
+    bandOf(grid, cellBox(region), [
+      { text: region.band, paint: "ink", role: "label" },
+      { text: region.element, paint: "muted", role: "note" },
+    ]);
+  const labels = data.regions.map((region, i) => ({ textId: `fig-shell-label-${i}`, text: `${region.band} ${region.element}` }));
+  const boxes: BoxRecord[] = data.regions.map((region, i) => ({
+    id: `fig-shell-box-${i}`,
+    textId: `fig-shell-box-${i}-text`,
+    text: "",
+    role: "step",
+  }));
+  return finish(spec, "appShell", grid[0]!.length, gridLines(grid, "fig-shell"), [], labels, boxes);
+}
+
+/** A card grid: the page's repeated cards, each at its own box with its index and its element's name, and the grid's
+ *  columns and gaps under the drawing — the three numbers the cards' boxes make, not a layout the spec chose. */
+function cardGrid(spec: CardGridSpec): Layout {
+  const data = spec.data;
+  const grid = blankGrid(Math.max(1, cellsAcross(data.width)), Math.max(1, Math.round(data.height / CELL_Y)));
+  for (const card of data.cards)
+    bandOf(grid, cellBox(card), [
+      { text: `#${card.index}`, paint: "good", role: "value" },
+      { text: card.element, paint: "muted", role: "note" },
+    ]);
+  const lines = gridLines(grid, "fig-grid");
+  const note =
+    `${data.cards.length} cards in ${data.columns} column${data.columns === 1 ? "" : "s"}, ${data.gap}px between rows` +
+    (data.columns > 1 ? `, ${data.columnGap}px between columns` : "");
+  lines.push({ items: [textItem("fig-grid-note", note, cells(note), "muted", "note")] });
+  const labels = data.cards.map((card, i) => ({ textId: `fig-grid-label-${i}`, text: `#${card.index} ${card.element}` }));
+  const boxes: BoxRecord[] = data.cards.map((card, i) => ({
+    id: `fig-grid-box-${i}`,
+    textId: `fig-grid-box-${i}-text`,
+    text: "",
+    role: "step",
+  }));
+  return finish(spec, "cardGrid", grid[0]!.length, lines, [], labels, boxes);
+}
+
+/** One band's sentences: its words, its element's name and that element's box in the frame. */
+function shellBandProblems(raw: unknown, at: number, boxes: readonly WireBox[], side: RawSide): string[] {
+  if (!isObject(raw))
+    return [`Band ${at + 1} of the shell is not an object: it needs a band, an element and a box.`];
+  const out: string[] = [];
+  const band = typeof raw.band === "string" ? raw.band.trim() : "";
+  const element = typeof raw.element === "string" ? raw.element.trim() : "";
+  const name = element || `band ${at + 1}`;
+  if (!band) out.push(`Band ${at + 1} of the shell needs its role: "nav", "content" or "status".`);
+  if (!element) out.push(`Band ${at + 1} of the shell needs the element it came from: "sky-bar".`);
+  const box = boxOf(raw);
+  if (!box || !(box.width > 0) || !(box.height > 0)) {
+    out.push(`Band ${name} of the shell needs its box: x, y, width and height in the page's pixels.`);
+    return out;
+  }
+  if (side.width !== undefined && side.height !== undefined) {
+    const inside = box.x >= 0 && box.y >= 0 && box.x + box.width <= side.width && box.y + box.height <= side.height;
+    if (!inside)
+      out.push(
+        `The shell's band ${name} ${box.x},${box.y} ${box.width}x${box.height} is outside the ${side.width}x${side.height} ` +
+          `page: a band is a part of the page.`,
+      );
+  }
+  if (!boxes.some((other) => sameBox(other, box)))
+    out.push(
+      `The shell's band ${name} ${box.x},${box.y} ${box.width}x${box.height} is not one of its frame's boxes: a band is ` +
+        `an element the frame drew.`,
+    );
+  return out;
+}
+
+/** An app shell: a page this repository draws, and bands that are the frame's own elements, tile the page and do not
+ *  overlap. The union is counted in pixels from the boxes, not from their cells: the cell grid rounds each band's edge. */
+function appShellProblems(data: unknown, options: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'An app shell needs its page and its bands: { "page": "sky", "regions": [ { "band": "nav", "element": "sky-bar", ' +
+        '"x": 0, "y": 0, "width": 360, "height": 64 } ] } and the frame\'s boxes and texts.',
+    ];
+  const out: string[] = [];
+  const page = pageProblem(data.page);
+  if (page) out.push(page);
+  const label = typeof data.page === "string" ? `${data.page} page` : "page";
+  const side = sideProblems(data, label);
+  out.push(...side.problems, ...widthProblem(side, label, options));
+  const regions = rowsOf(data.regions);
+  if (!regions.length)
+    out.push(
+      'An app shell needs the page\'s bands: [ { "band": "nav", "element": "sky-bar", "x": 0, "y": 0, "width": 360, ' +
+        '"height": 64 } ].',
+    );
+  const boxes = rowsOf(data.boxes).map(boxOf).filter((box): box is WireBox => box !== undefined);
+  const placed: { name: string; box: WireBox }[] = [];
+  let tiled = regions.length > 0;
+  for (const [at, raw] of regions.entries()) {
+    out.push(...shellBandProblems(raw, at, boxes, side));
+    const box = boxOf(raw);
+    if (!box || !(box.width > 0) || !(box.height > 0)) {
+      tiled = false;
+      continue;
+    }
+    const name = isObject(raw) && typeof raw.element === "string" ? raw.element.trim() : `band ${at + 1}`;
+    for (const other of placed)
+      if (overlaps(other.box, box)) {
+        out.push(`The shell's bands ${other.name} and ${name} overlap: a page's bands do not.`);
+        tiled = false;
+      }
+    placed.push({ name, box });
+  }
+  if (tiled && side.width !== undefined && side.height !== undefined) {
+    const area = placed.reduce((sum, region) => sum + region.box.width * region.box.height, 0);
+    const pageArea = side.width * side.height;
+    if (area !== pageArea)
+      out.push(`The shell's bands cover ${area} of the page's ${pageArea} pixels: a shell's bands tile the page.`);
+  }
+  return out;
+}
+
+/** One card's sentences: its index, the element its name says and that element's box in the frame. */
+function cardProblems(
+  raw: unknown,
+  at: number,
+  prefix: string,
+  boxes: readonly WireBox[],
+  indices: Set<number>,
+  elements: Set<string>,
+): string[] {
+  if (!isObject(raw)) return [`Card ${at + 1} is not an object: it needs an index, an element and a box.`];
+  const out: string[] = [];
+  const index = number(raw.index);
+  const element = typeof raw.element === "string" ? raw.element.trim() : "";
+  const name = element || `card ${index ?? at + 1}`;
+  if (index === undefined || !Number.isInteger(index) || index < 0)
+    out.push(`Card ${at + 1} needs its index: a whole number from zero, not ${say(raw.index)}.`);
+  else if (indices.has(index)) out.push(`Card ${index} is numbered twice: one index, one card.`);
+  else indices.add(index);
+  if (!element) out.push(`Card ${index ?? at + 1} needs the element it came from: "sky-card-0".`);
+  else if (prefix && !element.startsWith(prefix))
+    out.push(`Card ${element} is not one of the page's cards: every card's element starts with ${say(prefix)}.`);
+  else if (elements.has(element)) out.push(`Card ${element} is listed twice: one element, one card.`);
+  else elements.add(element);
+  const box = boxOf(raw);
+  if (!box || !(box.width > 0) || !(box.height > 0))
+    out.push(`Card ${name} needs its box: x, y, width and height in the page's pixels.`);
+  else if (!boxes.some((other) => sameBox(other, box)))
+    out.push(
+      `Card ${name} ${box.x},${box.y} ${box.width}x${box.height} is not one of its frame's boxes: a card is an element ` +
+        `the frame drew.`,
+    );
+  return out;
+}
+
+/** A card grid: a page this repository draws, at least two cards under one element prefix, and the grid its boxes make. */
+function cardGridProblems(data: unknown, options: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'A card grid needs its page, the cards\' element prefix and the grid: { "page": "sky", "prefix": "sky-card-", ' +
+        '"cards": [ { "index": 0, "element": "sky-card-0", "x": 12, "y": 76, "width": 336, "height": 190 } ], ' +
+        '"columns": 1, "gap": 8, "columnGap": 0 } and the frame\'s boxes and texts.',
+    ];
+  const out: string[] = [];
+  const page = pageProblem(data.page);
+  if (page) out.push(page);
+  const label = typeof data.page === "string" ? `${data.page} page` : "page";
+  const side = sideProblems(data, label);
+  out.push(...side.problems, ...widthProblem(side, label, options));
+  const prefix = typeof data.prefix === "string" ? data.prefix.trim() : "";
+  if (!prefix) out.push('A card grid needs the prefix its cards\' elements share: "sky-card-".');
+  const cards = rowsOf(data.cards);
+  if (cards.length < 2)
+    out.push(`A card grid needs at least two cards — the page's repeated elements — not ${cards.length}.`);
+  const boxes = rowsOf(data.boxes).map(boxOf).filter((box): box is WireBox => box !== undefined);
+  const indices = new Set<number>();
+  const elements = new Set<string>();
+  const placed: WireBox[] = [];
+  for (const [at, raw] of cards.entries()) {
+    out.push(...cardProblems(raw, at, prefix, boxes, indices, elements));
+    const box = boxOf(raw);
+    if (box && box.width > 0 && box.height > 0) placed.push(box);
+  }
+  if (placed.length !== cards.length || placed.length < 2) return out;
+  const grid = gridOf(placed);
+  const columns = number(data.columns);
+  if (columns === undefined || !Number.isInteger(columns) || columns < 1)
+    out.push(`A card grid's columns are a whole number above zero, not ${say(data.columns)}.`);
+  else if (columns !== grid.columns)
+    out.push(
+      `The card grid says ${columns} column${columns === 1 ? "" : "s"}, but its cards' boxes make ${grid.columns}: ` +
+        `the columns are the boxes'.`,
+    );
+  const gap = number(data.gap);
+  if (gap === undefined || gap < 0)
+    out.push(`A card grid's row gap is a number of pixels from zero, not ${say(data.gap)}.`);
+  else if (grid.gaps.some((one) => one !== gap))
+    out.push(
+      `The card grid says a ${gap}px gap, but its cards' boxes are ${[...new Set(grid.gaps)].join("px, ")}px apart: ` +
+        `the gap is the boxes'.`,
+    );
+  const columnGap = number(data.columnGap);
+  if (columnGap === undefined || columnGap < 0)
+    out.push(`A card grid's column gap is a number of pixels from zero, not ${say(data.columnGap)}.`);
+  else if (grid.columns > 1 && grid.columnGaps.some((one) => one !== columnGap))
+    out.push(
+      `The card grid says a ${columnGap}px column gap, but its cards' boxes are ` +
+        `${[...new Set(grid.columnGaps)].join("px, ")}px apart: the gap is the boxes'.`,
+    );
+  return out;
+}
+
+/** A shell's names are its bands as they are drawn: the band's word and the element's name. */
+function shellNames(data: unknown): string[] {
+  if (!isObject(data)) return [];
+  return rowsOf(data.regions).flatMap((region) =>
+    isObject(region) && typeof region.band === "string" && typeof region.element === "string"
+      ? [`${region.band.trim()} ${region.element.trim()}`]
+      : [],
+  );
+}
+
+/** A grid's names are its cards as they are drawn: their index and the element's name. */
+function gridNames(data: unknown): string[] {
+  if (!isObject(data)) return [];
+  return rowsOf(data.cards).flatMap((card) => {
+    const index = isObject(card) ? number(card.index) : undefined;
+    return index !== undefined && isObject(card) && typeof card.element === "string"
+      ? [`#${index} ${card.element.trim()}`]
+      : [];
+  });
+}
+
 // ---- anatomy --------------------------------------------------------------------------------------------------------
 
 /** The page's background: the window, not a component. A cut of it would ring the crop with an outline the page never drew
@@ -799,6 +1195,8 @@ function anatomyNames(data: unknown): string[] {
 }
 
 register("anatomy", { layout: anatomy, check: anatomyProblems, names: anatomyNames });
+register("appShell", { layout: appShell, check: appShellProblems, names: shellNames });
+register("cardGrid", { layout: cardGrid, check: cardGridProblems, names: gridNames });
 register("modal", { layout: modal, check: modalProblems, names: screenNames });
 register("screen", { layout: screen, check: screenProblems, names: screenNames });
 register("responsivePair", { layout: responsivePair, check: pairProblems, names: pairNames });

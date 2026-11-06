@@ -1,10 +1,10 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 34 kinds here
-// (`anatomy`, `barChart`, `beforeAfter`, `branchFlow`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`,
-// `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`, `nowNextLater`, `palette`,
-// `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`,
-// `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`, `typeScale`)
-// and the kit has thirty-four too. `check` returns **every** problem as a sentence, in
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 35 kinds here
+// (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `colourRoles`, `compare`, `contrast`,
+// `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`,
+// `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`,
+// `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`, `tokenTable`, `tree`, `typeScale`).
+// `check` returns **every** problem as a sentence, in
 // the kit's voice, because a spec is refused before a frame is declared; `parse` is the same check over a file's text.
 // No dependency: plain TypeScript over JSON.
 //
@@ -36,14 +36,17 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: glyph-kit has thirty-four, and these are the thirty-four this repository draws, and no more. The
-// runtime list is the registry's (`kinds()` in ./registry.ts, alphabetical), and figure-registry.test.ts holds this
-// list, the registry and native/docs/map.md together — so a kind added here without its area file fails there.
+// The kinds' **types**: these are the thirty-five this repository draws. The runtime list is the registry's (`kinds()` in
+// ./registry.ts, alphabetical), and figure-registry.test.ts holds this list, the registry and native/docs/map.md
+// together — so a kind added here without its area file fails there. The kit's own types that are still not drawn are
+// named in native/README.md's "Not here", with the reason each waits.
 export const KINDS = [
   "anatomy",
+  "appShell",
   "barChart",
   "beforeAfter",
   "branchFlow",
+  "cardGrid",
   "colourRoles",
   "compare",
   "contrast",
@@ -738,11 +741,73 @@ export interface ModalSpec extends Base {
   options?: { width?: number };
 }
 
+/**
+ * One band of a page's own shell: the element the capture drew (`sky-bar`) and the part of the shell it is (`nav`). The
+ * box is that element's own rect, so a band that is not an element of the page is not a band.
+ */
+export interface ShellRegion {
+  /** The part of the shell the band is: `nav`, `content`, `status`. The author's word, not a drawn one. */
+  band: string;
+  /** The page's id of the element the frame drew, like `sky-bar`. */
+  element: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A page's shell: the bands its own frame drew, and that frame beside them. */
+export interface AppShellData extends WireSide {
+  page: string;
+  regions: readonly ShellRegion[];
+}
+
+export interface AppShellSpec extends Base {
+  kind: "appShell";
+  data: AppShellData;
+  /** `width` is the layout's widest allowed cells; a page wider than this is refused. */
+  options?: { width?: number };
+}
+
+/** One card of a page's repeated grid: its place in the page's own order and the box its element drew. */
+export interface GridCard {
+  /** The page's index of the card (`sky-card-2` is 2). */
+  index: number;
+  /** The page's id of the element the frame drew, like `sky-card-0`. */
+  element: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A page's repeated cards, and the grid their boxes make: how many columns, and the gaps between them. */
+export interface CardGridData extends WireSide {
+  page: string;
+  /** The element-name prefix every card shares (`sky-card-`): a card is an element, not a box that happens to repeat. */
+  prefix: string;
+  cards: readonly GridCard[];
+  /** The columns the cards' x positions make (`gridOf` in kinds/wireframe.ts derives all three from the boxes). */
+  columns: number;
+  /** The gap between two cards down a column, in pixels. */
+  gap: number;
+  /** The gap between two columns, in pixels: 0 when the grid has one. */
+  columnGap: number;
+}
+
+export interface CardGridSpec extends Base {
+  kind: "cardGrid";
+  data: CardGridData;
+  options?: { width?: number };
+}
+
 export type Spec =
   | AnatomySpec
+  | AppShellSpec
   | BarChartSpec
   | BeforeAfterSpec
   | BranchFlowSpec
+  | CardGridSpec
   | ColourRolesSpec
   | CompareSpec
   | ContrastSpec

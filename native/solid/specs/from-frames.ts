@@ -1,23 +1,26 @@
-// `solid/specs/before-after.json`, `solid/specs/layer-stack.json` and `solid/specs/modal.json`, written from frames this
-// script captures: the Widgets page's switch off and on, and the Dialog's modal and menu frames — captured the way
-// solid/goldens stores a page's last frame (solid/dump.ts). The tree is the same in both frames, so a
-// command's index is the same element, and the numbers a before/after is about are the commands whose fields differ: the
-// track's colour and the thumb's x. Nothing in the spec is typed by hand but the two states' captions and the two parts'
-// names, and `solid/figure-handoff.test.ts` recomputes the same difference to hold the spec to the frames.
+// `solid/specs/before-after.json`, `solid/specs/layer-stack.json`, `solid/specs/modal.json`, `solid/specs/app-shell.json`
+// and `solid/specs/card-grid.json`, written from frames this script captures: the Widgets page's switch off and on, the
+// Dialog's modal and menu frames, and the Sky page at rest — captured the way solid/goldens stores a page's last frame
+// (solid/dump.ts). The tree is the same in both switch frames, so a command's index is the same element, and the numbers a
+// before/after is about are the commands whose fields differ: the track's colour and the thumb's x. A shell's bands and a
+// grid's cards are the frame's own elements — `sky-bar`, `sky-feed`, `sky-status`, `sky-card-<i>` — so their boxes are
+// looked up by the element's id, never typed. Nothing in the spec is typed by hand but the two states' captions, the two
+// parts' names and the shell bands' role words, and `solid/figure-handoff.test.ts` recomputes the same difference to hold
+// the spec to the frames.
 //
-//   bun solid/specs/from-frames.ts                  # write the three specs, here
+//   bun solid/specs/from-frames.ts                  # write the five specs, here
 //   bun solid/specs/from-frames.ts "$TMPDIR/specs"  # ... or into another directory, for solid/test.sh's cmp
 //
-// Both frames are taken with the switch focused (`Tab,Tab`) and the second with Space after it, so the focus ring is the
-// same command in both and the only fields that move are the two the figure is about.
+// Both switch frames are taken with the switch focused (`Tab,Tab`) and the second with Space after it, so the focus ring is
+// the same command in both and the only fields that move are the two the figure is about.
 import "../plugin.ts";
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Command, FrameDump } from "../src/dump.ts";
-import { frameOf } from "../src/figure/kinds/wireframe.ts";
-import { check, type BeforeAfterData, type LayerStackData, type ModalData } from "../src/figure/spec.ts";
+import { frameOf, gridOf } from "../src/figure/kinds/wireframe.ts";
+import { check, type AppShellData, type BeforeAfterData, type CardGridData, type LayerStackData, type ModalData } from "../src/figure/spec.ts";
 
 /** The keys the off frame is taken with: two Tabs reach the Wi-Fi switch and focus it. */
 export const OFF_KEYS = ["Tab", "Tab"] as const;
@@ -164,6 +167,86 @@ export function modalSpecOf(data: ModalData) {
   };
 }
 
+/** The Sky page's shell bands, in the page's own order: the bar, the feed and the status line. The role words are the
+ *  author's; each band's element and its box are the frame's. */
+export const SHELL_BANDS: readonly { band: string; element: string }[] = [
+  { band: "nav", element: "sky-bar" },
+  { band: "content", element: "sky-feed" },
+  { band: "status", element: "sky-status" },
+] as const;
+
+/** The Sky page's shell as a wireframe's data: each band the box of the frame's element with that name, plus the frame. */
+export function appShellOf(frame: FrameDump): AppShellData {
+  const regions = SHELL_BANDS.map(({ band, element }) => {
+    const command = frame.commands.find(
+      (candidate) => candidate.element === element && (candidate.type === "rectangle" || candidate.type === "border"),
+    );
+    if (!command) throw new Error(`appShell: ${element} is not a rectangle of its frame`);
+    return {
+      band,
+      element,
+      x: command.box[0]!,
+      y: command.box[1]!,
+      width: command.box[2]!,
+      height: command.box[3]!,
+    };
+  });
+  return { page: "sky", width: frame.size[0], height: frame.size[1], ...frameOf(frame.commands), regions };
+}
+
+/** The prefix the Sky feed's cards share: a card is the element the page gave that name. */
+export const CARD_PREFIX = "sky-card-";
+
+/** The Sky feed's cards as a card grid's data: every element whose name is the prefix and an index, at its own box, and
+ *  the columns and gaps the boxes make (`gridOf`). */
+export function cardGridOf(frame: FrameDump, prefix = CARD_PREFIX): CardGridData {
+  const seen = new Set<string>();
+  const cards: CardGridData["cards"][number][] = [];
+  for (const command of frame.commands) {
+    const element = command.element;
+    if (command.type !== "rectangle" && command.type !== "border") continue;
+    if (!element || !element.startsWith(prefix) || seen.has(element)) continue;
+    seen.add(element);
+    cards.push({
+      index: Number(element.slice(prefix.length)),
+      element,
+      x: command.box[0]!,
+      y: command.box[1]!,
+      width: command.box[2]!,
+      height: command.box[3]!,
+    });
+  }
+  cards.sort((a, b) => a.index - b.index);
+  const { columns, gap, columnGap } = gridOf(cards);
+  return { page: "sky", width: frame.size[0], height: frame.size[1], ...frameOf(frame.commands), prefix, cards, columns, gap, columnGap };
+}
+
+/** The shell's spec: the Sky page's own bands, each the element the frame drew. */
+export function shellSpecOf(data: AppShellData) {
+  return {
+    kind: "appShell" as const,
+    title: "The Sky page's shell",
+    intent:
+      "The Sky page's own frame, band by band: the bar, the feed under it and the status line — each band the box the " +
+      "page drew, labelled with the element it came from.",
+    source: "solid/specs/from-frames.ts, the Sky page's frame at rest (solid/dump.ts)",
+    data,
+  };
+}
+
+/** The grid's spec: the Sky feed's post cards, each at the box its element drew. */
+export function gridSpecOf(data: CardGridData) {
+  return {
+    kind: "cardGrid" as const,
+    title: "The Sky feed's cards",
+    intent:
+      "The Sky page's post cards, each at its own box with its index; the columns and the gaps are the cards' boxes', " +
+      "not a layout the figure chose.",
+    source: "solid/specs/from-frames.ts, the Sky page's frame at rest (solid/dump.ts)",
+    data,
+  };
+}
+
 /** The layer stack's spec: the Dialog's own overlays, measured where each one opens. */
 export function layerSpecOf(data: LayerStackData) {
   return {
@@ -195,10 +278,13 @@ if (import.meta.main) {
   const on = await capture("widgets", undefined, { keys: [...ON_KEYS] });
   const modal = await capture("dialog", undefined, { keys: [...MODAL_KEYS], settle: SETTLE });
   const menu = await capture("dialog", undefined, { keys: [...MENU_KEYS], settle: SETTLE });
+  const sky = await capture("sky");
   const spec = specOf(dataOf(off, on));
   const layers = layerSpecOf(layersOf(modal, menu));
   const dialog = modalSpecOf(modalOf(modal, MODAL_KEYS, SETTLE));
-  for (const one of [spec, layers, dialog]) {
+  const shell = shellSpecOf(appShellOf(sky));
+  const grid = gridSpecOf(cardGridOf(sky));
+  for (const one of [spec, layers, dialog, shell, grid]) {
     const problems = check(one);
     if (problems.length) throw new Error(`${one.kind} would not draw: ${problems.join(" ")}`);
   }
@@ -208,6 +294,8 @@ if (import.meta.main) {
     ["before-after.json", spec],
     ["layer-stack.json", layers],
     ["modal.json", dialog],
+    ["app-shell.json", shell],
+    ["card-grid.json", grid],
   ] as const) {
     writeFileSync(join(dir, name), `${JSON.stringify(one, null, 2)}\n`);
     console.log(`${name}: ${join(dir, name)}`);
@@ -219,5 +307,9 @@ if (import.meta.main) {
       `the layer stack ${layers.data.map((layer) => `${layer.name} z${layer.z}`).join(", ")}; the modal ` +
       `${dialog.data.boxes.length} boxes and ${dialog.data.texts.length} runs on ${dialog.data.panel.width}x` +
       `${dialog.data.panel.height}`,
+  );
+  console.log(
+    `from-frames: the shell ${shell.data.regions.map((region) => `${region.band} ${region.element}`).join(", ")}; ` +
+      `the grid ${grid.data.cards.length} cards in ${grid.data.columns} column(s), a ${grid.data.gap}px gap`,
   );
 }
