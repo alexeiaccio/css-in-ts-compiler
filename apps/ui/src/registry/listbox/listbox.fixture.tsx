@@ -17,9 +17,36 @@ const asRecord = (value: Json | undefined): Readonly<Record<string, Json>> => {
 };
 
 /**
+ * The walk's `key` steps are programmatic (`prop` steps), so they become a real
+ * keydown on the focused row: the platform moves focus along the block axis, the
+ * primitive prevents the keys it owns. The walk alphabet spells arrows short.
+ */
+const dispatchKey = (target: HTMLElement, value: Json | undefined): void => {
+  const record = asRecord(value);
+  const key = record["key"];
+  if (typeof key !== "string") {
+    throw new Error(`key needs a string key, got ${JSON.stringify(value)}`);
+  }
+  const named = ["Left", "Right", "Up", "Down"].includes(key) ? `Arrow${key}` : key;
+  target.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: named === "Space" ? " " : named,
+      shiftKey: record["shift"] === true,
+      ctrlKey: record["ctrl"] === true,
+      metaKey: record["meta"] === true,
+      altKey: record["alt"] === true,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+};
+
+/**
  * Mounts the styled listbox for the scenario walk: the same props the primitive's fixture passes, the primitive it built
  * through `onReady`, and the `Mounted` the DOM driver needs. The skin's rows are `listbox-option` parts; the test translates
  * the scenario's `option` targets to them.
+ *
+ * The walk drives the polyfill provider: its `key` steps are untrusted keydowns, which a native engine ignores.
  *
  * Controlled, the fixture is the host: it keeps the selection (or, in `selectionMode: 'none'`, the active option) in a
  * signal, passes it as `value` / `activeValue`, and either writes every request back (`accepts`) or ignores the callback.
@@ -64,6 +91,7 @@ export const mountListbox = (config: ListboxMountConfig): Mounted => {
         disabled={config.disabled}
         focusOnHover={config.focusOnHover}
         label={config.ariaLabel}
+        provider="polyfill"
         onReady={(listbox) => {
           api = listbox;
         }}
@@ -109,16 +137,14 @@ export const mountListbox = (config: ListboxMountConfig): Mounted => {
           api?.blur();
           break;
         case "key": {
-          const record = asRecord(value);
-          if (typeof record["key"] !== "string") {
-            throw new Error(`key needs a string key, got ${JSON.stringify(value)}`);
+          // a real keydown on the focused row: the platform moves the active
+          // option, the primitive's own listener runs its keys; a key step with
+          // focus outside the list is the model's no-op
+          const index = api?.focused() === true ? (api?.active() ?? -1) : -1;
+          const target = index >= 0 ? optionElements()[index] : undefined;
+          if (target !== undefined) {
+            dispatchKey(target, value);
           }
-          api?.keyDown(record["key"], {
-            shift: record["shift"] === true,
-            ctrl: record["ctrl"] === true,
-            meta: record["meta"] === true,
-            alt: record["alt"] === true,
-          });
           break;
         }
         case "type":

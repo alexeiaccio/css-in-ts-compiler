@@ -38,6 +38,13 @@ export interface ListboxProps {
   readonly label?: string | undefined;
   /** Base for the generated option ids. */
   readonly id?: string | undefined;
+  /**
+   * `"polyfill"` skips the feature detect and drives
+   * `@microsoft/focusgroup-polyfill`'s low-level group even where the engine has
+   * `focusgroup` (a test, or a host that knows it needs the polyfill). `"auto"`
+   * by default.
+   */
+  readonly provider?: "auto" | "polyfill" | undefined;
   readonly class?: string | undefined;
   /** The primitive, once: a page that drives the list from elsewhere. */
   readonly onReady?: ((listbox: ListboxController) => void) | undefined;
@@ -108,13 +115,14 @@ const labelClass = css.cn(
 );
 
 /**
- * A plain listbox, styled: `createListbox` owns the options, the active option, the selection, the roving tab stop, the ARIA
- * and the keys. The skin is the frame, the highlight painted from `data-highlighted` (the row `aria-activedescendant` names),
- * the selected fill, the check mark in a multiple list, the disabled grey, the focus ring and the DOM focus that follows the
- * primitive's roving tabindex.
+ * A plain listbox, styled: `createListbox` owns the options, the active option, the selection, the ARIA and the keys, and the
+ * platform's `focusgroup` contract (`listbox block nowrap`) owns the roving tab stop, the arrows and Home / End. The skin is
+ * the frame, the highlight painted from `data-highlighted` (the row `aria-activedescendant` names), the selected fill, the
+ * check mark in a multiple list, the disabled grey, the focus ring and the DOM focus that follows the primitive's active
+ * option — a type-ahead move and a click change the active option without a key, so the host moves the real focus there.
  *
- * DOM focus lives on the rows: exactly one carries `tabindex="0"`, and the arrows move both the primitive's active option
- * and that tab stop through the skin's effect.
+ * DOM focus lives on the rows, the same rows the model names: a move the platform makes is read back through `onFocus`, so
+ * one state follows the DOM and no effect has to guess which row is the tab stop.
  */
 export const Listbox = (props: ListboxProps): JSX.Element => {
   const listbox = createListbox({
@@ -142,6 +150,7 @@ export const Listbox = (props: ListboxProps): JSX.Element => {
       return props.label;
     },
     id: props.id,
+    provider: props.provider,
   });
   // a structural prop, read once: it is the primitive for a fixture, not a signal
   untrack(() => props.onReady)?.(listbox);
@@ -150,16 +159,21 @@ export const Listbox = (props: ListboxProps): JSX.Element => {
   const highlighted = (index: number): boolean => listbox.focused() && listbox.active() === index;
 
   let list: HTMLUListElement | undefined;
-  // The primitive keeps the roving tabindex; real DOM focus is the host's to move to that stop while focus is inside.
+  const rows = (): ReadonlyArray<HTMLElement> => [
+    ...(list?.querySelectorAll<HTMLElement>('[role="option"]') ?? []),
+  ];
+  // The platform owns the tab stop; what it cannot know is a programmatic move
+  // (type-ahead, a click, a controlled `activeValue`), so the host focuses the
+  // active row while focus is inside, and the platform's own move is a no-op here.
   createEffect(
     () => `${listbox.focused()}|${listbox.active()}`,
     () => {
       if (!listbox.focused()) {
         return;
       }
-      const roving = list?.querySelector<HTMLElement>('[tabindex="0"]');
-      if (roving !== undefined && roving !== null && roving !== document.activeElement) {
-        roving.focus();
+      const row = rows()[listbox.active()];
+      if (row !== undefined && row !== document.activeElement) {
+        row.focus();
       }
     },
   );
@@ -171,6 +185,7 @@ export const Listbox = (props: ListboxProps): JSX.Element => {
       class={css.cn(listClass, props.class)}
       ref={(node: HTMLUListElement) => {
         list = node;
+        listbox.listboxProps.ref(node);
       }}
     >
       <For each={listbox.items}>
