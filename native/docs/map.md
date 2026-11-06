@@ -71,8 +71,8 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Thirty-six kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
-`cardGrid`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`,
+terminal at one cell. Thirty-seven kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
+`cardGrid`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`,
 `layerStack`, `meter`, `modal`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`,
 `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`,
 `tokenTable`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
@@ -162,6 +162,12 @@ Its four **motion** kinds (`motionTiming`, `easing`, `stagger`, `frameStrip`) ar
 data is `solid/src/motion.ts`'s **own**: `solid/specs/from-motion.ts` runs the solver at 1/60 and writes `motion-timing`,
 `easing`, `stagger` and `frame-strip.json`, `solid/test.sh` regenerates and `cmp`s them, and the check re-runs the same
 spring from the data — so a motion figure is the trajectory the pages take, not a drawing of one.
+`forecast` is the thirty-seventh kind and the one whose data is this repository's own cadence: `CHANGELOG.md`'s 40 dated
+release headings are a daily series (26 days, 2026-10-10 to 2026-11-04, a quiet day a zero), and
+`solid/specs/from-releases.ts` counts them, fits the **last 14 days** (their mean, 2.50 a day, and their population
+standard deviation, 2.29) and projects the **next 7** at that mean, each day with the band `mean ± 1 sd` clamped at zero
+— a projection of a count, not a promise. `solid/figure-handoff.sh` regenerates and `cmp`s the spec, so a release added to
+the changelog is the figure's next column and not a stale drawing.
 Its text half is the same layout as characters (`solid/src/figure/text.ts`, `solid/figure.ts`): the title, the rows with
 `█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
 eight figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure
