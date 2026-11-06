@@ -1,7 +1,7 @@
 {
   "kind": "responsivePair",
   "title": "The Sky page, at two widths",
-  "intent": "The same page at 240 and 360px, each its own captured frame: 8 boxes and 22 texts at 240, 8 boxes and 22 texts at 360, side by side when they fit.",
+  "intent": "The same page at 240 and 360px, each its own captured frame: 9 boxes and 22 texts at 240, 9 boxes and 22 texts at 360, side by side when they fit.",
   "source": "solid/specs/from-page.ts: solid/dump.ts's captures of the sky page at 240x760 and 360x760",
   "data": {
     "page": "sky",
@@ -9,6 +9,12 @@
       "width": 240,
       "height": 760,
       "boxes": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 359.858398,
+          "height": 760
+        },
         {
           "x": 0,
           "y": 0,
@@ -175,6 +181,12 @@
       "width": 360,
       "height": 760,
       "boxes": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 360,
+          "height": 760
+        },
         {
           "x": 0,
           "y": 0,

@@ -713,6 +713,18 @@ scroll's numbers, back's byte-identical frame, the a11y tree of all three states
 never draws the loading row, and a reject after a loaded thread shows the error's two rows, not the thread that was up.
 The frames of the feed are untouched.
 
+**The wide form: the thread beside the feed.** The page reads its own width from the last layout (`ui.bounds("Root")`) and
+at 720px (`WIDE_AT`) declares the thread as a **second 360px column** instead of a root float over the content area: the
+page's 720x760 is the feed's pane and the thread's, each with its own clip and its own offset. The feed's pane is an
+element of its own — `sky-feed-pane`, the bar, the feed and its status line in a page-coloured column — and the thread is
+`sky-thread`, 360 wide and the page's own height (its 44px header and its 716px clip). A card's press opens the thread
+beside the feed, not over it: both panes stay declared, so the feed keeps its clip's offset and its selected card (measured
+in `solid/sky-wide.test.ts`: 78px and the card in the same box before and after the open, and the card still under the
+pointer) and the thread's ten rows are the right column's, 12px into its clip at x 372. Below 720 — 719 is measured, the
+frame before the turn — the screen is the float it always was: 0,64 360x696 over the feed, its clip 652, the rows at x 12,
+and the covered feed pruned from the a11y tree. The pane draws the page's own colour and nothing else, so the narrow page's
+stored frames are byte-identical and the command golden `solid/goldens/sky.json` gained that one rectangle.
+
 Still not here: replies below `depth` 6 and a parent chain longer than 20 (the query's caps), paging a thread's replies
 with a cursor (`getPostThread`'s `parentHeight` and `depth` are the whole request here), a cache (every press asks
 again, and back restores the screen it came from without asking), the moderation `apps/csssky/src/api.ts` applies to a
@@ -3082,9 +3094,8 @@ measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline thi
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
 **Not here** (and honest about it): the kit's `cohort` (a kind whose data this repository does not have), its
-`listDetail` wireframe (no page here draws a list pane and a detail pane of one page, so the kind waits for one), its
 motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data, its `lang`, its SAMPLE DATA stamp and its
-`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 37 kinds below are here;
+`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 38 kinds below are here;
 each section says what its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
@@ -3490,24 +3501,29 @@ the wireframe section below.
 What remains of the kit's systems half: nothing — its nine kinds are here. As before, the kit's other kinds and its
 motion's `intentCard`/`transitionSpec` are not.
 
-**The six wireframe kinds: a page, not a drawing.** `screen`, `anatomy`, `appShell`, `cardGrid`, `modal` and
-`responsivePair` (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command stream**.
-`specs/from-page.ts` captures the page with `solid/dump.ts`'s `capture` — the call the goldens are stored with — and
-writes the frame's `rectangle`/`border` boxes and its `text` runs into the spec: `screen.json` is the Widgets page at
+**The seven wireframe kinds: a page, not a drawing.** `screen`, `anatomy`, `appShell`, `cardGrid`, `listDetail`, `modal`
+and `responsivePair` (`solid/src/figure/kinds/wireframe.ts`) are the kinds whose data is a **real page's own command
+stream**. `specs/from-page.ts` captures the page with `solid/dump.ts`'s `capture` — the call the goldens are stored with —
+and writes the frame's `rectangle`/`border` boxes and its `text` runs into the spec: `screen.json` is the Widgets page at
 360x760, `anatomy.json` is a 296x120 region of it with four numbered callouts, `modal.json` is the Dialog's frame with
 its modal open (the keys `Tab, Enter`, settled forty frames), and `responsive-pair.json` is the Sky feed at 240x760
 (30x48 cells) and 360x760 (45x48), 30 + 2 + 45 = **77 cells** side by side at the default 80, above/below at 60.
-`specs/from-frames.ts` captures the Sky page at rest for the other two: `app-shell.json` is its three shell bands —
+`specs/from-frames.ts` captures the Sky page at rest for two of the others: `app-shell.json` is its three shell bands —
 `sky-bar` (0,0 360x64), `sky-feed` (0,64 360x664) and `sky-status` (0,728 360x32), each the element's own box, and the
 three tile the page — and `card-grid.json` is its feed's three post cards (`sky-card-0..2`, 336x190, 336x208 and 336x210),
-the one column and 8px row gap the boxes make. The data's fields are `page`, `width`, `height` and the frame's `boxes` and
-`texts` (the shell adds its `regions`, the grid its `prefix`, `cards`, `columns`, `gap` and `columnGap`); `check` refuses
-a page this repository does not draw (naming `dialog, list, sensors, sheet, sky, widgets`), a page wider than
-`options.width`, a narrow side wider than the wide, an empty frame and a frame with no boxes, a shell band that is not a
-box of its frame or two that overlap or do not tile the page, and a card that is not a box of its frame, an index listed
-twice, and columns or gaps the boxes do not make. `solid/test.sh` and `solid/figure-handoff.sh` regenerate all five
-captured specs into a temp directory and `cmp` — a page edit that moved a box or a run is a `cmp` line in the same
-commit, not a stale figure.
+the one column and 8px row gap the boxes make. The third is the Sky page's **wide form** (`list-detail.json`): a capture
+at 720x760 that presses the second card's body and settles its thread (`capture` grew `clickOn` and a `load`, so the
+recording answers on the frame the thread opens), whose panes are the page's own elements — the list `sky-feed-pane`
+(0,0 360x760: the bar, the feed and its status line) and the detail `sky-thread` (360,0 360x760: its 44px header and its
+clip) — two panes that tile the page. The data's fields are `page`, `width`, `height` and the frame's `boxes` and `texts`
+(the shell adds its `regions`, the grid its `prefix`, `cards`, `columns`, `gap` and `columnGap`, the panes their two
+elements and boxes); `check` refuses a page this repository does not draw (naming `dialog, list, sensors, sheet, sky,
+widgets`), a page wider than `options.width`, a narrow side wider than the wide, an empty frame and a frame with no boxes,
+a shell band that is not a box of its frame or two that overlap or do not tile the page, a card that is not a box of its
+frame, an index listed twice, columns or gaps the boxes do not make, a pane that is not a box of its frame or one outside
+the page, two panes that overlap, one element used for both panes, and panes whose union is not the page.
+`solid/test.sh` and `solid/figure-handoff.sh` regenerate all six captured specs into a temp directory and `cmp` — a page
+edit that moved a box or a run is a `cmp` line in the same commit, not a stale figure.
 
 The reconciliation is the cell: a box's cell rect is `round(x/8)`, `round(y/16)`, `round(w/8)`, `round(h/16)` of the
 page's own box, so a wireframe is at 1/8 scale and **not pixel-accurate** — an edge is up to **half a cell** out (4px
@@ -3551,9 +3567,19 @@ note under it prints the grid the boxes make; `check` refuses a card whose eleme
 twice, and a column count or gap the boxes do not make. The cards are the elements the page named — `sky-card-<i>` — so a
 second column of cards would need no new kind, only boxes at another `x`.
 
-The frames are `solid/frames/figure-{screen,anatomy,modal,responsive-pair,app-shell,card-grid}.png` and the command
-goldens `solid/goldens/figure-{screen,anatomy,modal,responsive-pair,app-shell,card-grid}.json` (108, 25, 55, 186, 100 and
-80 commands); the tests are
+**`listDetail`: the page's two panes.** A pane is `{ "element": "sky-feed-pane", "x": 0, "y": 0, "width": 360, "height":
+760 }`, and the data's two of them are the list and the detail: each element is looked up in the frame, so a pane cannot be
+a rectangle the author drew, and the check counts their union in pixels — the two panes cover the page's 547,200 exactly
+and share none of it. The page is the Sky page's **wide form**: at 720px the thread is a column beside the feed instead of
+a float over it, so the left 360 is `sky-feed-pane` (the bar, the feed and its status line) and the right 360 is
+`sky-thread` (its 44px header and its clip), and the two of them are the page. The drawing is the page's cell grid with
+each pane's rule on its own top and bottom rows and its label — the role's word and the element's name — inside it, so
+it reads as `appShell`'s bands do; the note under it prints the two boxes. What the drawing cannot carry is the page
+inside the panes: a frame's own runs are `screen`'s figure, and this one is about where the split is.
+
+The frames are `solid/frames/figure-{screen,anatomy,modal,responsive-pair,app-shell,card-grid,list-detail}.png` and the
+command goldens `solid/goldens/figure-{screen,anatomy,modal,responsive-pair,app-shell,card-grid,list-detail}.json` (108,
+25, 55, 186, 100, 80 and 148 commands); the tests are
 `solid/figure-wireframe.test.ts` for the count, the rects' worst rounding, the runs' order and their `…`, the pair's two
 sizes and both layouts, the refusals, the three mutations (a box rounded to pixels — 280 cells out; a run cut by bytes —
 `监控摄…` 7 cells against `监控…` 5; the pair's halves swapped — its sentence), the goldens and the terminal's rows;
@@ -3567,9 +3593,11 @@ on its band's cell rows, the five refusals, the mutation (a band's row read at 8
 the terminal's rows (15 checks); and `solid/figure-card-grid.test.ts` for the cards the prefix names (three, their boxes
 and indices), the grid the boxes make (one column, an 8px row gap, no column gap), the note, the six refusals, the
 mutation (a column per card would be three, not the one `x` the boxes make), the golden and the terminal's rows (15
-checks).
-What remains: the kit's `listDetail` — no page here draws a list pane and a detail pane of one page, so the kind waits for
-one — a page at a scroll offset (a capture is one frame, at rest), and the pixel columns above.
+checks); and `solid/figure-list-detail.test.ts` for the wide Sky page's two panes being the frame's own elements (their
+boxes, one each), no overlap, the union the 720x760 page in pixels, the two labels and the rules on the panes' own cell
+rows (48 of 90 cells), the note, the six refusals, the mutation (a pane 4px off the frame's box is column 1, not 0, and
+`check` refuses it), the golden and the terminal's rows (18 checks).
+What remains: a page at a scroll offset (a capture is one frame, at rest), and the pixel columns above.
 
 **The four motion kinds.** `motionTiming`, `easing`, `stagger` and `frameStrip` (`solid/src/figure/kinds/motion.ts`) are
 the first kinds whose data is not typed but **solved**: `solid/specs/from-motion.ts` runs `solid/src/motion.ts`'s own

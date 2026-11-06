@@ -55,7 +55,10 @@
 //   --count N                            the List's rows (default 30): 1,000 is the window's own test page
 //   --wide                               the List's wide layout: 900px rows in the same 280px viewport, a horizontal bar,
 //                                        and a second column past the viewport's edge (the horizontal axis of the scroll
-//                                        machine: --wheel-x scrolls it, and a shift+vertical wheel in the window does too)
+//                                        machine: --wheel-x scrolls it, and a shift+vertical wheel in the window does too).
+//                                        On the Sky page it is the page's own wide form: 720x760, where a card's thread opens
+//                                        as a 360px column beside the feed instead of a float over it (the page reads the
+//                                        window's width, so the flag only sizes the window)
 //   --posts N                            the Sky's Discover feed: N synthetic posts instead of its three fixtures
 //   --story ID                           the storybook page: the story to open (default the first), `widgets--switch`
 //   --arg NAME=VALUE                     the storybook page: an arg of the opened story as a control writes it, applied at
@@ -202,7 +205,9 @@ const W =
         ? devSize.width
         : page === "storybook"
           ? (storybook?.size.width ?? 720)
-          : 360;
+          : page === "sky" && wide
+            ? 720
+            : 360;
 const H =
   page === "widgets"
     ? size.height

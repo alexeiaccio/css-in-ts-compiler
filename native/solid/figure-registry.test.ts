@@ -1,7 +1,7 @@
 // The registry's own test: the seam a kind is added at, checked where a kind is added and not where it is drawn.
 //
 //   (a) every kind has both halves — a layout and a check — and the registry's list and the types' list (spec.ts's
-//       `KINDS`) are the same thirty-seven, so neither can grow without the other;
+//       `KINDS`) are the same thirty-eight, so neither can grow without the other;
 //   (b) the `unknown kind` sentence is the registry's own list, in its order, and native/docs/map.md's list of kinds is
 //       the same one (a doc that names a kind the registry does not have is a line here);
 //   (c) a throwaway kind, registered **in this file only**, draws through text.ts and declares on the desktop: the seam

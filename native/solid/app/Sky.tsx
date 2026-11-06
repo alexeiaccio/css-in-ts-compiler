@@ -53,6 +53,17 @@ import type { AppBskyFeedDefs } from "@atcute/bluesky";
 import { font, t } from "./Sky.styles.ts";
 
 const root = css.cn(css.width("stretch"), css.height("stretch"), css.flexDirection("column"), css.bg(t.color.page));
+// The wide form: at `WIDE_AT` the page is two 360px columns and the thread is the second of them instead of a float over
+// the first. The page reads its own width from the last layout (`ui.bounds("Root")`), so the window, the figure's capture
+// and a test all get the form they are drawn at — no prop a host has to remember to pass.
+const WIDE_AT = 720;
+const rootWide = css.cn(root, css.flexDirection("row"));
+/** The feed's column: the bar, the feed and its status line — the whole page narrow, the left 360px pane wide. Its own
+ *  page-coloured box makes it an element of the frame (a pane the listDetail figure can name), and it draws nothing the
+ *  root's own fill does not. */
+const PANE = "sky-feed-pane";
+const pane = css.cn(css.width("stretch"), css.height("stretch"), css.flexDirection("column"), css.bg(t.color.page));
+const paneWide = css.cn(pane, css.width(360));
 
 // the bar: the wordmark in the accent, then the tablist. The active tab is the accent with the app's 2px underline, and
 // a hover lightens the one under the pointer (Clay draws a border inside the box, so the underline moves no layout). Both
@@ -183,7 +194,9 @@ const THREAD_H = 696;
 const INDENT = 16;
 
 // the screen: a root float over the content area, the bar's width and the rest of the window's height, so the feed and its
-// status line stay declared underneath (their boxes, the selected card and the clip's offset are the feed's, untouched)
+// status line stay declared underneath (their boxes, the selected card and the clip's offset are the feed's, untouched).
+// On the wide page it is the second column instead: 360px beside the feed, the page's own height, so both panes are on
+// screen and neither is over the other.
 const thread = css.cn(
   css.width("stretch"),
   css.height(THREAD_H),
@@ -197,6 +210,7 @@ const thread = css.cn(
     capture: true,
   }),
 );
+const threadWide = css.cn(css.width(360), css.height("stretch"), css.flexDirection("column"), css.bg(t.color.page));
 // the header: the back control, then the title; a 44px row that stays put while the thread scrolls under it
 const head = css.cn(css.width("stretch"), css.height(44), css.p(0, 12), css.gap(12), css.alignItems("center"), css.bg(t.color.page));
 const back = css.cn(
@@ -265,6 +279,9 @@ export const s = {
   t,
   font,
   root,
+  rootWide,
+  pane,
+  paneWide,
   bar,
   wordmark,
   tablist,
@@ -290,6 +307,7 @@ export const s = {
   status,
   statusText,
   thread,
+  threadWide,
   head,
   back,
   backText,
@@ -305,7 +323,9 @@ export const s = {
   HEAD,
   THREAD_VIEW,
   THREAD_BAR,
+  PANE,
   INDENT,
+  WIDE_AT,
 };
 
 /** The phone: the bar (64) and the status line (32) around a feed that takes the rest of 760. */
@@ -923,6 +943,11 @@ export function Sky(props: {
   // whether the screen's node is in the tree this frame: the presence's answer, set by the tick before the flush
   const [threadShown, setThreadShown] = createSignal(false);
   const [threadFocused, setThreadFocused] = createSignal(false);
+  // the page's own width, read from the last layout each frame: `WIDE_AT` and up is the wide form, where the thread is a
+  // column beside the feed and so covers nothing
+  const [wide, setWide] = createSignal(false);
+  /** Is the feed's pane covered by the thread? Only narrow: wide, the two panes are side by side. */
+  const threadCovers = () => threadShown() && !wide();
   // the group's motion: 12px low and transparent on the way in — the card entry's own tracks, on the whole screen — and the
   // same shape reversed on the way out, with `presence` keeping the node mounted for it
   const tfx = {
@@ -933,6 +958,7 @@ export function Sky(props: {
     a: track(255, ENTRY_A),
   };
   const threadId = Buffer.from(THREAD);
+  const rootId = Buffer.from("Root");
   const threadViewId = Buffer.from(THREAD_VIEW);
   const threadBarId = Buffer.from(THREAD_BAR);
   // the thread's real content from the last layout (the rows' block plus the clip's two 12px paddings)
@@ -1187,6 +1213,11 @@ export function Sky(props: {
    *  the window is the measuring pass's (every card declared) that is the whole feed in one frame. */
   const tick = (dt: number) => {
     const t = feedScroll.now;
+    // the page's own width: a wide page puts the thread beside the feed, a narrow one over it. The layout is the judge (a
+    // window, the figure's capture and a test all draw one), and the first frame has no layout yet, so it is narrow.
+    const across = ui.bounds(rootId)?.[2] ?? size.width;
+    const isWide = across >= WIDE_AT;
+    if (isWide !== wide()) setWide(isWide);
     // the settings screen's own frame: an entry, its scroll, and the text size, whose answer re-measures the feed (a
     // taller card is another content end and another thumb)
     if (settings.tick(dt)) heights.length = 0;
@@ -1325,15 +1356,21 @@ export function Sky(props: {
     if (profile.isOpen()) return profile.wheel(dx, dy);
     if (settings.open()) return settings.wheel(dx, dy);
     if (notify.isOpen() && !threadOpen()) return notify.wheel(dx, dy);
-    if (!threadOpen()) return feedScroll.wheel(dx, dy);
-    if (ui.over(threadViewId) || ui.over(threadBarId)) threadScroll.wheel(dx, dy);
+    // the thread's clip takes the wheel when it is the pane under the pointer: narrow it is the only one while it is up,
+    // wide the feed's column keeps its own
+    if (threadOpen() && (ui.over(threadViewId) || ui.over(threadBarId))) return threadScroll.wheel(dx, dy);
+    if (!threadOpen() || wide()) return feedScroll.wheel(dx, dy);
   };
-  // ... and so is the pointer: only the open screen's machine may see a drag, so the feed's press never travels under it
+  // ... and so is the pointer: only the open screen's machine may see a drag, so the feed's press never travels under it.
+  // Wide, both panes are on screen, so both machines are told: a press is only a grab in the one that took it (its clip's
+  // `onPress` set it), and the machine whose box the pointer is not in does nothing. The narrow page stays the thread's.
   const pointer = (x: number, y: number, down: boolean, touch?: boolean) => {
     if (profile.isOpen()) profile.pointer(x, y, down, touch);
     else if (settings.open()) settings.pointer(x, y, down, touch);
-    else if (threadOpen()) threadScroll.pointer(x, y, down, touch);
-    else if (notify.isOpen()) notify.pointer(x, y, down, touch);
+    else if (threadOpen()) {
+      threadScroll.pointer(x, y, down, touch);
+      if (wide()) feedScroll.pointer(x, y, down, touch);
+    } else if (notify.isOpen()) notify.pointer(x, y, down, touch);
     else feedScroll.pointer(x, y, down, touch);
   };
   if (props.motion)
@@ -1410,115 +1447,120 @@ export function Sky(props: {
   };
 
   return (
-    <box id="Root" style={s.root}>
-      <box id="sky-bar" style={s.bar}>
-        <text style={s.wordmark}>sky</text>
-        <box {...a11y(tabs.tablist)} style={s.tablist}>
-          {tabs.tabs.map((tab, i) => (
-            <box
-              {...binds[i]!}
-              {...a11y(tab)}
-              style={under(i) ? s.tabOn : s.tab}
-              // a tab is the feed's: it switches the feed and leaves a thread, a profile and the settings screen
-              // over it, whatever their history says
-              onClick={() => {
-                binds[i]!.onClick?.();
-                if (profile.isOpen()) profile.close();
-                if (threadOpen()) closeThread();
-                if (notify.isOpen()) notify.close();
-                settings.close();
-              }}
-            >
-              <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{feeds[i]!.name}</text>
-            </box>
-          ))}
-        </box>
-        {/* the settings screen's gear, at the bar's right end: the app's own Settings control, a button named "Settings".
-            A press on it is the screen's and takes no focus of its own (a click on it leaves the focus where it was, and
-            the screen gives it back when it closes) */}
-        <box
-          {...a11y(settings.gear.part)}
-          label="Settings"
-          onPress={settings.gear.press}
-          onClick={settings.gear.bind.onClick}
-          style={settings.gear.style}
-        >
-          <box style={settings.gear.bar} />
-          <box style={settings.gear.bar} />
-          <box style={settings.gear.bar} />
-        </box>
-      </box>
-      {/* the feed and its status line stay declared under the thread (its clip keeps its offset, its cards their boxes and
-          the selection); the covered screen is out of the a11y tree while a screen is up */}
-      <box
-        {...bind}
-        hidden={threadShown() || profile.shown() || settings.shown() || notify.shown()}
-        onPress={() => (bind.onPress(), feedScroll.press())}
-        style={s.view}
-      >
-        {/* the window: a spacer for the cards above, the declared cards, a spacer for the ones below — all cells of one
-            `For`, so they are in that order in the feed's gap-spaced column and the declared cards are where the whole
-            feed would have put them */}
-        <For each={cells()}>
-          {(cell) => {
-            if (cell === TOP) return <box id={ABOVE} style={s.spacer} />;
-            if (cell === BOTTOM) return <box id={BELOW} style={s.spacer} />;
-            const i = Number(cell.slice(cell.indexOf(":") + 1));
-            const post = (): Post => feedPosts()[i] ?? BLANK;
-            return (
+    <box id="Root" style={wide() ? s.rootWide : s.root}>
+      {/* the feed's column: the bar, the feed and its status line. Narrow it is the page; wide it is the left 360px pane,
+          and the thread's column is declared beside it */}
+      <box id={PANE} style={wide() ? s.paneWide : s.pane}>
+        <box id="sky-bar" style={s.bar}>
+          <text style={s.wordmark}>sky</text>
+          <box {...a11y(tabs.tablist)} style={s.tablist}>
+            {tabs.tabs.map((tab, i) => (
               <box
-                id={`sky-card-${i}`}
-                style={
-                  selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card
-                }
+                {...binds[i]!}
+                {...a11y(tab)}
+                style={under(i) ? s.tabOn : s.tab}
+                // a tab is the feed's: it switches the feed and leaves a thread, a profile and the settings screen
+                // over it, whatever their history says
                 onClick={() => {
-                  // a press that dragged the feed is not a click on the card it started on; one on the author's row is that
-                  // row's own (it opens the profile), and the rest of the card selects the post and opens its thread, by the
-                  // record's own at-uri (no uri, no thread)
-                  if (feedScroll.dragged) return;
-                  if (ui.over(Buffer.from(`sky-author-${i}`))) return;
-                  const p = feedPosts()[i];
-                  if (!p?.uri) return;
-                  setSelected({ feed: active(), i });
-                  openThread(p.uri, null);
+                  binds[i]!.onClick?.();
+                  if (profile.isOpen()) profile.close();
+                  if (threadOpen()) closeThread();
+                  if (notify.isOpen()) notify.close();
+                  settings.close();
                 }}
               >
-                <box id={`sky-avatar-${i}`} style={AVATARS[post().handle.split(".")[0]!]!} />
+                <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{feeds[i]!.name}</text>
+              </box>
+            ))}
+          </box>
+          {/* the settings screen's gear, at the bar's right end: the app's own Settings control, a button named "Settings".
+              A press on it is the screen's and takes no focus of its own (a click on it leaves the focus where it was, and
+              the screen gives it back when it closes) */}
+          <box
+            {...a11y(settings.gear.part)}
+            label="Settings"
+            onPress={settings.gear.press}
+            onClick={settings.gear.bind.onClick}
+            style={settings.gear.style}
+          >
+            <box style={settings.gear.bar} />
+            <box style={settings.gear.bar} />
+            <box style={settings.gear.bar} />
+          </box>
+        </box>
+        {/* the feed and its status line stay declared under the thread (its clip keeps its offset, its cards their boxes and
+            the selection); the covered screen is out of the a11y tree while a screen is up — narrow, where the thread is a
+            float over it. Wide both panes are on screen, so nothing is covered */}
+        <box
+          {...bind}
+          hidden={threadCovers() || profile.shown() || settings.shown() || notify.shown()}
+          onPress={() => (bind.onPress(), feedScroll.press())}
+          style={s.view}
+        >
+          {/* the window: a spacer for the cards above, the declared cards, a spacer for the ones below — all cells of one
+              `For`, so they are in that order in the feed's gap-spaced column and the declared cards are where the whole
+              feed would have put them */}
+          <For each={cells()}>
+            {(cell) => {
+              if (cell === TOP) return <box id={ABOVE} style={s.spacer} />;
+              if (cell === BOTTOM) return <box id={BELOW} style={s.spacer} />;
+              const i = Number(cell.slice(cell.indexOf(":") + 1));
+              const post = (): Post => feedPosts()[i] ?? BLANK;
+              return (
                 <box
-                  id={`sky-author-${i}`}
-                  style={s.nameLine}
+                  id={`sky-card-${i}`}
+                  style={
+                    selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card
+                  }
                   onClick={() => {
-                    if (!feedScroll.dragged) profile.open();
+                    // a press that dragged the feed is not a click on the card it started on; one on the author's row is that
+                    // row's own (it opens the profile), and the rest of the card selects the post and opens its thread, by the
+                    // record's own at-uri (no uri, no thread)
+                    if (feedScroll.dragged) return;
+                    if (ui.over(Buffer.from(`sky-author-${i}`))) return;
+                    const p = feedPosts()[i];
+                    if (!p?.uri) return;
+                    setSelected({ feed: active(), i });
+                    openThread(p.uri, null);
                   }}
                 >
-                  <text style={settings.tx.name()}>{post().name || post().handle}</text>
-                  <text style={settings.tx.meta()}>
-                    {post().name ? `@${post().handle} · ${ago(post().created)}` : ago(post().created)}
+                  <box id={`sky-avatar-${i}`} style={AVATARS[post().handle.split(".")[0]!]!} />
+                  <box
+                    id={`sky-author-${i}`}
+                    style={s.nameLine}
+                    onClick={() => {
+                      if (!feedScroll.dragged) profile.open();
+                    }}
+                  >
+                    <text style={settings.tx.name()}>{post().name || post().handle}</text>
+                    <text style={settings.tx.meta()}>
+                      {post().name ? `@${post().handle} · ${ago(post().created)}` : ago(post().created)}
+                    </text>
+                  </box>
+                  <box id={`sky-body-${i}`} style={s.bodyBox}>
+                    <text style={settings.tx.body()}>{post().text}</text>
+                  </box>
+                  {post().media ? <text style={settings.tx.media()}>{post().media}</text> : null}
+                  <text style={settings.tx.counts()}>
+                    {`${num(post().replies)} replies · ${num(post().reposts)} reposts · ${num(post().likes)} likes`}
                   </text>
                 </box>
-                <box id={`sky-body-${i}`} style={s.bodyBox}>
-                  <text style={settings.tx.body()}>{post().text}</text>
-                </box>
-                {post().media ? <text style={settings.tx.media()}>{post().media}</text> : null}
-                <text style={settings.tx.counts()}>
-                  {`${num(post().replies)} replies · ${num(post().reposts)} reposts · ${num(post().likes)} likes`}
-                </text>
-              </box>
-            );
-          }}
-        </For>
-        {/* the app's empty feed: the page's own words, and not while a source is still answering or has failed (then the
-            status line has the state, and "Nothing here yet" would be a lie) */}
-        {feedPosts().length === 0 && !(props.pages && (awaiting(active()) || stateOf(active()).failed)) ? (
-          <box id="sky-empty" style={s.empty}>
-            <text style={s.emptyText}>Nothing here yet</text>
-          </box>
-        ) : null}
-      </box>
-      {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
-      <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
-      <box id="sky-status" hidden={threadShown() || profile.shown() || settings.shown() || notify.shown()} style={s.status}>
-        <text style={s.statusText}>{statusOf()}</text>
+              );
+            }}
+          </For>
+          {/* the app's empty feed: the page's own words, and not while a source is still answering or has failed (then the
+              status line has the state, and "Nothing here yet" would be a lie) */}
+          {feedPosts().length === 0 && !(props.pages && (awaiting(active()) || stateOf(active()).failed)) ? (
+            <box id="sky-empty" style={s.empty}>
+              <text style={s.emptyText}>Nothing here yet</text>
+            </box>
+          ) : null}
+        </box>
+        {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
+        <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
+        <box id="sky-status" hidden={threadCovers() || profile.shown() || settings.shown() || notify.shown()} style={s.status}>
+          <text style={s.statusText}>{statusOf()}</text>
+        </box>
       </box>
       {/* the notifications screen: declared before the thread and the profile, so their root floats (the same z) draw over
           it — the thread a notification opens is over the list, as the C shell's stack has it; the node is the presence's,
@@ -1534,7 +1576,7 @@ export function Sky(props: {
           role="region"
           label={headPost() ? `Thread — @${headPost()!.handle}` : "Thread"}
           hidden={profile.shown() || settings.shown()}
-          style={s.thread}
+          style={wide() ? s.threadWide : s.thread}
         >
           <box id={HEAD} style={s.head}>
             <box {...backBind} {...a11y(back.part)} label="Back" style={s.back}>

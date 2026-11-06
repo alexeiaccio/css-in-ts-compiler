@@ -15,6 +15,7 @@ import "./plugin.ts";
 import { readFileSync, writeFileSync } from "node:fs";
 
 import type { Drag } from "./app/Widgets.tsx";
+import type { Loader } from "./app/Sky.tsx";
 import type { A11yNode } from "./a11y.ts";
 import type { Motion } from "./src/entry.ts";
 import type { Input } from "./src/input.ts";
@@ -92,7 +93,7 @@ async function app(name: PageName): Promise<unknown> {
 // engine are the process's, so they are loaded once
 let started = false;
 
-type Hooks = { input: Input; motion: Motion; drag: Drag; theme?: string };
+type Hooks = { input: Input; motion: Motion; drag: Drag; theme?: string; load?: Loader };
 
 /** A run other than a page's stored one: the same page taken to rest somewhere else (the state a static C page is). */
 export interface Rest {
@@ -104,6 +105,12 @@ export interface Rest {
   readonly height?: number;
   /** The Figure page's spec, when it is not the stored one (`PAGES.figure` reads bars.json). */
   readonly spec?: Spec;
+  /** A press and a release on this element's centre, after the warm frames, as `main.ts --click`: four frames, the second
+   *  pressed. What opens the Sky page's thread on a capture. */
+  readonly clickOn?: string;
+  /** A page's loader (the Sky page's `load`): a screen already at hand answers on the frame it is asked, so a capture
+   *  never waits for a promise and never makes a request. */
+  readonly load?: Loader;
 }
 
 /** A spec file of solid/specs, checked: a figure whose spec is refused cannot be captured. */
@@ -147,7 +154,7 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
   } else if (ui.init(width, height)) throw new Error(`ui_init(${width}, ${height}) failed`);
 
   // the same `View` hooks `main.ts` wires: the pages' tick (their entry and their tracks), the pointer and the wheel
-  const hooks: Hooks = { input: createInput(), motion: {}, drag: {} };
+  const hooks: Hooks = { input: createInput(), motion: {}, drag: {}, load: rest.load };
   const root = new El("root");
   const page = pageOf(component, hooks, spec);
   const dispose = render(page, root);
@@ -164,6 +171,14 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
     tick: (dt) => hooks.motion.tick?.(dt),
   });
   for (let n = 0; n < warm; n++) frame(-1, -1, false, 1 / 60, false);
+  // a press and a release on an element's centre: the four frames `main.ts --click` runs, the second one pressed
+  if (rest.clickOn !== undefined) {
+    const at = ui.bounds(Buffer.from(rest.clickOn));
+    if (at === undefined) throw new Error(`${name}: no element ${rest.clickOn} for clickOn`);
+    const x = at[0]! + at[2]! / 2;
+    const y = at[1]! + at[3]! / 2;
+    for (let n = 0; n < 4; n++) frame(x, y, n === 1, 1 / 60, false);
+  }
   // a scripted key is a frame of its own, as `main.ts --keys` gives it: down and up, then the frame that follows
   for (const key of keys ?? []) hooks.input.down(key), hooks.input.up(key), frame(-1, -1, false, 1 / 60, false);
   for (let n = 0; n < settle; n++) frame(-1, -1, false, 1 / 60, false);
@@ -177,7 +192,15 @@ export async function capture(name: PageName, theme?: string, rest: Rest = {}): 
  *  Sky's theme is a getter because the page reads it each frame. The Figure page takes `spec`. */
 function pageOf(module: unknown, hooks: Hooks, spec?: Spec): () => El {
   const component = module as (props: object) => El;
-  return () => component({ input: hooks.input, motion: hooks.motion, drag: hooks.drag, theme: () => hooks.theme, spec });
+  return () =>
+    component({
+      input: hooks.input,
+      motion: hooks.motion,
+      drag: hooks.drag,
+      theme: () => hooks.theme,
+      spec,
+      load: hooks.load,
+    });
 }
 
 /** The nodes of a snapshot, the document not counted (the count a page's line prints). */

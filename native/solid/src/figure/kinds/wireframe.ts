@@ -1,10 +1,11 @@
-// The wireframe area: a page's own last frame, cut into the cell grid. Six kinds, one file, their layouts and their
+// The wireframe area: a page's own last frame, cut into the cell grid. Seven kinds, one file, their layouts and their
 // refusals side by side, because that is what a kind costs here (a layout, a check, one `register` at the bottom):
 //
 //   screen          one page (its name and its size) as boxes and text runs, at 1/8 of a cell across and 1/16 down
 //   anatomy         one region of that page with numbered callouts and their legend — a component drawing, in cells
 //   appShell        a page's own shell bands, each the element the frame drew, labelled with that element's name
 //   cardGrid        a page's repeated cards, each at its own box with its index, and the grid its boxes make
+//   listDetail      a page's list pane and its detail pane, each the element the frame drew, tiling the page
 //   modal           the Dialog's frame with its modal open: the scrim, the panel and the page under them
 //   responsivePair  the same page captured at two widths, side by side when they fit, above/below when they do not
 //
@@ -39,6 +40,8 @@ import type {
   AnatomySpec,
   AppShellSpec,
   CardGridSpec,
+  ListDetailSpec,
+  ListPane,
   ModalSpec,
   ResponsivePairSpec,
   ScreenSpec,
@@ -935,6 +938,126 @@ function gridNames(data: unknown): string[] {
   });
 }
 
+// ---- a list pane and a detail pane -----------------------------------------------------------------------------------
+
+/** The two panes of a list/detail page, in the drawing's order: the role's word, and the field of the data it is. */
+const PANES = ["list", "detail"] as const;
+
+/** A pane's line for the note under the drawing: its element, its box and where the box sits in the page. */
+const paneText = (pane: ListPane) => `${pane.element} ${pane.width}x${pane.height} at ${pane.x},${pane.y}`;
+
+/**
+ * A list/detail page: the page's own cell grid with each pane's box drawn on it — its rule on the pane's top and bottom
+ * rows, its sides down the others — and the pane's word and its element's name inside it, as `appShell` labels a band.
+ * The panes tile the page (the check counts their union in pixels), so nothing else is drawn: a pane is not a rectangle
+ * the author placed, and a third region would be a lie about the page. The two boxes are under the drawing.
+ */
+function listDetail(spec: ListDetailSpec): Layout {
+  const data = spec.data;
+  const grid = blankGrid(Math.max(1, cellsAcross(data.width)), Math.max(1, Math.round(data.height / CELL_Y)));
+  const panes = [data.list, data.detail];
+  for (const [i, pane] of panes.entries())
+    bandOf(grid, cellBox(pane), [
+      { text: PANES[i]!, paint: "ink", role: "label" },
+      { text: pane.element, paint: "muted", role: "note" },
+    ]);
+  const lines = gridLines(grid, "fig-list");
+  const note = `${paneText(data.list)}, ${paneText(data.detail)}`;
+  lines.push({ items: [textItem("fig-list-note", note, cells(note), "muted", "note")] });
+  const labels: Layout["labels"] = panes.map((pane, i) => ({
+    textId: `fig-list-caption-${i}`,
+    text: `${PANES[i]} ${pane.element}`,
+  }));
+  const boxes: BoxRecord[] = panes.map((_pane, i) => ({
+    id: `fig-list-box-${i}`,
+    textId: `fig-list-box-${i}-text`,
+    text: "",
+    role: "step",
+  }));
+  return finish(spec, "listDetail", grid[0]!.length, lines, [], labels, boxes);
+}
+
+/** One pane's sentences: its element's name, that element's box in the frame, and the page it is a part of. */
+function paneProblems(raw: unknown, role: string, boxes: readonly WireBox[], side: RawSide): string[] {
+  if (!isObject(raw)) return [`The ${role} pane is not an object: it needs an element and a box.`];
+  const element = typeof raw.element === "string" ? raw.element.trim() : "";
+  const name = element ? `${role} pane ${element}` : `the ${role} pane`;
+  const out: string[] = [];
+  if (!element)
+    out.push(
+      `The ${role} pane needs the page's element for it, like "sky-feed-pane": a pane is an element the frame drew.`,
+    );
+  const box = boxOf(raw);
+  if (!box || !(box.width > 0) || !(box.height > 0)) {
+    out.push(`The ${name} needs its box: x, y, width and height in the page's pixels.`);
+    return out;
+  }
+  if (side.width !== undefined && side.height !== undefined) {
+    const inside = box.x >= 0 && box.y >= 0 && box.x + box.width <= side.width && box.y + box.height <= side.height;
+    if (!inside)
+      out.push(
+        `The ${name} ${box.x},${box.y} ${box.width}x${box.height} is outside the ${side.width}x${side.height} page: ` +
+          `a pane is a part of the page.`,
+      );
+  }
+  if (!boxes.some((other) => sameBox(other, box)))
+    out.push(
+      `The ${name} ${box.x},${box.y} ${box.width}x${box.height} is not one of its frame's boxes: a pane is an ` +
+        `element the frame drew.`,
+    );
+  return out;
+}
+
+/** A list/detail page: a page this repository draws, two panes that are the frame's own elements, apart and tiling it. */
+function listDetailProblems(data: unknown, options: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'A list/detail figure needs its page and its two panes: { "page": "sky", "list": { "element": "sky-feed-pane", ' +
+        '"x": 0, "y": 0, "width": 360, "height": 760 }, "detail": { "element": "sky-thread", "x": 360, "y": 0, ' +
+        '"width": 360, "height": 760 } } and the frame\'s boxes and texts.',
+    ];
+  const out: string[] = [];
+  const page = pageProblem(data.page);
+  if (page) out.push(page);
+  const label = typeof data.page === "string" ? `${data.page} page` : "page";
+  const side = sideProblems(data, label);
+  out.push(...side.problems, ...widthProblem(side, label, options));
+  const boxes = rowsOf(data.boxes).map(boxOf).filter((box): box is WireBox => box !== undefined);
+  out.push(...paneProblems(data.list, "list", boxes, side), ...paneProblems(data.detail, "detail", boxes, side));
+  const list = boxOf(data.list);
+  const detail = boxOf(data.detail);
+  const listElement = isObject(data.list) && typeof data.list.element === "string" ? data.list.element.trim() : "";
+  const detailElement = isObject(data.detail) && typeof data.detail.element === "string" ? data.detail.element.trim() : "";
+  if (listElement && listElement === detailElement)
+    out.push(`A page's list and detail panes are two elements, not ${say(listElement)} twice.`);
+  if (!list || !detail || !(list.width > 0 && list.height > 0 && detail.width > 0 && detail.height > 0)) return out;
+  const listName = listElement || "the list pane";
+  const detailName = detailElement || "the detail pane";
+  if (overlaps(list, detail)) {
+    out.push(`The list pane ${listName} and the detail pane ${detailName} overlap: two panes of one page do not.`);
+    return out;
+  }
+  if (side.width === undefined || side.height === undefined) return out;
+  // a pane outside the page is that sentence's, not the union's: its area is not the page's to count
+  const insidePage = (box: WireBox) =>
+    box.x >= 0 && box.y >= 0 && box.x + box.width <= side.width! && box.y + box.height <= side.height!;
+  if (!insidePage(list) || !insidePage(detail)) return out;
+  const area = list.width * list.height + detail.width * detail.height;
+  const pageArea = side.width * side.height;
+  if (area !== pageArea)
+    out.push(`The panes cover ${area} of the page's ${pageArea} pixels: a list and a detail pane tile the page.`);
+  return out;
+}
+
+/** A list/detail page's names are its panes as they are drawn: the role's word and the element's name. */
+function listDetailNames(data: unknown): string[] {
+  if (!isObject(data)) return [];
+  return PANES.flatMap((role) => {
+    const pane = data[role];
+    return isObject(pane) && typeof pane.element === "string" ? [`${role} ${pane.element.trim()}`] : [];
+  });
+}
+
 // ---- anatomy --------------------------------------------------------------------------------------------------------
 
 /** The page's background: the window, not a component. A cut of it would ring the crop with an outline the page never drew
@@ -1197,6 +1320,7 @@ function anatomyNames(data: unknown): string[] {
 register("anatomy", { layout: anatomy, check: anatomyProblems, names: anatomyNames });
 register("appShell", { layout: appShell, check: appShellProblems, names: shellNames });
 register("cardGrid", { layout: cardGrid, check: cardGridProblems, names: gridNames });
+register("listDetail", { layout: listDetail, check: listDetailProblems, names: listDetailNames });
 register("modal", { layout: modal, check: modalProblems, names: screenNames });
 register("screen", { layout: screen, check: screenProblems, names: screenNames });
 register("responsivePair", { layout: responsivePair, check: pairProblems, names: pairNames });
