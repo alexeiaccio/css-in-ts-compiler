@@ -2,7 +2,7 @@ import { type RadioGroup, createRadioGroup } from "../src/radio";
 import { type Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import type { RadioConfig } from "@cssints/apg-specs/apg/radio.bridge";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { render } from "@solidjs/web";
 
 const maskToIndices = (mask: number): ReadonlyArray<number> => {
@@ -13,6 +13,22 @@ const maskToIndices = (mask: number): ReadonlyArray<number> => {
     }
   }
   return indices;
+};
+
+/**
+ * The walk's `key` steps are programmatic (`prop` steps), so they become a real
+ * keydown on the radio the primitive has focused: the platform moves focus and
+ * the primitive checks what it landed on. The walk alphabet spells arrows short.
+ */
+const dispatchKey = (target: HTMLElement, key: string): void => {
+  const named = ["Left", "Right", "Up", "Down"].includes(key) ? `Arrow${key}` : key;
+  target.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: named === "Space" ? " " : named,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
 };
 
 /**
@@ -65,10 +81,13 @@ export const mountRadio = (config: RadioConfig): Mounted => {
     }
   };
 
-  // Solid flushes signal writes on a microtask, so read the resulting focus
-  // state after the flush (the DOM driver settles a frame after each step).
+  // Solid 2 commits signal writes on a flush, so read the resulting focus
+  // state after the commit (the DOM driver settles a macrotask after each step).
   const scheduleFocus = (): void => {
-    queueMicrotask(focusActive);
+    queueMicrotask(() => {
+      flush();
+      focusActive();
+    });
   };
 
   const dispose = render(() => {
@@ -82,6 +101,10 @@ export const mountRadio = (config: RadioConfig): Mounted => {
       disabled: config.disabled,
       dir: config.direction,
       id: "radio",
+      // the walk dispatches its keys as untrusted events and probes the rendered
+      // `tabindex`: native focusgroup ignores untrusted keydown and writes no
+      // tabindex, the polyfill does both. The adapter test covers the native path.
+      provider: "polyfill",
       ...(config.orientation === undefined ? {} : { orientation: config.orientation }),
       ...(config.describedby === undefined ? {} : { describedby: config.describedby }),
       onValueChange: (value) => {
@@ -142,7 +165,14 @@ export const mountRadio = (config: RadioConfig): Mounted => {
           if (typeof key !== "string") {
             throw new Error(`key needs a string key, got ${JSON.stringify(value)}`);
           }
-          api?.keyDown(key);
+          // activedescendant keeps DOM focus on the group, roving on the radio
+          const target =
+            api?.flavor() === "activedescendant"
+              ? groupElement()
+              : radioElement(api?.focused() ?? -1);
+          if (target !== null) {
+            dispatchKey(target, key);
+          }
           scheduleFocus();
           break;
         }
