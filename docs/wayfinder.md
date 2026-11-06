@@ -4682,3 +4682,59 @@ Segments, nested groups, insert/remove of _widget_ items (the toolbar's list is 
 base-ui divergences (disabled items skipped in roving navigation) stay as they were. And the toolbar walk's
 provider is forced: a native run of it would need trusted keys and would lose its `tabindex` probe, which is a
 model question (is the tab stop markup or focus?) for the NEXT person, not a fixture one.
+
+## The listbox on the focusgroup adapter: the roving half moves, selection stays (2026-11-06)
+
+`createListbox` was the second widget computing the platform's roving tabindex itself: `delta` / `stepIndex` /
+`firstEnabled` / `lastEnabled`, a reactive `tabindex` (`0` on the active option) and the host moving DOM focus to
+whatever carried the `0`. It is now on `focusGroup` the way `createToolbar` is: the owner's `ref` builds the
+provider (native Chromium 150+, the low-level polyfill elsewhere) and registers the primitive's keydown listener
+_before_ it, the owner props carry `focusgroup="listbox block nowrap"`, and arrows, Home / End, the no-wrap edges
+and the last-focused memory are the platform's. `focus` / `active` are readings of the DOM — an option's `focus`
+is the move — so a platform arrow, a click and a host's `element.focus()` all land in the same state, and the
+primitive's movement helpers are gone.
+
+**What stayed, and is the library's.** The selection model (`single` / `multiple` / `none`), `aria-selected`,
+the request/commit split, range selection (Shift+Arrow, Shift+Space, Ctrl+Shift+Home/End), Ctrl+A, type-ahead
+(`type` plus the host's `clearTypeahead`), `aria-disabled` options, and `focusOnHover`. Two details follow from
+the DOM being the state: a pointer press's focus must not also commit the follows-focus selection (the click is
+the one intent), so the owner's `pointerdown` marks a gesture the focus handler does not act on; and a
+keydown the platform ignores because it is already at an edge still owes the model its follows-focus request,
+which the primitive commits itself. A controlled active option that refuses a move gets the DOM focus put back
+on the option the state names, because the platform has already moved it.
+
+**Item eligibility had to be ours, not the platform's.** The shared module leaves disabled / hidden /
+`tabindex=-1` / `focusgroup="none"` items to the platform, which is right for the toolbar (disabled but
+focusable). The listbox's contract says a disabled option cannot be reached by navigation, and it has two
+providers to satisfy: the polyfill decorates exactly the array it is handed, so the collection holds only the
+enabled options; the native engine reads the DOM, so a disabled option wears `focusgroup="none"`. The other
+half of the same finding: the native engine writes no tabindex and cannot focus a `<div>`/`<li>` it cannot
+focus, so every enabled option keeps a constant `tabindex="0"` — the polyfill's own documented recipe — and the
+platform owns _which_ one is the stop (both providers keep one: Tab enters on the remembered row, Tab leaves the
+group). `-1` for a disabled option keeps it out of the sequential order too.
+
+**The `aria-activedescendant` model is untouched.** A focusgroup is a roving model that moves real focus; a
+listbox whose host keeps focus on the container (a combobox popup, `createRearrangeableListbox`, whose list is
+its own `tabindex="0"` stop) moves a highlight instead, so the adapter does not apply there and that mode keeps
+its own arrow handling. `listbox-rearrangeable.ts` needed no change — it never read the option `tabindex`.
+
+**What the walk proved, and caught.** The differential walk is unchanged and still runs on the forced polyfill
+(its `key` steps are untrusted keydowns, which the native engine ignores), and it immediately caught the two
+places the split is real: the pointer gesture's double request, and the edge key whose no-op still asks for the
+selection. The native half is a focused test with real keys (`Tab` in and out, ArrowDown/Up, Home/End, the
+no-wrap edges, the memory, a disabled option skipped, selection-follows-focus) because a walk cannot produce a
+trusted key.
+
+**The break.** `listboxProps` gained `focusgroup` and `ref` and lost `onKeyDown` (a delegated handler would run
+after the polyfill has moved focus; without the `ref` nothing moves at all); `optionProps` gained `focusgroup`
+and `ref`, and its `tabindex` is no longer the roving value — it is the constant focusability value (`0`, `-1`
+when disabled). `keyDown` still drives the library's keys but no longer moves. Migration: spread `listboxProps`
+on the owner and `optionProps(i)` on each option, delete any `tabindex` bound after them, and stop reading
+`[tabindex="0"]` to find the active option (use `active()` or `aria-activedescendant`); keep the host's mirror
+that focuses the active row for programmatic moves. A `minor` changeset, since `@cssints/headless` is 0.x.
+
+**Left out, and true.** `tabs`, `radio`, `menu`, treeview's roving half, menubar, menu-button, feed, grid,
+checkbox-group and command-palette still compute their own movement (another four are in flight in parallel); the
+listbox's own `disabled` mask is static (an item's own `disabled` field may change, and the collection re-reads
+it on `update()`); and hidden options are still handed to the polyfill rather than filtered, which is the
+adapter's documented limit, not this widget's.

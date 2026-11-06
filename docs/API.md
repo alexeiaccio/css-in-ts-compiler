@@ -2927,6 +2927,18 @@ and walks it differentially in thirteen configurations: single, follows-focus, a
 multi with and without one, type-ahead with `selectionMode: "none"`, and each of those controlled by
 a host that accepts every request and one that holds its value.
 
+The roving tab stop is the platform's `focusgroup="listbox"` contract (`shared/focusgroup.qnt`, the
+`focusGroup` adapter of the toolbar section): arrows along the block axis, no wrap, Home / End, the
+last-focused memory and the one tab stop are the browser's (Chromium 150+) or
+`@microsoft/focusgroup-polyfill`'s. The primitive renders the owner's `focusgroup` attribute and its
+`ref`, keeps every enabled option focusable (`tabindex="0"`, which the polyfill decorates into the
+stop and restores), and never decides which option is the stop. `focus` / `active` are readings of
+the DOM: an option's `focus` is the move, so the platform's arrow, a click and a host's own
+`element.focus()` land in the same state. The library keeps its delta: the selection model,
+`aria-selected`, range selection, type-ahead, and the option the arrows must not reach (it is out of
+the item collection and wears `focusgroup="none"`, because the platform reads only `aria-disabled`
+and would still move focus onto it).
+
 ```ts skip
 // ListboxItemInput is a label string or { id?, label, textValue?, disabled? }
 createListbox(options: {
@@ -2943,6 +2955,7 @@ createListbox(options: {
   label?: string | undefined; // aria-label on the listbox
   onValueChange?(selected: ReadonlyArray<number>): void; // a request; onSelectionChange is an alias
   onActiveChange?(index: number): void; // a request
+  provider?: "auto" | "polyfill"; // "auto": the feature detect; "polyfill" forces the low-level group
 }): {
   active(): number;
   selected(): ReadonlyArray<number>; // sorted, de-duplicated, in range
@@ -2951,7 +2964,7 @@ createListbox(options: {
   selectionMode: "single" | "multiple" | "none";
   focus(): number; // the option that takes focus on entry
   blur(): void;
-  keyDown(key: string, modifiers?: { shift?; ctrl?; meta?; alt? }): void;
+  keyDown(key: string, modifiers?: { shift?; ctrl?; meta?; alt? }): void; // the library's keys, not the movement
   type(text: string): void;
   clearTypeahead(): void;
   clickOption(index: number): void;
@@ -2962,7 +2975,8 @@ createListbox(options: {
     "aria-multiselectable": "true" | "false" | undefined; // undefined in "none"
     "aria-activedescendant": string | undefined; // only while the widget holds focus
     "aria-label": string | undefined;
-    onKeyDown;
+    focusgroup: string; // "listbox block nowrap"; "" when the polyfill is forced
+    ref; // required: it builds the provider and the primitive's keydown listener
     onFocusOut;
   };
   optionProps(index: number): {
@@ -2972,7 +2986,9 @@ createListbox(options: {
     "aria-disabled": "true" | undefined;
     "aria-posinset";
     "aria-setsize";
-    tabindex: 0 | -1; // 0 on the active option only
+    focusgroup: "none" | undefined; // "none" on an option the arrows must not reach
+    tabindex: 0 | -1; // the constant focusability value: -1 only when disabled
+    ref;
     onClick;
     onFocus;
     onMouseEnter;
@@ -2987,35 +3003,44 @@ not walk the whole list. A selection or a `defaultActive` chosen before the item
 applies once they do, because `selected()` normalizes against the live count at every read.
 Selection is a set of indices, always returned sorted and de-duplicated, and an option that is
 disabled either by the `disabled` index list or by its own `disabled` field is skipped by the
-arrows, Home/End, clicks and hover.
+arrows, Home/End, clicks and hover: it is left out of the group's item collection and marked
+`focusgroup="none"`, so neither provider lands focus on it.
 
 Selection is uncontrolled by default (`defaultValue`, or `defaultActive` for the active option) and
 controlled by `value` + `onValueChange` (the active option by `activeValue` + `onActiveChange`,
 which is the type-ahead machine's value). Every selection change and every focus move is a request:
 uncontrolled it commits, controlled it commits nothing until the host writes the prop back, and a
-request equal to the current state is not made at all.
+request equal to the current state is not made at all. A controlled active option that refuses a
+move also gets the DOM focus put back on the option the state names, because the platform has
+already moved it.
 
 **Keyboard.** In `"single"` and `"none"` a printable character is type-ahead: a fresh buffer
 searches from the option after the active one, wrapping, and a growing buffer searches from the
 active one inclusive, both on the item's `textValue` (its label by default); a Space continues a
 non-empty buffer instead of selecting. ArrowDown / ArrowUp move the active option without wrapping,
-Home / End jump to the first / last enabled option, and Space or Enter selects the active option in
-single-select (in `"none"` there is nothing to select). In `"multiple"` Space toggles the active
-option, Shift+Space selects the run from the anchor to the active option, Shift+Arrow toggles the
-option it enters, Ctrl+Shift+Home / End select to that edge, and Ctrl+A (or Meta+A) selects all, or
-clears when all are selected. Ctrl+Space and Ctrl+Arrow are consumed and move nothing: the pattern's
-alternative model, where the arrows move focus only, is not implemented. The type-ahead keys are
-single- and none-only; `type(text)` itself searches in any mode.
+and Home / End jump to the first / last enabled option — the platform's movement, not the
+primitive's. Space or Enter selects the active option in single-select (in `"none"` there is nothing
+to select). In `"multiple"` Space toggles the active option, Shift+Space selects the run from the
+anchor to the active option, Shift+Arrow toggles the option it enters (the platform ignores the
+modifier, so the primitive moves the active option and the host's focus mirror follows), Ctrl+Shift+
+Home / End select to that edge, and Ctrl+A (or Meta+A) selects all, or clears when all are selected.
+Ctrl+Space and Ctrl+Arrow are consumed and move nothing: the pattern's alternative model, where the
+arrows move focus only, is not implemented. The type-ahead keys are single- and none-only;
+`type(text)` itself searches in any mode, and `keyDown(key)` drives exactly these library keys — an
+arrow or Home / End passed to it moves nothing, because the platform is the mover.
 
 There is no live region and no timer: the host calls `clearTypeahead()` from its own idle timer, and
 `focusOnHover` is off by default because moving the active option on hover fights a nested scroll or
 a tooltip. `focus()` names the entry option (the first selected one, else the first), returns the
 active one when the widget already has focus, and, in single-select with `followsFocus`, commits it.
-`aria-activedescendant` is emitted while the widget holds focus, but the container itself has no
-tabindex: the active option is the single tab stop, so the host keeps the DOM focus on that option.
-The scenario divergences: `autoFocus` focuses the option, not the listbox, so a probe reads
-`option:0`; and `onAction` / `onPress` are react-aria extensions the primitive does not report (only
-the selection change).
+`aria-activedescendant` is emitted while the widget holds focus and the container itself has no
+tabindex: the rows are the focus holders, and the host moves the DOM focus onto the active row for a
+programmatic move (type-ahead, a click, a controlled `activeValue`); the platform's own moves need no
+mirror. A host that instead keeps DOM focus on the container — a combobox popup, or
+`createRearrangeableListbox` — is in the `aria-activedescendant` model, which is not a focusgroup and
+keeps its own arrow handling. The scenario divergences: `autoFocus` focuses the option, not the
+listbox, so a probe reads `option:0`; and `onAction` / `onPress` are react-aria extensions the
+primitive does not report (only the selection change).
 
 ### Headless: `createMeter` (`@cssints/headless`)
 
