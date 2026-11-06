@@ -41,6 +41,7 @@ const SPECS = [
   "token-table",
   "spacing",
   "type-scale",
+  "table",
 ] as const;
 /** The command goldens: one frame each, stored by the same capture this test reads. */
 const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
@@ -56,6 +57,7 @@ const GOLDENS: Partial<Record<(typeof SPECS)[number], string>> = {
   "token-table": "figure-token-table",
   "spacing": "figure-spacing",
   "type-scale": "figure-type-scale",
+  table: "figure-table",
 };
 /** The engine's contrast, the one `packages/cssints` checks a site's colours with: the four design-system kinds' numbers
  *  are held to it, not to the copy in solid/src/figure/contrast.ts that they refuse and draw by. */
@@ -558,7 +560,7 @@ refuses("a focus name not in the figure", {
   focus: { on: ["Q3"] },
 }, 'Focus names "Q3", which isn\'t in the figure. Use a row label or a column heading as it is drawn.');
 refuses("an unknown kind", { kind: "pieChart", data: [] },
-  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, modal, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, timeline, tokenTable, tree, typeScale.');
+  'unknown kind "pieChart": the ones here are anatomy, barChart, beforeAfter, branchFlow, colourRoles, compare, contrast, easing, flow, frameStrip, funnel, heatmap, journeyMap, layerStack, meter, modal, motionTiming, nowNextLater, palette, qaChecklist, redline, responsivePair, screen, spacingScale, sparkline, stagger, stateMachine, stateMatrix, statusKey, table, timeline, tokenTable, tree, typeScale.');
 refuses("a bar chart with no positive value", {
   kind: "barChart",
   source: "Sample",
