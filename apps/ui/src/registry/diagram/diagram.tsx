@@ -8,6 +8,7 @@ import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
 import { createMemo, For } from "solid-js";
 
+import { type Route, routeBetween } from "../route.ts";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 export type { DiagramEdgeInput, DiagramLabels, DiagramNodeInput };
@@ -34,98 +35,10 @@ export interface DiagramProps {
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 44;
 
-/** A gap between a node's border and the line or the arrow's tip, so the arrow reads as pointing at the node. */
-const EDGE_GAP = 4;
-
-/** The arrow head's length along the line, and half its width. */
-const ARROW = 8;
-const ARROW_HALF = 3.2;
-
-/** How far an edge's label sits above (or beside) the line. */
-const LABEL_OFFSET = 8;
-
-interface Point {
-  readonly x: number;
-  readonly y: number;
-}
-
-interface Route {
-  /** Where the line starts and ends: both trimmed to the nodes' borders. */
-  readonly from: Point;
-  readonly to: Point;
-  /** The arrow's three points, as `<polygon points>`. */
-  readonly arrow: string;
-  /** Where the label goes, and which way its text runs from there. */
-  readonly label: Point & { readonly along: boolean };
-}
-
 interface RoutedEdge {
   readonly edge: DiagramEdgeInput;
   readonly route: Route;
 }
-
-const round = (value: number): number => Math.round(value * 100) / 100;
-
-const point = (x: number, y: number): Point => ({ x: round(x), y: round(y) });
-
-const centreOf = (node: DiagramNodeInput): Point => ({
-  x: node.x + (node.width ?? NODE_WIDTH) / 2,
-  y: node.y + (node.height ?? NODE_HEIGHT) / 2,
-});
-
-/**
- * How far from a node's centre its border lies along a unit direction: the first of the two axis crossings, which is what
- * an axis-aligned rectangle meets.
- */
-const borderOf = (node: DiagramNodeInput, ux: number, uy: number): number => {
-  const halfWidth = (node.width ?? NODE_WIDTH) / 2;
-  const halfHeight = (node.height ?? NODE_HEIGHT) / 2;
-  const alongX = ux === 0 ? Number.POSITIVE_INFINITY : halfWidth / Math.abs(ux);
-  const alongY = uy === 0 ? Number.POSITIVE_INFINITY : halfHeight / Math.abs(uy);
-  return Math.min(alongX, alongY);
-};
-
-/** The line from one node's border to the other's, the arrow at the target's end, and the label at the middle. */
-const routeBetween = (from: DiagramNodeInput, to: DiagramNodeInput): Route | undefined => {
-  const start = centreOf(from);
-  const end = centreOf(to);
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const length = Math.hypot(dx, dy);
-  if (length === 0) {
-    return undefined;
-  }
-  const ux = dx / length;
-  const uy = dy / length;
-  const lineFrom = borderOf(from, ux, uy) + EDGE_GAP;
-  const tip = length - borderOf(to, ux, uy) - EDGE_GAP;
-  const lineTo = tip - ARROW;
-  if (lineTo <= lineFrom) {
-    return undefined;
-  }
-  const at = (distance: number): Point => point(start.x + ux * distance, start.y + uy * distance);
-  const head = at(tip);
-  const side = { x: -uy * ARROW_HALF, y: ux * ARROW_HALF };
-  const arrow = [
-    head,
-    point(head.x - ux * ARROW + side.x, head.y - uy * ARROW + side.y),
-    point(head.x - ux * ARROW - side.x, head.y - uy * ARROW - side.y),
-  ]
-    .map((corner) => `${corner.x},${corner.y}`)
-    .join(" ");
-  const middle = at((lineFrom + lineTo) / 2);
-  // a line that runs across the page gets its label above it, one that runs down gets it beside: either way the text does
-  // not sit on the line
-  const along = Math.abs(ux) < Math.abs(uy);
-  return {
-    from: at(lineFrom),
-    to: at(lineTo),
-    arrow,
-    label: along
-      ? { x: round(middle.x + LABEL_OFFSET), y: round(middle.y + 4), along }
-      : { x: middle.x, y: round(middle.y - LABEL_OFFSET), along },
-  };
-};
 
 const rootClass = css.cn(css.display("grid"), css.gap(t.space._2), css.width("100%"));
 
