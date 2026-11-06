@@ -1,0 +1,63 @@
+{
+  "kind": "table",
+  "title": "The map's targets, one a row",
+  "intent": "native/docs/map.md's Targets table: where each target lays out, what rasters it, and how far each one is proven.",
+  "source": "native/docs/map.md, the Targets table",
+  "data": {
+    "columns": [
+      {
+        "title": "target"
+      },
+      {
+        "title": "raster"
+      },
+      {
+        "title": "js at run time"
+      },
+      {
+        "title": "status"
+      }
+    ],
+    "rows": [
+      [
+        "Desktop (macOS)",
+        "Clay's SDL3 renderer (GPU)",
+        "optional (Bun)",
+        "a page in a window"
+      ],
+      [
+        "ESP32-S3",
+        "esp32's render.c, CPU bands",
+        "none",
+        "one element proven on board"
+      ],
+      [
+        "Browser (WASM)",
+        "canvas 2D",
+        "none (the generated C)",
+        "a static frame and its use_g twin on a canvas"
+      ],
+      [
+        "ESP32-P4",
+        "CPU + PPA (2D DMA)",
+        "none",
+        "later, needs a board"
+      ],
+      [
+        "Terminal",
+        "Clay's termbox2 renderer",
+        "optional (Bun)",
+        "after desktop; replaces cssints/tui"
+      ],
+      [
+        "iOS, Android",
+        "ThorVG CPU, on a Metal/GLES surface (SDL3)",
+        "none (the generated C)",
+        "planned; the first slice is the section below"
+      ]
+    ]
+  },
+  "options": {
+    "max": 18
+  }
+}
