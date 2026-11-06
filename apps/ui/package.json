@@ -21,6 +21,7 @@
     "@cssints/stories": "workspace:*",
     "@solidjs/web": "2.0.0-rc.13",
     "cssints": "workspace:*",
+    "perfect-arrows": "0.3.5",
     "solid-js": "2.0.0-rc.13"
   },
   "devDependencies": {

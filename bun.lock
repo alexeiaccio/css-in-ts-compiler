@@ -148,6 +148,7 @@
         "@cssints/stories": "workspace:*",
         "@solidjs/web": "2.0.0-rc.13",
         "cssints": "workspace:*",
+        "perfect-arrows": "0.3.5",
         "solid-js": "2.0.0-rc.13",
       },
       "devDependencies": {
@@ -2233,6 +2234,8 @@
     "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
 
     "pend": ["pend@1.2.0", "", {}, "sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg=="],
+
+    "perfect-arrows": ["perfect-arrows@0.3.5", "", {}, "sha512-F7mPydcmQ40TG8HLi/WcVVo0Qf4r6/r1vhvVsF7y3OhoRv5CSX/6YahY2gm4+Nn54MaiIjCVBt/g26uzYvMdBQ=="],
 
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 
