@@ -5,7 +5,7 @@
 //   kinds/metrics.ts    barChart, compare, contrast, funnel
 //   kinds/flows.ts      flow, branchFlow, stateMachine
 //   kinds/structure.ts  journeyMap, tree
-//   kinds/systems.ts    palette, spacingScale, typeScale
+//   kinds/systems.ts    palette, spacingScale, typeScale, table
 //   kinds/planning.ts   timeline, statusKey, nowNextLater
 //   kinds/charts.ts     sparkline, meter, heatmap
 //   kinds/handoff.ts    beforeAfter, qaChecklist, redline
