@@ -4503,3 +4503,36 @@ input fails loudly if the pin ever stops applying.
 would float the compiler the same way, and the kit's own `bars` test would then fail in `apps/ui` before the smoke did.
 Nothing checks that the four Solid versions match (a `npm ls` assertion in the smoke would); only a rendered stateful
 binding reveals a skew.
+
+## A board, and the four references it was handed (2026-11-06)
+
+Four links arrived as "a set of references for a board" — the starter the dragging note (`cssints-2cxd`) named as the right
+home for free-form placement, and the one thing `panzoom` (one image) and `diagram` (fixed nodes) do not cover: a plane you
+build on. What each reference is, and what this kit takes or refuses.
+
+- **sktch** (Gabriel Suchowolski, Canvas2D, MIT, 2021; two demos, a ball pit and an electronic sketchbook). Its one idea is a
+  "loose grid" that works out which regions changed and repaints only those. **Refused** — it is the receipt for what you
+  rewrite once you leave the DOM: dirty-rect compositing, hit testing and text layout, all of which the browser gives a DOM
+  board for free. Worth keeping as the argument, not the code.
+- **pave** (baku89, MIT, 88★). An environment-agnostic SVG/Path2D toolkit: primitives, positions/normals/tangents, offset and
+  stroke, boolean operations, resampling, curve fitting and simplification, node-tool editing of anchors and handles, dashes,
+  convex hulls, raycasts, and layout helpers such as repeat-along. Paths are immutable plain objects and every function is
+  pure, so it works the same in the browser and in Node; circular arcs (`A`) survive offsetting, stroking and booleans.
+  **Take** — the connector maths. `diagram` trims a straight line to two borders by hand; the moment an edge bends, needs an
+  offset copy or an arrowhead on a tangent, this is the library, and it costs no rendering model: plain data in, plain data
+  out.
+- **glisp** (baku89). "A vector drawing app, whose drawing is a program": the document is Lisp forms and the canvas is their
+  evaluation, so a design is diffable, parametric and reproducible. **Take** — the document shape, not the language. A board's
+  items are data (id, box, kind, values) and the style over them is a program; in this kit that program already exists as
+  `css.*`, so the board needs no second syntax and its file diffs.
+- **zoah**. An infinite **DOM** canvas where "everything you design is already production code": real blocks, form elements,
+  SVG and iframes on the plane, variables that are real CSS and JS variables, hover and focus styled live rather than mocked,
+  typed props, variants and slots, and components published from the canvas to npm. **Take** — the thesis and the checklist.
+  The most credible tool on this list bet against canvas rendering, which is this kit's bet too.
+
+**The shape that follows** (recorded as `cssints-ezpl`): a DOM plane, not a canvas — `createPanZoom`'s gesture and key maths
+is reusable but its `imageProps` is one image, so the board is scale + translate on a container; a card is a real kit
+component at `x/y/w/h`; the document is a node list and the styles are tokens; edges are SVG paths behind the cards, trimmed to
+the borders as `diagram` does. The keyboard path is the board's own (a roving tab stop across cards, arrows move, Shift+arrows
+resize, Escape drops the selection, Delete removes, one live region announces), plus an outline view, because a 2-D plane is
+not a document. Refused: the constraint solver, the shader layers, CRDT sync, and any canvas renderer.
