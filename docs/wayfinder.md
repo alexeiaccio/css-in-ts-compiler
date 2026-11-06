@@ -4818,3 +4818,75 @@ three hand-roll the same movement today (`grid.ts`'s `rightIdx` / `downIdx` / `p
 `grid.ts` must keep its `mode`, its selection rectangle, its sort, its cell/widget focus target and its page-sized
 movement while delegating the roving stop and the four edges. A native implementation needs nothing from us but the
 attribute, which is why it is rendered from the same definition object.
+||||||| parent of 4b256880 (headless: the tabs break, its docs and the registry entry)
+
+## The tablist on the platform contract, and the tab stop it cannot pin to the selection (2026-11-06)
+
+`createTabs` was the second widget migrated onto `packages/headless/src/focusgroup.ts`, and the first whose
+selection is decoupled from movement. It now renders the `focusgroup` attribute from `tablistProps` (`tablist
+nomemory wrap`, `block` when vertical, plus `dir`) and builds the provider from the same object's `ref`; arrows
+along the axis, Home / End, wrap and the single tab stop are the platform's, and `tabProps` renders **no roving
+`tabindex`** — the provider owns it. The library keeps the delta: selection, automatic vs manual activation,
+`aria-selected` / `aria-controls`, panel visibility, close and rename, plus the static `tabindex="-1"` that
+keeps a disabled tab out of the group (the platform skips `tabindex=-1` items; `aria-disabled` alone is still
+arrow-reachable, which `shared/focusgroup.qnt` records).
+
+**The definition, and why.** The polyfill's README's tabs recipe — `nomemory` + `focusgroupstart` on the
+selected tab + selection in `focusin` — is the whole design. With no memory the group is entered on the
+selection, not on the last tab a user happened to visit, which is what a tablist means; `focusgroupstart` (a
+`tabProps` member) names that tab, and moves with the selection. Automatic activation selects on the `focusin`
+a move causes; manual activation selects only on Enter / Space; a click selects in both modes. Because
+selection commits on a focusin, a key that does **not** move focus selects nothing (Home on the first tab while
+a controlled host has moved the selection away), and the library therefore asks a controlled host once per
+gesture, not twice: a pointer press that moves focus leaves selection to the focusin, a press on the
+already-focused tab selects in `onClick`.
+
+**What the work found, and what it cost the model.** Two things the spec had asserted were the _provider's_
+behaviour, not the pattern's, and both were the reason `tabs.qnt` needed the import its toolbar sibling already
+had:
+
+- **The tab stop follows focus, not selection.** The APG examples move DOM focus by script and never touch
+  `tabindex`, so the old spec (`tabIndex` from `selected`, `ExactlyOneTabStopOnSelected`) held `tabindex=0` on
+  the selected tab. A focusgroup engine cannot do that: the native engine keeps the stop in the focus
+  controller, and the polyfill rewrites `tabindex` to the focused item on every move. In automatic mode the two
+  coincide; in manual mode (or with a controlled host that rejected a request) they do not, and the walk's
+  `{activation: "manual"}` and `{controlled: true, value: 2}` configs failed on exactly those two tabs. The
+  spec now has `var tabStop`, imports `shared/focusgroup.qnt` for `fgTabIndex` / `fgStopInRange`, and its
+  invariants say what the platform promises: one stop, in range, equal to `focused` while focus is inside the
+  tablist and to `selected` once it leaves (`fgStopOnLeave` without memory).
+- **A navigation key selects only if it moves focus.** `pressSelected` used to set `selection = navTarget` on
+  any automatic nav key. On the platform selection commits on the focusin, and a key that lands on the tab that
+  already has focus fires none — the `{controlled: true, selected: 0}` walk caught it after a programmatic
+  `setValue` had moved the selection away from the focused tab. The spec now guards that branch on
+  `navTarget != focused`.
+
+**The adapter earned a fix too.** The polyfill clears its remembered item on _every_ `update({ definition })`
+when `memory: false`; the adapter re-sent the definition on every `update()`, so a host that changed only its
+item set or its `focusgroupstart` lost the focused item to the entry point. `update()` now passes a definition
+only when one is given, and `focusGroupPolyfill`'s collection exposes `start` from `[focusgroupstart]` (as the
+polyfill's own `TreeWalkerItemCollection` does), so both providers honour the entry point. The tabs primitive
+calls `update()` for the item set and the selection and `update(definition())` only for the axis.
+
+**What the tests prove.** `tabs.browser.test.tsx` drives the differential walk on the forced polyfill (its key
+steps are untrusted `keydown`s and its probe reads the rendered `tabindex`, which native focusgroup ignores and
+never writes), and adds a native suite with real keys in the same run: entry on the selected tab, arrows / Home
+/ End / wrap, the block axis, manual activation (arrows move focus without selecting, Enter and Space select),
+no memory (leave and re-enter lands on the selected tab after focus moved away), and a disabled tab skipped and
+never given the stop. `tabs-requirements.browser.test.tsx` runs the polyfill so its one-tab-stop assertion is a
+rendered one, `tabs-close.browser.test.tsx` renders its rename-capable `<div role="tab">` tabs with their own
+`tabindex="0"` (a div is not focusable and the primitive no longer supplies the stop), and the registry skin
+composes the provider's `ref` with its own.
+
+**The break, and the migration.** `TabProps` no longer carries the roving `tabindex` and `Tabs.keyDown` is gone;
+`TablistProps` gained `focusgroup`, `ref` and `dir`, `TabProps` gained `focusgroupstart` and `ref` (plus the
+disabled `-1`). Spread `tablistProps` on the owner and `tabProps(i)` on each tab, bind no `tabindex`, and give a
+non-button tab its own `tabindex="0"`; the platform still keeps one stop among them. `minor` changeset, as
+`@cssints/headless` is 0.x.
+
+**Left out, and true.** `dir` is modelled by the platform (it reads the element's direction), so the primitive
+only emits the attribute and `tabs.qnt` stays ltr-only: the ported `direction` scenarios are still skipped. The
+walk's provider is still forced — a native run would need trusted keys and would lose its `tabindex` probe.
+Which of the remaining widgets with a roving model (`listbox`, `radio`, `menu`, `treeview`'s half, `menubar`,
+`menu-button`, `feed`, `grid`, `checkbox-group`, `command-palette`) move next is unchanged, but the shape is now
+settled twice over: the pattern keeps selection, the platform keeps the stop, and a spec that pins the stop to
+the selection is modelling the provider.

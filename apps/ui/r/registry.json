@@ -968,7 +968,7 @@
       "name": "tabs",
       "type": "registry:ui",
       "title": "Tabs",
-      "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
+      "description": "APG tabs: the platform's single tab stop, automatic or manual activation, wrapped arrows",
       "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
       "devDependencies": ["@cssints/apg-specs@^0.28.0", "@quint-machine/core@0.2.0"],
       "registryDependencies": ["@cssints/theme", "@cssints/accordion"],

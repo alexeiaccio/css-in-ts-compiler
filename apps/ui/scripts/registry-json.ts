@@ -219,7 +219,8 @@ const STARTERS: ReadonlyArray<Starter> = [
     with: ["theme.ts", "tokens.ts"],
     also: ["@cssints/accordion"],
     title: "Tabs",
-    description: "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
+    description:
+      "APG tabs: the platform's single tab stop, automatic or manual activation, wrapped arrows",
   },
   {
     name: "accordion",

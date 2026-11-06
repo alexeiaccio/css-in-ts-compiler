@@ -1514,7 +1514,7 @@ createTable(options: {
 
 ### Headless: `createTabs` (`@cssints/headless`)
 
-The APG tablist as state and attribute objects: roving tabindex, wrapping arrows, Home/End, automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). `packages/apg-specs/specs/apg/tabs.qnt` is its model; `packages/headless/test/tabs.browser.test.tsx` replays it in Chromium.
+The APG tablist as state and attribute objects: the platform's single tab stop, arrows, Home/End and wrap; automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). `packages/apg-specs/specs/apg/tabs.qnt` is its model (it imports `shared/focusgroup.qnt`); `packages/headless/test/tabs.browser.test.tsx` replays it in Chromium, on both providers.
 
 Its accessibility requirements are catalogued, gap by gap, in `packages/headless/docs/requirements/tabs.md` (the model is `packages/headless/docs/requirements/README.md`).
 
@@ -1523,6 +1523,7 @@ Close and rename are an **extension** (bean `cssints-gdv2`, the docs playground'
 ```ts skip
 createTabs(options?: {
   ...; // the plain tabs: items, value, defaultSelected, orientation, dir, activation, disabled, focusablePanels, id, tabId, panelId, onValueChange
+  provider?: "auto" | "polyfill"; // "polyfill" forces @microsoft/focusgroup-polyfill even where the engine has focusgroup
   closable?: boolean; // false: closeProps and the Delete key; the host removes from onClose
   renamable?: boolean; // false: a double click edits the label inline; the host renames from onRename
   label?(index: number): string | undefined; // the tab's name: the buttons' labels and the rename draft
@@ -1532,6 +1533,8 @@ createTabs(options?: {
   ...;
   editing(): number | null; // the tab being renamed inline
   focusAfterClose(index: number): number; // the tab to focus once the removal landed
+  tablistProps: { role: "tablist"; "aria-orientation"?: "vertical"; focusgroup: string; dir?: "ltr" | "rtl"; ref };
+  tabProps(index): { id; role: "tab"; "aria-selected"; "aria-controls"; "aria-disabled"; focusgroupstart; tabindex?: -1; ref; onClick; onMouseDown; onFocus; onKeyDown };
   closeProps(index): { "aria-label": string; tabindex: -1; onClick: () => void };
   renameProps(index): {
     onDblClick: () => void;
@@ -1544,12 +1547,15 @@ createTabs(options?: {
 };
 ```
 
-- **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
-- **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tablist's roving does not move. `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
+- **The platform's half.** `tablistProps` carries the `focusgroup` attribute (`tablist nomemory wrap`, `block` when vertical) and a `ref` that builds the provider, so arrows along the axis, Home / End, wrap and the single tab stop are the browser's (Chromium 150+) or `@microsoft/focusgroup-polyfill`'s. The definition is **no memory**: the group is entered on the selected tab (`focusgroupstart`, emitted by `tabProps`), not on wherever focus was last. `tabProps` therefore renders **no roving `tabindex`** — the provider owns it; the only `tabindex` a tab carries is a static `-1` on a disabled tab, which is how both providers are kept out of it. A host whose tab is not natively focusable (a `<div role="tab">` holding the rename input, say) gives it its own `tabindex="0"`; the platform still keeps a single stop among them. `provider: "polyfill"` skips the feature detect (for a test, or a page that needs the fallback); `focus` is a reading of the DOM, not a second cursor.
+- **The library's half.** Selection is the delta: automatic activation selects on the `focusin` a move causes, manual activation only on Enter / Space, and a click selects in both modes. A click on an already-focused tab selects itself (no `focusin` fires); a pointer press that does move focus is asked once, so a controlled host is not asked twice. Selection and focus are decoupled when a controlled host rejects a request — the tab stop then stays with the user's focus, which is why `tabs.qnt` keeps `tabStop` beside `selected`.
+- **Close.** `closeProps(index)` is the tab's close button: `aria-label="Close <label>"` and `tabindex=-1`, because a tablist's tab stops are its tabs; the keyboard path is Delete on the focused tab. It is not an item of the group either, so the platform neither moves focus to it nor acts on its keys. Focus after a close goes to the tab that slid into the closed one's place, or to the previous tab when the last one closed: `focusAfterClose(index)` names that index in the shortened list (call it before the host removes the tab). Closing the last remaining tab is refused, as the spec refuses an empty tablist; a closed tab that was selected asks for the tab that takes the focus.
+- **Rename.** A double click begins; the tab renders `inputProps` instead of its label. Enter commits, Escape reverts, blur commits, and a label that trims to nothing cancels. While editing, the input owns the keys: the tab's handler ignores them (and the platform already leaves a native `<input>`'s arrows alone). `begin(index)` is the programmatic start, for a tab the host has just added (append it, then `focusTab(index)` and `begin(index)`).
 - **Ids.** `tabId(index)` and `panelId(index)` replace the generated `${id}-tab-<index>` / `${id}-tabpanel-<index>`, and `aria-controls` / `aria-labelledby` follow them. Use them when the host's markup or a deep link already names a panel (`#logs`): the alternative is a second id on the same element, which no attribute can carry.
-- **Direction.** `dir: "rtl"` swaps ArrowLeft / ArrowRight on a horizontal tablist (a vertical one keeps Up / Down); the host still sets `dir` on its element for the visual order. The model `tabs.qnt` is ltr only, so the ported `direction` scenarios stay skipped; `packages/headless/test/tabs-requirements.browser.test.tsx` holds the swap.
-- **The host's list.** `items` is read from the option on every read, so the bounds, the roving tab stop and `firstEnabled` follow a host that shrinks its list. `label` is read lazily too, so a renamed tab renames its buttons with it.
+- **Direction.** `dir: "rtl"` renders as `dir` on `tablistProps`: the platform maps ArrowLeft / ArrowRight per the element's direction, so a horizontal rtl tablist puts the next tab to the left and a vertical one keeps Up / Down. The model `tabs.qnt` is ltr only, so the ported `direction` scenarios stay skipped; `packages/headless/test/tabs-requirements.browser.test.tsx` holds the swap.
+- **The host's list.** `items` is read from the option on every read, so the bounds, the entry point and `firstEnabled` follow a host that shrinks its list, and the primitive re-reconciles the provider on a selection or count change (the native engine reads `focusgroupstart` itself). `label` is read lazily too, so a renamed tab renames its buttons with it.
 - The spec models a `deletable` flavour (Delete, focus to the next tab, the last refused) but neither a rename nor the callbacks, so the browser test, not the model, holds the extension.
+- **Migration (0.x, `minor`).** `TabProps` no longer carries the roving `tabindex` (spread `tabProps(i)` and bind none; a non-button tab needs its own `tabindex="0"`), and `Tabs.keyDown` is gone. `TablistProps` gained `focusgroup`, `ref` and `dir`, and `TabProps` gained `focusgroupstart` and `ref`.
 
 ### Headless: `createHotkeys` (`@cssints/headless`)
 

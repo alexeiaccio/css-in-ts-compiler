@@ -31,7 +31,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - button: APG button and toggle button: `tone` and `size` variants, and `render` for a link. `add @cssints/button`
 - checkbox: APG checkbox, including the mixed tri-state, on @cssints/headless. `add @cssints/checkbox`
 - radio: APG radio group with roving tabindex or aria-activedescendant focus. `add @cssints/radio`
-- tabs: APG tabs: roving tabindex, automatic or manual activation, wrapped arrows. `add @cssints/tabs`
+- tabs: APG tabs: the platform's single tab stop, automatic or manual activation, wrapped arrows. `add @cssints/tabs`
 - accordion: APG accordion: multiple or single expansion, headed triggers, collapsible. `add @cssints/accordion`
 - separator: A rule between two groups: `role=separator` with its orientation, or a decorative `role=none`. `add @cssints/separator`
 - badge: A small label in three tones, a pill at 999px because the theme's steps stop at 16px. `add @cssints/badge`
