@@ -1,5 +1,5 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 37 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 38 kinds here
 // (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `colourRoles`, `compare`, `contrast`,
 // `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`,
 // `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`,
@@ -37,7 +37,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: these are the thirty-seven this repository draws. The runtime list is the registry's (`kinds()` in
+// The kinds' **types**: these are the thirty-eight this repository draws. The runtime list is the registry's (`kinds()` in
 // ./registry.ts, alphabetical), and figure-registry.test.ts holds this list, the registry and native/docs/map.md
 // together — so a kind added here without its area file fails there. The kit's own types that are still not drawn are
 // named in native/README.md's "Not here", with the reason each waits.
