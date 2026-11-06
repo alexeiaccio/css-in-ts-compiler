@@ -26,10 +26,23 @@ export const createControllable = <T>(
     version();
     return options.value() ?? local;
   };
+  // The intent the host has not answered yet: a controlled host's `value` still reads
+  // its old state until the flush, so one user gesture that asks twice (a pointer
+  // press and the focus it causes) must be written off as one intent, not two.
+  let inFlight: T | undefined;
   const request = (next: T): void => {
     if (next === current()) {
       return;
     }
+    if (inFlight !== undefined && inFlight === next) {
+      return;
+    }
+    inFlight = next;
+    queueMicrotask(() => {
+      if (inFlight === next) {
+        inFlight = undefined;
+      }
+    });
     if (options.value() === undefined) {
       local = next;
       setVersion((count) => count + 1);
