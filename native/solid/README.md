@@ -1017,7 +1017,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 37 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 38 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
@@ -1025,8 +1025,8 @@ the journey `journey-map.json` (glyph-kit's first-week example, adapted), the de
 `colour-roles`, `spacing`, `type-scale`), the Dialog's layers (`layer-stack`) and the pages' states (`state-matrix`),
 the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (`motion-timing`, `easing`, `stagger`,
 `frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`), the charts (`sparkline`, `meter`,
-`heatmap`, `forecast`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `modal`, `responsive-pair`) and the
-generic table (`table`);
+`heatmap`, `forecast`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `list-detail`, `modal`,
+`responsive-pair`) and the generic table (`table`);
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
 
@@ -1079,15 +1079,17 @@ verdicts painted by the `good`, `problem` and `muted` roles. Their goldens are `
 `figure-before-after.json` and `figure-qa-checklist.json`, their frames are `solid/frames/figure-{redline,before-after,qa-checklist}.png`,
 and the browser reads `?spec=` of each (`browser/figure-handoff-check.mjs`).
 
-**The six wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen`, `anatomy`, `appShell`, `cardGrid`, `modal`
-and `responsivePair`,
+**The seven wireframe kinds** (`src/figure/kinds/wireframe.ts`) are `screen`, `anatomy`, `appShell`, `cardGrid`,
+`listDetail`, `modal` and `responsivePair`,
 and their data is a **page's own captured frame**: `specs/from-page.ts` runs `dump.ts`'s `capture` and writes the Widgets page's
 `rectangle`/`border` boxes and `text` runs into `screen.json` (360x760: 45x48 cells, 23 boxes of 29, 30 runs, 1
 shortened), a 296x120 crop of the same page and four callouts into `anatomy.json` (37x8 cells, 5 boxes, 3 runs), and the
 Sky feed's into `responsive-pair.json` (240x760 and 360x760: 30x48 and 45x48 cells, 8 boxes and 22 runs a side, side by
 side at 77 of 80 cells, above/below at 60); `specs/from-frames.ts` captures the Sky page at rest for `app-shell.json` (its
 three bands — `sky-bar` 360x64, `sky-feed` 664 and `sky-status` 32, each the element's own box, tiling the page) and
-`card-grid.json` (its three post cards, 336x190, 336x208 and 336x210, one column and an 8px row gap). A box is its page
+`card-grid.json` (its three post cards, 336x190, 336x208 and 336x210, one column and an 8px row gap) and `list-detail.json`
+(the wide page's two panes: a 720x760 capture with the thread open, `sky-feed-pane` 0,0 360x760 and `sky-thread` 360,0
+360x760, tiling the page). A box is its page
 rect at `round(x/8)`, `round(y/16)`, `round(w/8)`,
 `round(h/16)`, so the wireframe is 1/8 scale and not pixel-accurate — the worst edge is half a cell (4px across, 8px
 down) and a 1px rule rounds away; a run is one cell a character, marked `…` when shortened. An anatomy crops before it
@@ -1103,13 +1105,15 @@ cell and the characters around it, the legend, its six refusals, its golden, the
 `figure-app-shell.test.ts` the three bands as the frame's own elements, their union the page, their labels and rules on
 their own cell rows, five refusals, a row read at 8px down, the golden and the terminal's rows (15 checks); and
 `figure-card-grid.test.ts` the three cards under `sky-card-`, the grid their boxes make, the note, six refusals, a column
-per card, the golden and the terminal's rows (15 checks); `solid/test.sh` regenerates the three from-page specs and
-`figure-handoff.sh` the Sky page's two, and each is `cmp`'d.
+per card, the golden and the terminal's rows (15 checks); `figure-list-detail.test.ts` the two panes as the frame's own
+elements, their union the page, the labels and rules on their cell rows, six refusals, a pane 4px off, the golden and the
+terminal's rows (18 checks); `solid/test.sh` regenerates the three from-page specs and `figure-handoff.sh` the Sky page's
+three, and each is `cmp`'d.
 
 **The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
 their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
 `solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`, `structure`, `systems`,
-`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 37 specs are drawable.
+`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 38 specs are drawable.
 `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
 strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
 terminal's rows and the browser's `?spec=` of each.

@@ -71,11 +71,11 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Thirty-seven kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
-`cardGrid`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`,
-`layerStack`, `meter`, `modal`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`,
-`screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`,
-`tokenTable`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
+terminal at one cell. Thirty-eight kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
+`cardGrid`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`,
+`journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`,
+`redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`,
+`table`, `timeline`, `tokenTable`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
 `metrics.ts`, `charts.ts`, `flows.ts`, `structure.ts`, `systems.ts`, `planning.ts`, `motion.ts`, `handoff.ts` and
 `wireframe.ts`, over `shared.ts` — its layout and its refusals side by side and one `register` call at the bottom, so a
 new kind is its own file and no other kind's;
@@ -83,11 +83,12 @@ new kind is its own file and no other kind's;
 `screen` is a page of this repository's own frame cut to the cell grid, an `anatomy` is one region of that page with
 numbered callouts and their legend, an `appShell` is a page's shell bands — the Sky page's bar, feed and status line —
 each the element the frame drew and its own box, a `cardGrid` is a page's repeated cards — the Sky feed's three post
-cards — each at its own box with its index and the columns and gaps its boxes make, a `modal` is the Dialog's frame with
-its modal open (the scrim is the page's rectangle, the panel inside it, and the panel's box under the drawing), and a
-`responsivePair` is a page at two widths — the data is the captured command stream, so a wireframe is the page and cannot
-drift from it. The kit's `listDetail` is not here: no page in this repository draws a list pane and a detail pane of one
-page, so the kind waits for one. The systems file's ninth kind is not a design system: `table` is the generic one —
+cards — each at its own box with its index and the columns and gaps its boxes make, a `listDetail` is a page's list pane
+and its detail pane — the Sky page's wide form, its feed's column and its thread's, each the element the frame drew, and
+the two of them tiling the 720x760 page — a `modal` is the Dialog's frame with its modal open (the scrim is the page's
+rectangle, the panel inside it, and the panel's box under the drawing), and a `responsivePair` is a page at two widths —
+the data is the captured command stream, so a wireframe is the page and cannot drift from it. The systems file's ninth
+kind is not a design system: `table` is the generic one —
 columns with a heading and an alignment, rows of cells, the heading once with a rule under it, and a value cut to its
 column with `…` at the cell (counted in cells, not bytes). Its data is this page's own Targets table:
 `solid/specs/from-targets.ts` parses it and writes `table.json` from four of its six columns, and
@@ -620,7 +621,14 @@ Each step ends in a check that fails when it breaks.
    `sky-thread-more.png` (the deeper thread; its row is only in view at the thread's end, so `main.ts` grew
    `--click2`/`--settle2`). Mutations: dropping the wrapper's padding fails `FAIL a reply's box is its depth's indent in
    from the clip (…)`, and reusing the thread's offset for the feed fails `FAIL the feed's offset after back is its own`
-   (and 667,725 bytes of the frame). What is still not there: a fetch of a real thread from the AppView (the page has one
+   (and 667,725 bytes of the frame). **The wide form** (2026-11-06): the page reads its own width from the last layout
+   (`ui.bounds("Root")`) and at 720px the thread is a **second 360px column beside the feed** instead of the float over it —
+   the page's 720x760 is the feed's pane (`sky-feed-pane`, the bar, the feed and its status line in a page-coloured column)
+   and the thread's (`sky-thread`, its 44px header and its 716px clip), each its own clip and its own offset. The feed keeps
+   its offset and its selected card across the open (`solid/sky-wide.test.ts`: 78px and the card's box, before and after)
+   and its card is still under the pointer; below 720 (719 measured) the float and the covered feed are unchanged. The pane
+   draws the page's own colour, so the narrow page's stored frames are byte-identical and `solid/goldens/sky.json` gained
+   one rectangle. What is still not there: a fetch of a real thread from the AppView (the page has one
    recorded fixture, shown for whichever card is pressed), a reply's own thread beyond the one branch the data holds, and
    the settings screen (the profile is the third screen below).
    the profile screen (its sibling's).
