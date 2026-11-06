@@ -7,8 +7,9 @@ import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
 import { createMemo, createSignal, For, merge, Show } from "solid-js";
 
+import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
-import { routeBetween } from "../route.ts";
+import { curveBetween } from "../route.ts";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 /** What `render` gets: the props of the card list, `data-part` and the caller's class merged in. */
@@ -50,6 +51,16 @@ export interface BoardProps extends Renderable<BoardPartProps, void> {
   readonly edges?: ReadonlyArray<BoardEdge> | undefined;
   /** The card that starts current, so a page can open the board on a token; Escape drops it. */
   readonly defaultSelected?: string | undefined;
+  /** The look the plane starts under; the switch in its settings bar moves it (the theme's `data-mode` look). */
+  readonly defaultMode?: "light" | "dark" | undefined;
+  /**
+   * The content's size on the plane, in px. Left out, the content is the frame itself; a map bigger than the frame gives
+   * its own size, and pan and zoom explore it (Fit is the smallest scale).
+   */
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+  /** The scale the plane opens at; `0.5` is the whole map in the frame, `1` the map's own size. @default 1 */
+  readonly defaultScale?: number | undefined;
   /** A part card's body: the page's own component, inert to the pointer because a card is not a control. */
   readonly preview?: ((node: BoardNode) => JSX.Element | undefined) | undefined;
   readonly class?: string | undefined;
@@ -110,8 +121,18 @@ const viewportClass = css.cn(
 );
 
 // The transform is the primitive's, inline. The origin is the centre, which is the maths `setScale` assumes: a zoom keeps the
-// point under the cursor still only about that origin.
+// point under the cursor still only about that origin. The plane is the frame; the world inside carries the content's own
+// size, centred on the plane, so a map bigger than the frame is panned instead of cropped at build time.
 const planeClass = css.cn(css.position("absolute"), css.inset("0"), css.transformOrigin("50% 50%"));
+
+const worldClass = css.cn(
+  css.position("absolute"),
+  css.left("50%"),
+  css.top("50%"),
+  css.width("var(--board-width, 100%)"),
+  css.height("var(--board-height, 100%)"),
+  css.transform("translate(-50%, -50%)"),
+);
 
 const cardsClass = css.cn(
   css.position("absolute"),
@@ -121,11 +142,11 @@ const cardsClass = css.cn(
   css.listStyle("none"),
 );
 
-// The lines sit between the cards: under every card at rest, above a card the current one dimmed, so the blast radius reads
-// as one stroke instead of disappearing behind the cards it crosses.
+// The arrows are drawn over the cards, as a whiteboard's are: a connection is a fact about the map, so it is never hidden by
+// a card it crosses. They are thin on purpose — a map with twenty of them is read through the lines, not around them.
 const edgesClass = css.cn(
   css.position("absolute"),
-  css.zIndex("1"),
+  css.zIndex("3"),
   css.inset("0"),
   css.width("100%"),
   css.height("100%"),
@@ -135,16 +156,22 @@ const edgesClass = css.cn(
 
 const lineClass = css.cn(
   css.stroke(t.color.borderHover),
-  css.strokeWidth("1.5"),
-  css.fill(t.color.borderHover),
+  css.strokeWidth("1.25"),
+  css.fill("none"),
+  css.strokeLinecap("round"),
 );
 
 // The lines a current card touches: the same highlight the card's border takes, so the blast radius reads as one picture.
 const lineLiveClass = css.cn(
   css.stroke(t.color.highlight),
-  css.fill(t.color.highlight),
+  css.fill("none"),
   css.strokeWidth("2.5"),
+  css.strokeLinecap("round"),
 );
+
+const arrowHeadClass = css.cn(css.stroke("none"), css.fill(t.color.borderHover));
+
+const arrowHeadLiveClass = css.cn(arrowHeadClass, css.fill(t.color.highlight));
 
 const edgeAwayClass = css.cn(css.opacity("0.2"));
 
@@ -227,19 +254,20 @@ const valueClass = css.cn(
 
 const noteClass = css.cn(css.margin("0"), css.color(t.color.muted));
 
-const barClass = css.cn(
-  css.display("flex"),
-  css.flexWrap("wrap"),
-  css.alignItems("baseline"),
-  css.justifyContent("space-between"),
-  css.gap(t.space._2),
-);
-
 const zoomClass = css.cn(
   css.fontSize(t.font.sizeSm),
   css.color(t.color.muted),
   css.fontVariantNumeric("tabular-nums"),
 );
+
+const settingsClass = css.cn(
+  css.display("flex"),
+  css.flexWrap("wrap"),
+  css.alignItems("center"),
+  css.gap(t.space._2),
+);
+
+const modeClass = css.cn(css.marginInlineStart("auto"));
 
 const statusClass = css.cn(css.margin("0"), css.fontSize(t.font.sizeSm), css.color(t.color.text));
 
@@ -257,10 +285,13 @@ const statusClass = css.cn(css.margin("0"), css.fontSize(t.font.sizeSm), css.col
 export const Board = (props: BoardProps): JSX.Element => {
   const pan = createPanZoom({
     bounds: "free",
-    min: 1,
+    // a map that is wider and taller than the box: `0` (and Fit) pulls the whole of it into view
+    min: 0.5,
     max: 2,
     step: 0.25,
-    defaultScale: 1,
+    get defaultScale() {
+      return props.defaultScale ?? 1;
+    },
     get labels() {
       return { viewport: props.label };
     },
@@ -268,9 +299,11 @@ export const Board = (props: BoardProps): JSX.Element => {
 
   const [positions, setPositions] = createSignal<Readonly<Record<string, Position>>>({});
   const [current, setCurrent] = createSignal<string | undefined>(props.defaultSelected);
+  // the mise-en-mode look over the plane: the same tokens, the mode the theme registers for `data-mode`
+  const [mode, setMode] = createSignal<"light" | "dark">(props.defaultMode ?? "light");
 
   // the plane as the drag measures it, and the pointer's gesture
-  let plane: HTMLElement | undefined;
+  let world: HTMLElement | undefined;
   let moving: Moving | undefined;
 
   const byId = createMemo(() => new Map(props.nodes.map((node) => [node.id, node])));
@@ -344,8 +377,8 @@ export const Board = (props: BoardProps): JSX.Element => {
     setPositions((all) => ({
       ...all,
       [node.id]: {
-        x: bound(next.x, (plane?.clientWidth ?? 0) - node.width),
-        y: bound(next.y, (plane?.clientHeight ?? 0) - node.height),
+        x: bound(next.x, (world?.clientWidth ?? 0) - node.width),
+        y: bound(next.y, (world?.clientHeight ?? 0) - node.height),
       },
     }));
   };
@@ -425,8 +458,8 @@ export const Board = (props: BoardProps): JSX.Element => {
       if (from === undefined || to === undefined) {
         return [];
       }
-      const route = routeBetween(boxOf(from), boxOf(to));
-      return route === undefined ? [] : [{ edge, route }];
+      const curve = curveBetween(boxOf(from), boxOf(to));
+      return curve === undefined ? [] : [{ edge, curve }];
     }),
   );
 
@@ -439,6 +472,9 @@ export const Board = (props: BoardProps): JSX.Element => {
   const viewport = merge(pan.viewportProps, {
     "data-part": "board-viewport",
     "aria-roledescription": "board",
+    get "data-mode"() {
+      return mode();
+    },
     get class() {
       return viewportClass;
     },
@@ -465,128 +501,147 @@ export const Board = (props: BoardProps): JSX.Element => {
   } as unknown as PartProps;
 
   return (
-    <figure data-part="board-frame" class={rootClass}>
+    <figure
+      data-part="board-frame"
+      class={rootClass}
+      style={
+        {
+          "--board-width": props.width === undefined ? "100%" : `${props.width}px`,
+          "--board-height": props.height === undefined ? "100%" : `${props.height}px`,
+        } as never
+      }
+    >
       <figcaption data-part="board-caption" class={captionClass}>
         <span class={captionNameClass}>{props.label}</span>
         <span class={hintClass}>
-          Drag a card to place it, drag the plane to pan. Keys: + and − zoom, 0 resets, and arrows
-          move the current card.
+          Drag a card to place it, drag the plane to pan, and pick a card to see what it reaches.
+          Keys: + and − zoom, 0 fits the map, and arrows move the current card.
         </span>
       </figcaption>
-      <div {...viewport}>
-        <div
-          {...planeProps}
-          ref={(element) => {
-            plane = element;
-          }}
-        >
-          <svg data-part="board-edges" class={edgesClass} aria-hidden="true">
-            <For each={routed()}>
-              {(item) => (
-                <g
-                  data-part="board-edge"
-                  data-from={item.edge.from}
-                  data-to={item.edge.to}
-                  class={current() !== undefined && !live(item.edge) ? edgeAwayClass : undefined}
-                >
-                  <line
-                    class={live(item.edge) ? lineLiveClass : lineClass}
-                    x1={item.route.from.x}
-                    y1={item.route.from.y}
-                    x2={item.route.to.x}
-                    y2={item.route.to.y}
-                  />
-                  <polygon
-                    class={live(item.edge) ? lineLiveClass : lineClass}
-                    points={item.route.arrow}
-                  />
-                </g>
-              )}
-            </For>
-          </svg>
-          {renderPart(props, own, undefined, (part) => (
-            <ul {...part}>
-              <For each={props.nodes}>
-                {(node) => {
-                  const at = (): Position => placement(node);
-                  return (
-                    <li
-                      data-part="board-card"
-                      data-node={node.id}
-                      data-kind={node.kind}
-                      data-dim={current() !== undefined && !related(node.id) ? "true" : undefined}
-                      class={css.cn(
-                        cardClass,
-                        current() === node.id && currentCardClass,
-                        current() !== undefined && !related(node.id) && awayClass,
-                      )}
-                      style={{
-                        left: `${at().x}px`,
-                        top: `${at().y}px`,
-                        width: `${node.width}px`,
-                        height: `${node.height}px`,
-                      }}
-                      onPointerDown={(event) => startDrag(event, node)}
-                      onPointerMove={drag}
-                      onPointerUp={drop}
-                      onPointerCancel={drop}
-                    >
-                      <button
-                        type="button"
-                        data-part="board-head"
-                        class={headClass}
-                        aria-current={current() === node.id ? "true" : undefined}
-                        onClick={() => setCurrent(node.id)}
-                        onKeyDown={(event) => nudge(event, node)}
-                      >
-                        <Show when={node.swatch}>
-                          {(paint) => (
-                            <span
-                              data-part="board-swatch"
-                              class={swatchClass}
-                              style={{ background: paint() }}
-                              aria-hidden="true"
-                            />
-                          )}
-                        </Show>
-                        <span class={titleClass}>{node.title}</span>
-                      </button>
-                      <div data-part="board-body" class={bodyClass}>
-                        <Show when={node.kind === "part"}>
-                          <div data-part="board-preview" class={previewClass} inert={true}>
-                            {props.preview?.(node)}
-                          </div>
-                        </Show>
-                        <Show when={node.detail !== undefined}>
-                          <code data-part="board-value" class={valueClass}>
-                            {node.detail}
-                          </code>
-                        </Show>
-                        <Show when={node.note !== undefined}>
-                          <p data-part="board-note" class={noteClass}>
-                            {node.note}
-                          </p>
-                        </Show>
-                        <p data-part="board-links" class={noteClass}>
-                          {reads(node.id)}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                }}
-              </For>
-            </ul>
-          ))}
-        </div>
-      </div>
-      <div data-part="board-bar" class={barClass}>
-        <p data-part="board-status" class={statusClass} role="status">
-          {summary()}
-        </p>
+      <div data-part="board-settings" class={settingsClass}>
+        <Button size="sm" tone="quiet" onClick={pan.reset}>
+          Fit
+        </Button>
         <span {...pan.valueProps} data-part="board-zoom" class={zoomClass}>
           {pan.value()}
         </span>
+        <span data-part="board-mode" class={modeClass}>
+          <Button
+            size="sm"
+            tone="quiet"
+            aria-pressed={mode() === "dark" ? "true" : "false"}
+            onClick={() => setMode((look) => (look === "dark" ? "light" : "dark"))}
+          >
+            Dark mode
+          </Button>
+        </span>
       </div>
+      <div {...viewport}>
+        <div {...planeProps}>
+          <div
+            data-part="board-world"
+            class={worldClass}
+            ref={(element) => {
+              world = element;
+            }}
+          >
+            <svg data-part="board-edges" class={edgesClass} aria-hidden="true">
+              <For each={routed()}>
+                {(item) => (
+                  <g
+                    data-part="board-edge"
+                    data-from={item.edge.from}
+                    data-to={item.edge.to}
+                    class={current() !== undefined && !live(item.edge) ? edgeAwayClass : undefined}
+                  >
+                    <path class={live(item.edge) ? lineLiveClass : lineClass} d={item.curve.path} />
+                    <polygon
+                      class={live(item.edge) ? arrowHeadLiveClass : arrowHeadClass}
+                      points={item.curve.head}
+                    />
+                  </g>
+                )}
+              </For>
+            </svg>
+            {renderPart(props, own, undefined, (part) => (
+              <ul {...part}>
+                <For each={props.nodes}>
+                  {(node) => {
+                    const at = (): Position => placement(node);
+                    return (
+                      <li
+                        data-part="board-card"
+                        data-node={node.id}
+                        data-kind={node.kind}
+                        data-dim={current() !== undefined && !related(node.id) ? "true" : undefined}
+                        class={css.cn(
+                          cardClass,
+                          current() === node.id && currentCardClass,
+                          current() !== undefined && !related(node.id) && awayClass,
+                        )}
+                        style={{
+                          left: `${at().x}px`,
+                          top: `${at().y}px`,
+                          width: `${node.width}px`,
+                          height: `${node.height}px`,
+                        }}
+                        onPointerDown={(event) => startDrag(event, node)}
+                        onPointerMove={drag}
+                        onPointerUp={drop}
+                        onPointerCancel={drop}
+                      >
+                        <button
+                          type="button"
+                          data-part="board-head"
+                          class={headClass}
+                          aria-current={current() === node.id ? "true" : undefined}
+                          onClick={() => setCurrent(node.id)}
+                          onKeyDown={(event) => nudge(event, node)}
+                        >
+                          <Show when={node.swatch}>
+                            {(paint) => (
+                              <span
+                                data-part="board-swatch"
+                                class={swatchClass}
+                                style={{ background: paint() }}
+                                aria-hidden="true"
+                              />
+                            )}
+                          </Show>
+                          <span class={titleClass}>{node.title}</span>
+                        </button>
+                        <div data-part="board-body" class={bodyClass}>
+                          <Show when={node.kind === "part"}>
+                            <div data-part="board-preview" class={previewClass} inert={true}>
+                              {props.preview?.(node)}
+                            </div>
+                          </Show>
+                          <Show when={node.detail !== undefined}>
+                            <code data-part="board-value" class={valueClass}>
+                              {node.detail}
+                            </code>
+                          </Show>
+                          <Show when={node.note !== undefined}>
+                            <p data-part="board-note" class={noteClass}>
+                              {node.note}
+                            </p>
+                          </Show>
+                          <p data-part="board-links" class={noteClass}>
+                            {reads(node.id)}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  }}
+                </For>
+              </ul>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p data-part="board-status" class={statusClass} role="status">
+        {summary()}
+      </p>
     </figure>
   );
 };

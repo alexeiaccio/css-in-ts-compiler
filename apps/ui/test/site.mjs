@@ -189,19 +189,25 @@ try {
     "1350",
   );
 
-  // The board: token cards and the components that use them on a plane, with a line per use.
+  // The board: the design system's tokens and the components that use them on one plane, an arrow per use.
   await page.goto(`${base}#board--design-system`);
-  // the tab panel keeps the other story mounted: only the drawn board counts
-  assert.equal(await preview.locator('[data-part="board-card"]:visible').count(), 7);
-  await preview.locator('[data-node="highlight"] [data-part="board-head"]:visible').click();
-  // current lights what it reaches: the badge uses the token, the radius card does not
+  // the tab panel keeps the other stories mounted: only the drawn board counts
+  assert.equal(await preview.locator('[data-part="board-card"]:visible').count(), 24);
+  await preview.locator('[data-node="color-highlight"] [data-part="board-head"]:visible').click();
+  // current lights what it reaches: the badge uses the token, the page colour does not
   assert.equal(
     await preview.locator('[data-node="badge"]:visible').getAttribute("data-dim"),
     null,
   );
   assert.equal(
-    await preview.locator('[data-node="radius"]:visible').getAttribute("data-dim"),
+    await preview.locator('[data-node="color-page"]:visible').getAttribute("data-dim"),
     "true",
+  );
+  // the settings bar's switch is the theme's `data-mode` look over the plane
+  await preview.locator('[data-part="board-mode"]:visible button').click();
+  assert.equal(
+    await preview.locator('[data-part="board-viewport"]:visible').getAttribute("data-mode"),
+    "dark",
   );
 
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.

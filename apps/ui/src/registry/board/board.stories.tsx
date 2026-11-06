@@ -1,129 +1,208 @@
-// The board's stories: the kit's own design system as a map — tokens on the left, the components that use them on the right,
-// and a line for every use. The point is the blast radius: making a token current lights the cards and lines it reaches, so
-// "what moves if I change this" is read off the board instead of from a spreadsheet.
+// The board's stories: the kit's whole design system on one plane — every token the theme publishes, the components that
+// consume them, and an arrow for every use. The map is the point: a token card carries its painted value, its text value and
+// the rule behind it (Design Book's argument, meodai: a token that keeps its reason), a part card holds the real component,
+// and picking a card lights its reach while the rest step back.
 //
-// A token's card carries three things, following Design Book (meodai): the painted value (the swatch), the value as text (or
-// the role a colour has no number for) and the rule behind it. A card that says only `#3b5bdb` keeps the answer and throws
-// away the reason; this one keeps both.
+// The plane is bigger than the frame on purpose: this is the "one canvas" view of a design system, read by panning and
+// zooming, with Fit (`0`) as the overview. The mode switch in the board's settings bar is the theme's mise-en-mode look over
+// the plane (`data-mode`), so the same map is inspected light and dark with no second dataset.
 import type { JSX } from "@solidjs/web";
 import type { Meta, Story } from "@cssints/stories";
 
 import { Badge } from "../badge/badge.tsx";
 import { Button } from "../button/button.tsx";
+import { Input } from "../input/input.tsx";
+import { Switch } from "../switch/switch.tsx";
+import { Tabs } from "../tabs/tabs.tsx";
 import { Board, type BoardEdge, type BoardNode, type BoardProps } from "./board.tsx";
 
-// The same theme the site is built on: the values are `var(--color-…)`, so the board moves with the mode and the tint, and
-// nothing here is a second copy of the palette.
+interface TokenSpec {
+  readonly id: string;
+  readonly title: string;
+  readonly detail: string;
+  readonly note: string;
+  readonly swatch?: string;
+}
+
+interface PartSpec {
+  readonly id: string;
+  readonly title: string;
+  /** The token ids the part consumes, one arrow each. */
+  readonly uses: ReadonlyArray<string>;
+}
+
+/** The colour tokens the theme publishes; the swatch is the token itself, never a copy of its value. */
+const COLOURS: ReadonlyArray<TokenSpec> = [
+  ["color-page", "color.page", "the plane", "Everything sits on it."],
+  ["color-surface", "color.surface", "panel", "Cards above the page."],
+  ["color-text", "color.text", "body text", "7:1 against the page."],
+  ["color-muted", "color.muted", "hints", "4.5:1, one step quieter."],
+  ["color-border", "color.border", "hairline", "Between blocks, never a shadow."],
+  ["color-highlight", "color.highlight", "accent", "The one accent."],
+  ["color-on-highlight", "color.on-highlight", "on accent", "Text on a highlight fill."],
+  ["color-link", "color.link", "link", "On a card, at 4.5:1."],
+  ["color-invalid", "color.invalid", "error", "Errors and the invalid ring."],
+  ["color-focus-ring", "color.focus-ring", "focus", "The keyboard's ring, 3:1."],
+].map(([id, title, detail, note]) => ({
+  id: id as string,
+  title: title as string,
+  detail: detail as string,
+  note: note as string,
+  swatch: `var(--${id})`,
+}));
+
+/** The steps and the type scale: no swatch, the value is the text. */
+const STEPS: ReadonlyArray<TokenSpec> = [
+  ["radius-sm", "radius.sm", "6px", "Controls inside a card."],
+  ["radius-md", "radius.md", "8px", "Cards and sheets."],
+  ["radius-xl", "radius.xl", "16px", "The frame of a surface."],
+  ["space-1", "space.1", "4px", "The gap inside a label."],
+  ["space-2", "space.2", "8px", "Padding inside a control."],
+  ["space-4", "space.4", "16px", "Between blocks."],
+  ["font-sm", "font.sizeSm", "12px", "Captions and hints."],
+  ["font-base", "font.size", "14px", "The body."],
+  ["font-lg", "font.sizeLg", "16px", "A section's lead."],
+].map(([id, title, detail, note]) => ({
+  id: id as string,
+  title: title as string,
+  detail: detail as string,
+  note: note as string,
+}));
+
+const PARTS: ReadonlyArray<PartSpec> = [
+  {
+    id: "button",
+    title: "Button",
+    uses: ["color-highlight", "color-on-highlight", "radius-sm", "space-2", "font-base"],
+  },
+  {
+    id: "badge",
+    title: "Badge",
+    uses: ["color-highlight", "color-on-highlight", "space-1", "font-sm"],
+  },
+  {
+    id: "switch",
+    title: "Switch",
+    uses: ["color-highlight", "color-border", "space-1", "font-base"],
+  },
+  {
+    id: "input",
+    title: "Input",
+    uses: ["color-surface", "color-border", "color-focus-ring", "space-2", "font-base"],
+  },
+  {
+    id: "tabs",
+    title: "Tabs",
+    uses: ["color-highlight", "color-muted", "color-border", "space-2", "font-base"],
+  },
+];
+
+// The layout is a function of the lists: five columns of tokens (the colours, then the steps and the type), and the parts in
+// a row under them, so the arrows fan up out of the components instead of crossing the whole map. A token added to the theme
+// moves the map instead of leaving a hole.
+const TOKEN_WIDTH = 190;
+const TOKEN_HEIGHT = 132;
+const COLUMN = TOKEN_WIDTH + 16;
+const ROW = TOKEN_HEIGHT + 14;
+const COLUMNS = 5;
+const PART_WIDTH = 250;
+const PART_HEIGHT = 168;
+const PART_ROW = 16 + 4 * ROW + 24;
+
+const tokens = (specs: ReadonlyArray<TokenSpec>, top: number): BoardNode[] =>
+  specs.map((spec, index) => ({
+    ...spec,
+    kind: "token",
+    width: TOKEN_WIDTH,
+    height: TOKEN_HEIGHT,
+    x: 16 + (index % COLUMNS) * COLUMN,
+    y: top + Math.floor(index / COLUMNS) * ROW,
+  }));
+
+const parts = (): BoardNode[] =>
+  PARTS.map((spec, index) => ({
+    id: spec.id,
+    kind: "part",
+    title: spec.title,
+    width: PART_WIDTH,
+    height: PART_HEIGHT,
+    x: 16 + index * (PART_WIDTH + 18),
+    y: PART_ROW,
+  }));
+
+// The map's own size: the tokens' five columns and, under them, the row of parts. The board is given it, so pan and zoom know
+// how big the canvas is and Fit (`0`) pulls all of it into the frame.
+const MAP_WIDTH = 16 + 5 * (PART_WIDTH + 18) - 18 + 16;
+const MAP_HEIGHT = PART_ROW + PART_HEIGHT + 16;
+
 const NODES: ReadonlyArray<BoardNode> = [
-  {
-    id: "highlight",
-    kind: "token",
-    x: 16,
-    y: 16,
-    width: 190,
-    height: 110,
-    title: "color.highlight",
-    detail: "accent",
-    note: "The one accent.",
-    swatch: "var(--color-highlight)",
-  },
-  {
-    id: "on-highlight",
-    kind: "token",
-    x: 16,
-    y: 140,
-    width: 190,
-    height: 110,
-    title: "color.on-highlight",
-    detail: "on accent",
-    note: "Text on a highlight fill.",
-    swatch: "var(--color-on-highlight)",
-  },
-  {
-    id: "surface",
-    kind: "token",
-    x: 16,
-    y: 264,
-    width: 190,
-    height: 110,
-    title: "color.surface",
-    detail: "panel",
-    note: "Panels above the page.",
-    swatch: "var(--color-surface)",
-  },
-  {
-    id: "radius",
-    kind: "token",
-    x: 216,
-    y: 16,
-    width: 190,
-    height: 110,
-    title: "radius.sm",
-    detail: "6px",
-    note: "Controls inside a card.",
-  },
-  {
-    id: "space",
-    kind: "token",
-    x: 216,
-    y: 140,
-    width: 190,
-    height: 110,
-    title: "space.2",
-    detail: "8px",
-    note: "Padding inside a control.",
-  },
-  { id: "button", kind: "part", x: 430, y: 16, width: 240, height: 150, title: "Button" },
-  { id: "badge", kind: "part", x: 430, y: 188, width: 240, height: 130, title: "Badge" },
+  ...tokens(COLOURS, 16),
+  ...tokens(STEPS, 16 + 2 * ROW),
+  ...parts(),
 ];
 
-const EDGES: ReadonlyArray<BoardEdge> = [
-  { from: "button", to: "highlight" },
-  { from: "button", to: "on-highlight" },
-  { from: "button", to: "radius" },
-  { from: "button", to: "space" },
-  { from: "badge", to: "highlight" },
-  { from: "badge", to: "on-highlight" },
-];
+const EDGES: ReadonlyArray<BoardEdge> = PARTS.flatMap((spec) =>
+  spec.uses.map((to) => ({ from: spec.id, to })),
+);
 
-// A part card holds the real component, styled by the tokens above it. The card marks it inert: the preview is a picture of
-// the component on the board, not a second control the page has to keep in step.
+// A part card holds the real component, styled by the tokens above it. The card marks the preview inert: it is a picture of
+// the component on the map, not a second control the page has to keep in step.
 const preview = (node: BoardNode): JSX.Element | undefined => {
-  if (node.id === "button") {
-    return <Button tone="accent">Ship it</Button>;
+  switch (node.id) {
+    case "button":
+      return <Button tone="accent">Ship it</Button>;
+    case "badge":
+      return <Badge tone="accent">new</Badge>;
+    case "switch":
+      return <Switch defaultValue>Wi-Fi</Switch>;
+    case "input":
+      return <Input placeholder="name@example.com" aria-label="Email" />;
+    case "tabs":
+      return (
+        <Tabs
+          items={2}
+          tab={(index) => ["Overview", "Settings"][index] ?? ""}
+          panel={() => undefined}
+        />
+      );
+    default:
+      return undefined;
   }
-  if (node.id === "badge") {
-    return <Badge tone="accent">new</Badge>;
-  }
-  return undefined;
 };
 
 const meta = {
   title: "Board",
   component: Board,
-  args: { label: "Design system map", nodes: NODES, edges: EDGES },
+  args: { label: "The design system, one canvas", nodes: NODES, edges: EDGES },
   argTypes: { label: { type: "text" } },
 } satisfies Meta<BoardProps>;
 export default meta;
 
 export const DesignSystem: Story<BoardProps> = {
-  render: (args) => <Board {...args} preview={preview} />,
-};
-
-// The same map in dark: every card, swatch and line is a token, so the board follows the mode with no second dataset.
-export const Dark: Story<BoardProps> = {
-  render: () => (
-    <div
-      data-mode="dark"
-      style={{ padding: "16px", background: "var(--color-page)", "border-radius": "16px" }}
-    >
-      <Board label="Design system map, dark" nodes={NODES} edges={EDGES} preview={preview} />
-    </div>
+  render: (args) => (
+    <Board {...args} preview={preview} width={MAP_WIDTH} height={MAP_HEIGHT} defaultScale={0.5} />
   ),
 };
 
-// A token made current: the cards and lines it reaches stay lit, and the rest step back. This is the management view the
-// board exists for — the blast radius of one decision, on the plane.
+// The same map under the dark look, opened that way: no second dataset, no second story to keep in step — the plane's mode
+// is the theme's, and every card, swatch and arrow follows it.
+export const Dark: Story<BoardProps> = {
+  render: () => (
+    <Board
+      label="The design system, dark"
+      nodes={NODES}
+      edges={EDGES}
+      preview={preview}
+      defaultMode="dark"
+      width={MAP_WIDTH}
+      height={MAP_HEIGHT}
+      defaultScale={0.5}
+    />
+  ),
+};
+
+// A token made current: the parts that use it stay lit, the rest step back. This is the management view the board exists
+// for — the blast radius of one decision, on the plane.
 export const Current: Story<BoardProps> = {
   render: () => (
     <Board
@@ -131,7 +210,10 @@ export const Current: Story<BoardProps> = {
       nodes={NODES}
       edges={EDGES}
       preview={preview}
-      defaultSelected="highlight"
+      defaultSelected="color-highlight"
+      width={MAP_WIDTH}
+      height={MAP_HEIGHT}
+      defaultScale={0.5}
     />
   ),
 };

@@ -82,6 +82,17 @@ const settle = (): Promise<void> =>
 
 const board = () => <Board label="Design system" nodes={NODES} edges={EDGES} />;
 
+/** A button of the board by its text: the settings bar's own controls. */
+const control = (root: HTMLElement, label: string): HTMLButtonElement => {
+  const found = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
+    (element) => element.textContent?.trim() === label,
+  );
+  if (found === undefined) {
+    throw new Error(`board: no button "${label}"`);
+  }
+  return found;
+};
+
 describe("Board", () => {
   it("is a named figure whose cards are the data, in reading order", () => {
     const { root, dispose } = mount(board);
@@ -172,6 +183,35 @@ describe("Board", () => {
     dispose();
   });
 
+  it("puts the plane under the theme's dark look, and takes it back", async () => {
+    const { root, dispose } = mount(board);
+    expect(viewport(root).getAttribute("data-mode")).toBe("light");
+    const toggle = control(root, "Dark mode");
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+
+    toggle.click();
+    await settle();
+    // the mode is the theme's `data-mode` scope over the plane, not a second palette
+    expect(viewport(root).getAttribute("data-mode")).toBe("dark");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+
+    toggle.click();
+    await settle();
+    expect(viewport(root).getAttribute("data-mode")).toBe("light");
+    dispose();
+  });
+
+  it("fits the whole map with the Fit button", async () => {
+    const { root, dispose } = mount(board);
+    const zoom = root.querySelector('[data-part="board-zoom"]')!;
+    control(root, "Fit").click();
+    await settle();
+    // a map bigger than the frame: Fit is the smallest scale the plane allows
+    expect(zoom.textContent).toBe("50%");
+    expect(plane(root).style.transform).toContain("scale(0.5)");
+    dispose();
+  });
+
   it("zooms with the keys and says the scale", async () => {
     const { root, dispose } = mount(board);
     const zoom = root.querySelector('[data-part="board-zoom"]')!;
@@ -182,9 +222,10 @@ describe("Board", () => {
     expect(zoom.textContent).toBe("125%");
     expect(plane(root).style.transform).toContain("scale(1.25)");
 
+    // `0` is the overview: the smallest scale the plane allows, which is Fit
     key(viewport(root), { key: "0" });
     await settle();
-    expect(zoom.textContent).toBe("100%");
+    expect(zoom.textContent).toBe("50%");
     dispose();
   });
 });
