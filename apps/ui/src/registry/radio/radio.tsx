@@ -3,6 +3,7 @@ import {
   type RadioGroupOptions,
   createRadioGroup,
 } from "@cssints/headless";
+import { createEffect } from "solid-js";
 import type { JSX } from "@solidjs/web";
 
 import * as css from "cssints" with { type: "cssints" };
@@ -41,9 +42,9 @@ const circleClass = css.cn(
 /**
  * APG radio group, styled: `role=radiogroup` with `role=radio` children, arrows move and check.
  *
- * The primitive owns the focus *state* (`focused()`); moving real DOM focus is the host's half, so
- * this component moves it after a key: a roving-tabindex group focuses the radio, an
- * `aria-activedescendant` group focuses the group.
+ * The primitive owns the focus *state* and reads it from the DOM (`focused()` follows `focusin`); moving
+ * DOM focus is the host's half, so this component moves it after a state change: a roving group focuses
+ * the radio the platform landed on, an `aria-activedescendant` group focuses the group.
  *
  * `value` makes it controlled; without it the group owns the checked value. `onValueChange` is a
  * request — a controlled host may ignore it.
@@ -67,6 +68,7 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
     orientation: props.orientation,
     dir: props.dir,
     describedby: props.describedby,
+    ...(props.provider === undefined ? {} : { provider: props.provider }),
     get onValueChange() {
       return props.onValueChange;
     },
@@ -86,30 +88,33 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
 
   const radios = new Map<number, HTMLElement>();
   let root: HTMLElement | undefined;
-  const syncFocus = (): void => {
-    const index = group.focused();
-    if (index === null) {
-      return;
-    }
-    if (group.flavor() === "activedescendant") {
-      root?.focus();
-    } else {
-      radios.get(index)?.focus();
-    }
-  };
+
+  // Focus arriving from outside (a click, Tab) is already on the element; only a
+  // state the DOM cannot know about is applied here (activedescendant).
+  createEffect(
+    () => [group.focused(), group.flavor()] as const,
+    ([index, flavor]) => {
+      if (index === null) {
+        return;
+      }
+      const target = flavor === "activedescendant" ? root : radios.get(index);
+      if (target !== undefined && document.activeElement !== target) {
+        target.focus();
+      }
+    },
+  );
 
   return (
     <div
       {...group.radiogroupProps}
       ref={(element) => {
+        // the primitive's own ref builds the platform's provider; the kit also
+        // remembers the element for the activedescendant focus
+        group.radiogroupProps.ref(element);
         root = element;
       }}
       data-part="radiogroup"
       class={groupClass}
-      onKeyDown={(event) => {
-        group.radiogroupProps.onKeyDown(event);
-        queueMicrotask(syncFocus);
-      }}
     >
       {values().map((value, index) => {
         const radio = group.radioProps(index);
@@ -117,15 +122,11 @@ export const RadioGroup = <T,>(props: RadioGroupProps<T>): JSX.Element => {
           <div
             {...radio}
             ref={(element) => {
+              radio.ref(element);
               radios.set(index, element);
             }}
             data-part="radio"
             class={itemClass}
-            onClick={(event) => {
-              radio.onClick();
-              syncFocus();
-              event.currentTarget.focus();
-            }}
           >
             <span aria-hidden="true" class={circleClass} />
             <span class={labelClass}>{props.children(value, index)}</span>
