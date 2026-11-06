@@ -1,5 +1,5 @@
 // The figure spec, in the shape glyph-kit defines (skills/glyph-kit/reference/spec.md, MIT: the format, not its code):
-// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 35 kinds here
+// one JSON object per figure — `kind`, `title`, `intent`, `source`, `data`, `options`, `focus` — with 36 kinds here
 // (`anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`, `cardGrid`, `colourRoles`, `compare`, `contrast`,
 // `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`, `layerStack`, `meter`, `motionTiming`,
 // `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`,
@@ -36,7 +36,7 @@ import "./kinds.ts";
 import { isObject, labelOf, number, rowsOf, say } from "./kinds/shared.ts";
 import { checkOf, entryOf, kinds, namesOf } from "./registry.ts";
 
-// The kinds' **types**: these are the thirty-five this repository draws. The runtime list is the registry's (`kinds()` in
+// The kinds' **types**: these are the thirty-six this repository draws. The runtime list is the registry's (`kinds()` in
 // ./registry.ts, alphabetical), and figure-registry.test.ts holds this list, the registry and native/docs/map.md
 // together — so a kind added here without its area file fails there. The kit's own types that are still not drawn are
 // named in native/README.md's "Not here", with the reason each waits.
@@ -50,13 +50,16 @@ export const KINDS = [
   "colourRoles",
   "compare",
   "contrast",
+  "easing",
   "flow",
+  "frameStrip",
   "funnel",
   "heatmap",
   "journeyMap",
   "layerStack",
   "meter",
   "modal",
+  "motionTiming",
   "nowNextLater",
   "palette",
   "qaChecklist",
@@ -65,20 +68,16 @@ export const KINDS = [
   "screen",
   "spacingScale",
   "sparkline",
+  "stagger",
   "stateMachine",
   "stateMatrix",
   "statusKey",
+  "table",
   "timeline",
   "tokenTable",
   "tree",
   "typeScale",
-  "easing",
-  "frameStrip",
-  "motionTiming",
-  "stagger",
-  "table",
-] as const;
-export type Kind = (typeof KINDS)[number];
+];
 
 /** The three tones of a focus: the role the figure paints it by, never a colour. */
 export const TONES = ["problem", "good", "plain"] as const;

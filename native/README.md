@@ -3084,7 +3084,7 @@ commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` ar
 **Not here** (and honest about it): the kit's `cohort` and `forecast` (kinds whose data this repository does not have), its
 `listDetail` wireframe (no page here draws a list pane and a detail pane of one page, so the kind waits for one), its
 motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data, its `lang`, its SAMPLE DATA stamp and its
-`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 35 kinds below are here;
+`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 36 kinds below are here;
 each section says what its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one

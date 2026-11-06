@@ -81,7 +81,7 @@ bun solid/figure-card-grid.test.ts
 # our own tokens: a palette's swatches and the mark of its first readable step, a contrast check's engine ratios and their
 # verdicts, a spacing scale whose 4px step is a 4px box, and a type scale whose 40px row is three cells — with their
 # refusals, their goldens, the generated specs' cmp (solid/test.sh) and the terminal's rows
-echo "figure: thirty-five kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns, the widget page's wireframe, anatomy, pair, the Sky page's shell and cards, the Targets table; their refusals and frames"
+echo "figure: thirty-six kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns, the widget page's wireframe, anatomy, pair, the Sky page's shell and cards, the Targets table; their refusals and frames"
 # the three planning kinds' own invariants (solid/figure-planning.test.ts): a timeline bar at the cells its span says, the
 # axis's labels, the status key's entries against the statuses the figures use, the board's cards and their order, each
 # refusal, the same rows on the terminal, the three command goldens, and the map's words in the hand-written specs

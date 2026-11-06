@@ -1017,7 +1017,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 35 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 36 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
@@ -1109,7 +1109,7 @@ per card, the golden and the terminal's rows (15 checks); `solid/test.sh` regene
 **The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
 their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
 `solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`, `structure`, `systems`,
-`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 35 specs are drawable.
+`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 36 specs are drawable.
 `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
 strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
 terminal's rows and the browser's `?spec=` of each.

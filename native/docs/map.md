@@ -71,7 +71,7 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Thirty-five kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
+terminal at one cell. Thirty-six kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
 `cardGrid`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `frameStrip`, `funnel`, `heatmap`, `journeyMap`,
 `layerStack`, `meter`, `modal`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`, `redline`, `responsivePair`,
 `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`, `table`, `timeline`,
