@@ -10,7 +10,7 @@
 //   kinds/charts.ts     sparkline, meter, heatmap
 //   kinds/handoff.ts    beforeAfter, qaChecklist, redline
 //   kinds/motion.ts     easing, frameStrip, motionTiming, stagger
-//   kinds/wireframe.ts  screen, anatomy, responsivePair (a page's own frame, cut to cells)
+//   kinds/wireframe.ts  screen, anatomy, appShell, cardGrid, modal, responsivePair (a page's own frame, cut to cells)
 //   kinds/shared.ts     what they all use — cells, the item builders, `finish`, the raw-JSON readers — and no kind
 //
 // To add a kind, three steps, none of them in another kind's file:

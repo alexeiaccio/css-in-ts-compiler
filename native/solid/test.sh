@@ -379,13 +379,17 @@ bun solid/main.ts figure --spec solid/specs/timeline.json --warm 30 --expect sol
 bun solid/main.ts figure --spec solid/specs/statusKey.json --warm 30 --expect solid/frames/figure-status-key.png
 bun solid/main.ts figure --spec solid/specs/nowNextLater.json --warm 30 --expect solid/frames/figure-now-next-later.png
 echo "figure: the map's plan — a timeline of its eight steps, the status key, and its Left: lists as a board (three stored frames)"
-# the three wireframe kinds: a page of this repository as its own boxes and text runs, one region of it with numbered
+# the wireframe kinds: a page of this repository as its own boxes and text runs, one region of it with numbered
 # callouts, and another page at two widths
 bun solid/main.ts figure --spec solid/specs/screen.json --warm 30 --expect solid/frames/figure-screen.png
 bun solid/main.ts figure --spec solid/specs/anatomy.json --warm 30 --expect solid/frames/figure-anatomy.png
 bun solid/main.ts figure --spec solid/specs/modal.json --warm 30 --expect solid/frames/figure-modal.png
 bun solid/main.ts figure --spec solid/specs/responsive-pair.json --warm 30 --expect solid/frames/figure-responsive-pair.png
-echo "figure: the Widgets page's own frame as a wireframe, one part of it with callouts, and the Sky page narrow and wide (three stored frames)"
+# ... and the Sky page's own shell and cards: the bar, the feed and the status line as bands, and the feed's three post
+# cards with the grid their boxes make (specs/from-frames.ts captures them, and figure-handoff.sh cmps the two specs)
+bun solid/main.ts figure --spec solid/specs/app-shell.json --warm 30 --expect solid/frames/figure-app-shell.png
+bun solid/main.ts figure --spec solid/specs/card-grid.json --warm 30 --expect solid/frames/figure-card-grid.png
+echo "figure: the Widgets page's own frame as a wireframe, one part of it with callouts, the Sky page narrow and wide, and the Sky page's shell and cards (six stored frames)"
 # two of the four are regenerable from the data: specs/from-tokens.ts writes them from @cssints/tokens and the engine's
 # contrast (packages/cssints/src/color.ts), so a token change that left the figure stale is this cmp, not a review note
 bun solid/specs/from-tokens.ts "$FIG/specs" >/dev/null

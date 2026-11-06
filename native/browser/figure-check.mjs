@@ -174,6 +174,8 @@ async function main() {
       ["anatomy", "The Widgets switch, part by part"],
       ["modal", "The Dialog, open"],
       ["responsive-pair", "The Sky page, at two widths"],
+      ["app-shell", "The Sky page's shell"],
+      ["card-grid", "The Sky feed's cards"],
       ["table", "The map's targets, one a row"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);
