@@ -62,7 +62,7 @@ const spec = {
   kind: "table" as const,
   title: "The map's targets, one a row",
   intent:
-    "native/docs/map.md's Targets table: where each target lays out, what rasters it, and how far each one is proven.",
+    "native/docs/map.md's Targets table: each target, what rasters it, what it needs at run time, and how far it is proven.",
   source: "native/docs/map.md, the Targets table",
   data: {
     columns: COLUMNS.map((name) => ({ title: name.toLowerCase() })),
