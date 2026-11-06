@@ -189,6 +189,21 @@ try {
     "1350",
   );
 
+  // The board: token cards and the components that use them on a plane, with a line per use.
+  await page.goto(`${base}#board--design-system`);
+  // the tab panel keeps the other story mounted: only the drawn board counts
+  assert.equal(await preview.locator('[data-part="board-card"]:visible').count(), 7);
+  await preview.locator('[data-node="highlight"] [data-part="board-head"]:visible').click();
+  // current lights what it reaches: the badge uses the token, the radius card does not
+  assert.equal(
+    await preview.locator('[data-node="badge"]:visible').getAttribute("data-dim"),
+    null,
+  );
+  assert.equal(
+    await preview.locator('[data-node="radius"]:visible').getAttribute("data-dim"),
+    "true",
+  );
+
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });
   const pageBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
