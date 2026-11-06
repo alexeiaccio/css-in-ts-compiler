@@ -29,7 +29,7 @@
         "ESP32-S3",
         "esp32's render.c, CPU bands",
         "none",
-        "one element proven on board"
+        "clay-test's shell, 22 ms a frame"
       ],
       [
         "Browser (WASM)",
