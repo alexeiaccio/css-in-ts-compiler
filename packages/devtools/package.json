@@ -11,7 +11,8 @@
   "homepage": "https://cssints.dev",
   "files": [
     "dist",
-    "src/core"
+    "src/core",
+    "src/vitals"
   ],
   "type": "module",
   "sideEffects": false,
@@ -27,12 +28,16 @@
       "types": "./src/core/model.ts",
       "default": "./src/core/model.ts"
     },
-    "./inject": "./src/core/inject.ts"
+    "./inject": "./src/core/inject.ts",
+    "./vitals": {
+      "types": "./src/vitals/index.ts",
+      "default": "./dist/vitals.js"
+    }
   },
   "scripts": {
     "build": "vp build",
-    "test": "node test/core.mjs && node test/opencode.mjs && node test/opencode-plugin.mjs && node test/build.mjs",
-    "test:browsers": "vp build && node test/browsers.mjs && node test/ask-browser.mjs && node test/names-browser.mjs",
+    "test": "node test/core.mjs && node test/vitals.mjs && node test/opencode.mjs && node test/opencode-plugin.mjs && node test/build.mjs",
+    "test:browsers": "vp build && node test/vitals-browser.mjs && node test/browsers.mjs && node test/ask-browser.mjs && node test/names-browser.mjs",
     "typecheck": "node ../../scripts/typecheck.mjs",
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },

@@ -36,7 +36,9 @@
     "packages/mise-en-mode/src/",
     "packages/headless/",
     "packages/machine/",
-    "packages/apg-specs/"
+    "packages/apg-specs/",
+    "packages/devtools/src/vitals/",
+    "packages/devtools/src/core/selector.ts"
   ],
   "changedFileRules": [
     {
