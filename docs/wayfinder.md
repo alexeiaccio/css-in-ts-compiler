@@ -5084,3 +5084,34 @@ probe; a future primitive that reads one from a callback would hit the same wall
 would catch it. The long-term answer is a kit-level test run with the same dev diagnostics (the app's
 `vitest.browser.config.ts` could set the module conditions the starter uses), which is worth doing before the
 next widget joins the adapter.
+
+## Two packages from the noscript.ing libraries: `@cssints/gamut` and `@cssints/data` (2026-11-07)
+
+The two repos in `github.com/noscripting` became two packages, and they landed on **different sides of the same line** — which
+is the finding worth keeping.
+
+- **`@cssints/gamut`** (from [gamutant](https://github.com/noscripting/gamutant)) is a **build-time value library**, like
+  `@cssints/ramp`: `fit(color, { target, method })` brings a colour into sRGB or Display P3 (OKLCH chroma bisected at held
+  lightness and hue, or the channels clipped; a hex for sRGB, `color(display-p3 …)` for P3, a no-op inside the gamut),
+  `readable(bg, { ratio, toward })` searches lightness on the hex it returns so `check.contrast` sees the same guarantee, and
+  `tones(color, count)` is a lightness scale as DTCG data. culori, no runtime, no DOM. The maths is gamutant's; only the
+  moment differs — once for a design's colours instead of per element in CSS. **The one limit**: a hex is 8 bits, so under
+  ~0.1 chroma rounding moves the hue (a dark yellow at L 0.10 lands 4.1° off); the test holds 1° wherever chroma ≥ 0.1, and
+  the README says so.
+- **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
+  whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
+  (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
+round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+  host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
+  limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
+  and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
+  `<figcaption>` (dCSS says the same).
+
+**Why not one shape.** `gamut` asks "what is this colour, exactly?" — answerable at build time, so it is data. `data` asks
+"what are these values, now?" — only the browser can answer, so it is a rig plus a contract. Porting either wholesale would
+have been wrong: 63 dCSS functions and 19 gamutant parts are a library, not a kit member.
+
+**Verified:** both packages' node tests, `@cssints/data`'s Chromium test (40 / 82 / 3 then 100 / 170 / 3) and its engine test,
+the typecheck across the 32 workspaces, `release:check` (both packages pack, 5 files each) and `diff:check`. **The release
+gate that remains is the hand's**: `release:check` refuses a package that is not on npm yet, so the first version of each is
+published by hand (with `npm trust` for provenance) before the release pull request, as `@cssints/stories` was.

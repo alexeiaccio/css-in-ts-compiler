@@ -16,7 +16,7 @@ Thirty packages go to npm: `cssints` and the 29 `@cssints/*` packages in `packag
 ## Check at any time
 
 ```bash
-bun run release:check                  # build the 30 packages, stage them, check manifests and files; nothing is published
+bun run release:check                  # build the 32 packages, stage them, check manifests and files; nothing is published
 node scripts/release.mjs --install     # the same, then install all 29 tarballs into a fresh project (needs the network) and start cssints-mcp
 cd packages/cssints && bun run test:smoke   # a Vite app built from the tarballs
 ```

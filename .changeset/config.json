@@ -8,6 +8,7 @@
       "@cssints/balance",
       "@cssints/color-names",
       "@cssints/css-grammar",
+      "@cssints/data",
       "@cssints/devtools",
       "@cssints/fluid",
       "@cssints/fonts",

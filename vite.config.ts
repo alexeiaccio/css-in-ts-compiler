@@ -107,6 +107,7 @@ const plainCode = [
   "packages/layout/src/**",
   "packages/fonts/src/**",
   "packages/reset/src/**",
+  "packages/data/src/**",
   "packages/tokens/src/**",
   "packages/gradient/src/**",
   // @cssints/color-names: sync scope() members, like icons' and mise-en-mode's.
