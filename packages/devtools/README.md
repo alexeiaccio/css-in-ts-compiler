@@ -150,6 +150,7 @@ vitals   FCP 412 ms · LCP 1.20 s (h1.hero) · CLS 0.002
          INP 96 ms (button.primary) · 8+40+48 · TTFB 38 ms
 frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
 main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
+sheet    64.4 kB · +29 B on src/registry/button/button.tsx · 3 loads · 81 B a class  ▁▁█
 CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
 layer    _.k       ████████████████████ 22.4 kB
 tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 used / 3 orphaned · keyframes 2 / 1 unused
@@ -168,6 +169,11 @@ coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
   specificity, colours, fonts, `!important`, custom properties declared / read / orphaned / undeclared, keyframes declared
   / used / unused, and coverage — every class of a selector that no element carries now. It is the Project Wallace x-ray of
   a cssints sheet, which should be clean by construction: a drift names what bypassed the engine.
+- **The sheet's growth** is the dev server's own number, over the HMR channel: every load of the sheet reports its size,
+  its class count and the file that changed (`cssints:edits`), and a module that subscribes late asks for the last one. So
+  an edit shows as `+29 B on src/registry/button/button.tsx` beside a sparkline of the last thirty loads, and the row's
+  "81 B a class" is what one more `cn()` costs. Off a dev server the row is absent; the bytes are `renderSheet`'s, not the
+  CSSOM's, so they differ slightly from the `CSS` row above (serialization).
 - **Frames** are sampled by a rAF loop while observing: p50 / p95 / max and the dropped frames, a sparkline, and a
   heatmap of the timeline (green under 16.7 ms, amber to 33.4, orange to 50, red above). The characters are the
   terminal's own (`native/terminal`); a console cell is 8×16 px there, a `%c` background here.

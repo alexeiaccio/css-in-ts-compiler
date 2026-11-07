@@ -4419,6 +4419,7 @@ vitals   FCP 412 ms · LCP 1.20 s (h1.hero) · CLS 0.002
          INP 96 ms (button.primary) · 8+40+48 · TTFB 38 ms
 frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
 main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
+sheet    64.4 kB · +29 B on src/registry/button/button.tsx · 3 loads · 81 B a class  ▁▁█
 CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
 layer    _.k       ████████████████████ 22.4 kB
 tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 used / 3 orphaned · keyframes 2 / 1 unused
@@ -4436,6 +4437,11 @@ coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
   / used / unused, and coverage — the classes of the sheet that no element carries now. On a cssints sheet this should be
   clean by construction, so a drift names what bypassed the engine; it is Project Wallace's x-ray pointed at a generated
   sheet.
+- **The sheet's growth** is the dev server's measurement, over the HMR channel (`cssints:edits`; a late subscriber asks
+  with `cssints:edits:get`): each load reports its size, its class count and the file that changed, so an edit reads
+  `+29 B on src/registry/button/button.tsx`, with a sparkline of the last thirty loads and the bytes a class costs. Off a
+  dev server the row is absent. These bytes are `renderSheet`'s, not the CSSOM's, so they differ a little from the `CSS`
+  row.
 - **Frames** are sampled by a rAF loop: p50 / p95 / max, the dropped frames, a sparkline and a heatmap of the timeline
   (green under 16.7 ms, amber to 33.4, orange to 50, red above).
 - **Limits.** Long animation frames are not buffered entries, so a report from a cold console sees only the work after

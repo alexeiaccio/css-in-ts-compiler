@@ -14,6 +14,13 @@ import { measure, measured } from "./metrics.ts";
 
 export type Rating = "good" | "needs-improvement" | "poor";
 
+/** One load of the sheet on a dev server: its size, how many classes it holds, and the file that changed. */
+export interface SheetEdit {
+  file: string;
+  bytes: number;
+  classes: number;
+}
+
 export interface VitalsReport {
   /** ms since `observe()` */
   elapsed: number;
@@ -36,6 +43,8 @@ export interface VitalsReport {
   errors: number;
   heap: number | null;
   nodes: number;
+  /** the sheet's growth over the dev server's edits, oldest first (empty off a dev server) */
+  sheet: { edits: SheetEdit[] };
   frames: { history: number[]; p50: number; p95: number; max: number; dropped: number };
   css: CssStats;
 }
@@ -57,6 +66,37 @@ const state: State = {
 // The entry whose fields the TypeScript DOM library may not know yet (`styleAndLayoutStart`).
 interface AnimationFrameEntry extends PerformanceEntry {
   styleAndLayoutStart?: number;
+}
+
+// The dev server sends one of these per load of the sheet (the cssints plugin, over the HMR channel): its size, its class
+// count and the file that changed. Off Vite (`import.meta.hot` missing) or off a dev server, the list stays empty and no
+// row is printed.
+const edits: SheetEdit[] = [];
+if (import.meta.hot) {
+  import.meta.hot.on("cssints:edits", (data: unknown) => {
+    const edit = data as Partial<SheetEdit> | null;
+    if (
+      edit === null ||
+      typeof edit !== "object" ||
+      typeof edit.file !== "string" ||
+      typeof edit.bytes !== "number" ||
+      typeof edit.classes !== "number"
+    )
+      return;
+    // a cold page loads the sheet more than once, and the reply to `edits:get` can repeat the broadcast: a point is a change
+    const previous = edits.at(-1);
+    if (
+      previous &&
+      previous.file === edit.file &&
+      previous.bytes === edit.bytes &&
+      previous.classes === edit.classes
+    )
+      return;
+    edits.push({ file: edit.file, bytes: edit.bytes, classes: edit.classes });
+    if (edits.length > 30) edits.shift();
+  });
+  // the page's sheet loaded before this module did: ask for the measurement it already sent
+  import.meta.hot.send("cssints:edits:get", {});
 }
 
 const FRAME = 1000 / 60;
@@ -139,6 +179,7 @@ export const report = (): VitalsReport => {
     errors: state.errors,
     heap: memory ? memory.usedJSHeapSize : null,
     nodes: document.getElementsByTagName("*").length,
+    sheet: { edits: [...edits] },
     frames: {
       history: [...state.frames],
       p50: percentile(sorted, 0.5),
@@ -200,6 +241,20 @@ export const print = (value: VitalsReport): void => {
     `frames   p50 ${ms(value.frames.p50)} · p95 ${ms(value.frames.p95)} · max ${ms(value.frames.max)} · ${value.frames.dropped} dropped  ${sparkline(value.frames.history)}`,
   );
   if (frames.cells) console.log(`         ${frames.cells}`, ...frames.styles);
+  const edit = value.sheet.edits.at(-1);
+  if (edit) {
+    const before = value.sheet.edits.at(-2);
+    const delta = before ? edit.bytes - before.bytes : 0;
+    const growth =
+      before === undefined
+        ? "the first measurement"
+        : delta === 0
+          ? "±0 B"
+          : `${delta > 0 ? "+" : "−"}${size(Math.abs(delta))} on ${edit.file || "the page"}`;
+    console.log(
+      `sheet    ${size(edit.bytes)} · ${growth} · ${value.sheet.edits.length} load${value.sheet.edits.length === 1 ? "" : "s"} · ${size(Math.round(edit.bytes / Math.max(1, edit.classes)))} a class  ${sparkline(value.sheet.edits.map((e) => e.bytes))}`,
+    );
+  }
   console.log(
     `main     ${value.loaf.count} long frames · ${ms(value.loaf.total)} · max ${ms(value.loaf.max)} · style+layout ${ms(value.loaf.render)} · ${value.errors} errors · heap ${value.heap === null ? "—" : size(value.heap)}`,
   );
