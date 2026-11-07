@@ -4401,7 +4401,7 @@ TOKENS
 
 The panel inspects an element; this entry inspects the page, and prints to the console rather than drawing a DOM panel —
 the only surface a page that draws to a canvas has. No dev server, no overlay chunk and no cssints dependency of its own: a
-plain ES module (about 9 kB) any page imports in dev.
+plain ES module (about 30 kB, 9.5 kB gzip) any page imports in dev.
 
 ```ts
 // the app's entry, dev only
@@ -4415,7 +4415,8 @@ vitals(); // or window.vitals(): prints the report and returns it
 ```text skip
 cssints vitals
 265 ms · 214 nodes · 1 sheet · 380 classes
-vitals   FCP 412 ms · LCP 1.20 s · CLS 0.002 · INP 96 ms · TTFB 38 ms
+vitals   FCP 412 ms · LCP 1.20 s (h1.hero) · CLS 0.002
+         INP 96 ms (button.primary) · 8+40+48 · TTFB 38 ms
 frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
 main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
 CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
@@ -4424,8 +4425,12 @@ tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 u
 coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
 ```
 
-- **Web vitals** are the browser's entries: FCP and TTFB from the timeline, LCP, CLS and INP buffered. Long animation
-  frames report the style and layout time beside the script's (`render` sums it).
+- **Web vitals** come from [web-vitals](https://github.com/GoogleChrome/web-vitals) (MIT), the reference implementation:
+  CLS is the largest session window of shifts (not their sum), INP is the ~98th percentile of interactions (not the worst),
+  and each metric names its culprit — the LCP element and render delay, the interaction's target with input / processing /
+  presentation, the frames it covered. `!` is needs-improvement and `!!` poor, the library's thresholds. It reads the same
+  APIs, so CLS is Chromium only and the other four come from Chromium, Firefox and Safari. Long animation frames are ours,
+  and `render` sums the style and layout time — the part CSS pays for.
 - **The sheet's numbers** come from the CSSOM, not a parser: bytes, rules, declarations, layer bytes, the worst
   specificity, colours, fonts, `!important`, custom properties declared / read / orphaned / undeclared, keyframes declared
   / used / unused, and coverage — the classes of the sheet that no element carries now. On a cssints sheet this should be
@@ -4433,10 +4438,10 @@ coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
   sheet.
 - **Frames** are sampled by a rAF loop: p50 / p95 / max, the dropped frames, a sparkline and a heatmap of the timeline
   (green under 16.7 ms, amber to 33.4, orange to 50, red above).
-- **Limits.** Long tasks and long animation frames are not buffered entries, so a report from a cold console sees only the
-  work after `observe()`; the buffered vitals are read whenever the module loads. A cross-origin sheet throws on
-  `cssRules` and is counted as `blocked`. Coverage asks the DOM now: a class used only in a state is used if an element
-  carries it.
+- **Limits.** Long animation frames are not buffered entries, so a report from a cold console sees only the work after
+  `observe()`; the five vitals are buffered but arrive a task after the module loads, so the first report can be early.
+  A cross-origin sheet throws on `cssRules` and is counted as `blocked`. Coverage asks the DOM now: a class used only in a
+  state is used if an element carries it.
 
 `report()` returns the numbers, `print(report)` prints them, `stop()` ends the frame loop.
 

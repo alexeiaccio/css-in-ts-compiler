@@ -153,6 +153,7 @@
       },
       "devDependencies": {
         "@cssints/apg-specs": "workspace:*",
+        "@cssints/devtools": "workspace:*",
         "@quint-machine/core": "0.1.0",
         "@solidjs/vite-plugin": "3.0.0-next.57",
         "@vitest/browser-playwright": "5.0.5",
@@ -296,6 +297,7 @@
       "dependencies": {
         "@cssints/css-grammar": "workspace:*",
         "effect": "4.0.6",
+        "web-vitals": "^6.2.3",
       },
       "devDependencies": {
         "@solidjs/vite-plugin": "3.0.0-next.57",
@@ -2449,6 +2451,8 @@
     "web-features": ["web-features@3.42.0", "", {}, "sha512-Vq97bzyedg6EuPFnz1GIJqsI9me8CbxzwYrcBI/cNwjj66v77IsGmIZi9SxPHTu2t25F7ta4kZJPu4qvuYlhfQ=="],
 
     "web-tree-sitter": ["web-tree-sitter@0.25.10", "", { "peerDependencies": { "@types/emscripten": "^1.40.0" }, "optionalPeers": ["@types/emscripten"] }, "sha512-Y09sF44/13XvgVKgO2cNDw5rGk6s26MgoZPXLESvMXeefBf7i6/73eFurre0IsTW6E14Y0ArIzhUMmjoc7xyzA=="],
+
+    "web-vitals": ["web-vitals@6.2.3", "", {}, "sha512-Dmy+vdO1UPMqXiAtZSNayhl4f794Bxfd94W4HIj2HlYtczEQfEOon969memlcpcHrTuOKLa5baFjX7WbgmOq+A=="],
 
     "webref-specs": ["@webref/css@6.23.14", "", { "peerDependencies": { "css-tree": "^3.1.0" } }, "sha512-2zXyf+4plaX0J8WFwE7VLyQDIrkqgOmPovUBoz+Ow85mPJWU1CBUl3UI59lFpsSsJPV0neRHDmUZyJzoSxrGVA=="],
 

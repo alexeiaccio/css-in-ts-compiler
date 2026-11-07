@@ -133,7 +133,7 @@ markup with Babel and so needs no table; here the table is the context.
 
 The panel inspects one element; `@cssints/devtools/vitals` inspects the page and prints to the console, because a page
 that draws to a canvas has no elements to pick (the native browser target is one). No dev server and no overlay chunk:
-a plain ES module, about 9 kB, that any page imports in dev.
+a plain ES module, about 30 kB (9.5 kB gzip), that any page imports in dev.
 
 ```ts
 // the app's entry, dev only
@@ -146,7 +146,8 @@ vitals(); // later, from the console — or window.vitals(), set by the module
 ```text
 cssints vitals
 265 ms · 214 nodes · 1 sheet · 380 classes
-vitals   FCP 412 ms · LCP 1.20 s · CLS 0.002 · INP 96 ms · TTFB 38 ms
+vitals   FCP 412 ms · LCP 1.20 s (h1.hero) · CLS 0.002
+         INP 96 ms (button.primary) · 8+40+48 · TTFB 38 ms
 frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
 main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
 CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
@@ -155,8 +156,14 @@ tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 u
 coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
 ```
 
-- **Web vitals** are the browser's own entries: FCP and TTFB from the timeline, LCP, CLS and INP buffered. Long animation
-  frames sit beside them, and their `render` is the style and layout time — the part CSS pays for.
+- **Web vitals** are measured by [web-vitals](https://github.com/GoogleChrome/web-vitals) (MIT), the reference
+  implementation, not by hand: it gets the two parts a hand-rolled observer gets wrong — CLS is the largest _session
+  window_ of shifts, not their sum, and INP is the ~98th percentile of interactions, not the worst — and names the
+  culprit: the LCP element and its render delay, the interaction's target with input / processing / presentation, and the
+  long animation frames it covered. `!` marks needs-improvement, `!!` poor (the library's own thresholds). It reads the
+  same browser APIs, so no browser reports more than it can: CLS is Chromium only, the other four come from Chromium,
+  Firefox and Safari. Long animation frames sit beside the vitals on our own observer, and their `render` is the style and
+  layout time — the part CSS pays for.
 - **The sheet's numbers** are read off the CSSOM, not parsed: bytes, rules, declarations, layer bytes (bars), the worst
   specificity, colours, fonts, `!important`, custom properties declared / read / orphaned / undeclared, keyframes declared
   / used / unused, and coverage — every class of a selector that no element carries now. It is the Project Wallace x-ray of
