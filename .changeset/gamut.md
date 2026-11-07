@@ -1,8 +1,0 @@
----
-"@cssints/gamut": minor
----
-
-`@cssints/gamut`: gamut and contrast colour maths at build time — `fit()` brings a colour into sRGB or Display P3,
-`readable()` gives a text colour that reaches a WCAG 2 ratio on a background, and `tones()` a lightness scale as DTCG data
-for `createTokens`. The decisions are [gamutant](https://github.com/noscripting/gamutant)'s, made once with culori instead
-of per element in CSS.

@@ -2,6 +2,152 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.34.0 (2026-11-07)
+
+### Minor changes
+
+- `@cssints/data`: `data()`, statistics over runtime values computed by the browser's layout — the largest, the total and the
+  count of a list's `--value`s, read back with `round(100cqw / 1px)` in a container query and printed by a counter. No
+  runtime and no state: the values stay the host's, and changing one updates the answer in the same frame. The DOM contract
+  and its accessibility note (the printed number is not text a screen reader sees) are in the README.
+- The V2 half of the platform's `focusgroup` contract is now ours, because nothing publishes it: no engine reports
+  `focusGroup.supports("grid")`, npm's `@microsoft/focusgroup-polyfill` 1.6.0 has no grid token at all, and the
+  polyfill's `main` (grid merged 2026-09-29) has no built `dist`.
+  
+  `focusGrid(owner, { definition, items })` renders `focusgroup="grid"` / `"grid manual"` (plus the per-axis
+  `rowwrap` / `rowflow` / `colwrap` / `colflow` and `nomemory`) and provides the movement where the engine does not:
+  one tab stop over the authors' `tabindex`, arrows on both axes, Home / End per row, Ctrl+Home / Ctrl+End for the
+  grid, hard edges by default with per-axis wrap and flow, `focusgroupstart` as the entry target, the last-focused
+  memory, the `focusgrouprow` markers of a manual topology, the native key-conflict guard, and an inert body when the
+  coordinates are not a rectangle. `destroy()` restores the authors' `tabindex` and removes the markers it added.
+  `focusgridAttribute` and `supportsFocusGrid` are exported too; no new dependency.
+  
+  `@cssints/apg-specs` gains `specs/patterns/focusgrid.qnt` (the contract: one tab stop, both axes, the per-axis
+  edges, entry / memory / `focusgroupstart`, `grid` vs `grid manual`, and what a grid does not do — spans, ragged
+  rows, virtualisation, edit, selection, `itemcontrols`), its bridge and scenario set, and the spec-only test.
+  `specs/apg/grid.qnt` is untouched and does not import it yet; adopting the runtime in `grid.ts` is a follow-up.
+- `@cssints/gamut`: gamut and contrast colour maths at build time — `fit()` brings a colour into sRGB or Display P3,
+  `readable()` gives a text colour that reaches a WCAG 2 ratio on a background, and `tones()` a lightness scale as DTCG data
+  for `createTokens`. The decisions are [gamutant](https://github.com/noscripting/gamutant)'s, made once with culori instead
+  of per element in CSS.
+- The platform's `focusgroup` contract is now one adapter: `focusGroup(owner, { definition, items })` sets the
+  owner's `focusgroup` attribute where the engine has it (Chromium 150+) and otherwise drives
+  `@microsoft/focusgroup-polyfill`'s low-level `FocusGroup` over an array-backed item collection, with
+  `update()` and the measured teardown (`update({ definition: {} })` before `disconnect()`).
+  `focusGroupPolyfill`, `focusGroupAttribute` and `supportsFocusGroup` are exported too; the polyfill is a new
+  dependency (MIT, 5.5 KB gz).
+  
+  `createToolbar` is the first widget on it: the platform now moves focus (arrows, Home / End, wrap, memory) and
+  owns the item `tabindex`.
+  
+  Breaking: `ToolbarItemProps` no longer carries `tabindex` — the platform owns it — and `Toolbar.keyDown` is
+  gone. `toolbarProps` gained `focusgroup` and `ref` and lost `onKeyDown`. To migrate, spread `toolbarProps` on
+  the owner, `itemProps(i)` on each item, and delete any `tabindex` you bound on an item.
+- `createGrid` hands the body's movement and its roving tab stop to the V2 `focusgroup="grid"` runtime
+  (`packages/headless/src/focusgrid.ts`): `gridProps` carries the `focusgroup` attribute rendered from the
+  same definition and a `ref` that builds the provider, the owner's `focusin` maps the focused cell back to
+  `row` / `col`, and arrows on both axes, Home/End, Ctrl+Home/End, the edges and the last-focused memory are
+  no longer the primitive's. The definition maps APG's linear wrapping to the platform's `flow`, not `wrap`:
+  `{ rowEdge: wrapCols ? "flow" : "none", colEdge: wrapRows ? "flow" : "none", memory: true }`, re-applied
+  through `update(definition)` by `setWrapCols` / `setWrapRows` / `setGridKind` (`setFocusTarget` only
+  re-collects). The library keeps edit mode, selection, sort, PageUp/PageDown, the mount window, the `aria-*`
+  indices and the header row's own one-dimensional roving — the headers are `focusgroup="none"`, so neither
+  provider pulls them into the body's group. `date-picker` now finds the current day by the grid's
+  `currentCellId()` instead of `[tabindex="0"]`, and its `gridProps` no longer carries the runtime (the picker
+  owns its keyboard and stop). Breaking: `gridProps` gained `focusgroup` and `ref`; `cellProps` / `widgetProps`
+  gained `ref` and `focusgroupstart` and lost `onFocus` / `onKeyDown`; their `tabindex` is the constant
+  focusability value of the item set (`0` for the cells, `-1` when the widget is the target, and the reverse),
+  not the roving stop. To migrate, spread `gridProps` on the `role="grid"` element, spread
+  `cellProps` / `widgetProps`, delete any `tabindex` your host bound, and find the current cell by
+  `currentCellId()` rather than by `[tabindex="0"]`. `grid.qnt` now imports `shared/focusgroup.qnt`, adds the
+  platform's `tabStop` and derives `tabindex` from `fgTabIndex`, and pins the difference from the tablist:
+  grids have memory, so the stop is the last focused cell after focus leaves.
+- `createListbox` is the second widget on the `focusgroup` adapter: the platform (Chromium 150+) or
+  `@microsoft/focusgroup-polyfill` now owns the roving tab stop, the arrows along the block axis (no wrap),
+  Home / End and the last-focused memory, and the primitive never computes them. `focus` / `active` are
+  readings of the DOM — an option's `focus` is the move — so a platform arrow, a click and a host's own
+  `element.focus()` land in the same state. The library keeps its delta: the selection model, `aria-selected`,
+  range selection (Shift+Arrow, Shift+Space, Ctrl+Shift+Home/End), type-ahead, `aria-disabled` options (an
+  option the arrows must not reach is out of the item collection and wears `focusgroup="none"`), and the
+  `aria-activedescendant` listbox a host keeps DOM focus on is unchanged — a focusgroup is a roving model,
+  so that mode keeps its own arrow handling, as `createRearrangeableListbox` does.
+  
+  Breaking: `listboxProps` gained `focusgroup` and `ref` and lost `onKeyDown` (the listener is registered by
+  the ref, before the provider's), and `optionProps` gained `focusgroup` and `ref`. The option `tabindex` is
+  no longer the roving one — it is the constant focusability value (`0`, `-1` when disabled), because the
+  platform owns WHICH option is the tab stop and the item only has to be focusable for it to own one. `keyDown`
+  still drives the selection keys, but no longer moves the active option. To migrate, spread `listboxProps` on
+  the owner (its `ref` is required — without it nothing moves), `optionProps(i)` on each option, delete any
+  `tabindex` you bound after them and any code that reads `[tabindex="0"]` to find the active option: use
+  `active()` or `aria-activedescendant`. A host that moved DOM focus to the active option must keep doing so
+  for programmatic moves (type-ahead, a click, a controlled `activeValue`); the platform's own moves need no
+  mirror.
+- `createMenu` and `createMenubar` now take the item `tabindex` and the movement along every level's axis from the
+  platform's `focusgroup` contract instead of computing them: the menu list is one `focusgroup="menu"` segment
+  (block axis, wrap), the menubar is one `focusgroup="menubar"` segment (the declared axis and wrap) and each
+  submenu is its own `menu` segment, because the contract is per segment and a popup's list is a segment only
+  while the popup is shown (a closed one is suspended with `focusgroup="none"`, which also keeps the native engine
+  out of a hidden list). The arrows along each axis, Home / End, the wrap and the tab stop are the browser's
+  (Chromium 150+) or `@microsoft/focusgroup-polyfill`'s, behind the same `provider: "auto" | "polyfill"` seam
+  `createToolbar` has.
+  
+  The library keeps what the platform never infers: activation (Enter / Space), Escape and Tab, typeahead, the
+  cross-axis keys (a submenu, the next / previous bar item, the open keys of the bar), the checkable state, the
+  `aria-haspopup` / `aria-expanded` sync and the light dismiss. Its keydown listener is registered by the owner's
+  `ref` **before** the provider's, so a key it consumes is `preventDefault`ed by the time the polyfill (also on the
+  owner) reads it — a delegated Solid `onKeyDown` would run at the document, after focus had moved.
+  
+  Breaking: `MenuItemProps` no longer carries `tabindex` and `menuProps` / `menubarProps` no longer carry
+  `onKeyDown`; the list, the bar, each menu and each submenu gained `focusgroup` and `ref`, and the item props
+  gained `ref`. `keyDown(key)` now takes only the keys the library owns — the arrows, Home and End are the
+  platform's and are no-ops there. To migrate, spread `menuProps` on the list (and `menubarProps` on the bar,
+  `menuProps(i)` / `submenuProps(i, j)` on each popup), spread `itemProps(i)` on each row, delete any `tabindex`
+  you bound, and render rows that are focusable by nature (`<button>`, `<a href>`): the native engine writes no
+  `tabindex`, so it can only move focus to an item that is tabbable already. A `minor`, since `@cssints/headless`
+  is 0.x.
+- `createRadioGroup`'s roving flavor is now the platform's `focusgroup="radiogroup"` contract: the group
+  builds its provider from the owner's `ref`, and the browser (Chromium 150+) or
+  `@microsoft/focusgroup-polyfill` moves focus on both axes, wraps, and owns the item `tabindex`. Two things
+  stay the library's, as `shared/focusgroup.qnt` leaves them to the pattern: **selection follows focus** (the
+  owner's `focusin` handler checks the radio the platform landed on — a Tab entry or a click only moves the
+  focus state) and the **entry point**: the definition is `nomemory` with `focusgroupstart` on the checked
+  radio (else the first enabled one), which is where the next Tab entry lands. While focus is inside the group
+  the tab stop is the platform's — the focused radio — and the primitive does not re-seat it; that is what a
+  native engine keeps (in its focus controller) and what the polyfill renders as `tabindex=0`. A disabled radio
+  is opted out of the group (`focusgroup="none"`) and keeps `tabindex="-1"`, as before. The
+  `aria-activedescendant` flavor is unchanged: it moves a virtual focus on the group, which focusgroup does
+  not model.
+  
+  Breaking: the group props gained `focusgroup`, `ref` and `dir`, and `RadioGroup.keyDown` is gone — the
+  platform moves focus. `RadioProps` no longer carries a roving `tabindex` (the platform writes `0` / `-1`);
+  what it carries is the author value the platform needs: `focusgroupstart` on the entry radio,
+  `focusgroup="none"` plus `tabindex="-1"` on a disabled one, and — only where the native engine is used —
+  `tabindex="0"`, because that engine navigates only items with `tabIndex > -1` and a `<div role=radio>` is
+  not focusable otherwise. To migrate, spread `radiogroupProps` on the owner (keeping its `ref`), `radioProps(i)`
+  on each radio, and delete any roving `tabindex` you bound on an item.
+  
+  `radio.qnt` now models that stop instead of pinning it to the check (`radioTabindex` is `fgTabIndex`, the
+  entry and leave transitions are `fgEntry` / `fgStopOnLeave`), so the differential walk checks the stop the
+  engine keeps rather than one the widget could only fake by scripting the tabindex.
+- `createTabs` is now on the `focusgroup` adapter: the platform (Chromium 150+, or `@microsoft/focusgroup-polyfill`)
+  owns the tablist's single tab stop, the arrows along the axis, Home / End and wrap, and the library keeps only
+  its delta — selection, automatic vs manual activation, `aria-selected` / `aria-controls`, panel visibility,
+  close and rename. The definition is `tablist nomemory wrap` (the vertical axis as `block`), with
+  `focusgroupstart` on the selected tab, so the tablist is entered on the selection; the library selects on the
+  `focusin` a move causes (automatic) or on Enter / Space (manual). A disabled tab is not an item of the group
+  and carries a static `tabindex="-1"` instead of being arrow-reachable. `provider?: "auto" | "polyfill"` forces
+  the polyfill (a test, or a host that needs the fallback).
+  
+  `tabs.qnt` now imports `shared/focusgroup.qnt` and models `tabStop` beside `selected`: the stop follows focus
+  while focus is inside the tablist and returns to the selected tab on entry and leave, so manual activation and
+  a controlled host that rejected a request are modelled the way the platform renders them.
+  
+  Breaking: `TabProps` no longer carries the roving `tabindex` (the provider writes it), and `Tabs.keyDown` is
+  gone. `TablistProps` gained `focusgroup`, `ref` and `dir`; `TabProps` gained `focusgroupstart`, `ref`, and a
+  static `tabindex: -1` on a disabled tab only. To migrate, spread `tablistProps` on the owner and `tabProps(i)`
+  on each tab, delete any `tabindex` you bound on a tab, and — if a tab is not a natively focusable element (a
+  `<div role="tab">`) — give that element its own `tabindex="0"`; the platform still keeps one stop among them.
+
 ## 0.33.0 (2026-11-04)
 
 ### Minor changes
