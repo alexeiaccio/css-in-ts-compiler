@@ -6,7 +6,9 @@
 # `modal.json` from the Dialog's modal and menu frames, `app-shell.json` and `card-grid.json` from the Sky page's frame,
 # and `list-detail.json` from the same page wide with its thread open — the same discipline as `from-tokens.ts`: a stale
 # spec is this `cmp`, not a review note. `table.json` is here too: `specs/from-targets.ts` reads the Targets table of
-# `native/docs/map.md`. `forecast.json` is `specs/from-releases.ts`'s count of `CHANGELOG.md`'s dated releases.
+# `native/docs/map.md`. `forecast.json` is
+# `specs/from-releases.ts`'s count of `CHANGELOG.md`'s dated releases, and `cohort.json` is `specs/from-cohort.ts`'s
+# arithmetic on the recorded Jetstream sample (`samples/jetstream.json`, collected once).
 #
 #   sh solid/figure-handoff.sh        # from native/, or from anywhere (it cds)
 #
@@ -34,6 +36,12 @@ cmp "$FIG/specs/modal.json" solid/specs/modal.json || {
 }
 # the generic table's data is the map's Targets table: a target added, renamed or re-worded there is this cmp
 bun solid/specs/from-targets.ts "$FIG/specs" >/dev/null
+# the cohort grid's data is the Jetstream recording: a re-collected sample is a rewrite here and this cmp, not a note
+bun solid/specs/from-cohort.ts "$FIG/specs" >/dev/null
+cmp "$FIG/specs/cohort.json" solid/specs/cohort.json || {
+  echo "FAIL: solid/specs/cohort.json is not what specs/from-cohort.ts writes from solid/samples/jetstream.json; commit its output"
+  exit 1
+}
 cmp "$FIG/specs/table.json" solid/specs/table.json || {
   echo "FAIL: solid/specs/table.json is not what specs/from-targets.ts writes from native/docs/map.md's Targets table; commit its output"
   exit 1
@@ -57,7 +65,7 @@ cmp "$FIG/specs/list-detail.json" solid/specs/list-detail.json || {
   echo "FAIL: solid/specs/list-detail.json is not what specs/from-frames.ts writes from the wide Sky page's frame with the thread open; commit its output"
   exit 1
 }
-echo "figure handoff: the frames are the page's, and before-after.json, layer-stack.json, modal.json, app-shell.json, card-grid.json, list-detail.json and table.json are from-frames.ts's and from-targets.ts's sources, byte for byte (cmp); forecast.json comes from CHANGELOG.md's dated releases (from-releases.ts)"
+echo "figure handoff: the frames are the page's, and before-after.json, layer-stack.json, modal.json, app-shell.json, card-grid.json, list-detail.json, table.json and cohort.json are their sources', byte for byte (cmp); forecast.json comes from CHANGELOG.md's dated releases (from-releases.ts)"
 # ... and the same three in the browser, by name: browser/solid/figure.ts fetches the same files with `?spec=`, and
 # browser/figure-handoff-check.mjs holds each frame to its golden within 4px (Canvas2D's advance against ThorVG's).
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&

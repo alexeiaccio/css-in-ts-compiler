@@ -8,6 +8,8 @@
 //   heatmap    a matrix of ratios: a row an ink, a column a page, a cell one of four shades by the value's WCAG band
 //   forecast   a dated series as columns (`#`), then the days ahead (`=`) inside the band the window's spread puts
 //              around them (`:`), with the window and the fit under it — one cell a count, a column a day
+//   cohort     a grid of shares: a row the accounts of one minute, a column a lag later, a cell the whole percent of them
+//              that posted again — the firehose's own retention, from a recorded sample
 //
 // The kit has all three (`areas/metrics.md`): a sparkline's "print the first and last values; a sparkline has no axis", a
 // meter's "over 100%, the bar stays full and the word over says the rest", a heatmap's "five levels is the limit people
@@ -29,7 +31,7 @@
 import { contrastOf, HEX, shown } from "../contrast.ts";
 import type { Bar, Item, Layout, LayoutLine, Paint, Pair } from "../registry.ts";
 import { register } from "../registry.ts";
-import type { ForecastSpec, HeatmapSpec, MeterSpec, SparklineSpec } from "../spec.ts";
+import type { CohortSpec, ForecastSpec, HeatmapSpec, MeterSpec, SparklineSpec } from "../spec.ts";
 import {
   cells,
   exactFill,
@@ -64,6 +66,8 @@ export function shadeOf(value: number): 0 | 1 | 2 | 3 {
 }
 
 const pad = (text: string, width: number): string => text + " ".repeat(Math.max(0, width - cells(text)));
+/** The same, flush right: a number's column. */
+const padLeft = (text: string, width: number): string => " ".repeat(Math.max(0, width - cells(text))) + text;
 
 /**
  * A sparkline: the series in one row, a point an eighth of a cell (`▁`..`█`), and the last value printed after it. The
@@ -512,7 +516,117 @@ function heatmapNames(data: unknown): string[] {
   ];
 }
 
+
+/** The paint a share takes: 20% and up is the figure's brightest, 10–19 its ink, under 10 its muted step. */
+const sharePaint = (value: number): Paint => (value >= 20 ? "title" : value >= 10 ? "ink" : "muted");
+
+/**
+ * A cohort grid: a row a minute's accounts, a column a lag later, a cell the share of that row's accounts that posted
+ * again in it (a whole percent, the generator's rounding). The heading row is the lags, the first column the cohort and
+ * its size — because a share of 3 accounts and a share of 3,000 read the same as a percentage. The figure draws the
+ * sample; it never computes the retention itself.
+ */
+function cohort(spec: CohortSpec): Layout {
+  const focus = focusOf(spec);
+  const { lags, cohorts } = spec.data;
+  const headings = lags.map((lag) => `+${lag}m`);
+  const labelWidth = Math.max(6, longest(["cohort", ...cohorts.map((row) => row.label)])) + 1;
+  const sizeWidth = Math.max(1, longest(["n", ...cohorts.map((row) => String(row.size))])) + 1;
+  const cellWidth = Math.max(longest([...headings, "100%"])) + 1;
+  const header =
+    pad("cohort", labelWidth) + padLeft("n", sizeWidth) + headings.map((heading) => padLeft(heading, cellWidth)).join("");
+  const lines: LayoutLine[] = [{ items: [textItem("fig-cols", header, cells(header), "muted", "label")] }];
+  const labels: Layout["labels"] = [];
+  cohorts.forEach((row, r) => {
+    const items: Item[] = [
+      textItem(`fig-label-${r}`, pad(row.label, labelWidth), labelWidth, paintOf(focus, row.label), "label"),
+      textItem(`fig-size-${r}`, padLeft(String(row.size), sizeWidth), sizeWidth, "muted", "note"),
+    ];
+    labels.push({ textId: `fig-label-${r}`, text: row.label });
+    row.values.forEach((value, c) => {
+      const text = padLeft(`${value}%`, cellWidth);
+      items.push(textItem(`fig-share-${r}-${c}`, text, cellWidth, sharePaint(value), "value"));
+    });
+    lines.push({ items });
+  });
+  const share = "a cell: the share of that minute's accounts that posted again L minutes later";
+  const paintNote = "paint: 20%+ bright, 10–19 ink, under 10 muted; n is the cohort's accounts";
+  lines.push({ items: [textItem("fig-share-note", share, cells(share), "muted", "note")] });
+  lines.push({ items: [textItem("fig-paint-note", paintNote, cells(paintNote), "muted", "note")] });
+  const width = Math.max(cells(header), cells(share), cells(paintNote));
+  return finish(spec, "cohort", width, lines, [], labels);
+}
+
+/** A cohort grid: a window in whole minutes, lags above zero, a row a minute inside the window, a share 0..100. */
+function cohortProblems(data: unknown): string[] {
+  if (!isObject(data))
+    return [
+      'A cohort grid needs its window, lags and cohorts: { "window": 20, "lags": [1, 2, 3], "cohorts": [{ "label": "0m", "size": 1983, "values": [12, 8, 6] }] }.',
+    ];
+  const out: string[] = [];
+  const window = number(data.window);
+  if (window === undefined || window <= 0 || !Number.isInteger(window))
+    out.push(`A cohort grid needs its window: whole minutes above zero, not ${say(data.window)}.`);
+  const lags = rowsOf(data.lags);
+  const lagsOk: number[] = [];
+  if (!lags.length) out.push("A cohort grid needs its lags: [1, 2, 3, 4, 5].");
+  for (const [i, lag] of lags.entries()) {
+    const minutes = number(lag);
+    if (minutes === undefined || minutes <= 0 || !Number.isInteger(minutes))
+      out.push(`Lag ${i + 1} is whole minutes above zero, not ${say(lag)}.`);
+    else lagsOk.push(minutes);
+  }
+  const cohorts = rowsOf(data.cohorts);
+  if (!cohorts.length)
+    out.push('A cohort grid needs its cohorts: [{ "label": "0m", "size": 1983, "values": [12, 8, 6] }].');
+  const seen = new Set<string>();
+  let lastMinute = -1;
+  for (const [r, raw] of cohorts.entries()) {
+    if (!isObject(raw)) {
+      out.push(`Cohort ${r + 1} is not a cohort: { "label": "0m", "size": 1983, "values": [...] } is.`);
+      continue;
+    }
+    const label = typeof raw.label === "string" ? raw.label.trim() : "";
+    if (!label) out.push(`Cohort ${r + 1} needs its label: the minute it is, like "0m".`);
+    else if (!/^\d+m$/.test(label))
+      out.push(`Cohort ${r + 1}'s label is a minute of the window, like "0m", not ${say(raw.label)}.`);
+    else {
+      if (seen.has(label)) out.push(`"${label}" is two cohorts: one minute, one row.`);
+      seen.add(label);
+      const minute = Number.parseInt(label, 10);
+      if (minute < lastMinute) out.push(`Cohort ${label} comes after ${lastMinute}m: a grid's minutes run forward.`);
+      lastMinute = Math.max(lastMinute, minute);
+      if (window !== undefined && lagsOk.length)
+        for (const lag of lagsOk)
+          if (minute + lag >= window)
+            out.push(`Cohort ${label}'s +${lag}m is past the window's ${window} minutes: a lag is inside the recording.`);
+    }
+    const size = number(raw.size);
+    if (size === undefined || size <= 0 || !Number.isInteger(size))
+      out.push(`Cohort ${label || r + 1} needs its size: whole accounts above zero, not ${say(raw.size)}.`);
+    const values = rowsOf(raw.values);
+    if (values.length !== lags.length)
+      out.push(`Cohort ${label || r + 1} has ${values.length} share${values.length === 1 ? "" : "s"} for ${lags.length} lag${lags.length === 1 ? "" : "s"}: a column a lag.`);
+    for (const [c, value] of values.entries()) {
+      const share = number(value);
+      if (share === undefined || share < 0 || share > 100)
+        out.push(`Cohort ${label || r + 1}'s +${c + 1} is a whole percent from 0 to 100, not ${say(value)}.`);
+    }
+  }
+  return out;
+}
+
+/** The names a cohort grid draws: each cohort's label (a focus names a row) and each lag's heading. */
+function cohortNames(data: unknown): string[] {
+  const grid = isObject(data) ? data : {};
+  return [
+    ...rowsOf(grid.cohorts).flatMap((row, i) => (isObject(row) ? [labelOf(row, i)] : [])),
+    ...rowsOf(grid.lags).map((lag) => `+${String(lag)}m`),
+  ];
+}
+
 register("forecast", { layout: forecast, check: forecastProblems, names: forecastNames });
+register("cohort", { layout: cohort, check: cohortProblems, names: cohortNames });
 register("heatmap", { layout: heatmap, check: heatmapProblems, names: heatmapNames });
 register("meter", { layout: meter, check: meterProblems, names: labelNames });
 register("sparkline", { layout: sparkline, check: sparklineProblems, names: labelNames });

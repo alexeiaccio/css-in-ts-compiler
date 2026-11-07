@@ -3093,10 +3093,9 @@ metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figu
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's `cohort` (a kind whose data this repository does not have), its
-motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data, its `lang`, its SAMPLE DATA stamp and its
-`label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 38 kinds below are here;
-each section says what its half still cannot carry.
+**Not here** (and honest about it): the kit's motion's `intentCard`, `transitionSpec` and `easingTable`, its `@file` data,
+its `lang`, its SAMPLE DATA stamp and its `label`. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF,
+PNG) and the 39 kinds below are here; each section says what its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each

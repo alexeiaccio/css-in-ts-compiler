@@ -71,8 +71,8 @@ in pixels, so a terminal page has its own styles under the same member names.
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
 that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
-terminal at one cell. Thirty-eight kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
-`cardGrid`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`,
+terminal at one cell. Thirty-nine kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
+`cardGrid`, `cohort`, `colourRoles`, `compare`, `contrast`, `easing`, `flow`, `forecast`, `frameStrip`, `funnel`, `heatmap`,
 `journeyMap`, `layerStack`, `listDetail`, `meter`, `modal`, `motionTiming`, `nowNextLater`, `palette`, `qaChecklist`,
 `redline`, `responsivePair`, `screen`, `spacingScale`, `sparkline`, `stagger`, `stateMachine`, `stateMatrix`, `statusKey`,
 `table`, `timeline`, `tokenTable`, `tree` and `typeScale`. A kind is one file under `solid/src/figure/kinds/` —
@@ -169,6 +169,14 @@ release headings are a daily series (26 days, 2026-10-10 to 2026-11-04, a quiet 
 standard deviation, 2.29) and projects the **next 7** at that mean, each day with the band `mean ± 1 sd` clamped at zero
 — a projection of a count, not a promise. `solid/figure-handoff.sh` regenerates and `cmp`s the spec, so a release added to
 the changelog is the figure's next column and not a stale drawing.
+`cohort` is the thirty-ninth and the only kind whose data this repository had to **collect**: Bluesky's public Jetstream
+firehose, twenty minutes of `app.bsky.feed.post` (2026-11-07 06:11Z, 17,354 accounts, 33,551 posts), recorded once by
+`solid/specs/collect-jetstream.ts` into `samples/jetstream.json` — an account and the minutes it posted in, no text and no
+handles. `solid/specs/from-cohort.ts` is the arithmetic: a row the accounts of one minute (about 1,300 a minute), a column
+one to five minutes later, a cell the whole percent of that row's accounts that posted again (13% a minute later, 10% five
+minutes later, steady across the fifteen cohorts). Re-running the collector gives other numbers, because the network is
+not a build, so the sample is committed and `figure-handoff.sh` takes the spec from the sample by `cmp` — the recording is
+the data, the kind is what it means.
 Its text half is the same layout as characters (`solid/src/figure/text.ts`, `solid/figure.ts`): the title, the rows with
 `█` and an eighth block, the `►` line and the source, 80 cells wide or `--compact` ASCII, and `--markdown` for a page; the
 eight figures in `native/README.md` are drawn by it and `solid/test.sh` re-renders and `cmp`s them, so a doc's figure

@@ -1017,7 +1017,7 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 38 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 39 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
@@ -1025,7 +1025,7 @@ the journey `journey-map.json` (glyph-kit's first-week example, adapted), the de
 `colour-roles`, `spacing`, `type-scale`), the Dialog's layers (`layer-stack`) and the pages' states (`state-matrix`),
 the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (`motion-timing`, `easing`, `stagger`,
 `frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`), the charts (`sparkline`, `meter`,
-`heatmap`, `forecast`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `list-detail`, `modal`,
+`heatmap`, `forecast`, `cohort`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `list-detail`, `modal`,
 `responsive-pair`) and the generic table (`table`);
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
@@ -1113,7 +1113,7 @@ three, and each is `cmp`'d.
 **The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
 their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
 `solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`, `structure`, `systems`,
-`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 38 specs are drawable.
+`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 39 specs are drawable.
 `figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
 strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
 terminal's rows and the browser's `?spec=` of each.
@@ -1150,6 +1150,19 @@ the terminal and the text half print the same characters the pixel figure draws.
 checks) re-derives the series and the fit from `CHANGELOG.md`, reads a day's column back out of the drawing, the
 projected cells' paint and height, the band's width, the legend and the fit, the six refusals, two mutations, the golden
 and the terminal's rows; its frame is `solid/frames/figure-forecast.png` and the browser reads `?spec=forecast`.
+
+The chart half's fifth kind, **`cohort`**, is the only one whose data this repository had to collect: Bluesky's public
+Jetstream firehose, twenty minutes of `app.bsky.feed.post` (2026-11-07 06:11Z, 17,354 accounts, 33,551 posts), recorded by
+`solid/specs/collect-jetstream.ts` into `solid/samples/jetstream.json` — an account's minutes in the window, no text and
+no handles. `specs/from-cohort.ts` is the arithmetic on it: a row the accounts that posted in one minute (about 1,300), a
+column one to five minutes later (`+1m` … `+5m`), a cell the whole percent of that row's accounts that posted again (13% a
+minute later, 10% five minutes later, steady across the fifteen cohorts), with the row's `n` beside it because a share of
+three accounts and of three thousand read alike. A cell's paint is the share's band: 20% and up the figure's brightest,
+10–19 its ink, under 10 its muted step. The sample is a recording and not a build, so it is committed, and
+`solid/figure-handoff.sh` takes `cohort.json` from it by `cmp`; `solid/figure-cohort.test.ts` (15 checks) recomputes the
+whole grid from the recording itself, reads the heading and the cells, the paint bands, the six refusals and the mutation a
+share over every account would pass (8% against the row's 13%), the golden and the terminal's rows; its frame is
+`solid/frames/figure-cohort.png` (111 commands) and the browser reads `?spec=cohort`.
 
 **As text.** `bun solid/figure.ts solid/specs/bars.json` prints the same layout as characters — 80 cells wide, a bar's
 fraction as an eighth block, `--compact` for plain ASCII, `--markdown` for a page — and
