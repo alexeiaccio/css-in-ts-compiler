@@ -20,6 +20,7 @@ const { chromium } = await import(
 const PAGE = `<!doctype html>
 <meta charset="utf-8">
 <title>vitals</title>
+<link rel="stylesheet" href="/slow.css">
 <style>
   @layer test {
     .used { color: #2563eb; font-family: Inter, sans-serif }
@@ -47,6 +48,14 @@ const PAGE = `<!doctype html>
 
 const server = createServer((request, response) => {
   const file = request.url?.slice(1) ?? "";
+  if (file === "slow.css") {
+    // a stylesheet that takes a moment: the load row's render-blocking window
+    setTimeout(() => {
+      response.writeHead(200, { "content-type": "text/css" });
+      response.end(".slow { color: rgb(9 9 9) }");
+    }, 60);
+    return;
+  }
   if (file.endsWith(".js")) {
     // dist/ holds vitals.js and the selector chunk it shares with the overlay
     response.writeHead(200, { "content-type": "text/javascript" });
@@ -96,12 +105,12 @@ try {
   );
   const report = await page.evaluate(() => window.__vitals.report());
 
-  assert.equal(report.css.sheets, 1);
+  assert.equal(report.css.sheets, 2, "the inline sheet and the linked one");
   assert.deepEqual(report.css.layers, ["test"], "a named layer");
   assert.equal(report.css.important, 1, "one !important");
   assert.ok(report.css.bytes > 0);
-  assert.ok(report.css.rules >= 4, String(report.css.rules));
-  assert.deepEqual(report.css.unused, ["dead"], "one class nobody carries");
+  assert.ok(report.css.rules >= 5, String(report.css.rules));
+  assert.deepEqual(report.css.unused, ["dead", "slow"], "classes nobody carries");
   assert.ok(report.css.classes.includes("used") && report.css.classes.includes("spin"));
   assert.ok(report.css.colours.includes("rgb(37, 99, 235)"), report.css.colours.join());
   assert.ok(report.css.colours.includes("oklch(0.7 0.1 200)"), report.css.colours.join());
@@ -135,6 +144,17 @@ try {
   assert.ok(report.frames.history.length > 0, "the frame loop sampled");
   assert.ok(report.frames.max > 0);
   assert.equal(report.errors, 0);
+  assert.ok(report.loads.length >= 1, "the stylesheet is in the timeline");
+  assert.equal(report.loads[0].blocking, true, "a linked stylesheet of the head blocks render");
+  assert.equal(report.loads[0].name, "slow.css");
+  assert.ok(report.loads[0].end >= 50, `the slow sheet took ${report.loads[0].end} ms`);
+  assert.ok(report.inpFrames && report.inpFrames.frames >= 1, JSON.stringify(report.inpFrames));
+  assert.ok(
+    report.loaf.invokers.length + report.loaf.scripts.length >= 1,
+    JSON.stringify(report.loaf),
+  );
+  assert.equal(report.history.length, 1, "the first report records the load");
+  assert.equal(report.history[0].path, "/", "keyed by path");
   assert.ok(report.nodes >= 3, `nodes ${report.nodes}`);
 
   await page.evaluate(() => window.__vitals.vitals());
@@ -150,10 +170,23 @@ try {
     assert.ok(printed.includes(needle), `the console has no "${needle}":\n${printed}`);
   assert.equal(await page.evaluate(() => typeof window.vitals), "function", "the console's way in");
 
+  // a reload is a second load of the same path: the history keeps both and the report reads a delta
+  await page.reload();
+  await page.waitForFunction(() => typeof window.__vitals === "object");
+  await page.evaluate(
+    () =>
+      // oxlint-disable-next-line promise/avoid-new -- a task boundary for the observers, in the page
+      new Promise((resolve) => setTimeout(resolve, 300)),
+  );
+  const second = await page.evaluate(() => window.__vitals.report());
+  assert.equal(second.history.length, 2, "the reload is the second load");
+  assert.equal(second.history.at(-1).path, "/", "keyed by path");
+  assert.equal(second.history.at(-2).path, "/");
+
   console.log(
     `vitals browsers ok: ${Math.round(report.elapsed)} ms, LCP ${Math.round(report.lcp)} ms on ${report.lcpTarget}, ` +
       `INP ${Math.round(report.inp)} ms on ${report.inpTarget}, ${report.css.rules} rules, ` +
-      `${report.loaf.count} long frame(s), ${report.css.unused.length} unused class`,
+      `${report.loaf.count} long frame(s), ${report.loads.length} stylesheet(s), ${report.css.unused.length} unused class`,
   );
 } finally {
   await browser.close();

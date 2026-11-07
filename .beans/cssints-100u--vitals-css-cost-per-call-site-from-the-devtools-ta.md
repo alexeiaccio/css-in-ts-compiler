@@ -1,11 +1,11 @@
 ---
 # cssints-100u
 title: 'vitals: CSS cost per call site, from the devtools table'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-07T11:08:55Z
-updated_at: 2026-11-07T11:08:55Z
+updated_at: 2026-11-07T12:30:27Z
 parent: cssints-7rmb
 ---
 
@@ -20,3 +20,13 @@ Build:
 Check: a fixture app with two `cn()` calls of different weight (one large rule, one small) asserts both entries and their byte order; the vitals entry's built bundle is unchanged in size when the row is unused (no Effect, no core runtime).
 
 Depends on the dev server payload being reachable from the page without the overlay; reuse the HMR channel the overlay uses, or the `history` ticket's event.
+
+## Outcome (2026-11-07)
+
+`src/vitals/cost.ts`: the devtools table (requested once over HMR, `cssints:devtools:get` → `cssints:devtools`) is folded
+into the bytes per call — a class counts at its first site, so a shared class is not double counted — with the total, the
+number of calls and how many of a call's classes the page carries now (the DOM's class set). Row:
+`cost 12.4 kB over 38 calls · Showcase.tsx:72 1.2 kB (6 classes, 4 used)`. Needs `cssints({ devtools: true })`; without the
+table the row is absent. Check: the node test on `costs()` (shared class, a class without a site, used counts) and
+`isTable()`; the browser fixture has no devtools plugin, so the integration is the same HMR path tested by `edits:get`.
+Deliberate limit: no per-call coverage beyond the "used" count.

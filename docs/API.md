@@ -4420,6 +4420,8 @@ vitals   FCP 412 ms · LCP 1.20 s (h1.hero) · CLS 0.002
 frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
 main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
 sheet    64.4 kB · +29 B on src/registry/button/button.tsx · 3 loads · 81 B a class  ▁▁█
+load     2 sheets · 1 render-blocking · 66 ms to last · slow.css 65 ms (327 B)
+history  12 loads · LCP 1.20 s (−180 ms) (−312 B)  ▁▂▃▅▆▇▆▅
 CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
 layer    _.k       ████████████████████ 22.4 kB
 tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 used / 3 orphaned · keyframes 2 / 1 unused
@@ -4442,6 +4444,17 @@ coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
   `+29 B on src/registry/button/button.tsx`, with a sparkline of the last thirty loads and the bytes a class costs. Off a
   dev server the row is absent. These bytes are `renderSheet`'s, not the CSSOM's, so they differ a little from the `CSS`
   row.
+- **Long animation frames** also name their scripts: the top sources by script time (a source is the last two path
+  segments), the invokers (`timer`, `message handler`, an event listener), and the _forced_ style and layout time — the
+  read-after-write that makes a script pay for layout.
+- **The history** of the last twenty loads of a path lives in `sessionStorage` (`cssints-vitals`): LCP and the sheet's
+  bytes as deltas against the previous load of the same page; `reset()` clears it, and a store that throws (a private
+  window) is simply absent.
+- **The cost by call** needs the devtools table (`cssints({ devtools: true })`): bytes of each class at the call that made
+  it, the total and the number of calls, and how many of the call's classes the page carries; without the table the row is
+  absent.
+- **The CSS files' arrival** is the resource timeline: each `.css`, its duration, Chrome's `renderBlockingStatus`, the
+  slowest and the last.
 - **Frames** are sampled by a rAF loop: p50 / p95 / max, the dropped frames, a sparkline and a heatmap of the timeline
   (green under 16.7 ms, amber to 33.4, orange to 50, red above).
 - **Limits.** Long animation frames are not buffered entries, so a report from a cold console sees only the work after
@@ -4449,7 +4462,8 @@ coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
   A cross-origin sheet throws on `cssRules` and is counted as `blocked`. Coverage asks the DOM now: a class used only in a
   state is used if an element carries it.
 
-`report()` returns the numbers, `print(report)` prints them, `stop()` ends the frame loop.
+`report()` returns the numbers, `print(report)` prints them, `reset()` forgets the history and the sheet's measurements,
+`stop()` ends the frame loop.
 
 ### Debugging: traces of the engine (`CSSINTS_TRACE`, cssints-r2qq)
 

@@ -1,11 +1,11 @@
 ---
 # cssints-n8uz
 title: 'vitals: LoAF attribution — which script, which invoker, how much forced layout'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-07T11:08:55Z
-updated_at: 2026-11-07T11:17:42Z
+updated_at: 2026-11-07T12:30:27Z
 parent: cssints-7rmb
 ---
 
@@ -30,3 +30,11 @@ Fallback: without LoAF (not Chrome), the row is absent, not zero.
 (`attribution.longestScript`, `totalScriptDuration`, `totalStyleAndLayoutDuration`). What stays ours: the general LoAF
 row (every frame, not only the INP one) and the source/invoker attribution of the worst frames, which is what this
 ticket is about — read `entry.scripts` of our own observer, not the library's.
+
+## Outcome (2026-11-07)
+
+Our long-animation-frame observer now reads `entry.scripts`: the top three sources by script time (last two path segments),
+the invokers counted (`timer`, an event, a URL), and the **forced** style and layout time (`forcedStyleAndLayoutDuration`)
+— the read-after-write that makes a script pay for layout. Row: `scripts docs/app.tsx 74 ms · 1 · src/main.tsx 42 ms · 1 —
+http://…/src/main.tsx 1 · DOMWindow.onhashchange 1 · forced layout 0.7 ms`.
+Check: the Chromium test asserts the scripts/invokers are reported; the kit site's run shows the real ones.

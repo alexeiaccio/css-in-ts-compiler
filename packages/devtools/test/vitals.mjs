@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import { Window } from "happy-dom";
 
 import { bars, heatmap, sparkline } from "../src/vitals/charts.ts";
+import { costs, isTable } from "../src/vitals/cost.ts";
 import { cssStats } from "../src/vitals/css.ts";
+import { clear, history, record } from "../src/vitals/history.ts";
 
 // ---------- the charts
 
@@ -82,5 +84,73 @@ assert.deepEqual(
   ["unlayered"],
   "no layer in this sheet",
 );
+
+// ---------- the history across loads
+
+const rows = new Map();
+const vault = {
+  getItem: (key) => rows.get(key) ?? null,
+  setItem: (key, value) => void rows.set(key, value),
+  removeItem: (key) => void rows.delete(key),
+};
+const load = (over) => ({
+  at: 1_700_000_000_000,
+  path: "/button",
+  fcp: 400,
+  lcp: 800,
+  cls: 0,
+  ttfb: 30,
+  bytes: 64_000,
+  ...over,
+});
+assert.deepEqual(history(vault), [], "an empty store is an empty series");
+record(load({ lcp: 900 }), vault);
+record(load({ lcp: 800 }), vault);
+assert.deepEqual(
+  history(vault).map((x) => x.lcp),
+  [900, 800],
+  "oldest first, the current last",
+);
+assert.equal(history(vault).length, 2);
+for (let i = 0; i < 30; i++) record(load({ at: i }), vault);
+assert.equal(history(vault).length, 20, "the series is capped");
+assert.equal(history(vault).at(-1).at, 29, "the newest is kept");
+rows.set("cssints-vitals", "not json");
+assert.deepEqual(history(vault), [], "a broken store is an empty series");
+rows.set("cssints-vitals", JSON.stringify([{ path: "/x" }, load({})]));
+assert.equal(history(vault).length, 1, "a row that is not a load is dropped");
+clear(vault);
+assert.deepEqual(history(vault), [], "reset clears");
+
+// ---------- the cost by call site
+
+const table = {
+  classes: {
+    _a: { css: "._a{color:red}", sites: [0] },
+    _b: { css: "._b{padding:4px}", sites: [0, 1] },
+    _c: { css: "._c{display:grid}", sites: [1] },
+    _orphan: { css: "._orphan{}" },
+  },
+  sites: [
+    { file: "src/registry/button/button.tsx", line: 40 },
+    { file: "src/registry/card/card.tsx", line: 12 },
+  ],
+};
+assert.ok(isTable(table) && !isTable({ classes: {} }) && !isTable(null));
+const cost = costs(table, new Set(["_a", "_c"]));
+assert.equal(cost.calls, 2);
+assert.equal(
+  cost.total,
+  "._a{color:red}".length + "._b{padding:4px}".length + "._c{display:grid}".length,
+);
+assert.deepEqual(
+  cost.rows.map((x) => [x.file, x.line, x.classes, x.used]),
+  [
+    ["src/registry/button/button.tsx", 40, 2, 1],
+    ["src/registry/card/card.tsx", 12, 1, 1],
+  ],
+  "a shared class counts once, at its first site; a class without a site is left out",
+);
+assert.equal(costs(table, new Set()).rows[0].used, 0);
 
 console.log("vitals ok");

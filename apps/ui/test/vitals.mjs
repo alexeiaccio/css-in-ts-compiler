@@ -59,7 +59,10 @@ try {
   assert.match(printed, /coverage \d+ \/ \d+ classes unused/, printed);
   assert.match(printed, /sheet {4}\d+(\.\d+)? kB · the first measurement/, printed);
   assert.ok(report.sheet.edits.length >= 1, "the dev server's first measurement");
+  assert.equal(report.history.length, 1, "the load is the first of this page's history");
+  assert.equal(report.history[0].bytes, report.sheet.edits.at(-1).bytes);
   assert.match(printed, /^layer {4}/m, printed);
+  assert.match(printed, /^history {2}1 load/m, printed);
   assert.ok(report.css.sheets >= 1, `sheets ${report.css.sheets}`);
   assert.ok(report.css.bytes > 1000, `bytes ${report.css.bytes}`);
   assert.ok(report.css.classes.length > 50, `classes ${report.css.classes.length}`);

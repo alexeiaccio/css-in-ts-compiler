@@ -151,6 +151,8 @@ vitals   FCP 412 ms · LCP 1.20 s (h1.hero) · CLS 0.002
 frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
 main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
 sheet    64.4 kB · +29 B on src/registry/button/button.tsx · 3 loads · 81 B a class  ▁▁█
+load     2 sheets · 1 render-blocking · 66 ms to last · slow.css 65 ms (327 B)
+history  12 loads · LCP 1.20 s (−180 ms) (−312 B)  ▁▂▃▅▆▇▆▅
 CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
 layer    _.k       ████████████████████ 22.4 kB
 tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 used / 3 orphaned · keyframes 2 / 1 unused
@@ -174,6 +176,15 @@ coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
   an edit shows as `+29 B on src/registry/button/button.tsx` beside a sparkline of the last thirty loads, and the row's
   "81 B a class" is what one more `cn()` costs. Off a dev server the row is absent; the bytes are `renderSheet`'s, not the
   CSSOM's, so they differ slightly from the `CSS` row above (serialization).
+- **The history** is the last twenty loads of the path in `sessionStorage` (`cssints-vitals`): LCP and the sheet's bytes
+  as a delta against the previous load of the same page, with a sparkline. `reset()` forgets the series; a private window
+  throws on the store and the report goes on without it.
+- **The cost by call** comes from the devtools table when the server has `devtools: true`: the bytes of every class at the
+  call that made it (a shared class counts once, at its first site), the total, the number of calls, and how many of a
+  call's classes the page carries now. Without the table the row is absent.
+- **The CSS files' arrival** is the resource timeline: every `.css`, its duration, and Chrome's `renderBlockingStatus`
+  (a browser without it reports nothing, which is not the same as non-blocking); the row names the slowest one and how long
+  the last took.
 - **Frames** are sampled by a rAF loop while observing: p50 / p95 / max and the dropped frames, a sparkline, and a
   heatmap of the timeline (green under 16.7 ms, amber to 33.4, orange to 50, red above). The characters are the
   terminal's own (`native/terminal`); a console cell is 8×16 px there, a `%c` background here.
