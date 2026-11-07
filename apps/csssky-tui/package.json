@@ -9,7 +9,7 @@
     "test": "node test/build.mjs"
   },
   "dependencies": {
-    "@atcute/bluesky": "^4.0.22",
+    "@atcute/bluesky": "^4.0.26",
     "@atcute/bluesky-richtext-segmenter": "3.0.2",
     "@atcute/client": "^5.1.2",
     "@atcute/lexicons": "^2.1.1",
@@ -21,6 +21,6 @@
   "devDependencies": {
     "cssints": "workspace:*",
     "vite": "catalog:",
-    "vite-plugin-solid": "^2.11.10"
+    "vite-plugin-solid": "^2.11.15"
   }
 }
