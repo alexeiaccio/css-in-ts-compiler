@@ -5,7 +5,7 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-11-07T11:08:54Z
-updated_at: 2026-11-07T11:08:54Z
+updated_at: 2026-11-07T11:17:42Z
 ---
 
 The console report (`@cssints/devtools/vitals`, branch `feat/devtools-vitals`) answers "what is this page paying now?". The next wave turns it into "what did *this edit* cost, and which code paid" — the questions a cssints developer actually asks while styling, and the ones a generic vitals tool cannot answer.
@@ -22,3 +22,10 @@ The children, in the order that pays first:
 7. the CSS files' own load time and render blocking (low).
 
 Not in this epic, by decision: a Vitals section in the overlay panel (the console was chosen; the panel asks a DOM question and a canvas has no DOM).
+
+
+## Decision (2026-11-07, after the first review)
+
+The metrics layer is `web-vitals` (attribution build): CLS session windows, INP p98, LCP/INP targets, phases, ratings.
+The sheet report, the frame timeline and the general LoAF row stay ours. The tool stays `@cssints/devtools/vitals` — not a
+33rd package. Its first real run is apps/ui (the registry site): see cssints-7zhh.

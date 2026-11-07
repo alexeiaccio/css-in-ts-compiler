@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: normal
 created_at: 2026-11-07T11:08:55Z
-updated_at: 2026-11-07T11:08:55Z
+updated_at: 2026-11-07T11:17:42Z
 parent: cssints-7rmb
 ---
 
@@ -22,3 +22,11 @@ Build:
 Check: the Chromium test (test/vitals-browser.mjs) runs a busy loop from a `setTimeout` in the page and asserts the invoker/source of the frame; a second loop with a read-after-write (offsetHeight after a style change) asserts a non-zero forced layout.
 
 Fallback: without LoAF (not Chrome), the row is absent, not zero.
+
+
+## Note (2026-11-07)
+
+`web-vitals` already reports the long animation frames of the INP candidate with the longest script and its subpart
+(`attribution.longestScript`, `totalScriptDuration`, `totalStyleAndLayoutDuration`). What stays ours: the general LoAF
+row (every frame, not only the INP one) and the source/invoker attribution of the worst frames, which is what this
+ticket is about — read `entry.scripts` of our own observer, not the library's.

@@ -1,11 +1,11 @@
 ---
 # cssints-jrut
 title: 'vitals: INP with its element and the frames that covered it'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-07T11:08:55Z
-updated_at: 2026-11-07T11:08:55Z
+updated_at: 2026-11-07T11:17:42Z
 parent: cssints-7rmb
 ---
 
@@ -20,3 +20,12 @@ Build:
 Check: the Chromium test clicks a button whose handler blocks for 60 ms and asserts the element, the three phases and at least one covering frame.
 
 Note: event entries only report with `durationThreshold: 16`; keep that in the observer options or the small interactions vanish from the distribution.
+
+
+## Progress (2026-11-07)
+
+The phases and the target now come from `web-vitals`' attribution build (`interactionTarget`, `inputDelay`,
+`processingDuration`, `presentationDelay`, `longAnimationFrameEntries`), printed as `INP 96 ms (#go) · 8+40+48`; the
+~98th-percentile selection is the library's. On apps/ui: `INP 8.0 ms (#cl-1-tab-0) · 7+1+1`.
+Remaining here: the covering frames in the line (intersect `longAnimationFrameEntries` with the interaction), and the
+candidate rule (p98 vs the worst interaction) printed explicitly.
