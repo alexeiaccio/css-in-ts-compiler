@@ -279,6 +279,17 @@
         "@opencode/client",
       ],
     },
+    "packages/data": {
+      "name": "@cssints/data",
+      "version": "0.33.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.33.0",
+      },
+    },
     "packages/devtools": {
       "name": "@cssints/devtools",
       "version": "0.33.0",
@@ -834,6 +845,8 @@
     "@cssints/color-names": ["@cssints/color-names@workspace:packages/color-names"],
 
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
+
+    "@cssints/data": ["@cssints/data@workspace:packages/data"],
 
     "@cssints/devtools": ["@cssints/devtools@workspace:packages/devtools"],
 

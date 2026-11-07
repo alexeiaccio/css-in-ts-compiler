@@ -1,0 +1,56 @@
+{
+  "name": "@cssints/data",
+  "version": "0.33.0",
+  "description": "Statistics over runtime values, computed by the browser's layout for cssints: max, sum and count, printed by a counter",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/data"
+  },
+  "homepage": "https://cssints.dev",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "access": "public",
+    "directory": ".publish"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/data.mjs",
+    "test:browsers": "node test/browsers.mjs",
+    "typecheck": "node ../../scripts/typecheck.mjs",
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
+  },
+  "devDependencies": {
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.33.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
