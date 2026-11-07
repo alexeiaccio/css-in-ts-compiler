@@ -8,5 +8,7 @@ their style and layout time, errors, heap, the frame timeline (p50/p95/max, a sp
 stylesheets' own numbers read off the CSSOM: bytes, rules, declarations, layer bars, the worst specificity, colours, fonts,
 `!important`, custom properties declared / used / orphaned, keyframes in use, and coverage (the classes no element
 carries). On a dev server, the sheet's growth across HMR edits (its size, the file that changed, the bytes a class costs)
-comes over the HMR channel: `cssints:edits`. No dev server and no overlay: a plain browser module, so a page that draws to a canvas (the native browser
+comes over the HMR channel: `cssints:edits`. Long animation frames name their scripts, invokers and forced layout; the
+last twenty loads of a path are kept in `sessionStorage` with deltas; the CSS files' arrival (and render blocking) comes
+from the resource timeline; and with the devtools table the sheet's cost is attributed to the calls that made it. No dev server and no overlay: a plain browser module, so a page that draws to a canvas (the native browser
 target) has a report too.

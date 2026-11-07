@@ -1,11 +1,11 @@
 ---
 # cssints-tds8
 title: 'vitals: history across reloads, so an edit''s delta is visible'
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-07T11:08:55Z
-updated_at: 2026-11-07T11:08:55Z
+updated_at: 2026-11-07T12:30:27Z
 parent: cssints-7rmb
 ---
 
@@ -18,3 +18,11 @@ Build:
 - Same-page SPA navigations do not create a new navigation entry: key the series by `location.pathname` and only record on load (a `pageshow`/first report), so a re-report inside one session does not pad the series.
 
 Check: the Chromium test reloads the fixture twice with different content, then asserts two entries, a delta, and that `reset()` empties them. Keep the storage write best-effort (private mode throws).
+
+## Outcome (2026-11-07)
+
+`src/vitals/history.ts`: the last 20 loads of the origin in `sessionStorage` (`cssints-vitals`), validated on read, one
+record per page load (a second report is the same load), `reset()` clears the series and the sheet's measurements. The row
+prints `history 12 loads · LCP 1.20 s (−180 ms) (−312 B)` with a sparkline, comparing only with the previous load of the
+same path. Checks: the node test (record/order/cap/broken JSON/validation/clear on a fake vault) and the Chromium test
+(the first report records, a reload is the second load).

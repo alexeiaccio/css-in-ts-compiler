@@ -174,7 +174,7 @@
             // @cssints/devtools/vitals prints to the browser console: that is the tool's whole surface, and Effect.log would
             // batch into a Logger a page never set. Plain browser code, no Effect runtime (the root's plainCode, vite.config.ts).
             "include": ["**/devtools/src/vitals/*.ts"],
-            "options": { "diagnosticSeverity": { "globalConsole": "off" } }
+            "options": { "diagnosticSeverity": { "globalConsole": "off", "globalDate": "off" } }
           }
         ]
       }
