@@ -5,26 +5,26 @@ terminal. This page says which layer does what on each target, what is proven, a
 
 ## Four layers
 
-| Layer   | What it does                        | Where it runs                       |
-| ------- | ----------------------------------- | ----------------------------------- |
-| Author  | cssints styles, Solid JSX, state    | the editor (types catch errors)     |
-| Compile | a style to a JS literal or to C     | the build (the cssints Vite plugin) |
-| Layout  | boxes from styles and content       | the target: Clay                    |
-| Raster  | pixels from boxes                   | the target: GPU or CPU              |
+| Layer   | What it does                     | Where it runs                       |
+| ------- | -------------------------------- | ----------------------------------- |
+| Author  | cssints styles, Solid JSX, state | the editor (types catch errors)     |
+| Compile | a style to a JS literal or to C  | the build (the cssints Vite plugin) |
+| Layout  | boxes from styles and content    | the target: Clay                    |
+| Raster  | pixels from boxes                | the target: GPU or CPU              |
 
 The rule (esp32 bean esp32-8j6y): **what can be computed at build time is computed at build time.** A style is data;
 it needs no runtime on the device.
 
 ## Targets
 
-| Target            | Styles          | Layout         | Raster                         | JS at run time | Status                        |
-| ----------------- | --------------- | -------------- | ------------------------------ | -------------- | ----------------------------- |
-| Desktop (macOS)   | `cssints/clay`  | Clay           | Clay's SDL3 renderer (GPU)     | optional (Bun) | a page in a window            |
-| ESP32-S3          | `cssints/clay`  | Clay           | esp32's `render.c`, CPU bands  | none           | clay-test's shell, 22 ms a frame |
-| Browser (WASM)    | `cssints/clay`  | Clay (C→WASM)  | canvas 2D                      | none (the generated C) | a static frame and its `use_g` twin on a canvas |
-| ESP32-P4          | `cssints/clay`  | Clay           | CPU + PPA (2D DMA)             | none           | later, needs a board          |
-| Terminal          | `cssints/clay`  | Clay (cells)   | Clay's `termbox2` renderer     | optional (Bun) | after desktop; replaces `cssints/tui` |
-| iOS, Android      | `cssints/clay`  | Clay           | ThorVG CPU, on a Metal/GLES surface (SDL3) | none (the generated C) | planned; the first slice is the section below |
+| Target          | Styles         | Layout        | Raster                                     | JS at run time         | Status                                          |
+| --------------- | -------------- | ------------- | ------------------------------------------ | ---------------------- | ----------------------------------------------- |
+| Desktop (macOS) | `cssints/clay` | Clay          | Clay's SDL3 renderer (GPU)                 | optional (Bun)         | a page in a window                              |
+| ESP32-S3        | `cssints/clay` | Clay          | esp32's `render.c`, CPU bands              | none                   | clay-test's shell, 22 ms a frame                |
+| Browser (WASM)  | `cssints/clay` | Clay (C→WASM) | canvas 2D                                  | none (the generated C) | a static frame and its `use_g` twin on a canvas |
+| ESP32-P4        | `cssints/clay` | Clay          | CPU + PPA (2D DMA)                         | none                   | later, needs a board                            |
+| Terminal        | `cssints/clay` | Clay (cells)  | Clay's `termbox2` renderer                 | optional (Bun)         | after desktop; replaces `cssints/tui`           |
+| iOS, Android    | `cssints/clay` | Clay          | ThorVG CPU, on a Metal/GLES surface (SDL3) | none (the generated C) | planned; the first slice is the section below   |
 
 Facts behind it:
 
@@ -38,7 +38,7 @@ Facts behind it:
   the vendor image restores from `vendor/ESP32-S3-Touch-LCD-1.85B/Firmware/…-Factory.bin`.
 - It holds **33.3 fps** drawing every band every pass over 30 s at 74% busy: the loop yields one 10 ms FreeRTOS tick
   between frames, so 22 ms of work is ~45 fps of headroom. Idle it draws nothing (`drawn 0.0/s`, `busy 1%`): the app
-  diffs its commands and skips layout too. What a *partial* repaint costs was not measured — the only way to change
+  diffs its commands and skips layout too. What a _partial_ repaint costs was not measured — the only way to change
   the picture on this firmware is a finger or the clock screen, and the board's HTTP API has no input endpoint.
 - esp32's `ui.c` and `render.c` are plain C with no ESP-IDF; `host/test.c` already runs them on a Mac.
 
@@ -144,6 +144,7 @@ The plan on this page, drawn from `solid/specs/timeline.json` (the fence is the 
 and `cmp`s it):
 
 <!-- glyph-kit: ../solid/specs/timeline.json -->
+
 ```text
 The plan's order, one step a row
 cssints/clay          ████                            0–1 step
@@ -229,11 +230,12 @@ be printed alone — and a frame at rest writes nothing: 30 idle frames are 30 `
 the Sensors pill writes its 3 rows, whole. This is the desktop's hash rule (`ui.hash` → `0 draws`) one level down; the
 reference arrived at it independently: a corroboration, not a port. Numbers (M2, 80x20 cells, file write included in both):
 Sensors **3,315 B** against the ANSI dump's **3,018 B** (1.10x), **0.09-0.14 ms** against **0.13-0.23 ms**; Sky **5,449 B**
-and 98 runs; the browser page's bundle **174 KB** and a frame **0.04-0.07 ms**. Checks: `terminal/console.mjs` (the JSON
+and 98 runs; the browser page's bundle **197 KB** and a frame **0.04-0.07 ms**. Checks: `terminal/console.mjs` (the JSON
 parses back to the ANSI dump's cells and SGR truecolours, 1,600 cells, glyph and both colours; the text dump a cell for a
 cell; the diff, 30 idle frames, the no-diff mutation, the bytes and ms) and `browser/console-check.mjs` (the browser page's
-frame is the terminal's, cell for cell, at rest, after Tab, after a press on the pill and after Space; 20 frames at rest write no line;
-the canvas has no pixels). **What it cannot be**: accessible (a console has no tree), typed (the page's keys, not a text
+frame is the terminal's, cell for cell, at rest, after Tab, after a press on the pill and after Space; 20 frames at rest
+write no line; the canvas has no pixels; `v` and `?vitals` print the vitals group — on a canvas page the console is the only
+devtools). **What it cannot be**: accessible (a console has no tree), typed (the page's keys, not a text
 field: the Field page cannot run here), typographic (monospace; a cell's width is the console's, so a proportional font or
 a wide glyph breaks a row the sink cannot know), or portable (a phone has no console; Firefox's and Safari's consoles
 render `%c` and scroll differently). Not here: FIGlet titles, deferred — the Hershey spike already said a data font's niche
@@ -241,12 +243,12 @@ is a ROM-bound board at one signage size.
 
 ## Where Solid runs
 
-| Target   | Solid                                                                     |
-| -------- | ------------------------------------------------------------------------- |
-| Desktop  | Solid 2 universal renderer building Clay's tree each frame (Bun FFI)      |
-| ESP32    | none at run time: JSX evaluated at build time to C, state in C            |
+| Target   | Solid                                                                                            |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| Desktop  | Solid 2 universal renderer building Clay's tree each frame (Bun FFI)                             |
+| ESP32    | none at run time: JSX evaluated at build time to C, state in C                                   |
 | Browser  | Solid 2 universal renderer over Clay in wasm on a canvas; the generated C kept as the no-JS page |
-| Terminal | the desktop's universal renderer over Clay, cells for pixels              |
+| Terminal | the desktop's universal renderer over Clay, cells for pixels                                     |
 
 Measured for the ESP32: QuickJS 38 ms a UI turn (retired, esp32-mkn5); scriptc 0.3.6 has no Xtensa/RISC-V target and
 segfaults on one Solid 2 `createSignal`; porffor is alpha.
@@ -269,7 +271,7 @@ Each step ends in a check that fails when it breaks.
    after a scripted click on Units, compared pixel for pixel.
    **Done: the ThorVG raster.** `desktop/clay_renderer_thorvg.c`: Clay's commands as a ThorVG scene on its software
    canvas (brew thorvg 1.1.3, CPU engine only), `host --raster thorvg`, the default raster (`--raster sdl` is Clay's); text measured by ThorVG too.
-    Check: two
+   Check: two
    stored frames of its own (`expected-thorvg*.png`). Headless on an M2, the same 360x360 frame, one thread: ThorVG
    0.30 ms, SDL's software renderer 1.2 ms (2026-10-19; it does not transfer to the board). GL/WebGPU engines need a
    ThorVG built with them; then the ESP32-S3: ThorVG SW against `render.c`'s 16.7–19.2 ms of a 21.4–24.2 ms frame
@@ -394,7 +396,7 @@ Each step ends in a check that fails when it breaks.
    **Done: the toolbar's menu button, and the menubar in `headless/`.** The toolbar's third item is now a menu button
    (`createMenu`, radio items Small/Medium/Large, Medium checked): the item's label shows the chosen size, it carries
    `aria-haspopup`, and Down, Up, Enter or Space open the menu as a capturing float under the item (`css.float({ parent:
-   "format-item-2", ... })`), so the page under it is unreachable by that press. Inside, the arrows and Home/End move,
+"format-item-2", ... })`), so the page under it is unreachable by that press. Inside, the arrows and Home/End move,
    Enter picks and closes, Escape closes and returns focus to the item, Tab closes and goes on; the page routes it through
    `input.modal`. The toolbar's roving focus treats it as one more item (Left/Right/Home/End, one Tab stop, memory), and
    the ring is now the slider's rail only, so the value text sits outside it. `headless/` also gained eoa's
@@ -469,7 +471,7 @@ Each step ends in a check that fails when it breaks.
    declares all of itself on its mount frame, measures every card on the next, and has exact heights from then on; the mean
    of the measured ones (190px until anything is) is only the estimate those frames give the content and the thumb, never
    a place a card is measured at, so the end does not move when a card is first seen. `segments(w, { count, slot, gap,
-   extra })` is the List's column: the window's rows, the selected row when the scroll has left it outside the window, and
+extra })` is the List's column: the window's rows, the selected row when the scroll has left it outside the window, and
    the spacers between them (`SPACER.above`, `middle`, `below` — each taking its own gap out, none when the ranges are
    adjacent), so the selection has a box, a fill, a ring and an a11y node without declaring the range in between, and
    nothing the viewport shows moves. The spacer boxes are cells of the same column as the items, their heights written
@@ -503,7 +505,7 @@ Each step ends in a check that fails when it breaks.
    `FAIL the last card is declared there: false, wanted true`.
    **Done: the accessibility tree** (`solid/a11y.ts`, `solid/a11y.test.ts`). `snapshot(root, { parts, containers })`
    walks the rendered tree in document order and returns `{ role, name, value, states: { checked, expanded, selected,
-   disabled, focused, hidden }, hasPopup, level, bounds, children }`: the name from the part's `label` / `labelledBy`
+disabled, focused, hidden }, hasPopup, level, bounds, children }`: the name from the part's `label` / `labelledBy`
    (resolved to the text of the element it names) / the text of its descendants outside nested roles, `hidden` pruned
    with its subtree, and an open modal dialog's page pruned as a screen reader sees it (not marked hidden); `bounds` is
    `ui.bounds` of the box's id. `a11y(part)` is the other half: the part's `id` and each field as a live getter, spread
@@ -626,7 +628,7 @@ Each step ends in a check that fails when it breaks.
    rest on 620 after 39; the thumb `232.89,335.5 87.11x4`, travel 192.89, left `0`/`102.67`/`192.89`; a 10px bar drag is
    3.21 of offset a px; the two bars' boxes meet at `335.5` and never overlap. Mutation: the horizontal thumb's width from
    the content's width instead of the viewport's fails `FAIL its width is max(24, 280²/900): a screenful of the content`.
-   Not covered: a horizontal *content* drag in the viewport (the wide page drags vertically; the bar is the horizontal
+   Not covered: a horizontal *content\* drag in the viewport (the wide page drags vertically; the bar is the horizontal
    handle), and horizontal content on any page but the List.
    **Done: the thread screen.** A card press now opens the post's thread — the page's second screen, with the bar (the
    wordmark and the tabs) staying put. It is a **root float over the content area** (696 = 760 - 64, `zIndex` 2, the
@@ -636,7 +638,7 @@ Each step ends in a check that fails when it breaks.
    element on the page's own scroll machine (one instance per opening, so a thread always starts at its top). The data is
    the app's recorded thread (`apps/csssky/test/fixtures/thread.json`) as the page's own `Post` literals: the root is the
    clicked post with its counts, then `jlp2024.bsky.social` (1), a tombstone (2, "Post deleted or not found"), `Katie
-   Korth` (2), `Mdubs949` (3) and the "Show 1 more reply" row (4) a branch cut at the app's `MAX_DEPTH` ends in — the
+Korth` (2), `Mdubs949` (3) and the "Show 1 more reply" row (4) a branch cut at the app's `MAX_DEPTH` ends in — the
    rows are `apps/csssky-tui`'s `rowsOf` transcribed (its nodes are the API's `ThreadNode`; the page's cards are not), its
    words and limit imported from `apps/csssky/src/thread/model.ts` (`goneText`, `moreLabel`, `MAX_DEPTH`). A row's left
    padding is the depth's indent, 16px a level (the app's margin-left), so the cards start at x 12, 28, 44, 44, 60 and 76
@@ -651,7 +653,7 @@ Each step ends in a check that fails when it breaks.
    `sky-thread.png`, `sky-thread-mid.png` (two frames into the entry), `sky-thread-scrolled.png`, `sky-thread-light.png`,
    `sky-thread-more.png` (the deeper thread; its row is only in view at the thread's end, so `main.ts` grew
    `--click2`/`--settle2`). Mutations: dropping the wrapper's padding fails `FAIL a reply's box is its depth's indent in
-   from the clip (…)`, and reusing the thread's offset for the feed fails `FAIL the feed's offset after back is its own`
+from the clip (…)`, and reusing the thread's offset for the feed fails `FAIL the feed's offset after back is its own`
    (and 667,725 bytes of the frame). **The wide form** (2026-11-06): the page reads its own width from the last layout
    (`ui.bounds("Root")`) and at 720px the thread is a **second 360px column beside the feed** instead of the float over it —
    the page's 720x760 is the feed's pane (`sky-feed-pane`, the bar, the feed and its status line in a page-coloured column)
@@ -668,7 +670,7 @@ Each step ends in a check that fails when it breaks.
    card's press asks the page's `load(uri)` (a post's at-uri in, the API's `ThreadScreen` out) and the screen opens in its
    **loading** state — the header and one muted "Loading the thread…" row (336x44 at 12,120) — before the answer lands.
    The default loader is `apps/csssky/src/api.ts`'s call: `GET
-   https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=…&depth=6&parentHeight=20`, an 8 s
+https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=…&depth=6&parentHeight=20`, an 8 s
    `AbortSignal.timeout` and no retry; a non-2xx, a throw and a rejection are the **error** state ("The thread could not be
    loaded" and a Retry row 336x36, which asks again for the same uri), and a late answer a back, a tab or a second press
    overtook is dropped (an ask counter). The **answer**'s rows are the app's own: `rowsOf` (`apps/csssky-tui/src/model.ts`:
@@ -747,7 +749,7 @@ Each step ends in a check that fails when it breaks.
    picks `units_active`/`units_hover`. States stay overlays: the state that holds picks one declaration, and when two
    hold at once the generator checks that the last one's declaration equals their merge (pack.ts's order) and fails
    loudly when it does not.
-   Emitted: `examples/sensors/page_generated.c` (the base), `page_generated_g.c` (use_g true) and
+   Emitted: `examples/sensors/page_generated.c` (the base), `page_generated_g.c` (use*g true) and
    `page_generated_pressed.c` (the pointer over Units, held), 36 lines each, six frame functions, no style declarations
    of their own.
    Check: `examples/sensors/gen.c` runs the three generated files and `page.c`'s hand-written frame through Clay at
@@ -767,7 +769,7 @@ Each step ends in a check that fails when it breaks.
    keep the state and dispatch a click through the table, and `examples/sensors/scenes/sensors-click.json` — the shared
    scene format, read in C by `desktop/scene.c` — replays the same click to `expected-thorvg-g.png`; the Solid host
    replays the same file to the same frame. `gen.c` walks base → press → release → press → release, `10 commands,
-   identical` against `page.c` at every step. What is not there: **run-time signals** (a state is one frame);
+identical` against `page.c` at every step. What is not there: **run-time signals** (a state is one frame);
    hovering is entered by a release over the element, not tracked by pointer motion; the table's click flips on the
    release (the Solid page's `onClick`) where `page.c`'s `Clay_OnHover` flips on the press edge, so a held generated
    `--press` shows the current signal.
@@ -806,38 +808,37 @@ Each step ends in a check that fails when it breaks.
    at 1/60 before the frame is emitted, with `generator/ui-build.ts` in place of `solid/src/ffi.ts` answering the two reads
    a build can (`ui.bounds`: the box the element's own style states, the viewport's 240; `ui.scrollOffset`: `--scroll`'s
    number) — and the value channel is **baked**: the writes the page made (the spacers' FIXED heights, the thumb's height,
-   offset and 0 opacity, its capture) are applied to the declaration as `ui_open` applies them and printed as `values_<n>`.
-   The viewport is Clay's scroll container (`css.overflow("hidden")`: `.clip = { .horizontal = 1, .vertical = 1 }`), and
-   its offset is still not a declaration: the generator declares a clipped element through `clip_scroll`, which reads
-   `Clay_GetScrollOffset()` where Clay has the element open (the call `ui_open` makes), so the C host writes the offset in
-   the container (`Clay_ScrollContainerData.scrollPosition`, `ui_scroll_to`'s line) and the frame draws it. The window is
-   the offset's, so a file is one offset: `page_generated.c` (rest, rows 0..8) and `page_generated_scrolled.c` (10px, rows
-   0..9). Check: `examples/list/gen.c` lays each out twice (the container, then the offset), and the Solid page's own frame
-   at the same two states (`examples/list/solid-dump.ts`: the page's loop with its wheel and 90 frames of settle, which
-   `capture` cannot do) is identical, 36 and 39 commands; the rest frame is `solid/goldens/list.json` too, and the desktop
-   host's raster of the generated page is `solid/frames/list-top.png` pixel for pixel. Mutations: no `clip_scroll` → the
-   rows stay at row 0 while the reference is 10px down; no `.clip` → `gen.c` finds no container.
-   **Done: the Field and the Widgets** (`examples/field/`, `examples/widgets/`). Their state is not a signal of the page:
-   the field's value, caret and selection are `createTextField`'s, behind the page's `input`, and the Widgets' `:focus`
-   and `checked` are the parts' fields. So `page-to-c.ts`'s states gained the two input actions —
-   `{"key": "Shift+ArrowLeft"}` (`input.down`/`up`) and `{"text": "Ada"}` (`input.textInput`, SDL's TEXT_INPUT; a text
-   with no focused field fails the build) — and a state is a script of the parts' handlers: `{"press": "name"}` focuses
-   the row (its `onPress`), `{"click": "wifi"}` flips the switch (the part's `press`). Field: empty (20 commands; the
-   caret's 1px box, no run), typed `Ada` (21: the run and the caret after it) and two Shift+ArrowLeft (23: `A`, the
-   caret, the tinted `da`); Widgets: rest (59), the switch focused and on (60: the accent track's flex-end and the row's
-   2px ring) and that with Details open (63: the panel's box and its text). Each is `dump-check.ts`-identical to the Solid
-   page's own frame at the stored frames' keys (`examples/*/solid-dump.ts`: 31 rest frames then Tab,Tab[,text:Ada]
-   [,Shift+ArrowLeft ×2]; rest; Tab,Tab,Space; that and four Tabs and Enter), and the desktop host's raster of each is
-   **0 of 162,000** pixels (the Field, 360x450) and **0 of 273,600** (the Widgets, 360x760) against
-   `solid/frames/field-{empty,typed,selection}.png` and `widgets-{initial,switch-on,disclosure}.png`. The seam the field
-   needed: its runs are the page's only nowrap texts and a command carries no wrap, so `examples/field/gen.c` numbers the
-   text commands and marks the value runs' indices; a shifted index fails the compare. Mutations (each reverted, on
-   copies): the caret's box dropped → `commands: 21 -> 20` and `element "name-line-caret" -> null`; the switch's on
-   track as the off one → `colour 240/140/50/255 -> 60/64/78/255` and the thumb `72 -> 52`; the Tab stop's focus
-   declaration dropped → `commands: 60 -> 59`, the ring's border command gone (`command 8 (border) …
+   offset and 0 opacity, its capture) are applied to the declaration as `ui_open` applies them and printed as `values*<n>`.
+The viewport is Clay's scroll container (`css.overflow("hidden")`: `.clip = { .horizontal = 1, .vertical = 1 }`), and
+its offset is still not a declaration: the generator declares a clipped element through `clip_scroll`, which reads
+`Clay_GetScrollOffset()`where Clay has the element open (the call`ui_open` makes), so the C host writes the offset in
+the container (`Clay_ScrollContainerData.scrollPosition`, `ui_scroll_to`'s line) and the frame draws it. The window is
+the offset's, so a file is one offset: `page_generated.c`(rest, rows 0..8) and`page_generated_scrolled.c`(10px, rows
+0..9). Check:`examples/list/gen.c` lays each out twice (the container, then the offset), and the Solid page's own frame
+at the same two states (`examples/list/solid-dump.ts`: the page's loop with its wheel and 90 frames of settle, which
+`capture`cannot do) is identical, 36 and 39 commands; the rest frame is`solid/goldens/list.json`too, and the desktop
+host's raster of the generated page is`solid/frames/list-top.png`pixel for pixel. Mutations: no`clip_scroll`→ the
+rows stay at row 0 while the reference is 10px down; no`.clip`→`gen.c` finds no container.
+**Done: the Field and the Widgets** (`examples/field/`, `examples/widgets/`). Their state is not a signal of the page:
+the field's value, caret and selection are `createTextField`'s, behind the page's `input`, and the Widgets' `:focus`and`checked`are the parts' fields. So`page-to-c.ts`'s states gained the two input actions —
+`{"key": "Shift+ArrowLeft"}` (`input.down`/`up`) and `{"text": "Ada"}` (`input.textInput`, SDL's TEXT_INPUT; a text
+with no focused field fails the build) — and a state is a script of the parts' handlers: `{"press": "name"}`focuses
+the row (its`onPress`), `{"click": "wifi"}`flips the switch (the part's`press`). Field: empty (20 commands; the
+caret's 1px box, no run), typed `Ada`(21: the run and the caret after it) and two Shift+ArrowLeft (23:`A`, the
+caret, the tinted `da`); Widgets: rest (59), the switch focused and on (60: the accent track's flex-end and the row's
+2px ring) and that with Details open (63: the panel's box and its text). Each is `dump-check.ts`-identical to the Solid
+page's own frame at the stored frames' keys (`examples/*/solid-dump.ts`: 31 rest frames then Tab,Tab[,text:Ada]
+[,Shift+ArrowLeft ×2]; rest; Tab,Tab,Space; that and four Tabs and Enter), and the desktop host's raster of each is
+**0 of 162,000** pixels (the Field, 360x450) and **0 of 273,600** (the Widgets, 360x760) against
+`solid/frames/field-{empty,typed,selection}.png`and`widgets-{initial,switch-on,disclosure}.png`. The seam the field
+needed: its runs are the page's only nowrap texts and a command carries no wrap, so `examples/field/gen.c`numbers the
+text commands and marks the value runs' indices; a shifted index fails the compare. Mutations (each reverted, on
+copies): the caret's box dropped →`commands: 21 -> 20`and`element "name-line-caret" -> null`; the switch's on
+track as the off one → `colour 240/140/50/255 -> 60/64/78/255`and the thumb`72 -> 52`; the Tab stop's focus
+declaration dropped → `commands: 60 -> 59`, the ring's border command gone (`command 8 (border) …
    90/170/255/255 -> 150/155/170/255`).
    Still not emitted: the Widgets' toolbar menu (a float whose opening key is the toolbar's and whose pointer capture is
-   the host's; the Dialog's menu proves the float itself); and a page's own scroll *state* is the host's still — the
+   the host's; the Dialog's menu proves the float itself); and a page's own scroll *state\* is the host's still — the
    List's file is one offset, its track (`vscroll.ts`'s notch, fling, band and reveal) is the desktop's. `:focus` comes
    from a prop or a part's state, not a signal, so only a page rendered over it gets it. Typing, a key between Tab stops,
    the slider's drag and the tree's roving focus are the host's too: a frame fixes one state, and the six files are the
@@ -932,46 +933,46 @@ Each step ends in a check that fails when it breaks.
    - The binding gained what the feed needed: the clip offset read after the element is open (it was the parent's),
      `term_bounds`, `term_scroll_offset/to/put`, floats declared with their attach/offset/z/capture (Clay places them
      over the flow), a text's line height forced to the cell's, and a 256-entry value table.
-   One caveat of the slice: `solid/src/frame.ts` imports the desktop's `ffi.ts` and draws through `ui_draw`, so the host
-   walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to the terminal's binding, which is
-   how a page's own `pageEntry`/tick motion lands in libterm and why its group fields (opacity, translate) are dropped by
-   a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh` runs it), 9 Sensors `identical`
-   lines (the stored frames above, the click on the pill, termbox2 under a pty), 8 for the feed (the stored
-   `expected-solid-sky.txt`/`-focus.txt`, the focus order, the tab switch, the key and the wheel on the same -24px end,
-   the scroll to the third post at 80x12, a card's click opening the thread, two mutations), and 5 for the thread and 5
-   for the profile: the stored `expected-solid-thread.txt`/`-profile.txt` (80x26), Enter's loading frame and the landed
-   rows, the thread's -40px and the profile's (its tabs and its header staying put), Escape back, and three mutations
-   (the page's offset dropped before Clay -> the feed stays at row 0; no flush after the tab key -> the bar's active tab
-   stays Discover; a card's or an author row's onClick dropped -> the screen does not open; no Escape -> the screen
-   stays; each prints the check's own FAIL message). The C screens are not reproducible cell for cell: the measured
-   distance is **1251 cells, 0 of 20 rows identical, the worst row 1 (80/80)** for the feed at rest, **1397** after the
-   tab switch and **684** after the scroll; the thread **1957 cells, 0 of 26 rows, the worst row 1 (80/80)**; the
-   profile **1837 cells, 0 of 26, the worst row 2 (80/80)**. The C's `1/2/3` bar labels, its separator rows, its
-   hand-cut card borders and heights, its one-row body clips, its `↩ ⟲ ♥` counts, its banner band and its reason lines
-   have no counterpart; the nearest rows are the body lines (31 and 6 of 80 for the feed, 67 for the thread) and the
-   profile's header (38, the bio's words). Cost: 0.08-0.35 ms a frame for the feed (34 commands, 1600 cells), 0.13-0.15
-   ms for the thread and the profile (66 and 69 commands, 2080 cells), against the C pages' ~0.08 ms; the dylib is 236
-   KB. What the Solid pages cannot do in cells is the cell's limit as the C pages' is: text is one row (the Solid feed
-   and thread wrap at words, the C pages clip), an image is a skipped box, a float sits over the flow but its
-   shadow/backdrop/alpha fade do not, there is no shadow, backdrop, gradient, group opacity or scale, and a hover or a
-   drag exists only where the last press was (termbox2 reports no motion). **All four of the Sky page's screens are the
-   page's own now** (the feed, the thread, the profile, and the notifications: `solid/app/Notify.tsx` over
-   `app/notify.ts`, `terminal/solid.ts --page notify` or `n` on the feed, and the desktop's `bun solid/main.ts notify`).
-   The notifications are still **hand-carried** — the app has no notifications screen, model or fixture — but they are
-   the app's recordings mapped through the page's own `postOf` (the actors, posts and times of `home-discover-1`,
-   `home-science-1` and `thread.json`) under the app's five verbs, and a row's Enter opens its post's thread through the
-   same `load` the feed uses; the C `terminal/notify.c` stays the behaviour's oracle: **1564 cells, 0 of 26 rows, the
-   worst row 5 (80/80)** at rest and **1910, row 2** after `Tab,Tab`, 0.16 ms a frame (70 commands, 2080 cells). The
-   feed's data is the app's calls over the recordings now (`terminal/data.ts`: the first page, the next at the end and an
-   empty page for the end, the page's loading/end/error on its status line, and the thread), so what
-   remains is the notifications' **data** — fetching `listNotifications` (no fixture was recorded, which is why the rows
-   are carried; the feed's paging is in, theirs is not), the real network behind both, the unread counts and their badge,
-   the app's `All`/`Mentions` grouping and its "and 3 others
-   liked your post" — and the cell's limits as above: images (the thread's avatars, the actors' in the notifications),
-   the thread's wrapped bodies against the C's one-row clip, the app's banner picture (the page has none; the C draws a
-   band), the Sensors page's system theme (its tokens have no roles; the Sky page's are read from the
-   terminal's OSC answer through `src/system.ts`'s own solver), the wheel's *set* bounds, and the C `sky.c` as the oracle it
-   already is.
+     One caveat of the slice: `solid/src/frame.ts` imports the desktop's `ffi.ts` and draws through `ui_draw`, so the host
+     walks the tree itself (~40 lines of the same walk) and aliases `solid/src/ffi.ts` to the terminal's binding, which is
+     how a page's own `pageEntry`/tick motion lands in libterm and why its group fields (opacity, translate) are dropped by
+     a cell grid instead of moving it. Check: `terminal/test.sh` (`sh native/test.sh` runs it), 9 Sensors `identical`
+     lines (the stored frames above, the click on the pill, termbox2 under a pty), 8 for the feed (the stored
+     `expected-solid-sky.txt`/`-focus.txt`, the focus order, the tab switch, the key and the wheel on the same -24px end,
+     the scroll to the third post at 80x12, a card's click opening the thread, two mutations), and 5 for the thread and 5
+     for the profile: the stored `expected-solid-thread.txt`/`-profile.txt` (80x26), Enter's loading frame and the landed
+     rows, the thread's -40px and the profile's (its tabs and its header staying put), Escape back, and three mutations
+     (the page's offset dropped before Clay -> the feed stays at row 0; no flush after the tab key -> the bar's active tab
+     stays Discover; a card's or an author row's onClick dropped -> the screen does not open; no Escape -> the screen
+     stays; each prints the check's own FAIL message). The C screens are not reproducible cell for cell: the measured
+     distance is **1251 cells, 0 of 20 rows identical, the worst row 1 (80/80)** for the feed at rest, **1397** after the
+     tab switch and **684** after the scroll; the thread **1957 cells, 0 of 26 rows, the worst row 1 (80/80)**; the
+     profile **1837 cells, 0 of 26, the worst row 2 (80/80)**. The C's `1/2/3` bar labels, its separator rows, its
+     hand-cut card borders and heights, its one-row body clips, its `↩ ⟲ ♥` counts, its banner band and its reason lines
+     have no counterpart; the nearest rows are the body lines (31 and 6 of 80 for the feed, 67 for the thread) and the
+     profile's header (38, the bio's words). Cost: 0.08-0.35 ms a frame for the feed (34 commands, 1600 cells), 0.13-0.15
+     ms for the thread and the profile (66 and 69 commands, 2080 cells), against the C pages' ~0.08 ms; the dylib is 236
+     KB. What the Solid pages cannot do in cells is the cell's limit as the C pages' is: text is one row (the Solid feed
+     and thread wrap at words, the C pages clip), an image is a skipped box, a float sits over the flow but its
+     shadow/backdrop/alpha fade do not, there is no shadow, backdrop, gradient, group opacity or scale, and a hover or a
+     drag exists only where the last press was (termbox2 reports no motion). **All four of the Sky page's screens are the
+     page's own now** (the feed, the thread, the profile, and the notifications: `solid/app/Notify.tsx` over
+     `app/notify.ts`, `terminal/solid.ts --page notify` or `n` on the feed, and the desktop's `bun solid/main.ts notify`).
+     The notifications are still **hand-carried** — the app has no notifications screen, model or fixture — but they are
+     the app's recordings mapped through the page's own `postOf` (the actors, posts and times of `home-discover-1`,
+     `home-science-1` and `thread.json`) under the app's five verbs, and a row's Enter opens its post's thread through the
+     same `load` the feed uses; the C `terminal/notify.c` stays the behaviour's oracle: **1564 cells, 0 of 26 rows, the
+     worst row 5 (80/80)** at rest and **1910, row 2** after `Tab,Tab`, 0.16 ms a frame (70 commands, 2080 cells). The
+     feed's data is the app's calls over the recordings now (`terminal/data.ts`: the first page, the next at the end and an
+     empty page for the end, the page's loading/end/error on its status line, and the thread), so what
+     remains is the notifications' **data** — fetching `listNotifications` (no fixture was recorded, which is why the rows
+     are carried; the feed's paging is in, theirs is not), the real network behind both, the unread counts and their badge,
+     the app's `All`/`Mentions` grouping and its "and 3 others
+     liked your post" — and the cell's limits as above: images (the thread's avatars, the actors' in the notifications),
+     the thread's wrapped bodies against the C's one-row clip, the app's banner picture (the page has none; the C draws a
+     band), the Sensors page's system theme (its tokens have no roles; the Sky page's are read from the
+     terminal's OSC answer through `src/system.ts`'s own solver), the wheel's _set_ bounds, and the C `sky.c` as the oracle it
+     already is.
 7. **Back to the board.** esp32's `ui.c` reads generated `styles.h` and C from step 5; then the browser (WASM) and the
    ESP32-P4. Checked by hand in the live window (2026-10-19): Tab order and ring, Space on release, the switch, Select all and mixed, Details, click focus, `t`.
    **Done: the board draws the generated page** (esp32 branch `step7-generated`, cssints-native `b3b3e01`): the Sensors
@@ -1059,7 +1060,7 @@ Each step ends in a check that fails when it breaks.
    Clay id (a group by its tree node, resolved to a command range in `ui_end` the way `Clay_ThorVG_Under` resolves a
    span — and a clip's close is given the node that opened it, or a group inside the feed's clip swallows the close).
    `readEffects` in `draw.js` reads them as one `Int32Array` and one `Float32Array` over the same rows, `draw(commands,
-   effects)` draws them: a shadow as its box plus Canvas2D's `blur(blur / 2)` (ThorVG's sigma), a gradient along CSS's
+effects)` draws them: a shadow as its box plus Canvas2D's `blur(blur / 2)` (ThorVG's sigma), a gradient along CSS's
    gradient line over the box's solid fill at a fading alpha, a group as an offscreen canvas composited once with the
    alpha and the translate/rotation/scale about the first command's box centre, an image as `drawImage` into its box.
    A backdrop is recorded and hashed; `draw.js` draws it now (the Dialog's menu, below).
@@ -1267,7 +1268,7 @@ Each step ends in a check that fails when it breaks.
    the repo as `--root` (it writes no tracked file): a `.ts` save rebuilds the bundles and not the wasm (the live
    `ui.wasm`'s mtime does not move, `page.js`'s does), and the page's `timeOrigin` changes; a `#error` in `ui.c` fails
    the wasm build, the page's bar
-   names it (`serve-check-typo`), the page is *not* reloaded, and a manual reload still serves the last good `ui.wasm`;
+   names it (`serve-check-typo`), the page is _not_ reloaded, and a manual reload still serves the last good `ui.wasm`;
    the fixed save rebuilds the wasm and reloads, and the frame is the one from before the break (the same hash). Real HMR
    was still absent, and is what the next paragraph took the first step of: it needs the module graph — the engine's own
    `cssints/vite` plugin and Vite's client, as `apps/docs` runs them — in this path, and a `.c` save is a reload whatever
@@ -1291,7 +1292,6 @@ Each step ends in a check that fails when it breaks.
    module and not a patchable string: patching one, and keeping a component's signals (`solid-refresh`), still want
    Vite's module graph and the engine's own `cssints/vite` plugin in this path.
 
-
 ## What Rune's research gives us (2026-10-23)
 
 [Rune](https://github.com/anomalyco/rune) (Maukea) is a Rust UI framework with its own wgpu renderer, Taffy layout,
@@ -1307,7 +1307,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    over every command's visible fields and the renderer's tables beside them — shadows, backdrops, gradients, groups;
    padding, `userData` and `zIndex` are left out, and a neutral group is skipped because it draws what it would have
    drawn without one), and `ui_draws`/`ui_presents` count the calls. `solid/src/frame.ts` has the decision as
-   `createDrawer(frame)`: declare and lay out every iteration, draw only when the hash changed or a *discrete* input
+   `createDrawer(frame)`: declare and lay out every iteration, draw only when the hash changed or a _discrete_ input
    came in (a key, typed text, a press or release, a wheel notch), and the pointer's moves go through the hash alone —
    a hover that starts draws, a move inside a settled hover does not. `solid/main.ts` sleeps only when nothing was
    drawn, and the headless path (`--keys`/`--wheel`/`--settle`/`--move`, and the new `--idle N`/`--idle-keys K`) takes
@@ -1353,7 +1353,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the exact settle, effect's clamp, the decay's projection) and the sky test's four scroll blocks, whose stored-frame
    check is a 0-pixel `diffPng`. Mutation: `Track.retarget` setting `v0 = 0` after sampling makes the mid-flight block
    fail — `FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted
-   64.05`.
+64.05`.
    **Done: the value channel, and the Dialog's menu and panel** (2026-10-24). A style is packed once, so a field could
    not move; now a page's `tick` calls `ui_value(id, len, field, value)` for an element and `ui_open` copies that
    element's 45 floats, applies the frame's overrides of its id and declares from the copy — a renderer-level side table
@@ -1368,10 +1368,10 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    were regenerated, since the panel's own blur is now 32). The clock is the page's and stops with the element, so a
    reopen retargets from the value it froze on (measured: closed at -10.85, reopened at -10.85, a 0.000 jump). Measured
    per frame: the menu's offset `-10.00, -10.85, -12.58, -14.42, -16.04, -17.32, -18.26, -18.92, -19.36, -19.64,
-   -19.82, -19.92, -19.97, -20.00` and at rest exactly -20, the pixel beside the menu 18.0 → 13.9 (the shadow's blur);
+-19.82, -19.92, -19.97, -20.00` and at rest exactly -20, the pixel beside the menu 18.0 → 13.9 (the shadow's blur);
    the panel's y `149.88, 151.07, 153.49, …163.88` and still. Stored: `frames/dialog-menu-mid.png`, three frames in.
    Mutation: `ui_value` dropping `OFFSET_Y` gives offsets of -20 on every frame — `FAIL every frame of the slide moves
-   it towards the offset: false, wanted true` — and the mid frame's menu sits at the settled place, only the shadow band
+it towards the offset: false, wanted true` — and the mid frame's menu sits at the settled place, only the shadow band
    differing.
    **Done: exits, presence and reduced motion** (2026-10-25). `motion.ts` gained `presence(when, exit)`:
    `update(when, dt)` returns `{ mounted, closing }`, the falling edge keeps the node mounted (that frame being the
@@ -1387,7 +1387,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    reaches the page (the Zoom trigger) while the panel fades, and a closing overlay writes `CAPTURE` 43 = 1 so a press
    goes through it. Measured: the panel's y `163.88, 165.24, 167.82, 170.39, 172.54, 174.18 … 177.88` (rest 163.88),
    the title pixel behind the backdrop `103 … 230` (140 of 255 of dim to the page), the menu `-20.00, -19.03, -17.18,
-   -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33`, and a reopen after four frames presenting 174.18
+-15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33`, and a reopen after four frames presenting 174.18
    (the exit's own next frame) and settling on 163.88. Reduced motion opens on the literal's frame and removes both
    nodes in the frame it closes. Stored: a new `frames/dialog-exit-mid.png` (three frames after Escape, the panel 3.94px
    into its exit, its blur at 22.9 of 32, the dim at 100.6 of 140), every other dialog frame byte-identical, and a
@@ -1423,7 +1423,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    50ms after the one above it; measured, eight frames in the offsets are 4, 8 and 12px of their 12 and thirty frames
    later exactly 0; only the first mount — a tab switch draws its feed at rest — and reduced motion starts no track at
    all), **the hover fades** (`effect(0.12)` through four background floats, and because a card's gradient is drawn
-   *instead* of its solid fill, also through a new field **50 `GRADIENT_ALPHA`**: below 255 the renderer draws the solid
+   _instead_ of its solid fill, also through a new field **50 `GRADIENT_ALPHA`**: below 255 the renderer draws the solid
    fill under the gradient, so the resting and hover gradients cross-fade and a settled hover is the hover gradient
    pixel for pixel; the card alternates `card`/`cardHover` and the page keeps the hover one while the fade runs either
    way, since a `:hover` state would drop the gradient the moment the pointer left — the one cost is the 6/255 at the
@@ -1432,7 +1432,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    and Clay draws a border inside the box, so no tab moves; a text's colour is not in its box's floats and its label
    swaps style instead), and **the rubber band** (a notch past an end is a pull of the edge while the content is at the
    end, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` in `motion.ts` and `d` the viewport's 664 — the raw 10px of a
-   notch is 5.45, the raw 40 is 21.29 — where a notch that only *reaches* the end while the content still glides is a
+   notch is 5.45, the raw 40 is 21.29 — where a notch that only _reaches_ the end while the content still glides is a
    scroll like any other, so nothing jumps; 80ms without a notch and it lets go on `spatial(0.35, 0.1)` from what it
    presents, settling exactly on the clamp; a key drops it, a notch back walks it in, a flick's release is a spring and
    not a decay, a feed switch is still a hard clamp, and reduced motion has no band). The band needed one host member,
@@ -1446,7 +1446,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    notches past a feed shorter than its viewport), and the four older `sky*.png` are **byte-identical** with
    `--settle 40` (the entry and a settled hover are their literals; `--warm N` is the other new option, rest before the
    input). Mutations: a hover that starts its track at the target rather than retargeting it fails `FAIL the third frame
-   of the hover is between the resting colour and the hover's: false, wanted true` and three more of that block; a
+of the hover is between the resting colour and the hover's: false, wanted true` and three more of that block; a
    stagger of 0 fails `FAIL each card further behind the one above it: the entry is staggered: false, wanted true`; a
    band that clamps hard fails `FAIL a wheel past the end pushes the content out of it: false, wanted true`,
    `FAIL and exactly its f(40) on the 664px viewport: 78, wanted 99.29`, the hold and the exact return, and nothing
@@ -1459,7 +1459,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    colour, so the hash sees it and a fading frame draws. The Sky page's tab labels are the user: each `<text>` has an id
    and the page fades its colour on `effect(0.15)` from the muted token to the accent and back, retargeted from the
    presented percent, beside the 2px underline that was already fading (measured: the new label `139/152/165 → 126/152/176
-   → 106/153/195 → 89/154/211 → 77/155/222 → 59/156/240`, the old one the same path back, a quick switch back inside the
+→ 106/153/195 → 89/154/211 → 77/155/222 → 59/156/240`, the old one the same path back, a quick switch back inside the
    two ends with its widest frame 15/255; `sky-tab-mid.png` is a switch two frames in). **Rotation**: the group gained a
    fifth number, **55 `ROTATE`** (degrees about the box centre), composed with the scale and the translate into one
    matrix — **scale, then rotate, then translate**, `x' = s·R·(x - c) + c + t`, `s·R` in the 2×2 and `c + t - (s·R)·c`
@@ -1475,14 +1475,14 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    `sky-tab-mid.png` (a new frame) and `dialog-menu-mid.png` regenerated (the tilt); every other frame is byte-identical,
    the settled ones included (the lean lands on 0 and a group at 255, scale 1, offset 0 and rotation 0 makes no scene).
    Mutations: dropping the four `TEXT_COLOR` writes fails `FAIL and the next frame is strictly between the muted token and
-   the accent: false, wanted true` (both labels at their ends throughout) and three more of that block; dropping the
+the accent: false, wanted true` (both labels at their ends throughout) and three more of that block; dropping the
    `ROTATE` write fails `FAIL mid-lean the top edge is not horizontal: the border's two insets differ: false, wanted
-   true` (the insets flat). Files are compared with their backups after the reverts.
+true` (the insets flat). Files are compared with their backups after the reverts.
    Not covered yet: a second gradient on one element; the thread screen
    (Sky's card click records the selection and nothing opens); a finger on real glass — SDL3's finger events go through
    `ui_touch_map` into the same pointer the mouse uses and both pages' touch behaviour is tested, but no touchscreen has
    been used; and the terminal, browser and board targets (no Solid page, no wheel and no value channel). A gradient or a
-   clip inside a *rotated* group is covered: the dither's mark is the gradient's rotated quad and a clip is cut by its own
+   clip inside a _rotated_ group is covered: the dither's mark is the gradient's rotated quad and a clip is cut by its own
    mapped quad (`solid/rotated.test.ts`); the drag, the pages' entry, the List's own track and the window are covered by
    item 2 — its selection, which the wheel leaves behind, is a declared range of its own, and a measured feed is declared
    once in one frame and then virtualized, so neither the column's layout nor the content's end moves
@@ -1509,7 +1509,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    (`motion.test.ts` already holds `1x16.6 == 2x8.3`).
 4. **Done: a scene as a file (record/replay).** `--keys/--click/--wheel` were ad hoc; Rune's scripts are a typed event
    log with timestamps, window size and theme. `solid/scenes/*.json` is that file now: `{ name, page, size, theme,
-   reducedMotion?, steps }`, a step a typed event at its time — `key` (`name`, `down`), `text` (`text`), `pointer` (`x`,
+reducedMotion?, steps }`, a step a typed event at its time — `key` (`name`, `down`), `text` (`text`), `pointer` (`x`,
    `y`, `down`, `touch`?), `wheel` (`dx`, `dy`), `settle` (`frames`) or `frame`. Times are seconds from the start,
    rounded to the nearest 1/60s frame (a frame is what carries input) and never decreasing; the JSON is strings, numbers,
    booleans and arrays only, so a C or a wasm host can read it too. `solid/src/scene.ts` parses and validates (a bad step
@@ -1556,7 +1556,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    text's own two fields (`textAlign`/`textWrap`, per node, since a command carries neither), and the renderer's effect
    tables. `ui_dump_json` is the Solid host's adapter over it and writes the same bytes: the five goldens did not change.
    The desktop host takes `--dump out.json`, so the C page (`examples/sensors`) dumps its frame through the same emitter
-   and `dump-check.ts` compares it with `solid/goldens/sensors.json` — the *same* golden, not one beside the C page:
+   and `dump-check.ts` compares it with `solid/goldens/sensors.json` — the _same_ golden, not one beside the C page:
    measured first, the C page's 10 commands equal the Solid page's field by field, boxes included (same tree, same
    `styles.ts`, both laid out with ThorVG's metrics). The differ resolves a command's `element` by id (a C host keeps no
    id strings), drops the hash and the a11y snapshot (a C host has neither) and compares the rest byte for byte as
@@ -1564,7 +1564,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    emitter) and `browser/check.mjs` compares it with the same golden, exact on every field but the boxes' 4 px tolerance
    for Canvas2D's advances; `browser/dump-commands.c` and its hand-written table are deleted. Mutations: a muted token
    `150 155 170 → 160 165 180` fails `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 ->
-   160/165/180/255` (and commands 4 and 9, the same token), and the Units pill's width 200 → 210 fails the browser as
+160/165/180/255` (and commands 4 and 9, the same token), and the Units pill's width 200 → 210 fails the browser as
    `FAIL commands frame(0): command 7's box is 10.00px off the golden's`. `test.sh`: 86 `identical` lines (85 before).
    Not covered: the board still has no dump; a golden of a page's light theme (a variant is `capture(page, "light")`
    plus one file), of the browser's `use_g` frame (its two stored rasters are its gate) or of the C page's pressed look;
@@ -1580,18 +1580,17 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    already weighs what CoreText weighs**. Mean weight 1.008, and 1.013 over the eleven lines without the fallback one
    (0.995..1.044: every line within 2.7 % but the 11 px one, which is 4.4 % fat — a stem between pixels, spread by a
    hinting-free raster), every line at shift 0,0 and within 1 px of CoreText's extent.
-   No correction: the renderer's dial (`ui_text_weight`, a second copy of the line half the weight either side, default
-   0) sweeps to 1.309 mean weight and SSIM 0.883 at 0.25, so an emboldening here is a regression, and the sweep is how
+   No correction: the renderer's dial (`ui_text_weight`, a second copy of the line half the weight either side, default 0) sweeps to 1.309 mean weight and SSIM 0.883 at 0.25, so an emboldening here is a regression, and the sweep is how
    that is known. The one real difference the SSIM caught is the **missing fallback font**: the ⅓ in "Wm ¼ ⅓ — “quotes”"
    is ThorVG's empty box (weight 0.958, SSIM 0.459) and CoreText falls back for it. `solid/text.test.ts` checks every
    line (no shift, weight 0.95..1.06, SSIM ≥ 0.95, extent within a pixel) against the stored oracle, asserts the
    fallback line's low SSIM on purpose, and proves the metric can see a 1 px move (SSIM 0.708) and more ink, so the
    check cannot pass vacuously.
-   **Done: the other two references** (2026-10-28, same day). *Density 2*, the window's own path
+   **Done: the other two references** (2026-10-28, same day). _Density 2_, the window's own path
    (`ui_density` retargets, ThorVG scales its root scene): the glyphs are rasterised at 2x, not a 1x raster enlarged —
    ink 4.006x the 1x line and mean weight **1.005** (1.001..1.018 a line, SSIM 0.967..0.998), closer to CoreText than
-   1x; `frames/text-sheet-2x.png` and `frames/text-oracle-2x.png` are stored and the suite checks them. *Chrome's
-   Canvas2D*, the web target's rasteriser (`solid/text-canvas.mjs` through Playwright): **0.729** of our ink
+   1x; `frames/text-sheet-2x.png` and `frames/text-oracle-2x.png` are stored and the suite checks them. _Chrome's
+   Canvas2D_, the web target's rasteriser (`solid/text-canvas.mjs` through Playwright): **0.729** of our ink
    (0.699..0.781 a line, SSIM 0.843..0.916, shift 0,0, extent within a pixel) — the browser is a third heavier, and its
    own frame agrees (`browser/expected.png`: 715.5 against the harness's 723.1 on the same 20 px line), so it is Chrome's
    canvas gamma, not our renderer: stored as `frames/text-canvas.png` and pinned in the test as a band, not matched.
@@ -1600,7 +1599,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
 7. **Done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
    360px column with a 300px panel beside it, in the same frame: the page's **a11y tree** as indented rows
    (`role "name" [states] x,y w×h` — `a11y.ts`'s snapshot of the page's own subtree, bounds from `ui.bounds`, and `no
-   bounds` where the page drew no box; 28 rows for that page), the **box under the pointer** (the innermost box with an
+bounds` where the page drew no box; 28 rows for that page), the **box under the pointer** (the innermost box with an
    id and a role, `ui.over` down the tree, its name from the tree at the same role and bounds, and its `ui.bounds`;
    `nothing` over the page's background or over the panel) and the **frame's four phases** plus the mean and max of the
    last 30 frames and `ui.draws()`/`ui.presents()`. The panel reads all three every frame and prints them when they
@@ -1625,7 +1624,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    text with an id) and the modes and enums of the 45 (`capture`, `clip`, the sizing type, an alignment, a float's
    attach). `Tab`/`Shift+Tab` walk the page then the panel's three stops (the tree, the hovered box, the values);
    `Up`/`Down` pick a row, `Left`/`Right` (or `-`/`+`) step it (1 a pixel, 4 a colour channel, 0.1 an alpha, 1 a degree),
-   clamped to the field's range; `r` resets the row and `Shift+R` all of them — by *dropping* the override, so the
+   clamped to the field's range; `r` resets the row and `Shift+R` all of them — by _dropping_ the override, so the
    declare is the style's literal again and the page is byte-identical to before the edit; `*` marks a live value, `>`
    (and the accent) the cursor, and a list longer than 18 rows is a window with `4-21 of 21` in its footer (the panel
    cannot scroll: Clay squeezes a fitted column into its box, so its four sections have to fit the 760px). Measured: 120
@@ -1716,7 +1715,7 @@ writer — drawing the Sensors frame's geometry as six quads (the fill, the pill
 pipeline, one vertex buffer, **one draw call**, into a 360x360 offscreen target, with the pixels copied back.
 
 **It built, and what it needed.** The tree does not compile with Xcode 16's clang: `ngfi::fixed_array {ptr, len}` is
-class-template argument deduction on an *alias* template, which clang rejects ("argument deduction only allowed for
+class-template argument deduction on an _alias_ template, which clang rejects ("argument deduction only allowed for
 class templates"); spelling `fixed_array<char>` is the whole two-line patch, applied by `build.sh`. Two more things the
 abstraction does not hide, both met on the way to the first pixel: an **offscreen-only context cannot begin a frame**
 (`ngf_create_context` with a NULL swapchain makes the frame semaphore with capacity 0, so `ngf_begin_frame` blocks
@@ -1727,16 +1726,16 @@ is **MSL text plus a `NGF_NATIVE_BINDING_MAP` comment**, because the backend par
 of three back-to-back runs, Apple M2 / 8 cores, load average **4.4** (the same table at load 13 ran 5-45% higher, the
 readback most of all).
 
-| the 360x360 Sensors geometry (six quads) | ms a frame |
-| --- | --- |
-| nicegraf/Metal, record + submit (the CPU side) | **0.037** |
-| nicegraf/Metal, GPU throughput with no readback (300 frames, one wait) | **0.045** |
-| nicegraf/Metal, draw + wait (a round trip, still no readback) | 0.126 |
-| the readback alone — `copyFromTexture`, wait, map | **0.087-0.127** |
-| nicegraf/Metal, a frame that comes back to the CPU | **0.155-0.187** |
-| ThorVG's CPU raster, the same six quads | **0.019** |
-| ThorVG's CPU raster, the real frame (10 commands: text, border, radius) | 0.304 |
-| 502 quads: GPU no readback / with readback / ThorVG CPU | 0.045 / 0.154-0.181 / 0.250-0.268 |
+| the 360x360 Sensors geometry (six quads)                                | ms a frame                        |
+| ----------------------------------------------------------------------- | --------------------------------- |
+| nicegraf/Metal, record + submit (the CPU side)                          | **0.037**                         |
+| nicegraf/Metal, GPU throughput with no readback (300 frames, one wait)  | **0.045**                         |
+| nicegraf/Metal, draw + wait (a round trip, still no readback)           | 0.126                             |
+| the readback alone — `copyFromTexture`, wait, map                       | **0.087-0.127**                   |
+| nicegraf/Metal, a frame that comes back to the CPU                      | **0.155-0.187**                   |
+| ThorVG's CPU raster, the same six quads                                 | **0.019**                         |
+| ThorVG's CPU raster, the real frame (10 commands: text, border, radius) | 0.304                             |
+| 502 quads: GPU no readback / with readback / ThorVG CPU                 | 0.045 / 0.154-0.181 / 0.250-0.268 |
 
 **The floor is 0.045 ms, and the readback is 0.09-0.13 of a 0.16-0.19 frame** (the readback is the noisiest line
 here: two runs at the same load read 0.087 and 0.127). On this frame the CPU raster of the same shapes is
@@ -1756,7 +1755,7 @@ the months are, not in the 327 lines above.
 
 **What it does not help, whatever the number:** the board (no GPU at all — 17.8 of its 22.8 ms is ThorVG's raster on the
 S3's CPU), the browser (Canvas2D and WebGPU are not Metal; `@typegpu/gl` is the browser's version of this spike), and
-the terminal (cells). A GPU path would be a *fifth* raster for the one target that already has the fastest one.
+the terminal (cells). A GPU path would be a _fifth_ raster for the one target that already has the fastest one.
 
 Verdict: checked, not adopted; the abstraction is small and honest and the build is a coffee, but a GPU path starts at
 0.045 ms of a frame the CPU draws in 0.019, needs the readback (0.09-0.13) wherever it must be seen, and owes every glyph,
@@ -1777,15 +1776,15 @@ params)` (called from JS, or printed by `header()` for the C targets; the shadow
 
 What each target can actually do — the "no" cells are as important as the rest:
 
-| Effect | Desktop (ThorVG, CPU) | Browser (WebGPU) | Board (S3/P4) | Terminal |
-| --- | --- | --- | --- | --- |
-| Card, panel, menu shadow | `drop_shadow` on a one-shape scene, drawn before the command | one pass | a pre-baked 9-slice sprite | none |
-| Blur of the element itself (a menu, a card leaving in place) | `gaussian_blur` on its scene | one pass | none | none |
-| Backdrop blur ("glass" over our own content) | our own buffer: copy the region under the panel, blur it, draw the panel over it | dual Kawase pass | none | none |
-| Gradients | ThorVG linear and radial fills; a new style member, dithered | Canvas 2D or WGSL | banded, dithered | 256 colours, dithered |
-| Group opacity | **done**: a scene per element subtree, at the alpha of value field 46 (and a scale, field 47) | yes | per-command alpha | none |
-| Tint and tritone (themes, disabled states) | ThorVG effect | a pass | a palette swap | the palette |
-| Grain, vignette | one tiled 64x64 alpha PNG | a pass | the same tile | none |
+| Effect                                                       | Desktop (ThorVG, CPU)                                                                         | Browser (WebGPU)  | Board (S3/P4)              | Terminal              |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | ----------------- | -------------------------- | --------------------- |
+| Card, panel, menu shadow                                     | `drop_shadow` on a one-shape scene, drawn before the command                                  | one pass          | a pre-baked 9-slice sprite | none                  |
+| Blur of the element itself (a menu, a card leaving in place) | `gaussian_blur` on its scene                                                                  | one pass          | none                       | none                  |
+| Backdrop blur ("glass" over our own content)                 | our own buffer: copy the region under the panel, blur it, draw the panel over it              | dual Kawase pass  | none                       | none                  |
+| Gradients                                                    | ThorVG linear and radial fills; a new style member, dithered                                  | Canvas 2D or WGSL | banded, dithered           | 256 colours, dithered |
+| Group opacity                                                | **done**: a scene per element subtree, at the alpha of value field 46 (and a scale, field 47) | yes               | per-command alpha          | none                  |
+| Tint and tritone (themes, disabled states)                   | ThorVG effect                                                                                 | a pass            | a palette swap             | the palette           |
+| Grain, vignette                                              | one tiled 64x64 alpha PNG                                                                     | a pass            | the same tile              | none                  |
 
 The order, each with its own frame and its own number:
 
@@ -1794,7 +1793,7 @@ The order, each with its own frame and its own number:
    sibling `shadow` key (`{ x, y, blur, color: { r, g, b, a } }`, defaults 0, 2, 12, `rgb(0 0 0 / 0.4)`); Clay 1.0's
    declaration has no such field, so `header()` prints nothing for it and the C pages are unchanged, `pack.ts`'s
    `variant()` pulls it out beside the image's path (the packed box stays 45 floats), `frame.ts` calls `ui_shadow(x, y,
-   blur, r, g, b, a)` before `ui_open`, and `ui.c` hangs it on the renderer's table by the element id's 32-bit hash
+blur, r, g, b, a)` before `ui_open`, and `ui.c` hangs it on the renderer's table by the element id's 32-bit hash
    (`Clay_ElementId.id`), cleared at `ui_begin` with the rest of the frame. The renderer draws it for the element's
    first command with that id — the command's box and corner radii, offset and filled with the shadow's colour, a scene
    with `tvg_scene_add_effect_gaussian_blur` (sigma `blur / 2`, CSS's reading of a blur radius, quality 80), then the
@@ -1802,13 +1801,13 @@ The order, each with its own frame and its own number:
    the same pixels, and the blur of one shape is the smaller machine. Measured, sigma 8 in a scene under a root at
    scale 2 blurs twice as many device pixels as at scale 1: the sigma is in the scene's own units, so the root's scale
    carries it (it is not multiplied by the pixel density). Frames: the Dialog page's panel (280x152, `{ y: 12, blur: 24,
-   color: "rgb(0 0 0 / 0.45)" }`) and its menu (150x133, `{ y: 6, blur: 14 }`), the three stored frames regenerated —
+color: "rgb(0 0 0 / 0.45)" }`) and its menu (150x133, `{ y: 6, blur: 14 }`), the three stored frames regenerated —
    23037 (dark), 23053 (light) and 8647 (menu) pixels differ from the frames without a shadow, every one outside the
    element's box except the four corner cut-outs of its radius, 11636 of the panel's below it against 4006 above (the
    12px offset), max channel 4/255 in the dark theme and 41/255 in the light one. Cost: the page at 360x480 is 1.07 ms
    a frame drawn without the panel's shadow and 1.93 ms with it (dark; light 1.00 → 1.76), so **about 0.8 ms a 280x152
    shadow at blur 24, quality 80** (Apple M2, one thread, `--bench 300`, `bun solid/main.ts dialog --keys Tab,Enter
-   --png out.png --bench 300`); quality 50 is 1.47 ms and 30 1.31 ms for 5/255 and 15/255 at the shadow's edge, and the
+--png out.png --bench 300`); quality 50 is 1.47 ms and 30 1.31 ms for 5/255 and 15/255 at the shadow's edge, and the
    sigma is not the lever (sigma = blur, CSS's blur radius unhalved, spreads the same alpha over 44px instead of 25 and
    reads washed out). Checks: `solid/dialog.test.ts` and the four frames. Open: spread and inner shadows (the box is the
    element's own), a cache between frames (each frame blurs the shadow again), the element must have an `id`, and no C
@@ -1843,7 +1842,7 @@ The order, each with its own frame and its own number:
    rectangle command; a picture or a float in the cut is drawn into pass 1 and blurred like everything else under it).
 3. **Done: gradients** (`css.backgroundImage("linear-gradient(...)")`, 2026-10-23) — the third effect, and the first that is
    a fill rather than work on the buffer. The style's literal carries a sibling `backgroundImage: { kind: "linear", angle,
-   stops: [{ offset, color }] }` key; `header()` prints nothing for it (the C pages stay byte-identical), `variant()` pulls
+stops: [{ offset, color }] }` key; `header()` prints nothing for it (the C pages stay byte-identical), `variant()` pulls
    it out beside the shadow and the backdrop, `frame.ts` calls `ui.backgroundImage(kind, angle, count, stops)` before
    `ui_open`, and `ui.c` hangs it on the renderer's table by `Clay_ElementId.id`, cleared at `ui_begin`. The member is one
    string of CSS's own grammar: an optional direction (`<number>deg`, or `to top | to right | to bottom | to left`; 180deg
@@ -1935,7 +1934,7 @@ The first slice, and what each step proves:
    pixel density, with a tap hit-tested on `ui_bounds` toggling `use_g`. Proves the toolchain, the raster and the DPI.
 2. The Sky page with drag scrolling and a Field that raises the keyboard. Proves the interaction model.
 3. The a11y bridge for those two pages. Proves that a store could ship it.
-Roughly 1-2 weeks for the first step, 2 more for the second, a week for the third.
+   Roughly 1-2 weeks for the first step, 2 more for the second, a week for the third.
 
 The decision left open (B): **Solid on the device** — the desktop's architecture, a JS bundle and a JSI module where
 `bun:ffi` is. It keeps one UI codebase and the whole interaction layer, at the cost of a runtime (no JIT on iOS:
