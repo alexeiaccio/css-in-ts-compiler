@@ -271,6 +271,10 @@ export default function cssints({
   const siteOf = new Map<string, Map<string, Loc>>(); // dev, or build.sourcemap: client module id -> class -> its first site (sheetMap)
   let buildMap: ResolvedConfig["build"]["sourcemap"] = false; // build.sourcemap of a build: the CSS assets get a map
   const callsOf = new Map<string, DevSite[]>(); // dev with devtools: client module id -> its sites, in order
+  let lastEdit: string | undefined; // dev: the file of the last hot update, for the sheet's measurement
+  // dev: the last sheet measurement, so a module that subscribes late (the vitals, loaded after the page's sheet) still
+  // gets the first point instead of starting at the first edit
+  let measured: { file: string; bytes: number; classes: number } | undefined;
 
   // The helpers below run at most a few times per module: untraced. The hook-level programs (transform,
   // clientTransform, evaluate, renderChunk, ...) are the traced boundaries.
@@ -629,6 +633,8 @@ export default function cssints({
     // A build says a warning once per file of its site; a dev server, which has no end, again once that file is edited
     // (and the modules that run it are transformed again): not on every update of an unrelated module.
     yield* Effect.sync(() => forgetWarnings([file]));
+    // the sheet's next load reports this file beside its size (the vitals' history of edits, @cssints/devtools/vitals)
+    yield* Effect.sync(() => (lastEdit = file));
     const graph = env.moduleGraph;
     const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])].flatMap(
       (id) => graph.getModuleById(id) ?? [],
@@ -701,6 +707,9 @@ export default function cssints({
       evaluator.server = evaluator.needed ? undefined : s;
       // The browser drops an HMR update of a module that has not run yet: on a cold page load the sheet can be
       // fetched, and updated, while other modules are still in transform. The sheet reports what it got.
+      s.environments.client.hot.on("cssints:edits:get", (_, client) => {
+        if (measured) client.send("cssints:edits", measured);
+      });
       s.environments.client.hot.on("cssints:sheet", (v: string) => {
         if (
           !s.environments.client.moduleGraph.getModuleById(SHEET)?.transformResult?.code.includes(v)
@@ -738,6 +747,13 @@ export default function cssints({
       if (id === SHEET) {
         if (build) return LAYERS;
         const code = runSync(hook("vite.load", id, sheet()));
+        // Dev: the sheet's own measurement, over the HMR channel — the size, the class count and the file that changed
+        // (`@cssints/devtools/vitals` keeps the last thirty and draws the growth). A cold load sends the first point.
+        if (this.environment.name === "client" && server) {
+          const classes = new Set([...usedBy.values()].flatMap((v) => v.split("\n"))).size;
+          measured = { file: lastEdit ? relative(root, lastEdit) : "", bytes: code.length, classes };
+          server.environments.client.hot.send("cssints:edits", measured);
+        }
         return { code, map: sheetMap(code, siteOf) };
       }
       if (id.startsWith(`\0${RUNTIME_ID}`))

@@ -1,6 +1,8 @@
 // Dev with `devtools: true`: the page gets the overlay's entry, and the table comes over the HMR channel (cssints:devtools:get
 // -> cssints:devtools), from the plugin's records: the sheet as load() renders it, each class's rule, plugin and sites.
 // A transform of a module with sites sends cssints:devtools:stale. Without the option the plugin is not there.
+// Every load of the sheet also sends cssints:edits (its size, its class count and the file that changed), and answers a
+// late subscriber's cssints:edits:get with the last measurement — the client is @cssints/devtools/vitals.
 import assert from "node:assert/strict";
 import { on, once } from "node:events";
 
@@ -68,6 +70,20 @@ assert.deepEqual(
   t.sites.map((s) => s.line),
   [7, 8, 9],
 );
+
+// the sheet's measurement, for the vitals: each load of the sheet sends its size, its class count and the edited file
+const measured = await server.environments.client.transformRequest("\0virtual:cssints.css");
+assert.ok(measured.code.length > 0);
+const edit = await next("cssints:edits");
+// the event measures the sheet as load() renders it; the module the browser gets is that plus Vite's own lines
+assert.ok(edit.bytes > 0 && edit.bytes <= measured.code.length, `bytes ${edit.bytes} of ${measured.code.length}`);
+assert.ok(edit.classes > 0, `classes ${edit.classes}`);
+assert.equal(typeof edit.file, "string", "a file, or '' on the first load");
+
+// a module that subscribed late asks for the last measurement (the vitals load after the page's sheet)
+ws.send(JSON.stringify({ type: "custom", event: "cssints:edits:get" }));
+const again = await next("cssints:edits");
+assert.deepEqual(again, edit, "the reply is the last measurement");
 
 ws.close();
 await server.close();

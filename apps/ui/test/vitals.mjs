@@ -57,6 +57,8 @@ try {
   assert.ok(printed.includes("cssints vitals"), printed);
   assert.match(printed, /vitals {3}FCP/, printed);
   assert.match(printed, /coverage \d+ \/ \d+ classes unused/, printed);
+  assert.match(printed, /sheet {4}\d+(\.\d+)? kB · the first measurement/, printed);
+  assert.ok(report.sheet.edits.length >= 1, "the dev server's first measurement");
   assert.match(printed, /^layer {4}/m, printed);
   assert.ok(report.css.sheets >= 1, `sheets ${report.css.sheets}`);
   assert.ok(report.css.bytes > 1000, `bytes ${report.css.bytes}`);

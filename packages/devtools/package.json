@@ -30,6 +30,10 @@
     },
     "./inject": "./src/core/inject.ts",
     "./vitals": {
+      "development": {
+        "types": "./src/vitals/index.ts",
+        "default": "./src/vitals/index.ts"
+      },
       "types": "./src/vitals/index.ts",
       "default": "./dist/vitals.js"
     }
