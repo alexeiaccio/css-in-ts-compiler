@@ -8,12 +8,17 @@
 // the terminal uses; the canvas stays dark (the shell's console sink never paints it) and the page's display is the
 // console: open it, then Tab (the pill's ring), Space or Enter (press it) or `p` (print the frame again — at rest the
 // sink is quiet).
+import { observe, vitals } from "@cssints/devtools/vitals";
+
 import { Sensors } from "../../solid/app/Sensors.tsx";
 import * as styles from "../../examples/sensors/styles.ts";
 import { FIELDS, variant } from "../../solid/src/pack.ts";
 import { El } from "../../solid/src/renderer.ts";
 import { ui } from "./ffi-browser.ts";
 import { mountPage } from "./shell.ts";
+
+// The report starts with the page: frames and long animation frames are only counted from when it observes.
+observe();
 
 const CELL_W = 8;
 const CELL_H = 16;
@@ -108,5 +113,12 @@ window.addEventListener("keydown", (event) => {
     // the sink is quiet at rest; `p` prints the whole frame again, for a reader with the console open
     event.preventDefault();
     console.log(...JSON.parse(window.__page.cells()));
+  } else if (event.key === "v") {
+    // the page's vitals: this page draws to a canvas, so there is nothing in the DOM to inspect
+    event.preventDefault();
+    vitals();
   }
 });
+
+// `?vitals`: the same report once, after the first frames, so a reader who opens the console late still gets it
+if (new URLSearchParams(location.search).has("vitals")) setTimeout(() => vitals(), 500);

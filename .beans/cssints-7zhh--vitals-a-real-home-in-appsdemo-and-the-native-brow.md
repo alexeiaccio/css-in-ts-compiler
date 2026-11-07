@@ -1,11 +1,11 @@
 ---
 # cssints-7zhh
 title: 'vitals: a real home in apps/demo and the native browser page'
-status: in-progress
+status: completed
 type: task
 priority: normal
 created_at: 2026-11-07T11:08:55Z
-updated_at: 2026-11-07T11:17:42Z
+updated_at: 2026-11-07T11:26:55Z
 parent: cssints-7rmb
 ---
 
@@ -28,3 +28,18 @@ First real output (warm load): 396 nodes, 2 sheets, 690 classes, CSS 76.8 kB / 7
 story tab, CLS 0.000, 550/690 classes unused (the sheet holds all 34 items, the page draws one), 44 orphaned and 8
 undeclared custom properties.
 Still to do: the native browser page (`v` / `?vitals`) and its check.
+
+
+## Outcome (2026-11-07)
+
+Both homes are real, and both are checked:
+- **apps/ui** (the registry site, the "storybook"): `src/main.tsx` imports `@cssints/devtools/vitals` only under
+  `import.meta.env.DEV` (dynamic, so a build has none of it — checked in dist) and calls `observe()`. `test/vitals.mjs`
+  (`bun run test:vitals`) drives the dev server in Chrome, opens `#button`, clicks the story, and asserts the report; the
+  group is printed. First numbers: 690 classes, CSS 76.8 kB / 791 rules / 2 211 decls, INP 56 ms with 4+5+47 (presentation
+  dominates), CLS 0.000 warm, 550/690 classes unused (the sheet ships all 34 items, one story is drawn), 44 orphaned and 8
+  undeclared custom properties.
+- **native/browser** (the canvas page): `console.ts` imports the report, observes at load, prints it on `v` and once via
+  `?vitals`; `console.html` says so. `browser/console-check.mjs` has (e): the group, `window.vitals`, and the honest sheet
+  report (the page's own chrome, nothing of the app's). 13/13 comparisons green; the bundle is 197 KB with the report.
+Docs: native/README.md (the page, the numbers), native/docs/map.md.

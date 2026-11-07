@@ -9,7 +9,9 @@
 //       pill's ring) and after a press on the pill (the terminal's --click at the same cell);
 //   (b) the console's rule: a page at rest writes nothing (no console line for twenty frames), a changed frame writes one;
 //   (c) the canvas stays dark: the display is the console, not the grid drawn on a canvas;
-//   (d) the numbers: the bundle's bytes, a frame's ms and the sink's bytes a frame.
+//   (d) the numbers: the bundle's bytes, a frame's ms and the sink's bytes a frame;
+//   (e) the vitals: `v` prints @cssints/devtools/vitals' group (and `?vitals` once after the first frames) — a canvas page
+//       has no elements and no stylesheet of the app's, so the console is its only devtools.
 import { chromium } from "playwright";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
@@ -32,7 +34,9 @@ const work = mkdtempSync(join(tmpdir(), "cssints-console-page-"));
 
 let failures = 0;
 let comparisons = 0;
-const ok = (name, extra = "") => (comparisons++, console.log(`ok   ${name}${extra ? " — " + extra : ""}`));
+const ok = (name, extra = "") => (
+  comparisons++, console.log(`ok   ${name}${extra ? " — " + extra : ""}`)
+);
 const bad = (name, why) => (comparisons++, failures++, console.log(`FAIL ${name}: ${why}`));
 
 /** The terminal's frame for one input, as the sink's JSON and the text dump of it. */
@@ -41,16 +45,33 @@ function terminal(name, args) {
   const dump = join(work, `${name}.txt`);
   const run = spawnSync(
     "bun",
-    ["terminal/solid.ts", "--page", "sensors", "--cols", String(COLS), "--rows", String(ROWS), "--console", json, "--dump", dump, ...args],
+    [
+      "terminal/solid.ts",
+      "--page",
+      "sensors",
+      "--cols",
+      String(COLS),
+      "--rows",
+      String(ROWS),
+      "--console",
+      json,
+      "--dump",
+      dump,
+      ...args,
+    ],
     { cwd: ROOT, encoding: "utf8" },
   );
   if (run.status !== 0) throw new Error(`terminal/solid.ts ${args.join(" ")}: ${run.stderr}`);
-  return { cells: consoleCells(readFileSync(json, "utf8")), rows: readFileSync(dump, "utf8").split("\n") };
+  return {
+    cells: consoleCells(readFileSync(json, "utf8")),
+    rows: readFileSync(dump, "utf8").split("\n"),
+  };
 }
 
 /** Two frames of cells: the same rows, each cell's glyph and both colours. */
 function sameFrame(a, b) {
-  if (a.rows.length !== b.rows.length) return `the terminal's ${a.rows.length} rows, the page's ${b.rows.length}`;
+  if (a.rows.length !== b.rows.length)
+    return `the terminal's ${a.rows.length} rows, the page's ${b.rows.length}`;
   for (let y = 0; y < a.rows.length; y++) {
     const at = rowDiff(a.rows[y], b.rows[y]);
     if (at >= 0)
@@ -72,7 +93,10 @@ if (row < 0 || col < 0) {
 const click = [col + 2, row];
 const tab = terminal("tab", ["--keys", "Tab"]);
 const pressed = terminal("pressed", ["--click", click.join(",")]);
-ok("the terminal's three frames", `at rest, after Tab and after a press at cell ${click.join(",")} (the pill)`);
+ok(
+  "the terminal's three frames",
+  `at rest, after Tab and after a press at cell ${click.join(",")} (the pill)`,
+);
 
 const MIME = {
   ".html": "text/html",
@@ -128,7 +152,8 @@ try {
   ]) {
     const got = await cells();
     const diff = sameFrame(want, got);
-    if (!diff) ok(`the page ${name}`, `${got.rows.length} rows of ${COLS} cells, the terminal's frame`);
+    if (!diff)
+      ok(`the page ${name}`, `${got.rows.length} rows of ${COLS} cells, the terminal's frame`);
     else bad(`the page ${name}`, diff);
     if (name === "at rest") {
       await page.keyboard.press("Tab");
@@ -137,11 +162,15 @@ try {
   }
   // ... and the press: the terminal at the same cell, the page at that cell's centre in CSS pixels
   const box = await page.locator("#frame").boundingBox();
-  await page.mouse.click(box.x + click[0] * CELL_W + CELL_W / 2, box.y + click[1] * CELL_H + CELL_H / 2);
+  await page.mouse.click(
+    box.x + click[0] * CELL_W + CELL_W / 2,
+    box.y + click[1] * CELL_H + CELL_H / 2,
+  );
   await page.evaluate(() => window.__page.warm(1));
   const afterPress = await cells();
   const pressDiff = sameFrame(pressed.cells, afterPress);
-  if (!pressDiff) ok("the page after a press on the pill", `the terminal's frame at --click ${click.join(",")}`);
+  if (!pressDiff)
+    ok("the page after a press on the pill", `the terminal's frame at --click ${click.join(",")}`);
   else bad("the page after a press on the pill", pressDiff);
 
   // ... and the page's Space, which is the terminal's host pressing the pill: the pointer leaves first (the terminal's
@@ -152,17 +181,26 @@ try {
   await page.evaluate(() => window.__page.warm(1));
   const afterSpace = await cells();
   const spaceDiff = sameFrame(base.cells, afterSpace);
-  if (!spaceDiff) ok("the page after Space", "the pill pressed again: the terminal's base frame (the switch back)");
+  if (!spaceDiff)
+    ok(
+      "the page after Space",
+      "the pill pressed again: the terminal's base frame (the switch back)",
+    );
   else bad("the page after Space", spaceDiff);
 
   // (b) the console's rule: at rest no line at all, and a press wrote one
   const before = messages.length;
   await page.evaluate(() => window.__page.warm(20));
   const idle = messages.length - before;
-  if (idle === 0) ok("the idle rule", `twenty frames at rest wrote no console line (${before} so far, ${messages.length})`);
+  if (idle === 0)
+    ok(
+      "the idle rule",
+      `twenty frames at rest wrote no console line (${before} so far, ${messages.length})`,
+    );
   else bad("the idle rule", `${idle} line(s) at rest`);
   const wrote = messages.filter((message) => message.args().length > 1).length;
-  if (wrote >= 1) ok("the changed frames", `${wrote} line(s) with %c styles: the base frame and the press`);
+  if (wrote >= 1)
+    ok("the changed frames", `${wrote} line(s) with %c styles: the base frame and the press`);
   else bad("the changed frames", "no styled console line");
 
   // (c) the canvas is the shell's, and dark
@@ -171,8 +209,45 @@ try {
     const data = canvas.getContext("2d").getImageData(0, 0, 1, 1).data;
     return [data[3], canvas.width, canvas.height];
   });
-  if (alpha[0] === 0) ok("the canvas", `dark (alpha ${alpha[0]}), the display is the console; ${alpha[1]}x${alpha[2]} px`);
+  if (alpha[0] === 0)
+    ok(
+      "the canvas",
+      `dark (alpha ${alpha[0]}), the display is the console; ${alpha[1]}x${alpha[2]} px`,
+    );
   else bad("the canvas", `painted: alpha ${alpha[0]}`);
+
+  // (e) the vitals: a canvas page has no elements to inspect and no stylesheets, so the console is its devtools
+  const beforeVitals = messages.length;
+  await page.keyboard.press("v");
+  await new Promise((done) => setTimeout(done, 250));
+  const group = messages
+    .slice(beforeVitals)
+    .map((message) => message.text())
+    .join("\n");
+  const hasAll = (text, needles) => needles.every((needle) => text.includes(needle));
+  // the sheet the report finds is the page's own chrome (console.html's <style>), never the app's: the page draws to a canvas
+  if (hasAll(group, ["cssints vitals", "vitals   FCP", "CSS      ", "specificity 0,", "coverage "]))
+    ok(
+      "the page's vitals on `v`",
+      "one group: vitals and the sheet's numbers, on a page with no DOM of its own",
+    );
+  else bad("the page's vitals on `v`", group.slice(0, 400) || "no console line");
+  if ((await page.evaluate(() => typeof window.vitals)) === "function")
+    ok("the console's way in", "window.vitals, as on any page");
+  else bad("the console's way in", "window.vitals is not a function");
+
+  // ... and `?vitals` prints the same group once, without a key
+  const auto = await browser.newPage();
+  const autoMessages = [];
+  auto.on("console", (message) => autoMessages.push(message));
+  await auto.goto(`http://127.0.0.1:${port}/browser/solid/console.html?vitals`);
+  await auto.waitForFunction(() => window.__page, null, { timeout: 20000 });
+  await new Promise((done) => setTimeout(done, 1200));
+  const autoText = autoMessages.map((message) => message.text()).join("\n");
+  if (autoText.includes("cssints vitals"))
+    ok("`?vitals`", "the group printed once after the first frames");
+  else bad("`?vitals`", autoText.slice(0, 300) || "no console line");
+  await auto.close();
 
   // (d) the numbers
   const ms = await page.evaluate(() => window.__page.bench(30));
@@ -182,7 +257,8 @@ try {
     `${statSync(BUNDLE).size} B the console.js bundle; ${ms.toFixed(2)} ms a frame; ${frame.length} B the sink's JSON a ` +
       `full frame (one console call, ${messages.length} line(s) in the run)`,
   );
-  if (messages.some((message) => message.type() === "error")) bad("page errors", "an error in the console");
+  if (messages.some((message) => message.type() === "error"))
+    bad("page errors", "an error in the console");
   else ok("no page errors", `${messages.length} console line(s)`);
 } finally {
   await browser.close();
