@@ -35,6 +35,23 @@ cd ../../apg-specs/.publish && npm publish --access public --tag latest     # 0.
 
 Then add their trusted publishers (the table below) and merge the version pull request: CI publishes 0.5.1 (headless) and 0.5.2 (apg-specs, and the rest of the group) with the others.
 
+## `@cssints/gamut` and `@cssints/data` (2026-11-07, cssints-0p4d)
+
+The 31st and 32nd of the group, both new to npm: publish their first versions by hand at the version in their manifests
+(0.33.0, the one the group is on npm with), then add their trusted publishers — **publish first, then trust** (`npm trust`
+validates the name against the registry and answers 404 for a package that does not exist yet).
+
+```bash
+bun run release:check                                  # stages packages/gamut/.publish and packages/data/.publish
+cd packages/gamut/.publish && npm publish --access public --tag latest    # 0.33.0, from a terminal (npm login first)
+cd ../../data/.publish && npm publish --access public --tag latest        # 0.33.0
+sh scripts/trust.sh --recreate @cssints/gamut @cssints/data               # a new package has no connection to revoke
+```
+
+`release:check` stays red for a few minutes after the first publish: it asks the registry for the packument, which lags the
+version document. Wait, then re-run; do not bump a version. The next "Version Packages" pull request carries both packages to
+0.34.0 through the new configurations.
+
 ## The newest package: `@cssints/machine` (2026-11-01, cssints-im52)
 
 `@cssints/machine` is the 29th of the group, and trusted publishing cannot create it either. Publish its first version by
