@@ -44,10 +44,11 @@ writeFileSync(
       noEmit: true,
       types: [],
       lib: ["ES2023", "DOM"],
-      // the icons and reset packages (and the icons' collection): not dependencies of cssints, so found by path
+      // the icons, reset and devtools packages (and the icons' collection): not dependencies of cssints, so found by path
       paths: {
         "@cssints/icons": ["../../../icons/src/index.ts"],
         "@cssints/reset": ["../../../reset/src/index.ts"],
+        "@cssints/devtools/vitals": ["../../../devtools/src/vitals/index.ts"],
         "@iconify-json/*": ["../../../icons/node_modules/@iconify-json/*"],
       },
     },
