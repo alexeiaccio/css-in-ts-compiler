@@ -77,7 +77,11 @@ try {
       }),
   );
   // frames: the report samples a rAF loop, so let a few pass (and the long task's observer deliver) before reading it
-  await page.waitForTimeout(100);
+  await page.evaluate(
+    () =>
+      // oxlint-disable-next-line promise/avoid-new -- a task boundary, in the page: the observers deliver on one
+      new Promise((resolve) => setTimeout(resolve, 100)),
+  );
   await page.evaluate(
     () =>
       // oxlint-disable-next-line promise/avoid-new -- a frame or two, in the page

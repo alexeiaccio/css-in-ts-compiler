@@ -4397,6 +4397,49 @@ TOKENS
 - **Its own styles do not touch yours.** The overlay is a custom element with a shadow root and its own cssints sheet, built with the package: the page's rules do not reach it, and its classes are not in your sheet or in the table.
 - **Limits.** The proximity of `@scope` is not ranked (no two looks set one property on one element), and a logical and a physical property (`margin-inline-start`, `margin-left`) are two properties, as `cn()` treats them; an element inside another shadow root is picked as its host; a page that Vite does not serve as HTML (server rendering) gets no entry.
 
+#### Vitals in the console (`@cssints/devtools/vitals`, 2026-11-07, cssints-0p4d)
+
+The panel inspects an element; this entry inspects the page, and prints to the console rather than drawing a DOM panel —
+the only surface a page that draws to a canvas has. No dev server, no overlay chunk and no cssints dependency of its own: a
+plain ES module (about 9 kB) any page imports in dev.
+
+```ts
+// the app's entry, dev only
+import { observe, vitals } from "@cssints/devtools/vitals";
+observe(); // long tasks and long animation frames are not buffered: observe before the work
+
+// later, from the console:
+vitals(); // or window.vitals(): prints the report and returns it
+```
+
+```text skip
+cssints vitals
+265 ms · 214 nodes · 1 sheet · 380 classes
+vitals   FCP 412 ms · LCP 1.20 s · CLS 0.002 · INP 96 ms · TTFB 38 ms
+frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
+main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
+CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
+layer    _.k       ████████████████████ 22.4 kB
+tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 used / 3 orphaned · keyframes 2 / 1 unused
+coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
+```
+
+- **Web vitals** are the browser's entries: FCP and TTFB from the timeline, LCP, CLS and INP buffered. Long animation
+  frames report the style and layout time beside the script's (`render` sums it).
+- **The sheet's numbers** come from the CSSOM, not a parser: bytes, rules, declarations, layer bytes, the worst
+  specificity, colours, fonts, `!important`, custom properties declared / read / orphaned / undeclared, keyframes declared
+  / used / unused, and coverage — the classes of the sheet that no element carries now. On a cssints sheet this should be
+  clean by construction, so a drift names what bypassed the engine; it is Project Wallace's x-ray pointed at a generated
+  sheet.
+- **Frames** are sampled by a rAF loop: p50 / p95 / max, the dropped frames, a sparkline and a heatmap of the timeline
+  (green under 16.7 ms, amber to 33.4, orange to 50, red above).
+- **Limits.** Long tasks and long animation frames are not buffered entries, so a report from a cold console sees only the
+  work after `observe()`; the buffered vitals are read whenever the module loads. A cross-origin sheet throws on
+  `cssRules` and is counted as `blocked`. Coverage asks the DOM now: a class used only in a state is used if an element
+  carries it.
+
+`report()` returns the numbers, `print(report)` prints them, `stop()` ends the frame loop.
+
 ### Debugging: traces of the engine (`CSSINTS_TRACE`, cssints-r2qq)
 
 Opt-in. Set `CSSINTS_TRACE=otlp` (or `otlp:http://host:port`; the default is `http://localhost:4318`) before `vite dev` or `vite build`, and the plugin sends one trace per Vite hook to an OpenTelemetry backend over OTLP/HTTP (JSON). Unset, nothing is loaded and nothing runs: the hooks use Effect's own `runSync` and `runPromiseExit`, no tracer, no exporter, no HTTP client. The variable is read once, when the plugin loads.

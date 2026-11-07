@@ -208,7 +208,7 @@ export const print = (value: VitalsReport): void => {
   const frames = heatmap(value.frames.history);
   console.group("cssints vitals");
   console.log(
-    `%c${ms(value.elapsed)}%c · ${count(value.nodes)} nodes · ${css.sheets} sheets · ${count(css.classes.length)} classes`,
+    `%c${ms(value.elapsed)}%c · ${count(value.nodes)} nodes · ${css.sheets} sheet${css.sheets === 1 ? "" : "s"} · ${count(css.classes.length)} classes`,
     "font-weight:bold",
     "color:inherit",
   );

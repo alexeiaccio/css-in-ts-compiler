@@ -5101,7 +5101,7 @@ is the finding worth keeping.
 - **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
   whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
   (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
-  round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
   host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
   limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
   and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
@@ -5290,3 +5290,36 @@ began) and both checks are green: `bun run fmt:check` — "All matched files use
 — "No violations found". The engine files the pass touched (`rules.ts`, `selector.ts`, `sheet.ts`, `theme.ts`,
 `devtools/src/core/css.ts`) are whitespace-only changes and keep their tests: `css-grammar`, `cssints` and `devtools`
 suites pass, `typecheck` 47/47, `bun run lint` green.
+
+
+
+## Devtools in the console: the page's vitals and the sheet's numbers (2026-11-07)
+
+The capture here is a line, not a feature: **the inspector and the vitals live on different surfaces because they answer
+different questions**. The devtools overlay asks "what is this element's style, and who won each property?" — a DOM
+question, asked where a DOM exists. The vitals ask "what is this page paying?" — a question whose answer is a canvas page's
+too, and the native browser target has no elements to pick. So the report prints to the console, with the characters a
+console already knows.
+
+- **`@cssints/devtools/vitals`**, a plain ES module (about 9 kB, no Effect, no Solid, no dev server): `observe()` at the
+  entry, `vitals()` from the console (or `window.vitals`). Web vitals are the browser's entries; **long animation frames**
+  sit beside them because their `render` is the style and layout time, the part CSS actually pays for. Frames are sampled
+  by a rAF loop: p50/p95/max, a sparkline, and a heatmap whose colours are the 16.7 / 33.4 / 50 ms budgets.
+- **The CSS report reads the CSSOM, not a parser.** The browser has parsed the sheet; walking `document.styleSheets` gives
+  bytes, rules, declarations, layers, specificity, colours, fonts, `!important`, custom properties (declared, used,
+  orphaned, undeclared), keyframes in use, and coverage. **No `@projectwallace/css-analyzer`**: its x-ray is right about
+  what to measure, but on a _generated_ sheet the measurements are the interesting part and the parser is redundant — the
+  numbers land in 150 lines we can explain, and a cssints sheet should be clean by construction, so a drift names what
+  bypassed the engine (a raw rule, a `global()`).
+- **The one thing the tool cannot do from a cold console**: long tasks and long animation frames are not buffered
+  (`buffered: true` yields nothing for them — measured, not assumed), so `observe()` has to run before the work. The paint
+  entries are read from the timeline instead, and LCP/CLS/INP are buffered.
+- **Two refusals worth keeping.** No second analyzer dependency (above), and no SVG/DOM charts: the console prints a
+  sparkline, a row of `%c` cells and `█` bars, which is what `native/terminal`'s figures do in cells. A chart library would
+  be a runtime in the one tool that should cost nothing.
+
+**Verified:** the node test (charts, and the sheet reader on happy-dom: classes, coverage, custom properties, keyframes,
+specificity), the Chromium test (layers, `@property`, keyframes in use, a long task and its animation frame, the paint
+entries, the printed group), `bun run typecheck`, `vp lint`, and the package's `bun run test`. The release PR picks this up
+as a `@cssints/devtools` minor.
+

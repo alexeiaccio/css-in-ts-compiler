@@ -129,12 +129,55 @@ none of it. The idea, and the calls to the V2 client, follow
 [brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode) (MIT, Brendan Allan), which marks the
 markup with Babel and so needs no table; here the table is the context.
 
+## Vitals in the console
+
+The panel inspects one element; `@cssints/devtools/vitals` inspects the page and prints to the console, because a page
+that draws to a canvas has no elements to pick (the native browser target is one). No dev server and no overlay chunk:
+a plain ES module, about 9 kB, that any page imports in dev.
+
+```ts
+// the app's entry, dev only
+import { observe, vitals } from "@cssints/devtools/vitals";
+observe(); // long tasks and long animation frames are not buffered: observe before the work
+
+vitals(); // later, from the console — or window.vitals(), set by the module
+```
+
+```text
+cssints vitals
+265 ms · 214 nodes · 1 sheet · 380 classes
+vitals   FCP 412 ms · LCP 1.20 s · CLS 0.002 · INP 96 ms · TTFB 38 ms
+frames   p50 16.7 ms · p95 33.4 ms · max 51.2 ms · 3 dropped  ▁▂▃▅▇▆▃▂▁▂▃▅
+main     7 long tasks · 412 ms · max 120 ms · style+layout 41 ms · 0 errors · heap 42.1 MB
+CSS      41.2 kB · 380 rules · 1 902 decls · 0 blocked · specificity 0,3,2 (._1t8gqy5:hover)
+layer    _.k       ████████████████████ 22.4 kB
+tokens   14 colours · 2 fonts · 1 !important · custom props 12 declared / 9 used / 3 orphaned · keyframes 2 / 1 unused
+coverage 41 / 380 classes unused (11%)  cs-Landing-hero …
+```
+
+- **Web vitals** are the browser's own entries: FCP and TTFB from the timeline, LCP, CLS and INP buffered. Long animation
+  frames sit beside them, and their `render` is the style and layout time — the part CSS pays for.
+- **The sheet's numbers** are read off the CSSOM, not parsed: bytes, rules, declarations, layer bytes (bars), the worst
+  specificity, colours, fonts, `!important`, custom properties declared / read / orphaned / undeclared, keyframes declared
+  / used / unused, and coverage — every class of a selector that no element carries now. It is the Project Wallace x-ray of
+  a cssints sheet, which should be clean by construction: a drift names what bypassed the engine.
+- **Frames** are sampled by a rAF loop while observing: p50 / p95 / max and the dropped frames, a sparkline, and a
+  heatmap of the timeline (green under 16.7 ms, amber to 33.4, orange to 50, red above). The characters are the
+  terminal's own (`native/terminal`); a console cell is 8×16 px there, a `%c` background here.
+- **Limits.** Long tasks and long animation frames are not buffered (`buffered: true` yields nothing), so a cold console
+  report sees only the work after `observe()`; the buffered vitals load whenever the module does. A cross-origin sheet
+  throws on `cssRules` and is counted as blocked, not read. Coverage asks the DOM _now_.
+
+`report()` returns the numbers without printing, `print(report)` prints, `stop()` ends the frame loop.
+
 ## Layout
 
 - `src/core`: Effect code, no overlay in it (an extension could host it): `table.ts` (the decoded table and its
   model), `css.ts` (sheet parser, specificity, states), `cascade.ts` (`inspect`), `page.ts` (the `Page` service),
   `dom.ts` (its browser layer), `session.ts` (the protocol and the state), `prompt.ts` (the prompt for OpenCode).
 - `src/ui`: the Solid overlay (`overlay.tsx`, `mount`) and its cssints styles (`styles.ts`).
+- `src/vitals`: the console report (`index.ts`: the observers and the print), `css.ts` (the CSSOM walk) and `charts.ts`
+  (sparkline, heatmap, bars). Plain browser code: no Effect, no Solid, importable on any page.
 
 ## Browsers
 
@@ -164,6 +207,7 @@ bun run test            # test/core.mjs (the cascade on happy-dom: hover vs medi
                         # an unlayered rule, frame's kernel, within(), grouping), test/build.mjs (nothing in a build
                         # without the option; with "build": the table, the lazy chunk, the loader's size; apps/docs/test/browser.mjs opens it in Chrome),
                         # test/opencode.mjs (the dev server and a fake OpenCode service: the prompt as sent, the agent, the directory, the status, no service; the link probe, with and without the service and the client; an attached session, a detached one, two dev servers, a session that is gone, stale files),
-                        # test/opencode-plugin.mjs (the command on a fake plugin context: none, one, several, a pick, off, a stale pid)
-bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs; each dock: the panel on its side, a pick beside it, a drag of the grip, the button after Esc, the dock and sizes after a reload; detach: the pop-up with the panel, a pick in the page followed live, the choice after a reload, closing re-docks, a blocked pop-up), then the OpenCode box in Chrome (test/ask-browser.mjs: with nothing picked, pinned in each dock and in the window, the connect text, a service started later found on focus, the attached session and its title; screenshots in test/out/)
+                        # test/opencode-plugin.mjs (the command on a fake plugin context: none, one, several, a pick, off, a stale pid),
+                        # test/vitals.mjs (the charts, and the sheet reader on happy-dom: classes, coverage, custom properties, keyframes, specificity)
+bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs; each dock: the panel on its side, a pick beside it, a drag of the grip, the button after Esc, the dock and sizes after a reload; detach: the pop-up with the panel, a pick in the page followed live, the choice after a reload, closing re-docks, a blocked pop-up), then the console report in Chrome (test/vitals-browser.mjs: layers, @property, keyframes in use, a long task and its animation frame, the paint entries, the printed group), then the OpenCode box in Chrome (test/ask-browser.mjs: with nothing picked, pinned in each dock and in the window, the connect text, a service started later found on focus, the attached session and its title; screenshots in test/out/)
 ```
