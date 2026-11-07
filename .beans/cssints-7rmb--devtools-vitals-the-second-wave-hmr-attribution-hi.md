@@ -1,11 +1,11 @@
 ---
 # cssints-7rmb
 title: 'devtools: vitals, the second wave (HMR, attribution, history, cost)'
-status: todo
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-07T11:08:54Z
-updated_at: 2026-11-07T11:17:42Z
+updated_at: 2026-11-07T12:30:53Z
 ---
 
 The console report (`@cssints/devtools/vitals`, branch `feat/devtools-vitals`) answers "what is this page paying now?". The next wave turns it into "what did *this edit* cost, and which code paid" — the questions a cssints developer actually asks while styling, and the ones a generic vitals tool cannot answer.
@@ -29,3 +29,12 @@ Not in this epic, by decision: a Vitals section in the overlay panel (the consol
 The metrics layer is `web-vitals` (attribution build): CLS session windows, INP p98, LCP/INP targets, phases, ratings.
 The sheet report, the frame timeline and the general LoAF row stay ours. The tool stays `@cssints/devtools/vitals` — not a
 33rd package. Its first real run is apps/ui (the registry site): see cssints-7zhh.
+
+
+## Outcome (2026-11-07)
+
+All seven children are done: HMR growth (1zs6), LoAF attribution (n8uz), history across loads (tds8), INP with its target,
+phases and covering frames (jrut), the cost by call site from the devtools table (100u), the homes in apps/ui and the
+native console page (7zhh), and the CSS files' arrival and render blocking (10wz). The metrics layer is `web-vitals`
+(attribution). The tool is one console group of eleven rows; the entry stays a ~34 kB (10.5 kB gzip) dev-only module of
+`@cssints/devtools`. Not taken, by decision: a Vitals section in the DOM panel, and a separate package.
