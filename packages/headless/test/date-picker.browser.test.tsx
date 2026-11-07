@@ -158,9 +158,9 @@ const cell = (root: HTMLElement, iso: string): HTMLElement => {
   return element;
 };
 
-/** The day carrying the roving tab stop. */
+/** The day carrying the grid's entry marker (the roving stop) — exactly one. */
 const roving = (root: HTMLElement): HTMLElement | null =>
-  root.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]');
+  root.querySelector<HTMLElement>('[role="gridcell"][focusgroupstart]');
 
 const focusedDate = (root: HTMLElement): string | null => {
   const active = document.activeElement;
@@ -252,7 +252,8 @@ describe("createDatePicker (real DOM)", () => {
     await press("ArrowRight");
     expect(focusedDate(root)).toBe("2026-10-16");
     expect(roving(root)).toBe(cell(root, "2026-10-16"));
-    expect(cell(root, "2026-10-15").getAttribute("tabindex")).toBe("-1");
+    expect(cell(root, "2026-10-15").getAttribute("focusgroupstart")).toBeNull();
+    expect(root.querySelectorAll('[role="gridcell"][focusgroupstart]')).toHaveLength(1);
 
     await press("ArrowDown");
     expect(focusedDate(root)).toBe("2026-10-23");
@@ -384,7 +385,7 @@ describe("createDatePicker (real DOM)", () => {
     expect(cell(root, "2026-10-21").getAttribute("aria-disabled")).toBe("true");
     expect(cell(root, "2026-10-10").getAttribute("aria-disabled")).toBeNull();
     expect(cell(root, "2026-10-20").getAttribute("aria-disabled")).toBeNull();
-    expect(cell(root, "2026-10-09").getAttribute("tabindex")).toBe("-1");
+    expect(cell(root, "2026-10-09").hasAttribute("focusgroupstart")).toBe(false);
 
     // a pointer click on a disabled day does nothing, not even a close (the
     // raw DOM click, because a test driver refuses to click aria-disabled)
@@ -487,7 +488,7 @@ describe("createDatePicker (real DOM)", () => {
     expect(part(root, "next").getAttribute("aria-label")).toBe("Mois suivant");
     expect(part(root, "title").textContent).toBe("10/2026");
     expect(part(root, "weekday").getAttribute("abbr")).toBe("D");
-    expect(cell(root, "2026-10-15").getAttribute("tabindex")).toBe("0");
+    expect(cell(root, "2026-10-15").hasAttribute("focusgroupstart")).toBe(true);
 
     await press("Enter");
     expect(part(root, "status").textContent).toBe("le 2026-10-15");

@@ -129,7 +129,9 @@ export const partsDriver = (mounted: Mounted, options: PartsDriverOptions = {}):
       await settle();
     },
     observer: {
-      focus: () => mounted.focus?.() ?? activePart(),
+      // a fixture that reports its own focus is authoritative: `null` means
+      // "outside the widget", not "fall back to the active element"
+      focus: () => (mounted.focus === undefined ? activePart() : mounted.focus()),
       attr: (target, name) => {
         if (name.startsWith("data-")) {
           throw new Unsupported(`styling hook ${name}`);

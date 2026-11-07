@@ -93,6 +93,13 @@ export interface FocusGridOptions {
    * grid. The host owns the topology; this runtime never discovers it.
    */
   readonly items: () => ReadonlyArray<FocusGridItem>;
+  /**
+   * `"polyfill"` skips the feature detect and drives this runtime even where the
+   * engine has `focusGroup.supports("grid")` (a test, or a host that knows it
+   * needs the fallback). The owner's `focusgroup` attribute is then left alone,
+   * so the two engines cannot both act. `"auto"` by default.
+   */
+  readonly provider?: "auto" | "polyfill" | undefined;
 }
 
 export interface FocusGridHandle {
@@ -287,19 +294,24 @@ const isKeyConflict = (target: EventTarget | null): boolean => {
  * Attach the V2 grid contract to `owner` with the best provider the engine has.
  * Call it once the owner element exists (a Solid `ref`, `onMount`), with an
  * `items` reader that answers from the live DOM; then call `update()` whenever
- * the body, the markers or the definition change.
+ * the body, the markers or the definition change. `provider: "polyfill"` forces
+ * this runtime and writes no `focusgroup` attribute.
  */
 export const focusGrid = (owner: HTMLElement, options: FocusGridOptions): FocusGridHandle => {
   let definition = options.definition;
   let attribute = focusgridAttribute(definition);
-  const native = supportsFocusGrid(definition.manual === true);
+  // the forced fallback keeps the native engine out of the group: no attribute
+  const forced = options.provider === "polyfill";
+  const native = !forced && supportsFocusGrid(definition.manual === true);
   const abort = new AbortController();
   const authors = new Map<HTMLElement, string | null>();
   const markers = new Set<HTMLElement>();
   let current: HTMLElement | null = null;
   let destroyed = false;
 
-  owner.setAttribute("focusgroup", attribute);
+  if (!forced) {
+    owner.setAttribute("focusgroup", attribute);
+  }
 
   const startItem = (items: ReadonlyArray<FocusGridItem>): HTMLElement | null => {
     const marked = items.find((item) => item.element.hasAttribute("focusgroupstart"));
@@ -477,7 +489,9 @@ export const focusGrid = (owner: HTMLElement, options: FocusGridOptions): FocusG
       if (next !== undefined) {
         definition = next;
         attribute = focusgridAttribute(next);
-        owner.setAttribute("focusgroup", attribute);
+        if (!forced) {
+          owner.setAttribute("focusgroup", attribute);
+        }
       }
       apply();
     },
@@ -488,7 +502,9 @@ export const focusGrid = (owner: HTMLElement, options: FocusGridOptions): FocusG
       destroyed = true;
       abort.abort();
       undecorate();
-      owner.removeAttribute("focusgroup");
+      if (!forced) {
+        owner.removeAttribute("focusgroup");
+      }
       current = null;
     },
   };

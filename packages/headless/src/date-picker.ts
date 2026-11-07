@@ -115,6 +115,8 @@ export interface DatePickerCellProps {
   readonly "aria-colindex": number;
   /** `0` on the roving day only. */
   readonly tabindex: number;
+  /** The grid's entry marker, on the roving day. */
+  readonly focusgroupstart: "" | undefined;
   readonly "aria-selected": "true" | "false";
   readonly "aria-current": "date" | undefined;
   readonly "aria-disabled": "true" | undefined;
@@ -146,7 +148,14 @@ export interface DatePicker {
   readonly headerProps: DatePickerHeaderProps;
   readonly previousProps: DatePickerNavProps;
   readonly nextProps: DatePickerNavProps;
-  readonly gridProps: GridProps & { readonly "aria-labelledby": string };
+  /**
+   * The grid's `role` / `aria-*` and its focusout handler. It carries no
+   * `focusgroup` attribute and no `ref`: the picker owns its keyboard and its
+   * roving day, and the grid `row` / `col` only mirror {@link currentCellId}.
+   */
+  readonly gridProps: Omit<GridProps, "focusgroup" | "ref"> & {
+    readonly "aria-labelledby": string;
+  };
   readonly weekdayProps: (index: number) => DatePickerWeekdayProps;
   readonly cellProps: (iso: string) => DatePickerCellProps;
   /**
@@ -304,9 +313,11 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
   );
 
   // The grid gives the month its structure: role, row/column counts, cell ids
-  // and the single roving tab stop. Its own keys are replaced (a calendar's
-  // PageUp is a month, not a second row) and its rectangle selection is not
-  // used: a calendar has one selected day, marked `aria-selected`.
+  // and the current-cell marker. Its own keys are replaced (a calendar's PageUp
+  // is a month, not a second row) and its rectangle selection is not used: a
+  // calendar has one selected day, marked `aria-selected`. The picker owns the
+  // keyboard and the roving stop, so it does not attach the grid's focusgroup
+  // runtime or render its `focusgroup` attribute (see `gridProps` below).
   const grid = createGrid({ id: base, rows: 6, cols: 7 });
 
   /** Mirrors the day cursor into the grid's row/col, which owns `tabindex`. */
@@ -432,7 +443,11 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
   const [popup, setPopup] = createSignal<HTMLElement | undefined>(undefined);
   const focusRoving = (): void => {
     queueMicrotask(() => {
-      popup()?.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]')?.focus();
+      // the grid's current cell, not `[tabindex="0"]`: once the platform owns
+      // the stop every cell target carries a constant focusability value
+      popup()
+        ?.querySelector<HTMLElement>(`#${CSS.escape(grid.currentCellId())}`)
+        ?.focus();
     });
   };
   createEffect(
@@ -585,7 +600,16 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
       onClick: () => pageMonth(1),
     },
     gridProps: {
-      ...grid.gridProps,
+      role: "grid",
+      "aria-rowcount": grid.rows(),
+      "aria-colcount": grid.cols(),
+      get "aria-readonly"() {
+        return grid.gridProps["aria-readonly"];
+      },
+      get "aria-activedescendant"() {
+        return grid.gridProps["aria-activedescendant"];
+      },
+      onFocusOut: grid.gridProps.onFocusOut,
       "aria-labelledby": headerId,
     },
     weekdayProps: (index) => ({
@@ -602,6 +626,9 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
         "aria-colindex": cell["aria-colindex"],
         get tabindex() {
           return cursor() === iso ? 0 : -1;
+        },
+        get focusgroupstart() {
+          return cell.focusgroupstart;
         },
         get "aria-selected"() {
           return value() === iso ? "true" : "false";

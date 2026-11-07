@@ -1,10 +1,75 @@
-import { type Accessor, createMemo, createSignal, createUniqueId } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  createUniqueId,
+  onCleanup,
+  onSettled,
+} from "solid-js";
 import { createControllable } from "./controllable";
+import {
+  type FocusGridDefinition,
+  type FocusGridHandle,
+  type FocusGridItem,
+  focusGrid,
+  focusgridAttribute,
+} from "./focusgrid";
 
 /**
- * APG grid primitive on Solid 2: roving focus, 2-D navigation, edit mode, a
+ * APG grid primitive on Solid 2: one tab stop, 2-D navigation, edit mode, a
  * cell/row/column selection rectangle and sortable column headers. State plus
  * getter-backed attribute objects; no elements, no styling.
+ *
+ * Platform: **hybrid**. The body's movement and its roving tab stop are the V2
+ * `focusgroup="grid"` contract (`./focusgrid`, `specs/patterns/focusgrid.qnt`):
+ * the owner's `ref` builds the runtime, which owns arrows on both axes, Home /
+ * End (the row's ends), Ctrl+Home / Ctrl+End (the grid's), the per-axis edges,
+ * the last-focused memory and WHICH cell is the tab stop. `row` / `col` are
+ * readings of the DOM: the owner's `focusin` maps the focused element back to
+ * its coordinate, and the host mirrors programmatic moves (`focus`, `clickCell`,
+ * PageUp / PageDown, Shift+Arrow) into DOM focus, as the fixture does. The
+ * library keeps the delta: edit mode (`Enter` / `F2` / `a` / `Escape`,
+ * `lastEdit`), selection (`specs/apg/grid-selection.qnt`), sortable headers
+ * (`specs/apg/grid-sort.qnt`), PageUp / PageDown (a grid defines no page
+ * movement, so the runtime never sees those keys), the mount window and the
+ * `aria-*` indices.
+ *
+ * **The wrap mapping is `flow`, not `wrap`.** `wrapCols` means "passing the
+ * last column continues into the next row's first cell", and `wrapRows` the
+ * same across rows: that is APG's *linear* wrapping (`data-wrap-cols` /
+ * `data-wrap-rows` in its layout-grid example), which the runtime spells
+ * `flow` — it continues into the adjacent row / column and wraps at the outer
+ * edge — not `wrap`, which is the opposite end of the same row / column. So the
+ * definition is `{ rowEdge: wrapCols ? "flow" : "none", colEdge: wrapRows ?
+ * "flow" : "none", memory: true }`: a data grid is hard on both axes, as APG
+ * says, and a layout grid flows only where its options say. `setWrapCols` /
+ * `setWrapRows` / `setGridKind` re-apply it through the runtime.
+ *
+ * **The header row stays out of the group.** The sortable column headers keep
+ * their own one-dimensional roving (`headerCol`, `onHeaderKeyDown`,
+ * `grid-sort.qnt`), and the APG grid deliberately omits Up/Down between the
+ * header row and the body. The runtime — and a native engine — would otherwise
+ * pull them into the body's item collection, so `headerProps` marks each header
+ * `focusgroup="none"` (the shared contract's opt-out). A future native V2 needs
+ * a second owner, or the header segment of a `manual` topology; this primitive
+ * does not invent one for the host to render.
+ *
+ * **The tabindex recipe.** Every cell target carries a constant author
+ * `tabindex="0"` — the native engine navigates only items with `tabIndex > -1`,
+ * and a `<div role="gridcell">` needs an author value to be focusable at all —
+ * and the runtime writes the single stop over it (`0` / `-1`). With
+ * `focusTarget: "widget"` the widget set is the item set, so the cells author
+ * `-1` and the widgets `0`: exactly one of the two sets is navigable, and the
+ * platform still owns which item of it is the stop. A host must not bind
+ * `tabindex` reactively after these props. `focusgroupstart` rides on the
+ * current coordinate (the cell, or the widget when that is the target): with
+ * `memory: true` the platform prefers its own memory once focus has been
+ * inside, and the marker is what the first Tab entry lands on.
+ *
+ * `aria-activedescendant` is still emitted for `focusTarget: "widget"` while
+ * the grid holds focus. It is an announcement, not a focus model: the DOM focus
+ * is real and sits on the widget.
  *
  * Behaviour mirrors `specs/apg/grid.qnt` (navigation/edit), `grid-selection.qnt`
  * (selection) and `grid-sort.qnt` (sortable headers); the generated machines are
@@ -73,6 +138,12 @@ export interface GridOptions {
    * overscan when a real scroller drives it. Cell/row indices stay absolute.
    */
   readonly rowWindow?: GridWindow;
+  /**
+   * `"polyfill"` skips the V2 feature detect and drives the runtime even where
+   * the engine has `focusGroup.supports("grid")` (a test, or a host that knows
+   * it needs the fallback). `"auto"` by default.
+   */
+  readonly provider?: "auto" | "polyfill";
 }
 
 export interface GridProps {
@@ -81,6 +152,10 @@ export interface GridProps {
   readonly "aria-colcount": number;
   readonly "aria-readonly": "true" | "false";
   readonly "aria-activedescendant": string | undefined;
+  /** The definition as the `focusgroup` attribute (`"grid rowflow colflow"`). */
+  readonly focusgroup: string;
+  /** Builds the platform's runtime; the primitive's keydown listener goes on first. */
+  readonly ref: (element: HTMLElement) => void;
   readonly onFocusOut: (event: FocusEvent) => void;
 }
 
@@ -93,25 +168,37 @@ export interface GridRowProps {
 export interface GridCellProps {
   readonly role: "gridcell";
   readonly id: string;
+  /**
+   * The constant focusability value (`0` for a cell target, `-1` in widget
+   * mode), not the roving stop: the platform owns which cell is the tab stop.
+   */
   readonly tabindex: number;
+  /** The platform's entry marker, on the current coordinate only. */
+  readonly focusgroupstart: "" | undefined;
+  readonly ref: (element: HTMLElement) => void;
   readonly "aria-rowindex": number;
   readonly "aria-colindex": number;
   readonly "aria-readonly": "true" | "false";
   readonly "aria-selected": "true" | "false" | undefined;
   readonly onClick: () => void;
-  readonly onFocus: () => void;
-  readonly onKeyDown: (event: KeyboardEvent) => void;
 }
 
 /** A focusable widget rendered inside a cell (focusTarget = "widget"). */
 export interface GridWidgetProps {
   readonly tabindex: number;
-  readonly onFocus: () => void;
+  /** The platform's entry marker, on the current coordinate's widget only. */
+  readonly focusgroupstart: "" | undefined;
+  readonly ref: (element: HTMLElement) => void;
 }
 
 export interface GridHeaderProps {
   readonly role: "columnheader";
   readonly id: string;
+  /**
+   * The header row keeps its own 1-D roving (one `0`, the rest `-1`); it is
+   * `focusgroup="none"` so neither provider pulls it into the body's group.
+   */
+  readonly focusgroup: "none";
   readonly tabindex: number;
   readonly "aria-sort": "none" | "ascending" | "descending" | undefined;
   readonly onClick: () => void;
@@ -143,6 +230,8 @@ export interface Grid {
   readonly sort: Accessor<number>;
   /** The `data-part` target the roving tab stop should focus, for fixtures. */
   readonly focusTargetPart: Accessor<string | null>;
+  /** The id of the current cell (the one carrying `focusgroupstart`). */
+  readonly currentCellId: Accessor<string>;
   readonly gridProps: GridProps;
   readonly rowProps: (row: number) => GridRowProps;
   readonly cellProps: (row: number, col: number) => GridCellProps;
@@ -160,25 +249,6 @@ export interface Grid {
   readonly setSelectable: (flag: boolean) => void;
   readonly setSortEnabled: (flag: boolean) => void;
 }
-
-const GRID_KEYS = new Set([
-  "ArrowRight",
-  "ArrowLeft",
-  "ArrowDown",
-  "ArrowUp",
-  "Home",
-  "End",
-  "Control+Home",
-  "Control+End",
-  "PageUp",
-  "PageDown",
-  "Enter",
-  "F2",
-  "Escape",
-  "a",
-  "Tab",
-  "Shift+Tab",
-]);
 
 /** The `data-part` address of a cell/widget/header, shared with the bridge. */
 export const cellPart = (row: number, col: number): string => `cell:${row},${col}`;
@@ -244,7 +314,6 @@ export const createGrid = (options: GridOptions = {}): Grid => {
   const page = Math.max(1, options.page ?? 2);
   const lastRow = totalRows - 1;
   const lastCol = totalCols - 1;
-  const cells = totalRows * totalCols;
 
   const [row, setRow] = createSignal(0);
   const [col, setCol] = createSignal(0);
@@ -304,95 +373,160 @@ export const createGrid = (options: GridOptions = {}): Grid => {
 
   const base = options.id ?? createUniqueId();
 
-  // --- navigation (grid.qnt) -------------------------------------------------
+  // --- the platform's half (focusgroup="grid") ------------------------------
+  const cellKey = (r: number, c: number): string => `${r},${c}`;
+  const cellElement = new Map<string, HTMLElement>();
+  const widgetElement = new Map<string, HTMLElement>();
+
+  const rowWindowBounds = () => {
+    const start = Math.max(0, options.rowWindow?.start ?? 0);
+    const count = options.rowWindow?.count ?? totalRows;
+    return { start, end: Math.min(totalRows, start + count) };
+  };
+
+  const renderedRows = createMemo<ReadonlyArray<number>>(() => {
+    const { start, end } = rowWindowBounds();
+    const out: number[] = [];
+    for (let r = start; r < end; r += 1) {
+      out.push(r);
+    }
+    return out;
+  });
+
+  /**
+   * The body as the runtime sees it: dense rows relative to the mount window,
+   * one item per coordinate, the focus target as `element` and the cell as
+   * `cell`. An incomplete body is `[]` and the runtime decorates nothing.
+   */
+  const items = (): FocusGridItem[] => {
+    const { start, end } = rowWindowBounds();
+    const out: FocusGridItem[] = [];
+    for (let r = start; r < end; r += 1) {
+      for (let c = 0; c < totalCols; c += 1) {
+        const key = cellKey(r, c);
+        const cell = cellElement.get(key);
+        const widget = widgetElement.get(key);
+        const element = focusTarget() === "widget" ? widget : cell;
+        if (cell === undefined || element === undefined || !element.isConnected) {
+          return [];
+        }
+        out.push({ element, row: r - start, col: c, cell });
+      }
+    }
+    return out;
+  };
+
+  /**
+   * One source for the attribute and the runtime's definition. `wrapCols` /
+   * `wrapRows` are APG's linear wrapping, which is the runtime's `flow`; a data
+   * grid is hard on both axes.
+   */
+  const definitionOf = (kind: GridKind, cols: boolean, rows: boolean): FocusGridDefinition => ({
+    rowEdge: kind === "layout" && cols ? "flow" : "none",
+    colEdge: kind === "layout" && rows ? "flow" : "none",
+    memory: true,
+  });
+  const definition = (): FocusGridDefinition => definitionOf(gridKind(), wrapCols(), wrapRows());
+
+  /** The coordinate of the cell/widget (or a descendant of either) at `target`. */
+  const coordinateOf = (target: EventTarget | null): Point | undefined => {
+    if (!(target instanceof Node)) {
+      return undefined;
+    }
+    for (const map of [cellElement, widgetElement]) {
+      for (const [key, element] of map) {
+        if (element.isConnected && (element === target || element.contains(target))) {
+          const [r = 0, c = 0] = key.split(",");
+          return { row: Number(r), col: Number(c) };
+        }
+      }
+    }
+    return undefined;
+  };
+
+  let owner: HTMLElement | undefined;
+  let group: FocusGridHandle | undefined;
+
+  /** DOM focus moved: the coordinate is a reading of it, and a plain move collapses the selection. */
+  const onFocusIn = (event: FocusEvent): void => {
+    const point = coordinateOf(event.target);
+    if (point === undefined) {
+      return;
+    }
+    const moved = point.row !== row() || point.col !== col();
+    setHasFocus(true);
+    setHeaderFocus(false);
+    setRow(point.row);
+    setCol(point.col);
+    if (moved && !editing()) {
+      collapseSelectionOn(point.row, point.col);
+    }
+  };
+
+  const attach = (element: HTMLElement): void => {
+    if (owner === element) {
+      return;
+    }
+    owner = element;
+    // the primitive's listener is registered before the runtime's, so a key it
+    // consumes is already `defaultPrevented` when the runtime reads it
+    element.addEventListener("keydown", keyDown);
+    element.addEventListener("focusin", onFocusIn);
+    group = focusGrid(element, { definition: definition(), items, provider: options.provider });
+  };
+
+  let reconcilePending = false;
+  /** The platform reads the DOM: re-collect after a render writes the authored `tabindex` / markers. */
+  const reconcile = (): void => {
+    if (reconcilePending) {
+      return;
+    }
+    reconcilePending = true;
+    queueMicrotask(() => {
+      reconcilePending = false;
+      group?.update();
+    });
+  };
+
+  // a mounted row, the focus-target set or its reactive author values changed
+  createEffect(
+    () => [renderedRows(), focusTarget()] as const,
+    () => {
+      reconcile();
+    },
+  );
+
+  onSettled(() => {
+    // the owner's ref may run before its cells' refs, so collect once more after the render
+    reconcile();
+  });
+
+  onCleanup(() => {
+    owner?.removeEventListener("keydown", keyDown);
+    owner?.removeEventListener("focusin", onFocusIn);
+    group?.destroy();
+    group = undefined;
+  });
+
+  // --- navigation the runtime does not own ---------------------------------
   const cur = (): number => row() * totalCols + col();
   const editing = (): boolean => mode() === "edit";
   const colReadonly = (c: number): boolean => c === lastCol;
   const canEdit = (): boolean => !gridReadonly() && !colReadonly(col());
   const navigating = (): boolean => hasFocus() && mode() === "navigate";
 
-  const rightIdx = (): number =>
-    col() < lastCol ? cur() + 1 : wrapCols() && row() < lastRow ? cur() + 1 : cur();
-  const leftIdx = (): number =>
-    col() > 0 ? cur() - 1 : wrapCols() && row() > 0 ? cur() - 1 : cur();
-  const downIdx = (): number =>
-    row() < lastRow ? cur() + totalCols : wrapRows() && col() < lastCol ? col() + 1 : cur();
-  const upIdx = (): number =>
-    row() > 0
-      ? cur() - totalCols
-      : wrapRows() && col() > 0
-        ? lastRow * totalCols + col() - 1
-        : cur();
   const pageDownIdx = (): number =>
     row() + page > lastRow ? lastRow * totalCols + col() : cur() + page * totalCols;
   const pageUpIdx = (): number => (row() < page ? col() : cur() - page * totalCols);
 
-  const keyTarget = (key: string): number => {
-    switch (key) {
-      case "ArrowRight":
-        return rightIdx();
-      case "ArrowLeft":
-        return leftIdx();
-      case "ArrowDown":
-        return downIdx();
-      case "ArrowUp":
-        return upIdx();
-      case "PageDown":
-        return pageDownIdx();
-      case "PageUp":
-        return pageUpIdx();
-      case "Home":
-        return row() * totalCols;
-      case "End":
-        return row() * totalCols + lastCol;
-      case "Control+Home":
-        return 0;
-      case "Control+End":
-        return cells - 1;
-      default:
-        return cur();
-    }
-  };
-
-  const moveTo = (index: number): void => {
+  /** A page-sized move: state only; the host mirrors it into DOM focus. */
+  const landOn = (index: number): void => {
     setRow(Math.floor(index / totalCols));
     setCol(index % totalCols);
   };
 
   const startEdit = (key: string): boolean =>
     navigating() && canEdit() && (key === "Enter" || key === "F2" || key === "a");
-
-  const applyGridKey = (key: string): void => {
-    if (!hasFocus()) {
-      return;
-    }
-    const wasEditing = editing();
-    const wasNavigating = navigating();
-    const commits = wasEditing && (key === "Enter" || key === "F2");
-    const cancels = wasEditing && key === "Escape";
-    const leaves = wasNavigating && (key === "Tab" || key === "Shift+Tab");
-
-    if (wasNavigating) {
-      moveTo(keyTarget(key));
-    }
-    if (leaves) {
-      setHasFocus(false);
-    }
-    if (startEdit(key)) {
-      setMode("edit");
-      setDirty(key === "a");
-    } else if (wasEditing && key === "a") {
-      setDirty(true);
-    } else if (commits || cancels) {
-      setMode("navigate");
-      setDirty(false);
-    }
-    if (commits) {
-      setLastEdit("committed");
-    } else if (cancels) {
-      setLastEdit("cancelled");
-    }
-  };
 
   // --- selection (grid-selection.qnt) ---------------------------------------
   const lower = (a: number, b: number): number => (a < b ? a : b);
@@ -412,13 +546,13 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       : key === "ArrowLeft" || key === "Shift+ArrowLeft"
         ? -1
         : 0;
-  const isPlainArrow = (key: string): boolean =>
-    key === "ArrowRight" || key === "ArrowLeft" || key === "ArrowDown" || key === "ArrowUp";
   const isShiftArrow = (key: string): boolean =>
     key === "Shift+ArrowRight" ||
     key === "Shift+ArrowLeft" ||
     key === "Shift+ArrowDown" ||
     key === "Shift+ArrowUp";
+  const isPlainArrow = (key: string): boolean =>
+    key === "ArrowRight" || key === "ArrowLeft" || key === "ArrowDown" || key === "ArrowUp";
 
   const cellSelected = (r: number, c: number): boolean =>
     selActive() && r >= selR0() && r <= selR1() && c >= selC0() && c <= selC1();
@@ -428,21 +562,21 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       return;
     }
     const has = selectable();
-    const collapse = isPlainArrow(key) || (isShiftArrow(key) && !has);
     const extend = has && isShiftArrow(key);
+    const collapse = isPlainArrow(key) || (isShiftArrow(key) && !has);
     const selectsRow = has && key === "Shift+Space";
     const selectsCol = has && key === "Control+Space";
     const selectsAll = has && key === "Control+a";
     const clears = key === "Escape";
-    const moves = collapse || extend;
     const newR = clampRow(from.row + dRow(key));
     const newC = clampCol(from.col + dCol(key));
 
-    if (moves && isShiftArrow(key)) {
-      // plain arrows are already positioned by the grid (which may wrap); the
-      // selection only drives the position for Shift+Arrow
-      setRow(newR);
-      setCol(newC);
+    if (extend || collapse) {
+      // Shift+Arrow is not the runtime's (a modified key), so the primitive
+      // moves focus itself. A plain arrow is the platform's: this only settles
+      // the selection on the clamped cell, and the focusin reading settles it
+      // on the true landing when a flow edge made the two differ.
+      landOn(newR * totalCols + newC);
     }
     if (collapse) {
       setAnchorRow(newR);
@@ -552,8 +686,21 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       return;
     }
     const key = event.key;
+    const handled =
+      key === "ArrowLeft" ||
+      key === "ArrowRight" ||
+      key === "Home" ||
+      key === "End" ||
+      key === "Enter" ||
+      key === " " ||
+      key === "Spacebar";
+    if (!handled) {
+      // Tab / Shift+Tab (and every other key) keep their own behaviour: the
+      // header row is one stop of the sequential order, not a trap
+      return;
+    }
     setHeaderCol(headerKeyCol(key));
-    if (key === "Enter" || key === " ") {
+    if (key === "Enter" || key === " " || key === "Spacebar") {
       activateSort(headerCol());
     }
     event.preventDefault();
@@ -578,21 +725,74 @@ export const createGrid = (options: GridOptions = {}): Grid => {
     return key;
   };
 
-  const onKeyDown = (event: KeyboardEvent): void => {
+  /**
+   * The library's half of the keyboard, on the owner before the runtime. Arrows,
+   * Home / End and Ctrl+Home / Ctrl+End are the platform's, so nothing here
+   * prevents them: the runtime reads an un-prevented key and moves. Page keys,
+   * the selection modifiers and edit mode are the primitive's, and it prevents
+   * exactly those. Headers are not body items, so their keys are ignored here.
+   */
+  function keyDown(event: KeyboardEvent): void {
+    if (coordinateOf(event.target) === undefined || !hasFocus()) {
+      return;
+    }
     const key = canonicalKey(event);
     const from: Point = { row: row(), col: col() };
+    if (editing()) {
+      if (key === "Enter" || key === "F2") {
+        setMode("navigate");
+        setDirty(false);
+        setLastEdit("committed");
+        event.preventDefault();
+      } else if (key === "Escape") {
+        setMode("navigate");
+        setDirty(false);
+        setLastEdit("cancelled");
+        event.preventDefault();
+      } else if (key === "a") {
+        setDirty(true);
+        event.preventDefault();
+      }
+      // the edit surface owns every other key: keep the runtime (and any other
+      // listener on the owner) from moving focus, without cancelling the
+      // key's default (a text caret keeps its arrows)
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (startEdit(key)) {
+      setMode("edit");
+      setDirty(key === "a");
+      event.preventDefault();
+      return;
+    }
+    if (key === "PageDown" || key === "PageUp") {
+      landOn(key === "PageDown" ? pageDownIdx() : pageUpIdx());
+      event.preventDefault();
+      return;
+    }
+    if (isPlainArrow(key)) {
+      // the platform moves; the primitive only settles the selection on the
+      // cell (the focusin reading settles it on the true landing, and the
+      // request dedupes when they agree)
+      applySelectionKey(key, from);
+      return;
+    }
     if (
-      GRID_KEYS.has(key) ||
       isShiftArrow(key) ||
-      key === "Control+Space" ||
       key === "Shift+Space" ||
-      key === "Control+a"
+      key === "Control+Space" ||
+      key === "Control+a" ||
+      key === "Escape"
     ) {
-      applyGridKey(key);
       applySelectionKey(key, from);
       event.preventDefault();
+      return;
     }
-  };
+    if (key === "Tab" || key === "Shift+Tab") {
+      // HTML sequential navigation: observed, never cancelled
+      setHasFocus(false);
+    }
+  }
 
   const clickCell = (r: number, c: number): void => {
     const wasEditing = editing();
@@ -600,6 +800,7 @@ export const createGrid = (options: GridOptions = {}): Grid => {
     setRow(r);
     setCol(c);
     setHasFocus(true);
+    setHeaderFocus(false);
     setMode(wasEditing && same ? "edit" : "navigate");
     setDirty(wasEditing && same ? dirty() : false);
     if (wasEditing && !same) {
@@ -608,38 +809,23 @@ export const createGrid = (options: GridOptions = {}): Grid => {
     collapseSelectionOn(r, c);
   };
 
-  const focusCell = (r: number, c: number): void => {
-    if (r === row() && c === col() && hasFocus()) {
-      return;
-    }
-    clickCell(r, c);
-  };
-
   const setGridKind = (kind: GridKind): void => {
+    // Solid 2 setters land on the next flush, so the definition is built from
+    // the values this call settles on, not from setters that may still lag
+    const cols = kind === "data" ? false : wrapCols();
+    const rows = kind === "data" ? false : wrapRows();
     setGridKindValue(kind);
     if (kind === "data") {
       setWrapColsValue(false);
       setWrapRowsValue(false);
     }
+    group?.update(definitionOf(kind, cols, rows));
   };
 
   // --- prop objects ----------------------------------------------------------
-  const rowWindowBounds = () => {
-    const start = Math.max(0, options.rowWindow?.start ?? 0);
-    const count = options.rowWindow?.count ?? totalRows;
-    return { start, end: Math.min(totalRows, start + count) };
-  };
-
-  const renderedRows = createMemo<ReadonlyArray<number>>(() => {
-    const { start, end } = rowWindowBounds();
-    const out: number[] = [];
-    for (let r = start; r < end; r += 1) {
-      out.push(r);
-    }
-    return out;
-  });
-
   const cellId = (r: number, c: number): string => `${base}-cell-${r}-${c}`;
+
+  const currentCellId = (): string => cellId(row(), col());
 
   const focusTargetPart = createMemo<string | null>(() => {
     if (headerFocus()) {
@@ -681,6 +867,7 @@ export const createGrid = (options: GridOptions = {}): Grid => {
     sortDirection: sortDir,
     sort,
     focusTargetPart,
+    currentCellId,
     gridProps: {
       role: "grid",
       "aria-rowcount": totalRows,
@@ -690,6 +877,13 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       },
       get "aria-activedescendant"() {
         return focusTarget() === "widget" && hasFocus() ? cellId(row(), col()) : undefined;
+      },
+      get focusgroup() {
+        // the forced fallback keeps the native engine out of the group
+        return options.provider === "polyfill" ? "" : focusgridAttribute(definition());
+      },
+      get ref() {
+        return attach;
       },
       onFocusOut: (event: FocusEvent) => {
         const next = event.relatedTarget;
@@ -712,7 +906,14 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       role: "gridcell",
       id: cellId(r, c),
       get tabindex() {
-        return focusTarget() === "cell" && r === row() && c === col() ? 0 : -1;
+        // the author value the platform needs; it owns WHICH cell is the stop
+        return focusTarget() === "widget" ? -1 : 0;
+      },
+      get focusgroupstart() {
+        return focusTarget() === "cell" && r === row() && c === col() ? ("" as const) : undefined;
+      },
+      ref: (element: HTMLElement) => {
+        cellElement.set(cellKey(r, c), element);
       },
       "aria-rowindex": r + 1,
       "aria-colindex": c + 1,
@@ -723,20 +924,24 @@ export const createGrid = (options: GridOptions = {}): Grid => {
         return selectable() ? (cellSelected(r, c) ? "true" : "false") : undefined;
       },
       onClick: () => clickCell(r, c),
-      onFocus: () => focusCell(r, c),
-      onKeyDown,
     }),
     widgetProps: (r, c) => ({
       get tabindex() {
-        return focusTarget() === "widget" && r === row() && c === col() ? 0 : -1;
+        // in widget mode the widget set is the item set; a cell target owns it
+        return focusTarget() === "widget" ? 0 : -1;
       },
-      onFocus: () => {
-        setHasFocus(true);
+      get focusgroupstart() {
+        return focusTarget() === "widget" && r === row() && c === col() ? ("" as const) : undefined;
+      },
+      ref: (element: HTMLElement) => {
+        widgetElement.set(cellKey(r, c), element);
       },
     }),
     headerProps: (c) => ({
       role: "columnheader",
       id: `${base}-header-${c}`,
+      // the header row is its own 1-D roving; keep it out of the body's group
+      focusgroup: "none",
       get tabindex() {
         return c === headerCol() ? 0 : -1;
       },
@@ -756,15 +961,29 @@ export const createGrid = (options: GridOptions = {}): Grid => {
     }),
     focus: () => {
       setHasFocus(true);
+      setHeaderFocus(false);
     },
     blur: () => {
       leaveGrid();
     },
     clickCell,
     setGridKind,
-    setWrapCols: (flag) => setWrapColsValue(gridKind() === "layout" ? flag : false),
-    setWrapRows: (flag) => setWrapRowsValue(gridKind() === "layout" ? flag : false),
-    setFocusTarget: (target) => setFocusTargetValue(target),
+    setWrapCols: (flag) => {
+      const cols = gridKind() === "layout" ? flag : false;
+      setWrapColsValue(cols);
+      group?.update(definitionOf(gridKind(), cols, wrapRows()));
+    },
+    setWrapRows: (flag) => {
+      const rows = gridKind() === "layout" ? flag : false;
+      setWrapRowsValue(rows);
+      group?.update(definitionOf(gridKind(), wrapCols(), rows));
+    },
+    setFocusTarget: (target) => {
+      setFocusTargetValue(target);
+      // re-collect only: an update carrying a definition would re-apply the edges
+      group?.update();
+      reconcile();
+    },
     setGridReadonly: (flag) => {
       setGridReadonlyValue(flag);
       if (flag && editing()) {

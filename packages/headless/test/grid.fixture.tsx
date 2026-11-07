@@ -1,17 +1,34 @@
-import { type Grid, createGrid, packSelection, packSort } from "../src/grid";
+import { type Grid, cellPart, createGrid, packSelection, packSort } from "../src/grid";
 import { createEffect, createSignal } from "solid-js";
 import type { GridConfig } from "@cssints/apg-specs/apg/grid.bridge";
 import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 
+/** Which part the walk's `focus` observation reads: the body, or the header row. */
+export type GridFocusReading = "grid" | "header";
+
 /**
  * Renders `createGrid` as rows/cells/headers and exposes the `Mounted` the DOM
  * driver needs. Controlled, the fixture is the host: it keeps the packed
  * selection (`value`) and sort (`sortValue`) in signals, passes them only while
  * controlled, and writes every request back only while `accepts`.
+ *
+ * The walk drives the forced fallback (`mountGrid(config, "polyfill")`): its
+ * `tabindex` probe reads the stop the runtime writes, which a native V2 engine
+ * would keep in its focus controller instead. `mountGrid(config, "auto")` is
+ * the provider-switched path the browser test drives with real keys.
+ *
+ * `reading` picks what the walk's `focus` observation reads. The body walks
+ * (`grid.qnt`, `grid-selection.qnt`) read the primitive's own body focus — a
+ * header row is the sort walk's, and the APG grid models no Up/Down between the
+ * header and the body. The sort walk reads the header part instead.
  */
-export const mountGrid = (config: GridConfig): Mounted => {
+export const mountGrid = (
+  config: GridConfig,
+  provider: "auto" | "polyfill" = "polyfill",
+  reading: GridFocusReading = "grid",
+): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const events = new Map<string, Json[]>();
@@ -41,6 +58,7 @@ export const mountGrid = (config: GridConfig): Mounted => {
       gridReadonly: config.gridReadonly,
       selectable: config.selectable,
       sortEnabled: config.sortEnabled,
+      provider,
       get value() {
         return config.selectionControlled ? hostSelection() : undefined;
       },
@@ -116,6 +134,16 @@ export const mountGrid = (config: GridConfig): Mounted => {
   return {
     root,
     events,
+    focus: () => {
+      if (api === undefined) {
+        return null;
+      }
+      if (reading === "header") {
+        const part = api.focusTargetPart();
+        return part !== null && part.startsWith("header:") ? part : null;
+      }
+      return api.hasFocus() ? cellPart(api.row(), api.col()) : null;
+    },
     setProp: (name, value) => {
       switch (name) {
         case "focus":
