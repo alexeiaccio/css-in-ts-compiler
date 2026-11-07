@@ -86,7 +86,7 @@ bun solid/figure-list-detail.test.ts
 # our own tokens: a palette's swatches and the mark of its first readable step, a contrast check's engine ratios and their
 # verdicts, a spacing scale whose 4px step is a 4px box, and a type scale whose 40px row is three cells — with their
 # refusals, their goldens, the generated specs' cmp (solid/test.sh) and the terminal's rows
-echo "figure: thirty-eight kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns, the widget page's wireframe, anatomy, pair, the Sky page's shell, cards and two panes, the Targets table, the release forecast; their refusals and frames"
+echo "figure: thirty-nine kinds — branchFlow's boxes and branches, stateMachine's path and transitions, tree's levels, journeyMap's feelings, palette's swatches and mark, contrast's ratios, spacing's pixels, typeScale's sizes, timeline's spans, statusKey's legend, nowNextLater's columns, the widget page's wireframe, anatomy, pair, the Sky page's shell, cards and two panes, the Targets table, the release forecast, the firehose cohorts; their refusals and frames"
 # the three planning kinds' own invariants (solid/figure-planning.test.ts): a timeline bar at the cells its span says, the
 # axis's labels, the status key's entries against the statuses the figures use, the board's cards and their order, each
 # refusal, the same rows on the terminal, the three command goldens, and the map's words in the hand-written specs
@@ -102,6 +102,10 @@ bun solid/figure-motion.test.ts
 # draws through text.ts and declares on the desktop — the seam a new kind goes through, proved in one file
 bun solid/figure-registry.test.ts
 bun solid/figure-handoff.test.ts
+# the cohort grid (solid/figure-cohort.test.ts): Bluesky's Jetstream sample as a row a minute — the grid recomputed from
+# the recording here, the heading and the cells, the paint by share, six refusals, the mutation a share over every
+# account would pass, the golden and the terminal's rows
+bun solid/figure-cohort.test.ts
 # the generic table (solid/figure-table.test.ts): native/docs/map.md's Targets table as columns and rows — the heading
 # once, a cell cut to its column with `…` counted in cells (a CJK value), a right-aligned number's column, the refusals,
 # the frame's size, the command golden and the terminal's rows

@@ -179,6 +179,7 @@ async function main() {
       ["card-grid", "The Sky feed's cards"],
       ["list-detail", "The Sky page's thread, beside its feed"],
       ["table", "The map's targets, one a row"],
+      ["cohort", "The firehose's minute cohorts"],
     ]) {
       await page.goto(`http://127.0.0.1:${port}/browser/solid/figure.html?spec=${name}`);
       await page.waitForFunction(() => window.__page, null, { timeout: 20000 });

@@ -377,6 +377,7 @@ bun solid/main.ts figure --spec solid/specs/sparkline.json --warm 30 --expect so
 # ... and the chart half's fourth kind, forecast: this repository's own release cadence as columns, the next seven days
 # at the trailing fortnight's mean inside its band (specs/from-releases.ts writes it, figure-handoff.sh cmps it)
 bun solid/main.ts figure --spec solid/specs/forecast.json --warm 30 --expect solid/frames/figure-forecast.png
+bun solid/main.ts figure --spec solid/specs/cohort.json --warm 30 --expect solid/frames/figure-cohort.png
 # the generic table, the systems half's ninth kind: the Targets table of native/docs/map.md (specs/from-targets.ts
 # writes it, figure-handoff.sh regenerates and cmps it), four columns and a cell cut to its column with `…`
 bun solid/main.ts figure --spec solid/specs/table.json --warm 30 --expect solid/frames/figure-table.png
