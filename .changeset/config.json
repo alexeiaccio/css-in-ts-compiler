@@ -11,6 +11,7 @@
       "@cssints/devtools",
       "@cssints/fluid",
       "@cssints/fonts",
+      "@cssints/gamut",
       "@cssints/gradient",
       "@cssints/gradient-2d",
       "@cssints/headless",

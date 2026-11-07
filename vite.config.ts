@@ -128,6 +128,7 @@ const plainCode = [
   // tier 3: build-time assets and generators on scope()
   "packages/placeholder/src/**",
   "packages/ramp/src/**",
+  "packages/gamut/src/**",
   "packages/rybitten/src/**",
   "packages/skeleton/src/**",
   // @cssints/devtools: the Solid UI of the dev inspector (its core is Effect code)
