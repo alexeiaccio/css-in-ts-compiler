@@ -5291,8 +5291,6 @@ began) and both checks are green: `bun run fmt:check` — "All matched files use
 `devtools/src/core/css.ts`) are whitespace-only changes and keep their tests: `css-grammar`, `cssints` and `devtools`
 suites pass, `typecheck` 47/47, `bun run lint` green.
 
-
-
 ## Devtools in the console: the page's vitals and the sheet's numbers (2026-11-07)
 
 The capture here is a line, not a feature: **the inspector and the vitals live on different surfaces because they answer
@@ -5322,8 +5320,6 @@ console already knows.
 specificity), the Chromium test (layers, `@property`, keyframes in use, a long task and its animation frame, the paint
 entries, the printed group), `bun run typecheck`, `vp lint`, and the package's `bun run test`. The release PR picks this up
 as a `@cssints/devtools` minor.
-
-
 
 **Follow-up, same day: the metrics layer is `web-vitals`.** A hand-rolled observer was wrong in two ways the library
 already solves — CLS is the largest _session window_ of shifts, not their sum, and INP is the ~98th percentile of
