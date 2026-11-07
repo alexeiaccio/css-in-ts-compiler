@@ -1514,6 +1514,73 @@ createTable(options: {
 
 `rows` may be a getter (`() => rows()`): it is read at attribute-read time, so a table whose rows arrive later keeps its sort and its selection instead of being rebuilt, and a selection made before the rows landed applies once they do. Selection is over ids, so it survives the host's re-sort. `rowProps` carries `aria-selected` and a click that selects; `toggleRow` / `toggleAll` are the programmatic path, and the row's checkbox stops its click from reaching the row so the two controls never toggle the same row twice. `selectAllProps` and `rowCheckboxProps` are `undefined` unless `selection` is `"multiple"` (one control over one selection is meaningless), and the select-all is a `role="checkbox"` rather than a native `input` because the mixed state a screen reader must hear is `aria-checked="mixed"`, not the DOM-only `indeterminate` property. It toggles the rows the table renders: a windowed table toggles its window and keeps the rest of the selection. A table that renders all of its rows and columns carries no `aria-rowcount` / `aria-colcount` (the markup already says it); pass them, and every cell gets its `aria-colindex`, only when the host windows. `numeric` is a layout hint for the host's skin: HTML has no attribute for it.
 
+### Headless: `createGrid` (`@cssints/headless`)
+
+The APG grid as state and attribute objects: one tab stop, 2-D navigation, a cell/row/column selection rectangle, sortable column headers, edit mode and a windowed body. `specs/apg/grid.qnt` (navigation/edit) is its model, with `grid-selection.qnt` and `grid-sort.qnt` for the two values; `packages/headless/test/grid.browser.test.tsx` replays and walks them in Chromium.
+
+**The body is the platform's.** Movement and the roving tab stop are the V2 `focusgroup="grid"` contract (`focusGrid` below, `specs/patterns/focusgrid.qnt`): `gridProps.ref` builds the runtime, the owner's `focusgroup` attribute is rendered from the same definition, and arrows on both axes, Home/End (the row's ends), Ctrl+Home/End (the grid's), the edges and the last-focused memory are not this primitive's code. `row` / `col` are readings of the DOM — the owner's `focusin` maps the focused element back to its coordinate — and the host mirrors programmatic moves (`focus`, `clickCell`, PageUp/PageDown, Shift+Arrow) into DOM focus, as the test fixture does. The library keeps edit mode (`Enter` / `F2` / `a` / `Escape`, `lastEdit`), selection, sort, PageUp/PageDown (a grid defines no page movement, so the runtime never sees those keys), the mount window and the `aria-*` indices.
+
+**Wrapping is the platform's `flow`, not `wrap`.** `wrapCols` means "Right on the last column continues into the next row's first cell", which APG's layout-grid example writes `data-wrap-cols`; the runtime spells that `flow` (continue into the adjacent row, wrapping at the outer edge). `wrapRows` is the block axis the same way. A data grid is hard on both axes, so the definition is `{ rowEdge: wrapCols ? "flow" : "none", colEdge: wrapRows ? "flow" : "none", memory: true }`; `setWrapCols`, `setWrapRows` and `setGridKind` re-apply it through the runtime.
+
+**The header row is still the library's and outside the group.** Sortable column headers keep their own one-dimensional roving, and the APG grid deliberately omits Up/Down between the header row and the body; `headerProps` marks each header `focusgroup="none"` so neither provider pulls it into the body's item collection. Tab then walks from the header stop into the body stop, as two stops of the sequential order.
+
+**The `tabindex` recipe.** Each cell target carries a constant author `tabindex="0"` (the native engine navigates only items with `tabIndex > -1`, and a `<div role="gridcell">` needs an author value to be focusable at all) and the runtime writes the single stop over it. With `focusTarget: "widget"` the widgets are the item set, so cells author `-1` and widgets `0`. A host must not bind `tabindex` reactively after these props. `focusgroupstart` rides on the current coordinate; with `memory: true` the platform prefers its own memory once focus has been inside, so the marker is what the first Tab entry lands on. `aria-activedescendant` is still emitted for a widget target: it is an announcement, while focus really sits on the widget.
+
+```ts skip
+createGrid(options?: {
+  rows?: number; // 4
+  cols?: number; // 3
+  gridKind?: "data" | "layout"; // "data"
+  wrapCols?: boolean; // layout only: Right/Left flow across rows (data-wrap-cols)
+  wrapRows?: boolean; // layout only: Down/Up flow across columns (data-wrap-rows)
+  focusTarget?: "cell" | "widget"; // "cell"
+  gridReadonly?: boolean;
+  selectable?: boolean; // aria-selected + the selection keys
+  sortEnabled?: boolean; // sortable columnheaders (aria-sort)
+  value?: number | undefined; // controlled packed selection (packSelection); 0 = nothing
+  defaultValue?: number;
+  onValueChange?(value: number): void;
+  sortValue?: number | undefined; // controlled packed sort (packSort); -1 = unsorted
+  defaultSortValue?: number;
+  onSortChange?(value: number): void;
+  page?: number; // PageUp/PageDown step in rows, 2
+  id?: string;
+  rowWindow?: { start: number; count: number } | undefined; // the mounted row range
+  provider?: "auto" | "polyfill"; // "polyfill" forces focusGrid's fallback
+}): {
+  rows(): number; cols(): number;
+  row(): number; col(): number; // readings of the DOM focus
+  hasFocus(): boolean; mode(): "navigate" | "edit";
+  gridKind(): "data" | "layout"; wrapCols(): boolean; wrapRows(): boolean;
+  focusTarget(): "cell" | "widget"; gridReadonly(): boolean;
+  lastEdit(): "none" | "committed" | "cancelled";
+  renderedRows(): ReadonlyArray<number>;
+  isSelected(row: number, col: number): boolean;
+  selection(): number; sort(): number;
+  sortColumn(): number; sortDirection(): "none" | "ascending" | "descending";
+  focusTargetPart(): string | null; // the data-part the host mirror focuses
+  currentCellId(): string; // the cell carrying focusgroupstart
+  gridProps: { role: "grid"; "aria-rowcount"; "aria-colcount"; "aria-readonly"; "aria-activedescendant";
+    focusgroup: string; ref(element: HTMLElement): void; onFocusOut(event: FocusEvent): void };
+  rowProps(row: number): { role: "row"; id; "aria-rowindex" };
+  cellProps(row: number, col: number): { role: "gridcell"; id; tabindex: number; focusgroupstart: "" | undefined;
+    ref(element: HTMLElement): void; "aria-rowindex"; "aria-colindex"; "aria-readonly"; "aria-selected";
+    onClick(): void };
+  widgetProps(row: number, col: number): { tabindex: number; focusgroupstart: "" | undefined;
+    ref(element: HTMLElement): void };
+  headerProps(col: number): { role: "columnheader"; id; focusgroup: "none"; tabindex; "aria-sort";
+    onClick(): void; onFocus(): void; onKeyDown(event: KeyboardEvent): void };
+  focus(): void; blur(): void;
+  clickCell(row: number, col: number): void;
+  setGridKind(kind: "data" | "layout"): void;
+  setWrapCols(flag: boolean): void; setWrapRows(flag: boolean): void;
+  setFocusTarget(target: "cell" | "widget"): void;
+  setGridReadonly(flag: boolean): void; setSelectable(flag: boolean): void; setSortEnabled(flag: boolean): void;
+};
+```
+
+The selection and the sort are requests: uncontrolled by default (`defaultValue` / `defaultSortValue`), and a controlled host owns them with `value` / `sortValue`; `packSelection` and `packSort` are the injective values. `page` is the spec's PAGE constant: PageDown moves a page of rows and clamps to the last row, PageUp the same upward. A `rowWindow` is only the mount window — cell/row indices stay absolute — and the runtime re-collects when it moves, so the stop stays on a mounted cell or is re-seated on the first one. Edit mode is the spec's: a read-only grid and the last column never enter it, leaving commits, Escape cancels.
+
 ### Headless: `createTabs` (`@cssints/headless`)
 
 The APG tablist as state and attribute objects: the platform's single tab stop, arrows, Home/End and wrap; automatic or manual activation, disabled tabs, and a selection that is a request (`value` + `onValueChange`) or uncontrolled (`defaultSelected`). `packages/apg-specs/specs/apg/tabs.qnt` is its model (it imports `shared/focusgroup.qnt`); `packages/headless/test/tabs.browser.test.tsx` replays it in Chromium, on both providers.
@@ -1777,7 +1844,7 @@ createDatePicker(options: {
 };
 ```
 
-Every date is an ISO `YYYY-MM-DD`, read as a UTC midnight; `month()` and `labels.month` use 0-11. `monthDays()` is **six weeks around the shown month**, so a row can start in the previous month and end in the next one: every cell is a real focusable date (a blank cannot hold the roving focus), and a cursor that leaves the month pages the grid to where it landed. `cellProps(iso)` marks the chosen day `aria-selected`, `today` `aria-current="date"`, a day outside `min`/`max` `aria-disabled`, and gives `tabindex=0` to the roving day only: the selected day, else today when it is in the shown month, else the first day the bounds allow. Keys on the focused day: ←/→ a day, ↑/↓ a week, Home/End the week's first/last day, PageUp/PageDown a month, Shift+PageUp/PageDown a year (the day clamps, 29 February included), Enter/Space selects and closes, Escape closes without changing the value, Tab leaves. The month arrows page the month and move the roving tab stop; the DOM focus stays on the arrow, so a host that wants the next key to land on a day moves it after the cells re-rendered (the kit's nav buttons do). `attach()` is the popover's light dismissal and focus return, plus focus into the roving day on open; `contentStyle()` is its placement — the same page-space `position: absolute` box `createPopover` gives, so a popup that escapes a positioned or clipping ancestor is placed by the initial containing block, not by the trigger's parent. The host renders the cells, the CSS and the trigger's visible text; a segmented text field is a host composition of `createField` + `createSpinbutton` over the same day numbers, not part of this API.
+Every date is an ISO `YYYY-MM-DD`, read as a UTC midnight; `month()` and `labels.month` use 0-11. `monthDays()` is **six weeks around the shown month**, so a row can start in the previous month and end in the next one: every cell is a real focusable date (a blank cannot hold the roving focus), and a cursor that leaves the month pages the grid to where it landed. `cellProps(iso)` marks the chosen day `aria-selected`, `today` `aria-current="date"`, a day outside `min`/`max` `aria-disabled`, gives `tabindex=0` to the roving day only and the grid's `focusgroupstart` to that same day: the selected day, else today when it is in the shown month, else the first day the bounds allow. `gridProps` is the grid's `role` / `aria-*` only — no `focusgroup` attribute and no `ref`: the picker owns its keyboard and its roving day, and the grid's `row` / `col` mirror the cursor so `cellProps` can name the current cell. `attach()` focuses that cell by id, not by `[tabindex="0"]` (which no longer names one element in a grid whose platform owns the stop). Keys on the focused day: ←/→ a day, ↑/↓ a week, Home/End the week's first/last day, PageUp/PageDown a month, Shift+PageUp/PageDown a year (the day clamps, 29 February included), Enter/Space selects and closes, Escape closes without changing the value, Tab leaves. The month arrows page the month and move the roving tab stop; the DOM focus stays on the arrow, so a host that wants the next key to land on a day moves it after the cells re-rendered (the kit's nav buttons do). `attach()` is the popover's light dismissal and focus return, plus focus into the roving day on open; `contentStyle()` is its placement — the same page-space `position: absolute` box `createPopover` gives, so a popup that escapes a positioned or clipping ancestor is placed by the initial containing block, not by the trigger's parent. The host renders the cells, the CSS and the trigger's visible text; a segmented text field is a host composition of `createField` + `createSpinbutton` over the same day numbers, not part of this API.
 
 ### Headless: `createPanZoom` (`@cssints/headless`)
 
@@ -2785,6 +2852,7 @@ focusGrid(owner: HTMLElement, options: {
     col: number;
     cell?: HTMLElement; // when `element` is a descendant of its cell
   }>;
+  provider?: "auto" | "polyfill"; // "polyfill" forces this runtime and writes no focusgroup attribute
 }): {
   attribute: string; // the definition as the focusgroup attribute
   update(definition?: definition): void;
@@ -2818,6 +2886,8 @@ supportsFocusGrid(manual?); // focusGroup.supports("grid") (and "manual")
   the runtime writes only the attribute and its row markers and the browser owns the movement and the tab stop — so
   the host authors `tabindex` on each cell target, as the explainer's markup does. The polyfill's compatibility trap
   (it polyfills `grid` even where a browser ships it) does not apply: this is not the polyfill.
+  `provider: "polyfill"` skips the feature detect, drives this runtime and writes no `focusgroup` attribute, so the
+  two engines cannot both act (a test, or a host that knows it needs the fallback).
 - **What it does not do** (the widget's, `specs/apg/grid.qnt` and `createGrid`): edit mode, selection, sort,
   activation, `PageUp` / `PageDown`, spans, ragged rows, virtualisation, `itemcontrols` (default for a grid,
   unsupported upstream), `aria-rowindex` / `aria-colindex` / role inference, and Tab / Shift+Tab (HTML sequential

@@ -5101,7 +5101,7 @@ is the finding worth keeping.
 - **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
   whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
   (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
-round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+  round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
   host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
   limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
   and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
@@ -5115,3 +5115,68 @@ have been wrong: 63 dCSS functions and 19 gamutant parts are a library, not a ki
 the typecheck across the 32 workspaces, `release:check` (both packages pack, 5 files each) and `diff:check`. **The release
 gate that remains is the hand's**: `release:check` refuses a package that is not on npm yet, so the first version of each is
 published by hand (with `npm trust` for provenance) before the release pull request, as `@cssints/stories` was.
+
+## The grid on the V2 runtime: `flow` is not `wrap`, and a `tabindex` probe is not a stop (2026-11-07)
+
+`createGrid` was the V2 runtime's first consumer, and the migration split it where the earlier four widgets split: the
+owner's `ref` builds `focusGrid`, arrows/Home/End/Ctrl+Home/End, the edges, the single tab stop and the last-focused
+memory are the platform's, and the primitive keeps its delta — edit mode, selection, sort, PageUp/PageDown (a grid
+defines no page movement, so the runtime never sees those keys), the mount window and the `aria-*` indices. `row` / `col`
+became a reading of the DOM: the owner's `focusin` maps the focused element back to the coordinate, and the host mirror
+(the fixture's `focusTargetPart` effect) moves DOM focus for the programmatic moves. The keydown listener discipline is
+the listbox's: the primitive's listener is registered on the owner **before** `focusGrid`'s, so a key it consumes is
+already `defaultPrevented`, and it consumes exactly Page, edit, the selection modifiers and Shift+Arrow. A plain arrow is
+not consumed, so the runtime reads it and moves.
+
+**The wrap mapping is the finding.** Today's `wrapCols` / `wrapRows` are APG's _linear_ wrapping (`data-wrap-cols` /
+`data-wrap-rows` in the layout-grid example): passing the last column continues into the next row's first cell. The
+runtime calls that **`flow`**, not `wrap` (`wrap` is the opposite end of the same row / column, which APG's grid never
+does), so the definition is `{ rowEdge: wrapCols ? "flow" : "none", colEdge: wrapRows ? "flow" : "none", memory: true }`.
+The one observable difference from the old hand-rolled `rightIdx` / `downIdx` is the outer edge: the old code stopped at
+the grid's corner (`wrapCols && row < LAST_ROW`, else `cur`), the platform's `flow` wraps from the last cell to the first
+(`nextRow = row + d < 0 ? rows - 1 : row + d < rows ? row + d : 0`). That is the platform's contract and it is now the
+grid's; the spec-only tests that asserted "stop at the grid corners" were updated rather than the runtime. A data grid is
+hard on both axes, so the runtime never sees a nonzero edge there.
+
+**Memory is the second finding, and it is the difference from `tabs.qnt`.** A grid is not a tablist: the stop while focus
+is outside is the last focused cell, not a selection-derived start (`fgStopOnLeave(true, …)`), and `focusgroupstart` rides
+on the current cell so it is the entry only until focus has been inside. `grid.qnt` now imports `shared/focusgroup.qnt`,
+adds `var tabStop`, derives `tabindex` from `fgTabIndex`, and pins `TabStopIsCurrent`; the only movement arithmetic left in
+it is the platform's `inlineLand` / `blockLand` / `edgeLand` restated, because a deterministic reference model has to say
+where a key lands. The bridge reads the new derivation (`cell` targets get the stop only when `focusTarget` is `cell`, the
+widgets only when it is `widget`), which is also how the DOM renders it.
+
+**The tabindex recipe, measured against the walk.** Every cell target keeps a constant author `tabindex="0"` (the native
+engine only navigates items with `tabIndex > -1`, and a `<div role="gridcell">` needs an author value), the runtime writes
+the single stop over it, and with `focusTarget: "widget"` the cells author `-1` and the widgets `0` so that exactly one of
+the two sets is navigable. The "constant `0`" the earlier widgets use is per _item set_, not per element: with both sets
+authored `0` the DOM would hold two stops in widget mode, which the spec's `ExactlyOneTabStop` cannot describe. A
+`tabindex` probe therefore reads the stop only on the forced fallback (our runtime writes it); a native V2 keeps it in the
+focus controller, which is why the walk still forces the provider. The `provider: "polyfill"` option now exists exactly
+for that, and it also keeps the `focusgroup` attribute off the owner so the two engines cannot both act. The grid walk
+stays a differential walk over the same four configurations and alphabet; the focused half uses real keys: Tab in on the
+header stop and then on the body stop, arrows on both axes, Home/End, Ctrl+Home/End, hard data edges, each layout option
+alone and both together, the memory across Tab/Shift+Tab, the widget target with `aria-activedescendant`, and a moving
+`rowWindow` that re-collects and keeps one stop in range.
+
+**The header stays the library's, and outside the group.** The sortable headers keep `headerCol` / `headerKeyCol` /
+`onHeaderKeyDown` (`grid-sort.qnt` models the header row; the APG grid deliberately omits Up/Down between the header and
+the body). They are `focusgroup="none"`, so neither provider pulls them into the body's collection, and they remain a
+separate sequential stop: Tab from the body lands on the header and Shift+Tab comes back. `onHeaderKeyDown` now cancels
+only the keys it owns (arrows, Home/End, Enter/Space) instead of every key, which used to cancel Tab and trap focus in the
+header. A future native V2 needs a second owner or the header segment of a `manual` topology; this primitive does not
+invent one for the host to render.
+
+**The walk's two catches.** (1) After the body focused and Shift+Tab moved focus to a header, `headerFocus` stayed true and
+the fixture's mirror kept re-focusing the header on the next cell click; `clickCell` / `focus` / a body `focusin` now clear
+it. (2) An edit mode that consumed nothing let the runtime move on arrows (the fixture has no native `<input>` to trip the
+runtime's key-conflict guard), so the edit surface now `stopImmediatePropagation`s every unhandled key without
+`preventDefault`, which keeps a real input's caret and keeps the runtime out. The plain-arrow selection collapse still has
+to happen in the primitive for a key the platform blocks at an edge (no `focusin` fires), and it dedupes with the
+`focusin` collapse through the controllable's in-flight intent.
+
+**What stayed out, and what a native V2 needs.** `table.ts` has no navigation to move and `treegrid.ts` keeps its own
+model. Spans, ragged rows, virtualisation, edit mode, selection, sort, PageUp/PageDown and `itemcontrols` remain the
+widget's (the runtime's header says so); `itemcontrols` is unsupported upstream (PR #66), so nested controls are not
+filtered and a cell's own control may take an arrow the grid would otherwise move on. The header segment, a `manual`
+topology for it, and a native engine that writes the stop itself are the follow-ups.
