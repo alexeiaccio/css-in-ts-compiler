@@ -98,7 +98,7 @@ interface PostRecord {
 }
 // `record` and a quote's `value` are unknown in the lexicon
 export const recordOf = (p: PostView | AppBskyEmbedRecord.ViewRecord): PostRecord =>
-  ((p as PostView).record ?? (p as AppBskyEmbedRecord.ViewRecord).value ?? {}) as PostRecord;
+  (p as PostView).record ?? (p as AppBskyEmbedRecord.ViewRecord).value ?? {};
 
 export interface Part {
   text: string; // what is shown

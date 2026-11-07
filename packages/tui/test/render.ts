@@ -30,7 +30,7 @@ const { renderer, mockMouse, renderOnce, captureCharFrame, captureSpans } = setu
 // the colours drawn at a cell
 const drawn = (x: number, y: number) => {
   let col = 0;
-  for (const span of captureSpans().lines[y].spans) {
+  for (const span of captureSpans().lines[y]!.spans) {
     if (x < col + span.width) return { fg: hex(span.fg), bg: hex(span.bg) };
     col += span.width;
   }
@@ -221,7 +221,7 @@ const answer = (n: string) => {
 const reply = (text: string) => {
   let out = "";
   // oxlint-disable-next-line no-control-regex
-  for (const [, n] of text.matchAll(/\x1b\](10|11|4;\d+);\?/g)) out += answer(n);
+  for (const [, n] of text.matchAll(/\x1b\](10|11|4;\d+);\?/g)) out += answer(n ?? "");
   if (out) setTimeout(() => stdin.emit("data", Buffer.from(out)), 1);
 };
 const host = sys.renderer as unknown as {
@@ -265,7 +265,7 @@ try {
   const red = theme.solve({ ...colours }).values["color-error"];
   assert.equal(hex(text.fg), red, "the terminal's red, made readable on its background");
   assert.equal(hex(text.bg), "#282828", "the terminal's background");
-  assert.ok(contrast(red, "#282828") >= 4.5);
+  assert.ok(contrast(red ?? "", "#282828") >= 4.5);
   assert.equal(hex(span.fg!), red, "the span: the solved palette");
   assert.deepEqual(await onMode, ["dark"]);
   // the terminal turns light: a 2031 notification, then OpenTUI's own OSC 10/11 query, answered here

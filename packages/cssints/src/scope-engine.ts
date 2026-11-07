@@ -195,7 +195,7 @@ class Compiler {
     const mod = this.table[path.slice(0, dot)];
     if (!isScope(mod))
       throw thrown(this.name, `${this.name}: ${path} is not an entry of this scope`);
-    return compile(mod as unknown as Impl_).find(path.slice(dot + 1));
+    return compile(mod).find(path.slice(dot + 1));
   }
   private entry(key: string): [string, unknown] {
     const k = Object.hasOwn(this.table, key) ? key : `#${key}`;
@@ -364,7 +364,7 @@ const hashOf = (text: string) => {
 const register = (s: Impl_ & { "~text"?: string; "~hash"?: string }): string => {
   if (s["~hash"]) return s["~hash"];
   const table = s.table;
-  for (const v of Object.values(table)) if (isScope(v)) register(v as never);
+  for (const v of Object.values(table)) if (isScope(v)) register(v);
   const text = canon([table, s.impl]);
   const hash = hashOf(text);
   s["~text"] = text;
@@ -599,7 +599,7 @@ const callOf = (c: Compiler, key: string, def: CallDef) => {
 
 const exportOf = (s: Impl_): Dict<unknown> => {
   const c = compile(s);
-  register(s as never);
+  register(s);
   const calls = Object.keys(s.table).filter((k) => kindOf(k, s.table[k]) === "call");
   if (calls.length && !s.impl)
     throw thrown(s.name, `${s.name}: call .build({ ${calls.join(", ")} }) before .export()`);

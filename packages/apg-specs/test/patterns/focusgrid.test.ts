@@ -27,9 +27,6 @@ const step = (state: QuintModelValue, event: Record<string, unknown>): QuintMode
   return next;
 };
 
-const run = (start: QuintModelValue, ...tags: ReadonlyArray<string>): QuintModelValue =>
-  tags.reduce((state, tag) => step(state, { _tag: tag }), start);
-
 const ROWS = 3;
 const COLS = 4;
 const CELLS = ROWS * COLS;

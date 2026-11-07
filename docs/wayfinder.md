@@ -5246,3 +5246,32 @@ the smoke exercises them (not run here; the coordinator runs it).
 `tokens/scripts`, `css-grammar/scripts`, `apps/docs` and two `csssky` assertions, on top of a `bun run lint` that is
 already red on master (89 findings, mostly pre-existing) — that bump needs its own pass. `bun run fmt:check` is red on 39
 files under both versions (not in CI). `csssky-tui` stays on Solid 1.9: `@opentui/solid` is a Solid 1 renderer.
+
+## `vite-plus` 1.5.0, and the lint baseline it made visible (2026-11-07)
+
+The 1.4.0 → 1.5.0 bump itself changed **nothing** in the gates: the same 962 findings, the same 38 unformatted files, the
+same suites passing. What it did was make the measurement worth doing, and the number turned out to be one rule
+counted 858 times: `import(namespace)` reported every `css.color(…)` in the repository as "not found in imported
+namespace `cssints`". The import plugin does not read import attributes, and every style module is
+`import * as css from "cssints" with { type: "cssints" }` — a file that also carries a plain `import type` gets a
+namespace, which is why the one finding recorded two entries up was read as a local curiosity rather than as the rule
+being blind to the repository's convention. `import/namespace` is now off, with that reason beside it in
+`vite.config.ts`: the TypeScript pass is what proves the members exist, and it runs in the same command.
+
+With the noise gone, the remaining 104 findings were real and are fixed: 14 unnecessary type assertions (removed — the
+Solid 2 rc.21 types made them redundant), 11 unused imports and variables, the type errors of four files no tsconfig
+covers (the `tokens` generator, the `css-grammar` keyword generator, and the `tui` tests: a closed `Colour` union instead
+of `Record<string, string>` took 52 of them out in one line, the rest are guards where an index may be absent), 4 JSDoc
+tags, and the promise patterns of `scripts/starter-smoke.mjs` (a script waits for `listen`/`close`; `promise/avoid-new`
+is off there for the same reason it is off for the machine's store) and `apps/ui`'s overlay completion (renamed, because
+the rule reads a call to something named like a callback inside a promise handler). `apps/docs`' playground reads the
+engine's sources with `?raw`, which the plugin synthesises: `import/default` is off for that directory. `bun run lint` is
+**green** for the first time this session, and `bun run typecheck` stays 47/47.
+
+**Left out, and true.** `bun run fmt:check` is still red on the same 24 files it was red on before (a formatting skew
+between the committed files and either oxfmt): reformatting them is a whitespace diff that turns the _existing_ `let`
+lines of `rules.ts`, `selector.ts`, `sheet.ts`, `theme.ts` and `devtools/src/core/css.ts` into added lines, which the
+repository's own `diff-check` no-let rule rejects — so that pass needs the `let`s rewritten first, not a formatter run.
+Files this change touches are formatted. A single `bun run test` across all 65 workspaces is not a gate on this machine:
+the workspaces start dev servers on port 24678 and the browser suites collide (four exit 137 under the load); each suite
+passes alone, which is how they were checked.

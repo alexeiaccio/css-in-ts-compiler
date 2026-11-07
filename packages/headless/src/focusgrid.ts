@@ -199,9 +199,7 @@ const geometryOf = (items: ReadonlyArray<FocusGridItem>): Geometry | null => {
     }
     cells[index] = item;
   }
-  return cells.every((cell) => cell !== undefined)
-    ? { rows, cols, cells: cells as FocusGridItem[] }
-    : null;
+  return cells.every((cell) => cell !== undefined) ? { rows, cols, cells } : null;
 };
 
 /** The same landing math as `specs/patterns/focusgrid.qnt` (`inlineLand`, `blockLand`). */

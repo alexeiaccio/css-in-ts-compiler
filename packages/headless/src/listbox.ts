@@ -1,7 +1,6 @@
 import {
   type Accessor,
   createEffect,
-  createMemo,
   createSignal,
   createUniqueId,
   onCleanup,
@@ -234,9 +233,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       setHostActive(() => value);
     },
   );
-  const [hostValue, setHostValue] = createSignal<ReadonlyArray<number> | undefined>(
-    options.value,
-  );
+  const [hostValue, setHostValue] = createSignal<ReadonlyArray<number> | undefined>(options.value);
   createEffect(
     () => options.value,
     (value) => {

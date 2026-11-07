@@ -15,7 +15,12 @@ export interface Guide {
   readonly Page: () => JSX.Element;
 }
 
-/** A code block: the page's own box, without a file name above it. */
+/**
+ * A code block: the page's own box, without a file name above it.
+ *
+ * @param {object} props - the block's source
+ * @returns {JSX.Element} the block
+ */
 const Code = (props: { readonly code: string }): JSX.Element => (
   <div class="docs__file">
     <pre class="docs__code">

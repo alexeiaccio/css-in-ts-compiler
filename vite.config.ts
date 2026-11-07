@@ -196,6 +196,18 @@ export default defineConfig({
         ],
         rules: { "import/no-duplicates": "off" },
       },
+      // The scripts build servers, spawn children and wait for tarballs: `new Promise` around `listen`/`close` is the
+      // shape node gives those events, and there is no promise-returning alternative to await.
+      {
+        files: ["scripts/**", "packages/*/scripts/**", "packages/cssints/test/hmr/**"],
+        rules: { "promise/avoid-new": "off" },
+      },
+      // A Vite `?raw` import is the engine's sources as text: the plugin synthesises the default export, and there is
+      // no module for the rule to resolve.
+      {
+        files: ["apps/docs/src/playground/**"],
+        rules: { "import/default": "off" },
+      },
       { files: plainCode, rules: automationOff },
       // The AST walk is plain code inside the `instrument` boundary; the rest of instrument.ts stays Effect code.
       {
@@ -321,7 +333,10 @@ export default defineConfig({
       "eslint/use-isnan": "error",
       "eslint/valid-typeof": "error",
       "import/default": "error",
-      "import/namespace": "error",
+      // `import * as css from "cssints" with { type: "cssints" }` is how every style module is written, and the import
+      // plugin does not read import attributes: it resolves the namespace to the module it knows (no members), so every
+      // `css.color(…)` in the repository reads as "not found". `bun run typecheck` is what proves those members exist.
+      "import/namespace": "off",
       "import/no-duplicates": "error",
       "import/no-named-as-default": "error",
       "import/no-named-as-default-member": "error",

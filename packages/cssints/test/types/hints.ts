@@ -5,7 +5,7 @@ import { border, display, font } from "cssints" with { type: "cssints" };
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
-const equal = <A, B>(_: Equal<A, B>) => {};
+const equal = <A, B>(_value: Equal<A, B>) => {};
 
 equal<Hint<"display", "fl">, "flex" | "flow" | "flow-root">(true);
 equal<Hint<"display", "FL">, "flex" | "flow" | "flow-root">(true);

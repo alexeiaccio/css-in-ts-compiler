@@ -52,19 +52,29 @@ const alias = (t: string) => `K_${t.replace(/[^a-z0-9]/gi, "_")}`;
 // instead of one test per keyword while an argument is still generic).
 const buckets = (kws: Set<string>) => {
   const by = new Map<string, string[]>();
-  for (const k of [...kws].sort())
-    by.set(k[0].toLowerCase(), [...(by.get(k[0].toLowerCase()) ?? []), k]);
+  for (const k of [...kws].sort()) {
+    const first = k.charAt(0).toLowerCase();
+    by.set(first, [...(by.get(first) ?? []), k]);
+  }
   return `{ ${[...by].map(([c, ks]) => `${lit(c)}: ${ks.map(lit).join(" | ")}`).join("; ")} }`;
 };
-const perProp = Object.keys(props).map((p) => {
+const perProp = Object.keys(props).flatMap((p) => {
+  const grammar = props[p];
+  if (grammar === undefined) {
+    return [];
+  }
   const acc: Acc = { kws: new Set(), types: new Set() };
-  walk(parseGrammar(props[p]), acc, false, new Set([`'${p}`]));
-  return [p, acc] as const;
+  walk(parseGrammar(grammar), acc, false, new Set([`'${p}`]));
+  return [[p, acc] as const];
 });
 const used = new Set(perProp.flatMap(([, a]) => [...a.types]));
 const aliases = [...used].sort().flatMap((t) => {
   const acc: Acc = { kws: new Set(), types: new Set() };
-  walk(parseGrammar(syns[t]), acc, true, new Set([t]));
+  const syn = syns[t];
+  if (syn === undefined) {
+    return [];
+  }
+  walk(parseGrammar(syn), acc, true, new Set([t]));
   return acc.kws.size ? [`type ${alias(t)} = ${buckets(acc.kws)};`] : [];
 });
 const have = new Set(aliases.map((a) => a.split(" ")[1]));

@@ -93,7 +93,12 @@ for (const directory of readdirSync(join(root, "packages"))) {
 }
 process.stdout.write(`packed ${local.size} workspace packages\n`);
 
-/** The bare package name of an npm specifier (`@scope/name@^1`, `name@1`, `name`). */
+/**
+ * The bare package name of an npm specifier (`@scope/name@^1`, `name@1`, `name`).
+ *
+ * @param {string} spec - the specifier
+ * @returns {string} the name, without a range
+ */
 const specName = (spec) =>
   spec.startsWith("@") ? spec.split("@").slice(0, 2).join("@") : spec.split("@")[0];
 
@@ -122,7 +127,7 @@ const server = createServer((request, response) => {
   response.writeHead(200, { "content-type": "application/json" });
   response.end(JSON.stringify(item));
 });
-await new Promise((listening) => server.listen(0, "127.0.0.1", listening));
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const { port } = server.address();
 process.stdout.write(`registry: http://127.0.0.1:${port}/r/{name}.json\n`);
 

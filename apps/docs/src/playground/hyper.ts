@@ -33,19 +33,28 @@ export const attrs = (props: Record<string, unknown>): [string, string][] =>
   Object.entries(props).flatMap(([k, v]): [string, string][] => {
     if (v == null || v === false || typeof v === "function") return [];
     if (k === "className" || k === "class")
-      return [["class", Array.isArray(v) ? v.filter(Boolean).join(" ") : String(v as string)]];
+      return [
+        [
+          "class",
+          Array.isArray(v)
+            ? v.filter(Boolean).join(" ")
+            : // oxlint-disable-next-line typescript/no-base-to-string -- a class value is text
+              String(v),
+        ],
+      ];
     if (k === "style")
       return [
         [
           "style",
           typeof v === "string"
             ? v
-            : Object.entries(v as object)
+            : Object.entries(v)
                 .map(([p, x]) => `${p.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}:${x}`)
                 .join(";"),
         ],
       ];
-    return [[k, v === true ? "" : String(v as string)]];
+    // oxlint-disable-next-line typescript/no-base-to-string -- an attribute value is text
+    return [[k, v === true ? "" : String(v)]];
   });
 
 // The component a module shows: its default export, else `App`, else its first function.

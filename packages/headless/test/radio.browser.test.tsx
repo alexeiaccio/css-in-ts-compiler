@@ -139,7 +139,7 @@ const mountNative = (options: {
   const before = document.createElement("button");
   before.textContent = "before";
   let api: RadioGroup<string> | undefined;
-  const dispose = render(() => {
+  render(() => {
     const group = createRadioGroup<string>({
       values: VALUES,
       defaultValue: options.checked,

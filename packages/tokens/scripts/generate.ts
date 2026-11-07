@@ -96,7 +96,7 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   const ease = opEasing as Record<string, string>;
   // an alias (`--ease-elastic-1: var(--ease-elastic-out-1)`) is its target, a literal
   const resolve = (v: string) =>
-    tidy(v.replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => ease[ref]));
+    tidy(v.replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => ease[ref] ?? ref));
   // the springs and bounces are linear() with more than 9 stops, which cssints' types reject (README, "Limits")
   const curves = (springs: boolean) =>
     leaves(
@@ -109,7 +109,7 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   // are tokens, the dark ones the overrides of a theme.
   const shadowSet = (dark: boolean) => {
     const props = opShadows as Record<string, string>;
-    const pick = (name: string) => props[dark ? `${name}-@media:dark` : name];
+    const pick = (name: string) => props[dark ? `${name}-@media:dark` : name] ?? "";
     const strength = Number.parseFloat(pick("--shadow-strength"));
     const value = (ref: string) => {
       if (ref === "--shadow-color") return pick(ref);
@@ -124,7 +124,7 @@ const write = (file: string, header: string, exports: Group, license = "") => {
         .filter(([name]) => /^--(inner-)?shadow-\d+$/.test(name))
         .map(([name, v]) => [
           camel(name.slice(2)),
-          tidy(v.replace(/var\((--[\w-]+)\)/g, (_, ref: string) => value(ref))),
+          tidy(v.replace(/var\((--[\w-]+)\)/g, (_, ref: string) => value(ref) ?? ref)),
         ]),
     );
   };
@@ -167,12 +167,12 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   const overrides = (scale: Record<string, string>) =>
     Object.fromEntries(stepsOf(scale).map(([k, v]) => [`_${k}`, v]));
   for (const s of scales) {
-    light[s] = leaves("color", stepsOf(r[s]));
-    lightAlpha[`${s}A`] = leaves("color", stepsOf(r[`${s}A`]));
-    dark[s] = overrides(r[`${s}Dark`]);
-    darkAlpha[`${s}A`] = overrides(r[`${s}DarkA`]);
+    light[s] = leaves("color", stepsOf(r[s] ?? {}));
+    lightAlpha[`${s}A`] = leaves("color", stepsOf(r[`${s}A`] ?? {}));
+    dark[s] = overrides(r[`${s}Dark`] ?? {});
+    darkAlpha[`${s}A`] = overrides(r[`${s}DarkA`] ?? {});
   }
-  for (const s of ["blackA", "whiteA"]) lightAlpha[s] = leaves("color", stepsOf(r[s]));
+  for (const s of ["blackA", "whiteA"]) lightAlpha[s] = leaves("color", stepsOf(r[s] ?? {}));
   write("radix.ts", `from @radix-ui/colors ${version("@radix-ui/colors")}`, {
     light,
     dark,
@@ -188,8 +188,16 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   );
   const groups: Record<string, [string, string][]> = {};
   for (const [, name, value] of css.matchAll(/--flexoki-([\w-]+):\s*(#[0-9A-Fa-f]+);/g)) {
-    const m = /^(?:([a-z]+)-)?(\w+)$/.exec(name)!;
-    (groups[m[1] ?? "base"] ??= []).push([m[2], value.toLowerCase()]);
+    if (name === undefined || value === undefined) {
+      continue;
+    }
+    const m = /^(?:([a-z]+)-)?(\w+)$/.exec(name);
+    const step = m?.[2];
+    if (step === undefined) {
+      continue;
+    }
+    const group = m?.[1] ?? "base";
+    (groups[group] ??= []).push([step, value.toLowerCase()]);
   }
   const flexoki = Object.fromEntries(
     Object.entries(groups).map(([g, entries]) => [g, leaves("color", entries)]),
@@ -212,7 +220,7 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   // of their colours (a role stays right when a flavour is a theme of another), ANSI by number, 0..15 (`_0` in the tokens)
   const madoromi = Object.fromEntries(
     Object.entries(json.flavours).map(([id, f]) => {
-      const hex = (name: string) => f.colours[name].hex;
+      const hex = (name: string) => f.colours[name]?.hex ?? "";
       return [
         camel(id),
         {
@@ -254,8 +262,12 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   const dir = dirname(require.resolve("reasonable-colors/package.json"));
   const css = readFileSync(`${dir}/reasonable-colors.css`, "utf8");
   const groups: Record<string, [string, string][]> = {};
-  for (const [, hue, step, value] of css.matchAll(/--color-([a-z]+)-(\d+):\s*(#[0-9a-f]+);/gi))
+  for (const [, hue, step, value] of css.matchAll(/--color-([a-z]+)-(\d+):\s*(#[0-9a-f]+);/gi)) {
+    if (hue === undefined || step === undefined || value === undefined) {
+      continue;
+    }
     (groups[hue] ??= []).push([step, value.toLowerCase()]);
+  }
   const reasonableColors = Object.fromEntries(
     Object.entries(groups).map(([g, entries]) => [g, leaves("color", entries)]),
   );

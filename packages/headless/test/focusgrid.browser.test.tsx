@@ -309,7 +309,7 @@ const gridDriver = (grid: MountedGrid): Driver => {
       visible: () => [],
       events: () => [],
     },
-    dispose: grid.dispose,
+    dispose: () => grid.dispose(),
   };
 };
 

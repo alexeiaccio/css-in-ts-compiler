@@ -32,7 +32,7 @@ import gridSelectionDefinition from "@cssints/apg-specs/apg/grid-selection.model
 import gridSortDefinition from "@cssints/apg-specs/apg/grid-sort.model.json";
 import { mountGrid } from "./grid.fixture";
 import { partsDriver } from "./parts-driver";
-import { type Grid, createGrid } from "../src/grid";
+import { createGrid } from "../src/grid";
 import reactAria from "@cssints/apg-specs/scenarios/apg/grid.react-aria.json";
 
 const gridModel = makeReferenceModel(decodeDefinition(gridDefinition));
@@ -374,7 +374,6 @@ describe("createGrid x focusgroup V2 (the provider-switched path, real keys)", (
     const root = document.createElement("div");
     document.body.append(root);
     const [start, setStart] = createSignal(0);
-    let grid: Grid | undefined;
     const dispose = render(() => {
       const created = createGrid({
         rows: 6,
@@ -383,7 +382,6 @@ describe("createGrid x focusgroup V2 (the provider-switched path, real keys)", (
           return { start: start(), count: 2 };
         },
       });
-      grid = created;
       return (
         <div data-part="grid" {...created.gridProps}>
           {created.renderedRows().map((row) => (

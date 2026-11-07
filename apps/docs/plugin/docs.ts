@@ -105,7 +105,8 @@ export default function docs(): Plugin {
       if (!id.startsWith("\0virtual:docs")) return;
       const all = await get();
       if (id === "\0virtual:docs") {
-        const meta = all.map(({ html: _, ...page }) => page);
+        // the page's html is loaded on demand below; the meta the client gets has no html
+        const meta = all.map(({ html: _html, ...page }) => page);
         const loaders = all.map(
           (p, i) => `${JSON.stringify(p.slug)}: () => import("${pageId(i)}")`,
         );

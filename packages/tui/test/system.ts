@@ -24,23 +24,27 @@ const oklch = converter("oklch");
 const lch = (hex: string) => oklch(parse(hex)!);
 
 // createTokens at run time: each leaf is its var()
+const colourNames = [
+  "bg",
+  "card",
+  "hover",
+  "text",
+  "muted",
+  "border",
+  "accent",
+  "link",
+  "onAccent",
+  "error",
+  "success",
+  "warning",
+] as const;
+/** The run-time tokens: every colour is its own var, and the type is the closed set rather than a string index. */
+type Colour = (typeof colourNames)[number];
 const c = {
-  color: Object.fromEntries(
-    [
-      "bg",
-      "card",
-      "hover",
-      "text",
-      "muted",
-      "border",
-      "accent",
-      "link",
-      "onAccent",
-      "error",
-      "success",
-      "warning",
-    ].map((n) => [n, `var(--color-${n})`]),
-  ) as Record<string, string>,
+  color: Object.fromEntries(colourNames.map((n) => [n, `var(--color-${n})`])) as Record<
+    Colour,
+    string
+  >,
 };
 const t = c.color;
 const panels = [t.bg, t.card, t.hover];
@@ -103,13 +107,13 @@ for (const [label, [report, appearance]] of Object.entries(PALETTES)) {
   const v = solved.values;
   assert.equal(v["color-bg"], report.bg, `${label}: bg is the terminal's`);
   for (const [key, role] of Object.entries(roles.color) as [string, Role][]) {
-    const got = v[`color-${key}`];
+    const got = v[`color-${key}`] ?? "";
     assert.match(got, /^#[0-9a-f]{6}$/, `${label} ${key}`);
     const hue = role.hue ?? (role.surface ? "bg" : "fg");
     const source =
       hue === "bg" ? report.bg! : hue === "fg" ? report.fg! : report.ansi![SLOTS.indexOf(hue)]!;
     for (const on of (role.on ?? []) as string[]) {
-      const r = contrast(got, v[nameOf(on)]);
+      const r = contrast(got, v[nameOf(on)] ?? "");
       if (role.surface)
         assert.ok(
           Math.abs(r - role.contrast!) < 0.06,
@@ -125,19 +129,20 @@ for (const [label, [report, appearance]] of Object.entries(PALETTES)) {
   console.log(label, JSON.stringify(v));
 }
 
-const [gruvbox] = PALETTES["Gruvbox dark"];
+const [gruvbox] = PALETTES["Gruvbox dark"]!;
 const g = system.solve(gruvbox).values;
 // Gruvbox's dark red misses 4.5:1 on its background: it becomes lighter; its foreground passes and is kept
 assert.ok(contrast(gruvbox.ansi![1]!, gruvbox.bg!) < 4.5);
-assert.ok(lch(g["color-error"]).l > lch(gruvbox.ansi![1]!).l, "the red is lighter");
+assert.ok(lch(g["color-error"] ?? "").l > lch(gruvbox.ansi![1]!).l, "the red is lighter");
 assert.equal(g["color-text"], gruvbox.fg, "a source that passes is kept");
 // a pastel moved darker keeps its chroma (Pi's Catppuccin Frappé case)
 const pink = "#f4b8e4"; // Catppuccin Frappé's magenta, on a light background
-const pastel = createSystemTheme(
-  c,
-  { color: { bg: { surface: true }, accent: { hue: "magenta", on: [t.bg], contrast: 4.5 } } },
-  {},
-).solve({ bg: "#ffffff", ansi: [...Array<undefined>(5), pink] }).values["color-accent"];
+const pastel =
+  createSystemTheme(
+    c,
+    { color: { bg: { surface: true }, accent: { hue: "magenta", on: [t.bg], contrast: 4.5 } } },
+    {},
+  ).solve({ bg: "#ffffff", ansi: [...Array<undefined>(5), pink] }).values["color-accent"] ?? "";
 assert.ok(contrast(pastel, "#ffffff") >= 4.5);
 assert.ok(lch(pastel).c <= lch(pink).c + 0.004, `${pastel} is no more vivid than ${pink}`);
 
@@ -146,9 +151,15 @@ assert.ok(lch(pastel).c <= lch(pink).c + 0.004, `${pastel} is no more vivid than
 const app = createSystemTheme(c, roles, { hues: { blue: "#3b9cf0", fg: "#e6e9ec" } });
 const bgOnly = app.solve({ bg: "#ffffff" });
 assert.equal(bgOnly.appearance, "light");
-assert.ok(contrast(bgOnly.values["color-link"], "#ffffff") >= 4.5);
-assert.ok(hueGap(lch(bgOnly.values["color-link"]).h!, lch("#3b9cf0").h!) < 6, "the app's blue");
-assert.ok(contrast(bgOnly.values["color-text"], "#ffffff") >= 7, "the app's light text, darkened");
+assert.ok(contrast(bgOnly.values["color-link"] ?? "", "#ffffff") >= 4.5);
+assert.ok(
+  hueGap(lch(bgOnly.values["color-link"] ?? "").h!, lch("#3b9cf0").h!) < 6,
+  "the app's blue",
+);
+assert.ok(
+  contrast(bgOnly.values["color-text"] ?? "", "#ffffff") >= 7,
+  "the app's light text, darkened",
+);
 // nothing: ANSI indices where the renderer draws them, else no values (the static theme of the appearance)
 const none = system.solve({}, { indexed: true, colorfgbg: "" });
 assert.deepEqual(none, {
@@ -190,7 +201,11 @@ assert.throws(
     }),
   /a cycle of on/,
 );
-assert.throws(() => createSystemTheme(c, { color: { nope: {} } }), /color.nope is no token/);
+// an unknown role is a host error the constructor names; the type says so, hence the cast
+assert.throws(
+  () => createSystemTheme(c, { color: { nope: {} } } as never),
+  /color.nope is no token/,
+);
 
 // ---------- the replies, as bytes
 const ESC = "\x1b";
@@ -236,7 +251,7 @@ const style = {
   ":hover": { color: "#333333" },
   vars: { color: "color-text", ":hover": { color: "color-link" } },
 };
-const latte = system.apply(PALETTES["Catppuccin Latte"][0]);
+const latte = system.apply(PALETTES["Catppuccin Latte"]![0]);
 setTheme("system");
 assert.deepEqual(resolve(style), { color: latte.values["color-text"], backgroundColor: "#222222" });
 assert.equal(resolve(style, { hover: true }).color, latte.values["color-link"]);
@@ -259,17 +274,19 @@ assert.equal(
   "#111111",
   "nothing yet: the static theme (no indexed colour in bomb.sh)",
 );
-const [nord] = PALETTES.Nord;
+const [nord] = PALETTES.Nord!;
 const answers =
   `${ESC}]10;rgb:d8/de/e9${BEL}${ESC}]11;rgb:2e/34/40${BEL}` +
-  nord.ansi!.map((hex, i) => `${ESC}]4;${i};${hex}${ST}`).join("") +
+  nord
+    .ansi!.map((hex: string | null | undefined, i: number) => `${ESC}]4;${i};${hex}${ST}`)
+    .join("") +
   `${ESC}[?997;1n`;
 const split = answers.length >> 1;
 // the replies arrive with a key, cut in two chunks
 assert.deepEqual([...follow.feed(bytes(`a${answers.slice(0, split)}`))], [97]);
 assert.deepEqual([...follow.feed(bytes(`${answers.slice(split)}é`))], [...bytes("é")]);
 await follow.ready;
-const nordText = system.solve(nord).values["color-text"];
+const nordText = system.solve(nord).values["color-text"] ?? "";
 assert.equal(resolve(style).color, nordText, "every reply in: the theme of the palette");
 // a change notification: the queries again, and the new replies applied as they come
 follow.feed(bytes(`${ESC}[?997;2n`));

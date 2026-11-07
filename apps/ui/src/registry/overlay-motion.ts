@@ -238,7 +238,8 @@ export const createOverlayMotion = (options: OverlayMotionOptions): OverlayMotio
     animation.id = `${from}:${to}`;
     live = { handle, animation, from, to, duration };
     options.onAnimate?.(animation);
-    const done = (): void => {
+    // the completion of this animation: not the machine's `settle` above, and not a node callback
+    const complete = (): void => {
       if (live?.handle.id === handle.id) {
         live = undefined;
       }
@@ -246,7 +247,10 @@ export const createOverlayMotion = (options: OverlayMotionOptions): OverlayMotio
       // a completion, and a cancelled animation's own late one: the machine drops the latter by its id
       machine.send({ type: "finish", id: handle.id });
     };
-    animation.finished.then(done, done);
+    void animation.finished.then(
+      () => complete(),
+      () => complete(),
+    );
   });
 
   const offCancel = machine.onCancel((handle) => {

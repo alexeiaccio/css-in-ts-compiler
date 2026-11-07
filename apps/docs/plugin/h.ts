@@ -20,7 +20,9 @@ const text = (c: unknown): string =>
       ? ""
       : c instanceof Html
         ? c.html
-        : esc(String(c as string));
+        : // an object child has no text of its own; the renderer takes primitives and HTML
+          // oxlint-disable-next-line typescript/no-base-to-string
+          esc(String(c));
 
 export const h = (tag: unknown, props: Record<string, unknown> | null, ...kids: unknown[]) => {
   props ??= {};

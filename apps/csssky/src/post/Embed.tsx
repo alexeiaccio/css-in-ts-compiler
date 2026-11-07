@@ -299,7 +299,7 @@ function QuoteCard(props: { quote: Quote }) {
     <Switch>
       <Match when={props.quote.kind === "post" && props.quote}>
         {(q) => {
-          const post = () => (q() as Quote & { kind: "post" }).post;
+          const post = () => q().post;
           const media = createMemo(() => quoteMedia(post()));
           return (
             <div class={quote}>
@@ -329,7 +329,7 @@ function QuoteCard(props: { quote: Quote }) {
       <Match when={props.quote.kind === "gone" && props.quote}>
         {(q) => (
           <div class={quote}>
-            <div class={tomb}>{gone[(q() as Quote & { kind: "gone" }).why]}</div>
+            <div class={tomb}>{gone[q().why]}</div>
           </div>
         )}
       </Match>
