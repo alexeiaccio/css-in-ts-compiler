@@ -35,7 +35,12 @@ export default defineConfig({
     // dist/opencode.js is the OpenCode plugin (src/opencode.ts): it runs in OpenCode, so Node's modules and the files it shares
     // with the dev server (cssints/devtools-link) stay imports
     lib: {
-      entry: { overlay: "src/ui/overlay.tsx", opencode: "src/opencode.ts" },
+      entry: {
+        overlay: "src/ui/overlay.tsx",
+        // the console report: plain browser code, no Effect, no Solid — importable on any page
+        vitals: "src/vitals/index.ts",
+        opencode: "src/opencode.ts",
+      },
       formats: ["es"],
       fileName: (_, name) => `${name}.js`,
     },

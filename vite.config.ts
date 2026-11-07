@@ -134,6 +134,8 @@ const plainCode = [
   "packages/skeleton/src/**",
   // @cssints/devtools: the Solid UI of the dev inspector (its core is Effect code)
   "packages/devtools/src/ui/**",
+  // its console report: browser APIs in their own callbacks (PerformanceObserver, the CSSOM), no Effect in a page's bundle
+  "packages/devtools/src/vitals/**",
   // The files both sides of `/cssints-devtools` share, and the OpenCode plugin: plain Node fs at a tiny boundary, run by OpenCode
   // (no Effect runtime there) and called through Effect.sync by the dev server.
   "packages/cssints/src/devtools-link.ts",
