@@ -176,7 +176,7 @@ export function redrawDoc(source: string, file: string, options: TextOptions = {
     const end = lines.indexOf("```", i + 2);
     if (end < 0) throw new Error(`${file}:${i + 1}: the figure's fence is not closed`);
     const path = resolve(dirname(file), ref[1]!);
-    const parsed = parse(readFileSync(path, "utf8"));
+    const parsed = parse(readFileSync(path, "utf8"), { dir: dirname(path) });
     if (!parsed.spec) throw new Error(`${file}:${i + 1}: ${parsed.problems.join(" ")}`);
     const body = render(parsed.spec, options).split("\n");
     lines.splice(i + 2, end - (i + 2), ...body);

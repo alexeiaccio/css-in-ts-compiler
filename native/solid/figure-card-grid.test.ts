@@ -41,7 +41,9 @@ interface Dump {
 }
 
 const spec: CardGridSpec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/card-grid.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/card-grid.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/card-grid.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as CardGridSpec;
 })();

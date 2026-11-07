@@ -3034,16 +3034,36 @@ that file; (3) a spec in `solid/specs` when this repository draws the figure. No
 `text.ts`, the terminal host and the browser declare what `layoutOf` returns, which is why `journeyMap` and `tree` needed
 no change in any of them.
 
-| Field                     | What it is                         | Here                                                                                     |
-| ------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `kind`                    | one of the types                   | `barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine` (glyph-kit has 34) |
-| `title`                   | a short name, drawn above the rows | optional                                                                                 |
-| `intent`                  | why the figure exists              | optional, carried, not drawn (it is a document's line, as the kit's)                     |
-| `source`                  | where the numbers came from        | **required when the data holds a number**; drawn under the figure                        |
-| `data`                    | the kind's rows                    | see below                                                                                |
-| `options`                 | widths and scales in cells         | `width` (track cells), `max` (bar chart), `headers` (compare)                            |
-| `focus`                   | `{ on, tone, say }`                | a row's label, `problem` / `good` / `plain`, and the `►` line                            |
-| `label`, `motion`, `lang` | the kit's                          | not here (no screen reader line, no motion, one locale)                                  |
+| Field                     | What it is                                    | Here                                                                                     |
+| ------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `kind`                    | one of the types                              | `barChart`, `branchFlow`, `compare`, `flow`, `funnel`, `stateMachine` (glyph-kit has 34) |
+| `title`                   | a short name, drawn above the rows            | optional                                                                                 |
+| `intent`                  | why the figure exists                         | optional, carried, not drawn (it is a document's line, as the kit's)                     |
+| `source`                  | where the numbers came from                   | **required when the data holds a number**; drawn under the figure                        |
+| `data`                    | the kind's rows, or `"@<path>"`               | a JSON file beside the spec, read and substituted at parse time (below)                  |
+| `sample`                  | `true` when the data is not this repository's | the SAMPLE DATA band above the title (below)                                             |
+| `options`                 | widths and scales in cells                    | `width` (track cells), `max` (bar chart), `headers` (compare)                            |
+| `focus`                   | `{ on, tone, say }`                           | a row's label, `problem` / `good` / `plain`, and the `►` line                            |
+| `label`, `motion`, `lang` | the kit's                                     | not here (no screen reader line, no motion, one locale)                                  |
+
+**A spec's data in a file.** `data` may be `"@data/funnel.json"`: a path **relative to the spec's own directory**, which
+`parse(text, { dir })` reads and substitutes for the string before `check` sees it. The CLI, `dump.ts`, `text.ts`'s
+`--redraw` and the terminal pass the spec's directory, so a figure's rows can live in a file of their own; a caller whose
+data is inline still calls `parse(text)` and needs no path. A spec whose data is `"@…"` with no path is refused with
+`A spec whose data is "@…" needs the file it sits in: parse() was given no path.`; a path that is absolute or leaves the
+directory, a file that is not there and a file that is not JSON each get their own sentence. `funnel.json`,
+`compare.json` and `journey-map.json` keep their rows in `solid/specs/data/`, and
+`solid/figure-file-sample.test.ts` holds each one's frame to the inline spec's byte for byte — moving the data out moved
+no cell. The generated specs (`table.json`, `cohort.json`, the `from-*.ts` ones) keep inline data: a script writes them,
+and a script's output is one file.
+
+**The SAMPLE DATA stamp.** A spec with `sample: true` draws, above the title, a band of `=` between `+` caps with the
+words `SAMPLE DATA` on it, in the muted role: it is the **layout's first line**, so the text half, the terminal, the pixel
+frame, the SVG and the HTML page draw one band and none of them has a branch for it. `sample` is absent when the data is
+the author's, and any other value (a string, a number, `false`) is refused. `funnel.json`, `compare.json`,
+`journey-map.json` and `pipeline.json` — the kit's own examples, adapted — set `sample: true`, because that data is not
+this repository's; our own specs (`bars.json`, `palette.json`, `cohort.json`, …) do not, and their first line is the
+title.
 
 The six kinds and their layout: **barChart** is a row of `{ label, value, text? }`, one track each, the fill
 `value/max` of it, at least one cell for a positive value and `"+"` on a number past `options.max`; **branchFlow** is a
@@ -3090,7 +3110,7 @@ its dark value; a literal colour at the same value would read the same in both t
 deliberate literal fails.
 
 **The three targets.** Desktop (Bun, ThorVG): `bun solid/main.ts figure --spec solid/specs/bars.json`, stored as
-`solid/frames/figure-bars.png` (400x112, 14.6 KB) and `figure-funnel.png` (59x9 cells, 472x144, 22.4 KB), plus the
+`solid/frames/figure-bars.png` (400x112, 14.6 KB) and `figure-funnel.png` (59x10 cells, 472x160, 25.1 KB), plus the
 two flow kinds' `figure-branch-flow.png` (72x17 cells, 576x272, 24.9 KB) and `figure-state-machine.png` (71x17 cells,
 568x272, 21.4 KB); 15 commands,
 `--bench 1000`: declare 0.024 ms, layout 0.020 ms, draw 0.59 ms (ThorVG's raster included). Terminal (`terminal/solid.ts`
@@ -3103,9 +3123,11 @@ metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figu
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's `@file` data, its `lang`, its SAMPLE DATA stamp and its `label`. The text
+**Not here** (and honest about it): the kit's `lang` and its `label`. The text
 renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 42 kinds below are here; each section says what
-its half still cannot carry.
+its half still cannot carry. The kit's `@file` data and its SAMPLE DATA stamp are here too — because the four examples
+adapted from its docs carry data that is not this repository's, they set `sample: true`; a figure whose data is this
+repository's does not.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
@@ -3182,7 +3204,7 @@ read; the page is colour-independent by construction instead. Text is XML-escape
 parses; `font-family="Roboto, Helvetica, Arial, sans-serif"` ships no font, so a viewer without Roboto measures `Aa` with
 its own fallback and the cells, boxes and bars do not move (the one caveat of a fontless file). Both writes validate
 first: an invalid spec prints `check`'s sentences, exits 1 and writes no file. The output is deterministic; `solid/test.sh`
-runs each twice and `cmp`s, and ships `docs/exports/palette.html` (28,736 B) and `docs/exports/pipeline.svg` (2,573 B)
+runs each twice and `cmp`s, and ships `docs/exports/palette.html` (28,736 B) and `docs/exports/pipeline.svg` (2,811 B)
 from their specs. `solid/figure-export.test.ts` holds every spec's SVG to the layout (well-formed XML by a hand-check, its
 `<text>`s in the layout's order, every `<rect>`'s x/width the layout's own number, worst error **0.000 px**), the page to
 one verbatim SVG and no `<script>`, and Chromium's rendered boxes to the SVG's numbers (worst **0.000 px**, tolerance
@@ -3231,6 +3253,7 @@ to this file.
 <!-- glyph-kit: solid/specs/pipeline.json -->
 
 ```text
++========================= SAMPLE DATA =========================+
 One declaration, three targets
 [declaration] ► [Clay] ► [commands] ► [ThorVG / cells / Canvas2D]
 native/docs/map.md, the contract
@@ -3260,7 +3283,7 @@ rows under it. Neither needs any code in the page or in the text renderer: `Figu
 Their refusals: the journey's range sentence is the kit's `within` check word for word ("Import has a feeling of 3,
 outside -2 to 2."); the tree's sentences ("A tree needs one root: …", `child names "missing" as its parent, …`) and the
 empty journey's are ours in its voice, because the kit's published scripts check neither kind's data. The stored frames
-are `solid/frames/figure-tree.png` (576x208) and `figure-journey-map.png` (480x208), the command goldens
+are `solid/frames/figure-tree.png` (576x208) and `figure-journey-map.png` (480x224), the command goldens
 `solid/goldens/figure-tree.json` and `figure-journey-map.json`, the terminal's dumps are in `terminal/test.sh`, and the
 browser draws `?spec=tree` and `?spec=journey-map` from the same files.
 
@@ -3288,6 +3311,7 @@ native/docs/map.md, Targets; native/solid/app/*.tsx, the pages
 <!-- glyph-kit: solid/specs/journey-map.json -->
 
 ```text
++==================== SAMPLE DATA =====================+
 The first week, in three stages
 Discover    ████      +1 good
             Finds the tool through a colleague
@@ -3301,9 +3325,9 @@ First chart ████████ +2 great
 glyph-kit's journeyMap example (areas/flows.md), adapted
 ```
 
-**Not in the text half**: the kit's SAMPLE DATA stamp (our `source` line is always drawn, sample or not), its `@file` data,
-its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
-nothing at run time pays for them.
+**Not in the text half**: the kit's `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The
+characters are a build/CLI path: nothing at run time pays for them. The SAMPLE DATA band and `@file` data are here, as
+they are in the pixel and export halves: both are the layout's, not a renderer's.
 
 **The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and nine of
 its kinds are here — the half whose data is **ours** (the token sets, the Dialog's frames, the pages' styles, the docs'

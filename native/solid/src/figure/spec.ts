@@ -16,7 +16,10 @@
 //   — numbers without a source ("These numbers need a source: where did they come from?");
 //   — `options.width`, when a kind takes one: a whole number of cells above zero;
 //   — a focus naming something the figure does not draw ("Focus names "M2", which isn't in the figure. Use a row label
-//     or a column heading as it is drawn."), and a tone that is not one of the three.
+//     or a column heading as it is drawn."), and a tone that is not one of the three;
+//   — `sample`, which is `true` or absent: `true` draws the SAMPLE DATA stamp every layout puts above its title
+//     (`./kinds/shared.ts`'s `finish`);
+//   — `data: "@path"`, a file beside the spec, read and substituted by `parse` before `check` sees it (below).
 //
 // A kind's own data rule — the funnel's "a funnel never grows", a branch's `no`, the path's transitions, the tree's one
 // root, a journey's range, the palette's direction, a pair's ratio against its own colours, a scale that grows, an
@@ -119,6 +122,8 @@ interface Base {
   /** Where the numbers came from: required whenever the data holds one. */
   source?: string;
   focus?: Focus;
+  /** `true` when the data is a sample and not this repository's own: the figure then stamps itself SAMPLE DATA. */
+  sample?: true;
 }
 
 export interface BarChartSpec extends Base {
@@ -1075,7 +1080,7 @@ function focusProblems(focus: unknown, names: readonly string[]): string[] {
 
 /**
  * Every problem with a spec, in plain sentences: the kind, the numbers' source, the kind's own data rule (which its area
- * file checks), and the focus's names. An empty array is a figure that can be drawn.
+ * file checks), the focus's names, and a `sample` that is not `true`. An empty array is a figure that can be drawn.
  */
 export function check(input: unknown): string[] {
   if (!isObject(input))
@@ -1084,6 +1089,8 @@ export function check(input: unknown): string[] {
   if (typeof kind !== "string" || !entryOf(kind))
     return [`unknown kind ${say(kind)}: the ones here are ${kinds().join(", ")}.`];
   const problems: string[] = [];
+  if (input.sample !== undefined && input.sample !== true)
+    problems.push(`sample is true when the data is not the author's, and absent when it is: it is ${say(input.sample)}.`);
   if (hasNumbers(input.data) && !String(input.source ?? "").trim())
     problems.push("These numbers need a source: where did they come from?");
   problems.push(...widthProblem(input.options));
@@ -1094,13 +1101,89 @@ export function check(input: unknown): string[] {
   return problems;
 }
 
-/** A spec file's text as a checked spec, or the sentences that refuse it. */
-export function parse(text: string): { spec?: Spec; problems: string[] } {
+/** What `parse` needs beyond the file's text: where the file sits, when its `data` is `"@path"`. */
+export interface ParseOptions {
+  /** The spec file's own directory: a `data: "@path"` is read relative to it. Absent, only inline data parses. */
+  readonly dir?: string;
+}
+
+/** One `node:fs` read, found lazily: a browser bundle of this module carries no `node:` import. */
+type ReadFile = (path: string) => string;
+function readFile(): ReadFile | undefined {
+  const host = (globalThis as unknown as { process?: { getBuiltinModule?: (name: string) => unknown } }).process;
+  const fs = host?.getBuiltinModule?.("node:fs") as
+    | { readFileSync?: (path: string, encoding: "utf8") => string }
+    | undefined;
+  if (!fs?.readFileSync) return undefined;
+  const read = fs.readFileSync.bind(fs);
+  return (path) => read(path, "utf8");
+}
+
+/** Is this the root of a path, on either convention? A data path is a file beside the spec, never the root. */
+const absolute = (path: string): boolean => /^(?:\/|\\|[A-Za-z]:[\\/])/.test(path);
+
+/** Does this path climb above the directory it is relative to? `a/../b` does not; `../b` and `a/../../b` do. */
+function climbs(path: string): boolean {
+  let depth = 0;
+  for (const segment of path.split(/[\\/]/)) {
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") {
+      depth -= 1;
+      if (depth < 0) return true;
+    } else depth += 1;
+  }
+  return false;
+}
+
+/**
+ * A spec's `data: "@path"` as the JSON it names: the file **beside the spec**, read and substituted before `check` sees
+ * the data, so a kind only ever checks an object or an array. The refusals are the path's own: an absolute path, one that
+ * leaves the spec's directory, a file that is not there, and one that is not JSON.
+ */
+function inlineData(input: Record<string, unknown>, dir: string | undefined): string[] {
+  const data = input.data;
+  if (typeof data !== "string" || !data.startsWith("@")) return [];
+  if (dir === undefined)
+    return ['A spec whose data is "@…" needs the file it sits in: parse() was given no path.'];
+  const relative = data.slice(1);
+  if (absolute(relative))
+    return [`data ${say(data)} is absolute: write the path relative to the spec's own directory.`];
+  if (climbs(relative))
+    return [`data ${say(data)} leaves the spec's directory: a data path goes no higher.`];
+  const read = readFile();
+  if (!read)
+    return ['A spec whose data is "@…" needs the file it sits in: only a host with files can resolve it.'];
+  const path = `${dir.replace(/[\\/]+$/, "")}/${relative}`;
+  let text: string;
+  try {
+    text = read(path);
+  } catch {
+    return [`data ${say(data)} names no file beside the spec.`];
+  }
+  try {
+    input.data = JSON.parse(text);
+  } catch (error) {
+    return [
+      `data ${say(data)} is not JSON: ${error instanceof Error ? error.message : String(error)}`,
+    ];
+  }
+  return [];
+}
+
+/**
+ * A spec file's text as a checked spec, or the sentences that refuse it. `options.dir` is the file's own directory, which
+ * a `data: "@path"` is read relative to; a spec with inline data parses as it always has.
+ */
+export function parse(text: string, options: ParseOptions = {}): { spec?: Spec; problems: string[] } {
   let input: unknown;
   try {
     input = JSON.parse(text);
   } catch (error) {
     return { problems: [`This spec is not JSON: ${error instanceof Error ? error.message : String(error)}`] };
+  }
+  if (isObject(input)) {
+    const dataProblems = inlineData(input, options.dir);
+    if (dataProblems.length) return { problems: dataProblems };
   }
   const problems = check(input);
   return problems.length ? { problems } : { spec: input as unknown as Spec, problems };

@@ -10,9 +10,27 @@ import { parse } from "../../solid/src/figure/spec.ts";
 import { mountPage } from "./shell.ts";
 
 const name = new URLSearchParams(location.search).get("spec") ?? "bars";
-const response = await fetch(new URL(`../../solid/specs/${name}.json`, location.href));
+const specUrl = new URL(`../../solid/specs/${name}.json`, location.href);
+const response = await fetch(specUrl);
 if (!response.ok) throw new Error(`figure: solid/specs/${name}.json is ${response.status}`);
-const { spec, problems } = parse(await response.text());
+let text = await response.text();
+// a spec's `data: "@path"` is a file beside it: the page fetches it and inlines it, since the parser's own read is the
+// Node hosts' (parse.ts's `parse` with a path). A path that leaves the directory is the host's to refuse; the page only
+// ever serves this tree.
+let raw: { data?: unknown } | undefined;
+try {
+  raw = JSON.parse(text) as { data?: unknown };
+} catch {
+  raw = undefined; // parse refuses it with its own sentence
+}
+if (raw && typeof raw.data === "string" && raw.data.startsWith("@")) {
+  const file = new URL(raw.data.slice(1), specUrl);
+  const body = await fetch(file);
+  if (!body.ok) throw new Error(`figure: ${raw.data} is ${body.status} (${file.pathname})`);
+  raw.data = await body.json();
+  text = JSON.stringify(raw);
+}
+const { spec, problems } = parse(text);
 if (!spec) throw new Error(`figure: ${problems.join(" ")}`);
 
 const { width, height } = size(spec);

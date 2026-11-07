@@ -13,6 +13,7 @@
 import "./plugin.ts";
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 import type { Drag } from "./app/Widgets.tsx";
 import type { Loader } from "./app/Sky.tsx";
@@ -115,7 +116,9 @@ export interface Rest {
 
 /** A spec file of solid/specs, checked: a figure whose spec is refused cannot be captured. */
 function readSpec(name: string): Spec {
-  const { spec, problems } = parse(readFileSync(new URL(`./specs/${name}`, import.meta.url), "utf8"));
+  const { spec, problems } = parse(readFileSync(new URL(`./specs/${name}`, import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!spec) throw new Error(`solid/specs/${name}: ${problems.join(" ")}`);
   return spec;
 }
@@ -123,7 +126,7 @@ function readSpec(name: string): Spec {
 /** A spec file by path, for `--spec` (a golden of one of the figure's other specs): refused with its sentences. */
 function readSpecFile(path: string | undefined): Spec {
   if (!path) throw new Error("--spec needs a file: solid/specs/palette.json");
-  const { spec, problems } = parse(readFileSync(path, "utf8"));
+  const { spec, problems } = parse(readFileSync(path, "utf8"), { dir: dirname(path) });
   if (!spec) throw new Error(`${path}: ${problems.join(" ")}`);
   return spec;
 }

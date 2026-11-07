@@ -3,24 +3,6 @@
   "title": "The first week, in three stages",
   "intent": "How a new user finds the tool, imports a sheet and gets a first chart, and how each stage felt.",
   "source": "glyph-kit's journeyMap example (areas/flows.md), adapted",
-  "data": [
-    {
-      "label": "Discover",
-      "doing": "Finds the tool through a colleague",
-      "thinking": "Will this replace my sheet?",
-      "feeling": 1
-    },
-    {
-      "label": "Import",
-      "doing": "Uploads a CSV with 4,000 rows",
-      "thinking": "Why did my dates break?",
-      "feeling": -2
-    },
-    {
-      "label": "First chart",
-      "doing": "Picks a template and edits labels",
-      "thinking": "Oh, that was quick",
-      "feeling": 2
-    }
-  ]
+  "sample": true,
+  "data": "@data/journey-map.json"
 }

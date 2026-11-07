@@ -62,6 +62,10 @@ sh solid/test.sh
 # number's text and the rows' order, the funnel's steps, `check`'s refusals with their sentences, and the same spec's
 # rows on the terminal — one spec, three targets
 bun solid/figure.test.ts
+# ... and the two fields of the kit's spec the format gained: `data: "@path"` (the rows in a file beside the spec, its
+# frame byte-identical to the inline spec's) and `sample: true` (the SAMPLE DATA band above the title) — the parse and its
+# five refusals, the band in the layout, the SVG and the export, and the four kit examples that carry it
+bun solid/figure-file-sample.test.ts
 bun solid/figure-charts.test.ts
 # the forecast kind (solid/figure-forecast.test.ts): the repository's own release cadence from CHANGELOG.md as a column a
 # day, the next seven at the trailing fortnight's mean with its band, the legend and the fit, six refusals, two mutations,

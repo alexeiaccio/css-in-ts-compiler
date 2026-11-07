@@ -70,7 +70,9 @@ let checks = 0;
 const ok = (what: string, extra = "") => (checks++, console.log(`ok   ${what}${extra ? ` — ${extra}` : ""}`));
 const bad = (what: string, why: string) => (checks++, failed++, console.error(`FAIL ${what}: ${why}`));
 const spec = (name: string) => {
-  const parsed = parse(readFileSync(new URL(`./specs/${name}.json`, import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL(`./specs/${name}.json`, import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/${name}.json: ${parsed.problems.join(" ")}`);
   return parsed.spec;
 };
@@ -701,7 +703,9 @@ refuses("a line height under its size", {
   data: [{ name: "body", size: 16, lineHeight: 14 }],
 }, "body is 16/14: a line height under its size (16) crowds the lines.");
 // the invalid file itself: the funnel solid/test.sh gives the desktop's `--spec`, refused with the sentence
-const invalid = parse(readFileSync(new URL("./specs/invalid-funnel.json", import.meta.url), "utf8"));
+const invalid = parse(readFileSync(new URL("./specs/invalid-funnel.json", import.meta.url), "utf8"), {
+  dir: new URL("./specs/", import.meta.url).pathname,
+});
 if (invalid.problems.includes("signed up 12600 is more than visited 12400; a funnel never grows"))
   ok("solid/specs/invalid-funnel.json", invalid.problems[0]!);
 else bad("solid/specs/invalid-funnel.json", JSON.stringify(invalid.problems));
@@ -711,7 +715,9 @@ for (const [file, sentence] of [
   ["invalid-tree.json", 'child names "missing" as its parent, but there is no node named "missing".'],
   ["invalid-journey.json", "Import has a feeling of 3, outside -2 to 2."],
 ] as const) {
-  const refused = parse(readFileSync(new URL(`./specs/${file}`, import.meta.url), "utf8"));
+  const refused = parse(readFileSync(new URL(`./specs/${file}`, import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (refused.problems.includes(sentence)) ok(`solid/specs/${file}`, sentence);
   else bad(`solid/specs/${file}`, JSON.stringify(refused.problems));
 }

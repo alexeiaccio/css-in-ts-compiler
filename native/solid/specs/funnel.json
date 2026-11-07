@@ -3,12 +3,8 @@
   "title": "Signup to paid, last 30 days",
   "intent": "Find the step where most people leave.",
   "source": "Sample: glyph-kit's reference funnel (areas/metrics.md)",
-  "data": [
-    { "label": "visited", "value": 12400 },
-    { "label": "signed up", "value": 6100 },
-    { "label": "activated", "value": 2300 },
-    { "label": "paid", "value": 610 }
-  ],
+  "sample": true,
+  "data": "@data/funnel.json",
   "options": { "width": 30 },
   "focus": { "on": ["paid"], "tone": "problem", "say": "One in twenty visitors pays." }
 }

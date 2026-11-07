@@ -39,7 +39,9 @@ interface Dump {
 }
 
 const spec: ModalSpec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/modal.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/modal.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/modal.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as ModalSpec;
 })();

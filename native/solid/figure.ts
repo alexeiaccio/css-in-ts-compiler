@@ -17,7 +17,7 @@
 // file — as the desktop and terminal hosts refuse before a frame, and as a deck refuses the whole deck (it writes
 // nothing when one of its specs is invalid). `--redraw` throws the same way, naming the document and the line.
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { parse, type Spec } from "./src/figure/spec.ts";
 import { deck } from "./src/figure/export/deck.ts";
@@ -112,7 +112,7 @@ for (const path of specPaths) {
   } catch (error) {
     fail(`cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const { spec, problems } = parse(text);
+  const { spec, problems } = parse(text, { dir: dirname(resolve(path)) });
   if (!spec) fail(`${path}: ${problems.join("\n")}`);
   specs.push(spec);
 }

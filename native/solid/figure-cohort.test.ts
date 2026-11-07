@@ -53,14 +53,18 @@ const ok = (what: string, extra = "") => (checks++, console.log(`ok   ${what}${e
 const bad = (what: string, why: string) => (checks++, failed++, console.error(`FAIL ${what}: ${why}`));
 
 const spec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/cohort.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/cohort.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/cohort.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as CohortSpec;
 })();
 
 // ---- (a) the recording's own grid, recomputed here and not by specs/from-cohort.ts ------------------------------------
 
-const sample = JSON.parse(readFileSync(new URL("./samples/jetstream.json", import.meta.url), "utf8")) as Sample;
+const sample = JSON.parse(readFileSync(new URL("./samples/jetstream.json", import.meta.url), "utf8"), {
+  dir: new URL("./specs/", import.meta.url).pathname,
+}) as Sample;
 
 /** The minute a cohort's label names, or `undefined` for a label that is not one. */
 const minuteOf = (label: string): number | undefined => {
