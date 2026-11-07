@@ -60,6 +60,12 @@ jobs:
       # root has no local binary and would fetch npm's latest, whose browser revision the pinned runner cannot find
       - run: bunx playwright install --with-deps chromium
         working-directory: apps/ui
+      # the primitive's request/commit guard: one gesture is one intent, but a host that answers inside the gesture
+      # moves the value, and the same request after it is the user's again. No other workflow runs
+      # packages/headless's suite, and the native port's copy of this test goes with native/.
+      - name: The headless primitives' request/commit guard
+        working-directory: packages/headless
+        run: bunx vp test run test/controllable.test.ts
       - name: The compiled theme is current
         working-directory: apps/ui
         run: bun run theme:check

@@ -5349,3 +5349,10 @@ is therefore on the model, where CI does run: `native/headless/test/controllable
 in the same task, asked the same thing after the value moved, is asked again (it fails on the old guard). The same fix
 went into `packages/headless/src/controllable.ts`, the web original of that port, with a `@cssints/headless` patch
 changeset; its own suite is Chromium-only and not in CI, so the port's test is the one a green run reports.
+
+**Follow-up, after native/ moved out to its own repository:** the guard's regression test can no longer rely on the
+native port's suite. It now also lives beside the web primitive — `packages/headless/test/controllable.test.ts`, the same
+"host answers in the same task" case, which fails on the old guard — and `.github/workflows/ui.yml` runs that file right
+after Chromium is installed. It is one targeted file, not the package's whole suite (the Quint walks are minutes and
+flake under load), and it is the one place a red run reports the guard: the `ui` workflow already triggers on
+`packages/headless/src/**` and `test/**`.
