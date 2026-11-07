@@ -1,5 +1,63 @@
 # @cssints/apg-specs
 
+## 0.34.0
+
+### Minor Changes
+
+- 9a5a4dd: The V2 half of the platform's `focusgroup` contract is now ours, because nothing publishes it: no engine reports
+  `focusGroup.supports("grid")`, npm's `@microsoft/focusgroup-polyfill` 1.6.0 has no grid token at all, and the
+  polyfill's `main` (grid merged 2026-09-29) has no built `dist`.
+  
+  `focusGrid(owner, { definition, items })` renders `focusgroup="grid"` / `"grid manual"` (plus the per-axis
+  `rowwrap` / `rowflow` / `colwrap` / `colflow` and `nomemory`) and provides the movement where the engine does not:
+  one tab stop over the authors' `tabindex`, arrows on both axes, Home / End per row, Ctrl+Home / Ctrl+End for the
+  grid, hard edges by default with per-axis wrap and flow, `focusgroupstart` as the entry target, the last-focused
+  memory, the `focusgrouprow` markers of a manual topology, the native key-conflict guard, and an inert body when the
+  coordinates are not a rectangle. `destroy()` restores the authors' `tabindex` and removes the markers it added.
+  `focusgridAttribute` and `supportsFocusGrid` are exported too; no new dependency.
+  
+  `@cssints/apg-specs` gains `specs/patterns/focusgrid.qnt` (the contract: one tab stop, both axes, the per-axis
+  edges, entry / memory / `focusgroupstart`, `grid` vs `grid manual`, and what a grid does not do — spans, ragged
+  rows, virtualisation, edit, selection, `itemcontrols`), its bridge and scenario set, and the spec-only test.
+  `specs/apg/grid.qnt` is untouched and does not import it yet; adopting the runtime in `grid.ts` is a follow-up.
+- d2461a4: `createGrid` hands the body's movement and its roving tab stop to the V2 `focusgroup="grid"` runtime
+  (`packages/headless/src/focusgrid.ts`): `gridProps` carries the `focusgroup` attribute rendered from the
+  same definition and a `ref` that builds the provider, the owner's `focusin` maps the focused cell back to
+  `row` / `col`, and arrows on both axes, Home/End, Ctrl+Home/End, the edges and the last-focused memory are
+  no longer the primitive's. The definition maps APG's linear wrapping to the platform's `flow`, not `wrap`:
+  `{ rowEdge: wrapCols ? "flow" : "none", colEdge: wrapRows ? "flow" : "none", memory: true }`, re-applied
+  through `update(definition)` by `setWrapCols` / `setWrapRows` / `setGridKind` (`setFocusTarget` only
+  re-collects). The library keeps edit mode, selection, sort, PageUp/PageDown, the mount window, the `aria-*`
+  indices and the header row's own one-dimensional roving — the headers are `focusgroup="none"`, so neither
+  provider pulls them into the body's group. `date-picker` now finds the current day by the grid's
+  `currentCellId()` instead of `[tabindex="0"]`, and its `gridProps` no longer carries the runtime (the picker
+  owns its keyboard and stop). Breaking: `gridProps` gained `focusgroup` and `ref`; `cellProps` / `widgetProps`
+  gained `ref` and `focusgroupstart` and lost `onFocus` / `onKeyDown`; their `tabindex` is the constant
+  focusability value of the item set (`0` for the cells, `-1` when the widget is the target, and the reverse),
+  not the roving stop. To migrate, spread `gridProps` on the `role="grid"` element, spread
+  `cellProps` / `widgetProps`, delete any `tabindex` your host bound, and find the current cell by
+  `currentCellId()` rather than by `[tabindex="0"]`. `grid.qnt` now imports `shared/focusgroup.qnt`, adds the
+  platform's `tabStop` and derives `tabindex` from `fgTabIndex`, and pins the difference from the tablist:
+  grids have memory, so the stop is the last focused cell after focus leaves.
+- f2f755d: `createTabs` is now on the `focusgroup` adapter: the platform (Chromium 150+, or `@microsoft/focusgroup-polyfill`)
+  owns the tablist's single tab stop, the arrows along the axis, Home / End and wrap, and the library keeps only
+  its delta — selection, automatic vs manual activation, `aria-selected` / `aria-controls`, panel visibility,
+  close and rename. The definition is `tablist nomemory wrap` (the vertical axis as `block`), with
+  `focusgroupstart` on the selected tab, so the tablist is entered on the selection; the library selects on the
+  `focusin` a move causes (automatic) or on Enter / Space (manual). A disabled tab is not an item of the group
+  and carries a static `tabindex="-1"` instead of being arrow-reachable. `provider?: "auto" | "polyfill"` forces
+  the polyfill (a test, or a host that needs the fallback).
+  
+  `tabs.qnt` now imports `shared/focusgroup.qnt` and models `tabStop` beside `selected`: the stop follows focus
+  while focus is inside the tablist and returns to the selected tab on entry and leave, so manual activation and
+  a controlled host that rejected a request are modelled the way the platform renders them.
+  
+  Breaking: `TabProps` no longer carries the roving `tabindex` (the provider writes it), and `Tabs.keyDown` is
+  gone. `TablistProps` gained `focusgroup`, `ref` and `dir`; `TabProps` gained `focusgroupstart`, `ref`, and a
+  static `tabindex: -1` on a disabled tab only. To migrate, spread `tablistProps` on the owner and `tabProps(i)`
+  on each tab, delete any `tabindex` you bound on a tab, and — if a tab is not a natively focusable element (a
+  `<div role="tab">`) — give that element its own `tabindex="0"`; the platform still keeps one stop among them.
+
 ## 0.33.0
 
 No changes in this release.
