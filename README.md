@@ -148,7 +148,7 @@ export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
 
 ### In a terminal
 
-`import * as css from "cssints/tui" with { type: "cssints" }` gives the members a terminal has (cells, colours, borders, flex, states, `cursor`), and the plugin compiles them to prop objects for [OpenTUI](https://opentui.com) renderables instead of classes; `@cssints/tui` applies their states and themes: [packages/tui](packages/tui/README.md), docs/API.md "TUI". The package to apply them, `@cssints/tui`, is **deprecated** in favour of the terminal target in [`native/terminal`](native/terminal) (Clay in cells, termbox2); its README says what carries over and how to run the replacement.
+`import * as css from "cssints/tui" with { type: "cssints" }` gives the members a terminal has (cells, colours, borders, flex, states, `cursor`), and the plugin compiles them to prop objects for [OpenTUI](https://opentui.com) renderables instead of classes; `@cssints/tui` applies their states and themes: [packages/tui](packages/tui/README.md), docs/API.md "TUI". The package to apply them, `@cssints/tui`, is **deprecated** in favour of the terminal target in [`cssints-native`](https://github.com/alexeiaccio/cssints-native) (Clay in cells, termbox2, the `terminal/` directory of that package); its README says what carries over and how to run the replacement.
 
 More in [docs/API.md](docs/API.md): property names and short names, `flex()` and `grid()` chains, conditions and layers, tokens and themes, `cn` and `cv`, and the errors you can get.
 
@@ -183,7 +183,7 @@ and Cursor. The skills use it when it is configured and work without it.
 | `packages/mise-en-mode`         | `@cssints/mise-en-mode`: looks as themes in the layers app < author < viewer, on `data-mode` scopes, checked against the tokens and by `check.contrast`                   |
 | `packages/headless`             | `@cssints/headless`: headless APG widgets on Solid 2 (state and DOM attribute objects, no styling), conformance-checked against Quint specs; not published yet            |
 | `packages/apg-specs`            | `@cssints/apg-specs`: the APG and canvas Quint specs, generated models, scenario bridges and ported scenarios the widgets are tested against (the test oracle, published) |
-| `packages/tui`                  | `@cssints/tui` (**deprecated**): the runtime of `cssints/tui` styles on OpenTUI and @bomb.sh/tty; `native/terminal` replaces it                                           |
+| `packages/tui`                  | `@cssints/tui` (**deprecated**): the runtime of `cssints/tui` styles on OpenTUI and @bomb.sh/tty; `cssints-native`'s terminal target replaces it                                           |
 | `apps/demo`                     | React demo of every 0.1 feature                                                                                                                                           |
 | `apps/docs`                     | The documentation site: this file and `docs/API.md` as pages, with search and type hovers (`cd apps/docs && bun run dev`)                                                 |
 | `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans                                                                                                                          |

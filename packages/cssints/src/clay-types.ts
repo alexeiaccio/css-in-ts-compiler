@@ -268,7 +268,7 @@ export declare const shadow: (options?: ShadowOptions) => ClayStyle;
  * A backdrop of the element: the content under it is blurred, then the element is drawn over it, so a translucent fill
  * is glass over our own page (the desktop behind the window is out of reach). A renderer effect, not a Clay field, as
  * `shadow` is: `header()` prints nothing for it and only a renderer that reads it draws one. The element needs an `id`.
- * Today `native/solid`'s ThorVG renderer is the one that blurs.
+ * Today `cssints-native`'s `solid/` ThorVG renderer is the one that blurs.
  */
 export declare const backdrop: (options?: BackdropOptions) => ClayStyle;
 /**

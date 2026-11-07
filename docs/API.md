@@ -1674,7 +1674,7 @@ f812d87e (headless: a data table with sortable headers and row selection)
 
 ### Headless: `createVirtualizer` (`@cssints/headless`)
 
-A window over a list of thousands: the host renders the visible rows plus an overscan, and two spacer boxes stand in for the rest, so the declared DOM, the content height and the scroll's clamp and thumb are the whole list's. It ports the rules the native renderer had (`native/solid/src/virtual.ts`: `fixedWindow`, `measuredWindow`, `OVERSCAN` and the gap-compensated spacers); the DOM adds the scrollport (`attach`), a `ResizeObserver` (the native renderer reads a row's box from `ui.bounds` after layout, which the DOM has no equivalent of) and the ARIA pair on every declared row. **No APG pattern exists for virtualisation and no Quint machine**: the state is pixels, not items, so `packages/headless/test/virtual.browser.test.tsx` is the oracle.
+A window over a list of thousands: the host renders the visible rows plus an overscan, and two spacer boxes stand in for the rest, so the declared DOM, the content height and the scroll's clamp and thumb are the whole list's. It ports the rules the native renderer had (`cssints-native`'s `solid/src/virtual.ts`: `fixedWindow`, `measuredWindow`, `OVERSCAN` and the gap-compensated spacers); the DOM adds the scrollport (`attach`), a `ResizeObserver` (the native renderer reads a row's box from `ui.bounds` after layout, which the DOM has no equivalent of) and the ARIA pair on every declared row. **No APG pattern exists for virtualisation and no Quint machine**: the state is pixels, not items, so `packages/headless/test/virtual.browser.test.tsx` is the oracle.
 
 ```ts skip
 createVirtualizer(options: {
@@ -4509,11 +4509,11 @@ const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
 
 > **Deprecated.** The members below still compile, and `@cssints/tui` still applies them, but importing it now prints
 > one warning, and the package will not get new members. A terminal app builds on
-> [`native/`](../native/README.md) in this repository instead: `native/terminal` takes `cssints/clay` styles
+> [`cssints-native`](https://github.com/alexeiaccio/cssints-native) instead: its `terminal/` takes `cssints/clay` styles
 > (`generator/clay-header.ts` → a C header), lays them out with [Clay](https://github.com/nicbarker/clay) and draws them
 > into character cells on [termbox2](https://github.com/termbox/termbox2), with the keyboard focus layer in C
 > (`terminal/focus.c`). What carries over and what does not, and the commands that run it, are in
-> [packages/tui/README.md](../packages/tui/README.md); `native/docs/map.md` step 6 is the full account.
+> [packages/tui/README.md](../packages/tui/README.md); that repository's `docs/map.md` step 6 is the full account.
 
 A terminal app writes its styles with `cssints/tui`, and the same Vite plugin compiles them to **prop objects** for terminal renderables, not to classes: there is no sheet and no cascade. `@cssints/tui` applies them (states, the mouse pointer, the caret, themes); its adapters are [OpenTUI](https://opentui.com) and [@bomb.sh/tty](https://bomb.sh/docs/tty/api/). The design, the full property table and what is out of scope are in [research/tui.md](research/tui.md).
 
@@ -4740,7 +4740,7 @@ css.image("logo.png", { width: 64, height: 32, fit: "cover" }); // error: fill o
 static const Clay_ElementDeclaration glyph = { .layout = { .sizing = { .width = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED }, .height = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .image = { .imageData = (void *)"examples/sensors/glyph.png" } };
 ```
 
-- **Shadows** (2026-10-23): `shadow({ x, y, blur, color })` is a renderer effect, not a Clay field — `Clay_ElementDeclaration` has none in Clay 1.0. The declaration keeps its layout, the literal carries the shadow as a sibling key (as an image's path does), and `header()` prints nothing for it, so the C targets are unchanged and ignore it until a page's own renderer draws it. The shadow is the element's own box, moved by `x`/`y` and filled with `color`, its edge softened by `blur` (CSS's `box-shadow` reading, in pixels: the gaussian's sigma is half of it), drawn before the element's own command so the element covers the middle of it. The desktop renderer (`native/solid`) is the one that draws it today.
+- **Shadows** (2026-10-23): `shadow({ x, y, blur, color })` is a renderer effect, not a Clay field — `Clay_ElementDeclaration` has none in Clay 1.0. The declaration keeps its layout, the literal carries the shadow as a sibling key (as an image's path does), and `header()` prints nothing for it, so the C targets are unchanged and ignore it until a page's own renderer draws it. The shadow is the element's own box, moved by `x`/`y` and filled with `color`, its edge softened by `blur` (CSS's `box-shadow` reading, in pixels: the gaussian's sigma is half of it), drawn before the element's own command so the element covers the middle of it. The desktop renderer (`cssints-native`'s `solid/`) is the one that draws it today.
 
   | Option        | What the renderer draws                                                   | Default            |
   | ------------- | ------------------------------------------------------------------------- | ------------------ |
@@ -4776,7 +4776,7 @@ static const Clay_ElementDeclaration panel = { .layout = { .sizing = { .width = 
   | `blur` | blurs the element's box under it, not negative                    | 12      |
   | —      | no spread, no saturation or tint: only `blur`, and one an element | —       |
 
-  The desktop renderer (`native/solid`) is the only one that draws a backdrop today; the box is the element's first rectangle command, clipped to the canvas, and nothing is blurred outside it. The blur is three box passes each way on the CPU, on the region alone; on the Dialog page's 150x133 menu (blur 10) the frame's draw goes from 2.2 to 3.0 ms (Apple M2, one thread, back-to-back 300-frame runs), and the radius barely moves it — the frame's split into two draws is the cost. A panel may keep its own shadow: it is drawn before the blur, so it lies on the unblurred page, under the glass. The browser (a dual Kawase pass), the board and the terminal have none.
+  The desktop renderer (`cssints-native`'s `solid/`) is the only one that draws a backdrop today; the box is the element's first rectangle command, clipped to the canvas, and nothing is blurred outside it. The blur is three box passes each way on the CPU, on the region alone; on the Dialog page's 150x133 menu (blur 10) the frame's draw goes from 2.2 to 3.0 ms (Apple M2, one thread, back-to-back 300-frame runs), and the radius barely moves it — the frame's split into two draws is the cost. A panel may keep its own shadow: it is drawn before the blur, so it lies on the unblurred page, under the glass. The browser (a dual Kawase pass), the board and the terminal have none.
 
 ```ts
 import * as css from "cssints/clay" with { type: "cssints" };
@@ -4797,7 +4797,7 @@ css.backdrop({ blur: "1rem" }); // error: a blur is pixels
 static const Clay_ElementDeclaration menu = { .layout = { .sizing = { .width = { .size = { .minMax = { 150, 150 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .backgroundColor = { .r = 23, .g = 27, .b = 32, .a = 184 }, .cornerRadius = { .topLeft = 10, .topRight = 10, .bottomRight = 10, .bottomLeft = 10 } };
 ```
 
-- **Gradients** (2026-10-23): `backgroundImage("linear-gradient(...)")` fills the element's box with a linear gradient, written as CSS writes it — one string, the function, an optional direction, the stops. Clay 1.0 has no gradient field, so as `shadow` and `backdrop` are, it is a renderer effect: the declaration keeps its layout and its solid fill, the literal carries a sibling `backgroundImage: { kind: "linear", angle, stops: [{ offset, color: { r, g, b, a } }] }` key, `header()` prints nothing for it, the C targets draw the solid fill, and the desktop renderer (`native/solid`) fills the box with the gradient instead of `backgroundColor`. **The element needs an `id`**, and a solid `backgroundColor` too: Clay emits a rectangle command for a box whose fill is not transparent, and that command is where the gradient goes (the solid is not drawn then).
+- **Gradients** (2026-10-23): `backgroundImage("linear-gradient(...)")` fills the element's box with a linear gradient, written as CSS writes it — one string, the function, an optional direction, the stops. Clay 1.0 has no gradient field, so as `shadow` and `backdrop` are, it is a renderer effect: the declaration keeps its layout and its solid fill, the literal carries a sibling `backgroundImage: { kind: "linear", angle, stops: [{ offset, color: { r, g, b, a } }] }` key, `header()` prints nothing for it, the C targets draw the solid fill, and the desktop renderer (`cssints-native`'s `solid/`) fills the box with the gradient instead of `backgroundColor`. **The element needs an `id`**, and a solid `backgroundColor` too: Clay emits a rectangle command for a box whose fill is not transparent, and that command is where the gradient goes (the solid is not drawn then).
 
   | Part                     | What it is                                                                                                                                                         | Default               |
   | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |

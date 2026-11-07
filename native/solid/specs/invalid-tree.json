@@ -1,9 +1,0 @@
-{
-  "kind": "tree",
-  "title": "A child with no parent to hang from",
-  "source": "native/solid/figure.test.ts",
-  "data": [
-    { "name": "root" },
-    { "name": "child", "parent": "missing" }
-  ]
-}
