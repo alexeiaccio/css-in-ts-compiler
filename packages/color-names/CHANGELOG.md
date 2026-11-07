@@ -1,5 +1,9 @@
 # @cssints/color-names
 
+## 0.35.1
+
+No changes in this release.
+
 ## 0.35.0
 
 ### Patch Changes

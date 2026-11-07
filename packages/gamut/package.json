@@ -1,6 +1,6 @@
 {
   "name": "@cssints/gamut",
-  "version": "0.35.0",
+  "version": "0.35.1",
   "description": "Gamut and contrast colour maths for cssints at build time: fit a colour into sRGB or Display P3, a text colour that meets a WCAG 2 ratio, and tones as DTCG data",
   "license": "MIT",
   "repository": {

@@ -2,6 +2,16 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.35.1 (2026-11-07)
+
+### Patch changes
+
+- `createControllable`: a controlled host that commits without a flush — one whose value reads other controls, as a
+  "select all" checkbox reads its children — now takes the same request again once the value has moved. The
+  duplicate-intent guard only holds while the value the request was made from still stands, so two gestures in one task
+  (the native frame loop, which runs a whole click without yielding to a microtask) are two intents, not one. A DOM host
+  is unaffected: a microtask clears the guard between events anyway.
+
 ## 0.35.0 (2026-11-07)
 
 ### Minor changes
