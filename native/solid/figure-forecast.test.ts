@@ -44,7 +44,9 @@ interface Dump {
 }
 
 const spec: ForecastSpec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/forecast.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/forecast.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/forecast.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as ForecastSpec;
 })();

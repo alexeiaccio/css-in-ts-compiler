@@ -74,6 +74,7 @@
 //   THEME=light                          the light theme
 import "./plugin.ts";
 import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 import type { Motion } from "./src/entry.ts";
 import type { Drag } from "./app/Widgets.tsx";
@@ -166,7 +167,7 @@ if (page === "figure") {
     process.exit(2);
   }
   const { parse } = await import("./src/figure/spec.ts");
-  const { spec, problems } = parse(readFileSync(specPath, "utf8"));
+  const { spec, problems } = parse(readFileSync(specPath, "utf8"), { dir: dirname(specPath) });
   if (!spec) {
     for (const problem of problems) console.error(`figure: ${problem}`);
     process.exit(1);

@@ -41,7 +41,9 @@ interface Dump {
 }
 
 const spec: TransitionSpecSpec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/transition-spec.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/transition-spec.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/transition-spec.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as TransitionSpecSpec;
 })();

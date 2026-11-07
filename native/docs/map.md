@@ -69,7 +69,8 @@ subpath is removed in a breaking release with a migration. Lengths stay per targ
 in pixels, so a terminal page has its own styles under the same member names.
 
 **Figures from one spec.** A figure is one JSON file in glyph-kit's format (`solid/specs/*.json`, MIT, no code taken) and
-that file is the only place it is defined: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
+that file is the only place it is defined — its `data` may be a file beside it (`"@data/…"`), and `sample: true` stamps
+the figure SAMPLE DATA: `solid/src/figure/kinds.ts` turns it into rows of items whose lengths are
 cells, and the desktop, the terminal and the browser draw those rows — the desktop and the browser at 8x16 px a cell, the
 terminal at one cell. Forty-two kinds are here: `anatomy`, `appShell`, `barChart`, `beforeAfter`, `branchFlow`,
 `cardGrid`, `cohort`, `colourRoles`, `compare`, `contrast`, `easing`, `easingTable`, `flow`, `forecast`, `frameStrip`,

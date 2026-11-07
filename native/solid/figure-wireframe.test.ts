@@ -43,7 +43,9 @@ interface Dump {
   size: [number, number];
 }
 const spec = <T,>(name: string): T => {
-  const parsed = parse(readFileSync(new URL(`./specs/${name}.json`, import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL(`./specs/${name}.json`, import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/${name}.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as T;
 };

@@ -2,8 +2,9 @@
 // a spec's data with before it is a spec. A kind's area file imports this and nothing else that draws, so two kinds that
 // genuinely share a helper share this file's one copy of it (a copy per area is what this file exists to prevent).
 //
-// `finish` is the frame: the title above, the rows a kind made, the source and the `►` focus line below, each widening
-// the figure, and every line numbered `fig-line-<n>`. A kind's layout function therefore writes only its own rows.
+// `finish` is the frame: the SAMPLE DATA band above (when the spec says `sample`), the title, the rows a kind made, the
+// source and the `►` focus line below, each widening the figure, and every line numbered `fig-line-<n>`. A kind's layout
+// function therefore writes only its own rows.
 import type { Bar, BoxRecord, Connector, Layout, LayoutLine, Paint, Pair, Swatch, TextItem, TextRole } from "../registry.ts";
 import { FOCUS_MARK } from "../registry.ts";
 import type { Spec, TreeNode } from "../spec.ts";
@@ -148,7 +149,24 @@ export const textItem = (id: string, text: string, width: number, paint: Paint, 
   ...(role === undefined ? {} : { role }),
 });
 
-/** The cells every kind shares: the title above, the source and the focus line below, each widening the figure. */
+/**
+ * The SAMPLE DATA stamp: a band of `=` between `+` caps across the figure's own width, a cell of air either side of the
+ * words, in the muted role. It is the layout's, so the text half, the terminal, the pixel frame and the SVG all draw it
+ * from these cells and none of them knows about `sample`.
+ */
+function stampLine(width: number): LayoutLine {
+  const words = " SAMPLE DATA ";
+  let band = "SAMPLE DATA";
+  if (width >= words.length + 2) {
+    const fill = width - words.length - 2;
+    const left = Math.floor(fill / 2);
+    band = `+${"=".repeat(left)}${words}${"=".repeat(fill - left)}+`;
+  }
+  return { items: [textItem("fig-sample", band, width, "muted")] };
+}
+
+/** The cells every kind shares: the SAMPLE DATA band (when the spec says `sample`), the title, the source and the focus
+ *  line, each widening the figure. */
 export function finish(
   spec: Spec,
   kind: Layout["kind"],
@@ -163,8 +181,13 @@ export function finish(
 ): Layout {
   const focus = focusOf(spec);
   const focusLine = focus ? `${FOCUS_MARK} ${focus.say ?? focus.on.join(", ")}` : undefined;
-  const w = Math.max(width, longest([spec.title ?? "", spec.source ?? "", focusLine ?? ""]));
+  const w = Math.max(
+    width,
+    longest([spec.title ?? "", spec.source ?? "", focusLine ?? ""]),
+    spec.sample ? " SAMPLE DATA ".length + 2 : 0,
+  );
   const out: LayoutLine[] = [];
+  if (spec.sample) out.push(stampLine(w));
   if (spec.title) out.push({ items: [textItem("fig-title", spec.title, w, "title")] });
   out.push(...lines);
   if (spec.source) out.push({ items: [textItem("fig-source", spec.source, w, "muted")] });

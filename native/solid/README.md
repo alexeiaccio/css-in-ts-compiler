@@ -1030,6 +1030,22 @@ the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
 
+**A spec's data in a file, and the SAMPLE DATA stamp.** `data` may be `"@data/funnel.json"`, a path relative to the
+spec's own directory: `parse(text, { dir })` reads it and substitutes the JSON before `check`, and the CLI, `dump.ts`, the
+terminal and `--redraw` pass the spec's directory (a caller with inline data calls `parse(text)` as before). `funnel.json`,
+`compare.json` and `journey-map.json` keep their rows in `solid/specs/data/`; `solid/figure-file-sample.test.ts` holds each
+frame to the inline spec's command for command, so the move moved no cell. A path that is absolute, leaves the directory,
+names no file or is not JSON is refused in its sentence. The browser page fetches a `@path` relative to the spec's URL and
+inlines it before `parse` (the parser's own read is the Node hosts'), so `?spec=funnel` and `?spec=journey-map` still draw.
+
+`sample: true` draws a band of `=` between `+` caps across the figure's width with the words `SAMPLE DATA` on it, as the
+**layout's first line** in the muted role — so the text renderer, the terminal, `Figure.tsx`, the SVG and the HTML page
+draw one band and none of them has a branch for it. `sample` is absent when the data is the author's; any other value (a
+string, a number, `false`) is refused. The four kit examples — `funnel`, `compare`, `journey-map` and `pipeline` — set
+`sample: true`, because their data is not this repository's; our own specs do not, and their first line is the title.
+`solid/figure-file-sample.test.ts` covers both fields (18 checks: the parse, the five refusals, the band in the layout,
+the SVG and the export, and the four marked specs).
+
 The layout speaks **cells** (8x16 px, the terminal's), so a length here is `cells * 8` across and a line is one cell down;
 a width is data and a style is a literal, so every item's width — and a bar's fill — is written through the value channel
 in `tick`, before the tree is declared, as the List's spacers are. The terminal host and the browser page import this

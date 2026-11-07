@@ -41,7 +41,9 @@ interface Dump {
 }
 
 const spec: AppShellSpec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/app-shell.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/app-shell.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/app-shell.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as AppShellSpec;
 })();

@@ -50,7 +50,9 @@ interface Dump {
 }
 
 const spec: EasingTableSpec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/easing-table.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/easing-table.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/easing-table.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as EasingTableSpec;
 })();

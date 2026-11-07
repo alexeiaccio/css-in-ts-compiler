@@ -93,6 +93,7 @@
 import "../solid/plugin.ts";
 import { plugin } from "bun";
 import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type { ClayShape } from "cssints/clay";
 
 import type { Motion } from "../solid/src/entry.ts";
@@ -156,7 +157,7 @@ if (figurePage) {
     process.exit(2);
   }
   const { parse } = await import("../solid/src/figure/spec.ts");
-  const { spec, problems } = parse(readFileSync(specPath, "utf8"));
+  const { spec, problems } = parse(readFileSync(specPath, "utf8"), { dir: dirname(specPath) });
   if (!spec) {
     for (const problem of problems) console.error(`figure: ${problem}`);
     process.exit(1);

@@ -45,7 +45,9 @@ const ok = (what: string, extra = "") => (checks++, console.log(`ok   ${what}${e
 const bad = (what: string, why: string) => (checks++, failed++, console.error(`FAIL ${what}: ${why}`));
 
 const spec = (() => {
-  const parsed = parse(readFileSync(new URL("./specs/table.json", import.meta.url), "utf8"));
+  const parsed = parse(readFileSync(new URL("./specs/table.json", import.meta.url), "utf8"), {
+    dir: new URL("./specs/", import.meta.url).pathname,
+  });
   if (!parsed.spec) throw new Error(`solid/specs/table.json: ${parsed.problems.join(" ")}`);
   return parsed.spec as TableSpec;
 })();
