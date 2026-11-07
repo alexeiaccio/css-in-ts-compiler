@@ -5,7 +5,6 @@
   "excludePathPrefixes": [
     "tools/ai-automation/",
     "apps/",
-    "native/",
     "docs/",
     "packages/cssints/test/",
     "packages/cssints/bench/",

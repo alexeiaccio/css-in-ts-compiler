@@ -4,9 +4,7 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "tools/*",
-    "native",
-    "native/headless"
+    "tools/*"
   ],
   "scripts": {
     "prepare": "effect-language-service patch && effect-tsgo patch --typescript",
@@ -20,7 +18,6 @@
     "dev": "vp run -r --parallel dev",
     "test": "vp run -r --cache test",
     "bench": "vp run -r bench",
-    "test:native": "sh native/test.sh",
     "typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/lab --filter ./apps/csssky --filter ./apps/csssky-tui --filter ./apps/docs --filter ./apps/ui typecheck",
     "diff:check": "node tools/ai-automation/scripts/diff-check/src/main.ts --config tools/ai-automation/scripts/diff-check/diff-check.config.json",
     "check": "vp check && bun run typecheck",

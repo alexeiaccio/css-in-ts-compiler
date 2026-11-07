@@ -48,11 +48,6 @@ packages/cssints/docs/
 packages/cssints/test/.tmp-*
 .alchemy
 
-# native/: build products (build/ for desktop, solid and the browser wasm, terminal/build, the demo and the cell test binaries) and the frames a failed comparison writes
-native/**/build/
-native/terminal/demo
-native/terminal/test-cells
-native/**/*.actual.png
 
 # vitest browser mode (packages/headless): failure screenshots
 .vitest/
