@@ -19,6 +19,11 @@ export default defineConfig({
   // The starter has one copy by construction (installed tarballs), which is why only its smoke caught it.
   resolve: { dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"] },
   test: {
+    // The conformance walks are bounded by `runs` x `steps`, not by wall time, and the treeview's (seven nodes, 15 runs
+    // of 25 steps) takes ~15 s on a CI runner beside a dozen other jobs, which is the default's own limit: the run then
+    // fails on a test that was halfway through its last steps. A genuinely stuck walk still fails, at 60 s. Same
+    // reasoning as packages/headless and packages/apg-specs.
+    testTimeout: 60_000,
     // a browser test has no app entry: the sheet a component's class belongs to arrives through `virtual:cssints.css`, and
     // vitest drops CSS imports unless it is told to process them
     css: true,
