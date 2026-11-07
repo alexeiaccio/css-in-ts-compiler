@@ -80,7 +80,9 @@ for (const dir of packageDirs) {
   const allowed =
     /^(package\.json|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|(dist|docs|skills)\/.+)$/;
   for (const p of paths) {
-    if (/^src\/core\//.test(p) && published.files.includes("src/core")) continue;
+    // the type-only entries (./core, ./vitals) ship their sources: the published exports name them as their types
+    const source = /^src\/(core|vitals)\//.exec(p)?.[1];
+    if (source && published.files.includes(`src/${source}`)) continue;
     if (shippedData[published.name]?.test(p)) continue;
     if (!allowed.test(p)) bad(`${p} does not belong in the tarball`);
     else if (/\.ts$/.test(p) && !/\.d\.[cm]?ts$/.test(p)) bad(`${p}: TypeScript source`);

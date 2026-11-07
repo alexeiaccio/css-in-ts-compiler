@@ -67,6 +67,24 @@
   },
   "publishConfig": {
     "access": "public",
-    "directory": ".publish"
+    "directory": ".publish",
+    "exports": {
+      ".": "./dist/opencode.js",
+      "./overlay": "./dist/overlay.js",
+      "./opencode": "./dist/opencode.js",
+      "./core": {
+        "types": "./src/core/index.ts",
+        "default": "./src/core/index.ts"
+      },
+      "./model": {
+        "types": "./src/core/model.ts",
+        "default": "./src/core/model.ts"
+      },
+      "./inject": "./src/core/inject.ts",
+      "./vitals": {
+        "types": "./src/vitals/index.ts",
+        "default": "./dist/vitals.js"
+      }
+    }
   }
 }
