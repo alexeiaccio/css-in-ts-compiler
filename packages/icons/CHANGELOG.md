@@ -1,5 +1,11 @@
 # @cssints/icons
 
+## 0.35.0
+
+### Patch Changes
+
+- cssints@0.35.0
+
 ## 0.34.0
 
 ### Patch Changes
