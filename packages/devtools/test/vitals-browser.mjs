@@ -32,11 +32,17 @@ const PAGE = `<!doctype html>
   @keyframes idle { to { opacity: 0 } }
 </style>
 <div class="used spin">hello</div>
+<button id="go">go</button>
 <canvas width="10" height="10"></canvas>
 <script type="module">
   import { observe, report, vitals } from "/vitals.js";
   window.__vitals = { observe, report, vitals };
   window.__ready = true;
+  // an interaction whose handler blocks: INP, and its target and phases
+  document.getElementById("go").addEventListener("click", () => {
+    const until = performance.now() + 60;
+    while (performance.now() < until);
+  });
 </script>`;
 
 const server = createServer((request, response) => {
@@ -77,10 +83,11 @@ try {
       }),
   );
   // frames: the report samples a rAF loop, so let a few pass (and the long task's observer deliver) before reading it
+  await page.click("#go");
   await page.evaluate(
     () =>
       // oxlint-disable-next-line promise/avoid-new -- a task boundary, in the page: the observers deliver on one
-      new Promise((resolve) => setTimeout(resolve, 100)),
+      new Promise((resolve) => setTimeout(resolve, 150)),
   );
   await page.evaluate(
     () =>
@@ -114,9 +121,17 @@ try {
 
   assert.ok(report.fcp > 0, `FCP ${report.fcp}`);
   assert.ok(report.ttfb > 0, `TTFB ${report.ttfb}`);
-  assert.ok(report.tasks.count >= 1, "the busy loop is a long task");
-  assert.ok(report.tasks.max >= 50, `max task ${report.tasks.max}`);
-  assert.ok(report.loaf.count >= 1, "the long task is also a long animation frame");
+  assert.ok(report.loaf.count >= 1, "the busy loop is a long animation frame");
+  assert.ok(report.loaf.total > 0 && report.loaf.max > 0);
+  assert.equal(report.ratings.cls, "good", "web-vitals' own rating");
+  assert.ok(report.lcp > 0, `LCP ${report.lcp}`);
+  assert.ok(report.lcpTarget, "the LCP element is named");
+  assert.ok(report.inp >= 50, `INP ${report.inp}`);
+  assert.match(report.inpTarget ?? "", /#go$/, "the interaction's target, as web-vitals names it");
+  assert.ok(
+    report.inpPhases && report.inpPhases.processing >= 50,
+    JSON.stringify(report.inpPhases),
+  );
   assert.ok(report.frames.history.length > 0, "the frame loop sampled");
   assert.ok(report.frames.max > 0);
   assert.equal(report.errors, 0);
@@ -124,13 +139,21 @@ try {
 
   await page.evaluate(() => window.__vitals.vitals());
   const printed = lines.join("\n");
-  for (const needle of ["cssints vitals", "vitals   FCP", "frames   p50", "CSS      ", "coverage "])
+  for (const needle of [
+    "cssints vitals",
+    "vitals   FCP",
+    "INP ",
+    "frames   p50",
+    "CSS      ",
+    "coverage ",
+  ])
     assert.ok(printed.includes(needle), `the console has no "${needle}":\n${printed}`);
   assert.equal(await page.evaluate(() => typeof window.vitals), "function", "the console's way in");
 
   console.log(
-    `vitals browsers ok: ${Math.round(report.elapsed)} ms, ${report.css.rules} rules, ` +
-      `${report.tasks.count} long task(s), ${report.frames.history.length} frames, ${report.css.unused.length} unused class`,
+    `vitals browsers ok: ${Math.round(report.elapsed)} ms, LCP ${Math.round(report.lcp)} ms on ${report.lcpTarget}, ` +
+      `INP ${Math.round(report.inp)} ms on ${report.inpTarget}, ${report.css.rules} rules, ` +
+      `${report.loaf.count} long frame(s), ${report.css.unused.length} unused class`,
   );
 } finally {
   await browser.close();

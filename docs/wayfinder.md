@@ -5276,3 +5276,12 @@ console already knows.
 specificity), the Chromium test (layers, `@property`, keyframes in use, a long task and its animation frame, the paint
 entries, the printed group), `bun run typecheck`, `vp lint`, and the package's `bun run test`. The release PR picks this up
 as a `@cssints/devtools` minor.
+
+**Follow-up, same day: the metrics layer is `web-vitals`.** A hand-rolled observer was wrong in two ways the library
+already solves — CLS is the largest _session window_ of shifts, not their sum, and INP is the ~98th percentile of
+interactions, not the worst — and it cannot name the LCP element or the interaction's target. `web-vitals@6.2.3`
+(Google, MIT, attribution build) is that layer now: the five vitals, their ratings and their attribution come from it; the
+frame timeline, the long-animation-frame row and the CSSOM report stay ours, because the library has no opinion on them.
+CLS remains Chromium-only; the other four come from Chromium, Firefox and Safari. **No second package**: the tool stays
+`@cssints/devtools/vitals`, a subpath of the dev-only devtools, because a 33rd published package costs a hand publish and
+a fixed-group slot for a 30 kB (9.5 kB gzip) dev module whose only audience so far is this repository.
