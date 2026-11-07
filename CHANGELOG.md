@@ -2,6 +2,21 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.35.0 (2026-11-07)
+
+### Minor changes
+
+- `@cssints/devtools/vitals`: the page's report in the console — the five web vitals from `web-vitals` (with the LCP element,
+  the INP interaction and its input / processing / presentation, and the library's own ratings), long animation frames with
+  their style and layout time, errors, heap, the frame timeline (p50/p95/max, a sparkline and a heatmap), and the
+  stylesheets' own numbers read off the CSSOM: bytes, rules, declarations, layer bars, the worst specificity, colours, fonts,
+  `!important`, custom properties declared / used / orphaned, keyframes in use, and coverage (the classes no element
+  carries). On a dev server, the sheet's growth across HMR edits (its size, the file that changed, the bytes a class costs)
+  comes over the HMR channel: `cssints:edits`. Long animation frames name their scripts, invokers and forced layout; the
+  last twenty loads of a path are kept in `sessionStorage` with deltas; the CSS files' arrival (and render blocking) comes
+  from the resource timeline; and with the devtools table the sheet's cost is attributed to the calls that made it. No dev server and no overlay: a plain browser module, so a page that draws to a canvas (the native browser
+  target) has a report too.
+
 ## 0.34.0 (2026-11-07)
 
 ### Minor changes
