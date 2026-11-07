@@ -62,7 +62,9 @@ describe("apg grid (spec-only)", () => {
   it("declares every invariant the spec owns", () => {
     expect(invariants).toEqual([
       "FocusInBounds",
+      "TabStopInRange",
       "ExactlyOneTabStop",
+      "TabStopIsCurrent",
       "AriaIndicesInRange",
       "ModeValid",
       "KindValid",
@@ -80,6 +82,7 @@ describe("apg grid (spec-only)", () => {
       violatedInvariants(model, {
         row: 4n,
         col: -1n,
+        tabStop: 99n,
         hasFocus: false,
         mode: "zombie",
         dirty: true,
@@ -92,7 +95,9 @@ describe("apg grid (spec-only)", () => {
       }),
     ).toEqual([
       "FocusInBounds",
+      "TabStopInRange",
       "ExactlyOneTabStop",
+      "TabStopIsCurrent",
       "AriaIndicesInRange",
       "ModeValid",
       "KindValid",
@@ -115,6 +120,7 @@ describe("apg grid (spec-only)", () => {
       violatedInvariants(model, {
         ...model.initial,
         col: 2n,
+        tabStop: 2n,
         mode: "edit",
         hasFocus: true,
       }),
@@ -195,28 +201,28 @@ describe("apg grid (spec-only)", () => {
     });
   });
 
-  describe("layout grid wrapping", () => {
-    it("Right/Left wrap across row boundaries and stop at the grid corners", () => {
+  describe("layout grid wrapping (the platform's flow)", () => {
+    it("Right/Left flow across row boundaries and wrap at the grid's outer edge", () => {
       const endOfRow = press(wrapping, "End");
       expect(endOfRow).toMatchObject(at(0n, 2n));
       expect(press(endOfRow, "ArrowRight")).toMatchObject(at(1n, 0n));
       expect(press(press(endOfRow, "ArrowRight"), "ArrowLeft")).toMatchObject(at(0n, 2n));
 
-      expect(press(wrapping, "ArrowLeft")).toMatchObject(at(0n, 0n));
+      expect(press(wrapping, "ArrowLeft")).toMatchObject(at(3n, 2n));
       const last = press(wrapping, "Control+End");
-      expect(press(last, "ArrowRight")).toMatchObject(at(3n, 2n));
+      expect(press(last, "ArrowRight")).toMatchObject(at(0n, 0n));
     });
 
-    it("Down/Up wrap across column boundaries and stop at the grid corners", () => {
+    it("Down/Up flow across column boundaries and wrap at the grid's outer edge", () => {
       const bottomLeft = click(wrapping, 9n);
       expect(bottomLeft).toMatchObject(at(3n, 0n));
       const topNext = press(bottomLeft, "ArrowDown");
       expect(topNext).toMatchObject(at(0n, 1n));
       expect(press(topNext, "ArrowUp")).toMatchObject(at(3n, 0n));
 
-      expect(press(wrapping, "ArrowUp")).toMatchObject(at(0n, 0n));
+      expect(press(wrapping, "ArrowUp")).toMatchObject(at(3n, 2n));
       const last = press(wrapping, "Control+End");
-      expect(press(last, "ArrowDown")).toMatchObject(at(3n, 2n));
+      expect(press(last, "ArrowDown")).toMatchObject(at(0n, 0n));
     });
 
     it("wrapping is independent per axis", () => {

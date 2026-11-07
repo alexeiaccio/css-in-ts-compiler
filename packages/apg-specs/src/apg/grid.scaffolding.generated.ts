@@ -1,12 +1,13 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/apg/grid.qnt
-// Spec hash (sha256): 5349d3004355c984c021894b1290a347d5a53c34b9b759792688965f14440216
+// Spec hash (sha256): 1a1672fb441afc55eeb214aaa493787ff8b5eb7973ca5141ee5faf2b3083765f
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
 export const ApgGridFields = {
     row: Schema.BigInt,
     col: Schema.BigInt,
+    tabStop: Schema.BigInt,
     hasFocus: Schema.Boolean,
     mode: Schema.String,
     dirty: Schema.Boolean,

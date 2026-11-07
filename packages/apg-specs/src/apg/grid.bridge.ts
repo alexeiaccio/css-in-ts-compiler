@@ -364,26 +364,27 @@ export const gridBridge: SpecBridge = {
       }
       throw new Unsupported(`attribute ${name} on grid`);
     }
+    // the platform's single stop, as `fgTabIndex` renders it: only the focus
+    // target set carries it (the cells, or the widgets), and only on the stop
+    const stop = num(state["tabStop"]);
     const widget = WIDGET.exec(target);
     if (widget !== null) {
       if (name !== "tabindex") {
         throw new Unsupported(`attribute ${name} on ${target}`);
       }
       const cell = widgetOf(target);
-      const active =
-        state["focusTarget"] === "widget" &&
-        cell.row === num(state["row"]) &&
-        cell.col === num(state["col"]);
-      return active ? "0" : "-1";
+      if (state["focusTarget"] !== "widget") {
+        return "-1";
+      }
+      return cell.row * GRID_COLS + cell.col === stop ? "0" : "-1";
     }
     const cell = cellOf(target);
     switch (name) {
       case "tabindex": {
-        const active =
-          state["focusTarget"] === "cell" &&
-          cell.row === num(state["row"]) &&
-          cell.col === num(state["col"]);
-        return active ? "0" : "-1";
+        if (state["focusTarget"] !== "cell") {
+          return "-1";
+        }
+        return cell.row * GRID_COLS + cell.col === stop ? "0" : "-1";
       }
       case "aria-rowindex":
         return String(cell.row + 1);

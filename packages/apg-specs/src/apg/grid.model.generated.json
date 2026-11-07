@@ -1,6 +1,6 @@
 {
   "generatedFrom": "../../specs/apg/grid.qnt",
-  "specHash": "5349d3004355c984c021894b1290a347d5a53c34b9b759792688965f14440216",
+  "specHash": "1a1672fb441afc55eeb214aaa493787ff8b5eb7973ca5141ee5faf2b3083765f",
   "module": "apg_grid",
   "vars": [
     {
@@ -9,6 +9,10 @@
     },
     {
       "name": "col",
+      "type": "int"
+    },
+    {
+      "name": "tabStop",
       "type": "int"
     },
     {
@@ -147,9 +151,52 @@
         ]
       }
     },
-    "cur": {
+    "rowOf": {
       "kind": "function",
-      "params": [],
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "idiv",
+        "args": [
+          {
+            "kind": "name",
+            "name": "i"
+          },
+          {
+            "kind": "name",
+            "name": "COLS"
+          }
+        ]
+      }
+    },
+    "colOf": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "imod",
+        "args": [
+          {
+            "kind": "name",
+            "name": "i"
+          },
+          {
+            "kind": "name",
+            "name": "COLS"
+          }
+        ]
+      }
+    },
+    "lineOf": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
       "body": {
         "kind": "app",
         "opcode": "iadd",
@@ -160,7 +207,7 @@
             "args": [
               {
                 "kind": "name",
-                "name": "row"
+                "name": "r"
               },
               {
                 "kind": "name",
@@ -170,9 +217,35 @@
           },
           {
             "kind": "name",
+            "name": "c"
+          }
+        ]
+      }
+    },
+    "cur": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "lineOf",
+        "args": [
+          {
+            "kind": "name",
+            "name": "row"
+          },
+          {
+            "kind": "name",
             "name": "col"
           }
         ]
+      }
+    },
+    "start": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "cur"
       }
     },
     "navigating": {
@@ -257,24 +330,79 @@
         ]
       }
     },
-    "rightIdx": {
+    "inlineLand": {
       "kind": "function",
-      "params": [],
+      "params": [
+        "i",
+        "d"
+      ],
       "body": {
         "kind": "app",
         "opcode": "ite",
         "args": [
           {
             "kind": "app",
-            "opcode": "ilt",
+            "opcode": "and",
             "args": [
               {
-                "kind": "name",
-                "name": "col"
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "colOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
               },
               {
-                "kind": "name",
-                "name": "LAST_COL"
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "colOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
               }
             ]
           },
@@ -284,11 +412,11 @@
             "args": [
               {
                 "kind": "name",
-                "name": "cur"
+                "name": "i"
               },
               {
-                "kind": "int",
-                "value": "1"
+                "kind": "name",
+                "name": "d"
               }
             ]
           },
@@ -298,191 +426,143 @@
             "args": [
               {
                 "kind": "app",
-                "opcode": "and",
+                "opcode": "not",
                 "args": [
                   {
                     "kind": "name",
                     "name": "wrapCols"
-                  },
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "lineOf",
+                "args": [
                   {
                     "kind": "app",
-                    "opcode": "ilt",
+                    "opcode": "ite",
                     "args": [
                       {
-                        "kind": "name",
-                        "name": "row"
+                        "kind": "app",
+                        "opcode": "ilt",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "rowOf",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
                       },
                       {
                         "kind": "name",
                         "name": "LAST_ROW"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "ilt",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "rowOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "d"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "ROWS"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "rowOf",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
                       }
                     ]
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "iadd",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "cur"
-                  },
-                  {
-                    "kind": "int",
-                    "value": "1"
-                  }
-                ]
-              },
-              {
-                "kind": "name",
-                "name": "cur"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "leftIdx": {
-      "kind": "function",
-      "params": [],
-      "body": {
-        "kind": "app",
-        "opcode": "ite",
-        "args": [
-          {
-            "kind": "app",
-            "opcode": "igt",
-            "args": [
-              {
-                "kind": "name",
-                "name": "col"
-              },
-              {
-                "kind": "int",
-                "value": "0"
-              }
-            ]
-          },
-          {
-            "kind": "app",
-            "opcode": "isub",
-            "args": [
-              {
-                "kind": "name",
-                "name": "cur"
-              },
-              {
-                "kind": "int",
-                "value": "1"
-              }
-            ]
-          },
-          {
-            "kind": "app",
-            "opcode": "ite",
-            "args": [
-              {
-                "kind": "app",
-                "opcode": "and",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "wrapCols"
                   },
                   {
                     "kind": "app",
-                    "opcode": "igt",
+                    "opcode": "ite",
                     "args": [
                       {
-                        "kind": "name",
-                        "name": "row"
+                        "kind": "app",
+                        "opcode": "igt",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "d"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
                       },
                       {
                         "kind": "int",
                         "value": "0"
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "isub",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "cur"
-                  },
-                  {
-                    "kind": "int",
-                    "value": "1"
-                  }
-                ]
-              },
-              {
-                "kind": "name",
-                "name": "cur"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "downIdx": {
-      "kind": "function",
-      "params": [],
-      "body": {
-        "kind": "app",
-        "opcode": "ite",
-        "args": [
-          {
-            "kind": "app",
-            "opcode": "ilt",
-            "args": [
-              {
-                "kind": "name",
-                "name": "row"
-              },
-              {
-                "kind": "name",
-                "name": "LAST_ROW"
-              }
-            ]
-          },
-          {
-            "kind": "app",
-            "opcode": "iadd",
-            "args": [
-              {
-                "kind": "name",
-                "name": "cur"
-              },
-              {
-                "kind": "name",
-                "name": "COLS"
-              }
-            ]
-          },
-          {
-            "kind": "app",
-            "opcode": "ite",
-            "args": [
-              {
-                "kind": "app",
-                "opcode": "and",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "wrapRows"
-                  },
-                  {
-                    "kind": "app",
-                    "opcode": "ilt",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "col"
                       },
                       {
                         "kind": "name",
@@ -491,62 +571,109 @@
                     ]
                   }
                 ]
-              },
-              {
-                "kind": "app",
-                "opcode": "iadd",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "col"
-                  },
-                  {
-                    "kind": "int",
-                    "value": "1"
-                  }
-                ]
-              },
-              {
-                "kind": "name",
-                "name": "cur"
               }
             ]
           }
         ]
       }
     },
-    "upIdx": {
+    "blockLand": {
       "kind": "function",
-      "params": [],
+      "params": [
+        "i",
+        "d"
+      ],
       "body": {
         "kind": "app",
         "opcode": "ite",
         "args": [
           {
             "kind": "app",
-            "opcode": "igt",
+            "opcode": "and",
             "args": [
               {
-                "kind": "name",
-                "name": "row"
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "rowOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
               },
               {
-                "kind": "int",
-                "value": "0"
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "rowOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ROWS"
+                  }
+                ]
               }
             ]
           },
           {
             "kind": "app",
-            "opcode": "isub",
+            "opcode": "iadd",
             "args": [
               {
                 "kind": "name",
-                "name": "cur"
+                "name": "i"
               },
               {
-                "kind": "name",
-                "name": "COLS"
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "d"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
               }
             ]
           },
@@ -556,23 +683,610 @@
             "args": [
               {
                 "kind": "app",
-                "opcode": "and",
+                "opcode": "not",
                 "args": [
                   {
                     "kind": "name",
                     "name": "wrapRows"
-                  },
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "lineOf",
+                "args": [
                   {
                     "kind": "app",
-                    "opcode": "igt",
+                    "opcode": "ite",
                     "args": [
                       {
-                        "kind": "name",
-                        "name": "col"
+                        "kind": "app",
+                        "opcode": "igt",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "d"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
                       },
                       {
                         "kind": "int",
                         "value": "0"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "LAST_ROW"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ilt",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "colOf",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "LAST_COL"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "ilt",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "colOf",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "d"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "COLS"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "colOf",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "edgeLand": {
+      "kind": "function",
+      "params": [
+        "i",
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "lineOf",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "rowOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "End"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "lineOf",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "rowOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "LAST_COL"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "Control+Home"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "Control+End"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "isub",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "CELLS"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isInlineKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowRight"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowLeft"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isBlockKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowDown"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowUp"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isRowEdgeKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "End"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isGridEdgeKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Control+Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Control+End"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isPlatformKey": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isInlineKey",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isBlockKey",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isRowEdgeKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isGridEdgeKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "delta": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowRight"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowDown"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ArrowLeft"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ArrowUp"
                       }
                     ]
                   }
@@ -580,32 +1294,8 @@
               },
               {
                 "kind": "app",
-                "opcode": "isub",
+                "opcode": "iuminus",
                 "args": [
-                  {
-                    "kind": "app",
-                    "opcode": "iadd",
-                    "args": [
-                      {
-                        "kind": "app",
-                        "opcode": "imul",
-                        "args": [
-                          {
-                            "kind": "name",
-                            "name": "LAST_ROW"
-                          },
-                          {
-                            "kind": "name",
-                            "name": "COLS"
-                          }
-                        ]
-                      },
-                      {
-                        "kind": "name",
-                        "name": "col"
-                      }
-                    ]
-                  },
                   {
                     "kind": "int",
                     "value": "1"
@@ -613,8 +1303,151 @@
                 ]
               },
               {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "land": {
+      "kind": "function",
+      "params": [
+        "k",
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isInlineKey",
+            "args": [
+              {
                 "kind": "name",
-                "name": "cur"
+                "name": "k"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "inlineLand",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "app",
+                "opcode": "delta",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isBlockKey",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "blockLand",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "delta",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isRowEdgeKey",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "edgeLand",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "isGridEdgeKey",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "edgeLand",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -654,21 +1487,11 @@
           },
           {
             "kind": "app",
-            "opcode": "iadd",
+            "opcode": "lineOf",
             "args": [
               {
-                "kind": "app",
-                "opcode": "imul",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "LAST_ROW"
-                  },
-                  {
-                    "kind": "name",
-                    "name": "COLS"
-                  }
-                ]
+                "kind": "name",
+                "name": "LAST_ROW"
               },
               {
                 "kind": "name",
@@ -755,6 +1578,72 @@
         ]
       }
     },
+    "moves": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "navigating"
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isPlatformKey",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "PageDown"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "PageUp"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
     "keyTarget": {
       "kind": "function",
       "params": [
@@ -774,13 +1663,13 @@
               },
               {
                 "kind": "str",
-                "value": "ArrowRight"
+                "value": "PageDown"
               }
             ]
           },
           {
             "kind": "name",
-            "name": "rightIdx"
+            "name": "pageDownIdx"
           },
           {
             "kind": "app",
@@ -796,247 +1685,25 @@
                   },
                   {
                     "kind": "str",
-                    "value": "ArrowLeft"
+                    "value": "PageUp"
                   }
                 ]
               },
               {
                 "kind": "name",
-                "name": "leftIdx"
+                "name": "pageUpIdx"
               },
               {
                 "kind": "app",
-                "opcode": "ite",
+                "opcode": "land",
                 "args": [
                   {
-                    "kind": "app",
-                    "opcode": "eq",
-                    "args": [
-                      {
-                        "kind": "name",
-                        "name": "k"
-                      },
-                      {
-                        "kind": "str",
-                        "value": "ArrowDown"
-                      }
-                    ]
+                    "kind": "name",
+                    "name": "k"
                   },
                   {
                     "kind": "name",
-                    "name": "downIdx"
-                  },
-                  {
-                    "kind": "app",
-                    "opcode": "ite",
-                    "args": [
-                      {
-                        "kind": "app",
-                        "opcode": "eq",
-                        "args": [
-                          {
-                            "kind": "name",
-                            "name": "k"
-                          },
-                          {
-                            "kind": "str",
-                            "value": "ArrowUp"
-                          }
-                        ]
-                      },
-                      {
-                        "kind": "name",
-                        "name": "upIdx"
-                      },
-                      {
-                        "kind": "app",
-                        "opcode": "ite",
-                        "args": [
-                          {
-                            "kind": "app",
-                            "opcode": "eq",
-                            "args": [
-                              {
-                                "kind": "name",
-                                "name": "k"
-                              },
-                              {
-                                "kind": "str",
-                                "value": "PageDown"
-                              }
-                            ]
-                          },
-                          {
-                            "kind": "name",
-                            "name": "pageDownIdx"
-                          },
-                          {
-                            "kind": "app",
-                            "opcode": "ite",
-                            "args": [
-                              {
-                                "kind": "app",
-                                "opcode": "eq",
-                                "args": [
-                                  {
-                                    "kind": "name",
-                                    "name": "k"
-                                  },
-                                  {
-                                    "kind": "str",
-                                    "value": "PageUp"
-                                  }
-                                ]
-                              },
-                              {
-                                "kind": "name",
-                                "name": "pageUpIdx"
-                              },
-                              {
-                                "kind": "app",
-                                "opcode": "ite",
-                                "args": [
-                                  {
-                                    "kind": "app",
-                                    "opcode": "eq",
-                                    "args": [
-                                      {
-                                        "kind": "name",
-                                        "name": "k"
-                                      },
-                                      {
-                                        "kind": "str",
-                                        "value": "Home"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "kind": "app",
-                                    "opcode": "imul",
-                                    "args": [
-                                      {
-                                        "kind": "name",
-                                        "name": "row"
-                                      },
-                                      {
-                                        "kind": "name",
-                                        "name": "COLS"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "kind": "app",
-                                    "opcode": "ite",
-                                    "args": [
-                                      {
-                                        "kind": "app",
-                                        "opcode": "eq",
-                                        "args": [
-                                          {
-                                            "kind": "name",
-                                            "name": "k"
-                                          },
-                                          {
-                                            "kind": "str",
-                                            "value": "End"
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "kind": "app",
-                                        "opcode": "iadd",
-                                        "args": [
-                                          {
-                                            "kind": "app",
-                                            "opcode": "imul",
-                                            "args": [
-                                              {
-                                                "kind": "name",
-                                                "name": "row"
-                                              },
-                                              {
-                                                "kind": "name",
-                                                "name": "COLS"
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "kind": "name",
-                                            "name": "LAST_COL"
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "kind": "app",
-                                        "opcode": "ite",
-                                        "args": [
-                                          {
-                                            "kind": "app",
-                                            "opcode": "eq",
-                                            "args": [
-                                              {
-                                                "kind": "name",
-                                                "name": "k"
-                                              },
-                                              {
-                                                "kind": "str",
-                                                "value": "Control+Home"
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "kind": "int",
-                                            "value": "0"
-                                          },
-                                          {
-                                            "kind": "app",
-                                            "opcode": "ite",
-                                            "args": [
-                                              {
-                                                "kind": "app",
-                                                "opcode": "eq",
-                                                "args": [
-                                                  {
-                                                    "kind": "name",
-                                                    "name": "k"
-                                                  },
-                                                  {
-                                                    "kind": "str",
-                                                    "value": "Control+End"
-                                                  }
-                                                ]
-                                              },
-                                              {
-                                                "kind": "app",
-                                                "opcode": "isub",
-                                                "args": [
-                                                  {
-                                                    "kind": "name",
-                                                    "name": "CELLS"
-                                                  },
-                                                  {
-                                                    "kind": "int",
-                                                    "value": "1"
-                                                  }
-                                                ]
-                                              },
-                                              {
-                                                "kind": "name",
-                                                "name": "cur"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
+                    "name": "cur"
                   }
                 ]
               }
@@ -1082,29 +1749,35 @@
               },
               {
                 "kind": "app",
-                "opcode": "eq",
+                "opcode": "or",
                 "args": [
                   {
-                    "kind": "name",
-                    "name": "k"
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "F2"
+                      }
+                    ]
                   },
                   {
-                    "kind": "str",
-                    "value": "F2"
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "eq",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "k"
-                  },
-                  {
-                    "kind": "str",
-                    "value": "a"
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "a"
+                      }
+                    ]
                   }
                 ]
               }
@@ -1275,85 +1948,22 @@
         ]
       }
     },
-    "ARIA_ROWCOUNT": {
-      "kind": "function",
-      "params": [],
-      "body": {
-        "kind": "name",
-        "name": "ROWS"
-      }
-    },
-    "ARIA_COLCOUNT": {
-      "kind": "function",
-      "params": [],
-      "body": {
-        "kind": "name",
-        "name": "COLS"
-      }
-    },
-    "ariaRowindex": {
+    "tabIndex": {
       "kind": "function",
       "params": [
-        "r"
+        "i"
       ],
       "body": {
         "kind": "app",
-        "opcode": "iadd",
+        "opcode": "fgTabIndex",
         "args": [
           {
             "kind": "name",
-            "name": "r"
+            "name": "tabStop"
           },
-          {
-            "kind": "int",
-            "value": "1"
-          }
-        ]
-      }
-    },
-    "ariaColindex": {
-      "kind": "function",
-      "params": [
-        "c"
-      ],
-      "body": {
-        "kind": "app",
-        "opcode": "iadd",
-        "args": [
           {
             "kind": "name",
-            "name": "c"
-          },
-          {
-            "kind": "int",
-            "value": "1"
-          }
-        ]
-      }
-    },
-    "cellReadonly": {
-      "kind": "function",
-      "params": [
-        "r",
-        "c"
-      ],
-      "body": {
-        "kind": "app",
-        "opcode": "or",
-        "args": [
-          {
-            "kind": "name",
-            "name": "gridReadonly"
-          },
-          {
-            "kind": "app",
-            "opcode": "colReadonly",
-            "args": [
-              {
-                "kind": "name",
-                "name": "c"
-              }
-            ]
+            "name": "i"
           }
         ]
       }
@@ -1370,11 +1980,25 @@
         "args": [
           {
             "kind": "app",
-            "opcode": "and",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusTarget"
+              },
+              {
+                "kind": "str",
+                "value": "cell"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tabIndex",
             "args": [
               {
                 "kind": "app",
-                "opcode": "eq",
+                "opcode": "lineOf",
                 "args": [
                   {
                     "kind": "name",
@@ -1382,43 +2006,11 @@
                   },
                   {
                     "kind": "name",
-                    "name": "row"
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "eq",
-                "args": [
-                  {
-                    "kind": "name",
                     "name": "c"
-                  },
-                  {
-                    "kind": "name",
-                    "name": "col"
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "eq",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "focusTarget"
-                  },
-                  {
-                    "kind": "str",
-                    "value": "cell"
                   }
                 ]
               }
             ]
-          },
-          {
-            "kind": "int",
-            "value": "0"
           },
           {
             "kind": "app",
@@ -1445,11 +2037,25 @@
         "args": [
           {
             "kind": "app",
-            "opcode": "and",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusTarget"
+              },
+              {
+                "kind": "str",
+                "value": "widget"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tabIndex",
             "args": [
               {
                 "kind": "app",
-                "opcode": "eq",
+                "opcode": "lineOf",
                 "args": [
                   {
                     "kind": "name",
@@ -1457,43 +2063,11 @@
                   },
                   {
                     "kind": "name",
-                    "name": "row"
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "eq",
-                "args": [
-                  {
-                    "kind": "name",
                     "name": "c"
-                  },
-                  {
-                    "kind": "name",
-                    "name": "col"
-                  }
-                ]
-              },
-              {
-                "kind": "app",
-                "opcode": "eq",
-                "args": [
-                  {
-                    "kind": "name",
-                    "name": "focusTarget"
-                  },
-                  {
-                    "kind": "str",
-                    "value": "widget"
                   }
                 ]
               }
             ]
-          },
-          {
-            "kind": "int",
-            "value": "0"
           },
           {
             "kind": "app",
@@ -1665,6 +2239,89 @@
               {
                 "kind": "name",
                 "name": "col"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ARIA_ROWCOUNT": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "ROWS"
+      }
+    },
+    "ARIA_COLCOUNT": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "COLS"
+      }
+    },
+    "ariaRowindex": {
+      "kind": "function",
+      "params": [
+        "r"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "name",
+            "name": "r"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "ariaColindex": {
+      "kind": "function",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "cellReadonly": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "gridReadonly"
+          },
+          {
+            "kind": "app",
+            "opcode": "colReadonly",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
               }
             ]
           }
@@ -1886,6 +2543,24 @@
         ]
       }
     },
+    "TabStopInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "fgStopInRange",
+        "args": [
+          {
+            "kind": "name",
+            "name": "CELLS"
+          },
+          {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        ]
+      }
+    },
     "ExactlyOneTabStop": {
       "kind": "invariant",
       "params": [],
@@ -1954,6 +2629,24 @@
           {
             "kind": "int",
             "value": "1"
+          }
+        ]
+      }
+    },
+    "TabStopIsCurrent": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "tabStop"
+          },
+          {
+            "kind": "name",
+            "name": "cur"
           }
         ]
       }
@@ -2335,6 +3028,1617 @@
           }
         ]
       }
+    },
+    "fgBehaviorKnown": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "toolbar"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "tablist"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "radiogroup"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "listbox"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "menu"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "menubar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgDefaultAxis": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "listbox"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "menu"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "block"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "radiogroup"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "both"
+              },
+              {
+                "kind": "str",
+                "value": "inline"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgDefaultWrap": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "str",
+                "value": "toolbar"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "str",
+                "value": "listbox"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgItemRole": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "str",
+                "value": "tablist"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "tab"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "radiogroup"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "radio"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "listbox"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "option"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "b"
+                              },
+                              {
+                                "kind": "str",
+                                "value": "menu"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "b"
+                              },
+                              {
+                                "kind": "str",
+                                "value": "menubar"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "str",
+                        "value": "menuitem"
+                      },
+                      {
+                        "kind": "str",
+                        "value": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgButtonMayTakeRole": {
+      "kind": "function",
+      "params": [
+        "role"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "role"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "tab"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "role"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "radio"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "role"
+              },
+              {
+                "kind": "str",
+                "value": "menuitem"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgInferredOwnerRole": {
+      "kind": "function",
+      "params": [
+        "b",
+        "ownerKind",
+        "ownerHasRole"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ownerKind"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "generic"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ownerHasRole"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "b"
+          },
+          {
+            "kind": "str",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "fgInferredItemRole": {
+      "kind": "function",
+      "params": [
+        "b",
+        "ownerKind",
+        "ownerHasRole",
+        "itemKind",
+        "itemHasRole"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "fgInferredOwnerRole",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ownerKind"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ownerHasRole"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "itemHasRole"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": ""
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "itemKind"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "generic"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "fgItemRole",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "itemKind"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "button"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "fgButtonMayTakeRole",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "fgItemRole",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "b"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "fgItemRole",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": ""
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgInlineDelta": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "str",
+                "value": "block"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Right"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "Left"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgBlockDelta": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "str",
+                "value": "inline"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Down"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "Up"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgDelta": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "fgInlineDelta",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "name",
+                "name": "key"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "fgBlockDelta",
+            "args": [
+              {
+                "kind": "name",
+                "name": "axis"
+              },
+              {
+                "kind": "name",
+                "name": "key"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgIsEdgeKey": {
+      "kind": "function",
+      "params": [
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              },
+              {
+                "kind": "str",
+                "value": "Home"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              },
+              {
+                "kind": "str",
+                "value": "End"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgIsNavKey": {
+      "kind": "function",
+      "params": [
+        "axis",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "fgDelta",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "axis"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "fgIsEdgeKey",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgStep": {
+      "kind": "function",
+      "params": [
+        "n",
+        "wrap",
+        "f",
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrap"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "d"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilte",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "wrap"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "isub",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "n"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "f"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgLanding": {
+      "kind": "function",
+      "params": [
+        "n",
+        "axis",
+        "wrap",
+        "f",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "f"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "f"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Home"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "End"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "fgStep",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "wrap"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "fgDelta",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "axis"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "key"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgEscape": {
+      "kind": "function",
+      "params": [
+        "n",
+        "f",
+        "back"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "back"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgEntry": {
+      "kind": "function",
+      "params": [
+        "memory",
+        "last",
+        "start"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "memory"
+              },
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "last"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "last"
+          },
+          {
+            "kind": "name",
+            "name": "start"
+          }
+        ]
+      }
+    },
+    "fgStopOnLeave": {
+      "kind": "function",
+      "params": [
+        "memory",
+        "current",
+        "start"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "memory"
+          },
+          {
+            "kind": "name",
+            "name": "current"
+          },
+          {
+            "kind": "name",
+            "name": "start"
+          }
+        ]
+      }
+    },
+    "fgTabIndex": {
+      "kind": "function",
+      "params": [
+        "stop",
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "name",
+                "name": "i"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgStopInRange": {
+      "kind": "function",
+      "params": [
+        "n",
+        "stop"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stop"
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgFocusInRange": {
+      "kind": "function",
+      "params": [
+        "n",
+        "focus"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fgFocusIsStop": {
+      "kind": "function",
+      "params": [
+        "focus",
+        "stop"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "name",
+                "name": "stop"
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "actions": [
@@ -2350,6 +4654,13 @@
         },
         {
           "field": "col",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "tabStop",
           "rhs": {
             "kind": "int",
             "value": "0"
@@ -2452,8 +4763,14 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "navigating"
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
               },
               {
                 "kind": "app",
@@ -2489,8 +4806,14 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "navigating"
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
               },
               {
                 "kind": "app",
@@ -2515,6 +4838,39 @@
               {
                 "kind": "name",
                 "name": "col"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "keyTarget",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
               }
             ]
           }
@@ -2824,6 +5180,13 @@
           }
         },
         {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "cell"
+          }
+        },
+        {
           "field": "hasFocus",
           "rhs": {
             "kind": "bool",
@@ -2996,15 +5359,98 @@
         {
           "field": "row",
           "rhs": {
-            "kind": "name",
-            "name": "row"
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "fgEntry",
+                    "args": [
+                      {
+                        "kind": "bool",
+                        "value": true
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tabStop"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "start"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              }
+            ]
           }
         },
         {
           "field": "col",
           "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "name",
+                "name": "col"
+              },
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "fgEntry",
+                    "args": [
+                      {
+                        "kind": "bool",
+                        "value": true
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tabStop"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "start"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
             "kind": "name",
-            "name": "col"
+            "name": "tabStop"
           }
         },
         {
@@ -3087,6 +5533,27 @@
           "rhs": {
             "kind": "name",
             "name": "col"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "app",
+            "opcode": "fgStopOnLeave",
+            "args": [
+              {
+                "kind": "bool",
+                "value": true
+              },
+              {
+                "kind": "name",
+                "name": "tabStop"
+              },
+              {
+                "kind": "name",
+                "name": "start"
+              }
+            ]
           }
         },
         {
@@ -3191,6 +5658,13 @@
           "rhs": {
             "kind": "name",
             "name": "col"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
           }
         },
         {
@@ -3332,6 +5806,13 @@
           }
         },
         {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
           "field": "hasFocus",
           "rhs": {
             "kind": "name",
@@ -3443,6 +5924,13 @@
           "rhs": {
             "kind": "name",
             "name": "col"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
           }
         },
         {
@@ -3560,6 +6048,13 @@
           }
         },
         {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
+          }
+        },
+        {
           "field": "hasFocus",
           "rhs": {
             "kind": "name",
@@ -3647,6 +6142,13 @@
           "rhs": {
             "kind": "name",
             "name": "col"
+          }
+        },
+        {
+          "field": "tabStop",
+          "rhs": {
+            "kind": "name",
+            "name": "tabStop"
           }
         },
         {
