@@ -26,8 +26,16 @@ import { createSignal, For, onCleanup, Show } from "solid-js";
 
 import { a11y } from "../a11y.ts";
 import { createButton, createTabs } from "../../headless/src/index.ts";
+import {
+  CARD_ENTRY as ENTRY,
+  CARD_ENTRY_A as ENTRY_A,
+  CARD_ENTRY_Y as ENTRY_Y,
+  HOVER,
+  LABEL,
+  UNDERLINE,
+} from "../src/animations.ts";
 import type { Motion } from "../src/entry.ts";
-import { effect, presence, reduced, spatial, track, type Track } from "../src/motion.ts";
+import { presence, reduced, track, type Track } from "../src/motion.ts";
 import { scroll, type Scroll } from "../src/vscroll.ts";
 import { measuredWindow, type Window } from "../src/virtual.ts";
 import { ui } from "../src/ffi.ts";
@@ -641,12 +649,9 @@ const AVATARS: Record<string, css.ClayStyle> = {
 // 3 frames after the one before. The feed's scroll is the page's own track too (src/vscroll.ts: the wheel, the drag, the
 // band and the fling — the List's viewport is the same machine). Reduced motion (the platform's, `motion.ts`'s flag) makes
 // every retarget land at once, and the page skips the entry and the band altogether, so the frame is the settled one.
-const HOVER = effect(0.12); // the card's and the tab's background
-const UNDERLINE = effect(0.12); // the tab's 2px underline fading in or out
-const LABEL = effect(0.15); // the tab label's colour, from the muted token to the accent and back
-const ENTRY = { delay: 0.05, y: 12, time: 0.3 }; // seconds, px: a card starts 50ms after the one before it, 12px low
-const ENTRY_Y = spatial(ENTRY.time);
-const ENTRY_A = effect(ENTRY.time);
+// The springs and the entry's numbers are `src/animations.ts`'s, where the figures import them too: HOVER, UNDERLINE and
+// LABEL are the two 120ms fades and the label's 150ms one, and ENTRY (50ms a card, 12px low, 0.3s) is the card entry,
+// with ENTRY_Y and ENTRY_A its two tracks.
 /** The cards whose mount entry the first frame starts: a screenful (four or five at the fixtures' heights) and the
  *  overscan, so a card that is only just below the feed does not pop in on the frame after it. */
 const ENTRY_CARDS = 7;

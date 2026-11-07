@@ -1017,16 +1017,16 @@ bun solid/main.ts figure --spec solid/specs/bars.json --warm 30 --expect solid/f
 
 An invalid spec is refused **before a frame**: `main.ts` reads the file, `parse` returns every sentence `check` has (a
 growing funnel, a number with no source, a focus name the figure does not draw, an unknown kind, a flow wider than its
-width), prints them and exits 1, so no PNG is written. The 39 drawable specs are `solid/specs/bars.json` (this
+width), prints them and exits 1, so no PNG is written. The 42 drawable specs are `solid/specs/bars.json` (this
 repository's own `--bench` numbers by target), `funnel.json`, `compare.json` and `pipeline.json`, the flow kinds
 `branch-flow.json` (this repository's spec path, with its two decisions) and `state-machine.json` (the Dialog's
 `presence`), the tree `tree.json` (this repository's own map: the four targets under one root, their pages as children),
 the journey `journey-map.json` (glyph-kit's first-week example, adapted), the design-system kinds (`palette`, `contrast`,
 `colour-roles`, `spacing`, `type-scale`), the Dialog's layers (`layer-stack`) and the pages' states (`state-matrix`),
 the planning kinds (`timeline`, `statusKey`, `nowNextLater`), the motion kinds (`motion-timing`, `easing`, `stagger`,
-`frame-strip`), the handoff kinds (`redline`, `before-after`, `qa-checklist`), the charts (`sparkline`, `meter`,
-`heatmap`, `forecast`, `cohort`), the wireframes (`screen`, `anatomy`, `app-shell`, `card-grid`, `list-detail`, `modal`,
-`responsive-pair`) and the generic table (`table`);
+`frame-strip`, `intent-card`, `transition-spec`, `easing-table`), the handoff kinds (`redline`, `before-after`,
+`qa-checklist`), the charts (`sparkline`, `meter`, `heatmap`, `forecast`, `cohort`), the wireframes (`screen`, `anatomy`,
+`app-shell`, `card-grid`, `list-detail`, `modal`, `responsive-pair`) and the generic table (`table`);
 `invalid-funnel.json`, `invalid-branch.json`, `invalid-state.json`, `invalid-tree.json` and `invalid-journey.json` are the
 refusals the test uses.
 
@@ -1110,13 +1110,33 @@ elements, their union the page, the labels and rules on their cell rows, six ref
 terminal's rows (18 checks); `solid/test.sh` regenerates the three from-page specs and `figure-handoff.sh` the Sky page's
 three, and each is `cmp`'d.
 
-**The four motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger` and `frameStrip`, and
-their data is `src/motion.ts`'s own: `specs/from-motion.ts` runs the solver at 1/60 and writes the four specs, and
-`solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`, `structure`, `systems`,
-`planning`, `motion`, `handoff`, `charts`, `wireframe`) and 39 specs are drawable.
-`figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each
-strip's box to the track's offset and the stagger's bars to the items' delays, then the stored frames and goldens, the
-terminal's rows and the browser's `?spec=` of each.
+**The seven motion kinds** (`src/figure/kinds/motion.ts`) are `motionTiming`, `easing`, `stagger`, `frameStrip`,
+`intentCard`, `transitionSpec` and `easingTable`, and their data is `src/motion.ts`'s own and the pages' own:
+`specs/from-motion.ts` runs the solver at 1/60 and writes `motion-timing`, `easing`, `stagger`, `frame-strip` and
+`easing-table.json`, `specs/from-frames.ts` captures the Sky feed's card and the Dialog's menu for `intent-card.json` and
+`transition-spec.json`, and `solid/test.sh` regenerates and `cmp`s them, so the areas are now nine (`metrics`, `flows`,
+`structure`, `systems`, `planning`, `motion`, `handoff`, `charts`, `wireframe`) and 42 specs are drawable.
+`figure-motion.test.ts` holds each sample to `Track.at`, each dot to its sample, each strip's box to the track's offset
+and the stagger's bars to the items' delays, then the stored frames and goldens, the terminal's rows and the browser's
+`?spec=` of each.
+
+The three the half gained are the kit's remaining motion types. `intentCard` is one animation as a card: the
+`@cssints/motion` preset whose fields it moves (the package's `presets` table, through `from-frames.ts`'s `presetOf`), a
+row a property and the two values it runs between, the duration and delay, the trigger, and the frames the page took — the
+Sky feed's third card at nine frames (16.67-666.67ms, waiting its 100ms, alpha 0 → 255 and y 12 → 0 from the group effect
+each frame drew), a bar a property a frame filled by its own progress, and the last frame's settle said under them.
+`transitionSpec` is one transition before and after: the `dialog-menu` scene's keys in two captures give the menu's box
+at the entry's start (`40, 224.16 · 150x133`) and at its settle (`40, 214.16 · 150x133`) and the five properties that
+move — the offset, the alpha, the scale, the tilt and the shadow's blur — with 220ms (the Dialog's longest track) and no
+delay. `easingTable` is the app's curves: a row a curve (the panel's entry, the menu's slide, the scrim's fade, the
+panel's exit, the card's entry, the card's fade and a hover's fade), its class, its duration and bounce, and its progress
+at 0, 25, 50, 75 and 100% of its duration — `Track.at`'s own numbers, so the 220ms entry reads 0.00, 49.40, 86.85, 98.04
+and 100.04%. The springs and the numbers a page starts an entry from live in `src/animations.ts`, imported by
+`app/Dialog.tsx`, `app/Sky.tsx` and both generators. Their stored frames are `solid/frames/figure-{intent-card,
+transition-spec,easing-table}.png` (73, 15 and 85 commands) and their goldens `solid/goldens/figure-{intent-card,
+transition-spec,easing-table}.json`; the three tests re-capture the page's nine frames, both of the menu's frames and
+the Dialog's constants, and the solver at every point — 16, 16 and 14 checks, with the drawing, the refusals, the
+terminal's rows and a mutation each — and the browser reads `?spec=` of each.
 
 The three **planning** kinds are the kit's `areas/planning.md` half, and their data is `native/docs/map.md`:
 `timeline` is the map's eight steps of work, a step a row on one shared axis (the span is the step's place in the order,
