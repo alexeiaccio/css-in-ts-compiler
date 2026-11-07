@@ -34,17 +34,22 @@ export const createControllable = <T>(
   // request from a new one: a backdrop click and an Escape in the same frame
   // would ask the host for the state it was already asked for. One frame is one
   // intent; after the flush the host's value decides again.
-  let inFlight: T | undefined;
+  //
+  // `from` is what the value read when the intent was made. A host that commits
+  // without a flush in between (a frame loop that runs two gestures in one task)
+  // moves it, and the same request is then a new intent, not a repeat.
+  let inFlight: { readonly next: T; readonly from: T } | undefined;
   const request = (next: T): void => {
-    if (same(next, current())) {
+    const from = current();
+    if (same(next, from)) {
       return;
     }
-    if (inFlight !== undefined && same(inFlight, next)) {
+    if (inFlight !== undefined && same(inFlight.next, next) && same(inFlight.from, from)) {
       return;
     }
-    inFlight = next;
+    inFlight = { next, from };
     queueMicrotask(() => {
-      if (inFlight !== undefined && same(inFlight, next)) {
+      if (inFlight !== undefined && same(inFlight.next, next)) {
         inFlight = undefined;
       }
     });

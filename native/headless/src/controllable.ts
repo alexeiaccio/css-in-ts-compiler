@@ -29,17 +29,27 @@ export const createControllable = <T>(
   // The intent the host has not answered yet: a controlled host's `value` still reads
   // its old state until the flush, so one user gesture that asks twice (a pointer
   // press and the focus it causes) must be written off as one intent, not two.
-  let inFlight: T | undefined;
+  //
+  // `from` is what the value read when the intent was made. A host that commits
+  // without a flush in between (the frame loop runs two gestures in one task, and
+  // no microtask runs between them) moves it, and the same request is then a new
+  // intent, not a repeat.
+  let inFlight: { readonly next: T; readonly from: T } | undefined;
   const request = (next: T): void => {
-    if (next === current()) {
+    const from = current();
+    if (next === from) {
       return;
     }
-    if (inFlight !== undefined && inFlight === next) {
+    if (
+      inFlight !== undefined &&
+      inFlight.next === next &&
+      inFlight.from === from
+    ) {
       return;
     }
-    inFlight = next;
+    inFlight = { next, from };
     queueMicrotask(() => {
-      if (inFlight === next) {
+      if (inFlight !== undefined && inFlight.next === next) {
         inFlight = undefined;
       }
     });

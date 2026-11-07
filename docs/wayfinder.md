@@ -5329,3 +5329,23 @@ frame timeline, the long-animation-frame row and the CSSOM report stay ours, bec
 CLS remains Chromium-only; the other four come from Chromium, Firefox and Safari. **No second package**: the tool stays
 `@cssints/devtools/vitals`, a subpath of the dev-only devtools, because a 33rd published package costs a hand publish and
 a fixed-group slot for a 30 kB (9.5 kB gzip) dev module whose only audience so far is this repository.
+
+## A gesture is a task, not a microtask: the duplicate-intent guard in `createControllable` (2026-11-07)
+
+`solid/widgets.test.ts` had three red checks, all of them "Select all" (a click on the mixed checkbox did nothing). The
+page was fine and the refactor was not the cause: the guard `createControllable` keeps for a controlled host — "one frame
+is one intent", so a press and the focus it causes do not ask twice — was cleared by a `queueMicrotask`, and the native
+frame loop runs one gesture after another in the same task. The first click on "Select all" left `inFlight = true`; the
+microtask never ran, so the click from `mixed` back to `true` looked like a repeat of it and was dropped. In a browser the
+microtask lands between events, which is why the DOM suite never saw it.
+
+The guard now also remembers the value the request was made from: the same request is only a duplicate while that value
+still stands. A host that commits inside the click (this "Select all" reads its two children, and a child's uncontrolled
+controllable keeps a fresh `local`) moves the value, and the next identical click is a new intent.
+
+**CI does not catch it because the page cannot run there**: `native/solid/widgets.test.ts` needs SDL3, ThorVG and the
+Clay dylib (`bun run test:native`, a Mac), and `native/ci.sh` runs only what needs no graphics stack. The regression test
+is therefore on the model, where CI does run: `native/headless/test/controllable.test.ts` — a controlled host that answers
+in the same task, asked the same thing after the value moved, is asked again (it fails on the old guard). The same fix
+went into `packages/headless/src/controllable.ts`, the web original of that port, with a `@cssints/headless` patch
+changeset; its own suite is Chromium-only and not in CI, so the port's test is the one a green run reports.
