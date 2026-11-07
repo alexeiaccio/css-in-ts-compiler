@@ -156,13 +156,9 @@ describe("createTable sorting", () => {
     expect(root.querySelector("table")?.getAttribute("role")).toBe("table");
     expect(root.querySelectorAll("thead[role='rowgroup']")).toHaveLength(1);
     expect(root.querySelectorAll("tbody[role='rowgroup']")).toHaveLength(1);
-    expect(
-      root.querySelectorAll("thead [role='columnheader']"),
-    ).toHaveLength(COLUMNS.length);
+    expect(root.querySelectorAll("thead [role='columnheader']")).toHaveLength(COLUMNS.length);
     expect(root.querySelectorAll("tbody [role='row']")).toHaveLength(ROWS.length);
-    expect(root.querySelectorAll("tbody [role='cell']")).toHaveLength(
-      ROWS.length * COLUMNS.length,
-    );
+    expect(root.querySelectorAll("tbody [role='cell']")).toHaveLength(ROWS.length * COLUMNS.length);
   });
 
   it("names the table, gives the caption an id, and marks only the sorted column", () => {

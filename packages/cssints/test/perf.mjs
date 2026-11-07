@@ -22,7 +22,8 @@ const [cmd, arg, arg2] = process.argv.slice(2);
 
 function gen(n, dir) {
   const w = (f, s) => (
-    mkdirSync(join(dir, f, ".."), { recursive: true }), writeFileSync(join(dir, f), s)
+    mkdirSync(join(dir, f, ".."), { recursive: true }),
+    writeFileSync(join(dir, f), s)
   );
   w("index.html", `<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n`);
   w(

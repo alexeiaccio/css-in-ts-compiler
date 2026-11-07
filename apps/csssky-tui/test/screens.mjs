@@ -73,7 +73,7 @@ const settle = async () => {
 };
 // waitForFrame counts render passes, not time: a lone ESC waits for the parser's timeout, a fetch for its promise
 const until = async (pred, ms = 3000) => {
-  for (const end = Date.now() + ms; Date.now() < end; ) {
+  for (const end = Date.now() + ms; Date.now() < end;) {
     await settle();
     const f = captureCharFrame();
     if (pred(f)) return f;

@@ -7,7 +7,7 @@
 - 9a5a4dd: The V2 half of the platform's `focusgroup` contract is now ours, because nothing publishes it: no engine reports
   `focusGroup.supports("grid")`, npm's `@microsoft/focusgroup-polyfill` 1.6.0 has no grid token at all, and the
   polyfill's `main` (grid merged 2026-09-29) has no built `dist`.
-  
+
   `focusGrid(owner, { definition, items })` renders `focusgroup="grid"` / `"grid manual"` (plus the per-axis
   `rowwrap` / `rowflow` / `colwrap` / `colflow` and `nomemory`) and provides the movement where the engine does not:
   one tab stop over the authors' `tabindex`, arrows on both axes, Home / End per row, Ctrl+Home / Ctrl+End for the
@@ -15,24 +15,26 @@
   memory, the `focusgrouprow` markers of a manual topology, the native key-conflict guard, and an inert body when the
   coordinates are not a rectangle. `destroy()` restores the authors' `tabindex` and removes the markers it added.
   `focusgridAttribute` and `supportsFocusGrid` are exported too; no new dependency.
-  
+
   `@cssints/apg-specs` gains `specs/patterns/focusgrid.qnt` (the contract: one tab stop, both axes, the per-axis
   edges, entry / memory / `focusgroupstart`, `grid` vs `grid manual`, and what a grid does not do — spans, ragged
   rows, virtualisation, edit, selection, `itemcontrols`), its bridge and scenario set, and the spec-only test.
   `specs/apg/grid.qnt` is untouched and does not import it yet; adopting the runtime in `grid.ts` is a follow-up.
+
 - b83803b: The platform's `focusgroup` contract is now one adapter: `focusGroup(owner, { definition, items })` sets the
   owner's `focusgroup` attribute where the engine has it (Chromium 150+) and otherwise drives
   `@microsoft/focusgroup-polyfill`'s low-level `FocusGroup` over an array-backed item collection, with
   `update()` and the measured teardown (`update({ definition: {} })` before `disconnect()`).
   `focusGroupPolyfill`, `focusGroupAttribute` and `supportsFocusGroup` are exported too; the polyfill is a new
   dependency (MIT, 5.5 KB gz).
-  
+
   `createToolbar` is the first widget on it: the platform now moves focus (arrows, Home / End, wrap, memory) and
   owns the item `tabindex`.
-  
+
   Breaking: `ToolbarItemProps` no longer carries `tabindex` — the platform owns it — and `Toolbar.keyDown` is
   gone. `toolbarProps` gained `focusgroup` and `ref` and lost `onKeyDown`. To migrate, spread `toolbarProps` on
   the owner, `itemProps(i)` on each item, and delete any `tabindex` you bound on an item.
+
 - d2461a4: `createGrid` hands the body's movement and its roving tab stop to the V2 `focusgroup="grid"` runtime
   (`packages/headless/src/focusgrid.ts`): `gridProps` carries the `focusgroup` attribute rendered from the
   same definition and a `ref` that builds the provider, the owner's `focusin` maps the focused cell back to
@@ -61,7 +63,7 @@
   option the arrows must not reach is out of the item collection and wears `focusgroup="none"`), and the
   `aria-activedescendant` listbox a host keeps DOM focus on is unchanged — a focusgroup is a roving model,
   so that mode keeps its own arrow handling, as `createRearrangeableListbox` does.
-  
+
   Breaking: `listboxProps` gained `focusgroup` and `ref` and lost `onKeyDown` (the listener is registered by
   the ref, before the provider's), and `optionProps` gained `focusgroup` and `ref`. The option `tabindex` is
   no longer the roving one — it is the constant focusability value (`0`, `-1` when disabled), because the
@@ -72,6 +74,7 @@
   `active()` or `aria-activedescendant`. A host that moved DOM focus to the active option must keep doing so
   for programmatic moves (type-ahead, a click, a controlled `activeValue`); the platform's own moves need no
   mirror.
+
 - a8de6c9: `createMenu` and `createMenubar` now take the item `tabindex` and the movement along every level's axis from the
   platform's `focusgroup` contract instead of computing them: the menu list is one `focusgroup="menu"` segment
   (block axis, wrap), the menubar is one `focusgroup="menubar"` segment (the declared axis and wrap) and each
@@ -80,13 +83,13 @@
   out of a hidden list). The arrows along each axis, Home / End, the wrap and the tab stop are the browser's
   (Chromium 150+) or `@microsoft/focusgroup-polyfill`'s, behind the same `provider: "auto" | "polyfill"` seam
   `createToolbar` has.
-  
+
   The library keeps what the platform never infers: activation (Enter / Space), Escape and Tab, typeahead, the
   cross-axis keys (a submenu, the next / previous bar item, the open keys of the bar), the checkable state, the
   `aria-haspopup` / `aria-expanded` sync and the light dismiss. Its keydown listener is registered by the owner's
   `ref` **before** the provider's, so a key it consumes is `preventDefault`ed by the time the polyfill (also on the
   owner) reads it — a delegated Solid `onKeyDown` would run at the document, after focus had moved.
-  
+
   Breaking: `MenuItemProps` no longer carries `tabindex` and `menuProps` / `menubarProps` no longer carry
   `onKeyDown`; the list, the bar, each menu and each submenu gained `focusgroup` and `ref`, and the item props
   gained `ref`. `keyDown(key)` now takes only the keys the library owns — the arrows, Home and End are the
@@ -95,6 +98,7 @@
   you bound, and render rows that are focusable by nature (`<button>`, `<a href>`): the native engine writes no
   `tabindex`, so it can only move focus to an item that is tabbable already. A `minor`, since `@cssints/headless`
   is 0.x.
+
 - 47017e8: `createRadioGroup`'s roving flavor is now the platform's `focusgroup="radiogroup"` contract: the group
   builds its provider from the owner's `ref`, and the browser (Chromium 150+) or
   `@microsoft/focusgroup-polyfill` moves focus on both axes, wraps, and owns the item `tabindex`. Two things
@@ -107,7 +111,7 @@
   is opted out of the group (`focusgroup="none"`) and keeps `tabindex="-1"`, as before. The
   `aria-activedescendant` flavor is unchanged: it moves a virtual focus on the group, which focusgroup does
   not model.
-  
+
   Breaking: the group props gained `focusgroup`, `ref` and `dir`, and `RadioGroup.keyDown` is gone — the
   platform moves focus. `RadioProps` no longer carries a roving `tabindex` (the platform writes `0` / `-1`);
   what it carries is the author value the platform needs: `focusgroupstart` on the entry radio,
@@ -115,10 +119,11 @@
   `tabindex="0"`, because that engine navigates only items with `tabIndex > -1` and a `<div role=radio>` is
   not focusable otherwise. To migrate, spread `radiogroupProps` on the owner (keeping its `ref`), `radioProps(i)`
   on each radio, and delete any roving `tabindex` you bound on an item.
-  
+
   `radio.qnt` now models that stop instead of pinning it to the check (`radioTabindex` is `fgTabIndex`, the
   entry and leave transitions are `fgEntry` / `fgStopOnLeave`), so the differential walk checks the stop the
   engine keeps rather than one the widget could only fake by scripting the tabindex.
+
 - f2f755d: `createTabs` is now on the `focusgroup` adapter: the platform (Chromium 150+, or `@microsoft/focusgroup-polyfill`)
   owns the tablist's single tab stop, the arrows along the axis, Home / End and wrap, and the library keeps only
   its delta — selection, automatic vs manual activation, `aria-selected` / `aria-controls`, panel visibility,
@@ -127,11 +132,11 @@
   `focusin` a move causes (automatic) or on Enter / Space (manual). A disabled tab is not an item of the group
   and carries a static `tabindex="-1"` instead of being arrow-reachable. `provider?: "auto" | "polyfill"` forces
   the polyfill (a test, or a host that needs the fallback).
-  
+
   `tabs.qnt` now imports `shared/focusgroup.qnt` and models `tabStop` beside `selected`: the stop follows focus
   while focus is inside the tablist and returns to the selected tab on entry and leave, so manual activation and
   a controlled host that rejected a request are modelled the way the platform renders them.
-  
+
   Breaking: `TabProps` no longer carries the roving `tabindex` (the provider writes it), and `Tabs.keyDown` is
   gone. `TablistProps` gained `focusgroup`, `ref` and `dir`; `TabProps` gained `focusgroupstart`, `ref`, and a
   static `tabindex: -1` on a disabled tab only. To migrate, spread `tablistProps` on the owner and `tabProps(i)`
@@ -173,10 +178,11 @@
 ### Patch Changes
 
 - f7ac90d: `TableProps` declares the `role: "table"` it has always returned.
-  
+
   The object `tableProps` has carried the role since 0.30.0 — that is what makes a `display: contents`
   skin keep the table's place in the accessibility tree — but the interface left it out, so a skin
   written in TypeScript could spread it and still not read it. No behaviour changes.
+
 - @cssints/machine@0.30.1
 
 ## 0.30.0
@@ -184,14 +190,14 @@
 ### Minor Changes
 
 - bb2cdcc: A table states its roles, and a column may name its track.
-  
+
   `createTable` used to add no `role`, because a native `<table>` said it itself. A skin that lays the
   rows out as a CSS grid cannot: `display: contents` on `<thead>`/`<tbody>`/`<tr>` leaves those
   elements without a box, and an element without a box keeps its place in the accessibility tree only
   when it carries its own role. Every part now states one (`table`, `rowgroup`, `row`,
   `columnheader`, `cell`), a grid skin can be built without losing the semantics, and
   `TableColumn.width` carries the CSS track a `grid-template-columns` needs.
-  
+
   The body row's `aria-rowindex` stays the skin's job: under a window only the host knows a row's
   place in the whole set (the primitive is given the window), so `renderRow(row, index)` is where it
   goes.
@@ -244,15 +250,16 @@
 ### Minor Changes
 
 - 7b1570c: `createDatePicker` hands the host the popup's placement: `contentStyle()` is the same page-space `position: absolute` box `createPopover` gives. Without it the picker measured and flipped the popup but exposed nothing to put on the element, so a host that portalled the panel had to re-implement the placement or leave the panel at the page's top-left. `date-picker.browser.test.tsx` now asserts the panel starts one gap under the trigger's bottom edge.
-  
+
   `createPopover.attach` and `createDatePicker.attach` no longer create a computation. A host calls `attach` from a `ref`,
   Solid 2 runs refs in the effect phase, and a primitive created there belongs to nobody: the dev build throws
   `PRIMITIVE_IN_EFFECT_CALLBACK` while the production one stays silent — so the packaged tanstack of this repo's tests passed
   and the starter smoke (a real `vite dev` build) failed on every popover and date-picker case. The measurement, the focus
   handover and the roving-day focus now live in effects created at setup, and `attach` only records the elements and adds
   listeners.
+
 - 7d5968f: `createTabs` takes `dir: "ltr" | "rtl"` (default ltr). A horizontal tablist swaps ArrowLeft / ArrowRight in a right-to-left page, as `radio.ts` does; a vertical tablist keeps Up / Down, and ltr is unchanged. `tabs.qnt` still models ltr only, so the ported `direction` scenarios stay skipped in the differential walk and `test/tabs-requirements.browser.test.tsx` holds the arrow swap.
-  
+
   The same file closes four other requirement gaps in `packages/headless/docs/requirements/tabs.md`: roles and names (G3), focus leaving the component with hidden panels out of the tab order (G6), activation on the up event (G8), and RTL (G11). G5 (icons) is documented as a host obligation; the other seven gaps stay open.
 
 ## 0.25.0

@@ -68,7 +68,7 @@ condition (see below).
 
 - UI: Inter, the variable file `InterVariable.woff2` (and the italic file), `font-weight: 300 1000`, `font-display: swap`
   (`web/index.html:58-72`). The stack is `InterVariable, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"` (`src/alf/fonts.ts:8, 93-105`). `font-variant` adds
+  Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"` (`src/alf/fonts.ts:8, 93-105`). `font-variant` adds
   `no-contextual` and `unicode`; `font-synthesis-weight: none`.
 - Code: `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Roboto Mono", monospace`
   (`fonts.ts:17-21`).

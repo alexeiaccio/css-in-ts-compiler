@@ -70,7 +70,7 @@ new line) and one status line:
   folder; `@opencode/client` must be in the app's devDependencies. When the server has its own message (the client is not
   installed), it follows.
 - Connected: `connected to <service address> · attached session <id> · <state>`, or `no session attached: a prompt starts a
-new one`. The id is the session `/cssints-devtools` attached to this dev server (truncated; the full id is the title); the
+  new one`. The id is the session `/cssints-devtools` attached to this dev server (truncated; the full id is the title); the
   state is `running`, `completed`, `failed` or `interrupted`.
 
 The page asks the dev server whether a service is found (a probe: it looks, it creates no session) when the panel opens, when

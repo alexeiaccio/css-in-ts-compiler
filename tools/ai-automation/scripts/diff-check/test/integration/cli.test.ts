@@ -77,6 +77,25 @@ describe("diff-check CLI", () => {
     expect(result.stderr).toBe("");
   });
 
+  it("treats a reformat of an existing line as no addition", () => {
+    const directory = createRepository();
+    const sourcePath = path.join(directory, "example.ts");
+    writeFileSync(sourcePath, "let compute=( ):number=>1;\n");
+    runGit(directory, ["add", "example.ts"]);
+    runGit(directory, ["commit", "-m", "initial"]);
+    // a formatter's own change: spaces only, the same `let` on the same line
+    writeFileSync(sourcePath, "let compute = (): number => 1;\n");
+
+    const result = runCli({
+      configPath: writeConfig(directory),
+      directory,
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("No violations found.");
+    expect(result.stderr).toBe("");
+  });
+
   it("ignores a deleted TypeScript file for added-line linting", () => {
     const directory = createRepository();
     const sourcePath = path.join(directory, "removed.ts");

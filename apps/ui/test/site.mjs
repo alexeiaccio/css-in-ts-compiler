@@ -195,10 +195,7 @@ try {
   assert.equal(await preview.locator('[data-part="board-card"]:visible').count(), 24);
   await preview.locator('[data-node="color-highlight"] [data-part="board-head"]:visible').click();
   // current lights what it reaches: the badge uses the token, the page colour does not
-  assert.equal(
-    await preview.locator('[data-node="badge"]:visible').getAttribute("data-dim"),
-    null,
-  );
+  assert.equal(await preview.locator('[data-node="badge"]:visible').getAttribute("data-dim"), null);
   assert.equal(
     await preview.locator('[data-node="color-page"]:visible').getAttribute("data-dim"),
     "true",

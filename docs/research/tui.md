@@ -140,7 +140,7 @@ Neutral key = what the compiled object holds; OpenTUI = what the adapter sets.
   (cssints-0s1z): a terminal token is never in a sheet, and a web token of the same name in one build is another one.
 - A terminal has no custom properties, so a token is resolved at build time: the site holds the default value and,
   under `themes`, what each theme changes, states included: `{ backgroundColor: "#1e1e2e", themes: { light: {
-backgroundColor: "#eff1f5" } } }`. Aliases, derived tokens (`color-mix()` over a token) and references in a theme
+  backgroundColor: "#eff1f5" } } }`. Aliases, derived tokens (`color-mix()` over a token) and references in a theme
   are resolved per theme, as `check.contrast` reads them. The themes are those registered when the site runs: import the theme module
   first, as on the web.
 - `setTheme(name)` of `@cssints/tui` (also exported by `/opentui`) sets the values of that theme on every attached
@@ -163,7 +163,7 @@ process.stdout.write(ui.render(term, build, { pointer: { x, y, down } }).output)
   elements are active until the release (`pointerclick`) or a leave. `:focus` is the id of `ui.focus(id)`. The events
   of a frame come after it is drawn, so `ui.render` draws it again when a state changed: a hover shows at once.
 - **Pointer and caret.** No setting of bomb.sh sets the mouse pointer, so the tracker writes OSC 22 (`ESC ] 22 ;
-pointer ST`) when the innermost hovered element with a `cursor` changes, and `default` when there is none. The caret
+  pointer ST`) when the innermost hovered element with a `cursor` changes, and `default` when there is none. The caret
   of the focused element is DECSCUSR (`ESC [ n SP q`: `block` 1/2, `underscore` 3/4, `bar` 5/6, blinking/steady by
   `caretAnimation`; `auto` 0) and OSC 12 for `caretColor`; bomb.sh places and shows the caret where a `text()` op has
   `caret: offset`. `ui.reset()` writes OSC 22 `default`, DECSCUSR 0 and OSC 112.

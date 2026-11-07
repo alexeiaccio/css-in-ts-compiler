@@ -68,7 +68,7 @@ method, and the build checks it again. A method in `media()` or another conditio
   columns. For a target that lacks grid lanes (the default targets do: Chrome and Firefox), the build adds the
   `@supports not` rule above for the items: a fallback of CSS only, so it reaches every target and covers the support
   warning of `display: grid-lanes` (its `polyfills` name the same BCD key). For targets that all have grid lanes (`safari
-26.4`), the rules are not in the sheet.
+  26.4`), the rules are not in the sheet.
 - Checked in Chrome 154 and Firefox 155 (columns) and Playwright's WebKit 26.6 (grid lanes, and the columns with the native
   value hidden): `bun run test:browsers`.
 

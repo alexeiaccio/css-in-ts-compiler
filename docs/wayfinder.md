@@ -5275,3 +5275,18 @@ repository's own `diff-check` no-let rule rejects — so that pass needs the `le
 Files this change touches are formatted. A single `bun run test` across all 65 workspaces is not a gate on this machine:
 the workspaces start dev servers on port 24678 and the browser suites collide (four exit 137 under the load); each suite
 passes alone, which is how they were checked.
+
+## A formatting pass is not an addition: the diff check reads `--ignore-all-space` (2026-11-07)
+
+The entry above ends with `fmt:check` red on 24 files and the reason: reformatting them makes their existing `let` lines
+"added lines", and `diff-check/no-let` rejects those. The conclusion was wrong about where the fault was. A line that
+changed **only in whitespace** is not new code, and the check should have known that from the start: it now computes the
+added lines from `git diff --unified=0 --ignore-all-space`, so a formatter's re-wrap adds nothing and the rules still fire
+on a `let` somebody actually wrote. `packages/.../diff-check/test/integration/cli.test.ts` pins both halves: a whitespace
+change to an existing `let compute=():number=>1` reports nothing, and adding a `let` still reports it (the existing test).
+
+With that, `vp fmt` ran over the repository (37 files, the 24 plus the ones a formatter had never touched since the skew
+began) and both checks are green: `bun run fmt:check` — "All matched files use the correct format", `bun run diff:check`
+— "No violations found". The engine files the pass touched (`rules.ts`, `selector.ts`, `sheet.ts`, `theme.ts`,
+`devtools/src/core/css.ts`) are whitespace-only changes and keep their tests: `css-grammar`, `cssints` and `devtools`
+suites pass, `typecheck` 47/47, `bun run lint` green.

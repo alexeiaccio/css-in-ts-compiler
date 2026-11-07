@@ -61,9 +61,9 @@ PNG copy of the image (it can be small; only its colours are read).
 - **Deterministic.** The same file gives the same CSS on every build. Results are cached for the process by the SHA-256
   of the file's content and the mode, so an image used from many modules is decoded once.
 - **Errors**, at the call: a file that cannot be read (`cssints: placeholder: cannot read src/nope.png (paths are
-relative to /app)`), a format it does not read (above), a file that does not decode (`cssints: placeholder:
-src/broken.png: …`, the decoder's message), a mode outside the grammar (`placeholder(2).mode: unexpected "blurhash"
-…`), and a placeholder where an image does not go (`css.color(placeholder(…))`, an error in the types and at build
+  relative to /app)`), a format it does not read (above), a file that does not decode (`cssints: placeholder:
+  src/broken.png: …`, the decoder's message), a mode outside the grammar (`placeholder(2).mode: unexpected "blurhash"
+  …`), and a placeholder where an image does not go (`css.color(placeholder(…))`, an error in the types and at build
   time).
 
 ## Limits

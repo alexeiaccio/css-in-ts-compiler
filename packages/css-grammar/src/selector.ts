@@ -57,7 +57,7 @@ export function checkSelectorNow(sel: string): void {
     const start = i;
     let pseudoElement = false;
     eat(TYPE);
-    for (let s: string | undefined; (s = eat(SUB)); ) {
+    for (let s: string | undefined; (s = eat(SUB));) {
       if (pseudoElement && s[0] !== ":") {
         i -= s.length;
         return stop();

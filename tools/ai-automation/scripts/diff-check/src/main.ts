@@ -172,7 +172,12 @@ export const execute = () => {
       file,
       untrackedSet.has(file)
         ? [{ start: 1, end: Number.MAX_SAFE_INTEGER }]
-        : parseAddedLineRanges(run("git", ["diff", "--unified=0", baseRef, "--", file], root)),
+        : parseAddedLineRanges(
+            // `--ignore-all-space`: a formatter re-wraps lines and moves text between them, and a re-wrapped line is not
+            // new code. Without it every formatting pass reads as an addition, and a rule such as `no-let` fires on
+            // lines nobody wrote (it did: 24 files of a repository-wide `vp fmt`).
+            run("git", ["diff", "--unified=0", "--ignore-all-space", baseRef, "--", file], root),
+          ),
     ]),
   );
   const lintViolations =

@@ -246,8 +246,7 @@ const baseline = (out: (i: Info) => boolean, down?: Target[]) => {
   for (const p of propNames) if (ok(`css.properties.${p}`)) g.props.add(p);
   for (const f of fnNames) {
     const keys = fnKeys(f);
-    if (keys.length ? keys.every(ok) : !out(info("")))
-      g.fns.add(f); // no BCD key: limited availability
+    if (keys.length ? keys.every(ok) : !out(info(""))) g.fns.add(f); // no BCD key: limited availability
     else g.fn.add(f);
   }
   for (const s of selNames) if (ok(`css.selectors.${s}`)) g.sels.add(s);

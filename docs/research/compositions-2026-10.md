@@ -14,15 +14,15 @@ Ours: `createX(options)` returns getters plus plain attribute objects the host s
 - **Ariakit** [aki-popover]: one `<Popover>` with positioning props on it (`gutter`, `flip`, `fitViewport`, `overflowPadding`); `modal`; `autoFocusOnShow`/`autoFocusOnHide` + `initialFocus`/`finalFocus`; `alwaysVisible` for exit animations; `preserveTabOrder` keeps portalled content in tree order; `getPersistentElements` exempts an element (their toast) from the "outside" rule.
 - **React Aria** [ra-popover]: `usePopover` positions and labels only and "should be combined with useDialog"; `isNonModal` is an explicit opt-out — "most popovers should not use this option as it may negatively impact the screen reader experience"; `shouldCloseOnInteractOutside(el) => boolean` filters dismissal.
 - **Differ**: Base UI and Ariakit expose the focus policy as props, React Aria states it as a rule; Base UI puts alignment/arrow/animation in a Positioner part, Ariakit puts the same knobs on the element.
-- **We take** the focus vocabulary as *modes*, not refs: `initialFocus: 'first-tabbable' | 'popup' | 'none'`, `finalFocus: 'trigger' | 'previous' | 'none'`; `modal: false | true | 'trap-focus'`; `data-side`/`data-align`; the starting/ending-style pair for CSS exits. A modal popover ships a visible close — **[TL]** (Base UI's reason: a hidden escape hatch is one a host forgets to configure). **We do not take** Portal/Backdrop parts, JS positioning and collision maths (native `popover` + CSS anchor positioning), the `handle`/payload plumbing.
+- **We take** the focus vocabulary as _modes_, not refs: `initialFocus: 'first-tabbable' | 'popup' | 'none'`, `finalFocus: 'trigger' | 'previous' | 'none'`; `modal: false | true | 'trap-focus'`; `data-side`/`data-align`; the starting/ending-style pair for CSS exits. A modal popover ships a visible close — **[TL]** (Base UI's reason: a hidden escape hatch is one a host forgets to configure). **We do not take** Portal/Backdrop parts, JS positioning and collision maths (native `popover` + CSS anchor positioning), the `handle`/payload plumbing.
 - **Open**: does `position-area`/`position-try` cover flip/shift well enough that no Positioner port is needed? Settle it in `vk1y` before writing JS.
 
 ## Filterable menu — `cssints-yntz`
 
-- **Base UI** [bui-filter, bui-menu]: the structure is a role argument — a menu, because choosing runs a command ("a role is a promise"), so the trigger says `aria-haspopup="dialog"` while the field has no `aria-autocomplete` and no `aria-haspopup`. The popup is a `dialog` holding a `searchbox` and a `menu`. The field is `input[type=text][role=searchbox]`, not `type=search` (no browser clear button to undo); `Menu.Clear` sits outside the tab order; DOM focus stays in the field and `aria-activedescendant` names the highlight; ↓ on the last item and ↑ on the first return the highlight to the field, which carries `data-highlighted` so sighted users see the step; Home/End are menu keys only while the query is empty *and* an item is highlighted; ArrowRight on a submenu trigger focuses the submenu field at once, hover shows the submenu but does not focus until the pointer is inside; Tab leaves, no trap; IME does not filter. Opt-in is a wrapper (`Menu.FilterProvider`) for three stated reasons: existing parts and styles survive, the trigger can announce a dialog before the input mounts, and non-filtering menus ship no filtering code.
+- **Base UI** [bui-filter, bui-menu]: the structure is a role argument — a menu, because choosing runs a command ("a role is a promise"), so the trigger says `aria-haspopup="dialog"` while the field has no `aria-autocomplete` and no `aria-haspopup`. The popup is a `dialog` holding a `searchbox` and a `menu`. The field is `input[type=text][role=searchbox]`, not `type=search` (no browser clear button to undo); `Menu.Clear` sits outside the tab order; DOM focus stays in the field and `aria-activedescendant` names the highlight; ↓ on the last item and ↑ on the first return the highlight to the field, which carries `data-highlighted` so sighted users see the step; Home/End are menu keys only while the query is empty _and_ an item is highlighted; ArrowRight on a submenu trigger focuses the submenu field at once, hover shows the submenu but does not focus until the pointer is inside; Tab leaves, no trap; IME does not filter. Opt-in is a wrapper (`Menu.FilterProvider`) for three stated reasons: existing parts and styles survive, the trigger can announce a dialog before the input mounts, and non-filtering menus ship no filtering code.
 - **Base UI** matching [bui-menu]: item text by default with a `label` override; contains, case/accent/punctuation-insensitive via `Intl`; `filter={null}` plus `value`/`onValueChange` for external results; empty groups get `hidden` and stay mounted; `<Menu.Empty>`; `autoHighlight: true | 'always'`; the query resets on close with reason `'popup-close'`.
 - **Ariakit** [aki-combobox] has no filterable-menu guide; the two models exist as knobs — `virtualFocus` on the composite provider switches the container from roving tabindex to `aria-activedescendant`, plus `focusOnMove`, `moveOnKeyPress`, `autoSelect`, `showOnChange`. **React Aria** [ra-combobox] treats filtering as combobox, full stop: `useComboBox` + `useListBox` + `usePopover` with `isNonModal` (the documented exception to the popover rule) and `shouldCloseOnInteractOutside`; no menu with a search field.
-- **Biggest disagreement**: Base UI argues a filterable *menu* must not be a combobox; Ariakit's palette and React Aria's combobox ship exactly that. Both hold, because the question is what the choice does — complete the field or run a command. We keep two primitives and let the role follow the purpose.
+- **Biggest disagreement**: Base UI argues a filterable _menu_ must not be a combobox; Ariakit's palette and React Aria's combobox ship exactly that. Both hold, because the question is what the choice does — complete the field or run a command. We keep two primitives and let the role follow the purpose.
 - **We take** the dialog + searchbox + menu structure, the arrow loop back to the field with `data-highlighted` on it, the text-input-with-searchbox-role trick, Clear out of the tab order, the two-signal Home/End rule, the IME guard, groups + empty state, and the opt-in as `filter: true` on `createMenu` (a provider is a wrapper component we do not need). **We do not take** `Menu.useFilter` as a hook (a plain `filter(text, query) => boolean` option), the provider tree, or their `label` override as anything but a field on the item input.
 - **Bug checks we inherit** [bui-filter], all **[TL]**: a group label announced twice; Shift+Tab out of the trigger dropping focus on `body`; a submenu left open after VoiceOver focus return; an open submenu trigger not toggling under TalkBack.
 - **Select**: Base UI's Select is a combobox without an input ("prefer Combobox for large lists", the popup overlaps the trigger by default through `alignItemWithTrigger`) [bui-select]; Ariakit's Select reference says "Deprecated: Use ComboboxSelect instead". We have `createCombobox` and ship no separate select primitive — a native `<select>` covers the rest.
@@ -57,13 +57,13 @@ Ours: `createX(options)` returns getters plus plain attribute objects the host s
 
 ## Drawer / sheet — `cssints-jzwx`
 
-- **Base UI** [bui-drawer]: Drawer *extends* Dialog with swipe-to-dismiss, snap points and an indent effect, and states the rule we already reached — a panel that slides in and needs no gestures is "a positioned Dialog". Snap points are props (`snapPoints: ['148px', 1]`), gestures are JS, `Drawer.VirtualKeyboardProvider` handles the soft keyboard. React Aria and Ariakit have no drawer: a modal dialog, or a popover with `isNonModal`.
+- **Base UI** [bui-drawer]: Drawer _extends_ Dialog with swipe-to-dismiss, snap points and an indent effect, and states the rule we already reached — a panel that slides in and needs no gestures is "a positioned Dialog". Snap points are props (`snapPoints: ['148px', 1]`), gestures are JS, `Drawer.VirtualKeyboardProvider` handles the soft keyboard. React Aria and Ariakit have no drawer: a modal dialog, or a popover with `isNonModal`.
 - **We keep the verdict in `packages/headless/docs/bottom-sheet.md`**: no `sheet` primitive; `dialog-modal` (native `<dialog>`) + CSS scroll snap, `::backdrop`, scroll-driven animation; borrow only the rule — a drawer that needs gestures is no longer a dialog.
 - **Open**: the snap-index readout (`scrollsnapchange` → a signal) is the one thing CSS cannot express as an attribute. Add it when a host reflects the sheet's height.
 
 ## Drop zone — `cssints-6sib`
 
-- React Aria only [ra-dropzone]: `DropZone` over `useDrop`/`useDrag`, a unified `event.items` where an item is a file *or* text (`item.getText(type)`, `item.getFile()`), and `getDropOperation(types) => 'copy' | 'move' | 'cancel'` deciding acceptance before any data is read; the same zone covers paste ("Drop or paste text or images here"). Base UI and Ariakit: none.
+- React Aria only [ra-dropzone]: `DropZone` over `useDrop`/`useDrag`, a unified `event.items` where an item is a file _or_ text (`item.getText(type)`, `item.getFile()`), and `getDropOperation(types) => 'copy' | 'move' | 'cancel'` deciding acceptance before any data is read; the same zone covers paste ("Drop or paste text or images here"). Base UI and Ariakit: none.
 - **We take** `getDropOperation(types)` as the accept predicate (a pure function over MIME types — an attribute-object input), `data-drop-target`/`data-drop-rejected` as the styling hook, and paste on the same path; drag events are DOM events, so `createDropZone` owns handlers without owning an element. **We do not take** `useDrag` and the collection-drop machinery (indicators inside a listbox, cross-window drag) — a file drop is one target.
 - **Open**: touch. HTML drag-and-drop has no touch path and React Aria does not pretend otherwise: ship pointer + keyboard paste and document it.
 
@@ -73,16 +73,16 @@ The filterable menu's "↓ on the last item returns the highlight to the field",
 
 ## Model per pattern
 
-| pattern | model we copy | open question | bean |
-| --- | --- | --- | --- |
-| popover | `dialog-modal` focus vocabulary as modes + native `popover`; `data-side`/`data-align` | does CSS anchor positioning cover flip/shift? | `cssints-vk1y` |
-| filterable menu | Base UI's dialog + searchbox + menu, arrow loop to field, IME guard | is `filter: true` on `createMenu` enough? | `cssints-yntz` |
-| command palette | `combobox-dialog` + inline listbox + reset-on-close, single column | menu or combobox for "run a command"? | `cssints-yntz` |
-| date picker | `combobox-dialog.qnt` + grid + spinbutton segments | `aria-selected` vs `aria-current` on the day grid | `cssints-yntz` |
-| table | `grid-sort` + `grid-selection` + `treegrid`, `isRowHeader` | column resize: separator in header or `resizable-panels`? | `cssints-03li` |
-| toast / status | one region per priority, text as data, ≥5 s, pause, F6 | region + status split — confirm in a test | `cssints-6ca5` |
-| drawer | no primitive: `dialog-modal` + CSS scroll snap | snap-index readout | `cssints-jzwx` |
-| drop zone | `getDropOperation(types)` + `data-drop-target`, paste | no touch path — document, do not fake | `cssints-6sib` |
+| pattern         | model we copy                                                                         | open question                                             | bean           |
+| --------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------- |
+| popover         | `dialog-modal` focus vocabulary as modes + native `popover`; `data-side`/`data-align` | does CSS anchor positioning cover flip/shift?             | `cssints-vk1y` |
+| filterable menu | Base UI's dialog + searchbox + menu, arrow loop to field, IME guard                   | is `filter: true` on `createMenu` enough?                 | `cssints-yntz` |
+| command palette | `combobox-dialog` + inline listbox + reset-on-close, single column                    | menu or combobox for "run a command"?                     | `cssints-yntz` |
+| date picker     | `combobox-dialog.qnt` + grid + spinbutton segments                                    | `aria-selected` vs `aria-current` on the day grid         | `cssints-yntz` |
+| table           | `grid-sort` + `grid-selection` + `treegrid`, `isRowHeader`                            | column resize: separator in header or `resizable-panels`? | `cssints-03li` |
+| toast / status  | one region per priority, text as data, ≥5 s, pause, F6                                | region + status split — confirm in a test                 | `cssints-6ca5` |
+| drawer          | no primitive: `dialog-modal` + CSS scroll snap                                        | snap-index readout                                        | `cssints-jzwx` |
+| drop zone       | `getDropOperation(types)` + `data-drop-target`, paste                                 | no touch path — document, do not fake                     | `cssints-6sib` |
 
 ## Sources
 
@@ -94,12 +94,10 @@ The filterable menu's "↓ on the last item returns the highlight to the field",
 [bui-toast]: https://base-ui.com/react/components/toast
 [bui-drawer]: https://base-ui.com/react/components/drawer
 [bui-styling]: https://base-ui.com/react/handbook/styling
-
 [aki-popover]: https://ariakit.org/reference/popover
 [aki-combobox]: https://ariakit.org/reference/combobox
 [aki-cmdk]: https://ariakit.org/examples/dialog-combobox-tab-command-menu
 [aki-composition]: https://ariakit.org/guide/composition
-
 [ra-popover]: https://react-spectrum.adobe.com/react-aria/usePopover.html
 [ra-combobox]: https://react-spectrum.adobe.com/react-aria/useComboBox.html
 [ra-table]: https://react-spectrum.adobe.com/react-aria/useTable.html

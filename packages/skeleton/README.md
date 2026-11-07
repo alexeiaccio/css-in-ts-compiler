@@ -106,7 +106,7 @@ view timelines), and `animation-delay: calc()` cannot read the time.
   kernel: `cssints: skeleton: kernel core sets border-radius, background-image, background-size, background-position, background-attachment (this style also sets background)`.
   `hover(skeleton())` is a build error too (a kernel cannot be conditional); wrap a method instead.
 - **Errors** are the grammar's, in the types and at build time: `skeleton.radius: unexpected "-4px" in "-4px", expected
-<length-percentage [0,∞]>`, `skeleton.color: unexpected "4px" in "4px", expected <color>`.
+  <length-percentage [0,∞]>`, `skeleton.color: unexpected "4px" in "4px", expected <color>`.
 
 ## Browsers
 

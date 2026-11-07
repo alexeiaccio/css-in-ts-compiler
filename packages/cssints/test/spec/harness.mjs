@@ -64,7 +64,7 @@ export async function start() {
   let open = 0; // requests whose transformRequest has not resolved
   const held = (f) => waiting.get(f)?.length ?? 0;
   const settle = async () => {
-    for (let last = -1, quiet = 0; quiet < 3 || (open > 0 && ![...waiting.keys()].some(held)); ) {
+    for (let last = -1, quiet = 0; quiet < 3 || (open > 0 && ![...waiting.keys()].some(held));) {
       await sleep(15);
       quiet = progress === last ? quiet + 1 : 0;
       last = progress;

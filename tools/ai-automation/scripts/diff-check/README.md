@@ -29,6 +29,12 @@ extensions, excluded path prefixes, and changed-file rules. Matchers support
 individual files, directories, and extension exceptions. Neutral examples
 include migrations, configuration files, and lockfiles.
 
+A line counts as added only when the change is more than whitespace
+(`git diff --ignore-all-space`): a formatter re-wraps lines and moves text
+between them, and a re-wrapped line is not new code. Without that, a repository
+wide `vp fmt` reads as thousands of additions and every `let` it touches is
+reported as newly written.
+
 Exit status is `0` when clean, `1` for violations, and `2` for invalid
 configuration or execution failures. The integration test creates a temporary
 Git repository and proves both shipped rules apply only to added lines.

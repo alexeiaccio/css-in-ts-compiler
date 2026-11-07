@@ -7,7 +7,7 @@
 - 9a5a4dd: The V2 half of the platform's `focusgroup` contract is now ours, because nothing publishes it: no engine reports
   `focusGroup.supports("grid")`, npm's `@microsoft/focusgroup-polyfill` 1.6.0 has no grid token at all, and the
   polyfill's `main` (grid merged 2026-09-29) has no built `dist`.
-  
+
   `focusGrid(owner, { definition, items })` renders `focusgroup="grid"` / `"grid manual"` (plus the per-axis
   `rowwrap` / `rowflow` / `colwrap` / `colflow` and `nomemory`) and provides the movement where the engine does not:
   one tab stop over the authors' `tabindex`, arrows on both axes, Home / End per row, Ctrl+Home / Ctrl+End for the
@@ -15,11 +15,12 @@
   memory, the `focusgrouprow` markers of a manual topology, the native key-conflict guard, and an inert body when the
   coordinates are not a rectangle. `destroy()` restores the authors' `tabindex` and removes the markers it added.
   `focusgridAttribute` and `supportsFocusGrid` are exported too; no new dependency.
-  
+
   `@cssints/apg-specs` gains `specs/patterns/focusgrid.qnt` (the contract: one tab stop, both axes, the per-axis
   edges, entry / memory / `focusgroupstart`, `grid` vs `grid manual`, and what a grid does not do — spans, ragged
   rows, virtualisation, edit, selection, `itemcontrols`), its bridge and scenario set, and the spec-only test.
   `specs/apg/grid.qnt` is untouched and does not import it yet; adopting the runtime in `grid.ts` is a follow-up.
+
 - d2461a4: `createGrid` hands the body's movement and its roving tab stop to the V2 `focusgroup="grid"` runtime
   (`packages/headless/src/focusgrid.ts`): `gridProps` carries the `focusgroup` attribute rendered from the
   same definition and a `ref` that builds the provider, the owner's `focusin` maps the focused cell back to
@@ -47,11 +48,11 @@
   `focusin` a move causes (automatic) or on Enter / Space (manual). A disabled tab is not an item of the group
   and carries a static `tabindex="-1"` instead of being arrow-reachable. `provider?: "auto" | "polyfill"` forces
   the polyfill (a test, or a host that needs the fallback).
-  
+
   `tabs.qnt` now imports `shared/focusgroup.qnt` and models `tabStop` beside `selected`: the stop follows focus
   while focus is inside the tablist and returns to the selected tab on entry and leave, so manual activation and
   a controlled host that rejected a request are modelled the way the platform renders them.
-  
+
   Breaking: `TabProps` no longer carries the roving `tabindex` (the provider writes it), and `Tabs.keyDown` is
   gone. `TablistProps` gained `focusgroup`, `ref` and `dir`; `TabProps` gained `focusgroupstart`, `ref`, and a
   static `tabindex: -1` on a disabled tab only. To migrate, spread `tablistProps` on the owner and `tabProps(i)`
@@ -97,7 +98,7 @@ No changes in this release.
 ### Minor Changes
 
 - 53f573a: A Quint machine for the drop zone (`specs/patterns/dropzone.qnt`) and its bridge, scenarios and spec-only test: the drag depth (0 none, 1 the zone, 2 a child), `disabled` and the last delivery, with the five invariants `DraggingIffDepth`, `DepthClearsOnDrop`, `DepthClearsOnExit`, `DisabledNeverDelivers`, `OneDropOneBatch` and `DepthNeverNegative`. There is no APG pattern for file dropping, so it lives in `specs/patterns/` beside `resizable-panels`, and `@cssints/headless`'s `dropzone-spec.browser.test.tsx` replays it in Chromium.
-  
+
   `Probe` gained `value`, off by default: a pattern whose observable state has no attribute of its own (the drop zone's `dragging()` and `message()`) can now have it compared by the differential walk.
 
 ## 0.25.0
