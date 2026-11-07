@@ -1202,6 +1202,18 @@ that deck through Playwright's Chromium (`page.pdf()`, A4 landscape, 12 mm margi
 `parse`/`check` every spec first, so one bad spec writes no file; `figure-export-deck.test.ts` counts the slides, pages
 and pixels, reads the PDF's titles back as text, `cmp`s two runs and mutates the deck, the print CSS and the 2× raster.
 
+**The accessible name and the language.** A spec may set `label`, the figure's accessible name — one line of text,
+non-empty after trim and at most 200 characters, refused otherwise — and `lang`, a language tag such as `pt-BR` (`en`
+when absent). The layout carries both like `focus`, so there is one value for every target: the standalone SVG's root has
+`role="img"`, `aria-label` and `lang`, with the label also in a `<title>` child (screen readers and hover); the HTML page
+puts `lang` on `<html>` and `role="img"`/`aria-label` on the figure's `<figure>`; the deck does the same, its
+`<html lang>` being the first slide's as its title is, so the PDF Chromium prints carries it too. PNG is pixels only: neither
+field has a pixel, so `--png` is unchanged. `app/Figure.tsx` declares the `role="img"` box on the frame's root **only**
+when the spec sets a label, so a labelled spec's a11y tree has exactly one node and an unlabelled one stays empty (the
+unlabelled goldens do not move). The text half does not draw either field: `label` is a screen reader's line, not a
+fence's, so `render` and `markdown` are unchanged by it. `solid/figure-label-lang.test.ts` holds the defaults, the
+refusals, every export's markup, both frame trees and `bars.json`'s real label read back from its SVG.
+
 ## The accessibility tree
 
 `solid/a11y.ts` is the tree a screen reader would walk: `snapshot(root, { parts, containers })` returns

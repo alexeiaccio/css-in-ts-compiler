@@ -2,7 +2,8 @@
 // writes for that spec — inline, verbatim, once — so a slide and the figure's own `.svg` cannot disagree, and the deck
 // adds no drawing of its own. The page around it is the one `./html.ts` makes of a single figure: the title and intent
 // above, the `►` focus line and the source under it, the palette over roles (`--page`, `--ink`, ...), `prefers-color-
-// scheme`, print and `forced-colors`. What a deck adds is the sequence: a slide number, `:target` navigation, and a
+// scheme`, print and `forced-colors`, and each figure's `role="img"`/`aria-label` (`<html lang>` is the first slide's,
+// as the deck's title is). What a deck adds is the sequence: a slide number, `:target` navigation, and a
 // `@page` rule that puts a slide a page.
 //
 // **Navigation is CSS only, and `:target` is how.** A slide is `display: none` until it is the URL's fragment
@@ -127,6 +128,7 @@ const caption = (spec: Spec): string => {
 function slide(spec: Spec, index: number, count: number, deckTitle: string): string {
   const id = `s${index + 1}`;
   const title = spec.title ?? "A figure";
+  const label = layoutOf(spec).label;
   const previous = index === 0 ? "top" : `s${index}`;
   const next = index === count - 1 ? "top" : `s${index + 2}`;
   const captionHtml = caption(spec);
@@ -135,7 +137,7 @@ function slide(spec: Spec, index: number, count: number, deckTitle: string): str
 ${index === 0 && deckTitle !== title ? `<h1 class="deck-title">${escapeXml(deckTitle)}</h1>\n` : ""}<p class="count">Slide ${index + 1} of ${count}</p>
 <h2 id="${id}-title">${escapeXml(title)}</h2>
 ${spec.intent ? `<p class="intent">${escapeXml(spec.intent)}</p>` : ""}</header>
-<figure aria-label="${escapeXml(title)}">
+<figure role="img" aria-label="${escapeXml(label)}">
 ${svg(spec)}${captionHtml ? `<figcaption>\n${captionHtml}\n</figcaption>` : ""}</figure>
 <nav class="slide-nav" aria-label="Slides">
 <a class="prev" href="#${previous}" rel="prev">‹ Previous</a>
@@ -151,11 +153,13 @@ ${svg(spec)}${captionHtml ? `<figcaption>\n${captionHtml}\n</figcaption>` : ""}<
 export function deck(specs: readonly Spec[], options: DeckOptions = {}): string {
   const first = specs[0];
   const title = options.title ?? first?.title ?? "A figure deck";
+  // the deck's language is its first slide's, as its title is: a deck of one language is the case it exists for
+  const lang = first ? layoutOf(first).lang : "en";
   const description = `${specs.length} figure${specs.length === 1 ? "" : "s"}: ${specs
     .map((spec) => spec.title ?? spec.source ?? "A figure")
     .join("; ")}`;
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeXml(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

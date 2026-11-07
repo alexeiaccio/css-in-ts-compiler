@@ -1,6 +1,14 @@
 {
   "a11y": {
-    "children": [],
+    "children": [
+      {
+        "bounds": [0, 0, 400, 112],
+        "children": [],
+        "name": "A bar chart of one frame's work time on each of the three targets",
+        "role": "img",
+        "states": {}
+      }
+    ],
     "role": "document",
     "states": {}
   },

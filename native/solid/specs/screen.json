@@ -3,6 +3,7 @@
   "title": "The Widgets page, as a wireframe",
   "intent": "The Widgets page's own last frame, cut to the cell grid: its 23 rectangles and borders outlined and its 30 text runs in its words. The data is the page's command stream, not a drawing of it.",
   "source": "solid/specs/from-page.ts: solid/dump.ts's capture of the widgets page at 360x760; 23 boxes, 30 texts",
+  "label": "A wireframe of the Widgets page, its boxes outlined and its text runs in place",
   "data": {
     "page": "widgets",
     "width": 360,

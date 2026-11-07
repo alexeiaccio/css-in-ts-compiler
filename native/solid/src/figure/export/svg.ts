@@ -84,9 +84,10 @@ function textAt(
 }
 
 /**
- * One spec as a standalone `<svg>`. The root carries the layout's viewBox, the title as its accessible name and a
- * `<title>`/`<desc>`, and one element a drawn item: a box a `<rect>` and its `<text>`, a bar a track and a fill, a text
- * a `<text>`, a swatch a `<rect>` in its own colour, a marker a triangle, a space nothing.
+ * One spec as a standalone `<svg>`. The root carries the layout's viewBox, the layout's label as its accessible name
+ * (`role="img"`, `aria-label`, and a `<title>` child) and its `lang`, plus a `<desc>` for the intent and source, and one
+ * element a drawn item: a box a `<rect>` and its `<text>`, a bar a track and a fill, a text a `<text>`, a swatch a
+ * `<rect>` in its own colour, a marker a triangle, a space nothing.
  */
 export function svg(spec: Spec, options: SvgOptions = {}): string {
   const l: Layout = layoutOf(spec);
@@ -94,12 +95,12 @@ export function svg(spec: Spec, options: SvgOptions = {}): string {
   const scale = options.scale ?? 1;
   const width = options.width ?? size.width * scale;
   const height = (width / size.width) * size.height;
-  const label = spec.title ?? spec.source ?? "A figure";
   const desc = [spec.intent, spec.source].filter((line): line is string => Boolean(line)).join(" — ");
   const out: string[] = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${px(width)}" height="${px(height)}" ` +
-      `viewBox="0 0 ${px(size.width)} ${px(size.height)}" role="img" aria-label="${escapeXml(label)}">`,
-    `<title>${escapeXml(label)}</title>`,
+      `viewBox="0 0 ${px(size.width)} ${px(size.height)}" role="img" aria-label="${escapeXml(l.label)}" ` +
+      `lang="${escapeXml(l.lang)}">`,
+    `<title>${escapeXml(l.label)}</title>`,
   ];
   if (desc) out.push(`<desc>${escapeXml(desc)}</desc>`);
   out.push(

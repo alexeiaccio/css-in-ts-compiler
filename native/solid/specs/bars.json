@@ -3,6 +3,7 @@
   "title": "A frame, by target",
   "intent": "One frame's own work on each of the three targets, as native/README.md measured it.",
   "source": "native/README.md --bench: 0.30, 0.077, 0.08 ms",
+  "label": "A bar chart of one frame's work time on each of the three targets",
   "data": [
     { "label": "desktop", "value": 0.3, "text": "0.30 ms" },
     { "label": "terminal", "value": 0.077, "text": "0.077 ms" },

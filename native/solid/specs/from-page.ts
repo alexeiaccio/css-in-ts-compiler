@@ -63,6 +63,7 @@ export function specsOf(screen: FrameDump, pairWide: FrameDump, pairNarrow: Fram
       `drawing of it.`,
     source: `solid/specs/from-page.ts: solid/dump.ts's capture of the ${SCREEN_PAGE} page at ` +
       `${screenData.width}x${screenData.height}; ${screenData.boxes.length} boxes, ${screenData.texts.length} texts`,
+    label: "A wireframe of the Widgets page, its boxes outlined and its text runs in place",
     data: screenData,
   };
   const pairSpec: ResponsivePairSpec = {

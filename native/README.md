@@ -3033,7 +3033,9 @@ no change in any of them.
 | `data` | the kind's rows | see below |
 | `options` | widths and scales in cells | `width` (track cells), `max` (bar chart), `headers` (compare) |
 | `focus` | `{ on, tone, say }` | a row's label, `problem` / `good` / `plain`, and the `►` line |
-| `label`, `motion`, `lang` | the kit's | not here (no screen reader line, no motion, one locale) |
+| `label` | the figure's accessible name: one line, at most 200 characters | optional, falls back to `title`; carried by the layout, and the SVG's `role="img"`/`aria-label`/`<title>`, the HTML and deck's `aria-label`, and a role-`img` a11y node on the frame |
+| `lang` | the document's language tag (`en`, `ru`, `ja`, `pt-BR`) | optional, `en` when absent; the SVG's `lang` and the HTML/deck's `<html lang>` |
+| `motion` | the kit's | not here (a spec has no motion; the motion *kinds* are below) |
 
 The six kinds and their layout: **barChart** is a row of `{ label, value, text? }`, one track each, the fill
 `value/max` of it, at least one cell for a positive value and `"+"` on a number past `options.max`; **branchFlow** is a
@@ -3093,9 +3095,11 @@ metrics need (worst box 0.55 px) and a click to leaving it byte-identical; `figu
 measurements (native/README.md's `--bench`), `pipeline.json` is the pipeline this repository has (declaration → Clay →
 commands → ThorVG / cells / Canvas2D), and `funnel.json` and `compare.json` are glyph-kit's own examples, adapted.
 
-**Not here** (and honest about it): the kit's `@file` data, its `lang`, its SAMPLE DATA stamp and its `label`. The text
-renderer, the exports (SVG, HTML, a deck as a page and as PDF, PNG) and the 42 kinds below are here; each section says what
-its half still cannot carry.
+**Not here** (and honest about it): the kit's `@file` data and its SAMPLE DATA stamp, and `motion` as a spec field (a
+figure is a still, and the motion *kinds* are drawn as samples, not animated). Its `label` and `lang` are carried now: the
+layout holds them, the SVG, HTML, deck and PDF exports write them, and `solid/figure-label-lang.test.ts` holds the
+defaults, the refusals and every export's markup. The text renderer, the exports (SVG, HTML, a deck as a page and as PDF,
+PNG) and the 42 kinds below are here; each section says what its half still cannot carry.
 
 **The two flow kinds.** `branchFlow` and `stateMachine` are `solid/specs/branch-flow.json` and `state-machine.json`, one
 stored frame each (`solid/frames/figure-branch-flow.png`, `figure-state-machine.png`) and one command golden each
@@ -3173,7 +3177,7 @@ read; the page is colour-independent by construction instead. Text is XML-escape
 parses; `font-family="Roboto, Helvetica, Arial, sans-serif"` ships no font, so a viewer without Roboto measures `Aa` with
 its own fallback and the cells, boxes and bars do not move (the one caveat of a fontless file). Both writes validate
 first: an invalid spec prints `check`'s sentences, exits 1 and writes no file. The output is deterministic; `solid/test.sh`
-runs each twice and `cmp`s, and ships `docs/exports/palette.html` (28,736 B) and `docs/exports/pipeline.svg` (2,573 B)
+runs each twice and `cmp`s, and ships `docs/exports/palette.html` (28,925 B) and `docs/exports/pipeline.svg` (2,583 B)
 from their specs. `solid/figure-export.test.ts` holds every spec's SVG to the layout (well-formed XML by a hand-check, its
 `<text>`s in the layout's order, every `<rect>`'s x/width the layout's own number, worst error **0.000 px**), the page to
 one verbatim SVG and no `<script>`, and Chromium's rendered boxes to the SVG's numbers (worst **0.000 px**, tolerance
@@ -3192,7 +3196,7 @@ the HTML export's `prefers-color-scheme` roles and `forced-colors` rules and add
 landscape; margin: 12mm }` and `break-after: page` on every slide (the last `auto`, so no blank sheet) with
 `break-inside: avoid` — **Print is one page a slide**, and a figure larger than the printable box is scaled into it by CSS
 with its viewBox unchanged. `docs/exports/review.html` (`palette`, `bars`, `timeline`, title "The review: a palette, a
-frame and the plan") is **40,384 B** for 3 slides, and two runs are `cmp`-identical; every spec is validated before the
+frame and the plan") is **40,771 B** for 3 slides, and two runs are `cmp`-identical; every spec is validated before the
 file is opened, so a deck with one invalid spec prints that spec's sentences and writes nothing.
 
 `--png <spec> -o out.png [--scale N]` is the figure as a **raster through the desktop host**: `png.ts` spawns
@@ -3289,8 +3293,9 @@ glyph-kit's journeyMap example (areas/flows.md), adapted
 ```
 
 **Not in the text half**: the kit's SAMPLE DATA stamp (our `source` line is always drawn, sample or not), its `@file` data,
-its `lang`, its screen-reader `label`, and its exports to HTML, decks, SVG and PDF. The characters are a build/CLI path:
-nothing at run time pays for them.
+its exports to HTML, decks, SVG and PDF, and its `lang` and screen-reader `label` — those are metadata a fence has no
+reader for, so they ride the exports and not the characters. The characters are a build/CLI path: nothing at run time pays
+for them.
 
 **The design-system half: our own tokens.** The kit's `areas/systems.md` documents a design system as data, and nine of
 its kinds are here — the half whose data is **ours** (the token sets, the Dialog's frames, the pages' styles, the docs'

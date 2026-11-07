@@ -1,5 +1,5 @@
 // A figure as one page: the same standalone SVG `./svg.ts` makes, inline, with the document around it — the title, the
-// intent, the figure's accessible label, the `►` focus line and the source, and `prefers-color-scheme` for the two
+// intent, the figure's accessible label and the page's `lang`, the `►` focus line and the source, and `prefers-color-scheme` for the two
 // palettes of `app/Figure.styles.ts`. The shapes are written **once**: this file embeds `svg(spec)` verbatim and never
 // repeats a box, a bar or a text, so the page and the `.svg` export cannot disagree.
 //
@@ -127,7 +127,7 @@ export function html(spec: Spec): string {
     .filter(Boolean)
     .join("\n");
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeXml(l.lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -144,7 +144,7 @@ ${STYLE}
 <h1>${escapeXml(title)}</h1>
 ${spec.intent ? `<p class="intent">${escapeXml(spec.intent)}</p>` : ""}
 </header>
-<figure aria-label="${escapeXml(title)}">
+<figure role="img" aria-label="${escapeXml(l.label)}">
 ${figure}${caption ? `<figcaption>\n${caption}\n</figcaption>` : ""}</figure>
 </main>
 </body>

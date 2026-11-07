@@ -74,10 +74,12 @@ function slideProblems(page: string): string[] {
   const slides = page.match(/<section class="slide"/g)?.length ?? 0;
   if (svgs !== specs.length) out.push(`${svgs} <svg> elements for ${specs.length} specs`);
   if (slides !== specs.length) out.push(`${slides} slides for ${specs.length} specs`);
-  const drawn = [...page.matchAll(/<figure aria-label="([^"]*)">/g)].map((one) => decode(one[1]!));
-  const at = drawn.findIndex((one, index) => one !== titles[index]);
-  if (drawn.length !== titles.length) out.push(`${drawn.length} figures, the specs' ${titles.length}`);
-  else if (at >= 0) out.push(`figure #${at + 1} is ${JSON.stringify(drawn[at])}, the specs' ${JSON.stringify(titles[at])}`);
+  // the figure's accessible name is the layout's label (the title when the spec has none), not its heading
+  const names = specs.map((one) => one.label ?? one.title ?? "A figure");
+  const drawn = [...page.matchAll(/<figure\b[^>]*aria-label="([^"]*)"/g)].map((one) => decode(one[1]!));
+  const at = drawn.findIndex((one, index) => one !== names[index]);
+  if (drawn.length !== names.length) out.push(`${drawn.length} figures, the specs' ${names.length}`);
+  else if (at >= 0) out.push(`figure #${at + 1} is ${JSON.stringify(drawn[at])}, the specs' ${JSON.stringify(names[at])}`);
   for (const one of specs) if (!page.includes(svg(one))) out.push(`a slide is not svg(${JSON.stringify(one.title)}) verbatim`);
   if (/<script\b/i.test(page)) out.push("a <script> in a deck that is meant to need none");
   if (!page.includes("@page")) out.push("no @page rule");

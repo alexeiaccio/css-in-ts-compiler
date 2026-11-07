@@ -79,6 +79,11 @@ bun solid/figure-anatomy.test.ts
 bun solid/figure-modal.test.ts
 bun solid/figure-app-shell.test.ts
 bun solid/figure-card-grid.test.ts
+# the two spec fields the README's table used to leave out (solid/figure-label-lang.test.ts): `label`, a screen reader's
+# name for the whole figure, and `lang`, the document's language — the defaults (the title, `en`), the refusals in their
+# sentences, the SVG's role/aria-label/lang/<title> and its escaping, the HTML page's and the deck's lang and figure
+# name, one a11y node on a labelled frame and none without, the text half unchanged, and bars.json's label read back
+bun solid/figure-label-lang.test.ts
 bun solid/figure-list-detail.test.ts
 # the two flow kinds and the two row kinds are in it too: the branch flow's boxes and its branch connectors, the state
 # machine's path and its transitions, the tree's levels and connectors, the journey map's feelings, their refusals (each

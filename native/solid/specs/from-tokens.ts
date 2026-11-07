@@ -50,6 +50,7 @@ const palette = {
   title: "The blue and grey scales, on the page",
   intent: `@cssints/tokens' Open Props blue and grey, step by step, with each step's contrast on the page it is read on.`,
   source: "packages/tokens/src/open-props.ts (blue, gray; page gray.0); ratio: color.ts",
+  label: "A palette of the Open Props blue and grey scales on a light page, each step with its contrast",
   data: { page, hues: [{ name: "Blue", steps: steps(colors.blue) }, { name: "Grey", steps: steps(colors.gray) }] },
 };
 
