@@ -326,7 +326,7 @@ const SPACES = new Map<string, readonly string[]>([
 ]);
 function spaceChannels(body: string): readonly string[] {
   let b = body.slice(0, args(body, "").end);
-  for (let p = ""; p !== b;) [p, b] = [b, b.replace(/\([^()]*\)/g, "")];
+  for (let p = ""; p !== b; ) [p, b] = [b, b.replace(/\([^()]*\)/g, "")];
   return (
     b
       .split(/\s+/)
@@ -377,7 +377,7 @@ function pendingEnd(s: string): number {
   return (s[0] === "v" ? matches(syns["var()"]!, call) : ENV.test(call)) ? end + 5 : -1;
 }
 function skipPending(s: string): string {
-  for (let e; (e = pendingEnd(s)) >= 0;) s = trim(s.slice(e));
+  for (let e; (e = pendingEnd(s)) >= 0; ) s = trim(s.slice(e));
   return s;
 }
 function pend(n: Node, s: string, ctx: Ctx, label?: string): Set<string> {
@@ -686,9 +686,10 @@ function mathScan(
     }
     if (!MATH.has(name)) return no(`${name}() is not a math function`);
     const ts: (CT | "none")[] = [];
-    for (let mode = name === "round"; ;) {
+    for (let mode = name === "round"; ; ) {
       ws();
-      if (mode && tok(ROUND_MODE) !== undefined) mode = false; // round( <rounding-strategy>? , ...
+      if (mode && tok(ROUND_MODE) !== undefined)
+        mode = false; // round( <rounding-strategy>? , ...
       else {
         mode = false;
         const t = name === "clamp" && tok(NONE_WORD) !== undefined ? "none" : sum();
@@ -861,7 +862,7 @@ function seq(xs: Node[], s: string, sub: (x: Node, r: string) => Set<string>): S
 // Star / list: repeat until no new remainder appears (css.ts stops after 8, the twin runs to the fixpoint).
 function closure(rs: Set<string>, step: (r: string) => Set<string>): Set<string> {
   const all = new Set(rs);
-  for (let todo = [...rs]; todo.length;) {
+  for (let todo = [...rs]; todo.length; ) {
     const fresh: string[] = [];
     for (const r of todo)
       for (const q of step(r))

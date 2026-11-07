@@ -43,13 +43,13 @@ export const hero = fontSize(fluid("1rem", "4rem")); // build error: fails WCAG 
   fifth as wide and the rem five times larger, and the value must still reach twice its size at 100%, or text cannot be
   resized to 200%. It is checked at every width (at the four kinks of the two curves), and a failure is a build error at
   the call that names the width: `cssints: fluid: 1rem to 4rem between 20rem and 80rem fails WCAG 1.4.4: at 80rem wide,
-  500% zoom gives 5rem, under twice 4rem; narrow the range of sizes or widen the widths`. A ratio of `max` to `min` up to
+500% zoom gives 5rem, under twice 4rem; narrow the range of sizes or widen the widths`. A ratio of `max` to `min` up to
   about 2.5 passes with the default widths.
 - **A length.** The result is a Typed OM length (`CSSStyleValue<"length">`): it goes where a length goes, in the types,
   and `color(fluid(...))` is an error. It can be an argument of `clamp()`, `min()` and `max()` of cssints.
 - **Build errors** (at the call): a unit that is not px or rem, `min` equal to `max`, `from` not below `to`, a failed
   1.4.4 check, and the grammar of the arguments, by position (`fluid.container(2): unexpected "red" in "red", expected
-  <length>`).
+<length>`).
 
 ## Limits
 

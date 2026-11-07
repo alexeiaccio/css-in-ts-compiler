@@ -75,9 +75,9 @@ export const link = stuck("bottom")(color("green"), hover(color("black")));
   wrapper in it.
 - **Conflicts.** `sticky()` sets `position` and `container-type`: one `cn()` with `position`, `container` or
   `container-type` is a build error, derived from the kernel (written as styles): `cssints: stuck: kernel core sets
-  position, container-type (this style also sets position)`.
+position, container-type (this style also sets position)`.
 - **Errors**: a bad inset is the grammar's, in the types and at build time (`sticky.top: unexpected "red" in "red",
-  expected <length-percentage>`), a method twice is `cssints: sticky().top() is used twice`, and an unknown side is a type
+expected <length-percentage>`), a method twice is `cssints: sticky().top() is used twice`, and an unknown side is a type
   error and `cssints: stuck: stuck() takes top, right, bottom or left, got "middle"`. Each points at the call.
 
 ## Limits

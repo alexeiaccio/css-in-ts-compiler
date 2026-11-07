@@ -159,7 +159,7 @@ export const closeNames = (
   defs: Map<string, { refs?: string[] }>,
   themed: Map<string, Themed>,
 ): void => {
-  for (let size = -1; size !== names.size;) {
+  for (let size = -1; size !== names.size; ) {
     size = names.size;
     for (const n of [...names]) defs.get(n)?.refs?.forEach((r) => names.add(r));
     for (const t of themed.values())

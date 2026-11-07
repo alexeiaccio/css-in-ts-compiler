@@ -19,7 +19,7 @@ const CSS_WIDE = new Set(["inherit", "initial", "unset", "revert", "revert-layer
 const strings = (v: string) => [...v.matchAll(/"([^"]*)"|'([^']*)'/g)].map((m) => m[1] ?? m[2]!);
 // A top-level negative number or dimension: `-1`, `-0.5px`, `2 -3`; not `calc(-1px)`, not `calc(1px - -1px)`, not `a-1`.
 const negative = (v: string) => {
-  for (let p = ""; p !== v;) [p, v] = [v, v.replace(/\([^()]*\)/g, "")];
+  for (let p = ""; p !== v; ) [p, v] = [v, v.replace(/\([^()]*\)/g, "")];
   return /(^|[\s,])-\.?\d/.test(v);
 };
 const words = (v: string) =>

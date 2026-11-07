@@ -602,8 +602,7 @@ for (const [name, text] of [
 await assert.rejects(
   code(use2(defs("sc-prop", `{ "-webkit-line-clamp": "<integer>" }`))),
   (e) => (
-    assert.match(e.message.split("\n")[0], /-webkit-line-clamp is a CSS property already/),
-    true
+    assert.match(e.message.split("\n")[0], /-webkit-line-clamp is a CSS property already/), true
   ),
 );
 // `uses` names a private key without its `#`: `#trim` beside a member `trim` is one name for two keys

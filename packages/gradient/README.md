@@ -66,7 +66,7 @@ export const ink = backgroundImage(
   browser mixes them. `color-mix()` needs Chrome 111, Safari 16.2, Firefox 113: for older targets the build warns, as it
   does for any value.
 - **Errors**, at the call: a part outside the grammar (`gradient: unexpected "steps(4" in "linear to bottom red blue
-  steps(4)", expected linear | <cubic-bezier-easing-function> | <integer> | end of value`), arguments in the wrong order
+steps(4)", expected linear | <cubic-bezier-easing-function> | <integer> | end of value`), arguments in the wrong order
   (`cssints: gradient(): "blue" is not an easing (the arguments are kind, direction, from, to, easing?, stops?)`), and a
   gradient where an image does not go (`css.color(gradient(…))`, an error in the types and at build time).
 

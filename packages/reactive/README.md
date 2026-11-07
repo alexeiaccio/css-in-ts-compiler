@@ -177,7 +177,7 @@ The CSS of the example above (the class names are hashes):
     --reactive-binding: aria-expanded open;
   }
   ._4h1t7s {
-    --reactive-binding: aria-selected ?tab one,aria-controls =panel-one,tabindex ?tab one 0 -1;
+    --reactive-binding: aria-selected ?tab one, aria-controls =panel-one, tabindex ?tab one 0 -1;
   }
   ._lwugp7 {
     padding: 1rem;

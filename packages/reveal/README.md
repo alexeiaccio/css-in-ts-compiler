@@ -179,7 +179,7 @@ The CSS of `appear()` (`lede` and `band` above):
   build error, derived from the kernel:
   `cssints: reveal: kernel enter sets animation, timeline-trigger, animation-trigger, trigger-scope, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `reveal.preset: unexpected "fade-out" in "fade-out",
-  expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
+expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
 
 ## Browsers
 

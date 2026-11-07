@@ -76,7 +76,10 @@ const measured = await server.environments.client.transformRequest("\0virtual:cs
 assert.ok(measured.code.length > 0);
 const edit = await next("cssints:edits");
 // the event measures the sheet as load() renders it; the module the browser gets is that plus Vite's own lines
-assert.ok(edit.bytes > 0 && edit.bytes <= measured.code.length, `bytes ${edit.bytes} of ${measured.code.length}`);
+assert.ok(
+  edit.bytes > 0 && edit.bytes <= measured.code.length,
+  `bytes ${edit.bytes} of ${measured.code.length}`,
+);
 assert.ok(edit.classes > 0, `classes ${edit.classes}`);
 assert.equal(typeof edit.file, "string", "a file, or '' on the first load");
 

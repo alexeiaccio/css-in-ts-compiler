@@ -36,7 +36,7 @@ export const lead = pretty();
 - **Native**: `text-wrap: balance` in Chrome 114, Firefox 121, Safari 17.5; `text-wrap: pretty` in Chrome 117 and
   Safari 26, not in Firefox.
 - **The runtime** covers every browser with `ResizeObserver` (Chrome 64, Firefox 69, Safari 13.1). `bun run
-  test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the native feature switched off: the script
+test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the native feature switched off: the script
   gives the same lines as the browser.
 
 ## Rules
@@ -58,14 +58,14 @@ export const lead = pretty();
   its kernel is raw CSS, `&{text-wrap:pretty}`, since nothing would cover the warnings of one written as styles.
 - **Conflicts.** Both set `text-wrap`: a `cn()` that holds one of them and `text-wrap*` or `white-space` is a build
   error. `balance()`'s are derived from its kernel, `cssints: balance: kernel core sets text-wrap (this style also sets
-  text-wrap)`; `pretty()`'s raw kernel derives none, so an entry lists them: `cssints: balance: it sets text-wrap (this
-  style also sets text-wrap-style)`.
+text-wrap)`; `pretty()`'s raw kernel derives none, so an entry lists them: `cssints: balance: it sets text-wrap (this
+style also sets text-wrap-style)`.
 
 ## Limits
 
 - **No conditions.** A member is a kernel's class, global CSS that cannot be conditional: `hover(pretty())` or
   `media(...)(balance())` is a build error at the call (`:hover wraps _balance-prettyCore, the marker of kernel
-  balance.prettyCore, with no declaration of its own`). Under a condition, use `css.textWrap(...)` (native only).
+balance.prettyCore, with no declaration of its own`). Under a condition, use `css.textWrap(...)` (native only).
 - **The fallback sets `max-width`** on the element: the box narrows, where `text-wrap: balance` keeps it. Centred text
   needs `margin-inline: auto` on the element to stay centred. An inline `max-width` of your own is overwritten.
 - Horizontal writing modes only; the parent must not size itself from the element (a shrink-to-fit parent can loop

@@ -88,7 +88,7 @@ export const cards = autoGrid().min("16rem").gap(4);
 - **Values.** `gap` takes a length or a percentage, and a lone number is a step of the spacing scale (0.25rem), as in
   `padding`. `width`, `minHeight` and `min` take a length or a percentage, `threshold` a length, `content` a percentage from
   0 to 100. `justify` is `start | end | center | space-between | space-around | space-evenly`, `align` is `start | end |
-  center | baseline | stretch`, `side` is `left | right`. Tokens go where a length does. The types check each method, and
+center | baseline | stretch`, `side` is `left | right`. Tokens go where a length does. The types check each method, and
   the build checks it again (ranges included: `content("120%")` fails at the call).
 - **Conditions.** A method in `media()`, `hover()` and the others sets the custom property under that condition:
   `media("(width >= 40rem)")(stack().gap(8))`.

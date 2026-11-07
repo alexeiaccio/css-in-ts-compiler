@@ -489,10 +489,11 @@ const grouped = (c: Compiler, def: { group?: true }, carry: Carry): Carry =>
   def.group ? { ...carry, markers: [...(carry.markers ?? []), [`_g-${c.name}`, "group"]] } : carry;
 
 const ownDecls = (c: Compiler, emitted: readonly EmittedDecl[]) =>
-  emitted.map(([p, v, , fallbacks, join]): Decl =>
-    fallbacks || join
-      ? [c.own(p), c.own(v), undefined, fallbacks && [...fallbacks], join]
-      : [c.own(p), c.own(v)],
+  emitted.map(
+    ([p, v, , fallbacks, join]): Decl =>
+      fallbacks || join
+        ? [c.own(p), c.own(v), undefined, fallbacks && [...fallbacks], join]
+        : [c.own(p), c.own(v)],
   );
 
 // One positional argument against its definition: the value as `build` gets it.

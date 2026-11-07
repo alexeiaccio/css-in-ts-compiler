@@ -482,17 +482,15 @@ type MemberOf<K extends string, V, A> =
 
 /** What `.export()` gives: the members of the table, typed from it (a `-prefixed` property is camel-cased, an embedded scope nests). */
 export type Members<T> = {
-  [
-    K in keyof T & string as Private<K> extends true
-      ? never
-      : Kind<K, T[K]> extends "chain" | "call" | "value"
-        ? K
-        : Kind<K, T[K]> extends "prop"
-          ? Camel<K>
-          : Kind<K, T[K]> extends "module"
-            ? K
-            : never
-  ]: Kind<K, T[K]> extends "module"
+  [K in keyof T & string as Private<K> extends true
+    ? never
+    : Kind<K, T[K]> extends "chain" | "call" | "value"
+      ? K
+      : Kind<K, T[K]> extends "prop"
+        ? Camel<K>
+        : Kind<K, T[K]> extends "module"
+          ? K
+          : never]: Kind<K, T[K]> extends "module"
     ? T[K] extends { "~scope": string; "~table": infer MT }
       ? Members<MT>
       : never

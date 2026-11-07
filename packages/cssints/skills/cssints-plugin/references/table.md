@@ -114,7 +114,7 @@ shade: fn({
 - `value` runs at build time, once per call; the call is replaced by its CSS text. It throws for values the grammar
   cannot reject (units it cannot compute, a failed accessibility rule): `fluid` rejects `em` and fails WCAG 1.4.4.
 - What `value` returns must be a string or a Typed OM value (`cssints: tint() value must return a string or a Typed OM
-  value`). A result that does not fit the property is that property's error at the same site.
+value`). A result that does not fit the property is that property's error at the same site.
 
 ## Identity and HMR
 

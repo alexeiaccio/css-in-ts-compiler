@@ -26,7 +26,7 @@ top-level rules (`layer: null`), `createGlobalTheme(..., { layer })`. Its logic 
 ## The three designs
 
 - **A, scopes** (`proto/a`): `scope("name", table).build(impl).export()`. The table holds local syntax aliases (`width: "<length
-  [0,∞]> | thin"`, used as `<width>`), kernels (`&` is the minted class, `--_x` prints `--<scope>-x`), globals, runtime, conflicts,
+[0,∞]> | thin"`, used as `<width>`), kernels (`&` is the minted class, `--_x` prints `--<scope>-x`), globals, runtime, conflicts,
   chain and call members; `#private` keys; scopes and token sets embed as modules (`<key.alias>`). Types from the one definition.
   `build()` is a second step because TS cannot type a sibling function from `args` inside one table (18 shapes tried); structured
   args only as one named record (positional widened). Cost: plugins.ts +29% (import floor), frame +6%, surface +4%, look ~+8% over
@@ -38,7 +38,7 @@ top-level rules (`layer: null`), `createGlobalTheme(..., { layer })`. Its logic 
   `@property` and conflicts derived), `p.kernel(marker, (css) => css.outline(...))` (kernels as grammar-checked styles, or raw
   `{ css }`), and `p.member((css, ...args) => ...)` whose signature less `css` is the public one (generics kept). A look is
   `css.createGlobalTheme(tokens, selector, overrides, { layer, scope })` inside the member; `css.layers("app", "author",
-  "viewer")` declares top-level layers; `check.contrast` merges layered themes by selector. mise-en-mode is almost user-level.
+"viewer")` declares top-level layers; `check.contrast` merges layered themes by selector. mise-en-mode is almost user-level.
   Weak for frame/surface (raw kernels stay), token setters lose ranges, author-side types 2–5x.
 
 ## Decision: A + C in three steps

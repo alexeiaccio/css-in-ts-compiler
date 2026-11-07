@@ -86,24 +86,23 @@ const triggerRender = (part: PartProps): JSX.Element => (
 /** The rows and the list, rendered inside the `Menu` so they are inside its context. */
 const contentRender =
   (labels: ReadonlyArray<string>) =>
-  (part: PartProps): JSX.Element =>
-    (
-      // `tabindex="-1"`: the spec drives some keys at the menu container, which a scenario focuses; a
-      // menu is focusable in the APG pattern (the kit itself leaves DOM focus on the rows, which the
-      // fixture renames).
-      <div {...part} tabindex={-1} data-part="menu">
-        {labels.map((label, index) => (
-          <MenuItem
-            index={index}
-            render={(row) => (
-              <div {...row} data-part="menuitem">
-                {label}
-              </div>
-            )}
-          />
-        ))}
-      </div>
-    );
+  (part: PartProps): JSX.Element => (
+    // `tabindex="-1"`: the spec drives some keys at the menu container, which a scenario focuses; a
+    // menu is focusable in the APG pattern (the kit itself leaves DOM focus on the rows, which the
+    // fixture renames).
+    <div {...part} tabindex={-1} data-part="menu">
+      {labels.map((label, index) => (
+        <MenuItem
+          index={index}
+          render={(row) => (
+            <div {...row} data-part="menuitem">
+              {label}
+            </div>
+          )}
+        />
+      ))}
+    </div>
+  );
 
 /** The spec's packed `checked(wrap, choice)` as the kit's readable pair. */
 const readable = (packed: number): { checked: ReadonlyArray<number>; radio: number } => ({

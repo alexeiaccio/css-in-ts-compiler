@@ -47,7 +47,7 @@ function rulesOf(text) {
   const out = [];
   const at = [];
   let start = -1;
-  for (let i = 0; i < text.length;) {
+  for (let i = 0; i < text.length; ) {
     const c = text[i];
     if (c === "/" && text[i + 1] === "*") i = text.indexOf("*/", i + 2) + 2;
     else if (c === '"' || c === "'") i = skipString(text, i);

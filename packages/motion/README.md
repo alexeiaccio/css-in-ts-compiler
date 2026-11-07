@@ -110,7 +110,7 @@ export const slow = cn(motion().preset("scale-in"), hover(motion().duration("1s"
 - **Conflicts.** `motion()` sets the animation: a `cn()` that holds it and an `animation*` property is a build error,
   derived from the kernel: `cssints: motion: kernel core sets animation, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `motion.preset: unexpected "spin" in "spin", expected
-  fade-in | ...`, `motion.duration: unexpected "-1s" in "-1s", expected <time [0s,∞]>`.
+fade-in | ...`, `motion.duration: unexpected "-1s" in "-1s", expected <time [0s,∞]>`.
 - **For other members.** `presets` (the table by name), `PresetName`, `motionKeyframes`, `motionVars` (the custom
   properties the keyframes read, by the field of a preset: `motionVars.y` is `--motion-y`) and `motionScope` (its kernel
   `core`) are exported, so a member built on these presets reuses them and never writes a `--motion-*` name.
