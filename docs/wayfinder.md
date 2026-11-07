@@ -5180,3 +5180,36 @@ model. Spans, ragged rows, virtualisation, edit mode, selection, sort, PageUp/Pa
 widget's (the runtime's header says so); `itemcontrols` is unsupported upstream (PR #66), so nested controls are not
 filtered and a cell's own control may take an arrow the grid would otherwise move on. The header segment, a `manual`
 topology for it, and a native engine that writes the stop itself are the follow-ups.
+
+## `@solidjs/signals` was pinned two releases behind what a fresh install resolves (2026-11-07)
+
+The previous entry ("A controlled prop is read in a compute, not in an effect") said `apps/ui` never sees Solid's dev
+diagnostics because it resolves the primitives from source. That is not why. Both suites load the same sources through
+the same configuration; the difference was the **installed `@solidjs/signals`**. `solid-js@2.0.0-rc.13` declares
+`@solidjs/signals: ^2.0.0-rc.13`, bun's lockfile had pinned **rc.13**, and a fresh `npm install` — the starter, and a
+user — resolves **rc.21**. rc.21's dev build is where `assertNotInEffectCallback` and the rest of the
+`PRIMITIVE_IN_EFFECT_CALLBACK` family live (rc.13's `dev-shared.js` has no such name at all), so the repository was
+held to a dev build with **fewer** reactivity rules than the one it ships against. That is why the starter smoke was
+the only gate that failed, and why the failures read as "the widget does nothing" instead of naming a rule.
+
+Measured, in this order: (1) reverting the radio fix (`createEffect` inside the owner's `ref`) left `apps/ui test --
+radio` green; (2) a probe that makes a memo inside an effect callback threw nothing, while the same repo's
+`[MISSING_EFFECT_FN]` did fire — two diagnostics from one build, one present and one absent; (3) the starter's kept
+project had `@solidjs/signals@2.0.0-rc.21` with three hits for `assertNotInEffectCallback`, ours had rc.13 with zero.
+
+**What changed.** The root `overrides` now pins `@solidjs/signals` at `2.0.0-rc.21`, so the workspace tests run the dev
+build a user gets. Bun keeps the old symlink on a plain `bun install` once the store has both versions — `bun install
+--force` is what relinks it, and the resolver then hands `solid-js` the rc.21 copy.
+
+**And the suite now fails on an error-severity finding.** `apps/ui/src/registry/diagnostics.ts` (a browser setup file)
+subscribes to `OBSERVE.diagnostics` — the structured channel — collects `severity: "error"` events and raises them in
+`afterEach`. Subscribing is the part that matters: the first attempt wrapped `console.error`/`console.warn` and threw
+from inside Solid's own reporter, which turned every finding into `[REACTIVITY_HALTED]` and hid the one that mattered.
+Warning severity (`STRICT_READ_UNTRACKED`) is left to the console: the kit's skins trip it in many places (a `merge()`
+result read in a component body) and that cleanup is its own change. With the gate, both reverted fixes fail loudly
+with the rule named; on the clean tree the whole suite is green.
+
+**Left out, and true.** `packages/headless`'s own walk does not subscribe to the channel (it inherits the version, not
+the gate). The `merge` reads behind the `STRICT_READ_UNTRACKED` warnings are a real follow-up: a warning today is a
+"will not update" tomorrow. `bun run diff:check` reports the lockfile as a key-file warning, which is the change
+itself and cannot be avoided.

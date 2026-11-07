@@ -13,12 +13,18 @@ export default defineConfig({
     solid(),
   ],
   css: { transformer: "lightningcss", lightningcss: { targets } },
+  // One Solid for the test and for the packages it exercises. The registry resolves `@cssints/*` from source
+  // (`development`), and a second copy of Solid gives that copy its own "inside an effect callback" state: the
+  // dev-only assertions then never fire, so a package can violate a reactivity rule and the suite stays green.
+  // The starter has one copy by construction (installed tarballs), which is why only its smoke caught it.
+  resolve: { dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"] },
   test: {
     // a browser test has no app entry: the sheet a component's class belongs to arrives through `virtual:cssints.css`, and
     // vitest drops CSS imports unless it is told to process them
     css: true,
-    // the sheet of the modules a test imports: a test page has no app entry to bring it in
-    setupFiles: ["src/registry/sheet.ts"],
+    // the sheet of the modules a test imports: a test page has no app entry to bring it in, and
+    // Solid's dev diagnostics become failures (see `diagnostics.ts`)
+    setupFiles: ["src/registry/sheet.ts", "src/registry/diagnostics.ts"],
     // `src/components/ui/` is where a copy lands; `registry/` is where the items are authored
     // in this repository, next to the page that renders them.
     include: ["src/components/ui/**/*.browser.test.tsx", "src/registry/**/*.browser.test.tsx"],
