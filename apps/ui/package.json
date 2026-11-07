@@ -11,7 +11,8 @@
     "test": "vp test run --config vitest.browser.config.ts",
     "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
     "theme:check": "node --experimental-strip-types scripts/theme-css.ts --check",
-    "test:site": "node test/site.mjs"
+    "test:site": "node test/site.mjs",
+    "test:vitals": "node test/vitals.mjs"
   },
   "dependencies": {
     "@cssints/headless": "workspace:*",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@cssints/apg-specs": "workspace:*",
+    "@cssints/devtools": "workspace:*",
     "@quint-machine/core": "0.1.0",
     "@solidjs/vite-plugin": "3.0.0-next.57",
     "@vitest/browser-playwright": "5.0.5",
