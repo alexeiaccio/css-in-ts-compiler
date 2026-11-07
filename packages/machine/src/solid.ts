@@ -1,18 +1,18 @@
 // @cssints/machine/solid: the machine's state as Solid's own store layer — a `createStore` for the committed snapshot,
-// `createProjection` for a derived view, and `createOptimisticStore` for the visual state that leads the logical one
-// while a transition is in flight. solid-js is an optional peer; the core never imports it.
+// a second store for the visual state that leads the logical one while a transition is in flight, and
+// `createProjection` for a derived view. solid-js is an optional peer; the core never imports it.
 //
-// Why an optimistic store and not a "pending" flag: an animation's visual state leads the logical one. The intent writes
-// the phase the box is heading to inside a Solid `action`; the action stays open until the machine settles (`open` or
-// `closed`, the caller's `settled`), and the machine's committed snapshot is written into the store's base on every
-// transition. When the action settles the override is dropped and readers see the committed base — reconciliation by
-// construction, and a reversal (a second intent before the finish) settles the first action, which rolls the lead back
-// to the committed state. This is the same atomicity the reactive runtime gets from its one flush (see
+// Why an optimistic store and not a "pending" flag: an animation's visual state leads the logical one. An intent writes
+// the phase the box is heading to; the machine's committed snapshot is written into both stores on every transition, and
+// the lead is dropped as soon as a transition reaches a settled phase (`open` or `closed`, the caller's `settled`), so
+// readers see the committed base — reconciliation by construction. A reversal (a second intent before the finish) drops
+// the first lead before reading the new one. This is the same atomicity the reactive runtime gets from its one flush (see
 // packages/reactive/src/runtime.ts and specs/patterns/reactive.qnt): one `setState` call per transition, mutating only
 // the fields that changed, so a reader never sees a phase from one transition with a progress from another.
+//
+// The lead is plain state, not a Solid `action` held open across the transition: since Solid 2 rc.21 a pending action
+// holds the store's writes with it, so the machine's own transition never reached the committed store.
 import {
-  action,
-  createOptimisticStore,
   createProjection,
   createStore,
   getOwner,
@@ -65,24 +65,7 @@ const fieldsOf = <C extends object, S extends string>(
   state: MachineState<C, S>,
 ): MachineFields<C, S> => ({ ...state.context, phase: state.state });
 
-/** Copy `source` onto `draft`, reading every field of a store so the projection tracks each one, writing only changes. */
-const copyInto = (draft: object, source: object): void => {
-  const target = draft as Record<string, unknown>;
-  const from = source as Record<string, unknown>;
-  for (const key of Object.keys(from)) {
-    const value = from[key];
-    if (!Object.is(target[key], value)) {
-      target[key] = value;
-    }
-  }
-  for (const key of Object.keys(target)) {
-    if (!Object.hasOwn(from, key)) {
-      delete target[key];
-    }
-  }
-};
-
-/** Write only the fields that changed: a store replaces nothing, so only the readers of a changed field re-run. */
+/** Write `next` onto a store, changing only the fields that differ, so a reader of one field is not re-run by the rest. */
 const writeFields = <T extends object>(setter: StoreSetter<T>, next: T): void => {
   setter((draft) => {
     const target = draft as Record<string, unknown>;
@@ -110,39 +93,49 @@ export const createMachineStore = <C extends object, S extends string, E extends
 ): MachineStore<C, S, E> => {
   const initial = machine.getState();
   const [state, setState] = createStore<MachineFields<C, S>>(fieldsOf(initial) as never);
-  // The derived form: its authoritative value is computed from the committed store (so it follows every transition)
-  // and an intent's write inside an action is an override that reverts to that computed value when the action settles.
-  const [optimistic, setOptimistic] = createOptimisticStore<MachineFields<C, S>>((draft) => {
-    copyInto(draft, state);
-  }, fieldsOf(initial));
+  // The optimistic view is a second store over the same fields: the committed snapshot, with the phase an in-flight
+  // intent is heading to on top. It is written here, not by holding a Solid `action` open across the machine's own
+  // transition: since Solid 2 rc.21 a pending action holds the store's writes with it, so a transition the machine
+  // performs while the action waits never reaches the committed store (measured: the store sat on `closing` while the
+  // machine was already `closed`).
+  const [optimistic, setOptimistic] = createStore<MachineFields<C, S>>(fieldsOf(initial) as never);
   const settled = options.settled ?? (() => true);
 
-  // The open intent's gate: resolving it lets the action settle, and the optimistic override drops back to the
-  // committed base that the transitions have been writing all along.
-  let end: (() => void) | undefined;
+  /** The phase an in-flight intent is heading to (`undefined` when nothing is in flight). */
+  let lead: S | undefined;
+
+  /** The optimistic fields: the committed snapshot, with the intent's phase on top while one is in flight. */
+  const syncOptimistic = (snapshot: MachineState<C, S>): void => {
+    writeFields(setOptimistic, fieldsOf(snapshot));
+    const heading = lead;
+    if (heading !== undefined) {
+      setOptimistic((draft) => {
+        draft.phase = heading;
+      });
+    }
+  };
+
+  /** Drop the lead: the optimistic view goes back to the committed snapshot, which is where the machine really is. */
   const endIntent = (): void => {
-    const resolve = end;
-    end = undefined;
-    resolve?.();
+    if (lead === undefined) {
+      return;
+    }
+    lead = undefined;
+    syncOptimistic(machine.getState());
   };
 
   const startIntent = (phase: S): void => {
-    const gate = new Promise<void>((resolve) => {
-      end = resolve;
-    });
-    void action(async function* () {
-      setOptimistic((draft) => {
-        draft.phase = phase;
-      });
-      yield gate;
-    })();
+    lead = phase;
+    syncOptimistic(machine.getState());
   };
 
   const off = machine.subscribe((snapshot) => {
     writeFields(setState, fieldsOf(snapshot));
-    if (settled(snapshot.state)) {
-      endIntent();
+    // an intent reconciles as soon as a transition reaches a settled phase: then the committed state IS the lead
+    if (lead !== undefined && settled(snapshot.state)) {
+      lead = undefined;
     }
+    syncOptimistic(snapshot);
   });
 
   if (getOwner() !== null) {
@@ -178,7 +171,7 @@ export const createMachineStore = <C extends object, S extends string, E extends
     ): Store<T> =>
       createProjection<T>((draft) => {
         compute(draft, state);
-      }, seed),
+      }, seed as never),
     send,
   };
 };

@@ -161,9 +161,9 @@ const view = store.projection(
 
 - `store.state` is a `createStore` of `{ ...context, phase }`, one setter call per transition, writing only the fields
   that changed: a reader of `state.phase` does not re-run when only `progress` changes.
-- `store.optimistic` is a derived `createOptimisticStore`: its value follows `state`, and an intent writes the phase it
-  is heading to inside a Solid `action`. The action stays open until the machine settles, then the override reverts to
-  the committed snapshot — an intent that is superseded before the finish rolls back instead of sticking.
+- `store.optimistic` is a second store over the same fields: it follows `state`, and an intent writes the phase it is
+  heading to on top. The lead is dropped as soon as a transition reaches a settled phase, so the view reverts to the
+  committed snapshot — an intent that is superseded before the finish rolls back instead of sticking.
 - `store.projection(compute, seed)` is a `createProjection` over `state`: only a changed field notifies, so a reader of
   `view.visible` does not re-run when `progress` changes. A projection reads the committed frame, not an optimistic
   override (Solid holds the override whole), so the visual phase is read off `optimistic` directly.
@@ -193,5 +193,5 @@ cd packages/machine && bun run typecheck   # src and test/types (the @ts-expect-
 ```
 
 The store test runs in plain node with `--conditions=browser --conditions=development`: Solid's store layer needs no DOM,
-but the node default is the SSR build, where an action's optimistic override has no client transaction to live in. The
-package's `test` script carries the flags.
+but the node default is the SSR build, where a store's client-side transactions do not live. The package's `test` script
+carries the flags.

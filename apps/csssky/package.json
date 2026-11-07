@@ -27,15 +27,15 @@
     "@cssints/icons": "workspace:*",
     "@cssints/reset": "workspace:*",
     "@solidjs/router": "2.0.0-next.35",
-    "@solidjs/web": "2.0.0-rc.13",
+    "@solidjs/web": "2.0.0-rc.21",
     "cssints": "workspace:*",
-    "solid-js": "2.0.0-rc.13"
+    "solid-js": "2.0.0-rc.21"
   },
   "devDependencies": {
     "@cssints/devtools": "workspace:*",
     "@iconify-json/ph": "^1.2.2",
     "@opencode/client": "2.0.26",
-    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
     "lightningcss": "^1.33.0",
     "vite": "catalog:"
   }

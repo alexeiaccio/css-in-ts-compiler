@@ -45,8 +45,7 @@
     "vite-plus": "catalog:"
   },
   "overrides": {
-    "vite": "catalog:",
-    "@solidjs/signals": "2.0.0-rc.21"
+    "vite": "catalog:"
   },
   "packageManager": "bun@1.3.1",
   "catalog": {

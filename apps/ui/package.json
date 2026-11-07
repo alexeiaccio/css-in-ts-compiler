@@ -19,15 +19,15 @@
     "@cssints/mise-en-mode": "workspace:*",
     "@cssints/reset": "workspace:*",
     "@cssints/stories": "workspace:*",
-    "@solidjs/web": "2.0.0-rc.13",
+    "@solidjs/web": "2.0.0-rc.21",
     "cssints": "workspace:*",
     "perfect-arrows": "0.3.5",
-    "solid-js": "2.0.0-rc.13"
+    "solid-js": "2.0.0-rc.21"
   },
   "devDependencies": {
     "@cssints/apg-specs": "workspace:*",
     "@quint-machine/core": "0.1.0",
-    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
     "@vitest/browser-playwright": "5.0.5",
     "alchemy": "2.0.0-beta.81",
     "effect": "4.0.6",

@@ -5213,3 +5213,36 @@ with the rule named; on the clean tree the whole suite is green.
 the gate). The `merge` reads behind the `STRICT_READ_UNTRACKED` warnings are a real follow-up: a warning today is a
 "will not update" tomorrow. `bun run diff:check` reports the lockfile as a key-file warning, which is the change
 itself and cannot be avoided.
+
+## Solid 2 rc.13 → rc.21: the diagnostics arrive with the runtime, and an action no longer spans a store write (2026-11-07)
+
+The previous entry pinned `@solidjs/signals` at rc.21 while `solid-js` stayed at rc.13 — the cheapest way to get the
+reactivity diagnostics. That combination is not one Solid: `solid-js` is a thin layer over `@solidjs/signals`, and mixing
+two releases of the pair makes the store's transactions behave like neither. The symptom was in `packages/machine`:
+`test/store.mjs` sat on `closing` while the machine was already `closed`. Pinning signals back to rc.13 turned it green,
+pinning the whole family to rc.21 kept it red — so the mismatch was not the cause, and the version pair was wrong
+anyway. Both halves are now **rc.21** (`solid-js`, `@solidjs/web`, `@solidjs/compiler`, `@solidjs/babel-plugin`,
+`@solidjs/vite-plugin` `next.57`), the signals override is gone, and the diagnostics are the runtime's, not an extra.
+
+**What rc.21 changed under us.** `createMachineStore` kept an intent alive by holding a Solid `action` open across the
+machine's own transition (`yield gate` until the machine settled). Since rc.21 a pending action holds the store's writes
+with it, so the transition the machine performed while the action waited never reached the committed store: the bridge
+deadlocked against itself, not against the machine. The `action` is gone; the optimistic view is now a second
+`createStore` over the same fields, written from the same `subscribe` callback that writes the committed one, with the
+intent's phase on top and dropped as soon as a transition reaches a settled phase. Same semantics the README described
+(the lead, the rollback on a superseded intent, one write per transition), one fewer Solid mechanism to be surprised by.
+The docs say so (`packages/machine/README.md`, `docs/API.md`).
+
+**The types moved too.** `createProjection`'s and `createOptimisticStore`'s seed is now `NoFn<T>` (`T extends Function ?
+never : T`), which TypeScript cannot resolve while `T` is the bridge's own unresolved generic — both call sites cast the
+seed, with the reason beside it. `createOptimisticStore` is no longer used at all.
+
+**Verified** on the full family: build of all 32 packages, `typecheck` 47/47, and the suites of `machine`, `headless`
+(1380), `apps/ui` (961, one `treeview` walk flaked under load and passes alone), `devtools`, `csssky`, `csssky-tui`,
+`stories`, `tui`, `native` typecheck, `apps/lab` in Chrome, `apps/docs`. The starter template ships the same versions, so
+the smoke exercises them (not run here; the coordinator runs it).
+
+**Left out, and true.** `vite-plus` stays at 1.4.0: 1.5.0 is out and turns on ~15 more type-aware findings in
+`tokens/scripts`, `css-grammar/scripts`, `apps/docs` and two `csssky` assertions, on top of a `bun run lint` that is
+already red on master (89 findings, mostly pre-existing) — that bump needs its own pass. `bun run fmt:check` is red on 39
+files under both versions (not in CI). `csssky-tui` stays on Solid 1.9: `@opentui/solid` is a Solid 1 renderer.

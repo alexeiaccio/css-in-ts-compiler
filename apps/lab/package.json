@@ -14,13 +14,13 @@
     "@cssints/reactive": "workspace:*",
     "@cssints/reset": "workspace:*",
     "@cssints/stories": "workspace:*",
-    "@solidjs/web": "2.0.0-rc.13",
+    "@solidjs/web": "2.0.0-rc.21",
     "cssints": "workspace:*",
-    "solid-js": "2.0.0-rc.13"
+    "solid-js": "2.0.0-rc.21"
   },
   "devDependencies": {
     "@cssints/devtools": "workspace:*",
-    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
     "lightningcss": "^1.32.0",
     "vite": "catalog:"
   }

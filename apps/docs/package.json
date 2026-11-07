@@ -17,9 +17,9 @@
     "@cssints/icons": "workspace:*",
     "@cssints/reset": "workspace:*",
     "@solidjs/router": "2.0.0-next.35",
-    "@solidjs/web": "2.0.0-rc.13",
+    "@solidjs/web": "2.0.0-rc.21",
     "cssints": "workspace:*",
-    "solid-js": "2.0.0-rc.13"
+    "solid-js": "2.0.0-rc.21"
   },
   "devDependencies": {
     "@atcute/bluesky": "^4.0.26",
@@ -35,7 +35,7 @@
     "@oxc-transform/binding-wasm32-wasi": "0.149.0",
     "@pierre/highlights": "^0.3.0",
     "@shikijs/twoslash": "^3.23.0",
-    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
     "@wasm-fmt/oxc_fmt": "0.2.9",
     "alchemy": "2.0.0-beta.81",
     "effect": "4.0.6",
