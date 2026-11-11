@@ -10,6 +10,7 @@ import { cn } from "cssints" with { type: "cssints" };
 import {
   ASKED,
   type Asked,
+  type Box,
   buildPrompt,
   type Candidate,
   type Condition,
@@ -25,6 +26,8 @@ import {
   session,
   Transport,
   type TransportApi,
+  type Xray,
+  xray,
 } from "../core/index.ts";
 import * as s from "./styles.ts";
 
@@ -51,6 +54,16 @@ const PANEL: Record<Dock, string> = {
 };
 const KEY = "cssints-devtools:dock";
 const MIN = 200;
+
+// The X-ray's scopes, in the order the bar button cycles them: the picked element, its subtree, the page, off.
+const XRAY = ["off", "element", "subtree", "page"] as const;
+type XrayScope = (typeof XRAY)[number];
+const XRAY_NAME: Record<XrayScope, string> = {
+  off: "xray",
+  element: "xray:el",
+  subtree: "xray:tree",
+  page: "xray:page",
+};
 interface Placement {
   dock: Dock;
   w: number;
@@ -185,10 +198,42 @@ function PropRow(props: { row: Row }) {
 // loses its scroll position)
 const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
-function Panel(props: { inspection: Inspection; build?: boolean }) {
+function Panel(props: { inspection: Inspection; build?: boolean; xray?: Xray }) {
   const i = () => props.inspection;
   return (
     <>
+      <Show when={props.xray}>
+        {(x) => {
+          const root = () => x().root;
+          const spaces = () => x().spaces.filter((space) => space.depth === 0);
+          return (
+            <div class={s.section} data-devtools="xray">
+              <h3 class={s.heading}>X-ray</h3>
+              <div class={s.prop} data-xray="box">
+                <div class={s.propHead}>
+                  <span class={s.propName}>{root().label}</span>
+                  <span class={s.value} data-xray-value="size">
+                    {measureText(root())}
+                  </span>
+                  <span
+                    class={s.muted}
+                  >{`${x().boxes.length} ${x().boxes.length === 1 ? "box" : "boxes"} · ${x().grid}px grid`}</span>
+                </div>
+                <div class={cn(s.sub, s.muted)} data-xray-value="inside">
+                  {insideText(root()) || "no padding, border, radius or gap"}
+                </div>
+                <Show when={spaces().length}>
+                  <div class={cn(s.sub, s.muted)} data-xray-value="spaces">
+                    {`spaces: ${spaces()
+                      .map((space) => `${Math.round(space.size)}${space.axis === "x" ? "→" : "↓"}`)
+                      .join("  ")}`}
+                  </div>
+                </Show>
+              </div>
+            </div>
+          );
+        }}
+      </Show>
       <div class={s.section} data-devtools="classes">
         <h3 class={s.heading}>Classes by call</h3>
         <For each={i().groups}>
@@ -288,6 +333,109 @@ function Panel(props: { inspection: Inspection; build?: boolean }) {
 
 // the arrow keys and the parent button walk the tree from the element the panel shows
 const parent = (el: Element) => el.parentElement;
+
+const rounded = (n: number) => Math.round(n * 10) / 10;
+const two = (a: number, b: number) => (a === b ? `${a}` : `${a} ${b}`);
+const four = (t: number, r: number, b: number, l: number) =>
+  t === b && r === l ? two(t, r) : `${t} ${r} ${b} ${l}`;
+
+// the box's size as the label prints it
+const measureText = (b: Box) => `${Math.round(b.w)}×${Math.round(b.h)}`;
+
+// what the box spends inside itself: the padding, the border, the radii, a flex/grid gap — the ones that are not 0
+const insideText = (b: Box) => {
+  const pad = four(rounded(b.pad[0]), rounded(b.pad[1]), rounded(b.pad[2]), rounded(b.pad[3]));
+  const border = four(
+    rounded(b.border[0]),
+    rounded(b.border[1]),
+    rounded(b.border[2]),
+    rounded(b.border[3]),
+  );
+  const radius = four(
+    rounded(b.radius[0]),
+    rounded(b.radius[1]),
+    rounded(b.radius[2]),
+    rounded(b.radius[3]),
+  );
+  const parts = [
+    b.pad.some((n) => n > 0) ? `pad ${pad}` : "",
+    b.border.some((n) => n > 0) ? `border ${border}` : "",
+    b.radius.some((n) => n > 0) ? `radius ${radius}` : "",
+    b.gap.some((n) => n > 0) ? `gap ${two(rounded(b.gap[0]), rounded(b.gap[1]))}` : "",
+  ];
+  return parts.filter((part) => part !== "").join("  ");
+};
+
+// the grid inside the root, from its border box's own corner: two gradients, one per axis. Kebab-case keys: Solid 2's
+// style object writes each one with `style.setProperty`, which takes a CSS property name, not its camelCase spelling
+const gridLines = (step: number) => ({
+  "background-image":
+    `repeating-linear-gradient(to right, rgb(96 165 250 / 0.45) 0 1px, transparent 1px ${step}px), ` +
+    `repeating-linear-gradient(to bottom, rgb(96 165 250 / 0.45) 0 1px, transparent 1px ${step}px)`,
+  "background-origin": "border-box",
+  "background-clip": "border-box",
+});
+
+function XrayLayer(props: { of: Xray; scope: XrayScope }) {
+  const content = (b: Box) => ({
+    left: `${b.x + b.border[3] + b.pad[3]}px`,
+    top: `${b.y + b.border[0] + b.pad[0]}px`,
+    width: `${Math.max(0, b.w - b.border[1] - b.border[3] - b.pad[1] - b.pad[3])}px`,
+    height: `${Math.max(0, b.h - b.border[0] - b.border[2] - b.pad[0] - b.pad[2])}px`,
+  });
+  // the label of a space only when the room is wide enough to hold it; the root's own children only (the rest is noise)
+  const labelled = (size: number) => size >= 8;
+  const spaces = () =>
+    props.scope === "page" ? [] : props.of.spaces.filter((space) => space.depth === 0);
+  return (
+    <div class={s.xrayLayer} data-devtools="xray-layer" data-scope={props.scope}>
+      <For each={props.of.boxes}>
+        {(b) => (
+          <div
+            class={b.depth === 0 ? cn(s.xrayBox, s.xrayRoot) : s.xrayBox}
+            data-depth={b.depth}
+            data-box={b.label}
+            title={`${b.label}  ${measureText(b)}${insideText(b) ? `  ${insideText(b)}` : ""}`}
+            style={{
+              left: `${b.x}px`,
+              top: `${b.y}px`,
+              width: `${b.w}px`,
+              height: `${b.h}px`,
+              "border-radius": b.radius.map((r) => `${r}px`).join(" "),
+              ...(b.depth === 0 && props.scope !== "page" ? gridLines(props.of.grid) : {}),
+            }}
+          >
+            <Show when={b.depth === 0 && props.scope !== "page"}>
+              <div class={s.xrayContent} data-devtools="xray-content" style={content(b)} />
+              <span class={s.xrayValue} data-devtools="xray-value">
+                {`${measureText(b)}${insideText(b) ? `  ${insideText(b)}` : ""}`}
+              </span>
+            </Show>
+          </div>
+        )}
+      </For>
+      <For each={spaces()}>
+        {(space) => (
+          <div
+            class={s.xraySpace}
+            data-space={`${space.axis}:${Math.round(space.size)}`}
+            style={{
+              left: `${space.x}px`,
+              top: `${space.y}px`,
+              width: `${space.w}px`,
+              height: `${space.h}px`,
+            }}
+          >
+            <Show when={labelled(space.axis === "y" ? space.size : space.w)}>
+              <span class={s.xrayValue}>{`${Math.round(space.size)}`}</span>
+            </Show>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
 const STEPS = new Map<string, (el: Element) => Element | null>([
   ["ArrowUp", parent],
   ["ArrowDown", (el) => el.firstElementChild],
@@ -312,6 +460,7 @@ function App(props: {
   const [picking, setPicking] = createSignal(false);
   const [hovered, setHovered] = createSignal<Element>();
   const [selected, setSelected] = createSignal<Element>();
+  const [xrayScope, setXrayScope] = createSignal<XrayScope>("off");
   const [tick, setTick] = createSignal(0);
   const [place, setPlace] = createSignal(load());
   const horizontal = () => place().dock === "left" || place().dock === "right";
@@ -422,6 +571,9 @@ function App(props: {
     if (!on) closeWin();
     else if (place().detached && !win()) detach();
   };
+  // one button, four scopes: the panel is narrow, and the mode is a glance, not a setting
+  const cycleXray = () =>
+    setXrayScope((scope) => XRAY[(XRAY.indexOf(scope) + 1) % XRAY.length] ?? "off");
   // from the element the panel shows (the hovered one while picking: the pointer may have left the page for the window)
   const go = (step: (el: Element) => Element | null) => {
     const el = target();
@@ -446,6 +598,11 @@ function App(props: {
     }
     // arrows in the prompt box move its caret, not the selection
     if ((e.composedPath()[0] as Element | undefined)?.localName === "textarea") return;
+    if (e.key === "x" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      cycleXray();
+      return;
+    }
     // the page keeps its arrows while it picks; in the window they walk from the hovered element
     if (picking() && e.view === window) return;
     const step = STEPS.get(e.key);
@@ -467,6 +624,18 @@ function App(props: {
   const rect = createMemo(() => {
     tick();
     return open() ? target()?.getBoundingClientRect() : undefined;
+  });
+  // the X-ray of the target — the picked (or hovered) element, its subtree, or the page — recomputed with the panel's
+  // timer so a hover, a scroll or a query is followed live, like the inspection above it
+  const measured = createMemo(() => {
+    tick();
+    const scope = xrayScope();
+    if (!open() || scope === "off") return undefined;
+    if (scope === "page") return xray(document.body, { depth: 64, max: 400, spaces: 0 });
+    const el = target();
+    return el?.isConnected
+      ? xray(el, { depth: scope === "element" ? 0 : 6, spaces: scope === "element" ? 1 : 2 })
+      : undefined;
   });
 
   onSettled(() => {
@@ -548,6 +717,16 @@ function App(props: {
               pick
             </button>
             <button
+              class={cn(s.button, xrayScope() !== "off" && s.pressed)}
+              data-devtools="xray"
+              data-on={xrayScope() !== "off" ? "yes" : "no"}
+              data-scope={xrayScope()}
+              title="x-ray: the picked element, its subtree, the page (x)"
+              onClick={cycleXray}
+            >
+              {XRAY_NAME[xrayScope()]}
+            </button>
+            <button
               class={cn(s.button, win() && s.pressed)}
               data-devtools="detach"
               data-on={win() ? "yes" : "no"}
@@ -605,7 +784,7 @@ function App(props: {
                   </div>
                 }
               >
-                {(i) => <Panel inspection={i()} build={props.build} />}
+                {(i) => <Panel inspection={i()} build={props.build} xray={measured()} />}
               </Show>
             </Show>
           </div>
@@ -731,6 +910,7 @@ function App(props: {
           </div>
         )}
       </Show>
+      <Show when={measured()}>{(x) => <XrayLayer of={x()} scope={xrayScope()} />}</Show>
       <Show when={open()}>
         <Show when={win()} fallback={<Docked />}>
           {(w) => (

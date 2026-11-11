@@ -19,6 +19,7 @@ import {
   flexDirection,
   flexGrow,
   flexShrink,
+  flexWrap,
   font,
   fontFamily,
   fontSize,
@@ -33,6 +34,7 @@ import {
   lineHeight,
   margin,
   maxHeight,
+  maxWidth,
   minHeight,
   minWidth,
   marginBlock,
@@ -53,6 +55,7 @@ import {
   right,
   textAlign,
   textDecoration,
+  textOverflow,
   textTransform,
   top,
   touchAction,
@@ -107,6 +110,42 @@ export const tag = cn(
   whiteSpace("nowrap"),
 );
 
+// The X-ray layer: under the highlight (which keeps the picked element's box and its tag on top), over the page.
+export const xrayLayer = cn(
+  position("fixed"),
+  left("0"),
+  top("0"),
+  zIndex(2147483645),
+  pointerEvents("none"),
+);
+export const xrayBox = cn(
+  position("fixed"),
+  pointerEvents("none"),
+  outline("1px solid rgb(96 165 250 / 0.45)"),
+);
+export const xrayRoot = cn(outline("2px solid", accent), bg("rgb(96 165 250 / 0.08)"));
+// the content box, inside the padding: the room a child may occupy without touching the padding
+export const xrayContent = cn(position("absolute"), outline("1px dashed rgb(96 165 250 / 0.6)"));
+// the empty room between two boxes: a margin, a gap, a line break. Yellow, so it is not read as a box of the page.
+export const xraySpace = cn(
+  position("fixed"),
+  pointerEvents("none"),
+  bg("rgb(250 204 21 / 0.4)"),
+  outline("1px dashed rgb(250 204 21 / 0.7)"),
+);
+export const xrayValue = cn(
+  position("absolute"),
+  left("0"),
+  top("0"),
+  paddingInline("3px"),
+  bg("rgb(250 204 21 / 0.95)"),
+  color("#0b1220"),
+  fontFamily(mono),
+  fontSize("10px"),
+  lineHeight("13px"),
+  whiteSpace("nowrap"),
+);
+
 // the size along the dock axis is inline (overlay.tsx): the user drags it. A column (left and right docks, a tall window):
 // the bar, the inspection that scrolls, the ask box at the bottom. A row (top and bottom docks, a wide window): the same
 // column of bar and inspection, the ask box on the right edge.
@@ -145,22 +184,38 @@ export const body = cn(flexGrow(1), minHeight("0"), overflow("auto"));
 
 export const bar = cn(
   flex().alignItems("center").gap(2),
+  flexWrap("wrap"),
   flexShrink(0),
   p(2),
   bg(panelBg),
   borderBottom("1px solid", line),
 );
 
-export const title = cn(flexGrow(1), fontFamily(mono), fontWeight("600"));
-// the readable class of the picked element's call (cs-Landing-logo): first in the bar
+export const title = cn(
+  flexGrow(1),
+  minWidth("0"),
+  fontFamily(mono),
+  fontWeight("600"),
+  overflow("hidden"),
+  textOverflow("ellipsis"),
+  whiteSpace("nowrap"),
+);
+// the readable class of the picked element's call (cs-Landing-logo): first in the bar, cut, never wrapped (a wrapped
+// one is a column of letters when the bar is full)
 export const name = cn(
+  flexShrink(0),
+  maxWidth("100%"),
   fontFamily(mono),
   fontWeight("700"),
   color(accent),
-  overflowWrap("anywhere"),
+  overflow("hidden"),
+  textOverflow("ellipsis"),
+  whiteSpace("nowrap"),
 );
 
 export const button = cn(
+  flexShrink(0),
+  whiteSpace("nowrap"),
   paddingInline("6px"),
   paddingBlock("2px"),
   border("1px solid", line),

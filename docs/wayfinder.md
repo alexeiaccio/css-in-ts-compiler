@@ -5356,3 +5356,30 @@ native port's suite. It now also lives beside the web primitive — `packages/he
 after Chromium is installed. It is one targeted file, not the package's whole suite (the Quint walks are minutes and
 flake under load), and it is the one place a red run reports the guard: the `ui` workflow already triggers on
 `packages/headless/src/**` and `test/**`.
+
+## The X-ray: measurements off the page, not the sheet (cssints-4q3f, 2026-11-11)
+
+Gridray (Chrome Web Store, 0.2.0) is not a CSS-grid overlay: it drags a frame over UI and turns it into a skeleton with
+measurements — sizes, spacing, radii, a 4 px grid — read live. The devtools overlay already names the class that won each
+property; the other half of design QA ("how tall is this, what is the padding, what is the space between these two") is
+page geometry, so it needs no extension and no CDP: `getBoundingClientRect` and `getComputedStyle` answer all of it.
+
+`src/core/xray.ts` measures once per panel tick (600 ms, the overlay's own timer): the border boxes of the picked element
+and its subtree (a `depth` and a `max` of 400 for the page), the padding, border widths, corner radii, row/column gap,
+and the spaces between adjacent siblings — the margin or gap as the layout produced it, in both axes. The result is data
+(no `Element` in it), so the same model serves the overlay and a future DevTools-extension host. `src/ui` draws one fixed
+layer under the highlight: outlines, the root's content box dashed inside its padding, the 4 px grid as two gradients
+anchored at the border box, a label with size/pad/border/radius/gap, and the sibling spaces in yellow with their size.
+The bar's `xray` button cycles element → subtree → page → off, `x` does the same, and the panel repeats the numbers as
+text under X-RAY (the same numbers as a table row are what keeps the mode honest when a screenshot is not at hand).
+
+What is left, and why it is fine: a `display: contents` pick has no box (measured as 0 and labelled); a pinned length in
+percent (a corner radius) counts as 0; the implicit tracks of a grid are not in computed style, but this mode reads item
+boxes, not tracks, so it does not need them; rects are viewport coordinates and the 600 ms tick is what follows a scroll
+or an animation, like the highlight above it. The bar wraps to a second row now: seven buttons in a 440 px dock squeezed
+the element's name into a column of letters (the class name and the title truncate instead).
+
+**Verified:** `test/browsers.mjs` in Chrome on the demo (the root box equals `getBoundingClientRect`, the panel's size
+equals it, the 4 px grid is on the root, the subtree has more than the root, the page has more than 20 boxes and no grid,
+and the fourth press removes the layer), the lab in Chrome by hand (the save button with its radius, the header's 12 px
+space), `bun run typecheck`, `bun run build` and the package's own tests.

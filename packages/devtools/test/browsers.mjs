@@ -137,6 +137,50 @@ const run = async (name) => {
   assert.equal(r.value, "1rem");
   assert.ok(await page.locator("text=marker of kernel frame.core").count());
 
+  // the X-ray: the picked element's box, then its subtree, then the page — each number read from the page, not the sheet
+  const xray = () =>
+    page.evaluate(() => {
+      const root = document.querySelector("cssints-devtools").shadowRoot;
+      const layer = root.querySelector("[data-devtools=xray-layer]");
+      const box = layer?.querySelector('[data-depth="0"]');
+      if (!layer || !box) return undefined;
+      return {
+        scope: layer.dataset.scope,
+        boxes: layer.querySelectorAll("[data-depth]").length,
+        spaces: layer.querySelectorAll("[data-space]").length,
+        grid: getComputedStyle(box).backgroundImage.includes("4px"),
+        size: root.querySelector('[data-xray-value="size"]')?.textContent,
+        inside: root.querySelector('[data-xray-value="inside"]')?.textContent,
+      };
+    });
+  await page.keyboard.press("x");
+  const one = await until("the x-ray of the element", async () => {
+    const x = await xray();
+    return x?.scope === "element" ? x : undefined;
+  });
+  const frameBox = await page.locator('[data-demo="frame"]').evaluate((node) => {
+    const { width, height } = node.getBoundingClientRect();
+    return `${Math.round(width)}×${Math.round(height)}`;
+  });
+  assert.equal(one.size, frameBox, `${name} xray: the root box is the element's`);
+  assert.equal(one.boxes, 1, `${name} xray: the element scope draws the root alone`);
+  assert.ok(one.grid, `${name} xray: the root carries the 4px grid`);
+  assert.match(one.inside ?? "", /^pad /, `${name} xray: the padding is read`);
+  await page.keyboard.press("x");
+  const tree = await until("the x-ray of the subtree", async () => {
+    const x = await xray();
+    return x?.scope === "subtree" && x.boxes > 1 ? x : undefined;
+  });
+  assert.ok(tree.spaces > 0 || tree.boxes > 1, `${name} xray: the subtree is more than the root`);
+  await page.keyboard.press("x");
+  const whole = await until("the x-ray of the page", async () => {
+    const x = await xray();
+    return x?.scope === "page" && x.boxes > 20 ? x : undefined;
+  });
+  assert.equal(whole.grid, false, `${name} xray: the page draws no grid`);
+  await page.keyboard.press("x");
+  await until("the x-ray off", async () => (await xray()) === undefined);
+
   // within(): the row is hovered while the pointer is on the span
   const w = '[data-case="within"]';
   await pick(w);

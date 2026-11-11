@@ -4330,7 +4330,7 @@ An inspector in the page, built on what the dev server knows of every class. In 
 export default defineConfig({ plugins: [cssints({ devtools: true })] });
 ```
 
-Alt+Shift+C, or the `cssints` button in the bottom right corner, opens it. Hovering an element previews it, a click picks it; ↑ is the parent, ↓ the first child, ← and → the siblings; Esc stops picking, then closes. For the demo's action button, hovered in a 1300 px window, the panel shows:
+Alt+Shift+C, or the `cssints` button in the bottom right corner, opens it. Hovering an element previews it, a click picks it; ↑ is the parent, ↓ the first child, ← and → the siblings; Esc stops picking, then closes. `x`, or the `xray` button, cycles the X-ray: the picked element, its subtree, the whole page, then off. It draws the boxes with their border-box size, padding, border, radii, flex/grid gap and the spaces between siblings, on a 4 px grid inside the root, and the panel repeats the numbers under X-RAY. Everything is read from the page (`getBoundingClientRect`, `getComputedStyle`), so it follows a hover or a scroll; the page is capped at 400 boxes and draws no grid. For the demo's action button, hovered in a 1300 px window, the panel shows:
 
 ```text skip
 button                                                   pick  ↑  ×

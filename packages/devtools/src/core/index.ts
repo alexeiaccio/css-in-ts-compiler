@@ -22,3 +22,5 @@ export type { Asked, Linked } from "./session.ts";
 export type { Session, TransportApi } from "./session.ts";
 export { toModel, Table, TableError } from "./table.ts";
 export type { ClassRecord, Model, Site } from "./table.ts";
+export { GRID, xray } from "./xray.ts";
+export type { Box, Space, Xray, XrayOptions } from "./xray.ts";

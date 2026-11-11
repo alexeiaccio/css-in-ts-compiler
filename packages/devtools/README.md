@@ -13,7 +13,11 @@ export default defineConfig({ plugins: [cssints({ devtools: true })] });
 ```
 
 Alt+Shift+C or the `cssints` button (bottom right) opens it. Hover previews an element, a click picks it; ↑ parent,
-↓ first child, ← → siblings; Esc stops picking, then closes. The four buttons in the panel header (◧ ⬒ ⬓ ◨) dock it
+↓ first child, ← → siblings; Esc stops picking, then closes. `x`, or the `xray` button, turns on the X-ray: the picked
+element (`xray:el`), its subtree (`xray:tree`), or the whole page (`xray:page`) as boxes, with the border-box size,
+padding, border, corner radii, a flex/grid gap, the spaces between siblings and a 4 px grid inside the root. Every number
+is read from the page (`getBoundingClientRect`, `getComputedStyle`), so it follows a hover, a scroll or a query; the panel
+repeats them as text under X-RAY. The four buttons in the panel header (◧ ⬒ ⬓ ◨) dock it
 left, top, bottom or right (the default); drag the strip on its inner edge to resize it (at least 200 px, and a strip of
 the page stays). The side and the two sizes are kept in `localStorage` (`cssints-devtools:dock`) per origin. The panel
 covers the page beside it, and picking works on the rest of the page; the page is not pushed aside. The ⧉ button detaches
