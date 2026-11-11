@@ -183,7 +183,7 @@ and Cursor. The skills use it when it is configured and work without it.
 | `packages/mise-en-mode`         | `@cssints/mise-en-mode`: looks as themes in the layers app < author < viewer, on `data-mode` scopes, checked against the tokens and by `check.contrast`                   |
 | `packages/headless`             | `@cssints/headless`: headless APG widgets on Solid 2 (state and DOM attribute objects, no styling), conformance-checked against Quint specs; not published yet            |
 | `packages/apg-specs`            | `@cssints/apg-specs`: the APG and canvas Quint specs, generated models, scenario bridges and ported scenarios the widgets are tested against (the test oracle, published) |
-| `packages/tui`                  | `@cssints/tui` (**deprecated**): the runtime of `cssints/tui` styles on OpenTUI and @bomb.sh/tty; `cssints-native`'s terminal target replaces it                                           |
+| `packages/tui`                  | `@cssints/tui` (**deprecated**): the runtime of `cssints/tui` styles on OpenTUI and @bomb.sh/tty; `cssints-native`'s terminal target replaces it                          |
 | `apps/demo`                     | React demo of every 0.1 feature                                                                                                                                           |
 | `apps/docs`                     | The documentation site: this file and `docs/API.md` as pages, with search and type hovers (`cd apps/docs && bun run dev`)                                                 |
 | `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans                                                                                                                          |
