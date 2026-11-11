@@ -1,5 +1,11 @@
 # @cssints/placeholder
 
+## 0.36.0
+
+### Patch Changes
+
+- cssints@0.36.0
+
 ## 0.35.1
 
 No changes in this release.

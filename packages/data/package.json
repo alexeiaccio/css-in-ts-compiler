@@ -1,6 +1,6 @@
 {
   "name": "@cssints/data",
-  "version": "0.35.1",
+  "version": "0.36.0",
   "description": "Statistics over runtime values, computed by the browser's layout for cssints: max, sum and count, printed by a counter",
   "license": "MIT",
   "repository": {
@@ -48,7 +48,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.35.0"
+    "cssints": "^0.36.0"
   },
   "engines": {
     "node": ">=22"
