@@ -1113,6 +1113,48 @@ shade("red", { by: "red" }); // error: tint.shade(2).by: unexpected "red"
 - **Errors** are `MemberError` values with the file, site and offset of the call, and `pluginName` is the scope: `tint: unexpected "solid" in "red solid", expected <percentage>` for the parts (the label is the member's `label`, else its key; a tuple's message names the position, `tint.shade(2).by: ...`); a `value` that throws (`cssints: boom: no luck`, any `Error`) or returns something else than a string or a Typed OM value (`cssints: tint() value must return a string or a Typed OM value`). A result that does not fit the property is that property's error, at the same site (`width: unexpected "color-mix(in" in "color-mix(in oklab, red, blue)"`): the engine cannot know the property a function is used for.
 - **Limits.** With a grammar as `args`, the parts are joined with a space, so it cannot tell the arguments apart (`<color> <color>` takes `"red", "blue"` and `"red blue"`; check `parts.length` in `value`, or use a tuple). A token is checked as the values of its type, so a wrong one is named by its value: `unexpected "1px" in "oklab 1px red"`. The css functions above are not value members: `lightDark(a, b)` is the text `light-dark(a, b)`, whose choice is the browser's at the element.
 
+### Lines and shapes: `shape()` and `border-shape` (decided 2026-11-12, cssints-n7jz)
+
+`shape()` (css-shapes-1 §3.1.1) is a value like any other, so it is checked and printed like one: the commands of an SVG
+path with words in place of letters. `border-shape` makes a border follow it, which is how a line can be a curve with no
+SVG at all.
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+
+// a connector between two boxes: the shape in percentages of the box that holds them
+const connector = "shape(from 0 0, curve to 50% 50% with 50% 50%, smooth to 100% 100%)";
+
+export const link = css.cn(
+  css.position("absolute"),
+  css.inset("0"),
+  css.border("2px solid currentColor"),
+  css.borderShape(`${connector} padding-box`),
+  // a browser without the property would paint the whole rectangle: drop the border instead
+  css.supports("not (border-shape: shape(from 0 0, line to 1px 1px))")(css.borderWidth("0")),
+);
+```
+
+- **What is checked.** The body of `shape()` is balanced tokens for the types (no call grammar fits a `#` list of
+  commands that are several keywords each) and `src/shape.ts` for the twin, so a build rejects `curve` without `with`, a
+  command that is not one, or a position with three values, with the reason in the message. `from`, `move`, `line`,
+  `hline`, `vline`, `curve` (one control point is quadratic, two cubic), `smooth` (quadratic without `with`, cubic with
+  it), `arc` and `close` are understood in both the `to` and the `by` form, with px, %, cqw, cqh, `calc()` and the
+  position keywords. A `var()` is valid CSS and stays unresolved, so `border-shape: var(--_shape)` works.
+- **Support.** `border-shape` is Chrome 147 and Edge 147 (no Firefox, no iOS or Safari), `shape()` Chrome 135: the build
+  raises a support warning for both keys, `css.properties.border-shape` and `css.types.basic-shape.shape`. LightningCSS
+  passes the property through untouched, for every target, so an old browser ignores the declaration and the fallback
+  has to stand on its own.
+- **The fallback.** `shapePath` (`@cssints/css-grammar/shape`) turns the same value into SVG path data: `{ d, viewBox }`,
+  `0 0 100 100` when no box is given (percentages against 100), or the box's pixels when one is. A `vector-effect:
+  non-scaling-stroke` keeps the line's width when the path is stretched (`preserveAspectRatio="none"`), and the path
+  scales exactly as the percentages of `shape()` do, so the two surfaces draw one curve. `apps/ui`'s board has a
+  `line: "shape"` edge that is this pair, one shown by what `@supports (border-shape: …)` answers.
+- **What is not covered.** `anchor()`/`anchor-size()` positioning is what makes the article's connector follow two boxes
+  by itself; it is Chrome-only too, and the board computes the boxes in JavaScript instead. A `border-shape` draws a
+  band along its shape and nothing else — no arrow head, no routing around a card — so perfect-arrows stays the default
+  line of the board and the shape line is for a pair nothing crosses.
+
 ### `frame()`: concentric radius (`cssints/frame`, cssints-q2vh)
 
 The first plugin, written only on `scope()` above. A frame passes its inner radius down the tree; a nested frame's radius is the parent's inner radius less its own margin, so a rounded field in a rounded card stays concentric with no wiring, however many plain wrappers sit between them.

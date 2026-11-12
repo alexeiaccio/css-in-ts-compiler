@@ -67,7 +67,11 @@ const fnPages = need("mdn-data/css/functions.json") as Record<
   { syntax: string; mdn_url?: string }
 >;
 const bcdTypes = Object.keys(bcd("css.types") ?? {});
+// A function whose name is also a type of another feature: shape() is css.types.basic-shape.shape, while
+// css.types.shape is the rect() of a referenced SVG shape (css-shapes-1 §5), which would answer for it.
+const FN_KEY = new Map([["shape", "css.types.basic-shape.shape"]]);
 const fnKey = (f: string) =>
+  FN_KEY.get(f) ??
   [f, ...bcdTypes]
     .map((g) => `css.types.${g}${g === f ? "" : `.${f}`}`)
     .find((k) => bcd(k)?.__compat);

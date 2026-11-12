@@ -208,6 +208,8 @@ export declare const borderRightColor: Prop<"border-right-color">;
 export declare const borderRightStyle: Prop<"border-right-style">;
 /** `<line-width>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/border-right-width) */
 export declare const borderRightWidth: Prop<"border-right-width">;
+/** `none | [ <basic-shape> <geometry-box>?]{1,2}`. Chrome 147, Edge 147, Firefox no, Safari no, iOS no, Android 147. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/border-shape) */
+export declare const borderShape: Prop<"border-shape">;
 /** `<length [0,∞]>{1,2}`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/border-spacing) */
 export declare const borderSpacing: Prop<"border-spacing">;
 /** `<'border-top-left-radius'>`. Chrome 89, Edge 89, Firefox 66, Safari 15, iOS 15, Android 89. [MDN](https://developer.mozilla.org/docs/Web/CSS/border-start-end-radius) */
@@ -1394,6 +1396,8 @@ export declare const scaleZ: Fn<"scaleZ", " ">;
 export declare const scroll: Fn<"scroll", " ">;
 /** `sepia( [ <number> | <percentage> ]? )`. Chrome 18, Edge 12, Firefox 35, Safari 6, iOS 6, Android 53. [MDN](https://developer.mozilla.org/docs/Web/CSS/filter-function/sepia) */
 export declare const sepia: Fn<"sepia", " ">;
+/** `shape( <declaration-value> )`. Chrome 135, Edge 135, Firefox 148, Safari 18.4, iOS 18.4, Android 135. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Values/basic-shape/shape) */
+export declare const shape: Fn<"shape", " ">;
 /** `sign( <calc-sum> )`. Chrome 138, Edge 138, Firefox 118, Safari 15.4, iOS 15.4, Android 138. [MDN](https://developer.mozilla.org/docs/Web/CSS/sign) */
 export declare const sign: MathCall<"number">;
 /** `sin( <calc-sum> )`. Chrome 111, Edge 111, Firefox 108, Safari 15.4, iOS 15.4, Android 111. [MDN](https://developer.mozilla.org/docs/Web/CSS/sin) */

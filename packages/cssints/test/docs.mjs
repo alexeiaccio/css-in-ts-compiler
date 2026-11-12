@@ -42,7 +42,8 @@ writeFileSync(
     compilerOptions: {
       jsx: "preserve",
       noEmit: true,
-      types: [],
+      // a block may be a dev module of the plugin packages: `import.meta.hot` is Vite's, and the vitals are mapped below
+      types: ["vite/client"],
       lib: ["ES2023", "DOM"],
       // the icons, reset and devtools packages (and the icons' collection): not dependencies of cssints, so found by path
       paths: {

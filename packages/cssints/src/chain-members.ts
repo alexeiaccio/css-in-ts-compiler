@@ -108,6 +108,7 @@ export interface ChainMembers {
   readonly borderRightColor: Prop<"border-right-color", this & { readonly borderRightColor: never; }>;
   readonly borderRightStyle: Prop<"border-right-style", this & { readonly borderRightStyle: never; }>;
   readonly borderRightWidth: Prop<"border-right-width", this & { readonly borderRightWidth: never; }>;
+  readonly borderShape: Prop<"border-shape", this & { readonly borderShape: never; }>;
   readonly borderSpacing: Prop<"border-spacing", this & { readonly borderSpacing: never; }>;
   readonly borderStartEndRadius: Prop<"border-start-end-radius", this & { readonly borderStartEndRadius: never; }>;
   readonly borderStartStartRadius: Prop<"border-start-start-radius", this & { readonly borderStartStartRadius: never; }>;

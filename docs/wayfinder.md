@@ -5101,7 +5101,7 @@ is the finding worth keeping.
 - **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
   whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
   (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
-round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+  round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
   host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
   limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
   and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
@@ -5383,3 +5383,34 @@ the element's name into a column of letters (the class name and the title trunca
 equals it, the 4 px grid is on the root, the subtree has more than the root, the page has more than 20 boxes and no grid,
 and the fourth press removes the layer), the lab in Chrome by hand (the save button with its radius, the header's 12 px
 space), `bun run typecheck`, `bun run build` and the package's own tests.
+
+## `shape()` and `border-shape`: a line as a border, and the same curve as a path (cssints-n7jz, 2026-11-12)
+
+The third article of Temani Afif's connector series (blog.master.dev, 2026-11-11) draws graphs with two features no
+SVG needs: `shape()`, a path written in CSS with units and `calc()`, and `border-shape`, which makes a border follow it
+so a pseudo-element with a 2px border is a curve. Both are Chrome-only (`border-shape` Chrome 147, `shape()` 135) and
+both were missing from the grammar: mdn-data 2.27.1 has neither, BCD 8.1.3 has the property and the function, and
+@webref/css 8.7.5 has the grammars. LightningCSS passes the property through for every target, with no warning, so the
+transpiler was never the blocker.
+
+Added: `border-shape` in `AHEAD_OF_CHROME` (webref's grammar, verbatim) and `shape()` in the `basic-shape` type, which
+is mdn-data's list plus the function, so `clip-path`, `shape-outside` and `offset-path` accept it too. The body of
+`shape()` is balanced tokens for the types and `src/shape.ts` for the twin, because a `#` list of multi-keyword commands
+(`curve to <position> with <control-point> / <control-point>`) fits neither the call grammar nor a separator. The same
+file is the fallback generator: `shapePath(value, box?)` returns `{ d, viewBox }`, the commands in SVG letters, with the
+`smooth` reflection computed and the spec's arc defaults (`ccw`, `small`, a single radius against the direction-agnostic
+size). Two support keys were wrong without a fix: `css.types.shape` is a referenced SVG shape and answered for the
+function, so `support.ts` and `scripts/members.ts` point `shape` at `css.types.basic-shape.shape`.
+
+The board's `line: "shape"` edge is the example: `connectorBetween` puts one cubic in percentages of the union box,
+`border-shape: var(--_shape)` draws it where the property exists, and `shapePath` turns the very same string into an
+SVG path with `vector-effect: non-scaling-stroke` where it does not; `@supports` decides which pair is shown. Refused:
+`anchor()`/`anchor-size()` as the positioning of a connector (Chrome-only, no fallback — the boxes are data here), and a
+CSS connector as the board's default line (a band cannot route around a card, and perfect-arrows can).
+
+**Verified:** `packages/css-grammar/test/shape.ts` (the article's two shapes, the spec's speech bubble, `by` forms,
+`from end`, arcs, keywords, the error messages), the grammar's own suite (the twin and the types agree on new valid cases,
+and the invalid shape bodies are in `runtimeOnly`), `packages/cssints` (a fixture with `borderShape`, `clipPath` and a
+build error for `curve` without `with`; the docs blocks and the whole suite green), and the board's conformance test
+(the connector's box is the union, the path is `shapePath` of the inline `--_shape`, and the one of the two that paints
+is what `CSS.supports("border-shape", …)` says it is).
