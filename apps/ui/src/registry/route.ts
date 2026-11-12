@@ -173,3 +173,68 @@ export const curveBetween = (from: RoutedBox, to: RoutedBox): Curve | undefined 
     head,
   };
 };
+
+/**
+ * A connector the CSS draws itself: the box the two cards live in, and one `shape()` in percentages of it. The same
+ * string is a `border-shape` in a browser that has it and, through `shapePath`, the `d` of an SVG path everywhere else —
+ * one description, two surfaces. The curve is a single cubic with both control points on the middle of the gap, so it
+ * leaves and arrives square to a side and bows where the two cards do not line up.
+ */
+export interface Connector {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+  /** `shape(from …)`; percentages, so it needs no size of its own. */
+  readonly shape: string;
+}
+
+const percent = (value: number, of: number): string =>
+  `${Math.round((of === 0 ? 0 : (value / of) * 100) * 1000) / 1000}%`;
+
+/** The connector between two boxes, as the union box its percentages are against. */
+export const connectorBetween = (from: RoutedBox, to: RoutedBox): Connector | undefined => {
+  const a = size(from);
+  const b = size(to);
+  const left = Math.min(from.x, to.x);
+  const top = Math.min(from.y, to.y);
+  const width = Math.max(from.x + a.width, to.x + b.width) - left;
+  const height = Math.max(from.y + a.height, to.y + b.height) - top;
+  if (width <= 0 || height <= 0) {
+    return undefined;
+  }
+  const fromCentre = centreOf(from);
+  const toCentre = centreOf(to);
+  const horizontal = Math.abs(toCentre.x - fromCentre.x) >= Math.abs(toCentre.y - fromCentre.y);
+  // the border midpoint that faces the other card, on each side
+  const start = horizontal
+    ? {
+        x: toCentre.x > fromCentre.x ? from.x + a.width : from.x,
+        y: Math.min(Math.max(fromCentre.y, from.y), from.y + a.height),
+      }
+    : {
+        x: Math.min(Math.max(fromCentre.x, from.x), from.x + a.width),
+        y: toCentre.y > fromCentre.y ? from.y + a.height : from.y,
+      };
+  const end = horizontal
+    ? {
+        x: toCentre.x > fromCentre.x ? to.x : to.x + b.width,
+        y: Math.min(Math.max(toCentre.y, to.y), to.y + b.height),
+      }
+    : {
+        x: Math.min(Math.max(toCentre.x, to.x), to.x + b.width),
+        y: toCentre.y > fromCentre.y ? to.y : to.y + b.height,
+      };
+  const middle = horizontal ? (start.x + end.x) / 2 : (start.y + end.y) / 2;
+  const at = (p: RoutedPoint): string =>
+    `${percent(p.x - left, width)} ${percent(p.y - top, height)}`;
+  const c1 = horizontal ? { x: middle, y: start.y } : { x: start.x, y: middle };
+  const c2 = horizontal ? { x: middle, y: end.y } : { x: end.x, y: middle };
+  return {
+    left,
+    top,
+    width,
+    height,
+    shape: `shape(from ${at(start)}, curve to ${at(end)} with ${at(c1)} / ${at(c2)})`,
+  };
+};

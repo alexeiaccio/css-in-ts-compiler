@@ -3,9 +3,11 @@
 // card with the arrows, pan and zoom the plane, drop the selection with Escape. The lines are decoration: every test here
 // reads the DOM, and none of them needs a pointer to learn a relationship.
 import type { JSX } from "@solidjs/web";
+import { shapePath } from "@cssints/css-grammar/shape";
 import { render } from "@solidjs/web";
 import { describe, expect, it } from "vite-plus/test";
 
+import { connectorBetween } from "../route.ts";
 import { Board, type BoardEdge, type BoardNode } from "./board.tsx";
 
 const mount = (element: () => JSX.Element) => {
@@ -228,4 +230,36 @@ describe("Board", () => {
     expect(zoom.textContent).toBe("50%");
     dispose();
   });
+});
+
+// A `line: "shape"` edge is one description in two surfaces: a border-shape (the CSS connector) and, where the property
+// is missing, the same shape() as an SVG path. The test reads the shape and the path, so it holds in a browser without
+// the property too, and it never assumes the Chrome that runs it has it.
+it("draws a shape line as a border-shape, and the same curve as a path without it", () => {
+  const nodes = [
+    { id: "colour", kind: "token", x: 20, y: 20, width: 160, height: 90, title: "color.highlight" },
+    { id: "button", kind: "part", x: 240, y: 20, width: 220, height: 150, title: "Button" },
+  ] satisfies ReadonlyArray<BoardNode>;
+  const edges = [
+    { from: "colour", to: "button", line: "shape" },
+  ] satisfies ReadonlyArray<BoardEdge>;
+  const mounted = mount(() => <Board label="Connector" nodes={nodes} edges={edges} />);
+  const element = mounted.root.querySelector<HTMLElement>('[data-part="board-connector"]');
+  expect(element).not.toBeNull();
+  const shape = element!.style.getPropertyValue("--_shape");
+  const expected = connectorBetween(nodes[0]!, nodes[1]!);
+  expect(shape).toBe(expected!.shape);
+  expect(shape.startsWith("shape(from ")).toBe(true);
+  // the box is the union of the two cards, which is what the percentages are against
+  expect(element!.style.left).toBe(`${expected!.left}px`);
+  expect(element!.style.width).toBe(`${expected!.width}px`);
+  // the fallback is the same value: one description, two surfaces
+  const fallback = element!.querySelector<HTMLElement>('[data-part="board-connector-fallback"]')!;
+  expect(fallback.querySelector("path")!.getAttribute("d")).toBe(shapePath(shape).d);
+  const native = element!.querySelector<HTMLElement>('[data-part="board-connector-native"]')!;
+  const supports = CSS.supports("border-shape", "shape(from 0 0, line to 1px 1px)");
+  // one of the two paints: the border where the property is there, the path where it is not
+  expect(getComputedStyle(fallback).display === "none").toBe(supports);
+  expect(getComputedStyle(native).borderTopWidth).toBe(supports ? "2px" : "0px");
+  mounted.dispose();
 });

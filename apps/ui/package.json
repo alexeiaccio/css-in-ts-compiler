@@ -15,6 +15,7 @@
     "test:vitals": "node test/vitals.mjs"
   },
   "dependencies": {
+    "@cssints/css-grammar": "workspace:*",
     "@cssints/headless": "workspace:*",
     "@cssints/machine": "workspace:*",
     "@cssints/mise-en-mode": "workspace:*",

@@ -2,6 +2,7 @@
 // its text value and the rule behind it, and a part card holds a live component — and the lines behind them say which part
 // uses which token. Nothing is painted on a canvas: the page's own text, focus, tokens and dark mode are the board's, so the
 // map is readable with the stylesheet off and a reader who never points at it still gets every relationship as text.
+import { shapePath } from "@cssints/css-grammar/shape";
 import { createPanZoom } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
@@ -9,7 +10,7 @@ import { createMemo, createSignal, For, merge, Show } from "solid-js";
 
 import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
-import { curveBetween } from "../route.ts";
+import { connectorBetween, curveBetween } from "../route.ts";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 /** What `render` gets: the props of the card list, `data-part` and the caller's class merged in. */
@@ -40,6 +41,12 @@ export interface BoardEdge {
   readonly from: string;
   readonly to: string;
   readonly label?: string | undefined;
+  /**
+   * How the line is drawn: `arrow` is the curve of perfect-arrows with its head (the default); `shape` is a CSS
+   * connector, a `border-shape` where the browser has one and the same curve as an SVG path where it has not. A shape
+   * line routes around nothing, so it is for a pair that does not cross the map.
+   */
+  readonly line?: "arrow" | "shape" | undefined;
 }
 
 export interface BoardProps extends Renderable<BoardPartProps, void> {
@@ -174,6 +181,37 @@ const arrowHeadClass = css.cn(css.stroke("none"), css.fill(t.color.borderHover))
 const arrowHeadLiveClass = css.cn(arrowHeadClass, css.fill(t.color.highlight));
 
 const edgeAwayClass = css.cn(css.opacity("0.2"));
+
+// A CSS connector: the curve is the element's border, so border-shape draws the line and nothing else. The fallback is
+// the same shape() as an SVG path (shapePath), which keeps its width under the non-uniform scale of the plane's box.
+const connectorClass = css.cn(css.position("absolute"), css.zIndex("3"), css.pointerEvents("none"));
+
+const connectorNativeClass = css.cn(
+  css.position("absolute"),
+  css.inset("0"),
+  css.borderWidth("2px"),
+  css.borderStyle("solid"),
+  css.borderColor(t.color.borderHover),
+  css.borderShape("var(--_shape)"),
+  // a browser without the property would paint the whole rectangle: drop the border instead
+  css.supports("not (border-shape: shape(from 0 0, line to 1px 1px))")(css.borderWidth("0")),
+);
+
+const connectorSvgClass = css.cn(
+  css.position("absolute"),
+  css.inset("0"),
+  css.width("100%"),
+  css.height("100%"),
+  css.overflow("visible"),
+  css.supports("(border-shape: shape(from 0 0, line to 1px 1px))")(css.display("none")),
+);
+
+const connectorPathClass = css.cn(
+  css.fill("none"),
+  css.stroke(t.color.borderHover),
+  css.strokeWidth("2px"),
+  css.vectorEffect("non-scaling-stroke"),
+);
 
 const cardClass = css.cn(
   css.position("absolute"),
@@ -453,6 +491,9 @@ export const Board = (props: BoardProps): JSX.Element => {
 
   const routed = createMemo(() =>
     edges().flatMap((edge) => {
+      if (edge.line === "shape") {
+        return [];
+      }
       const from = byId().get(edge.from);
       const to = byId().get(edge.to);
       if (from === undefined || to === undefined) {
@@ -460,6 +501,25 @@ export const Board = (props: BoardProps): JSX.Element => {
       }
       const curve = curveBetween(boxOf(from), boxOf(to));
       return curve === undefined ? [] : [{ edge, curve }];
+    }),
+  );
+
+  /** The shape edges: one shape() string drives both the border-shape and the path, so they cannot drift apart. */
+  const connectors = createMemo(() =>
+    edges().flatMap((edge) => {
+      if (edge.line !== "shape") {
+        return [];
+      }
+      const from = byId().get(edge.from);
+      const to = byId().get(edge.to);
+      if (from === undefined || to === undefined) {
+        return [];
+      }
+      const connector = connectorBetween(boxOf(from), boxOf(to));
+      if (connector === undefined) {
+        return [];
+      }
+      return [{ edge, ...connector, path: shapePath(connector.shape).d }];
     }),
   );
 
@@ -563,6 +623,39 @@ export const Board = (props: BoardProps): JSX.Element => {
                 )}
               </For>
             </svg>
+            <For each={connectors()}>
+              {(item) => (
+                <div
+                  data-part="board-connector"
+                  data-from={item.edge.from}
+                  data-to={item.edge.to}
+                  class={css.cn(
+                    connectorClass,
+                    current() !== undefined && !live(item.edge) && edgeAwayClass,
+                  )}
+                  style={
+                    {
+                      left: `${item.left}px`,
+                      top: `${item.top}px`,
+                      width: `${item.width}px`,
+                      height: `${item.height}px`,
+                      "--_shape": item.shape,
+                    } as never
+                  }
+                >
+                  <div data-part="board-connector-native" class={connectorNativeClass} />
+                  <svg
+                    data-part="board-connector-fallback"
+                    class={connectorSvgClass}
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path class={connectorPathClass} d={item.path} />
+                  </svg>
+                </div>
+              )}
+            </For>
             {renderPart(props, own, undefined, (part) => (
               <ul {...part}>
                 <For each={props.nodes}>

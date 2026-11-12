@@ -141,8 +141,15 @@ const NODES: ReadonlyArray<BoardNode> = [
   ...parts(),
 ];
 
+// One line of the map is a CSS connector: its shape() is a border-shape where the browser has it and the same curve as an
+// SVG path where it has not (the article's technique on a real map). The rest keep perfect-arrows' routed curve, which is
+// the one that avoids the cards.
 const EDGES: ReadonlyArray<BoardEdge> = PARTS.flatMap((spec) =>
-  spec.uses.map((to) => ({ from: spec.id, to })),
+  spec.uses.map((to) => ({
+    from: spec.id,
+    to,
+    ...(spec.id === "button" && to === "color-highlight" ? { line: "shape" as const } : {}),
+  })),
 );
 
 // A part card holds the real component, styled by the tokens above it. The card marks the preview inert: it is a picture of
