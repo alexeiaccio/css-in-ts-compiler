@@ -97,6 +97,8 @@ const plainCode = [
   "packages/cssints/src/group.ts",
   // The twin's lexer and recognizer, per declaration.
   "packages/css-grammar/src/twin-core.ts",
+  // shape(): the parser the twin runs and the SVG path generator, which a build or an app calls (no Effect, plain state).
+  "packages/css-grammar/src/shape.ts",
   // @cssints/icons and @cssints/mise-en-mode: sync scope() members, which user code calls in an expression.
   "packages/icons/src/**",
   "packages/mise-en-mode/src/**",

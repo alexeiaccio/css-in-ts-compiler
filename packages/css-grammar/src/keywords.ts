@@ -563,4 +563,5 @@ export interface Keywords {
   "zoom": { "n": "normal" };
   "-webkit-box-orient": { "b": "block-axis"; "h": "horizontal"; "i": "inline-axis"; "v": "vertical" };
   "flow-tolerance": { "i": "infinite"; "n": "normal" };
+  "border-shape": { "n": "none" } | K_geometry_box;
 }

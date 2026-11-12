@@ -54,7 +54,10 @@ props.display = {
   ...props.display,
   syntax: `${props.display.syntax} | grid-lanes | inline-grid-lanes`,
 };
-const AHEAD_OF_CHROME = ["flow-tolerance"];
+// Properties @webref/css has and mdn-data does not, which Chrome already draws: their grammar is webref's, verbatim.
+// border-shape (css-borders-4; Chrome 147, no Firefox or Safari) is what makes a border follow a shape(), so a line or a
+// connector is a border-shape at all; mdn-data 2.27.1 has no entry, BCD 8.1.3 does (css.properties.border-shape).
+const AHEAD_OF_CHROME = ["flow-tolerance", "border-shape"];
 const want =
   process.argv.length > 2
     ? process.argv.slice(2)
@@ -132,6 +135,12 @@ const WEBREF = [
 // balanced tokens (css.ts `MathCall`); the twin scans a whole <calc-sum> with its own typed parser (twin-core.ts
 // `mathScan`) and never reads this grammar.
 const COLOR = {
+  // css-shapes-1 §3.1.1: the shape() commands (`from`, `line`, `curve ... with`, `smooth`, `arc`) do not fit the
+  // generic call shape (a `#` list of commands that are several keywords each), so types read the body as balanced
+  // tokens and the twin checks the commands (src/shape.ts, "shape()"). mdn-data 2.27.1 has neither shape() nor
+  // border-shape; the property is webref's, this type is mdn-data's own list plus the function.
+  "basic-shape": `${syn["basic-shape"].syntax} | <shape()>`,
+  "shape()": "shape( <declaration-value> )",
   // `display: -webkit-box` and `-webkit-inline-box` (Chrome 154 takes both): the box of -webkit-line-clamp, still live
   "display-legacy": `${syn["display-legacy"].syntax} | -webkit-box | -webkit-inline-box`,
   "calc-value": `${syn["calc-value"].syntax} | <math-function>`,

@@ -11,6 +11,7 @@
 // (`calc(1px + 2s)`). The twin also reports the furthest point the value reached and what the grammar expected there.
 import { InvalidValueError, ParseError, UnknownPropertyError } from "./errors.ts";
 import { properties, syntaxes } from "./mdn.ts";
+import { shapeValid } from "./shape.ts";
 
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
@@ -280,6 +281,21 @@ function ifCall(s: string): number {
   };
   return branches.length && branches.every(branch) ? end + 4 : -1;
 }
+// `shape( ... )` (css-shapes-1 §3.1.1): its commands are a `#` list whose items are several keywords each (`curve to
+// <position> with <control-point>`), which no token of the generic call grammar is; so the body is balanced tokens for
+// the types and is checked here (src/shape.ts, the same parser that draws the SVG fallback).
+function shapeCall(s: string, ctx: Ctx): number {
+  if (!s.startsWith("shape(")) return -1;
+  const { end } = args(s.slice(6), ",");
+  if (end < 0) return -1;
+  try {
+    shapeValid(s.slice(6, 6 + end));
+  } catch (e) {
+    ctx.why = [ctx.len - s.length, (e as Error).message];
+    return -1;
+  }
+  return end + 7;
+}
 // <calc-sum> (calc-size() takes one): css-values-5 §11, "if a <calc-sum> is given, its type must match <length-percentage>".
 function calcSum(s: string, ctx: Ctx): number {
   const [t, end] = mathScan(s, undefined, true);
@@ -295,6 +311,7 @@ const SCAN: Record<string, (s: string, ctx: Ctx) => number> = {
   url: (s) => URL_RE.exec(s)?.[0].length ?? -1,
   "declaration-value": declarationValue,
   "if()": ifCall,
+  "shape()": shapeCall,
   "calc-sum": calcSum,
 };
 // Whether the twin reads `<name>` itself (a primitive or a scan), with no entry in `syntaxes`: scripts/webref-rule.mjs.

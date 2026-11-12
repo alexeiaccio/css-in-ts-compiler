@@ -17,6 +17,14 @@ export const cases = [
   ["border", "solid", true],
   ["border", "red 2px", true],
   ["z-index", "10", true],
+  // shape() (css-shapes-1 §3.1.1): the body is balanced tokens for the types, checked by the twin
+  ["border-shape", "none", true],
+  ["border-shape", "shape(from 0 0, line to 100% 100%)", true],
+  ["border-shape", "shape(from 0 0, curve to 50% 50% with 50% 50%, smooth to 100% 100%) padding-box", true],
+  ["border-shape", "shape(nonzero from left top, hline to center, vline to 50%, close) content-box", true],
+  ["border-shape", "shape(from 0 0, arc to 100% 100% of 10% 20% cw large rotate 30deg) border-box", true],
+  ["shape-outside", "shape(from 0 0, line by 10px 20px)", true],
+  ["clip-path", "shape(from 0 0, close)", true],
   ["opacity", "0.5", true],
   ["padding", "-0px +0.0rem 0", true],
   ["font-weight", "1000", true],
@@ -369,6 +377,11 @@ export const runtimeOnly = [
   ["animation-duration", "-1s"],
   ["font-style", "oblique 100deg"],
   ["font-style", "oblique 2rad"],
+  // shape(): types take the body as balanced tokens, the twin checks the commands (src/shape.ts)
+  ["border-shape", "shape(from 0 0, curve to 10% 10%)"],
+  ["border-shape", "shape(from 0 0, nope to 1px 1px)"],
+  ["border-shape", "shape(from 0 0, arc to 1px 1px rotate x)"],
+  ["clip-path", "shape(0 0, close)"],
   // relative colour: types take everything after `from` as balanced tokens, the twin checks the channels
   ["color", "rgb(from red l c h)"],
   ["color", "oklch(from red r g b)"],

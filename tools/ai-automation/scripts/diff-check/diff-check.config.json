@@ -27,6 +27,7 @@
     "packages/cssints/src/groups/",
     "packages/css-grammar/src/values.ts",
     "packages/css-grammar/src/twin-core.ts",
+    "packages/css-grammar/src/shape.ts",
     "packages/css-grammar/src/css.ts",
     "packages/css-grammar/src/mdn.ts",
     "packages/css-grammar/src/keywords.ts",

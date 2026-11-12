@@ -109,6 +109,7 @@ export const functions = {
   url: {"sep":" "},
   src: {"sep":" "},
   "contrast-color": {"sep":" "},
+  shape: {"sep":" "},
   superellipse: {"sep":" "},
   "dynamic-range-limit-mix": {"sep":", "},
 } as const;

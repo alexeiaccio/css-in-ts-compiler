@@ -156,6 +156,9 @@ const OWN = new Map<string, Identifier>([
   ["css.types.gradient.mesh-gradient", absent("mesh-gradient()")],
   ["css.types.gradient.freeform-gradient", absent("freeform-gradient()")],
 ]);
+// A bare function name can also be a type of another feature: `shape()` is css.types.basic-shape.shape, while
+// css.types.shape is a referenced SVG shape (css-shapes-1 §5). The key BCD has for the function, by name.
+const TOKEN = new Map<string, string>([["shape", "css.types.basic-shape.shape"]]);
 
 export const get = (key: string) => bcdGet(key) ?? OWN.get(key);
 
@@ -204,7 +207,7 @@ const reachOf = (p: string) => {
 const tokenKeys = (owners: string[], types: string[], k: string, fn: boolean) => [
   ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
   ...(fn ? owners.map((q) => `css.properties.${q}.${k}`) : []),
-  ...(fn ? [`css.types.${k}`] : []),
+  ...(fn ? [TOKEN.get(k) ?? `css.types.${k}`] : []),
   ...types.map((t) => `css.types.${t}.${k}`),
 ];
 /**
