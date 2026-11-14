@@ -84,6 +84,7 @@ export * from "./meter";
 export * from "./prefs";
 export * from "./radio";
 export * from "./resizable-panels";
+export * from "./scrollprogress";
 export * from "./scrollspy";
 export * from "./slider";
 export * from "./slider-multithumb";

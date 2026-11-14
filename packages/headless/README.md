@@ -666,6 +666,26 @@ onSettled(() => {
 
 Collisions with the browser's own chords: `preventDefault` reaches the page's default action, not the browser's. Cmd/Ctrl+S (Save Page), Cmd/Ctrl+K (the browser's search, in Chrome and Firefox), Cmd/Ctrl+P and `/` (Firefox's quick find) can be cancelled by a page, and a host that binds one is choosing to take it from the browser; Cmd/Ctrl+T, Cmd/Ctrl+W, Cmd/Ctrl+N, Cmd/Ctrl+L and F11 are reserved and cannot be intercepted, so a chord built on them never fires. `keys` takes any of them the same and says nothing.
 
+## Scroll progress
+
+`createScrollProgress` is the scroll position of a container as a fraction, for a reading-progress bar or a value a canvas renders by hand. **No APG pattern exists for a progress bar driven by scrolling**, so there is no Quint spec and no ported scenarios: the contract is WAI-ARIA (`role="progressbar"`, `aria-valuemin`/`max`/`now`) and HTML, and `test/scrollprogress.browser.test.tsx` is its oracle.
+
+```tsx
+const reading = createScrollProgress({ root: () => pane });
+onSettled(() => reading.attach()); // returns the teardown
+
+<div class="track">
+  <div {...reading.barProps} style={`scale: ${reading.progress()} 1`} />
+</div>;
+```
+
+- **The JS half of a scroll timeline.** Where a browser has `animation-timeline: scroll()`, `@cssints/reveal`'s `progress()` draws the same bar with no listener at all; this primitive is what keeps the bar's `progressbar` value right (an animation carries none) and what moves the fill everywhere else. One element can carry both: a running animation beats an inline style, so the two never draw at once.
+- **`progress()` is 0 at the top, 1 at the end, and 1 when there is nothing to scroll.** A short page is fully read, so its bar is full; an indeterminate bar would say "unknown" about a page with no reading left.
+- **`attach()`** adds one passive `scroll` listener on `root()` (the document by default; read once), one `ResizeObserver` on what is scrolled (a nested pane's content can grow without a viewport change), and syncs once, so a page opened mid-scroll starts correct.
+- **`axis: "inline"`** reads the horizontal scroll of the container (`scrollLeft`, `scrollWidth - clientWidth`) instead of the block one.
+- **`scrolled()` and `distance()`** are the pixels, for a bar that also prints them; `barProps["aria-valuenow"]` is the rounded percentage.
+- **`onChange`** fires when the value changes, not on every scroll event of a still bar.
+
 ## Scrollspy
 
 `createScrollspy` is a table of contents whose current entry is the last heading to reach the top of the scrollport. **No APG pattern exists for a scrollspy** (the APG has no table-of-contents pattern), so there is no Quint spec and no ported scenarios: the contract is WAI-ARIA — `aria-current="location"` on the current link, exactly one link at a time, `role="list"` / `role="listitem"` for the list, and a named navigation landmark — plus HTML (`#id` targets). `test/scrollspy.browser.test.tsx` is its oracle.
