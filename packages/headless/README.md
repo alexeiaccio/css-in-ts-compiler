@@ -66,6 +66,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **canvas** — `motion` (the internal reduced-motion default, unless the explicit `reducedMotion` option is set), `focusFollowsCamera` (off: focus still moves the cursor, but the camera does not pan to centre), `announce` (off: the live region stays empty while `onSelectionChange` still fires).
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
+- **view-transition** — `motion` (`reduce`: the update runs and no transition starts; the same path as a browser without the API).
 
 Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, command-palette, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, panzoom, player, popover, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, table, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
@@ -131,6 +132,28 @@ const panzoom = createPanZoom({
 ```
 
 Controlled is `scale` + `onScaleChange`; the offset has no controlled prop, so a host that ignores a scale request also gets the offset resolved for the scale it refused.
+
+## View transitions
+
+`createViewTransition` is a runner around `document.startViewTransition` (Baseline October 2025): it runs an update exactly once, starts a transition around it when the platform can, and treats a skipped transition as a successful run. There is no APG pattern, so there are no APG scenarios; the primitive's behaviour is `packages/apg-specs/specs/patterns/view-transition.qnt`, and the DOM is checked against it by the differential walk.
+
+```tsx
+const viewTransition = createViewTransition();
+
+await viewTransition.run(() => setSelection(next));
+
+<img {...viewTransition.persist({ class: "card" })} />;
+```
+
+**`persist()` is the default case: the same element persists across the update.** It returns `{ style }` with `view-transition-name: match-element`, so the browser assigns the unique name itself and the host keeps no bookkeeping. Use it for the element that moves, resizes, or is re-rendered in place — the case a host reaches for first.
+
+**`name(id)` is the morph pair: one element leaves, another arrives.** It returns a deterministic prefixed name (`vt-<id>`, the prefix is the `prefix` option) plus the optional `view-transition-class` hook, and leaves the pair's rule to the host. The platform rule the primitive cannot enforce: **only one element may be rendered with that name at a time**. MDN states it plainly — _"If two rendered elements have the same view-transition-name at the same time, the ViewTransition.ready Promise will reject and the transition will be skipped."_ The **whole** transition is skipped, silently, not just the pair; that is why `persist()` needs no names and a per-item `name()` needs the host to render one of the pair.
+
+**Reduced motion is the inert path.** With `prefs.motion === "reduce"` — and, identically, in a browser without the API — `run` awaits the update and starts nothing, and `supported()` reads the live API (false during SSR). The pref is read on every `run`, so a host may pass a getter. A transition the platform skips resolves `run` instead of rejecting it: the update already ran, so a skip is not a failure.
+
+**Latest wins.** A second `run` while one is active starts a new transition; the platform skips the running one. There is no queue and the primitive calls no `skipTransition()` — that is the platform's own policy. `state()` reports `{ supported, active }`; neither it nor the style objects touch the DOM.
+
+Left to the host: the transition's look (durations, easing, the `::view-transition-*` pseudo-elements), cross-document transitions (`pageswap` / `pagereveal` plus `@view-transition { navigation: auto }`, CSS only), `view-transition-class` styling and `types`. Not modelled: name allocation across rendered elements — the spec covers one transition at a time, the host owns uniqueness.
 
 ## Knob
 
