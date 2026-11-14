@@ -335,7 +335,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     deps: ["perfect-arrows"],
     title: "Board",
     description:
-      "A design system on a DOM plane: token cards with their value and their rule, the components that use them, and a line per use",
+      "A design system on a DOM plane: token cards with their value and their rule, the components that use them, a line per use, a token's value you type into and watch the whole map follow, and an outline that reads the plane in order",
   },
   {
     name: "meter",

@@ -1,7 +1,9 @@
 // The board's stories: the kit's whole design system on one plane — every token the theme publishes, the components that
-// consume them, and an arrow for every use. The map is the point: a token card carries its painted value, its text value and
-// the rule behind it (Design Book's argument, meodai: a token that keeps its reason), a part card holds the real component,
-// and picking a card lights its reach while the rest step back.
+// consume them, and an arrow for every use. The map is the point: a token card carries its painted value, its value as a
+// field and the rule behind it (Design Book's argument, meodai: a token that keeps its reason), a part card holds the real
+// component, and picking a card lights its reach while the rest step back. Typing into a token's field sets the token on the
+// plane, so the previews, the swatches and the cards made of it all move with one edit — and the outline under the map is
+// the same list read in order, one press from the card it names.
 //
 // The plane is bigger than the frame on purpose: this is the "one canvas" view of a design system, read by panning and
 // zooming, with Fit (`0`) as the overview. The mode switch in the board's settings bar is the theme's mise-en-mode look over
@@ -21,6 +23,8 @@ interface TokenSpec {
   readonly title: string;
   readonly detail: string;
   readonly note: string;
+  /** The CSS property the token feeds, which is what makes its value editable on the card. */
+  readonly property: string;
   readonly swatch?: string;
 }
 
@@ -33,40 +37,42 @@ interface PartSpec {
 
 /** The colour tokens the theme publishes; the swatch is the token itself, never a copy of its value. */
 const COLOURS: ReadonlyArray<TokenSpec> = [
-  ["color-page", "color.page", "the plane", "Everything sits on it."],
-  ["color-surface", "color.surface", "panel", "Cards above the page."],
-  ["color-text", "color.text", "body text", "7:1 against the page."],
-  ["color-muted", "color.muted", "hints", "4.5:1, one step quieter."],
-  ["color-border", "color.border", "hairline", "Between blocks, never a shadow."],
-  ["color-highlight", "color.highlight", "accent", "The one accent."],
-  ["color-on-highlight", "color.on-highlight", "on accent", "Text on a highlight fill."],
-  ["color-link", "color.link", "link", "On a card, at 4.5:1."],
-  ["color-invalid", "color.invalid", "error", "Errors and the invalid ring."],
-  ["color-focus-ring", "color.focus-ring", "focus", "The keyboard's ring, 3:1."],
-].map(([id, title, detail, note]) => ({
+  ["color-page", "color.page", "the plane", "Everything sits on it.", "color"],
+  ["color-surface", "color.surface", "panel", "Cards above the page.", "color"],
+  ["color-text", "color.text", "body text", "7:1 against the page.", "color"],
+  ["color-muted", "color.muted", "hints", "4.5:1, one step quieter.", "color"],
+  ["color-border", "color.border", "hairline", "Between blocks, never a shadow.", "color"],
+  ["color-highlight", "color.highlight", "accent", "The one accent.", "color"],
+  ["color-on-highlight", "color.on-highlight", "on accent", "Text on a highlight fill.", "color"],
+  ["color-link", "color.link", "link", "On a card, at 4.5:1.", "color"],
+  ["color-invalid", "color.invalid", "error", "Errors and the invalid ring.", "color"],
+  ["color-focus-ring", "color.focus-ring", "focus", "The keyboard's ring, 3:1.", "color"],
+].map(([id, title, detail, note, property]) => ({
   id: id as string,
   title: title as string,
   detail: detail as string,
   note: note as string,
+  property: property as string,
   swatch: `var(--${id})`,
 }));
 
 /** The steps and the type scale: no swatch, the value is the text. */
 const STEPS: ReadonlyArray<TokenSpec> = [
-  ["radius-sm", "radius.sm", "6px", "Controls inside a card."],
-  ["radius-md", "radius.md", "8px", "Cards and sheets."],
-  ["radius-xl", "radius.xl", "16px", "The frame of a surface."],
-  ["space-1", "space.1", "4px", "The gap inside a label."],
-  ["space-2", "space.2", "8px", "Padding inside a control."],
-  ["space-4", "space.4", "16px", "Between blocks."],
-  ["font-sm", "font.sizeSm", "12px", "Captions and hints."],
-  ["font-base", "font.size", "14px", "The body."],
-  ["font-lg", "font.sizeLg", "16px", "A section's lead."],
-].map(([id, title, detail, note]) => ({
+  ["radius-sm", "radius.sm", "6px", "Controls inside a card.", "border-radius"],
+  ["radius-md", "radius.md", "8px", "Cards and sheets.", "border-radius"],
+  ["radius-xl", "radius.xl", "16px", "The frame of a surface.", "border-radius"],
+  ["space-1", "space.1", "4px", "The gap inside a label.", "padding"],
+  ["space-2", "space.2", "8px", "Padding inside a control.", "padding"],
+  ["space-4", "space.4", "16px", "Between blocks.", "padding"],
+  ["font-sm", "font.sizeSm", "12px", "Captions and hints.", "font-size"],
+  ["font-base", "font.size", "14px", "The body.", "font-size"],
+  ["font-lg", "font.sizeLg", "16px", "A section's lead.", "font-size"],
+].map(([id, title, detail, note, property]) => ({
   id: id as string,
   title: title as string,
   detail: detail as string,
   note: note as string,
+  property: property as string,
 }));
 
 const PARTS: ReadonlyArray<PartSpec> = [

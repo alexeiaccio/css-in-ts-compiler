@@ -84,6 +84,44 @@ const settle = (): Promise<void> =>
 
 const board = () => <Board label="Design system" nodes={NODES} edges={EDGES} />;
 
+/** The same board with each token saying which CSS property it feeds, which is what makes its value a field. */
+const EDITABLE: ReadonlyArray<BoardNode> = [
+  {
+    id: "accent",
+    kind: "token",
+    x: 20,
+    y: 20,
+    width: 160,
+    height: 90,
+    title: "color.highlight",
+    detail: "accent",
+    property: "color",
+    swatch: "var(--color-highlight)",
+  },
+  {
+    id: "radius",
+    kind: "token",
+    x: 20,
+    y: 130,
+    width: 160,
+    height: 90,
+    title: "radius.sm",
+    detail: "6px",
+    property: "border-radius",
+  },
+  { id: "button", kind: "part", x: 240, y: 20, width: 220, height: 150, title: "Button" },
+];
+
+const EDITABLE_EDGES: ReadonlyArray<BoardEdge> = [{ from: "button", to: "accent" }];
+
+const editable = () => <Board label="Editable" nodes={EDITABLE} edges={EDITABLE_EDGES} />;
+
+/** Zoomed in, so the outline has somewhere to take the frame: at Fit the whole map is already in view. */
+const outlined = () => <Board label="Outline" nodes={NODES} edges={EDGES} defaultScale={2} />;
+
+const field = (root: HTMLElement, id: string): HTMLInputElement =>
+  card(root, id).querySelector<HTMLInputElement>('[data-part="board-value"]')!;
+
 /** A button of the board by its text: the settings bar's own controls. */
 const control = (root: HTMLElement, label: string): HTMLButtonElement => {
   const found = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
@@ -228,6 +266,86 @@ describe("Board", () => {
     key(viewport(root), { key: "0" });
     await settle();
     expect(zoom.textContent).toBe("50%");
+    dispose();
+  });
+
+  it("edits a token's value on the plane, and refuses a value its property cannot take", async () => {
+    const { root, dispose } = mount(editable);
+    await settle();
+    const world = root.querySelector<HTMLElement>('[data-part="board-world"]')!;
+    const radius = field(root, "radius");
+    // the field starts from the value the plane is using, not from the card's role text
+    expect(radius.value).toBe("6px");
+    // only a card that says which CSS property it feeds is a field: a part keeps its text, and no field
+    expect(card(root, "button").querySelector('[data-part="board-value"]')).toBeNull();
+
+    // a value the property refuses never reaches the plane, and the field says why
+    radius.value = "not a length";
+    key(radius, { key: "Enter" });
+    await settle();
+    expect(radius.getAttribute("aria-invalid")).toBe("true");
+    expect(world.style.getPropertyValue("--radius-sm")).toBe("");
+
+    radius.value = "12px";
+    key(radius, { key: "Enter" });
+    await settle();
+    expect(radius.getAttribute("aria-invalid")).toBeNull();
+    expect(world.style.getPropertyValue("--radius-sm")).toBe("12px");
+    // the plane's own custom property, so anything under it follows: a part card, and a colour's swatch
+    expect(getComputedStyle(card(root, "button")).getPropertyValue("--radius-sm").trim()).toBe(
+      "12px",
+    );
+
+    // Escape abandons the draft, and an empty field is the theme's own value again
+    radius.value = "3px";
+    key(radius, { key: "Escape" });
+    await settle();
+    expect(radius.value).toBe("12px");
+    expect(world.style.getPropertyValue("--radius-sm")).toBe("12px");
+
+    radius.value = "";
+    key(radius, { key: "Enter" });
+    await settle();
+    expect(world.style.getPropertyValue("--radius-sm")).toBe("");
+    expect(radius.value).toBe("6px");
+
+    // a colour token is the same edit: the card's swatch reads the token, so it follows the typed value
+    const accent = field(root, "accent");
+    expect(accent.value).not.toBe("accent");
+    accent.value = "#123456";
+    key(accent, { key: "Enter" });
+    await settle();
+    const swatch = card(root, "accent").querySelector<HTMLElement>('[data-part="board-swatch"]')!;
+    expect(getComputedStyle(swatch).backgroundColor).toBe("rgb(18, 52, 86)");
+    dispose();
+  });
+
+  it("lists the cards as an outline, and brings the one picked to the middle of the frame", async () => {
+    const { root, dispose } = mount(outlined);
+    await settle();
+    const items = [...root.querySelectorAll<HTMLButtonElement>('[data-part="board-outline-item"]')];
+    expect(items.map((item) => item.getAttribute("data-outline"))).toEqual([
+      "accent",
+      "radius",
+      "button",
+      "badge",
+    ]);
+    expect(items[3]?.textContent).toContain("Badge");
+    expect(items[3]?.textContent).toContain("part · Uses color.highlight");
+
+    items[3]!.click();
+    await settle();
+    const chosen = card(root, "badge").getBoundingClientRect();
+    const frame = viewport(root).getBoundingClientRect();
+    expect(
+      Math.abs(chosen.left + chosen.width / 2 - (frame.left + frame.width / 2)),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(chosen.top + chosen.height / 2 - (frame.top + frame.height / 2)),
+    ).toBeLessThanOrEqual(1);
+    // it is the current card, and the focus went with it, so the arrows move it next
+    expect(head(root, "badge").getAttribute("aria-current")).toBe("true");
+    expect(document.activeElement).toBe(head(root, "badge"));
     dispose();
   });
 });

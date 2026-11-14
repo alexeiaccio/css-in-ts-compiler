@@ -44,7 +44,7 @@ Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)
 - donut: A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row. `add @cssints/donut`
 - stat: A stat tile: the metric's name, the value as `<data>`, the change in words on a chip and its samples as a sparkline. `add @cssints/stat`
 - heatmap: A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale. `add @cssints/heatmap`
-- board: A design system on a DOM plane: token cards with their value and their rule, the components that use them, and a line per use. `add @cssints/board`
+- board: A design system on a DOM plane: token cards with their value and their rule, the components that use them, a line per use, a token's value you type into and watch the whole map follow, and an outline that reads the plane in order. `add @cssints/board`
 - meter: APG meter: a track and the fill of the value, on `createMeter`. `add @cssints/meter`
 - sparkline: A sparkline as a list of samples: the line is CSS (`hypot` and `atan2`), with no SVG and no canvas. `add @cssints/sparkline`
 - breadcrumb: APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it. `add @cssints/breadcrumb`

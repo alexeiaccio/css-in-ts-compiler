@@ -1,11 +1,11 @@
 ---
 # cssints-ezpl
 title: 'board: an infinite DOM plane of real components'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-06T10:15:47Z
-updated_at: 2026-11-06T11:12:00Z
+updated_at: 2026-11-14T00:00:00Z
 ---
 
 A plane you place real components on: the starter the dragging note (`cssints-2cxd`) named as the right home for free-form
@@ -55,3 +55,36 @@ Left for this bean: editing a token value on the board (the management action), 
 The owner asked for perfect-arrows, arrows over the cards, one big canvas with all the connections and settings, and pointed at the mise-en-mode layer. Shipped: the whole theme on one plane (19 tokens, 5 real components, 23 uses), the plane given its own content size (`width`/`height`) so pan/zoom/Fit explore a 1354x808 map, arrows from perfect-arrows drawn over the cards without a casing, a settings bar with Fit, the zoom value and a mode switch that sets `data-mode` on the viewport (the theme's look), and a layout that is a function of the token lists. 8 conformance tests.
 
 Left from the bean: editing a token value on the board (the management action) and an outline view. Curved routing is done; routing *around* cards is not (and is where pave would enter if a real map needs it).
+
+## Round three (2026-11-14): the two management actions
+
+The bean's own "done when" had two items left, and they were the ones that make the board a management view rather than a
+picture of one.
+
+**A token's value is a field.** A token node may state the CSS property it feeds (`property: "color"`, `"border-radius"`,
+`"padding"`, `"font-size"`); its card then carries the value as an input instead of a chip. What is typed is judged by
+`CSS.supports(property, value)` and, if it holds, set on the board's *world* element as the theme's own custom property
+(`color.highlight` → `--color-highlight`, the naming `createTokens` already uses). One edit therefore moves everything under
+it: the card's swatch, any other token written in terms of it, and the real components in the previews. Enter or a blur
+applies, Escape abandons the draft, an empty field is the theme's value again (the override is dropped, not set to `""`), and
+a value the property refuses keeps the invalid ring and never reaches the plane. The field starts from what the plane is
+*using* (`getComputedStyle(world).getPropertyValue('--token')`), not from `detail` — a colour's `detail` is its role
+("accent"), and the read is repeated on a mode switch, since the same token is another colour in the dark look. A token
+without `property` stays text, so nothing is applied that has no property to judge it.
+
+Two things the field had to take from the rest of the board: a pointer inside it must not start a card drag (the card's
+`pointerdown` stops at a field, so text selection survives) and its keys must not reach the plane's key handler (which pans
+and drops the selection), so the field stops `keydown` propagation.
+
+**The outline.** A `<details>` under the plane lists every card in document order — name, kind, what it reaches — and one
+press makes the card current, puts it in the middle of the frame and gives it the focus (`preventScroll`, because the plane
+is transformed rather than scrolled and a focus scroll would break the centring). The pan is `panBy` arithmetic: the world is
+centred on the plane and the plane's origin is its own centre, so the offset that centres a card is the card's distance from
+the world's centre, scaled, less the pan it already has.
+
+Conformance: two tests in `board.browser.test.tsx` (the value applied, refused, abandoned, cleared, and a colour's swatch
+following it; the outline's order, its text, the centring within a pixel, the `aria-current` and the focus), 11 in the file.
+Stories: the three existing ones now carry the fields; `r/board.json` and `llms.txt` regenerated.
+
+Left, on purpose: the edit is not reported to the host (it lives on the plane's world element, and a page that wants to keep
+it would own the value), routing *around* cards (pave, if a real map needs it), and undo of a committed edit.

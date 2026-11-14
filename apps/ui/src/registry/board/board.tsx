@@ -6,7 +6,7 @@ import { shapePath } from "@cssints/css-grammar/shape";
 import { createPanZoom } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createMemo, createSignal, For, merge, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, merge, Show } from "solid-js";
 
 import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
@@ -34,6 +34,12 @@ export interface BoardNode {
   readonly note?: string | undefined;
   /** A token's painted value, e.g. `var(--color-highlight)`. */
   readonly swatch?: string | undefined;
+  /**
+   * The CSS property the token feeds (`color`, `border-radius`), which is what makes the card's value editable: a typed
+   * value is judged by `CSS.supports(property, …)` before the plane takes it. A token without it stays text, and a part
+   * card always does.
+   */
+  readonly property?: string | undefined;
 }
 
 /** A line from one card to another: a part uses a token, a token derives from another. */
@@ -89,6 +95,17 @@ interface Moving {
   readonly at: Position;
   readonly from: Position;
 }
+
+/**
+ * A token's custom property: the theme names it after the token's path (`color.highlight` → `--color-highlight`), so the
+ * card's title is the whole address of the value its field edits.
+ */
+const tokenOf = (node: BoardNode): string => `--${node.title.replaceAll(".", "-")}`;
+
+/** A field on a card owns the pointer: typing in it and selecting text are not a drag. */
+const isField = (target: EventTarget | null): boolean =>
+  target instanceof Element &&
+  target.closest("input, textarea, select, [contenteditable]") !== null;
 
 const rootClass = css.cn(
   css.display("grid"),
@@ -290,6 +307,64 @@ const valueClass = css.cn(
   css.fontSize(t.font.sizeSm),
 );
 
+// The same chip as a field: a token's value is typed where it is read, and a value the property refuses keeps the invalid
+// ring instead of reaching the plane.
+const fieldClass = css.cn(
+  valueClass,
+  css.width("100%"),
+  css.boxSizing("border-box"),
+  css.border("1px solid", t.color.border),
+  css.bg(t.color.surface),
+  css.fontFamily("inherit"),
+  css.color("inherit"),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("1px")),
+  css.attr("aria-invalid", "true")(css.borderColor(t.color.invalid)),
+);
+
+const outlineClass = css.cn(css.fontSize(t.font.sizeSm), css.color(t.color.text));
+
+const outlineSummaryClass = css.cn(
+  css.width("max-content"),
+  css.cursor("pointer"),
+  css.color(t.color.muted),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("2px")),
+);
+
+const outlineListClass = css.cn(
+  css.display("grid"),
+  css.gap("2px"),
+  css.margin("0"),
+  css.marginBlockStart(t.space._1),
+  css.padding("0"),
+  css.listStyle("none"),
+  css.maxBlockSize("10rem"),
+  css.overflowY("auto"),
+);
+
+const outlineItemClass = css.cn(
+  css.display("flex"),
+  css.gap(t.space._2),
+  css.alignItems("baseline"),
+  css.width("100%"),
+  css.boxSizing("border-box"),
+  css.paddingBlock("2px"),
+  css.paddingInline(t.space._1),
+  css.border("none"),
+  css.borderRadius(t.radius.sm),
+  css.bg("transparent"),
+  css.color("inherit"),
+  css.fontFamily("inherit"),
+  css.fontSize("inherit"),
+  css.textAlign("start"),
+  css.cursor("pointer"),
+  css.hover(css.bg(t.color.buttonBackground)),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
+);
+
+const outlineCurrentClass = css.cn(css.color(t.color.highlight), css.fontWeight("600"));
+
+const outlineKindClass = css.cn(css.marginInlineStart("auto"), css.color(t.color.muted));
+
 const noteClass = css.cn(css.margin("0"), css.color(t.color.muted));
 
 const zoomClass = css.cn(
@@ -319,6 +394,12 @@ const statusClass = css.cn(css.margin("0"), css.fontSize(t.font.sizeSm), css.col
  *
  * The data is the cards' text. A token card states the parts that use it, a part card states the tokens it uses, and the SVG
  * lines are decoration (`aria-hidden`): with the stylesheet off the board is a list of names, values, rules and relationships.
+ *
+ * Two things make it a management view rather than a picture. A token card whose `property` is known carries its value as a
+ * field: what is typed there is checked with `CSS.supports` and set on the plane as the theme's own custom property, so the
+ * swatch, the cards made of that token and the real components in the previews all move at once. The outline is the map's
+ * linear reading: every card in document order, with what it reaches, and one press brings it to the middle of the frame and
+ * the focus.
  */
 export const Board = (props: BoardProps): JSX.Element => {
   const pan = createPanZoom({
@@ -339,6 +420,15 @@ export const Board = (props: BoardProps): JSX.Element => {
   const [current, setCurrent] = createSignal<string | undefined>(props.defaultSelected);
   // the mise-en-mode look over the plane: the same tokens, the mode the theme registers for `data-mode`
   const [mode, setMode] = createSignal<"light" | "dark">(props.defaultMode ?? "light");
+  // The values typed into the plane, by node id; a missing key is the theme's own. They are set on the world element as the
+  // theme's custom properties, so the card's swatch, every other token made of them and every real component that reads
+  // them move together: one edit, the whole system.
+  const [values, setValues] = createSignal<Readonly<Record<string, string>>>({});
+  // The plane's own values, read off it rather than off the data: a colour's `detail` is its role ("accent"), and the value
+  // a field starts from is what the plane uses. Read once the world is placed, and again after a mode switch — the same
+  // token is another colour under the dark look.
+  const [planeValues, setPlaneValues] = createSignal<Readonly<Record<string, string>>>({});
+  const [placed, setPlaced] = createSignal(false);
 
   // the plane as the drag measures it, and the pointer's gesture
   let world: HTMLElement | undefined;
@@ -352,6 +442,81 @@ export const Board = (props: BoardProps): JSX.Element => {
   const boxOf = (node: BoardNode) => {
     const at = placement(node);
     return { x: at.x, y: at.y, width: node.width, height: node.height };
+  };
+
+  // a split effect: the compute phase names the dependencies, the apply phase reads the plane
+  createEffect(
+    () => [placed(), mode(), props.nodes] as const,
+    () => {
+      const element = world;
+      if (!placed() || element === undefined) {
+        return;
+      }
+      const style = getComputedStyle(element);
+      setPlaneValues(
+        Object.fromEntries(
+          props.nodes.flatMap((node) =>
+            node.property === undefined
+              ? []
+              : [[node.id, style.getPropertyValue(tokenOf(node)).trim()] as const],
+          ),
+        ),
+      );
+    },
+  );
+
+  /** What a token card's field shows: what was typed over the theme's value, else the plane's own value. */
+  const shown = (node: BoardNode): string =>
+    values()[node.id] ?? planeValues()[node.id] ?? node.detail ?? "";
+
+  /**
+   * What `detail` still means once the value is a field: a step's detail *is* its value (`6px`), so the field shows it; a
+   * colour's value is its swatch, and its detail is what the colour is for ("accent", "hints"), which stays text.
+   */
+  const roleOf = (node: BoardNode): string | undefined =>
+    node.property === undefined ? node.detail : node.swatch === undefined ? undefined : node.detail;
+
+  /** An empty field is the theme's own value, so it drops the override rather than setting an empty one. */
+  const setValue = (node: BoardNode, next: string | undefined): void => {
+    setValues((all) => {
+      const copy = { ...all };
+      if (next === undefined) {
+        delete copy[node.id];
+      } else {
+        copy[node.id] = next;
+      }
+      return copy;
+    });
+  };
+
+  /** Enter or a blur takes a typed value where `CSS.supports` does; anything else keeps the plane as it was. */
+  const commit = (node: BoardNode, input: HTMLInputElement): void => {
+    const text = input.value.trim();
+    if (text !== "" && !CSS.supports(node.property ?? "", text)) {
+      input.setAttribute("aria-invalid", "true");
+      return;
+    }
+    input.removeAttribute("aria-invalid");
+    setValue(node, text === "" ? undefined : text);
+  };
+
+  /** Escape abandons what was typed: the field and the plane go back to the value they had. */
+  const revert = (node: BoardNode, input: HTMLInputElement): void => {
+    input.value = shown(node);
+    input.removeAttribute("aria-invalid");
+  };
+
+  /** The typed values as the theme's custom properties, applied to the world so every card and preview follows them. */
+  const overrides = (): Record<string, string> => {
+    const typed = values();
+    return Object.fromEntries(
+      props.nodes.flatMap((node) => {
+        const value = typed[node.id];
+        return node.property !== undefined && value !== undefined
+          ? [[tokenOf(node), value] as const]
+          : [];
+      }),
+    );
   };
 
   const uses = (id: string): string[] =>
@@ -425,6 +590,11 @@ export const Board = (props: BoardProps): JSX.Element => {
     if (event.button !== 0) {
       return;
     }
+    // a token's field keeps the pointer, and the current card with it: selecting text is not a drag
+    if (isField(event.target)) {
+      event.stopPropagation();
+      return;
+    }
     // the card takes the pointer, so the plane does not pan under it
     event.stopPropagation();
     setCurrent(node.id);
@@ -487,6 +657,29 @@ export const Board = (props: BoardProps): JSX.Element => {
       return;
     }
     pan.viewportProps.onKeyDown(event);
+  };
+
+  /**
+   * The outline's one action: make a card current, put it in the middle of the frame and give it the focus. The world is
+   * centred on the plane and the plane's transform origin is its own centre, so the pan that centres a card is the card's
+   * distance from the world's centre, scaled, less the pan it already has.
+   */
+  const goTo = (node: BoardNode): void => {
+    setCurrent(node.id);
+    const element = world;
+    if (element !== undefined) {
+      const at = placement(node);
+      const scale = pan.scale();
+      const behind = pan.offset();
+      pan.panBy(
+        -(at.x + node.width / 2 - element.clientWidth / 2) * scale - behind.x,
+        -(at.y + node.height / 2 - element.clientHeight / 2) * scale - behind.y,
+      );
+    }
+    // the plane is transformed, not scrolled: focusing without a scroll keeps the centring above exact
+    element
+      ?.querySelector<HTMLElement>(`[data-node="${CSS.escape(node.id)}"] [data-part="board-head"]`)
+      ?.focus({ preventScroll: true });
   };
 
   const routed = createMemo(() =>
@@ -574,8 +767,9 @@ export const Board = (props: BoardProps): JSX.Element => {
       <figcaption data-part="board-caption" class={captionClass}>
         <span class={captionNameClass}>{props.label}</span>
         <span class={hintClass}>
-          Drag a card to place it, drag the plane to pan, and pick a card to see what it reaches.
-          Keys: + and − zoom, 0 fits the map, and arrows move the current card.
+          Drag a card to place it, drag the plane to pan, and pick a card to see what it reaches. A
+          token's value is a field: type another and the whole map follows. Keys: + and − zoom, 0
+          fits the map, and arrows move the current card.
         </span>
       </figcaption>
       <div data-part="board-settings" class={settingsClass}>
@@ -601,8 +795,10 @@ export const Board = (props: BoardProps): JSX.Element => {
           <div
             data-part="board-world"
             class={worldClass}
+            style={overrides()}
             ref={(element) => {
               world = element;
+              setPlaced(true);
             }}
           >
             <svg data-part="board-edges" class={edgesClass} aria-hidden="true">
@@ -709,9 +905,30 @@ export const Board = (props: BoardProps): JSX.Element => {
                               {props.preview?.(node)}
                             </div>
                           </Show>
-                          <Show when={node.detail !== undefined}>
+                          <Show when={node.property !== undefined}>
+                            <input
+                              data-part="board-value"
+                              class={fieldClass}
+                              type="text"
+                              autocomplete="off"
+                              spellcheck={false}
+                              aria-label={`${node.title} value`}
+                              value={shown(node)}
+                              onKeyDown={(event) => {
+                                // a text field owns its keys: the plane neither pans nor drops the card while typing
+                                event.stopPropagation();
+                                if (event.key === "Enter") {
+                                  commit(node, event.currentTarget);
+                                } else if (event.key === "Escape") {
+                                  revert(node, event.currentTarget);
+                                }
+                              }}
+                              onBlur={(event) => commit(node, event.currentTarget)}
+                            />
+                          </Show>
+                          <Show when={roleOf(node) !== undefined}>
                             <code data-part="board-value" class={valueClass}>
-                              {node.detail}
+                              {roleOf(node)}
                             </code>
                           </Show>
                           <Show when={node.note !== undefined}>
@@ -732,6 +949,30 @@ export const Board = (props: BoardProps): JSX.Element => {
           </div>
         </div>
       </div>
+      <details data-part="board-outline" class={outlineClass}>
+        <summary class={outlineSummaryClass}>Outline ({props.nodes.length} cards)</summary>
+        <ol class={outlineListClass}>
+          <For each={props.nodes}>
+            {(node) => (
+              <li>
+                <button
+                  type="button"
+                  data-part="board-outline-item"
+                  data-outline={node.id}
+                  class={css.cn(outlineItemClass, current() === node.id && outlineCurrentClass)}
+                  aria-current={current() === node.id ? "true" : undefined}
+                  onClick={() => goTo(node)}
+                >
+                  <span>{node.title}</span>
+                  <span class={outlineKindClass}>
+                    {node.kind} · {reads(node.id)}
+                  </span>
+                </button>
+              </li>
+            )}
+          </For>
+        </ol>
+      </details>
       <p data-part="board-status" class={statusClass} role="status">
         {summary()}
       </p>

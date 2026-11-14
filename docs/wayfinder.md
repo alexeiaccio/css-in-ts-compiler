@@ -5414,3 +5414,38 @@ and the invalid shape bodies are in `runtimeOnly`), `packages/cssints` (a fixtur
 build error for `curve` without `with`; the docs blocks and the whole suite green), and the board's conformance test
 (the connector's box is the union, the path is `shapePath` of the inline `--_shape`, and the one of the two that paints
 is what `CSS.supports("border-shape", …)` says it is).
+
+## The board's two management actions: an editable token and an outline (cssints-ezpl, 2026-11-14)
+
+The board's bean had two items left, and they were the two that make it a management view rather than a picture of one.
+
+**A token's value is a field.** A token node may say which CSS property it feeds (`property: "color"`, `"border-radius"`,
+`"padding"`, `"font-size"`), and its card then carries the value as an input rather than a chip. A typed value is judged by
+`CSS.supports(property, value)` and, where it holds, set on the board's _world_ element as the theme's own custom property
+(`color.highlight` → `--color-highlight`): the naming `createTokens` already uses, so no node needs to repeat the variable
+name, and one edit moves everything under it — the card's swatch, any token written in terms of it, and the real components
+in the previews. Enter or a blur applies, Escape abandons the draft, an empty field is the theme's value again (the override
+is dropped, not set to `""`), and a refused value keeps the invalid ring and never reaches the plane.
+
+The field starts from what the plane is _using_ — `getComputedStyle(world).getPropertyValue("--token")` — and not from the
+node's `detail`, because a colour's `detail` is its role ("accent", "hints") and its value is only painted in the swatch. The
+read is repeated on a mode switch, since the same token is another colour under the dark look; a step's `detail` _is_ its
+value, so a step card keeps no second line. A token without `property` stays text: nothing is applied that no property can
+judge. The board reports the edit to nobody: the override lives on the plane, and a page that wants to keep it would own the
+value (left for a host that asks).
+
+Two collisions the field had to settle, both found by reading the board first: a pointer inside it would have started a card
+drag (the card's `pointerdown` now stops at a field, so selecting text is not a drag), and its keys would have reached the
+plane's key handler, which pans on arrows and drops the selection on Escape (the field stops `keydown`).
+
+**The outline** is a `<details>` under the plane: every card in document order, with its kind and what it reaches, and one
+press makes the card current, centres it and gives it the focus. The centring is `panBy` arithmetic, not a scroll: the world
+is centred on the plane and the plane's transform origin is its own centre, so the offset that centres a card is the card's
+distance from the world's centre, scaled, less the pan it already has. The focus is `preventScroll: true`, because the plane
+is transformed rather than scrolled and a focus scroll would move the plane behind the maths. Collapsed by default — the map
+is the star — which is honest for a keyboard reader because the cards themselves are focusable; the outline is the linear
+reading of a 2-D plane, the same list in order.
+
+**Verified:** `apps/ui/src/registry/board/board.browser.test.tsx` (11 tests; the new two read the field applied, refused,
+abandoned and cleared, a colour's swatch following its token, the outline's order and text, the centring within a pixel, the
+`aria-current` and the focus), the page's conformance suite, `bun run test:site` in Chrome, `apps/ui` typecheck, fmt and lint.
