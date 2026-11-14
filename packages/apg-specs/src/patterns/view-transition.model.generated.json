@@ -1,0 +1,1003 @@
+{
+  "generatedFrom": "../../specs/patterns/view-transition.qnt",
+  "specHash": "183d5d17a9755879257780861e67e5346d24406d65b9c429182d75eb1e03b4f2",
+  "module": "patterns_view_transition",
+  "vars": [
+    {
+      "name": "mode",
+      "type": "str"
+    },
+    {
+      "name": "phase",
+      "type": "str"
+    },
+    {
+      "name": "active",
+      "type": "int"
+    },
+    {
+      "name": "latest",
+      "type": "int"
+    },
+    {
+      "name": "requests",
+      "type": "int"
+    },
+    {
+      "name": "updates",
+      "type": "int"
+    },
+    {
+      "name": "inert",
+      "type": "int"
+    },
+    {
+      "name": "starts",
+      "type": "int"
+    },
+    {
+      "name": "finished",
+      "type": "int"
+    },
+    {
+      "name": "skips",
+      "type": "int"
+    },
+    {
+      "name": "pending",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "animating": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "mode"
+          },
+          {
+            "kind": "str",
+            "value": "animate"
+          }
+        ]
+      }
+    },
+    "running": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "phase"
+          },
+          {
+            "kind": "str",
+            "value": "active"
+          }
+        ]
+      }
+    },
+    "nextToken": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "name",
+            "name": "latest"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "OneUpdatePerRequest": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "updates"
+          },
+          {
+            "kind": "name",
+            "name": "requests"
+          }
+        ]
+      }
+    },
+    "InertRequestsStartNothing": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "inert"
+              },
+              {
+                "kind": "name",
+                "name": "starts"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "requests"
+          }
+        ]
+      }
+    },
+    "AnimatedStartsBalance": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "starts"
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "finished"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "skips"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "running"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ActiveIsTheLatest": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "running"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "latest"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "InertNeverActive": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "animating"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "running"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "PendingOnlyWhileActive": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "pending"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "running"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "str",
+            "value": "animate"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "str",
+            "value": "idle"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "latest",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "updates",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "inert",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "starts",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "finished",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "skips",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "request",
+      "assignments": [
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "animating"
+              },
+              {
+                "kind": "str",
+                "value": "active"
+              },
+              {
+                "kind": "name",
+                "name": "phase"
+              }
+            ]
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "animating"
+              },
+              {
+                "kind": "name",
+                "name": "nextToken"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          }
+        },
+        {
+          "field": "latest",
+          "rhs": {
+            "kind": "name",
+            "name": "nextToken"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "requests"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "updates",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "updates"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "inert",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "animating"
+              },
+              {
+                "kind": "name",
+                "name": "inert"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "inert"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "starts",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "animating"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "starts"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "starts"
+              }
+            ]
+          }
+        },
+        {
+          "field": "finished",
+          "rhs": {
+            "kind": "name",
+            "name": "finished"
+          }
+        },
+        {
+          "field": "skips",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "animating"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "running"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "skips"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "skips"
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "animating"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "settle",
+      "assignments": [
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "str",
+            "value": "idle"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "latest",
+          "rhs": {
+            "kind": "name",
+            "name": "latest"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "updates",
+          "rhs": {
+            "kind": "name",
+            "name": "updates"
+          }
+        },
+        {
+          "field": "inert",
+          "rhs": {
+            "kind": "name",
+            "name": "inert"
+          }
+        },
+        {
+          "field": "starts",
+          "rhs": {
+            "kind": "name",
+            "name": "starts"
+          }
+        },
+        {
+          "field": "finished",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "running"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "finished"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "finished"
+              }
+            ]
+          }
+        },
+        {
+          "field": "skips",
+          "rhs": {
+            "kind": "name",
+            "name": "skips"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "abort",
+      "assignments": [
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "str",
+            "value": "idle"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "latest",
+          "rhs": {
+            "kind": "name",
+            "name": "latest"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "updates",
+          "rhs": {
+            "kind": "name",
+            "name": "updates"
+          }
+        },
+        {
+          "field": "inert",
+          "rhs": {
+            "kind": "name",
+            "name": "inert"
+          }
+        },
+        {
+          "field": "starts",
+          "rhs": {
+            "kind": "name",
+            "name": "starts"
+          }
+        },
+        {
+          "field": "finished",
+          "rhs": {
+            "kind": "name",
+            "name": "finished"
+          }
+        },
+        {
+          "field": "skips",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "running"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "skips"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "skips"
+              }
+            ]
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "inertOn",
+      "assignments": [
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "running"
+              },
+              {
+                "kind": "name",
+                "name": "mode"
+              },
+              {
+                "kind": "str",
+                "value": "inert"
+              }
+            ]
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "name",
+            "name": "phase"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "latest",
+          "rhs": {
+            "kind": "name",
+            "name": "latest"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "updates",
+          "rhs": {
+            "kind": "name",
+            "name": "updates"
+          }
+        },
+        {
+          "field": "inert",
+          "rhs": {
+            "kind": "name",
+            "name": "inert"
+          }
+        },
+        {
+          "field": "starts",
+          "rhs": {
+            "kind": "name",
+            "name": "starts"
+          }
+        },
+        {
+          "field": "finished",
+          "rhs": {
+            "kind": "name",
+            "name": "finished"
+          }
+        },
+        {
+          "field": "skips",
+          "rhs": {
+            "kind": "name",
+            "name": "skips"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "inertOff",
+      "assignments": [
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "str",
+            "value": "animate"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "name",
+            "name": "phase"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "latest",
+          "rhs": {
+            "kind": "name",
+            "name": "latest"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "updates",
+          "rhs": {
+            "kind": "name",
+            "name": "updates"
+          }
+        },
+        {
+          "field": "inert",
+          "rhs": {
+            "kind": "name",
+            "name": "inert"
+          }
+        },
+        {
+          "field": "starts",
+          "rhs": {
+            "kind": "name",
+            "name": "starts"
+          }
+        },
+        {
+          "field": "finished",
+          "rhs": {
+            "kind": "name",
+            "name": "finished"
+          }
+        },
+        {
+          "field": "skips",
+          "rhs": {
+            "kind": "name",
+            "name": "skips"
+          }
+        },
+        {
+          "field": "pending",
+          "rhs": {
+            "kind": "name",
+            "name": "pending"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "request",
+    "settle",
+    "abort",
+    "inertOn",
+    "inertOff"
+  ]
+}

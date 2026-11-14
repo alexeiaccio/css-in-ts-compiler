@@ -99,6 +99,7 @@ export * from "./toolbar";
 export * from "./tooltip";
 export * from "./treegrid";
 export * from "./treeview";
+export * from "./view-transition";
 export * from "./virtual";
 export * from "./windowsplitter";
 export * from "./listbox-rearrangeable";

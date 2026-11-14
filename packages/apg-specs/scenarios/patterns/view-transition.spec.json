@@ -1,0 +1,181 @@
+{
+  "pattern": "view-transition",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Not an APG pattern: there is no widget. Written from specs/patterns/view-transition.qnt (the runner: one update per request, inert mode, latest wins, a skipped transition is not a failure). The observable value is [motion, active, requests, updates, starts, finished, skips]; settle and abort are the platform finishing or skipping the running transition, driven through the fixture's startViewTransition stub.",
+  "skipped": [],
+  "scenarios": [
+    {
+      "id": "view-transition.spec.animate-settles",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "value": ["full", false, 0, 0, 0, 0, 0]
+          }
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "expect": {
+            "value": ["full", true, 1, 1, 1, 0, 0]
+          }
+        },
+        {
+          "event": "settle"
+        },
+        {
+          "expect": {
+            "value": ["full", false, 1, 1, 1, 1, 0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "view-transition.spec.reduced-motion-runs-the-update",
+      "apg": "extension",
+      "config": {
+        "motion": "reduce"
+      },
+      "steps": [
+        {
+          "expect": {
+            "value": ["reduce", false, 0, 0, 0, 0, 0]
+          }
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "expect": {
+            "value": ["reduce", false, 1, 1, 0, 0, 0]
+          }
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "expect": {
+            "value": ["reduce", false, 2, 2, 0, 0, 0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "view-transition.spec.latest-wins",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "expect": {
+            "value": ["full", true, 2, 2, 2, 0, 1]
+          }
+        },
+        {
+          "event": "settle"
+        },
+        {
+          "expect": {
+            "value": ["full", false, 2, 2, 2, 1, 1]
+          }
+        }
+      ]
+    },
+    {
+      "id": "view-transition.spec.abort-is-not-a-failure",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "event": "abort"
+        },
+        {
+          "expect": {
+            "value": ["full", false, 1, 1, 1, 0, 1]
+          }
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "event": "abort"
+        },
+        {
+          "event": "settle"
+        },
+        {
+          "expect": {
+            "value": ["full", false, 2, 2, 2, 0, 2]
+          }
+        }
+      ]
+    },
+    {
+      "id": "view-transition.spec.motion-preference-round-trip",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "motion",
+          "value": "reduce"
+        },
+        {
+          "expect": {
+            "value": ["reduce", false, 0, 0, 0, 0, 0]
+          }
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "expect": {
+            "value": ["reduce", false, 1, 1, 0, 0, 0]
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "motion",
+          "value": "full"
+        },
+        {
+          "event": "run",
+          "target": "run"
+        },
+        {
+          "expect": {
+            "value": ["full", true, 2, 2, 1, 0, 0]
+          }
+        },
+        {
+          "event": "settle"
+        },
+        {
+          "expect": {
+            "value": ["full", false, 2, 2, 1, 1, 0]
+          }
+        }
+      ]
+    }
+  ]
+}
