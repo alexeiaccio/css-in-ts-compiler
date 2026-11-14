@@ -5101,7 +5101,7 @@ is the finding worth keeping.
 - **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
   whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
   (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
-  round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
   host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
   limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
   and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
@@ -5556,3 +5556,31 @@ fmt and lint.
 **Left:** the native form (a kernel change plus an `AHEAD_OF_CHROME` grammar entry when an engine ships it), a headless half
 for a bar that also has to report a value (`createScrollProgress` has no pointer twin yet), and touch: `pointermove` during a
 touch scroll is a different gesture, and nothing here reads `pointerdown`/`pointerup` yet.
+||||||| parent of b1ac1cc2 (chore(skills): Modern Web Guidance, the legacy scan, and the headless delta)
+
+## Modern Web Guidance: installed, scanned, and what it says about headless (cssints-oeb0, 2026-11-14)
+
+GoogleChrome's `modern-web-guidance` is not a library: it is a 90-line skill that tells an agent to ask an offline CLI
+(`npx -y modern-web-guidance@latest search|retrieve`, BM25 plus an embedding index, no network) for a curated guide on a
+platform capability, with Baseline status, gotchas and fallbacks. We install the `SKILL.md` alone
+(`.agents/skills/modern-web-guidance`), not the 2.3 MB of guide markdown that `npx skills add` copies and no instruction
+reads: the CLI fetches what it needs, and `@latest` keeps it current. Its telemetry is off in our runs
+(`DISABLE_TELEMETRY=1`); the file says so in its provenance header.
+
+`legacy-scan` over `apps/demo`, `apps/docs`, `apps/csssky`, `apps/lab` (33 guides, 35 deterministic rules) found one
+thing and it was real: the playground's file-rename input committed on `Enter` without an IME guard, so a Japanese, Chinese
+or Korean composition would create the file mid-conversion. Fixed with `e.isComposing`
+(`ime-safe-enter-submit`: "The composition-active check applies to any custom `keydown` handler that acts on `Enter`, not
+only to multiline `<textarea>` fields"). The rest is clean.
+
+The same corpus answers the standing headless question — what can move to the platform — and the answer is a delta on
+`packages/headless/docs/apg-platform-features.md`: **two moves, not one**. (1) Host recipes and kit markup for the
+patterns the summary table already labelled "native" but the kit renders as divs: `<details name>` with
+`::details-content` and `interpolate-size` (Baseline newly 2025-09-16), `<dialog showModal()>` with `closedby` as
+enhancement (C134 / F141, no Safari), native range and `<meter>`, and the Safari-only `switch` attribute over a styled
+checkbox. (2) The overlay half on the **Popover API and invoker commands** (`install` says Baseline newly since
+2025-12-12): `popover.ts` keeps its props and loses the dismiss/focus/stack path, the menu family keeps keys, typeahead
+and checkable items, and `confirm`/`drawer` on `<dialog>` delete `overlay-shell`'s trap, scroll lock and overlay stack.
+Polyfills are not the lever: everything there is Baseline widely or newly, and the two non-interoperable features
+(`interestfor`, `switch`) are exactly where the JS state already stays. Three beans: cssints-jr2a, cssints-qyre,
+cssints-dvq8.

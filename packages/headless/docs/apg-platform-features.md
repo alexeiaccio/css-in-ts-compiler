@@ -183,6 +183,63 @@ generated machine is differentially tested; "a machine exists only where state c
 - Gecko/WebKit implementation plans for focusgroup are unknown (positions only).
 - Not evaluated: ariakit/Base UI/React Aria use of these features; that belongs to the scenario-mining tickets.
 
+## Delta, 2026-11-14: what shipped since, and what the code still owns
+
+Compiled with the **Modern Web Guidance** guides (installed the same day, `.agents/skills/modern-web-guidance`: the
+skill's `search`/`retrieve` over the GoogleChrome corpus) and one `legacy-scan` of the apps. The scan found one thing:
+`apps/docs/src/playground/Playground.tsx`'s file-rename input committed on `Enter` without an IME guard; fixed with
+`e.isComposing` (`ime-safe-enter-submit`). The rest of the scan (33 guides, 35 deterministic rules) is clean.
+
+### Status changes since 2026-10-03
+
+| feature                        | this doc, 2026-10-03      | guide baseline, 2026-11-14                                                                                          |
+| ------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `::details-content`            | mentioned, no baseline    | **Baseline newly, 2025-09-16**; `interpolate-size: allow-keywords` animates open/close with no JS                   |
+| `field-sizing`                 | not covered               | **Baseline newly, 2026-06-16** (C123 / F152 / S26.2)                                                                |
+| `@starting-style`              | not covered               | **Baseline newly, 2024-08-06**; top-layer entry/exit for dialog and popover without JS                              |
+| `closedby`                     | C134 / F141 / S preview   | C134 / F141, **Safari unsupported**; Esc and the back gesture close a modal anyway, so light dismiss is enhancement |
+| Invoker commands               | Baseline newly 2025-12-12 | same (C135 / F144 / S26.2); `show-modal`, `toggle-popover`, `request-close`                                         |
+| Customizable `<select>`        | C135 / S27 / F flag       | C135 / S27, **Firefox unsupported**                                                                                 |
+| `<input type=checkbox switch>` | Safari 17.4 only          | same; the guide's baseline is a styled checkbox                                                                     |
+| focusgroup                     | C/E150 only               | same; our V1 adapter + polyfill stands                                                                              |
+| `interestfor`                  | C/E142 only, "12+ months" | same; keep the tooltip state machine                                                                                |
+| `ariaNotify()`                 | Baseline newly 2026-09-14 | same (C141 / F150 / S27); `@github/arianotify-polyfill` 10 KB                                                       |
+
+### What the code still duplicates
+
+Most primitives are already contracts, not behaviour: `dialog-modal.ts` has no trap ("the host's to restore on
+close"), `accordion.ts` says exclusivity is the platform's, `textbox.ts` is native-input attributes. The duplication
+that is left, and the JS it would delete:
+
+| primitive                                                                     | platform replaces                                                          | what deletes                                             | verdict                                                                                         |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `popover.ts` (10.8 KB)                                                        | Popover API: `popover`, `showPopover()`, light dismiss, Esc, top layer     | the dismiss/focus/stack path                             | **move**                                                                                        |
+| `menu.ts` (50.9 KB), `filterable-menu.ts` (18.8), `command-palette.ts` (10.4) | `popover` + `commandfor` + anchor positioning                              | top layer, light dismiss, Esc, focus return, placement   | **hybrid**: overlay half moves, keys/typeahead/checkable items stay                             |
+| `confirm.ts` (7.7 KB), `drawer.ts` (9.6) via `overlay-shell.ts` (2.9)         | `<dialog>` + `showModal()`; `closedby` as enhancement                      | tab cycle, scroll lock, overlay stack, focus containment | **move**: the host renders `<dialog>`                                                           |
+| `date-picker.ts` (22.9)                                                       | `input[type=date]` + `showPicker()` for one date; popover for the calendar | the picker's shell, not the range/multi-month calendar   | **hybrid**                                                                                      |
+| `tooltip.ts` (15.5)                                                           | `popover=hint` + `interestfor`                                             | light dismiss/positioning, not the delay state           | **keep** (Chrome/Edge only)                                                                     |
+| `slider.ts` (9.3), `switch.ts` (4.6), `checkbox.ts`, `radio.ts`               | native inputs; `switch` attribute (Safari only)                            | keys and AT, not the visual rail                         | **keep** the contract; the native element is the host's choice                                  |
+| `field.ts` + `textbox.ts` (11.6)                                              | `field-sizing: content`, `:user-invalid`, `enterkeyhint`                   | auto-grow and invalid styling                            | **docs + CSS**: the attribute wiring is already there                                           |
+| `accordion.ts` (7.9), `disclosure.ts` (3.2)                                   | `<details name>`, `::details-content`                                      | the exclusivity state and the open/close animation       | **host recipe**: render `details`; keep the primitives for the heading and `aria-disabled` gaps |
+| `toast.ts` (9.3), `alert.ts` (2.4), `status.ts` (2.1)                         | live regions; `ariaNotify()`                                               | imperative announcements                                 | **add `ariaNotify`** where supported, polyfill elsewhere                                        |
+| `virtual.ts` (26.8)                                                           | `content-visibility: auto` + `contain-intrinsic-size`                      | layout/paint of off-screen rows, not the window          | **enhancement** for lists that are not virtualized                                              |
+| `carousel.ts` (10.8)                                                          | CSS carousels (Chrome/Edge only)                                           | rotation buttons and markers                             | **keep**, `@supports` enhancement                                                               |
+| `meter.ts`, `spinbutton.ts`, `breadcrumb.ts`, `link.ts`                       | `<meter>`, `<input type=number>`, `<nav>`, `<a>`                           | nothing in the primitive                                 | **native in the kit**; the primitive is the fallback                                            |
+
+### Verdict
+
+Yes, it makes sense — as two moves, not one.
+
+1. **Host recipes and kit markup** for `details` / `dialog` / native range / `<meter>` / the `switch` attribute. That is
+   docs and one story in the kit, no new behaviour, and it is where the summary table's "native" label was never
+   cashed: the package always offered the contract, the kit always rendered a div.
+2. **Popover and invoker commands in the overlay half.** `popover.ts` and the overlay shell (`confirm`, `drawer`) can
+   drop their dismiss/focus/scroll-lock code on `popover`/`dialog`; the menu family keeps keys and typeahead. That is
+   the only place the package re-implements a platform behaviour, and ~90 KB of the 22k lines sit in that family.
+
+Polyfills are not the lever: everything in the first move is Baseline widely or newly, and the two features without
+interoperability (`interestfor`, the `switch` attribute) are exactly the ones where the JS state stays.
+
 ## Sources
 
 - focusgroup explainer V1: <https://open-ui.org/components/scoped-focusgroup.explainer/> (source `site/src/pages/components/scoped-focusgroup.explainer.mdx`, lastUpdated 2026-07-28)
