@@ -1,7 +1,7 @@
 # @cssints/reveal
 
-Entrance animations for [cssints](../../README.md), on [@cssints/motion](../motion/README.md)'s presets, as two chain
-members of `cssints/plugin` `scope()`:
+Entrance animations for [cssints](../../README.md), on [@cssints/motion](../motion/README.md)'s presets, plus a
+scroll-progress bar, as three chain members of `cssints/plugin` `scope()`:
 
 - **`reveal()`** is scroll-_driven_: an element runs the entrance as it scrolls into view, on `animation-timeline: view()`
   and `animation-range`, so the scroll scrubs it. In the spirit of
@@ -10,12 +10,16 @@ members of `cssints/plugin` `scope()`:
 - **`appear()`** is scroll-_triggered_: the scroll only decides _when_ a normal, time-based animation plays, on
   `timeline-trigger` + `animation-trigger`. It keeps its own duration and easing, so a slow scroll cannot stretch the
   entrance. The case is [utilitybend's article on CSS animation triggers](https://utilitybend.com/blog/scroll-triggered-animation-as-the-missing-piece-for-scrollytelling-on-the-web).
+- **`progress()`** is the bar the two live under: the element's own `scale`, scrubbed by `animation-timeline: scroll()`
+  over `animation-range`, so the scroll's position is the fill. It sets no size and no colour — a host makes it a 3 px
+  line wherever it wants one.
 
 Where a target lacks the feature a member runs on, a 0.4 kB script plays the same animation once when the element enters.
 
 ```ts
 import { cn, hover } from "cssints" with { type: "cssints" };
-import { appear, reveal } from "@cssints/reveal" with { type: "cssints" };
+import { blockSize, background } from "cssints" with { type: "cssints" };
+import { appear, progress, reveal } from "@cssints/reveal" with { type: "cssints" };
 
 // scroll-driven: the scroll scrubs it
 export const fade = reveal();
@@ -29,6 +33,14 @@ export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")
 // scroll-triggered: it plays once on entry, with its own time
 export const lede = appear().preset("slide-in-up").duration("600ms").easing("linear");
 export const band = appear().preset("fade-in").inOut();
+
+// a reading bar in a pane: the pane is the nearest scrollport, the bar grows from its left edge
+export const bar = cn(
+  progress().timeline("scroll(nearest)"),
+  blockSize("3px"),
+  background("tomato"),
+);
+export const side = progress().axis("y").range("entry 0% cover 100%"); // a section's own progress, from the top
 ```
 
 The CSS of `reveal()` (`fade` and `card` above):
@@ -179,11 +191,36 @@ The CSS of `appear()` (`lede` and `band` above):
   build error, derived from the kernel:
   `cssints: reveal: kernel enter sets animation, timeline-trigger, animation-trigger, trigger-scope, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `reveal.preset: unexpected "fade-out" in "fade-out",
-expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
+  expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
+
+## `progress()`
+
+```ts
+progress()
+  .axis("x" | "y")
+  .timeline("<animation-timeline>")
+  .range("<animation-range>");
+```
+
+- **What it sets.** `animation` (the shorthand first, since it resets the timeline), `animation-timeline`,
+  `animation-range` and `transform-origin`; the keyframes scale the element from nothing to its full size along the
+  axis. `axis("x")` (the default) grows from the left edge with `scale: 0 1` → `1 1`; `axis("y")` from the top edge with
+  `1 0` → `1 1`. The defaults are `timeline("scroll(root)")` and `range("normal")`.
+- **One element, two halves.** Where a browser has scroll-driven animations the animation scrubs the fill. Where it has
+  not, nothing is drawn — there is no honest CSS fallback for a scrub (playing it once on entry, the fallback `reveal()`
+  uses, would be a bar that lies). [@cssints/headless](../headless/README.md)'s `createScrollProgress` is the JS half:
+  it keeps the `progressbar` value right and gives the same element an inline `scale`. A running animation beats an
+  inline style, so one element can carry both without drawing twice.
+- **Conflicts.** It sets the animation and the origin, so an `animation*` or `transform-origin` property in the same
+  `cn()` is a build error: `cssints: reveal: kernel bar sets animation, animation-timeline, animation-range,
+  transform-origin (this style also sets animation-name)`.
+- **No `prefers-reduced-motion` branch.** The bar follows the reader's own scrolling: it never moves on its own, so
+  there is no motion to reduce.
 
 ## Browsers
 
-- **Native.** `reveal()`: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
+- **Native.** `progress()`: `animation-timeline: scroll()` and `animation-range`, Chrome 115 and Safari 26 (Firefox has
+  them behind a flag); no fallback, so the bar is not drawn there. `reveal()`: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
   `animation-range`); Firefox has them behind a flag only. `appear()`: Chrome 146, Edge 146, Opera 130
   (`css.properties.animation-trigger`, `timeline-trigger` and `trigger-scope`); Firefox and Safari have no animation
   triggers today. CSS animation triggers are a candidate for Interop 2027.

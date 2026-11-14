@@ -237,6 +237,60 @@ assert.match(
 assert.equal(e.loc?.line, 4);
 e = await failure("bad-appear-range.ts");
 assert.match(e.message, /^appear\.range: unexpected "sideways" in "entry 0% sideways"/);
+
+// progress(): the bar's own scale on a scroll timeline, its axis switching the keyframes and the origin, and the
+// timeline's warning kept (nothing covers it: without the timeline the bar is not drawn)
+const progressCode = await code("progress.ts");
+const progressOut = flat(plugins[0].api.sheet([`${root}/progress.ts`]));
+assert.match(progressCode, /export const bar = "_reveal-bar _\w+ _\w+";/, progressCode);
+// a scale per axis, and nothing of the bar's size: a host sizes and paints it
+assert.match(progressOut, /@keyframes kf-\w+\{from\{scale:0 1\}to\{scale:1 1\}\}/, progressOut);
+assert.match(progressOut, /@keyframes kf-\w+\{from\{scale:1 0\}to\{scale:1 1\}\}/, progressOut);
+const bar = /\._reveal-bar\{([^}]*)\}/.exec(progressOut)?.[1]?.split(";") ?? [];
+const xBar = /--reveal-p-x:(kf-\w+)/.exec(progressOut)?.[1];
+const yBar = /--reveal-p-y:(kf-\w+)/.exec(progressOut)?.[1];
+assert.ok(xBar && yBar, progressOut);
+assert.equal(xBar, /@keyframes (kf-\w+)\{from\{scale:0 1\}/.exec(progressOut)?.[1], progressOut);
+assert.equal(yBar, /@keyframes (kf-\w+)\{from\{scale:1 0\}/.exec(progressOut)?.[1], progressOut);
+assert.equal(bar[0], "animation:var(--reveal-p-k) linear both", progressOut);
+assert.deepEqual(
+  bar.slice(1).toSorted(),
+  [
+    "--reveal-p-g:normal",
+    "--reveal-p-k:var(--reveal-p-x)",
+    "--reveal-p-o:0 50%",
+    "--reveal-p-t:scroll(root)",
+    `--reveal-p-x:${xBar}`,
+    `--reveal-p-y:${yBar}`,
+    "animation-range:var(--reveal-p-g)",
+    "animation-timeline:var(--reveal-p-t)",
+    "transform-origin:var(--reveal-p-o)",
+  ],
+  progressOut,
+);
+// the methods: the other axis's keyframes and origin, the timeline and the range
+for (const d of [
+  "--reveal-p-k:var(--reveal-p-y)",
+  "--reveal-p-o:50% 0",
+  "--reveal-p-t:scroll(nearest)",
+  "--reveal-p-g:entry 0% cover 100%",
+])
+  assert.ok(progressOut.includes(`{${d}}`), `${d}\n${progressOut}`);
+// the timeline's warnings stay: no fallback covers a scrub
+assert.ok(
+  warnings.some((w) => w.includes("css.properties.animation-timeline")),
+  JSON.stringify(warnings),
+);
+assert.ok(
+  warnings.some((w) => w.includes("css.properties.animation-range")),
+  JSON.stringify(warnings),
+);
+// it sets the animation and the origin, and says so
+e = await failure("progress-conflict.ts");
+assert.match(
+  e.message,
+  /^cssints: reveal: kernel bar sets animation, animation-timeline, animation-range, transform-origin \(this style also sets animation-name\)$/,
+);
 await server.close();
 
 // targets that all have scroll-driven animations or triggers, and Firefox alone: another process each, the targets are
