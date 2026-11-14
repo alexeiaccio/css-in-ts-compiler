@@ -2,6 +2,24 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.37.0 (2026-11-14)
+
+### Minor changes
+
+- `progress()` in `@cssints/reveal`: a bar whose fill is the scroll's position — the element's own `scale`, scrubbed by
+  `animation-timeline: scroll()` over `animation-range`, with `.axis("x" | "y")`, `.timeline(...)` and `.range(...)`. No
+  CSS fallback for a scrub, so a browser without scroll-driven animations draws no bar.
+  
+  `createScrollProgress` in `@cssints/headless`: the container's scroll as 0..1 with `progressbar` props (`aria-valuenow`),
+  one passive `scroll` listener and one `ResizeObserver`; 1 when there is nothing to scroll. It is the JS half of
+  `progress()` — one element takes both, since a running animation beats an inline style.
+- `shape()` and `border-shape` are in the grammar (webref's `border-shape`, and `shape()` in `<basic-shape>`, so
+  `clip-path`, `shape-outside` and `offset-path` take it too), with the commands checked by the build rather than the call
+  grammar, and a support warning for the two Chrome-only keys. `shapePath()` (`@cssints/css-grammar/shape`) turns the same
+  value into SVG path data, the fallback for the browsers without the property; the board's `line: "shape"` edge is one
+  string drawn both ways.
+- `createViewTransition`: the runner around `document.startViewTransition`. `run(update)` applies the update exactly once, starts a transition when the API exists and motion is not reduced, and resolves even when the platform skips it (a duplicate name, a supersede). `persist()` is the default case (`view-transition-name: match-element`, the browser names the element), `name(id)` is the morph pair with a deterministic prefixed name, and `state()` reports `supported` / `active`. Reduced motion and a browser without the API are one inert path. Its behaviour is `packages/apg-specs/specs/patterns/view-transition.qnt`; the DOM is checked against it by the differential walk.
+
 ## 0.36.0 (2026-11-11)
 
 ### Minor changes
