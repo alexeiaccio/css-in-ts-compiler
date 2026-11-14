@@ -193,7 +193,7 @@ The CSS of `appear()` (`lede` and `band` above):
   build error, derived from the kernel:
   `cssints: reveal: kernel enter sets animation, timeline-trigger, animation-trigger, trigger-scope, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `reveal.preset: unexpected "fade-out" in "fade-out",
-  expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
+expected fade-in | ...`, `appear.range: unexpected "sideways" in "entry 0% sideways"`.
 
 ## `progress()`
 
@@ -215,7 +215,7 @@ progress()
   inline style, so one element can carry both without drawing twice.
 - **Conflicts.** It sets the animation and the origin, so an `animation*` or `transform-origin` property in the same
   `cn()` is a build error: `cssints: reveal: kernel bar sets animation, animation-timeline, animation-range,
-  transform-origin (this style also sets animation-name)`.
+transform-origin (this style also sets animation-name)`.
 - **No `prefers-reduced-motion` branch.** The bar follows the reader's own scrolling: it never moves on its own, so
   there is no motion to reduce.
 

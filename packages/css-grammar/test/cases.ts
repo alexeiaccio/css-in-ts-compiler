@@ -20,9 +20,21 @@ export const cases = [
   // shape() (css-shapes-1 §3.1.1): the body is balanced tokens for the types, checked by the twin
   ["border-shape", "none", true],
   ["border-shape", "shape(from 0 0, line to 100% 100%)", true],
-  ["border-shape", "shape(from 0 0, curve to 50% 50% with 50% 50%, smooth to 100% 100%) padding-box", true],
-  ["border-shape", "shape(nonzero from left top, hline to center, vline to 50%, close) content-box", true],
-  ["border-shape", "shape(from 0 0, arc to 100% 100% of 10% 20% cw large rotate 30deg) border-box", true],
+  [
+    "border-shape",
+    "shape(from 0 0, curve to 50% 50% with 50% 50%, smooth to 100% 100%) padding-box",
+    true,
+  ],
+  [
+    "border-shape",
+    "shape(nonzero from left top, hline to center, vline to 50%, close) content-box",
+    true,
+  ],
+  [
+    "border-shape",
+    "shape(from 0 0, arc to 100% 100% of 10% 20% cw large rotate 30deg) border-box",
+    true,
+  ],
   ["shape-outside", "shape(from 0 0, line by 10px 20px)", true],
   ["clip-path", "shape(from 0 0, close)", true],
   ["opacity", "0.5", true],

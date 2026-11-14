@@ -1147,7 +1147,7 @@ export const link = css.cn(
   has to stand on its own.
 - **The fallback.** `shapePath` (`@cssints/css-grammar/shape`) turns the same value into SVG path data: `{ d, viewBox }`,
   `0 0 100 100` when no box is given (percentages against 100), or the box's pixels when one is. A `vector-effect:
-  non-scaling-stroke` keeps the line's width when the path is stretched (`preserveAspectRatio="none"`), and the path
+non-scaling-stroke` keeps the line's width when the path is stretched (`preserveAspectRatio="none"`), and the path
   scales exactly as the percentages of `shape()` do, so the two surfaces draw one curve. `apps/ui`'s board has a
   `line: "shape"` edge that is this pair, one shown by what `@supports (border-shape: …)` answers.
 - **What is not covered.** `anchor()`/`anchor-size()` positioning is what makes the article's connector follow two boxes
