@@ -297,7 +297,7 @@ export default function Playground() {
                   ref={(el) => queueMicrotask(() => el.focus())}
                   onInput={(e) => setNaming({ value: e.currentTarget.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") commit();
+                    if (e.key === "Enter" && !e.isComposing) commit();
                     else if (e.key === "Escape") setNaming(undefined);
                   }}
                   onBlur={() => setNaming(undefined)}
