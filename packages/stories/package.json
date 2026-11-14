@@ -1,6 +1,6 @@
 {
   "name": "@cssints/stories",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "description": "The CSF 3 loader of a cssints storybook: the modules an app globs in, the entries with Storybook's ids out, and the controls a story declares",
   "license": "MIT",
   "repository": {

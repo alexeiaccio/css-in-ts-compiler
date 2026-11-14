@@ -1,5 +1,22 @@
 # @cssints/headless
 
+## 0.37.0
+
+### Minor Changes
+
+- 21a9816: `progress()` in `@cssints/reveal`: a bar whose fill is the scroll's position — the element's own `scale`, scrubbed by
+  `animation-timeline: scroll()` over `animation-range`, with `.axis("x" | "y")`, `.timeline(...)` and `.range(...)`. No
+  CSS fallback for a scrub, so a browser without scroll-driven animations draws no bar.
+  
+  `createScrollProgress` in `@cssints/headless`: the container's scroll as 0..1 with `progressbar` props (`aria-valuenow`),
+  one passive `scroll` listener and one `ResizeObserver`; 1 when there is nothing to scroll. It is the JS half of
+  `progress()` — one element takes both, since a running animation beats an inline style.
+- c4480fd: `createViewTransition`: the runner around `document.startViewTransition`. `run(update)` applies the update exactly once, starts a transition when the API exists and motion is not reduced, and resolves even when the platform skips it (a duplicate name, a supersede). `persist()` is the default case (`view-transition-name: match-element`, the browser names the element), `name(id)` is the morph pair with a deterministic prefixed name, and `state()` reports `supported` / `active`. Reduced motion and a browser without the API are one inert path. Its behaviour is `packages/apg-specs/specs/patterns/view-transition.qnt`; the DOM is checked against it by the differential walk.
+
+### Patch Changes
+
+- @cssints/machine@0.37.0
+
 ## 0.36.0
 
 ### Patch Changes
