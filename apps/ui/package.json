@@ -20,6 +20,7 @@
     "@cssints/machine": "workspace:*",
     "@cssints/mise-en-mode": "workspace:*",
     "@cssints/reset": "workspace:*",
+    "@cssints/reveal": "workspace:*",
     "@cssints/stories": "workspace:*",
     "@solidjs/web": "2.0.0-rc.21",
     "cssints": "workspace:*",

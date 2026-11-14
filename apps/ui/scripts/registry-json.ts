@@ -113,6 +113,16 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`",
   },
   {
+    name: "progress",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    deps: ["@cssints/reveal"],
+    title: "Progress",
+    description:
+      "A reading-progress bar on one element: a scroll timeline scrubs the fill where the browser has one, and `createScrollProgress` keeps the `progressbar` value and drives the same fill where it has not",
+  },
+  {
     name: "diagram",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle

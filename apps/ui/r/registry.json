@@ -341,6 +341,48 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "progress",
+      "type": "registry:ui",
+      "title": "Progress",
+      "description": "A reading-progress bar on one element: a scroll timeline scrubs the fill where the browser has one, and `createScrollProgress` keeps the `progressbar` value and drives the same fill where it has not",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints", "@cssints/reveal"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "progress.tsx",
+          "target": "src/components/ui/progress.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "progress.browser.test.tsx",
+          "target": "src/components/ui/progress.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "diagram",
       "type": "registry:ui",
       "title": "Diagram",
