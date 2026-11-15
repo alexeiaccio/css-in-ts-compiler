@@ -2,6 +2,12 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.41.2 (2026-11-15)
+
+### Patch changes
+
+- `createMenu`'s polyfill path owns the block-axis movement and the roving tab stop: `ArrowUp` / `ArrowDown` / `Home` / `End` change the primitive's own focus by the transitions the spec models, and the row carrying `tabindex="0"` follows that state instead of the DOM focus. The provider used to move focus with `focus()` and report it back through `onFocus`, which a page that is not the focused one delivers a task late — late enough to rewind the menu to a row from an earlier step, and the differential walk saw it as a real divergence. The native engine is untouched: there the provider still owns both.
+
 ## 0.41.1 (2026-11-15)
 
 ### Patch changes

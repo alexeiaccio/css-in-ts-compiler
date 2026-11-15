@@ -1,6 +1,6 @@
 {
   "name": "@cssints/data",
-  "version": "0.41.1",
+  "version": "0.41.2",
   "description": "Statistics over runtime values, computed by the browser's layout for cssints: max, sum and count, printed by a counter",
   "license": "MIT",
   "repository": {
