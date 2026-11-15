@@ -338,6 +338,15 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A design system on a DOM plane: token cards with their value and their rule, the components that use them, a line per use, a token's value you type into and watch the whole map follow, and an outline that reads the plane in order",
   },
   {
+    name: "scale",
+    tested: true,
+    // the registration is a sheet, not a class: `@property` is global and per name, so a copy brings `scale.css` too
+    with: ["scale/scale.css", "theme.ts", "tokens.ts"],
+    title: "Scale",
+    description:
+      "A bar list whose scale is its own largest value, read out of layout: one `auto` grid column measures the widest mark, `round(100cqw / 1px)` in a registered `@property` carries it back as a number, and a counter prints it — no script computes the scale, and the numbers are text where container units are missing",
+  },
+  {
     name: "meter",
     tested: true,
     with: ["render.tsx", "theme.ts", "tokens.ts"],

@@ -1,0 +1,7 @@
+/* The typed number the whole component divides by. A registration is global and per name, while cssints's unit is a class, so
+   it is a sheet: `@property` turns the custom property into an <integer> at the place it is set, and a counter can print it. */
+@property --scale {
+  syntax: "<integer>";
+  inherits: true;
+  initial-value: 0;
+}

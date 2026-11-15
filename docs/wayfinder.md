@@ -5485,3 +5485,40 @@ drag inside the zone sticks while the pointer moves, Alt lands on the exact widt
 the keys never snap, with `snap` off doing nothing), the starter's conformance (the grip's `data-snap`, the sticking drag and
 the Alt bypass), `apps/ui` typecheck, and the whole headless suite against the spec walks, which run without `snap` and are
 unchanged.
+
+## Numbers out of layout: the scale a chart reads for itself (cssints-rl3n, 2026-11-15)
+
+Agustin Capeletto's _Computing with CSS Layout_ (noscript.ing/compute, November 2026) is the other direction from
+`@cssints/reactive`: not state written into the DOM, but a value derived from content with no state at all. The browser's
+layout algorithms are the calculator — an `auto` column _is_ a maximum, a hugging flex row a sum, `order` a sort — and a query
+container inside the column reads the answer back as a number (`round(100cqw / 1px)`), a registered `@property` turns it into
+an `<integer>` where it is set, and a counter prints it.
+
+Adopted as one starter, `apps/ui/src/registry/scale/`: a bar list whose scale is its own largest value. The values are laid
+out as zero-high marks sized `value` px in one `auto` grid column, the query container beside them stretches to that column
+(its content never widens it), `--scale: round(100cqw / 1px)` is read inside it, and every bar is
+`calc(var(--value) / var(--scale) * 100%)` of its track. A new largest value re-scales the chart with no arithmetic in the
+page, and a value's number is still the row's text.
+
+**What the engine already holds.** `containerType`, the `auto` grid, the division inside `calc()`, `counterReset("result
+var(--scale)")` and `before(content("counter(result)"))` are ordinary members and print checked CSS. The grammar was also right
+to refuse two things: `width("round(100cqw / 1px)")` and `width("calc(100cqw / 1px)")` are errors that say what they are —
+"`calc(100cqw / 1px)` is number, not `<length-percentage>`" — so the read has to land in a custom property, which is unchecked
+by design.
+
+**Two pieces stay raw, and the verdict is that they should.** The registration is a `scale.css` beside the component, the
+same shape the hardware skin uses for its own `@property`s, and the read is a plain inline `style`:
+
+- a user-facing `@property` member would be a **global, per-name** thing in an engine whose unit is a class — the conflict and
+  de-duplication rules it needs are the theme machinery `token.set()` already owns, and a name registered by two modules
+  differently is a build error nobody would see until the sheet was read;
+- the read is a **dynamic** value (the browser computes it), and the documented boundary is that a dynamic custom property is
+  an inline `style`, while `style()`/`token.set()` are build-time. A class cannot carry it, and it should not pretend to.
+
+What would change that: typed `attr()` would let the value come from markup without a custom property, and `@function` would
+name the read once; both are "limited availability" in the article's own table, so they are future work, not a member now.
+
+**Verified:** `apps/ui/src/registry/scale/scale.browser.test.tsx` (3 tests in Chromium 156: `--scale` computes to 420 and the
+counter to `result 420`, the four bars are 420/420, 310/420, 96/420 and 42/420 of their tracks, a fifth value of 900 moves the
+scale and every share, and the numbers, the caption and the `aria-hidden` decoration are read as text), the page's conformance
+suite and `bun run test:site` in Chrome, `apps/ui` typecheck, fmt and lint.

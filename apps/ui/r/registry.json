@@ -1658,6 +1658,53 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "scale",
+      "type": "registry:ui",
+      "title": "Scale",
+      "description": "A bar list whose scale is its own largest value, read out of layout: one `auto` grid column measures the widest mark, `round(100cqw / 1px)` in a registered `@property` carries it back as a number, and a counter prints it — no script computes the scale, and the numbers are text where container units are missing",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "scale.tsx",
+          "target": "src/components/ui/scale.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "scale.css",
+          "target": "src/components/ui/scale.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "scale.browser.test.tsx",
+          "target": "src/components/ui/scale.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "meter",
       "type": "registry:ui",
       "title": "Meter",
