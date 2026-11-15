@@ -2,6 +2,14 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.41.1 (2026-11-15)
+
+### Patch changes
+
+- The workspace's `typecheck` now checks the types it claims to. `scripts/typecheck.mjs` runs `effect-tsrs diagnostics` with `--type-check`, so ordinary TypeScript diagnostics are reported instead of only the Effect rules — no package passed the flag, so none of them was ever type-checked.
+  
+  The fallout was one interface and two assertions: `DialogModalOptions`' optional members accept `undefined` explicitly (a host forwarding a value now compiles under `exactOptionalPropertyTypes`), and two tooltip assertions compare `hidden` to `true` instead of handing `string | boolean` to `waitFor`.
+
 ## 0.41.0 (2026-11-15)
 
 ### Minor changes
