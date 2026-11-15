@@ -94,13 +94,12 @@ const packagesOnCssints = (root: string) =>
       return undefined;
     };
     const found = new Set<string>();
-    const seen = new Set<string>();
+    const seen = new Set<string>(); // a manifest file: each installed copy is walked once, however many names reach it
     const walk = (from: string, names: ReadonlyArray<string>) => {
       for (const name of names) {
-        if (seen.has(name)) continue;
-        seen.add(name);
         const at = manifestAt(from, name);
-        if (!at) continue;
+        if (!at || seen.has(at.file)) continue;
+        seen.add(at.file);
         const deps = { ...at.manifest.dependencies, ...at.manifest.peerDependencies };
         if (Object.hasOwn(deps, RUNTIME)) found.add(name);
         walk(at.file, Object.keys(deps));
