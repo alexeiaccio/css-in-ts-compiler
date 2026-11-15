@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 const bin = new URL("../node_modules/.bin/effect-tsrs", import.meta.url).pathname;
 const run = spawnSync(
   bin,
-  ["diagnostics", "--project", "tsconfig.json", ...process.argv.slice(2)],
+  ["diagnostics", "--project", "tsconfig.json", "--type-check", ...process.argv.slice(2)],
   {
     stdio: "inherit",
   },

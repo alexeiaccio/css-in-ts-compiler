@@ -7,20 +7,20 @@ export interface DialogModalOptions {
   /** Controlled: the host owns the open state and this is the only thing that changes it. */
   readonly value?: boolean | undefined;
   /** Uncontrolled starting state; ignored while `value` is set. */
-  readonly defaultOpen?: boolean;
-  readonly modal?: boolean;
-  readonly role?: DialogRole;
+  readonly defaultOpen?: boolean | undefined;
+  readonly modal?: boolean | undefined;
+  readonly role?: DialogRole | undefined;
   /** Id of the element naming the dialog. */
   readonly labelledby?: string | undefined;
   /** Id of the element describing the dialog (required for alertdialog). */
   readonly describedby?: string | undefined;
   /** A click on the backdrop / outside closes the dialog (`isDismissable`). */
-  readonly dismissable?: boolean;
+  readonly dismissable?: boolean | undefined;
   /** Escape cannot close the dialog (`isKeyboardDismissDisabled`). */
-  readonly keyboardDismissDisabled?: boolean;
-  readonly id?: string;
+  readonly keyboardDismissDisabled?: boolean | undefined;
+  readonly id?: string | undefined;
   /** A request to change the open state, called when the intent differs. */
-  readonly onOpenChange?: (open: boolean) => void;
+  readonly onOpenChange?: ((open: boolean) => void) | undefined;
 }
 
 export interface DialogTriggerProps {

@@ -74,6 +74,8 @@ export interface DrawerContentProps {
   readonly "data-part": string;
   readonly id: string;
   readonly role: "dialog";
+  /** The shell takes the focus when it holds nothing focusable — a `<div>` needs the attribute, the native `<dialog>` does not. */
+  readonly tabindex: -1;
   readonly "aria-modal": "true" | undefined;
   readonly "aria-labelledby": string | undefined;
   readonly hidden: boolean;
@@ -334,6 +336,7 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
       "data-part": "content",
       id: contentId,
       role: "dialog",
+      tabindex: -1,
       get "aria-modal"() {
         return isModal() && open() ? "true" : undefined;
       },
