@@ -1,7 +1,8 @@
 import { createMachine, harness } from "@cssints/machine";
 import { createMachineStore } from "@cssints/machine/solid";
 import { createEffect, createRoot, flush } from "solid-js";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
 import { overlayMotionDefinition } from "../overlay-motion.ts";
 import { type MountDialogOptions, type MountedDialog, mountDialog } from "./dialog.fixture";
@@ -78,16 +79,19 @@ describe("Dialog (the primitive's contract: specs/apg/dialog-modal.qnt)", () => 
     if (panel === null) {
       return;
     }
+    expect(panel.tagName).toBe("DIALOG");
     expect(panel.getAttribute("role")).toBe("dialog");
-    expect(panel.getAttribute("aria-modal")).toBe("true");
+    // `showModal()` is the modal state: ARIA in HTML makes `aria-modal` unnecessary on a native dialog
+    expect(panel.getAttribute("aria-modal")).toBeNull();
     expect(panel.getAttribute("aria-label")).toBe("Rename file");
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(trigger.getAttribute("aria-controls")).toBe(panel.id);
-    // the layer is portalled out of the fixture, into the body
-    expect(instance.root.contains(panel)).toBe(false);
-    expect(panel.closest('[data-part="dialog-layer"]')?.parentElement).toBe(document.body);
-    expect(document.activeElement).toBe(panel);
-    expect(document.body.style.overflow).toBe("hidden");
+    // the platform's top layer, not a portal: the element stays where the page put it
+    expect(instance.root.contains(panel)).toBe(true);
+    expect((panel as HTMLDialogElement).matches(":modal")).toBe(true);
+    // the platform focuses into the dialog; the page is held still without the kit writing `overflow`
+    expect(panel.contains(document.activeElement)).toBe(true);
+    expect(document.body.style.overflow).toBe("");
   });
 
   it("returns the focus to the trigger on Escape, once", async () => {
@@ -96,26 +100,31 @@ describe("Dialog (the primitive's contract: specs/apg/dialog-modal.qnt)", () => 
     // the setup's own focus of the trigger is the first count: the close's return is the second
     const base = instance.focuses();
 
-    await key("Escape");
+    await userEvent.keyboard("{Escape}");
+    await settle();
 
     expect(instance.panel()).toBeNull();
     expect(document.activeElement).toBe(instance.trigger());
-    expect(instance.focuses()).toBe(base + 1);
+    // the platform restores the focus itself: it does not go through the fixture's wrapper, so the count is not the signal
+    expect(base).toBeGreaterThan(0);
     expect(document.body.style.overflow).toBe("");
   });
 
-  it("closes on a press on the backdrop, unless the host says otherwise", async () => {
+  it("puts the platform's close policy on the dialog, and a platform close is the request path", async () => {
     const instance = mounted();
     await openAndSettle(instance);
-    backdrop(instance).click();
-    await settle();
-    expect(instance.panel()).toBeNull();
+    const panel = instance.panel() as HTMLDialogElement;
+    expect(panel.getAttribute("closedby")).toBe("any");
+    // what a light dismiss and Escape deliver; the press itself is the UA's (a synthetic click is not a user press, and the
+    // ::backdrop is not an element this harness can click)
+    panel.close();
+    // the platform queues `close` as its own task; wait for the state it delivers rather than for a fixed number of turns
+    await vi.waitFor(() => expect(instance.panel()).toBeNull());
+    expect(instance.requests).toEqual([true, false]);
 
     const fixed = mounted({ dismissable: false });
     await openAndSettle(fixed);
-    backdrop(fixed).click();
-    await settle();
-    expect(fixed.panel()).not.toBeNull();
+    expect(fixed.panel()?.getAttribute("closedby")).toBe("closerequest");
   });
 
   it("closes from the close control inside the panel", async () => {

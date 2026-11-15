@@ -10,6 +10,7 @@ import {
   createUniqueId,
   merge,
   omit,
+  onCleanup,
   Show,
   untrack,
   useContext,
@@ -101,6 +102,9 @@ const layerClass = css.cn(
 );
 
 const backdropClass = css.cn(css.position("absolute"), css.inset("0"), css.bg(t.color.scrim));
+
+// The platform's scrim: a `<dialog>`'s `::backdrop` is the wash, so the native layer carries this class on the element
+const nativeBackdrop = css.backdrop(css.bg(t.color.scrim));
 
 const panelClass = css.cn(
   frame().radius(t.radius.xl).padding(t.space._4).border("1px"),
@@ -211,24 +215,45 @@ export const DialogTrigger = (props: DialogTriggerProps): JSX.Element => {
 };
 
 /**
- * The panel and the wash under it. Nothing is in the DOM while the dialog is closed; focus moves into the panel when it
- * opens and back to whatever had it when it closes, and the page does not scroll while it is open. The layer is portalled
- * into `document.body` (or `Dialog`'s `mount`) so an ancestor's `transform`, `filter`, `contain` or `overflow` can neither
- * clip it nor become the containing block of its `position: fixed`.
+ * The panel and the wash under it. Nothing is in the DOM while the dialog is closed.
  *
- * With `animated` the layer stays mounted through `leaving` and is removed at `closed`; the panel keeps no `hidden`
+ * A plain dialog is a native `<dialog>`: `showModal()` owns the top layer, the `::backdrop` is the wash, and focus, Escape,
+ * the inert page and the scroll lock are the platform's. `animated` is the machine's: the layer is portalled into
+ * `document.body` (or `mount`), stays mounted through `leaving` and is removed at `closed`, the panel keeps no `hidden`
  * attribute while it leaves (a panel cut from the page mid-slide is the frame `Atomic` rules out) and its `data-state` is
- * the box's phase. Without it, nothing below the primitive changes.
+ * the box's phase. That path is also the fallback where `showModal` is missing.
  */
 export const DialogContent = (props: DialogContentProps): JSX.Element => {
   const { dialog, descriptionId, label, description, mount, animated, motion } =
     useContext(DialogContext);
-  let panel: HTMLDivElement | undefined;
+  // A non-animated dialog is the platform's: `<dialog>` + `showModal()` owns the top layer, the scrim, focus, Escape and
+  // the scroll lock. `animated` stays the machine's (its timeline, and the fallback where `showModal` is missing).
+  const native =
+    !animated &&
+    typeof HTMLDialogElement !== "undefined" &&
+    "showModal" in HTMLDialogElement.prototype;
+  let panel: HTMLElement | undefined;
+  let detach: (() => void) | undefined;
+  // stable, so Solid does not run a cleanup and a re-attach on every render (the primitive's `close` listener lives on the
+  // element and must survive a re-render)
+  const attach = (element: HTMLDialogElement): void => {
+    panel = element;
+    detach?.();
+    detach = dialog.attachDialog(element);
+  };
+  onCleanup(() => {
+    detach?.();
+    detach = undefined;
+  });
   let restore: HTMLElement | null = null;
   let scroll: string | undefined;
   createEffect(
     () => dialog.open(),
     (open) => {
+      if (native) {
+        // `showModal()` focuses into the dialog and the platform locks the page; nothing here to do
+        return;
+      }
       if (open) {
         restore = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         scroll = document.body.style.overflow;
@@ -244,6 +269,29 @@ export const DialogContent = (props: DialogContentProps): JSX.Element => {
       }
     },
   );
+  if (native) {
+    return (
+      <Show when={dialog.open()}>
+        <dialog
+          {...dialog.nativeProps}
+          aria-label={label()}
+          data-part="dialog"
+          class={[css.cn(panelClass, props.class), nativeBackdrop].join(" ")}
+          ref={attach}
+        >
+          <p
+            id={descriptionId}
+            data-part="dialog-description"
+            class={descriptionClass}
+            hidden={description() === undefined}
+          >
+            {description()}
+          </p>
+          {props.children}
+        </dialog>
+      </Show>
+    );
+  }
   return (
     <Show when={(animated && motion.visible()) || dialog.open()}>
       <Portal mount={mount()}>
