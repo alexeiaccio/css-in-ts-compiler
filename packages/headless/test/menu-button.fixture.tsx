@@ -70,6 +70,12 @@ export const mountMenuButton = (
     createEffect(
       () => [menu.focusLevel(), menu.focusIndex()] as const,
       ([level, index]) => {
+        // A walk forces the polyfill, where the primitive owns the block axis and
+        // the tab stop, so nothing here moves DOM focus; the native engine owns
+        // focus itself and the page mirrors it (`docs/hosts.md`).
+        if (provider !== "auto") {
+          return;
+        }
         let target: HTMLElement | undefined;
         if (level === 1) {
           target = root.querySelector<HTMLElement>('[data-part="trigger"]') ?? undefined;

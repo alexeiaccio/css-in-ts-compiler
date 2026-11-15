@@ -39,7 +39,13 @@ export const pressKey = (target: HTMLElement | undefined, key: string): void => 
 /**
  * Renders the checkable menu (`menu-checkable.qnt`): the `mixed` variant gives
  * item 1 a `menuitemcheckbox`, items 2-4 one `menuitemradio` group and item 5 a
- * plain `menuitem`. DOM focus is synced to the primitive's focused part.
+ * plain `menuitem`.
+ *
+ * The fixture renders and reports (`Mounted.focus`), it does not move DOM focus:
+ * a walk's steps are dispatched at the target the primitive itself names, and
+ * the driver moves DOM focus for the scenario steps that need it. A consumer's
+ * page syncs focus from `focusLevel`/`focusIndex`; that is the host's job, not
+ * the walk's (see the README's walk section).
  */
 export const mountCheckableMenu = (
   config: MenuCheckableConfig,
@@ -55,8 +61,6 @@ export const mountCheckableMenu = (
   const events = new Map<string, Json[]>();
   const [host, setHost] = createSignal(config.value);
   let api: Menu | undefined;
-  // True while the fixture applies focus itself: the primitive's onFocus must not
-  // write that programmatic focus back into its own state (bean 209r).
   let suppressing = false;
 
   const items = (): HTMLElement[] => [
@@ -91,12 +95,21 @@ export const mountCheckableMenu = (
           setHost(value);
         }
       },
+      // The fixture only writes focus on the native path (below); there its own
+      // write must not come back as the platform's word on where focus is.
       suppressFocusWrite: () => suppressing,
     });
     api = menu;
+    // On the native engine the platform owns DOM focus and the page syncs it
+    // from the primitive (`docs/hosts.md`); no differential walk runs there, so
+    // this is the one path that moves focus itself. A walk forces the polyfill,
+    // where the driver owns DOM focus (see `domDriver`).
     createEffect(
       () => [menu.focusLevel(), menu.focusIndex()] as const,
       ([level, index]) => {
+        if (provider !== "auto") {
+          return;
+        }
         const target =
           level === 2 ? items()[index] : root.querySelector<HTMLElement>('[data-part="trigger"]');
         if (target !== undefined && target !== null) {
@@ -199,7 +212,7 @@ export const mountMenubar = (
   const events = new Map<string, Json[]>();
   let api: ReturnType<typeof createMenubar> | undefined;
   // True while the fixture applies focus itself: the primitive's onFocus must not
-  // write that programmatic focus back into its own state (bean 209r).
+  // write that programmatic focus back into its own state.
   let suppressing = false;
 
   const labels = config.items;

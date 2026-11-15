@@ -28,7 +28,57 @@ Why: the machine adds Effect + a model evaluator to every consumer's bundle and 
 3. `src/<pattern>.ts` primitive; `test/<pattern>.fixture.tsx` renders parts with `data-part="<name>"` and returns a `Mounted`; `test/<pattern>.browser.test.tsx` runs scenarios + `differentialWalk` (copy `disclosure.browser.test.tsx`).
 4. Every scenario expectation the primitive deliberately misses goes into `DIVERGENCES` with a reason; the test requires it to still fail.
 
-Conventions: `visible` lists the hideable content parts only; boolean attributes read `"true"` when present; `key`/`type` on a target focuses it first; `data-*` attributes are library styling hooks (`Unsupported`); `aria-controls`-style references read back as part targets.
+Conventions: `visible` lists the hideable content parts only; boolean attributes read `"true"` when present; `key`/`type` on a target focuses it first, and a key whose target is the widget's owner (`menu`, `grid`) is pressed on the part the primitive says is focused; `data-*` attributes are library styling hooks (`Unsupported`); `aria-controls`-style references read back as part targets.
+
+## Walking the DOM: a fixture reports focus, it does not move it
+
+The walk's focus observation is `Mounted.focus()` — the part the primitive itself considers focused (`trigger`,
+`menuitem:2`, `null` for outside). `document.activeElement` is **not** the observation: a page that mirrors the
+primitive's state into DOM focus (which is what a host does, see `docs/hosts.md`) has the mirror's focus event delivered
+by the browser when it gets round to it, not when `focus()` returns.
+
+Why that matters, measured (bean `cssints-6fau`): the menu fixture mirrored `focusLevel`/`focusIndex` in a `createEffect`.
+The primitive's item props take `onFocus` as the platform's word on where focus is (`setFocusItem`), so the mirror fed
+back into the primitive. In a page that is not the focused one — a background test page, a window that just lost focus —
+the browser delivers that focus event one task (or several) later, and by then the primitive has moved on: the event
+rewinds it to the item the fixture focused a step or two ago. Instrumented over 4 800 walk steps, **795 of 795** adopted
+focus events were stale (the focused item was not the primitive's item). That is what a walk reports as a divergence the
+model never produced. It cannot be waited out (a longer settle widens the window), retried (the rewind repeats), or
+guarded (a suppression flag set around `focus()` is cleared before the browser dispatches).
+
+So the contract is:
+
+- the fixture renders the parts, spreads the props, applies programmatic input through `setProp`, and returns `Mounted`
+  with a `focus()` that maps the primitive's focus to a part name;
+- the fixture does **not** add a `createEffect` that mirrors state into DOM focus. If it needs one for a real-page path,
+  guard it on that path: `menu.fixture.tsx` keeps its sync for `provider: "auto"` (the native engine, where no walk runs)
+  and leaves the polyfill path, which the walks force, alone;
+- the driver moves DOM focus where a step needs it: a `key`/`type` step focuses its target, and when the target is the
+  widget's owner (`menu`, `grid`) it focuses the part the primitive reports instead, because that is where a user's focus
+  would be and where the platform's own key handling looks.
+
+## Who moves what
+
+A walk's inputs are one step at a time, and each step must be the only input. Three things enforce that:
+
+- **The primitive owns the state transition.** On the polyfill, `ArrowUp`/`ArrowDown`/`Home`/`End` change
+  `focusLevel`/`focusIndex` in the primitive's own key handler (`menu.ts`, by the rule the spec models: wrap, ends), and
+  `preventDefault` keeps the provider from moving a second time. `onFocus` stays the platform's word for focus that
+  arrives **from outside** the widget — Tab into it, a click — which is what it is for. The native engine is unchanged:
+  there the platform owns the block axis and `onFocus` is how its moves arrive.
+- **The primitive owns the tab stop.** It places `tabindex="0"` on the row it says is focused (and `focusgroupstart`,
+  which both providers read) after every settle, so a probe of the roving stop reads the state and not whatever the DOM's
+  focus last was. The native engine writes no `tabindex` at all — its focus controller owns the stop — so there the
+  author's markup stands.
+- **The driver owns the pointer.** The pointer sits at a page coordinate no test controls, and a list that opens under it
+  gets a `mouseover`/`mouseenter` nobody asked for — a menu that focuses on hover jumps to that row, a toast's countdown
+  pauses and never resumes. The driver stops pointer events at the widget unless the step _is_ a pointer step, and
+  `test/setup.browser.ts` parks the pointer on a fixed 1 px corner element between tests.
+
+Measured (bean `cssints-6fau`): before this, the checkable fixture adopted **795 stale focus events in 4 800 walk steps**
+(the DOM focus was almost never where the primitive was, and every adopted event pulled the primitive to it). After,
+the walks take no focus input at all, and `packages/headless`'s suite went from about one failing run in three to five
+consecutive green runs, including two runs under doubled load.
 
 ## Part names
 

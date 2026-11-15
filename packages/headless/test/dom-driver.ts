@@ -16,8 +16,9 @@ export interface Mounted {
   readonly value?: () => Json;
   /**
    * The part the primitive itself considers focused (`trigger`, `tab:1`), or
-   * `null`. Preferred over `document.activeElement` so the walk does not race the
-   * fixtures' deferred DOM focus (bean 209r).
+   * `null` for "outside the widget". The walk's focus observation: the DOM lags
+   * the state that produced it, the primitive does not (see "Walking the DOM" in
+   * the README).
    */
   readonly focus?: () => string | null;
   readonly dispose: () => void;
@@ -39,11 +40,11 @@ const REFERENCE_ATTRS = new Set([
 const NAMED_KEYS = new Set(["Enter", "Tab", "Escape", "Backspace", "Delete", "Home", "End"]);
 
 // Solid renders on its own schedule, but `flush()` applies the queued signal work
-// synchronously; the fixtures then move DOM focus in a `setTimeout(0)` macrotask
-// (kept for user-event's Enter semantics). Waiting one macrotask lets both land
-// before the walk reads, without a frame — a frame also lets the browser's focus
-// fixup run and perturb the observation (bean 209r). The walk reads focus from
-// the fixture's primitive state when it offers one (`Mounted.focus`).
+// synchronously. One macrotask then lets a platform reaction (the focusgroup's
+// focus move, user-event's own bookkeeping) land before the walk reads, without a
+// frame — a frame also lets the browser's focus fixup run. Nothing waits on the
+// DOM: the walk reads focus from the primitive (`Mounted.focus`) and the driver
+// writes it, so a late frame cannot change what the walk sees.
 const settle = (): Promise<void> => {
   flush();
   return new Promise((resolve) => {
@@ -137,12 +138,60 @@ export const domDriver = (mounted: Mounted, options: DomDriverOptions): Driver =
     await userEvent.click(element, { force: true });
   };
 
+  const partElement = (part: string): HTMLElement | undefined => {
+    const [name = "", index = "0"] = part.split(":");
+    return partsOf(name)[Number(index)];
+  };
+
+  /**
+   * Where a `key` step's key is pressed. The step names its target; when that
+   * target is the widget's owner (a menu, a grid) the key belongs to the part the
+   * primitive says is focused, not to the container — a user's focus is on the
+   * item, and the platform's key handling reads the item. The driver moves that
+   * focus itself: a fixture reports focus (`Mounted.focus`), it does not write it
+   * (see the README's walk section).
+   */
+  const keyTarget = (target: string): HTMLElement => {
+    const element = elementOf(target);
+    const focusedPart = mounted.focus?.();
+    if (focusedPart !== null && focusedPart !== undefined) {
+      const focused = partElement(focusedPart);
+      if (focused !== undefined && focused !== element && element.contains(focused)) {
+        return focused;
+      }
+    }
+    return element;
+  };
+
   // Half presses this driver dispatched a keydown for, so a stray `phase: "up"`
   // stays inert (the spec's key_up only fires on an armed press).
   const halfHeld = new Set<string>();
 
+  // A programmatic step is not a pointer input: the pointer sits at a page
+  // coordinate the walk does not control, and when a step opens a list under it
+  // the browser dispatches `mouseover`/`mouseenter` on the row that appeared — a
+  // hover the model never asked for (and a menu that focuses on hover moves the
+  // primitive to that row). Pointer events are stopped at the widget while the
+  // driver is not performing a pointer step.
+  let pointerInput = false;
+  const guard = (event: Event): void => {
+    if (!pointerInput) {
+      event.stopPropagation();
+    }
+  };
+  for (const name of ["mouseover", "mouseenter", "pointerover", "pointerenter"] as const) {
+    root.addEventListener(name, guard, true);
+  }
+
   return {
     perform: async (step: ActionStep) => {
+      pointerInput =
+        step.event === "click" ||
+        step.event === "hover" ||
+        step.event === "unhover" ||
+        step.event === "pointerdown" ||
+        step.event === "pointerup" ||
+        step.event === "pointercancel";
       switch (step.event) {
         case "focus":
           elementOf(step.target ?? "").focus();
@@ -194,7 +243,7 @@ export const domDriver = (mounted: Mounted, options: DomDriverOptions): Driver =
           break;
         case "key": {
           if (step.phase === "down") {
-            const element = elementOf(step.target ?? "");
+            const element = keyTarget(step.target ?? "");
             if (document.activeElement !== element) {
               element.focus();
             }
@@ -224,7 +273,7 @@ export const domDriver = (mounted: Mounted, options: DomDriverOptions): Driver =
             );
             break;
           }
-          const element = elementOf(step.target ?? "");
+          const element = keyTarget(step.target ?? "");
           if (document.activeElement !== element) {
             element.focus();
           }
@@ -253,12 +302,13 @@ export const domDriver = (mounted: Mounted, options: DomDriverOptions): Driver =
           throw new Unsupported(`event ${step.event}`);
       }
       await settle();
+      pointerInput = false;
     },
     observer: {
       focus: () => {
-        // Prefer the primitive's own focus: the fixtures sync DOM focus in a
-        // deferred macrotask (kept for user-event's Enter semantics), so reading
-        // `document.activeElement` here races that (bean 209r).
+        // The primitive's own focus is the observation: a fixture that mirrors
+        // its state into DOM focus has that mirror's focus event land later, so
+        // `document.activeElement` is the one thing that lags under load.
         if (mounted.focus !== undefined) {
           return mounted.focus();
         }

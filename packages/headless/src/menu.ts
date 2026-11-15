@@ -428,9 +428,11 @@ export const createMenu = (options: MenuOptions): Menu => {
 
   // The platform's half: the list is a `menu` segment while its popup is shown,
   // and no segment at all while it is hidden (a `hidden` list has no tab stop,
-  // and the platform observes no visibility). The provider owns the item
-  // `tabindex` and the movement along the block axis; the primitive collects the
-  // rows itself, because a consumer may wrap them.
+  // and the platform observes no visibility). On the native engine the provider
+  // owns the item `tabindex` and the movement along the block axis; on the
+  // polyfill the primitive owns both (see `keyDownEvent` and `placeTabStop`), and
+  // the provider keeps the segment's memory. The primitive collects the rows
+  // itself, because a consumer may wrap them.
   const definition = (shown: boolean): FocusGroupDefinition =>
     shown ? { behavior: "menu", axis: "block", wrap: true, memory: true } : { behavior: "none" };
   const elements = new Map<number, HTMLElement>();
@@ -680,12 +682,30 @@ export const createMenu = (options: MenuOptions): Menu => {
 
   /**
    * The list's own keydown, registered on the owner before the provider's
-   * listener: the platform moves on the block axis (arrows, Home / End), so only
-   * the keys the library owns are read here — and only those are `preventDefault`ed.
-   * Letters feed the typeahead buffer, which the platform does not have.
+   * listener. On the native engine the platform moves on the block axis (arrows,
+   * Home / End) and the primitive learns the result through `onFocus`, so only
+   * the keys the library owns are read here. On the polyfill the primitive owns
+   * that axis instead: the provider's move is a `focus()` call whose event a
+   * background page delivers late, and a late move is a move the walk cannot
+   * trust. So the transition happens here, by the same rule the spec models
+   * (`arrow_down`/`arrow_up` wrap, `Home`/`End` to the ends), and
+   * `preventDefault` keeps the provider from moving a second time (it bails on a
+   * prevented keydown). Letters feed the typeahead buffer, which neither
+   * provider has.
    */
   const keyDownEvent = (event: KeyboardEvent): void => {
     const key = event.key;
+    if (options.provider !== "auto" && level() === 2 && isPlatformKey("block", key)) {
+      event.preventDefault();
+      if (key === "Home") {
+        focusItem(0);
+      } else if (key === "End") {
+        focusItem(count - 1);
+      } else {
+        focusItem((focusedIndex() + (key === "ArrowDown" ? 1 : count - 1)) % count);
+      }
+      return;
+    }
     if (isPlatformKey("block", key)) {
       return;
     }
@@ -729,6 +749,27 @@ export const createMenu = (options: MenuOptions): Menu => {
     shownGroup = isOpen();
   };
 
+  /**
+   * The roving tab stop, placed from the state: exactly one row has
+   * `tabindex="0"`, and it is the row the model calls focused. The polyfill
+   * decorates rows from DOM focus, which is the one thing that lags behind the
+   * state (a late focus event rewinds it), and it decorates on every `update()`,
+   * so the stop is placed after the update, not before it. The native engine
+   * writes no `tabindex` at all — its focus controller owns the stop — so there
+   * the author's markup stands.
+   */
+  const placeTabStop = (open: boolean, current: number): void => {
+    if (options.provider === "auto") {
+      return;
+    }
+    for (const [i, element] of elements) {
+      const stop = open && i === current ? 0 : -1;
+      if (element.tabIndex !== stop) {
+        element.tabIndex = stop;
+      }
+    }
+  };
+
   onSettled(() => {
     // the owner's ref may run before its item refs: collect once more after the render.
     // `shownGroup` (not `isOpen()`) is read here: `onSettled` is not a scope a host's
@@ -736,7 +777,21 @@ export const createMenu = (options: MenuOptions): Menu => {
     if (group !== undefined && shownGroup !== undefined) {
       group.update(definition(shownGroup));
     }
+    // the provider decorated the rows from the DOM it found; the state is the truth
+    placeTabStop(shownGroup === true, index);
   });
+
+  createEffect(
+    () => {
+      // `level()` and `focusedIndex()` are plain locals behind `sync()`; the
+      // version signal is what every move bumps, so read it to be re-run
+      version();
+      return [level(), focusedIndex()] as const;
+    },
+    ([currentLevel, current]) => {
+      placeTabStop(currentLevel === 2, current);
+    },
+  );
 
   onCleanup(() => {
     owner?.removeEventListener("keydown", keyDownEvent);
@@ -855,6 +910,14 @@ export const createMenu = (options: MenuOptions): Menu => {
       },
       get "aria-disabled"() {
         return isDisabled(i) ? "true" : undefined;
+      },
+      /**
+       * The provider's entry point: the row the primitive says is focused, so a
+       * re-decoration lands the stop where the state is.
+       */
+      get focusgroupstart() {
+        version();
+        return isOpen() && focusedIndex() === i ? "" : undefined;
       },
       ref: (element: HTMLElement) => {
         elements.set(i, element);
