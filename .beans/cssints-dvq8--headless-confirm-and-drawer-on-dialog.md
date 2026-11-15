@@ -1,11 +1,11 @@
 ---
 # cssints-dvq8
 title: 'headless: confirm and drawer on <dialog>'
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-11-14T10:42:10Z
-updated_at: 2026-11-15T13:15:08Z
+updated_at: 2026-11-15T13:27:12Z
 parent: cssints-oeb0
 ---
 
@@ -45,3 +45,12 @@ for a non-modal rail (which keeps the shell's Escape and outside press, since a 
 
 Remaining: `confirm` still owns its shell (`overlay-shell`): its promise and view shape are the host's, and moving it to
 `<dialog>` is a design of its own; the kit's dialog/drawer items can render `<dialog>` now that the primitives accept it.
+
+
+
+**Confirm, done:** createConfirm exposes the dialog modal nativeProps and attachDialog, so a host renders a dialog with
+role=alertdialog and the platform owns the modal layer, the focus containment and return, Escape, the light dismiss and the
+scroll lock. The primitive keeps the promise, the Cancel-first focus, the request/answer split and the invoker focus on
+settle; the shell lock, stack and keydown return early when the element is a native dialog, and a platform close (Escape,
+a light dismiss, close()) answers false. Five browser tests on a real dialog; the existing confirm suite (20) is
+untouched. The three primitives are on dialog now; the kit items rendering it is a visual step of its own.

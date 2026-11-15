@@ -218,6 +218,8 @@ should render the element and skip them.
   cycle and scroll lock are the platform's there) are the next step. `createDrawer` has the same path: `nativeProps`
   (`closedby` from a modal drawer's `dismissable`, `none` for a non-modal rail) and `attachDialog`, which is `showModal()`
   for a modal drawer, `show()` for a non-modal one (which keeps the shell's Escape and outside press, since a non-modal
-  `dialog` has neither), and `close()`; `confirm` still owns its own shell (its promise and view shape are the host's).
+  `dialog` has neither), and `close()`. `createConfirm` passes the dialog modal's `nativeProps`/`attachDialog` through and
+  keeps only the Cancel-first focus and the promise: the platform closes with Escape, a light dismiss or `close()`, and
+  each of those answers `false`.
 - **State**: which tab is selected, which rows are checked, the open set of a tree, the value a slider holds — the
   platform has no element to hold it, so the primitives do.

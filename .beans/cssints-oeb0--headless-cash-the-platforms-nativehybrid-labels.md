@@ -1,11 +1,11 @@
 ---
 # cssints-oeb0
 title: 'headless: cash the platform''s native/hybrid labels'
-status: todo
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-14T10:41:57Z
-updated_at: 2026-11-15T13:15:08Z
+updated_at: 2026-11-15T13:27:22Z
 ---
 
 ## What
@@ -55,3 +55,11 @@ platform; the epic's remaining item is `cssints-dvq8`'s confirm/drawer (`overlay
 trap and lock) and the kit's dialog/drawer items rendering `<dialog>` with the platform's backdrop and `@starting-style`
 motion instead of the JS overlay. Everything else the assessment listed is done: recipes and stories, the popover, the
 menu and the menubar in the top layer, the dialog modal and the drawer on `<dialog>`.
+
+
+
+**The primitives are done.** confirm is the last one on the dialog element (25 tests with the existing suite), so every
+callback the assessment marked native/hybrid now has its platform host: recipes and stories, popover, menu and menubar in
+the top layer, the dialog modal, the drawer and the confirm. The epic closes here; the kit dialog and drawer rendering the
+dialog element (with ::backdrop and @starting-style instead of the JS overlay) is the follow-up bean above, a visual step
+rather than a primitive one.

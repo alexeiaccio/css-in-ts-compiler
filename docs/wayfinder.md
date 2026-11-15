@@ -5637,3 +5637,12 @@ lock to the platform (the shell's effects return early when the element is a mod
 shell's Escape and outside press, because a non-modal `dialog` has neither, and takes only the top layer. Five browser
 tests on a real `<dialog>`; the existing drawer suite (14) is untouched. `confirm` still owns its shell: its promise and
 view shape are the host's, and changing it is a different design.
+
+**And the confirm:** `createConfirm` passes the dialog modal's `nativeProps`/`attachDialog` through, so a host renders
+`<dialog role="alertdialog">` and gets the platform's modal layer, focus containment and return, Escape, light dismiss and
+scroll lock. The primitive keeps what is its own: the promise, the Cancel-first focus (the least destructive answer), the
+request/answer split and the invoker focus on settle — and the shell's lock, stack and keydown return early when the
+element is a native dialog. A platform close (`close()`, Escape, a light dismiss) is `false` through the dialog's
+`onClose`, the same path a Cancel click takes. Five browser tests on a real `<dialog>`; the existing confirm suite (20) is
+untouched. That closes the assessment's last primitive; the kit's dialog and drawer items rendering `<dialog>` is a
+separate, visual step (their motion machine is the JS half).

@@ -2,6 +2,7 @@ import { type Accessor, createEffect, createSignal, createUniqueId, onCleanup } 
 import {
   type DialogBackdropProps,
   type DialogContentProps,
+  type DialogNativeProps,
   type DialogTriggerProps,
   createDialogModal,
 } from "./dialog-modal";
@@ -61,6 +62,10 @@ export interface Confirm {
   readonly request: Accessor<ConfirmView | undefined>;
   readonly triggerProps: ConfirmTriggerProps;
   readonly dialogProps: DialogContentProps;
+  /** For a native `<dialog>` host; `dialogProps` + `backdropProps` are the element-free shell. */
+  readonly nativeProps: DialogNativeProps;
+  /** Wires the native `<dialog>`; the confirm keeps the focus on Cancel and the platform owns the rest. */
+  readonly attachDialog: (dialog: HTMLDialogElement) => () => void;
   readonly backdropProps: DialogBackdropProps;
   readonly titleProps: ConfirmTextProps;
   /** Render this element always: `aria-describedby` points at it. Hidden when there is no description. */
@@ -143,6 +148,18 @@ export const createConfirm = (options: ConfirmOptions = {}): Confirm => {
     },
   });
 
+  // The native host: `attachDialog` hands the element to the dialog modal (showModal/close), and the shell below keeps only
+  // the Cancel focus — the platform owns the lock, the overlay stack, the Tab cycle and Escape.
+  const [nativeElement, setNativeElement] = createSignal<HTMLDialogElement | undefined>(undefined);
+  const attachDialog = (dialogElement: HTMLDialogElement): (() => void) => {
+    const detach = dialog.attachDialog(dialogElement);
+    setNativeElement(dialogElement);
+    return () => {
+      detach();
+      setNativeElement(undefined);
+    };
+  };
+
   const self = Symbol(base);
   const onDocumentKeyDown = (event: KeyboardEvent): void => {
     if (!isTopOverlay(self)) {
@@ -168,6 +185,9 @@ export const createConfirm = (options: ConfirmOptions = {}): Confirm => {
         return;
       }
       document.getElementById(cancelId)?.focus();
+      if (nativeElement() !== undefined) {
+        return;
+      }
       const unlock = lockScroll();
       const release = claimOverlay(self);
       document.addEventListener("keydown", onDocumentKeyDown, true);
@@ -216,6 +236,8 @@ export const createConfirm = (options: ConfirmOptions = {}): Confirm => {
       "aria-controls": dialog.triggerProps["aria-controls"],
     },
     dialogProps: dialog.dialogProps,
+    nativeProps: dialog.nativeProps,
+    attachDialog,
     backdropProps: dialog.backdropProps,
     titleProps: { id: titleId },
     descriptionProps: {
