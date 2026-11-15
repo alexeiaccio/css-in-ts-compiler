@@ -189,8 +189,11 @@ value, `input.showPicker()` opens the platform picker; a range or a multi-month 
 Toolbar, tabs, radio, listbox, menu and menubar get the single tab stop, the arrows, Home/End and the wrap from the
 `focusgroup` attribute (Chrome/Edge 150; Firefox and Safari not yet), with `@microsoft/focusgroup-polyfill` elsewhere.
 `packages/headless/src/focusgroup.ts` is the adapter that sets the attribute where it exists and drives the polyfill's
-`FocusGroup` otherwise; the primitives keep selection, activation, typeahead and the ARIA state. The V2 grid runtime
-(`focusgrid.ts`) is our own because the platform's `grid` is unpublished upstream.
+`FocusGroup` otherwise; the primitives keep selection, activation, typeahead and the ARIA state. Where the platform is
+the one moving (the native engine), the primitive follows its moves through `onFocus`; where the adapter is a polyfill,
+`createMenu` reads the block axis itself and places the roving `tabindex` from its own state, because a programmatic
+`focus()` in a page that is not the focused one has its focus event delivered late (bean `cssints-6fau`). The V2 grid
+runtime (`focusgrid.ts`) is our own because the platform's `grid` is unpublished upstream.
 
 ## Static patterns: native markup
 

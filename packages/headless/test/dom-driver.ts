@@ -167,8 +167,31 @@ export const domDriver = (mounted: Mounted, options: DomDriverOptions): Driver =
   // stays inert (the spec's key_up only fires on an armed press).
   const halfHeld = new Set<string>();
 
+  // A programmatic step is not a pointer input: the pointer sits at a page
+  // coordinate the walk does not control, and when a step opens a list under it
+  // the browser dispatches `mouseover`/`mouseenter` on the row that appeared — a
+  // hover the model never asked for (and a menu that focuses on hover moves the
+  // primitive to that row). Pointer events are stopped at the widget while the
+  // driver is not performing a pointer step.
+  let pointerInput = false;
+  const guard = (event: Event): void => {
+    if (!pointerInput) {
+      event.stopPropagation();
+    }
+  };
+  for (const name of ["mouseover", "mouseenter", "pointerover", "pointerenter"] as const) {
+    root.addEventListener(name, guard, true);
+  }
+
   return {
     perform: async (step: ActionStep) => {
+      pointerInput =
+        step.event === "click" ||
+        step.event === "hover" ||
+        step.event === "unhover" ||
+        step.event === "pointerdown" ||
+        step.event === "pointerup" ||
+        step.event === "pointercancel";
       switch (step.event) {
         case "focus":
           elementOf(step.target ?? "").focus();
@@ -279,6 +302,7 @@ export const domDriver = (mounted: Mounted, options: DomDriverOptions): Driver =
           throw new Unsupported(`event ${step.event}`);
       }
       await settle();
+      pointerInput = false;
     },
     observer: {
       focus: () => {

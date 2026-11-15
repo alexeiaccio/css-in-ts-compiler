@@ -14,6 +14,7 @@ on:
     paths:
       - apps/ui/**
       - templates/**
+      - packages/headless/package.json
       - packages/headless/src/**
       - packages/headless/test/**
       - packages/headless/vite.config.ts
@@ -30,6 +31,7 @@ on:
     paths:
       - apps/ui/**
       - templates/**
+      - packages/headless/package.json
       - packages/headless/src/**
       - packages/headless/test/**
       - packages/headless/vite.config.ts
@@ -66,12 +68,16 @@ jobs:
       # root has no local binary and would fetch npm's latest, whose browser revision the pinned runner cannot find
       - run: bunx playwright install --with-deps chromium
         working-directory: apps/ui
-      # the primitive's request/commit guard: one gesture is one intent, but a host that answers inside the gesture
-      # moves the value, and the same request after it is the user's again. No other workflow runs
-      # packages/headless's suite, and the native port's copy of this test goes with native/.
-      - name: The headless primitives' request/commit guard
+      # The whole package, not one file: 77 browser test files — the differential walks against the Quint specs, the
+      # ported scenario replays and the DOM oracles. This is the only workflow that runs any of them, so a primitive
+      # that regresses otherwise lands green (a drawer lost its panel's tabindex that way). Chromium is the one
+      # installed above: `apps/ui` pins the same `playwright` the package does, so it is the same revision.
+      - name: The headless primitives' suite
         working-directory: packages/headless
-        run: bunx vp test run test/controllable.test.ts
+        # ~2 min on a quiet machine and ~2 on a loaded one; a walk is bounded by steps, not wall time, and
+        # `vite.config.ts` already raises a single test to 60 s.
+        timeout-minutes: 12
+        run: bun run test
       - name: The compiled theme is current
         working-directory: apps/ui
         run: bun run theme:check

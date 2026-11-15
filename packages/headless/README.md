@@ -57,21 +57,28 @@ So the contract is:
   widget's owner (`menu`, `grid`) it focuses the part the primitive reports instead, because that is where a user's focus
   would be and where the platform's own key handling looks.
 
-## What is still timing-coupled (the open part)
+## Who moves what
 
-Two things remain, both measured and neither closed by the fixture change above:
+A walk's inputs are one step at a time, and each step must be the only input. Three things enforce that:
 
-- **The provider's own moves are programmatic focus.** On the polyfill, `ArrowUp`/`ArrowDown`/`Home`/`End` are the
-  platform's, and the polyfill moves focus with `focus()`; the primitive follows through `onFocus`. Suppress that write
-  and the walk fails every configuration at the first arrow (measured), because the primitive has no other source for the
-  move. So the walk still depends on focus-event delivery for those keys.
-- **A probe of a DOM-written decoration.** `menu-button.qnt`'s walk reads the rows' `tabindex`, which the polyfill writes
-  on the item that has focus; that fixture therefore keeps its mirror.
+- **The primitive owns the state transition.** On the polyfill, `ArrowUp`/`ArrowDown`/`Home`/`End` change
+  `focusLevel`/`focusIndex` in the primitive's own key handler (`menu.ts`, by the rule the spec models: wrap, ends), and
+  `preventDefault` keeps the provider from moving a second time. `onFocus` stays the platform's word for focus that
+  arrives **from outside** the widget — Tab into it, a click — which is what it is for. The native engine is unchanged:
+  there the platform owns the block axis and `onFocus` is how its moves arrive.
+- **The primitive owns the tab stop.** It places `tabindex="0"` on the row it says is focused (and `focusgroupstart`,
+  which both providers read) after every settle, so a probe of the roving stop reads the state and not whatever the DOM's
+  focus last was. The native engine writes no `tabindex` at all — its focus controller owns the stop — so there the
+  author's markup stands.
+- **The driver owns the pointer.** The pointer sits at a page coordinate no test controls, and a list that opens under it
+  gets a `mouseover`/`mouseenter` nobody asked for — a menu that focuses on hover jumps to that row, a toast's countdown
+  pauses and never resumes. The driver stops pointer events at the widget unless the step _is_ a pointer step, and
+  `test/setup.browser.ts` parks the pointer on a fixed 1 px corner element between tests.
 
-The durable fix for the first is to let the primitive own the block-axis movement on the polyfill path (it already owns
-the activation, typeahead and Escape keys), so no focus event is an input to the state; the second follows once the
-provider places its tab stop from state (`focusgroupstart`, which both providers read) instead of from focus. Both are
-primitive changes, not fixture ones — see the follow-up on `cssints-6fau`.
+Measured (bean `cssints-6fau`): before this, the checkable fixture adopted **795 stale focus events in 4 800 walk steps**
+(the DOM focus was almost never where the primitive was, and every adopted event pulled the primitive to it). After,
+the walks take no focus input at all, and `packages/headless`'s suite went from about one failing run in three to five
+consecutive green runs, including two runs under doubled load.
 
 ## Part names
 

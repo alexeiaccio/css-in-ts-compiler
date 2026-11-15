@@ -1,7 +1,7 @@
 ---
 # cssints-ovvz
 title: CI runs one headless test file out of 77, and the other 1426 tests hide real reds
-status: todo
+status: completed
 type: bug
 priority: high
 created_at: 2026-11-15T15:59:21Z
@@ -24,32 +24,23 @@ The comment there says it is the one suite nobody else runs — true, and that i
 
 **Fix**: run the package's suite in `ui.yml` (it is the same browser job, ~2 minutes), or in a workflow of its own on `packages/headless/**`. It also needs the flake fixed first — see the differential-walk bean — because a 2-minute job that fails one run in three is worse than none.
 
-## Status: the patch is written, the landing is held
+## Done
 
-The step is ready (`packages/headless`'s suite, `timeout-minutes: 12`, `packages/headless/package.json` added to both
-`paths` lists, ~110-125 s measured on this machine), but it does not land yet: the walk it would gate still fails about
-one full run in three (see `cssints-6fau`, "Measured"), and this bean's own rule is that such a gate is worse than none.
-
-Apply this when the walk is deterministic (the two primitive-side steps in `cssints-6fau`):
+`.github/workflows/ui.yml` now runs the package's suite in place of the single-file step:
 
 ```yaml
-      # The whole package, not one file: 77 browser test files — the differential walks against the Quint specs, the
-      # ported scenario replays and the DOM oracles. This is the only workflow that runs any of them, so a primitive
-      # that regresses otherwise lands green (a drawer lost its panel's tabindex that way). Chromium is the one
-      # installed above: `apps/ui` pins the same `playwright` the package does, so it is the same revision.
       - name: The headless primitives' suite
         working-directory: packages/headless
-        # ~2.5 min on a quiet runner; a walk is bounded by steps, not wall time, and `vite.config.ts` already
-        # raises a single test to 60 s.
         timeout-minutes: 12
         run: bun run test
 ```
 
-and, in both `paths` lists:
+with `packages/headless/package.json` added to both `paths` lists (a new dependency is a reason to run it). The job
+already installs Chromium (`bunx playwright install --with-deps chromium` in `apps/ui`, the same pinned `playwright`
+1.64.1 the package uses) and already builds the packages first.
 
-```yaml
-      - packages/headless/package.json
-```
+**Cost:** 130-131 s wall clock on this machine (77 files, 1427 passed, 1234 skipped fixtures), and green under doubled
+load. `timeout-minutes: 12` leaves room
+for a loaded runner without hiding a hung walk (`vite.config.ts` already caps a single test at 60 s).
 
-The workflow already installs Chromium (`bunx playwright install --with-deps chromium` in `apps/ui`, the same pinned
-`playwright` 1.64.1 the package uses), and already builds the packages first.
+It lands only because `cssints-6fau` closed: five consecutive green runs of the suite, plus two under artificial load.

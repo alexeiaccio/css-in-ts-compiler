@@ -18,6 +18,10 @@ export default defineConfig({
   ],
   test: {
     include: ["test/**/*.browser.test.tsx", "test/**/*.test.ts"],
+    // The pointer is parked between tests: a page's pointer is shared by every
+    // test and every page of the run, and a widget that appears under it gets a
+    // hover nobody asked for (a toast countdown that never resumes). See the file.
+    setupFiles: ["test/setup.browser.ts"],
     // The differential walks are bounded by `runs` x `steps`, not by wall time, and one walk of the treeview's seven
     // nodes costs seconds on a quiet machine: beside other suites (a dozen worktrees of this repo run theirs in
     // parallel) the vitest default of 15 s is the load average talking, not a hung primitive. A genuinely stuck walk
