@@ -47,7 +47,10 @@ export interface DialogProps {
   readonly reducedMotion?: boolean;
   /** Every animation the layer starts, once, after `animate()`: a test pauses it and steps the timeline. */
   readonly onAnimate?: (animation: Animation) => void;
-  /** The element the layer is portalled into (default `document.body`), for a host that has its own modal root. */
+  /**
+   * The element the **animated** layer is portalled into (default `document.body`). A plain dialog is the platform's
+   * `<dialog>`: `showModal()` puts it in the top layer, which is the viewport, so the prop is never read on that path.
+   */
   readonly mount?: Element;
   readonly id?: string;
   readonly children?: JSX.Element;
