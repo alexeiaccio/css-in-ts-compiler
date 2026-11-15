@@ -33,6 +33,11 @@ export interface ResizablePanelsProps {
   readonly storageKey?: string | undefined;
   /** A request to change the layout the host may ignore. */
   readonly onSizesChange?: ((sizes: ReadonlyArray<number>) => void) | undefined;
+  /**
+   * Stick a divider to the width it was dropped at, once a few drags agree on it; hold Alt for the exact width. The grip of
+   * a divider with a learned width says so. @default false
+   */
+  readonly snap?: boolean | undefined;
   /** The group's height in CSS, since a percentage layout needs one. @default "18rem" */
   readonly height?: string | undefined;
   readonly class?: string | undefined;
@@ -134,6 +139,11 @@ const gripClass = css.cn(
   css.within(css.hover, "resizable-separator")(css.opacity("1")),
   css.within(css.focusVisible, "resizable-separator")(css.opacity("1")),
   css.within(css.attr("data-resizing", "true"), "resizable-separator")(css.opacity("1")),
+  // a divider that has learned a width keeps its handle visible, in the accent: the edge will stick there
+  css.within(css.attr("data-snap", "true"), "resizable-separator")(
+    css.opacity("1"),
+    css.bg(t.color.highlight),
+  ),
   css.media("(prefers-reduced-motion: no-preference)")(
     css.transition("opacity 120ms ease-out, background-color 120ms ease-out"),
   ),
@@ -188,6 +198,9 @@ export const ResizablePanels = (props: ResizablePanelsProps): JSX.Element => {
     get onSizesChange() {
       return props.onSizesChange;
     },
+    get snap() {
+      return props.snap;
+    },
   });
 
   const vertical = (): boolean => (props.orientation ?? "vertical") === "vertical";
@@ -205,6 +218,9 @@ export const ResizablePanels = (props: ResizablePanelsProps): JSX.Element => {
       },
       get "data-resizing"() {
         return panels.resizing() === index ? "true" : "false";
+      },
+      get "data-snap"() {
+        return panels.snapPoint(index) === undefined ? "false" : "true";
       },
       get class() {
         return css.cn(

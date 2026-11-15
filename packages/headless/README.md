@@ -189,6 +189,8 @@ const turn = () => knob.percentOf(knob.value());
 
 **The drag is snapshot + delta**: pointerdown remembers the layout, every move re-solves from it, so dragging back past a clamp recovers exactly. It uses pointer capture and ends on pointerup / pointercancel; a host write of `sizes` ends it too. Keyboard input is a no-op while a drag runs.
 
+**`snap` is a learned magnet.** Every release leaves a mark at the width it was dropped at; a mark's weight halves every five drags, the marks are counted on a half-percent grid, and the divider sticks to the tallest hill once about three recent drags stand under it. The point is sticky — a hill that stays inside its zone (10 px, off the group) leaves the point alone, so it cannot drift a pixel per drag. Inside the zone the edge lands on the point while the pointer keeps moving; hold Alt for the exact width, which keeps the widths beside the point reachable, and `keyDown` never snaps: the keys are exact by contract. `snapPoint(index)` is the learned width, for a skin that marks it. The hills are a session's habit and live in memory; `storageKey` still carries the layout across visits.
+
 ```tsx
 const panels = createResizablePanels({
   panes: [{ label: "Sidebar", collapsible: true }, { label: "Content" }, { label: "Inspector" }],

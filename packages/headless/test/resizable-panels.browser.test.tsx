@@ -6,9 +6,10 @@ import {
   specDriver,
 } from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
+import { render } from "@solidjs/web";
 import { createRoot, flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
-import { createResizablePanels } from "../src/resizable-panels";
+import { type ResizablePanels, createResizablePanels } from "../src/resizable-panels";
 import {
   resizablePanelsBridge,
   resizablePanelsConfig,
@@ -150,5 +151,121 @@ describe("createResizablePanels persistence", () => {
     const panels = mount([20, 40, 40]);
     expect(panels.sizes()).toEqual([20, 40, 40]);
     localStorage.removeItem(key);
+  });
+});
+
+/** A 600 px group of three panes with real separator bars: the drag measures the group, so a test needs a layout. */
+const mountSnap = (snap: boolean) => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  let api: ResizablePanels | undefined;
+  const dispose = render(() => {
+    const panels = createResizablePanels({
+      panes: [{}, {}, {}],
+      defaultSizes: [20, 40, 40],
+      snap,
+    });
+    api = panels;
+    return (
+      <div {...panels.groupProps} data-part="group" style={{ display: "flex", width: "600px" }}>
+        <div {...panels.paneProps(0)} style={{ flex: `${panels.sizes()[0] ?? 0} 1 0` }} />
+        <div
+          {...panels.separatorProps(0)}
+          data-part="split"
+          style={{ width: "8px", flex: "none" }}
+        />
+        <div {...panels.paneProps(1)} style={{ flex: `${panels.sizes()[1] ?? 0} 1 0` }} />
+        <div
+          {...panels.separatorProps(1)}
+          data-part="split"
+          style={{ width: "8px", flex: "none" }}
+        />
+        <div {...panels.paneProps(2)} style={{ flex: `${panels.sizes()[2] ?? 0} 1 0` }} />
+      </div>
+    );
+  }, root);
+  const split = (index: number): HTMLElement =>
+    root.querySelectorAll<HTMLElement>('[data-part="split"]')[index]!;
+  return {
+    api: api!,
+    split,
+    dispose: () => {
+      dispose();
+      root.remove();
+    },
+  };
+};
+
+/** One drag on separator 0 from where it is to `percent`, in the group's 600 px (6 px a percent). */
+const dragTo = (element: HTMLElement, from: number, percent: number, altKey = false): void => {
+  const at = 100 + from * 6;
+  const to = 100 + percent * 6;
+  const fire = (type: string, x: number, buttons: number, alt: boolean): void => {
+    element.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons,
+        clientX: x,
+        clientY: 0,
+        altKey: alt,
+      }),
+    );
+  };
+  fire("pointerdown", at, 1, false);
+  fire("pointermove", to, 1, altKey);
+  fire("pointerup", to, 0, altKey);
+  // Solid 2 applies a setter on the next flush: a signal the drag wrote is read after one
+  flush();
+};
+
+describe("createResizablePanels snap", () => {
+  it("learns the width it is dropped at, and the edge sticks to it", () => {
+    const { api, split, dispose } = mountSnap(true);
+    expect(api.snapPoint(0)).toBeUndefined();
+
+    // three releases in one hill; two would not be enough
+    dragTo(split(0), 20, 24);
+    dragTo(split(0), 24, 24.2);
+    expect(api.snapPoint(0)).toBeUndefined();
+    dragTo(split(0), 24.2, 24);
+    expect(api.snapPoint(0)).toBe(24);
+
+    // inside the 10 px zone the edge lands on the point while the pointer keeps moving
+    dragTo(split(0), 24, 25);
+    expect(api.sizes()[0]).toBe(24);
+    // Alt asks for the exact width, so the widths beside the point are reachable
+    dragTo(split(0), 24, 25, true);
+    expect(api.sizes()[0]).toBe(25);
+    // past the zone the edge follows the pointer again
+    dragTo(split(0), 25, 30);
+    expect(api.sizes()[0]).toBe(30);
+    dispose();
+  });
+
+  it("never snaps the keyboard, and is off unless asked", () => {
+    const on = mountSnap(true);
+    dragTo(on.split(0), 20, 24);
+    dragTo(on.split(0), 24, 24.2);
+    dragTo(on.split(0), 24.2, 24);
+    expect(on.api.snapPoint(0)).toBe(24);
+    // a key step is exact: from the point, one step is a whole step, not the point again
+    on.api.keyDown(0, "ArrowRight");
+    expect(on.api.sizes()[0]).toBe(34);
+    on.dispose();
+
+    const off = mountSnap(false);
+    dragTo(off.split(0), 20, 24);
+    dragTo(off.split(0), 24, 24.2);
+    dragTo(off.split(0), 24.2, 24);
+    expect(off.api.snapPoint(0)).toBeUndefined();
+    dragTo(off.split(0), 24, 25);
+    expect(off.api.sizes()[0]).toBe(25);
+    off.dispose();
   });
 });

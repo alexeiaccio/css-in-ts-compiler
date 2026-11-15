@@ -5449,3 +5449,33 @@ reading of a 2-D plane, the same list in order.
 **Verified:** `apps/ui/src/registry/board/board.browser.test.tsx` (11 tests; the new two read the field applied, refused,
 abandoned and cleared, a colour's swatch following its token, the outline's order and text, the centring within a pixel, the
 `aria-current` and the focus), the page's conformance suite, `bun run test:site` in Chrome, `apps/ui` typecheck, fmt and lint.
+
+## A learned magnet for the resizable panels (snap, 2026-11-15)
+
+Harsh Agrawal's _Snappy resizable panels_ (imharsh.in, November 2026): most people have one width they like for a sidebar
+and drag back to it again and again, never to the same pixel, so the hook learns it. Every release leaves a mark, a mark's
+weight halves every five drags, marks pile into hills, and the divider sticks to the tallest hill's top once about three
+recent drags agree; the point is sticky, and because the widths beside it become unreachable the hook lets go when the
+pointer pauses there. The keys never snap.
+
+Adopted in `createResizablePanels` as `snap`, a pointer nicety the model does not have (like the capture and the storage):
+
+- **Hills become a histogram on a half-percent grid.** The kernel's job is to let widths a pointer cannot tell apart stack,
+  and half a percent is that distance; a mark's weight halves every five drags (`2 ** (-1/5)`), a point appears at a weight
+  of 2 — about three recent drags (1 + 0.87 + 0.76) — and a hill under 0.05 is dropped, so a session cannot grow a map.
+- **The zone is in px, off the group's own length.** The primitive lays out in percent; 10 % of a wide group is 200 px, and
+  the article's 10 px is the distance a hand means. `zonePercent` divides at drag time, where the length is already measured.
+- **Alt replaces the pause.** A timer inside a drag is a behaviour with no spec and a flaky test; a modifier is exact,
+  discoverable and testable. Hold Alt for the width under the pointer, which is the same escape the pause gives.
+- **The point is sticky and the keys are exact.** A winning hill that stays inside the point's zone leaves the point alone
+  (no pixel of drift per drag), and `keyDown` never consults the hills: an arrow is a whole step, by contract.
+- **The hills live in memory.** They are a session's habit; `storageKey` already carries the _layout_ across visits. The
+  article's option to pass samples back as `initial` is the host's, should anyone want it.
+- **`snapPoint(index)`** is on the API so a skin can mark the learned width; the starter's grip turns into the accent when
+  its divider has one, which is also what its conformance test reads.
+
+Checked: `packages/headless/test/resizable-panels.browser.test.tsx` (two tests: three releases in one hill teach a width, a
+drag inside the zone sticks while the pointer moves, Alt lands on the exact width, a drag past the zone follows again; and
+the keys never snap, with `snap` off doing nothing), the starter's conformance (the grip's `data-snap`, the sticking drag and
+the Alt bypass), `apps/ui` typecheck, and the whole headless suite against the spec walks, which run without `snap` and are
+unchanged.

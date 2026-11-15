@@ -75,6 +75,7 @@ const pointer = (
   type: string,
   position: { readonly x: number; readonly y: number },
   buttons: number,
+  altKey = false,
 ): void => {
   element.dispatchEvent(
     new PointerEvent(type, {
@@ -88,6 +89,7 @@ const pointer = (
       buttons,
       clientX: position.x,
       clientY: position.y,
+      altKey,
     }),
   );
 };
@@ -249,6 +251,40 @@ describe("ResizablePanels", () => {
     pointer(first, "pointerup", { x: start.x - step, y: start.y }, 0);
     await frame();
     expect(group(root).getAttribute("data-resizing")).toBe("false");
+  });
+
+  it("sticks a divider to the width a few drags agree on, and gives it up with Alt", async () => {
+    const { root } = mounted();
+    await frame();
+    const [first] = separators(root);
+    if (first === undefined) {
+      throw new Error("resizable-panels: missing separator");
+    }
+    const width = group(root).getBoundingClientRect().width;
+    const pixels = (percent: number): number => (width * percent) / 100;
+    // one drag of the first divider by `percent`, from where the edge is now
+    const drag = async (percent: number, altKey = false): Promise<void> => {
+      const start = centre(first);
+      pointer(first, "pointerdown", start, 1);
+      pointer(first, "pointermove", { x: start.x + pixels(percent), y: start.y }, 1, altKey);
+      pointer(first, "pointerup", { x: start.x + pixels(percent), y: start.y }, 0, altKey);
+      await frame();
+    };
+
+    // three releases in one half-percent hill, and not before: two would not be enough
+    await drag(10);
+    expect(value(first)).toBe(32);
+    await drag(0.2);
+    expect(first.getAttribute("data-snap")).toBe("false");
+    await drag(-0.2);
+    expect(value(first)).toBe(32);
+    expect(first.getAttribute("data-snap")).toBe("true");
+
+    // inside the zone the edge stays while the pointer moves; Alt asks for the exact width
+    await drag(1);
+    expect(value(first)).toBe(32);
+    await drag(1, true);
+    expect(value(first)).toBe(33);
   });
 
   it("moves only its own pair from the second separator of three panes", async () => {

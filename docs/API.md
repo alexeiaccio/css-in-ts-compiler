@@ -3845,6 +3845,16 @@ re-solves from it, so dragging back past a clamp recovers exactly. A host write 
 drag; the echo of a request the host accepted does not count as one. The newest pointerdown takes
 the drag over, the keyboard is inert while a drag runs, and only the primary button starts one.
 
+**`snap` is a learned magnet, and a pointer nicety the model does not have.** Every release leaves a
+mark at the width it was dropped at; a mark's weight halves every five drags, the marks are counted
+on a half-percent grid, and the divider sticks to the tallest hill once about three recent drags
+stand under it. The point is sticky: a hill still inside its zone (10 px, measured off the group)
+leaves the point where it is, so it cannot drift a pixel per drag. Inside the zone the edge lands on
+the point while the pointer keeps moving; hold Alt for the exact width, which is how the widths
+beside the point stay reachable, and `keyDown` never snaps — the keys are exact by contract.
+`snapPoint(index)` is the learned width, for a skin that marks it; the hills live in memory (a
+session's habit), while `storageKey` still carries the layout across visits.
+
 ```ts skip
 createResizablePanels(options: {
   panes: ReadonlyArray<{
@@ -3864,6 +3874,7 @@ createResizablePanels(options: {
   label?: string | undefined; // the group's aria-label
   storageKey?: string | undefined; // persist the layout in localStorage
   onSizesChange?(sizes: ReadonlyArray<number>): void; // a request the host may ignore
+  snap?: boolean; // stick a divider to the width a few drags agree on; Alt asks for the exact width
 }): {
   sizes(): ReadonlyArray<number>; // the committed layout, percent; sums to 100
   collapsed(index: number): boolean;
@@ -3871,6 +3882,7 @@ createResizablePanels(options: {
   focusSeparator(): number | null;
   setFocusSeparator(index: number | null): void;
   keyDown(index: number, key: string): void; // the separator's keys, without an event
+  snapPoint(index: number): number | undefined; // the learned width, percent; undefined until about three drags agree
   groupProps: { role: "group"; "aria-label": string | undefined };
   paneProps(index: number): { id: string };
   separatorProps(index: number): {

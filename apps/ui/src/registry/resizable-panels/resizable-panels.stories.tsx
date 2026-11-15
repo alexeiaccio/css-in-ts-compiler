@@ -1,5 +1,6 @@
 // The resizable panels' stories: a tree, an editor and a preview, the two dividers between them and the whole layout a
-// keyboard user can resize (each divider is a window splitter with arrows, Enter to collapse and Home/End to an end).
+// keyboard user can resize (each divider is a window splitter with arrows, Enter to collapse and Home/End to an end). The
+// dividers snap (`snap`): drag one to about the width you like three times, and its handle marks the width it learned.
 import type { JSX } from "@solidjs/web";
 import type { Meta, Story } from "@cssints/stories";
 
@@ -16,6 +17,7 @@ export const Editor: Story = {
       <ResizablePanels
         label="Editor"
         height="22rem"
+        snap
         panes={[
           {
             title: "Files",

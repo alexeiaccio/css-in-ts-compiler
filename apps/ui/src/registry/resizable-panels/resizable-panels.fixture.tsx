@@ -80,12 +80,14 @@ const PreviewPane = (): JSX.Element => (
  */
 export const ResizablePanelsExample = (props: {
   readonly class?: string | undefined;
+  readonly snap?: boolean | undefined;
 }): JSX.Element => (
   <div class="demo-column">
     <ResizablePanels
       class={props.class}
       label="Workspace layout"
       defaultSizes={[22, 50, 28]}
+      snap={props.snap ?? true}
       panes={[
         { title: "Files", label: "Files", min: 15, collapsible: true, children: <FilesPane /> },
         { title: "Editor", label: "Editor", min: 25, children: <EditorPane /> },
@@ -109,11 +111,15 @@ export interface MountedResizablePanels {
 const DEMO_WIDTH = 600;
 
 /** Mounts the styled layout at 600 px, the width the fixture's drag tests measure against. */
-export const mountResizablePanels = (): MountedResizablePanels => {
+export const mountResizablePanels = (
+  options: {
+    readonly snap?: boolean | undefined;
+  } = {},
+): MountedResizablePanels => {
   const root = document.createElement("div");
   root.style.width = `${DEMO_WIDTH}px`;
   document.body.append(root);
-  const dispose = render(() => <ResizablePanelsExample />, root);
+  const dispose = render(() => <ResizablePanelsExample snap={options.snap ?? true} />, root);
   return {
     root,
     dispose: () => {

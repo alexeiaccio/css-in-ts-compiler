@@ -37,6 +37,12 @@ export interface ResizablePanelsOptions {
   readonly storageKey?: string | undefined;
   /** A request to change the layout the host may ignore. */
   readonly onSizesChange?: (sizes: ReadonlyArray<number>) => void;
+  /**
+   * Stick the boundary to the width it is dropped at, once a few drags agree on it. Inside the zone (10 px) the edge lands
+   * on the learned width while the pointer keeps moving; hold Alt for the exact width, and the keyboard never snaps. A
+   * pointer nicety, like the capture and the storage: the model has no drag at all. Off by default.
+   */
+  readonly snap?: boolean | undefined;
 }
 
 export interface ResizablePanelsGroupProps {
@@ -78,12 +84,24 @@ export interface ResizablePanels {
   readonly focusSeparator: Accessor<number | null>;
   readonly setFocusSeparator: (index: number | null) => void;
   readonly keyDown: (index: number, key: string) => void;
+  /** The learned width of pane `index`, in percent, or `undefined` until about three drags agree. */
+  readonly snapPoint: (index: number) => number | undefined;
   readonly groupProps: ResizablePanelsGroupProps;
   readonly paneProps: (index: number) => ResizablePaneProps;
   readonly separatorProps: (index: number) => ResizableSeparatorProps;
 }
 
 const DEFAULT_MIN = 10;
+/** The magnet's zone: how close to the learned width, in px, the edge sticks. */
+const SNAP_ZONE = 10;
+/** The histogram's grid: half a percent, the widths a pointer cannot tell apart. */
+const SNAP_STEP = 0.5;
+/** A mark's weight halves every five drags, so a new habit takes over within a few. */
+const SNAP_DECAY = 2 ** (-1 / 5);
+/** The weight of about three recent drags standing on one hill: 1 + 0.87 + 0.76. */
+const SNAP_MIN = 2;
+/** A hill under this is spent, and is dropped: the map cannot grow with the drags. */
+const SNAP_FLOOR = 0.05;
 const DEFAULT_MAX = 80;
 const DEFAULT_STEP = 10;
 const FULL = 100;
@@ -172,6 +190,15 @@ const writeStored = (key: string, sizes: ReadonlyArray<number>): void => {
  * it and cascades outward; restoring takes it back in the same order. The drag
  * is snapshot + delta: pointerdown remembers the layout, every move re-solves
  * from it, so dragging back past a clamp recovers exactly.
+ *
+ * With `snap` on, a release leaves a mark and the boundary sticks to the width
+ * the marks agree on: a histogram on a half-percent grid, a mark's weight
+ * halving every five drags, a point only once about three recent drags stand
+ * under one hill, and a point that does not move while the tallest hill stays
+ * inside its zone. Alt during a drag asks for the exact width, so the widths
+ * beside the point stay reachable, and `keyDown` never snaps: the keys are
+ * exact by contract. The model has none of this, like the capture and the
+ * storage — it has no drag at all.
  *
  * Behaviour is `packages/apg-specs/specs/patterns/resizable-panels.qnt`; the
  * DOM is checked against it by the differential walk.
@@ -276,6 +303,10 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
 
   const [focusSeparator, setFocusSeparator] = createSignal<number | null>(null);
   const [resizing, setResizing] = createSignal<number | null>(null);
+  // The learned widths, one hill per width bucket per separator, and the point the magnet uses. In memory only: a hill is
+  // a session's habit, and `storageKey` already carries the layout across visits.
+  const hills: Array<Map<number, number>> = [];
+  const [snapPoints, setSnapPoints] = createSignal<ReadonlyArray<number | undefined>>([]);
   // the last expanded size of each pane: the value a restore returns to. Derived
   // from the committed layout, so a collapse by any route (Enter, a host write)
   // remembers the size it left.
@@ -380,6 +411,73 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
     return orientation() === "vertical" ? rect.width : rect.height;
   };
 
+  const bucketOf = (size: number): number => Math.round(size / SNAP_STEP) * SNAP_STEP;
+
+  /** The magnet's zone in percent, from the group's own length: a zone in percent would be 200 px on a wide group. */
+  const zonePercent = (length: number): number | undefined =>
+    options.snap === true && length > 0 ? (SNAP_ZONE / length) * FULL : undefined;
+
+  /**
+   * A release is a mark: every hill fades a little, the width it was dropped at gains one. The point is the tallest hill
+   * once about three recent drags stand under it, and it is sticky: a winner already inside the old point's zone leaves the
+   * point where it is, so it cannot drift a pixel with every drag.
+   */
+  const learn = (index: number, size: number, length: number): void => {
+    const zone = zonePercent(length);
+    if (zone === undefined) {
+      return;
+    }
+    const hill = (hills[index] ??= new Map());
+    for (const [at, weight] of hill) {
+      const faded = weight * SNAP_DECAY;
+      if (faded < SNAP_FLOOR) {
+        hill.delete(at);
+      } else {
+        hill.set(at, faded);
+      }
+    }
+    const mark = bucketOf(size);
+    hill.set(mark, (hill.get(mark) ?? 0) + 1);
+    let best: number | undefined;
+    let top = 0;
+    for (const [at, weight] of hill) {
+      if (weight > top) {
+        top = weight;
+        best = at;
+      }
+    }
+    const current = snapPoints()[index];
+    const next =
+      best === undefined || top < SNAP_MIN
+        ? undefined
+        : current !== undefined && Math.abs(best - current) <= zone
+          ? current
+          : best;
+    if (next !== current) {
+      setSnapPoints((all) => {
+        const copy = [...all];
+        copy[index] = next;
+        return copy;
+      });
+    }
+  };
+
+  /** The magnet: an edge inside the zone lands on the learned width. Alt asks for the exact width and the keys never snap. */
+  const magnet = (
+    index: number,
+    next: ReadonlyArray<number>,
+    length: number,
+    bypass: boolean,
+  ): ReadonlyArray<number> => {
+    const point = snapPoints()[index];
+    const zone = zonePercent(length);
+    if (bypass || point === undefined || zone === undefined) {
+      return next;
+    }
+    const size = next[index] ?? 0;
+    return Math.abs(size - point) > zone ? next : movePair(next, index, point - size);
+  };
+
   const onPointerDown = (index: number, event: PointerEvent): void => {
     if (event.button !== 0) {
       return;
@@ -418,16 +516,23 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
       return;
     }
     const delta = ((axisOf(event, drag.axis) - drag.start) / drag.length) * FULL;
-    commit(movePair(drag.from, drag.separator, delta));
+    const moved = movePair(drag.from, drag.separator, delta);
+    commit(magnet(drag.separator, moved, drag.length, event.altKey));
   };
 
   const onPointerEnd = (event: PointerEvent): void => {
     if (drag === undefined || drag.pointerId !== event.pointerId) {
       return;
     }
+    const ended = drag;
     drag = undefined;
     setResizing(null);
     release(event.currentTarget as Element, event.pointerId);
+    const size = sizes()[ended.separator] ?? 0;
+    // a click is not a drag: nothing moved, so there is no mark to leave
+    if (size !== (ended.from[ended.separator] ?? 0)) {
+      learn(ended.separator, size, ended.length);
+    }
   };
 
   // a host write cancels a running drag: the layout the pointer was dragging is
@@ -495,6 +600,7 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
     focusSeparator,
     setFocusSeparator,
     keyDown,
+    snapPoint: (index) => snapPoints()[index],
     groupProps: {
       role: "group",
       get "aria-label"() {
