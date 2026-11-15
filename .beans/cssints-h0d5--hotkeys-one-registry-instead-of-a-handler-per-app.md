@@ -1,11 +1,11 @@
 ---
 # cssints-h0d5
 title: 'Hotkeys: one registry instead of a handler per app'
-status: in-progress
+status: completed
 type: task
 priority: normal
 created_at: 2026-10-30T10:51:10Z
-updated_at: 2026-10-31T18:36:00Z
+updated_at: 2026-11-15T00:00:00Z
 parent: cssints-65eb
 ---
 
@@ -13,7 +13,9 @@ Every app rewrites /, Cmd+K, Cmd+S, arrows: apps/docs Search.tsx, cms-admin, koc
 
 - [x] a small composable (register a chord with modifiers, ignore while a text field is focused unless asked, scope to a subtree)
 - [x] documented collisions with the browser's own chords (README 'Hotkeys', docs/API.md)
-- [ ] adopt in apps/docs (search focus) and cms-admin (save, publish)
+- [x] adopt in apps/docs (search focus): `apps/docs/src/Shell.tsx` (the page's chords and the search focus)
+- [x] adopt in apps/ui: `src/registry/shortcuts/` (`createShortcuts`, `?`, a scoped `s`) — a visible host
+- [ ] adopt in cms-admin (save, publish): that app is not in this repository, so the item moves with it
 
 ## Notes
 
@@ -40,3 +42,9 @@ Still open: adoption in apps/docs (search focus) and cms-admin (save, publish) -
 ## 2026-11-02: tracked there, not here
 
 Moved: the cms-admin adoption is tracked in effects-of-atmosphere `2d5y`.
+
+## Closed (2026-11-15)
+
+The registry is shipped and has two hosts in this repository — apps/docs (`Shell.tsx`) and apps/ui (`src/registry/shortcuts/`,
+the kit's own `?` sheet) — plus 11 browser tests. The one item left named `cms-admin`, which lives outside this repository; a
+bean here cannot hold it, so it is the app's own task. Closed rather than left in-progress with nothing to do in this repo.
