@@ -2,7 +2,11 @@
 // actually does, and the count is a control because the triggers wrap at narrow widths.
 import type { JSX } from "@solidjs/web";
 
+import { For } from "solid-js";
 import type { Meta, Story } from "@cssints/stories";
+import * as css from "cssints" with { type: "cssints" };
+
+import { t } from "../theme.ts" with { type: "cssints" };
 import { Accordion } from "./accordion.tsx";
 
 interface AccordionExampleProps {
@@ -54,3 +58,48 @@ export const Multiple: Story<AccordionExampleProps> = { args: { multiple: true }
 
 // `collapsible: false` is the APG's variant where one panel is always open: the last open one cannot close.
 export const AlwaysOpen: Story<AccordionExampleProps> = { args: { collapsible: false } };
+
+const nativeRoot = css.cn(
+  css.border("1px solid", t.color.border),
+  css.borderRadius(t.radius.md),
+  css.overflow("hidden"),
+);
+const nativeItem = css.cn(css.borderBottom("1px solid", t.color.border));
+const nativeSummary = css.cn(
+  css.padding(t.space._3, t.space._4),
+  css.color(t.color.text),
+  css.fontSize(t.font.size),
+  css.fontWeight("500"),
+  css.cursor("pointer"),
+  css.focusVisible(css.outline("2px solid", t.color.focusRing), css.outlineOffset("-2px")),
+);
+const nativePanel = css.cn(
+  css.padding(t.space._3, t.space._4),
+  css.color(t.color.muted),
+  css.fontSize(t.font.size),
+  css.borderTop("1px solid", t.color.border),
+);
+
+const NativeAccordion = (props: AccordionExampleProps): JSX.Element => (
+  <div class={nativeRoot}>
+    <For each={Array.from({ length: props.count }, (_, index) => index)}>
+      {(index) => (
+        <details
+          class={nativeItem}
+          name={props.multiple ? `native-${index}` : "native-accordion"}
+          open={index === 0}
+        >
+          <summary class={nativeSummary}>
+            {TRIGGERS[index] ?? `Section ${index + 1}`}
+          </summary>
+          <div class={nativePanel}>{PANELS[index] ?? `The panel of section ${index + 1}.`}</div>
+        </details>
+      )}
+    </For>
+  </div>
+);
+
+// The recipe (docs/hosts.md): one `<details name>` group is the accordion. A shared `name` is the exclusivity (Baseline
+// 2024-09-03); `multiple` is a name per section. No primitive. The gap the recipe keeps: `summary` is not heading
+// content, so the heading list a screen reader gets is not the APG one.
+export const Native: Story<AccordionExampleProps> = { render: (args) => <NativeAccordion {...args} /> };

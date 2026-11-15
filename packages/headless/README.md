@@ -8,6 +8,10 @@ const disclosure = createDisclosure({ defaultValue: false });
 <div {...disclosure.panelProps}>…</div>
 ```
 
+**Where the platform has the element, render it** and let it own the behaviour: `details`, `dialog`, `meter`, native
+inputs, `focusgroup`. The mapping — the code, what the platform takes over, and the gaps that keep the primitive —
+is [docs/hosts.md](docs/hosts.md).
+
 ## Decision: signals + differential test, not the machine at runtime
 
 `createDisclosure` is plain Solid signals. The generated Quint model is **not** loaded at runtime; it is the oracle in tests:

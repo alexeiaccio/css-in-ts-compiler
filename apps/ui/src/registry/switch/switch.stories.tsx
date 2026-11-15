@@ -4,6 +4,9 @@ import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import type { Meta, Story } from "@cssints/stories";
+import * as css from "cssints" with { type: "cssints" };
+
+import { t } from "../theme.ts" with { type: "cssints" };
 import { Switch, type SwitchProps } from "./switch.tsx";
 
 const meta = {
@@ -40,3 +43,28 @@ export const Controlled: Story<SwitchProps> = {
     );
   },
 };
+
+const nativeRow = css.cn(css.display("flex"), css.alignItems("center"), css.gap(t.space._2), css.fontSize(t.font.size));
+const nativeBox = css.cn(css.width("1.5rem"), css.height("1.5rem"), css.accentColor(t.color.highlight), css.cursor("pointer"));
+
+const NativeSwitch = () => {
+  const [on, setOn] = createSignal(false);
+  return (
+    <label class={nativeRow}>
+      <input
+        type="checkbox"
+        role="switch"
+        class={nativeBox}
+        checked={on()}
+        onChange={(event) => setOn(event.currentTarget.checked)}
+        {...({ switch: "" } as Record<string, string>)}
+      />
+      Wi-Fi
+    </label>
+  );
+};
+
+// The recipe (docs/hosts.md): a checkbox with `role=switch` and, where the engine has it (Safari 17.4+), the `switch`
+// attribute for the look. Chrome, Edge and Firefox ignore the attribute and render a checkbox — the baseline is the
+// element, the attribute is the enhancement.
+export const Native: Story = { render: () => <NativeSwitch /> };
