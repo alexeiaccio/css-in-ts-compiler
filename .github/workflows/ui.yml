@@ -104,7 +104,26 @@ jobs:
             exit 0
           fi
           git commit -m "chore(ui): the conformance results the starter smoke wrote"
-          git push origin HEAD:master
+          # A merge can land while this job runs, and a plain push is then rejected (`fetch first`) — which is
+          # how the first version of this step failed and left the deployed records behind. The files are
+          # generated, so the fix is to replay them on the newest master and try again. A record that still
+          # cannot be written is a warning, never a red gate: a stale record hides a section (the fingerprint
+          # decides), it does not lie.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:master; then
+              exit 0
+            fi
+            echo "master moved under the results (attempt $attempt); replaying on the new tip"
+            sleep 5
+            git fetch -q origin master
+            git reset --soft origin/master
+            git add -- 'apps/ui/public/r/*.result.json'
+            if ! git diff --cached --quiet; then
+              git commit -q -m "chore(ui): the conformance results the starter smoke wrote"
+            fi
+          done
+          echo "::warning::the conformance results could not be committed; the next master run will write them"
+          exit 0
       # the deploy builds the site from its own checkout, so this run's results travel to it: the record a
       # person reads is one deploy old otherwise
       - uses: actions/upload-artifact@v7
