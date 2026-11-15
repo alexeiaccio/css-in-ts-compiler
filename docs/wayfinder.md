@@ -5646,3 +5646,15 @@ element is a native dialog. A platform close (`close()`, Escape, a light dismiss
 `onClose`, the same path a Cancel click takes. Five browser tests on a real `<dialog>`; the existing confirm suite (20) is
 untouched. That closes the assessment's last primitive; the kit's dialog and drawer items rendering `<dialog>` is a
 separate, visual step (their motion machine is the JS half).
+
+**And the drawer, on `<dialog>`:** a plain drawer is the platform's too — `showModal()` (modal) or `show()` (non-modal),
+`::backdrop` for the wash, and the side classes place it because the top layer's containing block is the viewport. Three
+things the platform does not give, found by its tests: the UA dialog's `padding: 1em; border: solid; box-sizing: content-box`
+made a 100 % sheet 1318 px in a 1280 px viewport (border-box and a zeroed box), the UA's `top: 0` anchored a bottom sheet at
+the top rather than the bottom (`top: auto` in the bottom variant), and `showModal()`'s focus step runs before the panel is
+laid out, falling back to the body — the primitive focuses after the flush and the kit marks the close control `autofocus`.
+The APG Tab wrap is the fourth: a native modal makes the rest inert but lets Tab leave to the browser's chrome, so the
+primitive keeps one capture listener for the wrap (the overlay claim exists for that check alone) while Escape, the stack
+and the lock stay the platform's. Motion: a keyframe enters (cssints has no `@starting-style` at-rule), and
+`transition-behavior: allow-discrete` on `transform, display, overlay` lets the closed state's transform play the exit.
+The drawer's suite (35) and the dialog's (18) pass; the animated drawers keep the machine's tracks.

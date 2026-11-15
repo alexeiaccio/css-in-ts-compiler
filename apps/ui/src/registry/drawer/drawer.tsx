@@ -110,6 +110,7 @@ const DrawerContext = createContext<{
   readonly titleId: string;
   readonly mount: () => Element | undefined;
   readonly animated: boolean;
+  readonly native: boolean;
   readonly motion: OverlayMotion;
   readonly drag: SheetDrag;
 }>();
@@ -134,6 +135,10 @@ const backdropClass = css.cn(
 // The panel is edge-anchored: a rail on the left or the right, or a sheet across the bottom. It stays in the DOM while closed
 // and hides with `visibility` rather than the `hidden` attribute, so the slide can play both ways and the primitive can move
 // the focus into it before the first open frame (a `display: none` panel cannot take the focus).
+// The platform's wash for the native panel (`::backdrop`); its own class, so the engine does not see two backgrounds in one
+// style (the panel sets its surface)
+const nativeBackdrop = css.backdrop(css.bg(t.color.scrim));
+
 const panel = css.cv({
   base: css.cn(
     css.position("absolute"),
@@ -144,6 +149,9 @@ const panel = css.cv({
     css.pointerEvents("auto"),
     css.color(t.color.text),
     css.boxShadow(t.shadow.popover),
+    // the UA dialog's own limits are smaller than the viewport minus its margin; the side variants set the real box
+    css.maxWidth("100vw"),
+    css.maxHeight("100dvh"),
     // the panel takes the focus itself (`tabindex="-1"`) when it holds nothing focusable: a ring around the whole panel is noise
     css.outline("none"),
   ),
@@ -172,6 +180,8 @@ const panel = css.cv({
         css.left("0"),
         css.right("0"),
         css.bottom("0"),
+        // the dialog's UA `top: 0` would stretch the sheet from the top; the bottom edge is the anchor
+        css.top("auto"),
         css.width("100%"),
         css.maxHeight("85dvh"),
         css.bg(t.color.sheetBackground),
@@ -187,6 +197,46 @@ const panel = css.cv({
 // The slide reads one state off `data-state` (`right-open`, `bottom-closed`, ...), so exactly one rule matches and no two
 // declarations of the same property compete: closed it is off screen and invisible, open it is in place. With reduced motion
 // there is no transition, so `visibility` flips at once instead of waiting for a slide that does not happen.
+// A native `<dialog>` panel enters with a keyframe (a closed dialog is `display: none`, and cssints has no `@starting-style`
+// at-rule), and leaves through the platform's `allow-discrete`: `display` and `overlay` stay rendered for the transition's
+// duration, so the closed state's transform (panelMotion) has the 200 ms it needs. The `animated` drawer keeps the machine's
+// track instead.
+const slideInRight = css.keyframes({
+  from: css.transform("translateX(100%)"),
+  to: css.transform("none"),
+});
+const slideInLeft = css.keyframes({
+  from: css.transform("translateX(-100%)"),
+  to: css.transform("none"),
+});
+const slideInBottom = css.keyframes({
+  from: css.transform("translateY(100%)"),
+  to: css.transform("none"),
+});
+
+// The UA dialog has `padding: 1em; border: solid` and a content-box width: a 100% panel would be 38 px wider than the page.
+// Border-box + a zeroed box leaves the side variants' own borders in charge.
+const nativeBox = css.cn(css.boxSizing("border-box"), css.padding("0"), css.border("0"));
+
+const nativeMotion = css.cn(
+  // the closed state is the dialog's own `display: none`; only the off-screen transform is ours (no `visibility`, which
+  // would leave the panel unfocusable at the moment `showModal()` looks for a focus target)
+  css.attr("data-state", "left-closed")(css.transform("translateX(-100%)")),
+  css.attr("data-state", "right-closed")(css.transform("translateX(100%)")),
+  css.attr("data-state", "bottom-closed")(css.transform("translateY(100%)")),
+  css.media("(prefers-reduced-motion: no-preference)")(
+    css.cn(
+      css.transitionProperty("transform, display, overlay"),
+      css.transitionDuration("200ms"),
+      css.transitionTimingFunction("ease-out"),
+      css.transitionBehavior("allow-discrete"),
+      css.attr("data-state", "left-open")(css.animation(slideInLeft, "200ms", "ease-out")),
+      css.attr("data-state", "right-open")(css.animation(slideInRight, "200ms", "ease-out")),
+      css.attr("data-state", "bottom-open")(css.animation(slideInBottom, "200ms", "ease-out")),
+    ),
+  ),
+);
+
 const panelMotion = css.cn(
   css.visibility("hidden"),
   css.attr("data-state", "left-closed")(css.transform("translateX(-100%)")),
@@ -800,6 +850,12 @@ export const Drawer = (props: DrawerProps): JSX.Element => {
   });
   const mount = () => props.mount;
   const animated = untrack(() => props.animated) === true;
+  // the native spread below needs the same answer as DrawerContent's: no `autofocus` on the platform path would let
+  // `showModal()`'s own focus step and its fixup fight the panel's focus
+  const native =
+    !animated &&
+    typeof HTMLDialogElement !== "undefined" &&
+    "showModal" in HTMLDialogElement.prototype;
   const motion = createOverlayMotion({
     animated,
     open: () => drawer.open(),
@@ -847,7 +903,7 @@ export const Drawer = (props: DrawerProps): JSX.Element => {
   onCleanup(() => document.removeEventListener("keydown", onDragEscape, true));
 
   return (
-    <DrawerContext value={{ drawer, titleId, mount, animated, motion, drag }}>
+    <DrawerContext value={{ drawer, titleId, mount, animated, native, motion, drag }}>
       {props.children}
     </DrawerContext>
   );
@@ -879,6 +935,22 @@ export const DrawerTrigger = (props: DrawerTriggerProps): JSX.Element => {
  */
 export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
   const { drawer, mount, animated, motion, drag } = useContext(DrawerContext);
+  // A plain drawer is the platform's `<dialog>`: `showModal()`/`show()` own the top layer, focus, Escape and the lock; the
+  // side classes place it (the top layer's containing block is the viewport) and the entry is `nativeMotion`. `animated`
+  // stays the machine's, and is the fallback where `showModal` is missing.
+  const native =
+    !animated &&
+    typeof HTMLDialogElement !== "undefined" &&
+    "showModal" in HTMLDialogElement.prototype;
+  let detach: (() => void) | undefined;
+  const attach = (element: HTMLDialogElement): void => {
+    detach?.();
+    detach = drawer.attachDialog(element);
+  };
+  onCleanup(() => {
+    detach?.();
+    detach = undefined;
+  });
   const merged = merge(omit(props, "render", "class", "children"), drawer.contentProps, () => ({
     "data-part": "drawer",
     get "data-side"() {
@@ -903,6 +975,23 @@ export const DrawerContent = (props: DrawerContentProps): JSX.Element => {
       );
     },
   }));
+  if (native) {
+    return (
+      <dialog
+        {...drawer.nativeProps}
+        data-part="drawer"
+        data-side={drawer.side()}
+        data-state={`${drawer.side()}-${drawer.open() ? "open" : "closed"}`}
+        class={[
+          css.cn(panel({ side: drawer.side() }), nativeBox, nativeMotion, props.class),
+          nativeBackdrop,
+        ].join(" ")}
+        ref={attach}
+      >
+        {props.children}
+      </dialog>
+    );
+  }
   return (
     <Show when={!animated || motion.visible()}>
       <Portal mount={mount()}>
@@ -1012,13 +1101,16 @@ export const DrawerFooter = (props: DrawerFooterProps): JSX.Element =>
 
 /** The close control in the header: a small icon button with an accessible name. */
 export const DrawerClose = (props: DrawerCloseProps): JSX.Element => {
-  const { drawer } = useContext(DrawerContext);
+  const { drawer, native } = useContext(DrawerContext);
   return (
     <button
       type="button"
       data-part="drawer-close"
       class={css.cn(closeClass, props.class)}
       aria-label={props.label ?? "Close"}
+      // the platform's `showModal()` focuses the autofocus delegate synchronously; without one its focus step runs before
+      // the panel is laid out and the dialog falls back to the body
+      autofocus={native ? true : undefined}
       onClick={() => {
         // the trigger's handler toggles, which is a close while the drawer is open
         if (drawer.open()) {

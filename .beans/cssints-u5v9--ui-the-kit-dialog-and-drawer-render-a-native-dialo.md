@@ -1,11 +1,11 @@
 ---
 # cssints-u5v9
 title: 'ui: the kit dialog and drawer render a native dialog'
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-11-15T13:27:22Z
-updated_at: 2026-11-15T13:27:22Z
+updated_at: 2026-11-15T14:17:44Z
 parent: cssints-oeb0
 ---
 

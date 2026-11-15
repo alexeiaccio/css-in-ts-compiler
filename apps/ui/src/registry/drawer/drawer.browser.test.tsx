@@ -1,7 +1,8 @@
 import { createMachine, harness } from "@cssints/machine";
 import { createMachineStore } from "@cssints/machine/solid";
 import { createEffect, createRoot, flush } from "solid-js";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
 import { overlayMotionDefinition } from "../overlay-motion.ts";
 import {
@@ -22,6 +23,17 @@ const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve,
 
 /** The slide is 200 ms: the geometry is final only after it, as a reader sees it. */
 const settleSlide = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 260));
+
+/** Poll a condition the platform settles on its own schedule (a focus fixup, a dialog's close event). */
+const until = async (check: () => boolean, ms = 1000): Promise<void> => {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (check()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+};
 
 const live: MountedDrawer[] = [];
 
@@ -103,20 +115,20 @@ describe("Drawer", () => {
     expect(open.getAttribute("aria-expanded")).toBe("false");
     expect(open.getAttribute("aria-controls")).toBe(dialog.id);
     expect(dialog.getAttribute("role")).toBe("dialog");
+    // `showModal()` is the modal state: ARIA in HTML makes `aria-modal` unnecessary on a native dialog
     expect(dialog.getAttribute("aria-modal")).toBeNull();
-    // a closed rail is off screen and out of the accessibility tree, not in the page's flow
-    expect(getComputedStyle(dialog).visibility).toBe("hidden");
+    // a closed rail is a closed `<dialog>`: out of the page's flow and out of the accessibility tree
+    expect((dialog as HTMLDialogElement).open).toBe(false);
 
     open.focus();
     await click(open);
 
     expect(open.getAttribute("aria-expanded")).toBe("true");
-    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-modal")).toBeNull();
+    expect((dialog as HTMLDialogElement).matches(":modal")).toBe(true);
     expect(dialog.getAttribute("data-state")).toBe("right-open");
-    expect(getComputedStyle(dialog).visibility).toBe("visible");
-    // portalled out of the fixture, into the body, so no ancestor can clip it or hold its `position: fixed`
-    expect(root.contains(dialog)).toBe(false);
-    expect(dialog.closest('[data-part="drawer-layer"]')?.parentElement).toBe(document.body);
+    // the platform's top layer, not a portal: the element stays where the page put it
+    expect(root.contains(dialog)).toBe(true);
   });
 
   it("names the panel by its title", async () => {
@@ -146,46 +158,48 @@ describe("Drawer", () => {
       throw new Error("drawer: no footer button");
     }
 
-    expect(document.activeElement).toBe(close);
+    // the platform focuses the first focusable inside `showModal()`: the close control
+    await until(() => document.activeElement === close);
 
     last.focus();
-    await press("Tab");
+    await userEvent.keyboard("{Tab}");
     expect(document.activeElement).toBe(close);
 
     close.focus();
-    await press("Tab", { shiftKey: true });
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
     expect(document.activeElement).toBe(last);
 
-    await press("Escape");
-    expect(open.getAttribute("aria-expanded")).toBe("false");
+    await userEvent.keyboard("{Escape}");
+    await until(() => open.getAttribute("aria-expanded") === "false");
     expect(dialog.getAttribute("aria-modal")).toBeNull();
     expect(document.activeElement).toBe(open);
   });
 
-  it("closes on a press on the backdrop", async () => {
+  it("puts the platform's close policy on the panel, and a platform close settles it", async () => {
     const { root } = mounted();
     const open = trigger(root, "Filters");
     open.focus();
     await click(open);
-    const backdrop = required<HTMLElement>(document, '[data-part="drawer-backdrop"]');
+    const dialog = panel("Filters");
 
-    expect(backdrop.hidden).toBe(false);
-    backdrop.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
-    await settle();
-
-    expect(open.getAttribute("aria-expanded")).toBe("false");
+    // a modal rail takes Escape and a press outside; both arrive as the dialog's close
+    expect(dialog.getAttribute("closedby")).toBe("any");
+    (dialog as HTMLDialogElement).close();
+    await until(() => open.getAttribute("aria-expanded") === "false");
     expect(document.activeElement).toBe(open);
   });
 
-  it("locks the page's scroll while open and releases it on close", async () => {
+  it("the modal state is the platform's: the page is held still without the kit writing overflow", async () => {
     const { root } = mounted();
     const open = trigger(root, "Filters");
     expect(document.documentElement.style.overflow).toBe("");
 
     await click(open);
-    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect((panel("Filters") as HTMLDialogElement).matches(":modal")).toBe(true);
+    expect(document.documentElement.style.overflow).toBe("");
 
-    await press("Escape");
+    await userEvent.keyboard("{Escape}");
+    await until(() => open.getAttribute("aria-expanded") === "false");
     expect(document.documentElement.style.overflow).toBe("");
   });
 
@@ -216,11 +230,11 @@ describe("Drawer", () => {
     expect(open.getAttribute("aria-expanded")).toBe("true");
 
     instance.hold();
-    await press("Escape");
+    await userEvent.keyboard("{Escape}");
+    await settle();
 
     expect(instance.requests.at(-1)).toBe(false);
     expect(open.getAttribute("aria-expanded")).toBe("true");
-    expect(panel("Filters").getAttribute("aria-modal")).toBe("true");
   });
 });
 

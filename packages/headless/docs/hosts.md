@@ -220,6 +220,9 @@ should render the element and skip them.
   for a modal drawer, `show()` for a non-modal one (which keeps the shell's Escape and outside press, since a non-modal
   `dialog` has neither), and `close()`. `createConfirm` passes the dialog modal's `nativeProps`/`attachDialog` through and
   keeps only the Cancel-first focus and the promise: the platform closes with Escape, a light dismiss or `close()`, and
-  each of those answers `false`.
+  each of those answers `false`. Two contracts stay the primitives' on every native path: the focus a dialog with no
+  laid-out control would lose to `showModal()`'s own step (a microtask after the flush, and `autofocus` on the least
+  destructive control), and the APG's Tab wrap at the panel's ends — a native modal makes the rest of the page inert but
+  lets Tab leave to the browser's chrome. Escape, the stack and the lock are the platform's.
 - **State**: which tab is selected, which rows are checked, the open set of a tree, the value a slider holds — the
   platform has no element to hold it, so the primitives do.

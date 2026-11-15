@@ -73,7 +73,6 @@ export interface DrawerContentProps {
   readonly role: "dialog";
   readonly "aria-modal": "true" | undefined;
   readonly "aria-labelledby": string | undefined;
-  readonly tabindex: -1;
   readonly hidden: boolean;
   readonly onKeyDown: (event: KeyboardEvent) => void;
 }
@@ -85,7 +84,6 @@ export interface DrawerContentProps {
 export interface DrawerNativeProps {
   readonly id: string;
   readonly role: "dialog";
-  readonly "aria-modal": "true" | undefined;
   readonly "aria-labelledby": string | undefined;
   /** A modal drawer lets the platform close it (`any` — Escape and outside, or `closerequest`); a non-modal one does not. */
   readonly closedby: "any" | "closerequest" | "none";
@@ -186,6 +184,8 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
     },
   );
   const attachDialog = (dialog: HTMLDialogElement): (() => void) => {
+    // Solid's JSX forbids `tabindex` on a dialog; the panel still takes the focus when it holds nothing focusable
+    dialog.tabIndex = -1;
     setDialogElement(dialog);
     return () => setDialogElement(undefined);
   };
@@ -213,13 +213,37 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
   createEffect(
     () => open(),
     (isOpen) => {
-      // a native modal dialog owns the focus, the Tab cycle, Escape and the stack
-      if (nativeModal()) {
-        return;
-      }
       if (isOpen) {
         wasOpen = true;
         const panel = content();
+        if (nativeModal()) {
+          // the platform's showModal focus can miss a panel it has not laid out yet; focus the panel's first control
+          // ourselves, and leave the containment, Escape and the stack to it
+          if (panel !== null) {
+            // after the flush: `showModal()`'s own focus step runs in this same turn and finds no laid-out control,
+            // moving the focus to the body; ours must land after it
+            queueMicrotask(() => {
+              if (open()) {
+                (firstFocusable(panel) ?? panel).focus();
+              }
+            });
+            // the platform makes the rest inert but does not wrap Tab at the panel's ends (APG requires the wrap); that
+            // one contract stays ours, while Escape, the stack and the lock remain the platform's
+            const onTab = (event: KeyboardEvent): void => {
+              if (event.key === "Tab" && !event.defaultPrevented && isTopOverlay(self)) {
+                cycleFocus(event, panel);
+              }
+            };
+            // the stack is otherwise the platform's, but the Tab wrap checks whether this drawer is the top one
+            const release = claimOverlay(self);
+            document.addEventListener("keydown", onTab, true);
+            return () => {
+              document.removeEventListener("keydown", onTab, true);
+              release();
+            };
+          }
+          return;
+        }
         if (panel !== null) {
           (firstFocusable(panel) ?? panel).focus();
         }
@@ -306,7 +330,6 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
         return isModal() && open() ? "true" : undefined;
       },
       "aria-labelledby": options.labelledby,
-      tabindex: -1,
       get hidden() {
         return !open();
       },
@@ -320,9 +343,7 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
     nativeProps: {
       id: contentId,
       role: "dialog",
-      get "aria-modal"() {
-        return isModal() ? "true" : undefined;
-      },
+      // no `aria-modal`: `showModal()` is the modal state (ARIA in HTML makes the attribute unnecessary on a dialog)
       "aria-labelledby": options.labelledby,
       get closedby() {
         if (!isModal()) {
