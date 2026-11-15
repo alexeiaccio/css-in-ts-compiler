@@ -13,13 +13,15 @@ scroll-progress bar, as three chain members of `cssints/plugin` `scope()`:
 - **`progress()`** is the bar the two live under: the element's own `scale`, scrubbed by `animation-timeline: scroll()`
   over `animation-range`, so the scroll's position is the fill. It sets no size and no colour — a host makes it a 3 px
   line wherever it wants one.
+- **`pointer()`** is the same scale with the _pointer_ as the timeline: the element grows as the pointer crosses it. No
+  engine ships `pointer-timeline` yet (it is a draft with no BCD key), so the script is the feature, not a fallback.
 
 Where a target lacks the feature a member runs on, a 0.4 kB script plays the same animation once when the element enters.
 
 ```ts
 import { cn, hover } from "cssints" with { type: "cssints" };
 import { blockSize, background } from "cssints" with { type: "cssints" };
-import { appear, progress, reveal } from "@cssints/reveal" with { type: "cssints" };
+import { appear, pointer, progress, reveal } from "@cssints/reveal" with { type: "cssints" };
 
 // scroll-driven: the scroll scrubs it
 export const fade = reveal();
@@ -217,10 +219,32 @@ progress()
 - **No `prefers-reduced-motion` branch.** The bar follows the reader's own scrolling: it never moves on its own, so
   there is no motion to reduce.
 
+## `pointer()`
+
+```ts
+pointer().axis("x" | "y");
+```
+
+- **What it sets.** `transform-origin` only — `0 50%` across (the default) or `50% 0` down — plus the class the script
+  finds. Size and colour the element like any other, and it grows from that edge as the pointer crosses its box.
+- **The script is the feature.** `pointer-timeline: <name> <axis>` and `animation-timeline: <name>` are a draft nobody
+  implements (pointer-animations-1 has no BCD key at all), so this member ships `polyfills: []` — the engine's "every
+  target gets the script" — and `runtime.ts` writes the fraction to the element's own `scale` on `pointermove`. The native
+  timeline takes the marker's place the day an engine has it.
+- **The layout box is what the pointer crosses.** Scaling shrinks the painted element, so the script measures against
+  `offsetWidth`/`offsetHeight` (layout, untouched by the transform) from the fixed edge the origin sits on: a pointer past the
+  painted edge is still on its way across the element, and the element that was last scrubbed keeps receiving the moves its
+  own scale would otherwise steal. Leaving the element holds the last value — there is no position to read outside it.
+- **Conflicts.** It sets `transform-origin`, so that in the same `cn()` is a build error (`cssints: reveal: kernel pt sets
+  transform-origin (this style also sets transform-origin)`).
+- **No `prefers-reduced-motion` branch.** The element never moves on its own: it follows the pointer, and a reader who does
+  not move it does not see it move.
+
 ## Browsers
 
 - **Native.** `progress()`: `animation-timeline: scroll()` and `animation-range`, Chrome 115 and Safari 26 (Firefox has
-  them behind a flag); no fallback, so the bar is not drawn there. `reveal()`: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
+  them behind a flag); no fallback, so the bar is not drawn there. `pointer()`: no engine has `pointer-timeline`; every
+  target runs the script. `reveal()`: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
   `animation-range`); Firefox has them behind a flag only. `appear()`: Chrome 146, Edge 146, Opera 130
   (`css.properties.animation-trigger`, `timeline-trigger` and `trigger-scope`); Firefox and Safari have no animation
   triggers today. CSS animation triggers are a candidate for Interop 2027.

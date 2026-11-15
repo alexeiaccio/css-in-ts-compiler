@@ -291,6 +291,32 @@ assert.match(
   e.message,
   /^cssints: reveal: kernel bar sets animation, animation-timeline, animation-range, transform-origin \(this style also sets animation-name\)$/,
 );
+
+// pointer(): a marker and an origin, the axis switching both, and the script on every target — the feature ships nowhere, so
+// `polyfills: []` is the engine's "everyone gets it"
+const pointerCode = await code("pointer.ts");
+// `polyfills: []` is "every target", so the script is delivered whatever the browserslist says — the feature ships nowhere
+const pointerRuntime = (await client.transformRequest("virtual:cssints/runtime/reveal.pt-script"))
+  .code;
+assert.ok(pointerRuntime.includes("reveal/src/runtime.ts"), `${mode}: ${pointerRuntime}`);
+const pointerOut = flat(plugins[0].api.sheet([`${root}/pointer.ts`]));
+assert.match(pointerCode, /export const across = "_reveal-pt";/, pointerCode);
+assert.match(pointerCode, /export const down = "_reveal-pt _\w+ _\w+ _\w+";/, pointerCode);
+const marker = /\._reveal-pt\{([^}]*)\}/.exec(pointerOut)?.[1]?.split(";") ?? [];
+assert.deepEqual(
+  marker.toSorted(),
+  ["--reveal-pt-a:x", "--reveal-pt-o:0 50%", "transform-origin:var(--reveal-pt-o)"],
+  pointerOut,
+);
+// the other axis
+for (const d of ["--reveal-pt-a:y", "--reveal-pt-o:50% 0"])
+  assert.ok(pointerOut.includes(`{${d}}`), `${d}\n${pointerOut}`);
+// it sets the origin, so the same property in one cn() is a build error that names it
+e = await failure("pointer-conflict.ts");
+assert.match(
+  e.message,
+  /^cssints: reveal: kernel pt sets transform-origin \(this style also sets transform-origin\)$/,
+);
 await server.close();
 
 // targets that all have scroll-driven animations or triggers, and Firefox alone: another process each, the targets are

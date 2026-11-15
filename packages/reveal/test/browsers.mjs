@@ -59,6 +59,9 @@ const native = bundle("fixtures/app.js", "chrome 120, safari 26");
 const withFallback = bundle("fixtures/app.js", "chrome 120, firefox 128");
 const appearNative = bundle("fixtures/appear/app.js", "chrome 156");
 const appearFallback = bundle("fixtures/appear/app.js", "chrome 120, firefox 128");
+// pointer() is the script on every target: the feature ships in no engine, so one build is all there is
+const pointerBundle = bundle("fixtures/pointer/app.js", "chrome 156");
+assert.ok(pointerBundle.js.includes("pointer-timeline"), "every target: pointer()'s script");
 assert.ok(!native.css.includes("data-reveal"), "native targets: no fallback CSS");
 assert.ok(withFallback.css.includes("data-reveal-in"), "Firefox in the targets: the fallback CSS");
 assert.ok(!appearNative.css.includes("data-reveal"), "trigger targets: no fallback CSS");
@@ -230,6 +233,45 @@ const appearPlayed = async (page) => {
   return out.filter(Boolean);
 };
 
+const scrubbedByPointer = async (page) => {
+  const out = [];
+  const check = (ok, what, s) => out.push(ok ? null : `${what}: ${JSON.stringify(s)}`);
+  const scale = (id) => page.evaluate((id) => document.getElementById(id).style.scale, id);
+  await frames(page);
+  check(
+    (await scale("across")) === "",
+    "no pointer yet: the element is untouched",
+    await scale("across"),
+  );
+  // the first box is 200x100 at (100, 100): a quarter across is a quarter of the scale
+  await page.mouse.move(150, 150);
+  await frames(page);
+  check((await scale("across")) === "0.25 1", "a quarter across", await scale("across"));
+  await page.mouse.move(250, 150);
+  await frames(page);
+  check((await scale("across")) === "0.75 1", "three quarters", await scale("across"));
+  // the painted box is a quarter as wide now: the pointer past it is still on its way across the element, so the scrub keeps
+  // following the layout box and clamps at its edge
+  await page.mouse.move(200, 150);
+  await frames(page);
+  check((await scale("across")) === "0.5 1", "half, past the painted edge", await scale("across"));
+  await page.mouse.move(299, 150);
+  await frames(page);
+  check((await scale("across")) === "0.995 1", "at the layout edge", await scale("across"));
+  // leaving the element altogether holds the last value: there is no pointer position to read
+  await page.mouse.move(700, 500);
+  await frames(page);
+  check((await scale("across")) === "0.995 1", "left: held", await scale("across"));
+  // the second box reads the y axis: 200 px tall at (400, 100)
+  await page.mouse.move(450, 150);
+  await frames(page);
+  check((await scale("down")) === "1 0.25", "a quarter down", await scale("down"));
+  await page.mouse.move(450, 100);
+  await frames(page);
+  check((await scale("down")) === "1 0", "at the top edge", await scale("down"));
+  return out.filter(Boolean);
+};
+
 let failed = 0;
 for (const name of (process.env.BROWSERS ?? "chrome,firefox,webkit").split(",")) {
   const browser = await launchers[name]();
@@ -257,6 +299,7 @@ for (const name of (process.env.BROWSERS ?? "chrome,firefox,webkit").split(","))
     hasTrigger
       ? ["appear forced", forcedAppear, { noSupport: true }, appearPlayed]
       : ["appear fallback", appearFallback, {}, appearPlayed],
+    ["pointer scrub", pointerBundle, {}, scrubbedByPointer],
   );
   for (const [label, b, opts, run] of runs) {
     const page = await serve(browser, b, opts);

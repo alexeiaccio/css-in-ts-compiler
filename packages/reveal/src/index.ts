@@ -7,7 +7,9 @@
 // over its duration. `progress()` is the bar those entrances live under: the element's own scale, scrubbed by a scroll
 // timeline. It has no fallback — a scrub cannot be played once, and a bar that lies is worse than none — so a browser
 // without scroll-driven animations draws no bar; `createScrollProgress` (@cssints/headless) is the JS half for a bar
-// that also has to be a `progressbar` to a screen reader.
+// that also has to be a `progressbar` to a screen reader. `pointer()` is the same element's scale with the *pointer* as the
+// timeline: no engine ships `pointer-timeline` yet (pointer-animations-1 has no BCD key), so the script is the feature, and
+// the kernel only says which axis the pointer is read along.
 import { motionKeyframes, motionVars, presets, type PresetName } from "@cssints/motion";
 import { keyframes, scale } from "cssints" with { type: "cssints" };
 import { scope } from "cssints/plugin";
@@ -158,6 +160,36 @@ export const revealScope = scope("reveal", {
       range: { args: "<'animation-range'>", emit: (v) => [["--_p-g", v]] },
     },
   },
+  // The pointer's timeline has no engine to run on: `pointer-timeline: <name> <axis>` and `animation-timeline: <name>` are a
+  // draft (no BCD key at all), so the marker class only says which axis the pointer is read along and runtime.ts scrubs the
+  // element. `polyfills: []` is the engine's "every target gets the script", which is what an unshipped feature needs; the
+  // native form takes the marker's place the day a browser has it.
+  "#pt": {
+    css: (css) => [
+      css.vars({ "--_pt-a": "x", "--_pt-o": "0 50%" }),
+      css.transformOrigin("var(--_pt-o)"),
+    ],
+  },
+  "#pt-script": { polyfills: [], script: "@cssints/reveal/runtime" },
+  pointer: {
+    uses: ["pt", "pt-script"],
+    chain: {
+      // the axis the pointer is read along: `x` across the element from its left edge, `y` down it from its top
+      axis: {
+        args: "x | y",
+        emit: (v) =>
+          v === "y"
+            ? [
+                ["--_pt-a", "y"],
+                ["--_pt-o", "50% 0"],
+              ]
+            : [
+                ["--_pt-a", "x"],
+                ["--_pt-o", "0 50%"],
+              ],
+      },
+    },
+  },
   // the same methods, on the trigger's own names; `inOut()` is the one trigger action reveal() has no use for
   appear: {
     uses: ["enter", "io-appear"],
@@ -196,5 +228,11 @@ export const revealScope = scope("reveal", {
  * those in the same `cn()` are build errors, and it has no fallback: a browser without scroll-driven animations draws
  * nothing. Pair it with `createScrollProgress` (@cssints/headless) for the `progressbar` role and the JS fallback — one
  * element can carry both, the animation winning where it runs.
+ *
+ * `pointer().axis("y")`: the element's own `scale`, scrubbed by where the pointer is over it — `x` across it from its left
+ * edge (the default), `y` down it from its top. No engine ships `pointer-timeline` yet, so the script runs it everywhere: the
+ * first `pointermove` over the element starts the scrub and the last one holds. Size and colour the element like any other;
+ * it sets `transform-origin`, so that in the same `cn()` is a build error, and it never moves on its own, so there is no
+ * reduced-motion branch.
  */
-export const { reveal, appear, progress } = revealScope.export();
+export const { reveal, appear, progress, pointer } = revealScope.export();

@@ -5522,3 +5522,37 @@ name the read once; both are "limited availability" in the article's own table, 
 counter to `result 420`, the four bars are 420/420, 310/420, 96/420 and 42/420 of their tracks, a fifth value of 900 moves the
 scale and every share, and the numbers, the caption and the `aria-hidden` decoration are read as text), the page's conformance
 suite and `bun run test:site` in Chrome, `apps/ui` typecheck, fmt and lint.
+
+## A pointer timeline, and what a draft costs (cssints-su2g, 2026-11-15)
+
+`pointer-timeline` (pointer-animations-1) is a timeline whose progress is where the pointer is over an element:
+`pointer-timeline: <name> <axis>` on the source, `animation-timeline: <name>` on the animated element, `animation-range-center`
+for the range. It had been parked on "gradient-2d proves the runtime delivery of an own-key polyfill" — `mesh-gradient()` is not
+in BCD either and `@cssints/gradient-2d` ships a runtime for it, so the park was lifted.
+
+Adopted as `pointer()` in `@cssints/reveal`, and the interesting finding is how little of the _spec_ is usable today:
+
+- **The native half is a guess, so it is not written.** No engine has the property (Chrome 156 rejects it in `CSS.supports`),
+  and the grammar has no key to warn on. A class emitting `pointer-timeline` would print CSS no browser applies _and_ every
+  target would still need the script, so the member emits only `transform-origin` and the marker class, and the runtime is the
+  feature. No `AHEAD_OF_CHROME` entry either: the property is one line to add the day a browser (or webref 8.x) has it.
+- **`polyfills: []` is the engine's "every target".** The runtime entry `#pt-script` declares no polyfilled key, which the
+  entry point documents as the plugin's own face rather than a fallback — exactly what an unshipped feature needs, and it
+  needs no own-BCD-key table (`cssints-6ctt`), which was the other blocker in the bean.
+- **The scrub fights its own geometry.** Scaling the element shrinks the painted box, so the pointer leaves the element exactly
+  when the scrub has made it small: the first implementation moved once and then stopped (found by the browser test, not by
+  reading). The runtime measures the **layout** box (`offsetWidth`/`offsetHeight`, untouched by the transform) from the fixed
+  edge the origin sits on, and keeps the element it scrubbed last while the pointer is still inside that box. Leaving the
+  element holds the last fraction: outside it there is no position to read.
+- **The first move starts it.** No inline scale before that, so the element is drawn at its own size until the pointer arrives,
+  which is honest for a picture and wrong for a bar (a host that wants a bar starts it at 0 with `scale` of its own).
+
+**Verified:** `packages/reveal/test/reveal.mjs` (the marker's three declarations, the axis switch, the conflict message, and the
+script delivered for _every_ target including `chrome 146`), `packages/reveal/test/browsers.mjs` in real Chrome (a box 200 px
+wide at (100, 100): 0.25 at the quarter, 0.75 at three quarters with the pointer already outside the painted edge, 0.5 past
+it, 0.995 at the layout edge, held after leaving, and a 200 px tall box read down its y axis at 0.25), `bun run typecheck`,
+fmt and lint.
+
+**Left:** the native form (a kernel change plus an `AHEAD_OF_CHROME` grammar entry when an engine ships it), a headless half
+for a bar that also has to report a value (`createScrollProgress` has no pointer twin yet), and touch: `pointermove` during a
+touch scroll is a different gesture, and nothing here reads `pointerdown`/`pointerup` yet.
