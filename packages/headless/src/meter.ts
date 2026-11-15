@@ -15,6 +15,7 @@ export interface MeterOptions {
 
 /** Spread onto the element with `role=meter`. */
 export interface MeterProps {
+  readonly "data-part": string;
   readonly role: "meter";
   readonly "aria-valuemin": number;
   readonly "aria-valuemax": number;
@@ -62,6 +63,7 @@ export const createMeter = (options: MeterOptions = {}): Meter => {
     value,
     percent,
     meterProps: {
+      "data-part": "meter",
       role: "meter",
       get "aria-valuemin"() {
         return min();

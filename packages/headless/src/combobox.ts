@@ -50,6 +50,7 @@ export interface ComboboxOptionState {
 }
 
 export interface ComboboxInputProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "combobox";
   readonly value: string;
@@ -67,6 +68,7 @@ export interface ComboboxInputProps {
 }
 
 export interface ComboboxTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly type: "button";
   readonly tabindex: -1;
@@ -80,6 +82,7 @@ export interface ComboboxTriggerProps {
 }
 
 export interface ComboboxListboxProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "listbox";
   readonly hidden: boolean;
@@ -482,6 +485,7 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
     },
     setValue: (next) => requestValue(next),
     comboboxProps: {
+      "data-part": "input",
       id: `${base}-input`,
       role: "combobox",
       get value() {
@@ -510,6 +514,7 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
       onClick,
     },
     triggerProps: {
+      "data-part": "trigger",
       id: `${base}-trigger`,
       type: "button",
       tabindex: -1,
@@ -527,6 +532,7 @@ export const createCombobox = (options: ComboboxOptions): Combobox => {
       onMouseDown: (event) => event.preventDefault(),
     },
     listboxProps: {
+      "data-part": "popup",
       id: listboxId,
       role: "listbox",
       get hidden() {

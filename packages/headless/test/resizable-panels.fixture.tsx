@@ -65,22 +65,18 @@ export const mountResizablePanels = (config: PanelsConfig): Mounted => {
       },
     );
     return (
-      <div
-        data-part="group"
-        {...panels.groupProps}
-        style={{ display: "flex", width: "600px", height: "400px" }}
-      >
+      <div {...panels.groupProps} style={{ display: "flex", width: "600px", height: "400px" }}>
         {[0, 1, 2].map((index) => (
           <>
             <div
-              data-part={`pane:${index}`}
               {...panels.paneProps(index)}
+              data-part={`pane:${index}`}
               style={{ flex: `${panels.sizes()[index]}%` }}
             />
             {index < 2 && (
               <div
-                data-part={`separator:${index}`}
                 {...panels.separatorProps(index)}
+                data-part={`separator:${index}`}
                 style={{ flex: "0 0 8px" }}
               />
             )}

@@ -154,17 +154,13 @@ const mountNative = (options: TabsOptions = {}): Native => {
     );
     return (
       <div>
-        <div data-part="tablist" {...tabs.tablistProps}>
+        <div {...tabs.tablistProps}>
           {Array.from({ length: tabs.items }, (_, index) => (
-            <button data-part="tab" {...tabs.tabProps(index)}>
-              Tab {index + 1}
-            </button>
+            <button {...tabs.tabProps(index)}>Tab {index + 1}</button>
           ))}
         </div>
         {Array.from({ length: tabs.items }, (_, index) => (
-          <div data-part="tabpanel" {...tabs.tabpanelProps(index)}>
-            Panel {index + 1}
-          </div>
+          <div {...tabs.tabpanelProps(index)}>Panel {index + 1}</div>
         ))}
       </div>
     );

@@ -56,7 +56,6 @@ const mount = (options: MountOptions = {}) => {
           Page
         </button>
         <button
-          data-part="trigger"
           {...popover.triggerProps}
           ref={(element) => {
             triggerEl = element;
@@ -66,7 +65,6 @@ const mount = (options: MountOptions = {}) => {
           Open
         </button>
         <div
-          data-part="content"
           {...popover.contentProps}
           style={popover.contentStyle()}
           ref={(element) => {

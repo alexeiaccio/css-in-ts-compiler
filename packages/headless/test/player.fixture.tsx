@@ -111,21 +111,13 @@ export const mountPlayer = (config: PlayerConfig): Mounted => {
     api = player;
     return (
       <div>
-        <div data-part="surface" {...player.surfaceProps}>
-          surface
-        </div>
-        <button data-part="play" {...player.playProps}>
-          play
-        </button>
-        <div data-part="seek" {...player.seekProps} />
+        <div {...player.surfaceProps}>surface</div>
+        <button {...player.playProps}>play</button>
+        <div {...player.seekProps} />
         <div data-part="volume" aria-valuenow={player.volume()} />
         <div data-part="rate" aria-valuenow={player.rate()} />
-        <button data-part="mute" {...player.muteProps}>
-          mute
-        </button>
-        <button data-part="fullscreen" {...player.fullscreenProps}>
-          fullscreen
-        </button>
+        <button {...player.muteProps}>mute</button>
+        <button {...player.fullscreenProps}>fullscreen</button>
       </div>
     );
   }, root);

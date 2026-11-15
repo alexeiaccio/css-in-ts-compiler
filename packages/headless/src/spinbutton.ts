@@ -29,6 +29,7 @@ export interface SpinbuttonOptions {
 }
 
 export interface SpinbuttonInputProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "spinbutton";
   readonly "aria-valuenow": string;
@@ -47,6 +48,7 @@ export interface SpinbuttonInputProps {
 }
 
 export interface SpinbuttonButtonProps {
+  readonly "data-part": string;
   readonly role: "button";
   readonly tabindex: number;
   readonly "aria-label": string;
@@ -266,6 +268,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
     decrement,
     setWrap: (next) => setWrapSignal(next),
     inputProps: {
+      "data-part": "input",
       id: `${base}-input`,
       role: "spinbutton",
       get "aria-valuenow"() {
@@ -308,6 +311,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       },
     },
     incrementProps: {
+      "data-part": "increment",
       role: "button",
       tabindex: -1,
       "aria-label": "Increase",
@@ -319,6 +323,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       onClick: increment,
     },
     decrementProps: {
+      "data-part": "decrement",
       role: "button",
       tabindex: -1,
       "aria-label": "Decrease",

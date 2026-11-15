@@ -22,6 +22,7 @@ export interface ButtonOptions {
 
 /** Spread onto a native `<button>`. */
 export interface ButtonProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly role: "button";
   readonly tabindex: number;
@@ -76,6 +77,7 @@ export const createButton = (options: ButtonOptions = {}): Button => {
       requestPressed(value);
     },
     buttonProps: {
+      "data-part": "button",
       type: "button",
       role: "button",
       tabindex: 0,

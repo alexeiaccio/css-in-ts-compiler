@@ -78,7 +78,6 @@ const mount = (options: MountOptions): Mounted => {
 
     return (
       <div
-        data-part="port"
         {...virtualizer.scrollProps}
         ref={(element) => {
           port = element;
@@ -99,12 +98,11 @@ const mount = (options: MountOptions): Mounted => {
           }}
         >
           <Show when={virtualizer.window().above > 0}>
-            <div data-part="start" {...virtualizer.spacerProps("start")} />
+            <div {...virtualizer.spacerProps("start")} data-part="start" />
           </Show>
           <For each={rows()}>
             {(index) => (
               <div
-                data-part="row"
                 data-index={index}
                 {...virtualizer.itemProps(index)}
                 style={{ height: `${heightOf(index)}px` }}
@@ -114,7 +112,7 @@ const mount = (options: MountOptions): Mounted => {
             )}
           </For>
           <Show when={virtualizer.window().below > 0}>
-            <div data-part="end" {...virtualizer.spacerProps("end")} />
+            <div {...virtualizer.spacerProps("end")} data-part="end" />
           </Show>
         </div>
       </div>

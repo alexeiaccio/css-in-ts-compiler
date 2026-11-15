@@ -147,6 +147,7 @@ export interface GridOptions {
 }
 
 export interface GridProps {
+  readonly "data-part": string;
   readonly role: "grid";
   readonly "aria-rowcount": number;
   readonly "aria-colcount": number;
@@ -160,12 +161,14 @@ export interface GridProps {
 }
 
 export interface GridRowProps {
+  readonly "data-part": string;
   readonly role: "row";
   readonly id: string;
   readonly "aria-rowindex": number;
 }
 
 export interface GridCellProps {
+  readonly "data-part": string;
   readonly role: "gridcell";
   readonly id: string;
   /**
@@ -185,6 +188,7 @@ export interface GridCellProps {
 
 /** A focusable widget rendered inside a cell (focusTarget = "widget"). */
 export interface GridWidgetProps {
+  readonly "data-part": string;
   readonly tabindex: number;
   /** The platform's entry marker, on the current coordinate's widget only. */
   readonly focusgroupstart: "" | undefined;
@@ -192,6 +196,7 @@ export interface GridWidgetProps {
 }
 
 export interface GridHeaderProps {
+  readonly "data-part": string;
   readonly role: "columnheader";
   readonly id: string;
   /**
@@ -869,6 +874,7 @@ export const createGrid = (options: GridOptions = {}): Grid => {
     focusTargetPart,
     currentCellId,
     gridProps: {
+      "data-part": "grid",
       role: "grid",
       "aria-rowcount": totalRows,
       "aria-colcount": totalCols,
@@ -898,11 +904,13 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       },
     },
     rowProps: (r) => ({
+      "data-part": "row",
       role: "row",
       id: `${base}-row-${r}`,
       "aria-rowindex": r + 1,
     }),
     cellProps: (r, c) => ({
+      "data-part": "cell",
       role: "gridcell",
       id: cellId(r, c),
       get tabindex() {
@@ -926,6 +934,7 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       onClick: () => clickCell(r, c),
     }),
     widgetProps: (r, c) => ({
+      "data-part": "widget",
       get tabindex() {
         // in widget mode the widget set is the item set; a cell target owns it
         return focusTarget() === "widget" ? 0 : -1;
@@ -938,6 +947,7 @@ export const createGrid = (options: GridOptions = {}): Grid => {
       },
     }),
     headerProps: (c) => ({
+      "data-part": "header",
       role: "columnheader",
       id: `${base}-header-${c}`,
       // the header row is its own 1-D roving; keep it out of the body's group

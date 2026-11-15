@@ -24,6 +24,7 @@ export interface DialogModalOptions {
 }
 
 export interface DialogTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-haspopup": "dialog";
   readonly "aria-expanded": "true" | "false";
@@ -33,6 +34,7 @@ export interface DialogTriggerProps {
 }
 
 export interface DialogContentProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: DialogRole;
   readonly "aria-modal": "true" | undefined;
@@ -49,6 +51,7 @@ export interface DialogContentProps {
  * element to `attachDialog`.
  */
 export interface DialogNativeProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: DialogRole;
   readonly "aria-labelledby": string | undefined;
@@ -60,6 +63,7 @@ export interface DialogNativeProps {
 }
 
 export interface DialogBackdropProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly hidden: boolean;
   readonly onClick: () => void;
@@ -77,6 +81,7 @@ export interface DialogModal {
   readonly attachDialog: (dialog: HTMLDialogElement) => () => void;
   readonly backdropProps: DialogBackdropProps;
   readonly dismissProps: {
+    readonly "data-part": string;
     readonly id: string;
     readonly type: "button";
     readonly onClick: () => void;
@@ -153,6 +158,7 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
     openDialog,
     close,
     triggerProps: {
+      "data-part": "trigger",
       id: `${base}-trigger`,
       "aria-haspopup": "dialog",
       get "aria-expanded"() {
@@ -170,6 +176,7 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
       },
     },
     dialogProps: {
+      "data-part": "dialog",
       id: `${base}-dialog`,
       role,
       get "aria-modal"() {
@@ -190,6 +197,7 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
       },
     },
     nativeProps: {
+      "data-part": "dialog",
       id: `${base}-dialog`,
       role,
       "aria-labelledby": options.labelledby,
@@ -211,6 +219,7 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
     },
     attachDialog,
     backdropProps: {
+      "data-part": "backdrop",
       id: `${base}-backdrop`,
       get hidden() {
         return !open();
@@ -222,6 +231,7 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
       },
     },
     dismissProps: {
+      "data-part": "dismiss",
       id: `${base}-dismiss`,
       type: "button",
       onClick: () => close(),

@@ -86,6 +86,7 @@ export interface ListboxOptions {
 }
 
 export interface ListboxProps {
+  readonly "data-part": string;
   readonly role: "listbox";
   readonly "aria-multiselectable": "true" | "false" | undefined;
   readonly "aria-activedescendant": string | undefined;
@@ -102,6 +103,7 @@ export interface ListboxProps {
  * value the platform needs, not the roving stop.
  */
 export interface ListboxOptionProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "option";
   readonly "aria-selected": "true" | "false";
@@ -658,6 +660,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       }
     },
     listboxProps: {
+      "data-part": "listbox",
       role: "listbox",
       get "aria-multiselectable"() {
         if (mode === "multiple") {
@@ -692,6 +695,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       },
     },
     optionProps: (index) => ({
+      "data-part": "option",
       id: optionId(index),
       role: "option",
       get "aria-selected"() {

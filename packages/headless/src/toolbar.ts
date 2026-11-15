@@ -65,6 +65,7 @@ export interface ToolbarItem {
  * focusgroup provider owns it, and binding it here would fight the platform.
  */
 export interface ToolbarItemProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "button";
   readonly "aria-disabled": "true" | undefined;
@@ -89,6 +90,7 @@ export interface Toolbar {
   readonly setOrientation: (orientation: ToolbarOrientation) => void;
   readonly setWrap: (wrap: boolean) => void;
   readonly toolbarProps: {
+    readonly "data-part": string;
     readonly role: "toolbar";
     readonly "aria-orientation": ToolbarOrientation;
     /** The definition as the `focusgroup` attribute (`"toolbar block nowrap"`). */
@@ -330,6 +332,7 @@ export const createToolbar = (options: ToolbarOptions): Toolbar => {
     setOrientation,
     setWrap,
     toolbarProps: {
+      "data-part": "toolbar",
       get role() {
         return "toolbar" as const;
       },
@@ -347,6 +350,7 @@ export const createToolbar = (options: ToolbarOptions): Toolbar => {
       },
     },
     itemProps: (index) => ({
+      "data-part": "item",
       id: items[index]?.id ?? `${base}-item-${index}`,
       role: "button",
       get "aria-disabled"() {

@@ -97,12 +97,11 @@ const mountFiles = (initial: ReadonlyArray<string>): Files => {
 
     return (
       <div>
-        <div data-part="tablist" {...tabs.tablistProps}>
+        <div {...tabs.tablistProps}>
           <For each={files()}>
             {(name, at) => (
               <span>
                 <div
-                  data-part="tab"
                   {...tabs.tabProps(at())}
                   // a div is not focusable on its own and the primitive no
                   // longer renders the roving stop; the platform makes exactly
@@ -114,19 +113,15 @@ const mountFiles = (initial: ReadonlyArray<string>): Files => {
                     when={tabs.renameProps(at()).editing()}
                     fallback={<span data-part="label">{name}</span>}
                   >
-                    <input data-part="rename" {...tabs.renameProps(at()).inputProps} />
+                    <input {...tabs.renameProps(at()).inputProps} />
                   </Show>
                 </div>
-                <button data-part="close" {...tabs.closeProps(at())}>
-                  ×
-                </button>
+                <button {...tabs.closeProps(at())}>×</button>
               </span>
             )}
           </For>
         </div>
-        <For each={files()}>
-          {(_, at) => <div data-part="tabpanel" {...tabs.tabpanelProps(at())} />}
-        </For>
+        <For each={files()}>{(_, at) => <div {...tabs.tabpanelProps(at())} />}</For>
       </div>
     );
   }, root);

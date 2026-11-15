@@ -34,6 +34,7 @@ export interface SliderMultiThumbOptions {
 }
 
 export interface SliderMultiThumbProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "slider";
   readonly "aria-valuenow": string;
@@ -261,6 +262,7 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
     blur: () => setFocused(null),
     keyDown,
     thumbProps: (index) => ({
+      "data-part": "thumb",
       id: `${base}-thumb-${index}`,
       role: "slider",
       get "aria-valuenow"() {
@@ -298,6 +300,7 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
       },
     }),
     trackProps: {
+      "data-part": "track",
       onPointerDown: (event) => {
         if (disabled()) {
           return;

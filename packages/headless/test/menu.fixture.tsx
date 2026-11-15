@@ -115,21 +115,17 @@ export const mountCheckableMenu = (
     );
     return (
       <>
-        <button data-part="trigger" {...menu.triggerProps}>
-          Menu
-        </button>
-        <div data-part="menu" {...menu.menuProps}>
+        <button {...menu.triggerProps}>Menu</button>
+        <div {...menu.menuProps}>
           {/* The native engine writes no tabindex and only moves to an item that is
               tabbable already, so its rows are `<button>`s; the polyfill decorates the
               rows itself and restores their authored `tabindex="-1"`, which is what the
               model's `-1` describes. */}
           {menu.items.map((item, index) =>
             provider === "auto" ? (
-              <button data-part="menuitem" {...menu.itemProps(index)}>
-                {item.label}
-              </button>
+              <button {...menu.itemProps(index)}>{item.label}</button>
             ) : (
-              <div data-part="menuitem" tabindex={-1} {...menu.itemProps(index)}>
+              <div tabindex={-1} {...menu.itemProps(index)}>
                 {item.label}
               </div>
             ),
@@ -267,20 +263,20 @@ export const mountMenubar = (
       readonly label: string;
     }) =>
       provider === "auto" ? (
-        <button data-part={props.part} {...props.item}>
+        <button {...props.item} data-part={props.part}>
           {props.label}
         </button>
       ) : (
-        <div data-part={props.part} tabindex={-1} {...props.item}>
+        <div tabindex={-1} {...props.item} data-part={props.part}>
           {props.label}
         </div>
       );
     return (
-      <div data-part="menubar" {...menubar.menubarProps}>
+      <div {...menubar.menubarProps}>
         {menubar.items.map((item, bar) => (
           <>
             <Row part={`menuitem:${bar}`} item={menubar.barItemProps(bar)} label={item.label} />
-            <div data-part={`menu:${bar}`} {...menubar.menuProps(bar)}>
+            <div {...menubar.menuProps(bar)} data-part={`menu:${bar}`}>
               {item.menu.map((menuItem, index) => (
                 <>
                   <Row
@@ -289,7 +285,7 @@ export const mountMenubar = (
                     label={menuItem.label}
                   />
                   {menuItem.submenu.length > 0 ? (
-                    <div data-part="submenu:1" {...menubar.submenuProps(bar, index)}>
+                    <div {...menubar.submenuProps(bar, index)} data-part="submenu:1">
                       {menuItem.submenu.map((subItem, sub) => (
                         <Row
                           part={`menuitem:${bar}/${index}/${sub}`}

@@ -56,13 +56,9 @@ export const mountLink = (config: LinkConfig): Mounted => {
     () => (
       <>
         {native() ? (
-          <a data-part="link" {...link.linkProps}>
-            {link.href() ?? "link"}
-          </a>
+          <a {...link.linkProps}>{link.href() ?? "link"}</a>
         ) : (
-          <span data-part="link" {...link.linkProps}>
-            link
-          </span>
+          <span {...link.linkProps}>link</span>
         )}
         <span data-part="target" tabindex={-1}>
           target

@@ -67,17 +67,12 @@ export const mountWindowSplitter = (config: WindowsplitterConfig): Mounted => {
     return (
       <>
         {config.labelledby !== null && <span id={config.labelledby}>Primary pane</span>}
-        <div data-part="primary" {...splitter.primaryProps}>
-          Primary pane
-        </div>
+        <div {...splitter.primaryProps}>Primary pane</div>
         <div
-          data-part="separator"
           {...splitter.separatorProps}
           aria-label={config.labelledby === null ? "Primary pane" : undefined}
         />
-        <div data-part="secondary" {...splitter.secondaryProps}>
-          Secondary pane
-        </div>
+        <div {...splitter.secondaryProps}>Secondary pane</div>
       </>
     );
   }, root);

@@ -19,6 +19,7 @@ export interface SwitchOptions {
 
 /** Spread onto the focusable element with `role=switch`. */
 export interface SwitchProps {
+  readonly "data-part": string;
   readonly role: "switch";
   readonly "aria-checked": "true" | "false";
   readonly "aria-disabled": "true" | undefined;
@@ -97,6 +98,7 @@ export const createSwitch = (options: SwitchOptions = {}): Switch => {
     },
     toggle,
     switchProps: {
+      "data-part": "switch",
       role: "switch",
       get "aria-checked"() {
         return checked() ? "true" : "false";

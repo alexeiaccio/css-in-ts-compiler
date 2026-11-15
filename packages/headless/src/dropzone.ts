@@ -44,6 +44,7 @@ export interface DropZoneOptions {
 
 /** Spread onto the hidden `<input type=file>`; render it, always. */
 export interface DropZoneInputProps {
+  readonly "data-part": string;
   /** The id the browse button clicks; generated. */
   readonly id: string;
   readonly type: "file";
@@ -56,6 +57,7 @@ export interface DropZoneInputProps {
 
 /** Spread onto the drop target (any element). `dragging()` is the styling hook. */
 export interface DropZoneZoneProps {
+  readonly "data-part": string;
   readonly role: "group";
   readonly "aria-label": string | undefined;
   readonly "aria-labelledby": string | undefined;
@@ -68,6 +70,7 @@ export interface DropZoneZoneProps {
 
 /** Spread onto a real `<button type="button">`: Enter and Space are the platform's. */
 export interface DropZoneBrowseProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly disabled: true | undefined;
   readonly "aria-disabled": "true" | undefined;
@@ -77,6 +80,7 @@ export interface DropZoneBrowseProps {
 
 /** Spread onto the live region; render it once, always. */
 export interface DropZoneStatusProps {
+  readonly "data-part": string;
   readonly role: "status";
   readonly "aria-live": "polite";
   readonly "aria-atomic": "true";
@@ -265,6 +269,7 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
     dragging: () => depth() > 0,
     message: () => options.formatMessage?.(messageState()) ?? messageOf(batch()),
     inputProps: {
+      "data-part": "input",
       id,
       type: "file",
       get accept() {
@@ -280,6 +285,7 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
       onChange: picked,
     },
     zoneProps: {
+      "data-part": "zone",
       role: "group",
       get "aria-label"() {
         return options.labels?.zone;
@@ -308,6 +314,7 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
       onDrop: dropped,
     },
     browseProps: {
+      "data-part": "browse",
       type: "button",
       get disabled() {
         return disabled() ? true : undefined;
@@ -320,6 +327,11 @@ export const createDropZone = (options: DropZoneOptions): DropZone => {
       },
       onClick: browse,
     },
-    statusProps: { role: "status", "aria-live": "polite", "aria-atomic": "true" },
+    statusProps: {
+      "data-part": "status",
+      role: "status",
+      "aria-live": "polite",
+      "aria-atomic": "true",
+    },
   };
 };

@@ -30,19 +30,23 @@ export type PaginationItem =
   | { readonly kind: "gap"; readonly key: string };
 
 export interface PaginationNavProps {
+  readonly "data-part": string;
   readonly "aria-label": string;
 }
 
 export interface PaginationListProps {
+  readonly "data-part": string;
   readonly role: "list";
 }
 
 export interface PaginationItemProps {
+  readonly "data-part": string;
   readonly role: "listitem";
   readonly "aria-current": "page" | undefined;
 }
 
 export interface PaginationLinkProps {
+  readonly "data-part": string;
   readonly href: string | undefined;
   readonly "aria-current": "page" | undefined;
   readonly "aria-disabled": "true" | undefined;
@@ -52,6 +56,7 @@ export interface PaginationLinkProps {
 }
 
 export interface PaginationStatusProps {
+  readonly "data-part": string;
   readonly role: "status";
   readonly "aria-live": "polite";
   readonly "aria-atomic": "true";
@@ -127,6 +132,7 @@ export const createPagination = (options: PaginationOptions): Pagination => {
   };
 
   const linkProps = (page: number): PaginationLinkProps => ({
+    "data-part": "link",
     get href() {
       return options.hrefFor?.(page);
     },
@@ -153,6 +159,7 @@ export const createPagination = (options: PaginationOptions): Pagination => {
   // An end is an offset from the current page, not a page captured when the host read the object:
   // a host that spreads it onto an anchor once still moves past the first step.
   const endProps = (offset: -1 | 1, name: string, rel: "prev" | "next"): PaginationLinkProps => ({
+    "data-part": rel === "prev" ? "previous" : "next",
     get href() {
       return options.hrefFor?.(current() + offset);
     },
@@ -178,12 +185,14 @@ export const createPagination = (options: PaginationOptions): Pagination => {
     items: pages,
     current,
     navProps: {
+      "data-part": "nav",
       get "aria-label"() {
         return label("nav", "Pagination");
       },
     },
-    listProps: { role: "list" },
+    listProps: { "data-part": "list", role: "list" },
     itemProps: (page) => ({
+      "data-part": "item",
       role: "listitem",
       get "aria-current"() {
         return page === current() ? ("page" as const) : undefined;
@@ -199,6 +208,11 @@ export const createPagination = (options: PaginationOptions): Pagination => {
     status: () =>
       options.labels?.status?.(current(), options.pageCount) ??
       `Page ${current()} of ${options.pageCount}`,
-    statusProps: { role: "status", "aria-live": "polite", "aria-atomic": "true" },
+    statusProps: {
+      "data-part": "status",
+      role: "status",
+      "aria-live": "polite",
+      "aria-atomic": "true",
+    },
   };
 };

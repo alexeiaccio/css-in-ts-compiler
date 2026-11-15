@@ -56,7 +56,7 @@ export const mountAlert = (config: AlertConfig): Mounted => {
             >
               {alert.message()}
             </div>
-            <button data-part="close" type="button" {...alert.dismissProps}>
+            <button type="button" {...alert.dismissProps}>
               Close
             </button>
           </div>

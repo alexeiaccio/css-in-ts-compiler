@@ -85,6 +85,7 @@ export interface DiagramOptions {
 
 /** Spread onto the element that draws one node. */
 export interface DiagramNodeProps {
+  readonly "data-part": string;
   /** The element id a keyboard move focuses; set it by spreading, never by hand. */
   readonly id: string;
   readonly role: "button";
@@ -98,6 +99,7 @@ export interface DiagramNodeProps {
 
 /** Spread onto the element that draws one edge. */
 export interface DiagramEdgeProps {
+  readonly "data-part": string;
   readonly role: "button";
   readonly "aria-label": string;
   readonly tabindex: -1;
@@ -106,6 +108,7 @@ export interface DiagramEdgeProps {
 
 /** Spread onto the element that carries the announcement; render it once, always. */
 export interface DiagramStatusProps {
+  readonly "data-part": string;
   readonly role: "status";
   readonly "aria-live": "polite";
 }
@@ -435,6 +438,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
       const node = nodeOf(id);
       if (node === undefined) {
         return {
+          "data-part": "node",
           id: elementId(id),
           role: "button",
           "aria-roledescription": "node",
@@ -446,6 +450,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
         };
       }
       return {
+        "data-part": "node",
         id: elementId(id),
         role: "button",
         "aria-roledescription": "node",
@@ -464,10 +469,17 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     edgeProps: (id) => {
       const edge = edgeList().find((candidate) => candidate.id === id);
       if (edge === undefined) {
-        return { role: "button", "aria-label": "", tabindex: -1, onClick: () => {} };
+        return {
+          "data-part": "edge",
+          role: "button",
+          "aria-label": "",
+          tabindex: -1,
+          onClick: () => {},
+        };
       }
       const name = `${labelOf(edge.from)} ${ARROW} ${labelOf(edge.to)}`;
       return {
+        "data-part": "edge",
         role: "button",
         "aria-label": edge.label === undefined ? name : `${edge.label}: ${name}`,
         tabindex: -1,
@@ -480,6 +492,6 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     edgeCursor,
     setEdgeCursor,
     status,
-    statusProps: { role: "status", "aria-live": "polite" },
+    statusProps: { "data-part": "status", role: "status", "aria-live": "polite" },
   };
 };

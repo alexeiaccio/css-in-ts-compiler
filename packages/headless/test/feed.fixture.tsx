@@ -77,17 +77,17 @@ export const mountFeed = (config: FeedConfig): Mounted => {
     );
     return (
       <div>
-        <a data-part="before-feed" href="#before" {...feed.beforeProps}>
+        <a href="#before" {...feed.beforeProps}>
           Before
         </a>
-        <div data-part="feed" {...feed.feedProps}>
+        <div {...feed.feedProps}>
           {Array.from({ length: SLOTS }, (_, slot) => (
-            <div data-part={`article:${slot + 1}`} {...feed.articleProps(slot + 1)}>
+            <div {...feed.articleProps(slot + 1)} data-part={`article:${slot + 1}`}>
               Article {slot + 1}
             </div>
           ))}
         </div>
-        <a data-part="after-feed" href="#after" {...feed.afterProps}>
+        <a href="#after" {...feed.afterProps}>
           After
         </a>
       </div>

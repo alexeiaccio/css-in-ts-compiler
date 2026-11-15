@@ -29,26 +29,18 @@ const mount = (id = "c"): Mounted => {
     return (
       <>
         <button
-          data-part="invoker"
           {...confirm.triggerProps}
+          data-part="invoker"
           onClick={() => void confirm.confirm({ title: "Delete?" }).catch(() => {})}
         >
           Delete
         </button>
-        <div data-part="backdrop" {...confirm.backdropProps} style={{ height: "20px" }} />
-        <div data-part="dialog" {...confirm.dialogProps}>
-          <h2 data-part="title" {...confirm.titleProps}>
-            {confirm.request()?.title}
-          </h2>
-          <p data-part="description" {...confirm.descriptionProps}>
-            {confirm.request()?.description}
-          </p>
-          <button data-part="confirm" {...confirm.confirmProps}>
-            {confirm.request()?.confirmLabel}
-          </button>
-          <button data-part="cancel" {...confirm.cancelProps}>
-            {confirm.request()?.cancelLabel}
-          </button>
+        <div {...confirm.backdropProps} style={{ height: "20px" }} />
+        <div {...confirm.dialogProps}>
+          <h2 {...confirm.titleProps}>{confirm.request()?.title}</h2>
+          <p {...confirm.descriptionProps}>{confirm.request()?.description}</p>
+          <button {...confirm.confirmProps}>{confirm.request()?.confirmLabel}</button>
+          <button {...confirm.cancelProps}>{confirm.request()?.cancelLabel}</button>
         </div>
       </>
     );

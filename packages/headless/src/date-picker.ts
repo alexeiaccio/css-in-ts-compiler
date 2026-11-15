@@ -76,6 +76,7 @@ export interface DatePickerOptions {
 }
 
 export interface DatePickerTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-haspopup": "dialog";
   readonly "aria-expanded": "true" | "false";
@@ -92,23 +93,27 @@ export type DatePickerPopoverProps = PopoverContentProps & {
 };
 
 export interface DatePickerHeaderProps {
+  readonly "data-part": string;
   readonly id: string;
   /** `labels.month(year, month)`; render it as the title. */
   readonly text: string;
 }
 
 export interface DatePickerNavProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly "aria-label": string;
   readonly onClick: () => void;
 }
 
 export interface DatePickerWeekdayProps {
+  readonly "data-part": string;
   readonly role: "columnheader";
   readonly abbr: string;
 }
 
 export interface DatePickerCellProps {
+  readonly "data-part": string;
   readonly role: "gridcell";
   readonly id: string;
   readonly "aria-rowindex": number;
@@ -576,6 +581,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
     triggerProps,
     popoverProps: {
       ...popover.contentProps,
+      "data-part": "popover",
       get hidden() {
         return !open();
       },
@@ -583,6 +589,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
     },
     contentStyle: popover.contentStyle,
     headerProps: {
+      "data-part": "title",
       id: headerId,
       get text() {
         const { year, month } = visible();
@@ -590,16 +597,19 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
       },
     },
     previousProps: {
+      "data-part": "previous",
       type: "button",
       "aria-label": labels.previousMonth,
       onClick: () => pageMonth(-1),
     },
     nextProps: {
+      "data-part": "next",
       type: "button",
       "aria-label": labels.nextMonth,
       onClick: () => pageMonth(1),
     },
     gridProps: {
+      "data-part": "grid",
       role: "grid",
       "aria-rowcount": grid.rows(),
       "aria-colcount": grid.cols(),
@@ -613,6 +623,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
       "aria-labelledby": headerId,
     },
     weekdayProps: (index) => ({
+      "data-part": "weekday",
       role: "columnheader",
       abbr: labels.weekdays[(((firstDay + index) % 7) + 7) % 7] ?? "",
     }),
@@ -620,6 +631,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
       const { row, col } = positionOf(iso);
       const cell = grid.cellProps(row, col);
       return {
+        "data-part": "cell",
         role: "gridcell",
         id: cell.id,
         "aria-rowindex": cell["aria-rowindex"],

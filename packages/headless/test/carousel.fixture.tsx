@@ -67,47 +67,33 @@ export const mountCarousel = (config: CarouselConfig): Mounted => {
     );
     const controls = (
       <>
-        <button data-part="rotation" {...carousel.rotationProps}>
-          Rotation
-        </button>
+        <button {...carousel.rotationProps}>Rotation</button>
         {config.tabbed ? null : (
           <>
-            <button data-part="prev" {...carousel.prevProps}>
-              Previous
-            </button>
-            <button data-part="next" {...carousel.nextProps}>
-              Next
-            </button>
+            <button {...carousel.prevProps}>Previous</button>
+            <button {...carousel.nextProps}>Next</button>
           </>
         )}
       </>
     );
     const trailing = config.tabbed ? (
       <>
-        <button data-part="prev" {...carousel.prevProps}>
-          Previous
-        </button>
-        <button data-part="next" {...carousel.nextProps}>
-          Next
-        </button>
+        <button {...carousel.prevProps}>Previous</button>
+        <button {...carousel.nextProps}>Next</button>
       </>
     ) : null;
     return (
-      <div data-part="carousel" {...carousel.carouselProps}>
+      <div {...carousel.carouselProps}>
         {controls}
         {config.tabbed ? (
-          <div data-part="tablist" {...carousel.tablistProps}>
+          <div {...carousel.tablistProps}>
             {Array.from({ length: config.items }, (_, index) => (
-              <button data-part="tab" {...carousel.tabProps(index)}>
-                Slide {index + 1}
-              </button>
+              <button {...carousel.tabProps(index)}>Slide {index + 1}</button>
             ))}
           </div>
         ) : null}
         {Array.from({ length: config.items }, (_, index) => (
-          <div data-part="slide" {...carousel.slideProps(index)}>
-            Slide {index + 1}
-          </div>
+          <div {...carousel.slideProps(index)}>Slide {index + 1}</div>
         ))}
         {trailing}
       </div>

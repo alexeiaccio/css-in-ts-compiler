@@ -53,11 +53,7 @@ export const mountButton = (config: ButtonConfig): Mounted => {
         }
       },
     });
-    return (
-      <button data-part="button" {...button.buttonProps}>
-        Button
-      </button>
-    );
+    return <button {...button.buttonProps}>Button</button>;
   }, root);
 
   return {

@@ -27,6 +27,7 @@ export interface FeedOptions {
 }
 
 export interface FeedProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "feed";
   readonly "aria-busy": "true" | undefined;
@@ -34,6 +35,7 @@ export interface FeedProps {
 }
 
 export interface FeedArticleProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "article";
   readonly "aria-posinset": number;
@@ -48,6 +50,7 @@ export interface FeedArticleProps {
 
 /** Spread onto the focusable element just before / after the feed. */
 export interface FeedSentinelProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly tabindex: 0;
   readonly onFocus: () => void;
@@ -209,6 +212,7 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
     setSizeMode: (mode) => setSizeMode(mode),
     setTotalKnown: (known) => setTotalKnown(known),
     feedProps: {
+      "data-part": "feed",
       id: base,
       role: "feed",
       get "aria-busy"() {
@@ -217,6 +221,7 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
       "aria-labelledby": options.labelledBy,
     },
     articleProps: (posinset) => ({
+      "data-part": "article",
       id: `${base}-article-${posinset}`,
       role: "article",
       "aria-posinset": posinset,
@@ -237,11 +242,13 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
       onKeyDown,
     }),
     beforeProps: {
+      "data-part": "before-feed",
       id: `${base}-before`,
       tabindex: 0,
       onFocus: () => setActive("before"),
     },
     afterProps: {
+      "data-part": "after-feed",
       id: `${base}-after`,
       tabindex: 0,
       onFocus: () => setActive("after"),

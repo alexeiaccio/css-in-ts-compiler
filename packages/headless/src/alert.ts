@@ -15,12 +15,14 @@ export interface AlertOptions {
 
 /** Spread onto the `role=alert` live region. */
 export interface AlertProps {
+  readonly "data-part": string;
   readonly role: "alert" | undefined;
   readonly "aria-atomic": "true" | undefined;
   readonly hidden: boolean;
 }
 
 export interface AlertDismissProps {
+  readonly "data-part": string;
   readonly "aria-label": "Close";
   readonly onClick: () => void;
 }
@@ -63,6 +65,7 @@ export const createAlert = (options: AlertOptions = {}): Alert => {
     show,
     dismiss,
     alertProps: {
+      "data-part": "alert",
       get role() {
         return mounted() ? "alert" : undefined;
       },
@@ -74,6 +77,7 @@ export const createAlert = (options: AlertOptions = {}): Alert => {
       },
     },
     dismissProps: {
+      "data-part": "close",
       "aria-label": "Close",
       onClick: dismiss,
     },

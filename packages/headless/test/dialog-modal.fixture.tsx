@@ -64,25 +64,21 @@ export const mountDialogModal = (config: DialogModalConfig): Mounted => {
     );
     return (
       <>
-        <button data-part="trigger" {...dialog.triggerProps}>
-          Open
-        </button>
+        <button {...dialog.triggerProps}>Open</button>
         <div
-          data-part="backdrop"
           {...dialog.backdropProps}
           onPointerDown={() => {
             restoreOnClose = false;
           }}
           style={{ height: "40px" }}
         />
-        <div data-part="dialog" {...dialog.dialogProps} style={{ height: "40px" }}>
+        <div {...dialog.dialogProps} style={{ height: "40px" }}>
           <h2 id="header">Dialog title</h2>
           <p id="description">Dialog body</p>
           <button data-part="button" type="button">
             Confirm
           </button>
           <button
-            data-part="dismiss"
             {...dialog.dismissProps}
             onPointerDown={() => {
               restoreOnClose = true;

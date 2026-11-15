@@ -34,6 +34,7 @@ export interface AccordionOptions {
 
 /** Spread onto the element with `role=button` (a native `<button>`). */
 export interface AccordionTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly type: "button";
   readonly "aria-expanded": "true" | "false";
@@ -45,6 +46,7 @@ export interface AccordionTriggerProps {
 
 /** Spread onto the element with `role=region` holding the panel. */
 export interface AccordionPanelProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "region";
   readonly "aria-labelledby": string;
@@ -54,6 +56,7 @@ export interface AccordionPanelProps {
 
 /** Spread onto the heading element wrapping a trigger. */
 export interface AccordionHeadingProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "heading";
   readonly "aria-level": number;
@@ -196,6 +199,7 @@ export const createAccordion = (options: AccordionOptions = {}): Accordion => {
       setHeadingLevelSignal(Math.min(Math.max(level, 1), HEADING_LEVELS));
     },
     triggerProps: (index) => ({
+      "data-part": "trigger",
       id: triggerId(index),
       type: "button",
       get "aria-expanded"() {
@@ -213,6 +217,7 @@ export const createAccordion = (options: AccordionOptions = {}): Accordion => {
       onClick: () => toggle(index),
     }),
     panelProps: (index) => ({
+      "data-part": "panel",
       id: panelId(index),
       role: "region",
       "aria-labelledby": triggerId(index),
@@ -222,6 +227,7 @@ export const createAccordion = (options: AccordionOptions = {}): Accordion => {
       },
     }),
     headingProps: (index) => ({
+      "data-part": "heading",
       id: headingId(index),
       role: "heading",
       get "aria-level"() {

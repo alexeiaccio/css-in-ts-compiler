@@ -39,6 +39,7 @@ export interface CarouselOptions {
 
 /** Spread onto the rotation (play/pause) control. */
 export interface CarouselRotationProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly id: string;
   readonly "aria-label": string;
@@ -52,6 +53,7 @@ export interface CarouselRotationProps {
 
 /** Spread onto the previous / next controls. */
 export interface CarouselButtonProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly id: string;
   readonly "aria-controls": string;
@@ -62,6 +64,7 @@ export interface CarouselButtonProps {
 }
 
 export interface CarouselProps {
+  readonly "data-part": string;
   readonly role: CarouselRole;
   readonly "aria-roledescription": "carousel";
   readonly "aria-live": "off" | "polite";
@@ -71,6 +74,7 @@ export interface CarouselProps {
 }
 
 export interface CarouselSlideProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "group" | "tabpanel";
   readonly "aria-roledescription": "slide";
@@ -82,10 +86,12 @@ export interface CarouselSlideProps {
 }
 
 export interface CarouselTablistProps {
+  readonly "data-part": string;
   readonly role: "tablist";
 }
 
 export interface CarouselTabProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "tab";
   readonly "aria-label": string;
@@ -226,6 +232,7 @@ export const createCarousel = (options: CarouselOptions = {}): Carousel => {
       }
     },
     carouselProps: {
+      "data-part": "carousel",
       role: options.role ?? "group",
       "aria-roledescription": "carousel",
       get "aria-live"() {
@@ -238,6 +245,7 @@ export const createCarousel = (options: CarouselOptions = {}): Carousel => {
       onMouseLeave: () => setHover(false),
     },
     rotationProps: {
+      "data-part": "rotation",
       type: "button",
       id: `${base}-rotation`,
       get "aria-label"() {
@@ -256,6 +264,7 @@ export const createCarousel = (options: CarouselOptions = {}): Carousel => {
       onBlur: focusOut,
     },
     prevProps: {
+      "data-part": "prev",
       type: "button",
       id: `${base}-prev`,
       "aria-controls": slidesId,
@@ -268,6 +277,7 @@ export const createCarousel = (options: CarouselOptions = {}): Carousel => {
       onBlur: focusOut,
     },
     nextProps: {
+      "data-part": "next",
       type: "button",
       id: `${base}-next`,
       "aria-controls": slidesId,
@@ -280,6 +290,7 @@ export const createCarousel = (options: CarouselOptions = {}): Carousel => {
       onBlur: focusOut,
     },
     slideProps: (index) => ({
+      "data-part": "slide",
       id: `${base}-slide-${index}`,
       get role() {
         return options.tabbed === true ? "tabpanel" : "group";
@@ -295,8 +306,9 @@ export const createCarousel = (options: CarouselOptions = {}): Carousel => {
       onFocus: () => focusIn(`slide:${index}`),
       onBlur: focusOut,
     }),
-    tablistProps: { role: "tablist" },
+    tablistProps: { "data-part": "tablist", role: "tablist" },
     tabProps: (index) => ({
+      "data-part": "tab",
       id: `${base}-tab-${index}`,
       role: "tab",
       "aria-label": `Slide ${index + 1}`,

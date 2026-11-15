@@ -23,19 +23,23 @@ export interface ScrollspyOptions {
 }
 
 export interface ScrollspyNavProps {
+  readonly "data-part": string;
   /** The navigation landmark's name; the host overrides it after the spread to translate it. */
   readonly "aria-label": string;
 }
 
 export interface ScrollspyListProps {
+  readonly "data-part": string;
   readonly role: "list";
 }
 
 export interface ScrollspyItemProps {
+  readonly "data-part": string;
   readonly role: "listitem";
 }
 
 export interface ScrollspyLinkProps {
+  readonly "data-part": string;
   readonly href: string;
   readonly "aria-current": "location" | undefined;
 }
@@ -109,10 +113,11 @@ export const createScrollspy = (options: ScrollspyOptions): Scrollspy => {
 
   return {
     active,
-    navProps: { "aria-label": "On this page" },
-    listProps: { role: "list" },
-    itemProps: () => ({ role: "listitem" }),
+    navProps: { "data-part": "nav", "aria-label": "On this page" },
+    listProps: { "data-part": "list", role: "list" },
+    itemProps: () => ({ "data-part": "item", role: "listitem" }),
     linkProps: (id) => ({
+      "data-part": "link",
       href: `#${id}`,
       get "aria-current"() {
         return id === active() ? "location" : undefined;

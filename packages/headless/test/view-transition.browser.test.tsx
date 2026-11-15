@@ -161,6 +161,7 @@ describe("createViewTransition style objects", () => {
   it("persist names the element match-element, with no class by default", () => {
     const viewTransition = createRoot(() => createViewTransition({}));
     expect(viewTransition.persist()).toEqual({
+      "data-part": "view-transition",
       style: { "view-transition-name": "match-element" },
     });
   });

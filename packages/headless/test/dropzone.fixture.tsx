@@ -50,15 +50,11 @@ export const mountDropZone = (config: DropZoneConfig): Mounted => {
     });
     api = zone;
     return (
-      <div data-part="zone" {...zone.zoneProps}>
+      <div {...zone.zoneProps}>
         <p data-part="child">Drop files here</p>
-        <input data-part="input" {...zone.inputProps} />
-        <button data-part="browse" {...zone.browseProps}>
-          Choose files
-        </button>
-        <p data-part="status" {...zone.statusProps}>
-          {zone.message() ?? ""}
-        </p>
+        <input {...zone.inputProps} />
+        <button {...zone.browseProps}>Choose files</button>
+        <p {...zone.statusProps}>{zone.message() ?? ""}</p>
       </div>
     );
   }, root);

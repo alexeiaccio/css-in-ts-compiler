@@ -67,7 +67,6 @@ const mount = (options: MountOptions = {}): Mounted => {
           Before
         </button>
         <button
-          data-part="trigger"
           {...created.triggerProps}
           ref={(element) => {
             triggerEl = element;
@@ -77,8 +76,8 @@ const mount = (options: MountOptions = {}): Mounted => {
           {created.value() ?? created.labels.trigger}
         </button>
         <div
-          data-part="popover"
           {...created.popoverProps}
+          data-part="popover"
           style={created.contentStyle()}
           ref={(element) => {
             contentEl = element;
@@ -86,20 +85,14 @@ const mount = (options: MountOptions = {}): Mounted => {
           }}
         >
           <div>
-            <h2 data-part="title" {...created.headerProps}>
-              {created.headerProps.text}
-            </h2>
-            <button data-part="previous" {...created.previousProps}>
-              {"<"}
-            </button>
-            <button data-part="next" {...created.nextProps}>
-              {">"}
-            </button>
+            <h2 {...created.headerProps}>{created.headerProps.text}</h2>
+            <button {...created.previousProps}>{"<"}</button>
+            <button {...created.nextProps}>{">"}</button>
           </div>
-          <div data-part="grid" {...created.gridProps}>
+          <div {...created.gridProps}>
             <div role="row">
               <For each={Array.from({ length: 7 }, (_, index) => index)}>
-                {(index) => <div data-part="weekday" {...created.weekdayProps(index)} />}
+                {(index) => <div {...created.weekdayProps(index)} />}
               </For>
             </div>
             <For each={created.monthDays()}>
@@ -117,9 +110,7 @@ const mount = (options: MountOptions = {}): Mounted => {
             </For>
           </div>
         </div>
-        <div data-part="status" {...created.statusProps}>
-          {created.status()}
-        </div>
+        <div {...created.statusProps}>{created.status()}</div>
       </>
     );
   }, root);

@@ -41,7 +41,7 @@ describe("items that arrive later", () => {
       return (
         <div {...listbox.listboxProps}>
           {items().map((label, index) => (
-            <div data-part={`option:${index}`} {...listbox.optionProps(index)}>
+            <div {...listbox.optionProps(index)} data-part={`option:${index}`}>
               {label}
             </div>
           ))}
@@ -215,8 +215,8 @@ describe("host-owned values", () => {
       const zone = createDropZone(options);
       api = zone;
       return (
-        <div data-part="zone" {...zone.zoneProps}>
-          <input data-part="input" {...zone.inputProps} />
+        <div {...zone.zoneProps}>
+          <input {...zone.inputProps} />
         </div>
       );
     }, container);

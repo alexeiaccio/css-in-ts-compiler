@@ -94,15 +94,15 @@ export const mountGrid = (
     });
 
     return (
-      <div data-part="grid" {...grid.gridProps}>
+      <div {...grid.gridProps}>
         {columns.map((col) => (
-          <div data-part={`header:${col}`} {...grid.headerProps(col)} />
+          <div {...grid.headerProps(col)} data-part={`header:${col}`} />
         ))}
         {grid.renderedRows().map((row) => (
-          <div data-part={`row:${row}`} {...grid.rowProps(row)}>
+          <div {...grid.rowProps(row)} data-part={`row:${row}`}>
             {columns.map((col) => (
-              <div data-part={`cell:${row},${col}`} {...grid.cellProps(row, col)}>
-                <span data-part={`cell:${row},${col}/widget`} {...grid.widgetProps(row, col)} />
+              <div {...grid.cellProps(row, col)} data-part={`cell:${row},${col}`}>
+                <span {...grid.widgetProps(row, col)} data-part={`cell:${row},${col}/widget`} />
               </div>
             ))}
           </div>

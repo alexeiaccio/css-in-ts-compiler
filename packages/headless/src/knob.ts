@@ -39,6 +39,7 @@ export interface KnobOptions {
 
 /** Spread onto the knob element, the focusable control. */
 export interface KnobProps {
+  readonly "data-part": string;
   readonly role: "slider";
   readonly tabindex: number;
   readonly "aria-valuemin": string;
@@ -56,6 +57,7 @@ export interface KnobProps {
 
 /** Spread onto the live value; render it once, always (hide it visually, never with `hidden`). */
 export interface KnobValueProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "status";
   readonly "aria-live": "polite";
@@ -332,6 +334,7 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
     percentOf,
     stepBy,
     knobProps: {
+      "data-part": "knob",
       role: "slider",
       get tabindex() {
         return 0;
@@ -356,6 +359,7 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
       onWheel,
     },
     valueProps: {
+      "data-part": "value",
       id: `${base}-value`,
       role: "status",
       "aria-live": "polite",

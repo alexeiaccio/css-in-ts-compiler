@@ -74,9 +74,9 @@ export const Progress = (props: ProgressProps): JSX.Element => {
       <div data-part="progress-pane" class={paneClass} ref={pane} tabindex={0}>
         <div data-part="progress-rail" class={railClass}>
           <div
+            {...reading.barProps}
             data-part="progress-bar"
             class={barClass}
-            {...reading.barProps}
             aria-label={props.label ?? "Reading progress"}
             style={`scale: ${reading.progress()} 1`}
           />

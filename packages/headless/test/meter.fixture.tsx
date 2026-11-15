@@ -44,7 +44,7 @@ export const mountMeter = (config: MeterConfig): Mounted => {
     },
   });
 
-  const dispose = render(() => <div data-part="meter" {...meter.meterProps} />, root);
+  const dispose = render(() => <div {...meter.meterProps} />, root);
 
   return {
     root,

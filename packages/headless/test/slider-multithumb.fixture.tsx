@@ -50,8 +50,8 @@ export const mountSliderMultithumb = (config: SliderMultithumbConfig): Mounted =
     return (
       <>
         <div data-part="track" />
-        <div data-part="thumb" {...slider.thumbProps(0)} />
-        <div data-part="thumb" {...slider.thumbProps(1)} />
+        <div {...slider.thumbProps(0)} />
+        <div {...slider.thumbProps(1)} />
       </>
     );
   }, root);

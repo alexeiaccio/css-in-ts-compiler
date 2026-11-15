@@ -47,23 +47,15 @@ export const mountAlertDialog = (config: AlertDialogConfig): Mounted => {
     );
     return (
       <>
-        <textarea data-part="input" {...dialog.inputProps} />
-        <button data-part="save" {...dialog.saveProps}>
-          Save
-        </button>
-        <button data-part="trigger" {...dialog.triggerProps}>
-          Discard
-        </button>
-        <div data-part="backdrop" {...dialog.backdropProps} style={{ height: "40px" }} />
-        <div data-part="dialog" {...dialog.dialogProps}>
+        <textarea {...dialog.inputProps} />
+        <button {...dialog.saveProps}>Save</button>
+        <button {...dialog.triggerProps}>Discard</button>
+        <div {...dialog.backdropProps} style={{ height: "40px" }} />
+        <div {...dialog.dialogProps}>
           <h2 id="title">Confirmation</h2>
           <p id="description">Discard your notes?</p>
-          <button data-part="cancel" {...dialog.cancelProps}>
-            No
-          </button>
-          <button data-part="confirm" {...dialog.confirmProps}>
-            Yes
-          </button>
+          <button {...dialog.cancelProps}>No</button>
+          <button {...dialog.confirmProps}>Yes</button>
           <button data-part="dismiss" type="button" onClick={() => dialog.escape()}>
             Dismiss
           </button>

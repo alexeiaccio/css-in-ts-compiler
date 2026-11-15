@@ -119,8 +119,8 @@ export const mountViewTransition = (config: ViewTransitionConfig): MountedViewTr
         <button data-part="run" type="button" onClick={run}>
           Run
         </button>
-        <div data-part="surface" {...transition.persist({ class: "card" })} />
-        <div data-part="pair" {...transition.name("card", { class: "card" })} />
+        <div {...transition.persist({ class: "card" })} data-part="surface" />
+        <div {...transition.name("card", { class: "card" })} data-part="pair" />
       </div>
     );
   }, root);

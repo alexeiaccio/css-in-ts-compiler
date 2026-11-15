@@ -19,6 +19,7 @@ export interface RearrangeableListboxOptions {
 }
 
 export interface RearrangeableListProps {
+  readonly "data-part": string;
   readonly role: "listbox";
   readonly tabindex: 0;
   readonly "aria-multiselectable": "true" | "false";
@@ -30,6 +31,7 @@ export interface RearrangeableListProps {
 }
 
 export interface RearrangeableOptionProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "option";
   readonly "aria-selected": "true" | "false";
@@ -337,6 +339,7 @@ export const createRearrangeableListbox = (
     transfer,
     setMulti,
     listProps: (list) => ({
+      "data-part": "list",
       role: "listbox",
       tabindex: 0,
       get "aria-multiselectable"() {
@@ -364,6 +367,7 @@ export const createRearrangeableListbox = (
       },
     }),
     optionProps: (id) => ({
+      "data-part": "option",
       id: optionId(id),
       role: "option",
       get "aria-selected"() {

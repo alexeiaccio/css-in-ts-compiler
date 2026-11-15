@@ -9,6 +9,7 @@ export type ViewTransitionStyle = {
 
 /** Spread onto an element: `{ style }` is the whole attribute object the primitive owns. */
 export interface ViewTransitionStyleProps {
+  readonly "data-part": string;
   readonly style: ViewTransitionStyle;
 }
 
@@ -85,6 +86,7 @@ const styleOf = (
   name: string,
   options: ViewTransitionStyleOptions | undefined,
 ): ViewTransitionStyleProps => ({
+  "data-part": "view-transition",
   style: {
     "view-transition-name": name,
     ...(options?.class === undefined ? {} : { "view-transition-class": options.class }),

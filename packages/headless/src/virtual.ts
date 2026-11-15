@@ -90,6 +90,7 @@ export interface VirtualizerOptions {
 
 /** Spread onto the scrollport. `attach` already listens; this is for hosts that wire scrolling themselves. */
 export interface VirtualScrollProps {
+  readonly "data-part": string;
   readonly onScroll: (event: Event) => void;
 }
 
@@ -102,6 +103,7 @@ export interface VirtualScrollProps {
  * `ResizeObserver`. It is a no-op in the fixed mode.
  */
 export interface VirtualItemProps {
+  readonly "data-part": string;
   readonly "aria-setsize": number;
   readonly "aria-posinset": number;
   readonly ref: (element: HTMLElement) => void;
@@ -113,6 +115,7 @@ export interface VirtualItemProps {
  * height is positive (`window().above > 0` / `window().below > 0`).
  */
 export interface VirtualSpacerProps {
+  readonly "data-part": string;
   readonly "aria-hidden": "true";
   readonly style: { readonly height: string };
 }
@@ -537,6 +540,7 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
   };
 
   const itemProps = (index: number): VirtualItemProps => ({
+    "data-part": "row",
     "aria-setsize": count(),
     "aria-posinset": index + 1,
     // Solid calls a ref when the element is created; registering twice is a no-op
@@ -550,7 +554,7 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
   const spacerProps = (position: VirtualSpacerPosition): VirtualSpacerProps => {
     const at = current();
     const height = position === "start" ? (at.first > 0 ? at.above : 0) : at.below;
-    return { "aria-hidden": "true", style: { height: `${height}px` } };
+    return { "data-part": "spacer", "aria-hidden": "true", style: { height: `${height}px` } };
   };
 
   /**
@@ -659,7 +663,7 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
   return {
     window: current,
     rangeCount,
-    scrollProps: { onScroll: () => sync() },
+    scrollProps: { "data-part": "port", onScroll: () => sync() },
     itemProps,
     spacerProps,
     scrollToIndex,

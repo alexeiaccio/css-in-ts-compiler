@@ -157,11 +157,9 @@ const mountNative = (options: {
     return (
       <div data-part="host">
         {before}
-        <div data-part="radiogroup" {...group.radiogroupProps}>
+        <div {...group.radiogroupProps}>
           {VALUES.map((label, index) => (
-            <div data-part="radio" {...group.radioProps(index)}>
-              {label}
-            </div>
+            <div {...group.radioProps(index)}>{label}</div>
           ))}
         </div>
       </div>

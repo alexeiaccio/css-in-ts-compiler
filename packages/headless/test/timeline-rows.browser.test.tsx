@@ -58,13 +58,10 @@ const mount = (
         <div {...timeline.listProps}>
           <For each={rows}>
             {(span) => (
-              <div data-part="row" data-row={span.id} {...timeline.rowProps(span.id)}>
-                <span data-part="label" {...timeline.labelProps(span.id)}>
-                  {span.label}
-                </span>
+              <div data-row={span.id} {...timeline.rowProps(span.id)}>
+                <span {...timeline.labelProps(span.id)}>{span.label}</span>
                 <div style={{ position: "relative", width: "400px", height: "20px" }}>
                   <div
-                    data-part="bar"
                     {...timeline.barProps(span.id)}
                     style={{ ...timeline.barProps(span.id).style, position: "absolute" }}
                   />

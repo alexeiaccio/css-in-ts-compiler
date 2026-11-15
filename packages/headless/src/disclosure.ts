@@ -22,6 +22,7 @@ export interface DisclosureOptions {
 
 /** Spread onto the element with `role=button` (a native `<button>`). */
 export interface DisclosureTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly type: "button";
   readonly "aria-expanded": "true" | "false";
@@ -32,6 +33,7 @@ export interface DisclosureTriggerProps {
 
 /** Spread onto the element holding the content that is shown or hidden. */
 export interface DisclosurePanelProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly hidden: boolean;
 }
@@ -76,6 +78,7 @@ export const createDisclosure = (options: DisclosureOptions = {}): Disclosure =>
     collapse: () => request(false),
     toggle,
     triggerProps: {
+      "data-part": "trigger",
       id: triggerId,
       type: "button",
       get "aria-expanded"() {
@@ -92,6 +95,7 @@ export const createDisclosure = (options: DisclosureOptions = {}): Disclosure =>
       },
     },
     panelProps: {
+      "data-part": "panel",
       id: panelId,
       get hidden() {
         return !expanded();

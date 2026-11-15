@@ -41,12 +41,14 @@ export interface TreegridOptions {
 }
 
 export interface TreegridProps {
+  readonly "data-part": string;
   readonly role: "treegrid";
   readonly "aria-multiselectable": "true" | undefined;
   readonly onFocusOut: (event: FocusEvent) => void;
 }
 
 export interface TreegridRowProps {
+  readonly "data-part": string;
   readonly role: "row";
   readonly id: string;
   readonly "aria-level": number;
@@ -60,6 +62,7 @@ export interface TreegridRowProps {
 }
 
 export interface TreegridCellProps {
+  readonly "data-part": string;
   readonly role: "gridcell";
   readonly id: string;
   readonly tabindex: number;
@@ -69,6 +72,7 @@ export interface TreegridCellProps {
 }
 
 export interface TreegridExpanderProps {
+  readonly "data-part": string;
   readonly role: "button";
   readonly "aria-label": "Expand" | "Collapse";
   readonly "aria-expanded": "true" | "false";
@@ -560,6 +564,7 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
     isSelected: rowSelected,
     focusTargetPart,
     gridProps: {
+      "data-part": "grid",
       role: "treegrid",
       get "aria-multiselectable"() {
         return selection() === "multi" ? "true" : undefined;
@@ -577,6 +582,7 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
       },
     },
     rowProps: (row) => ({
+      "data-part": "row",
       role: "row",
       id: `${base}-row-${row}`,
       "aria-level": ariaLevel(row),
@@ -595,6 +601,7 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
       onKeyDown,
     }),
     cellProps: (row, col) => ({
+      "data-part": "cell",
       role: "gridcell",
       id: `${base}-cell-${row}-${col}`,
       get tabindex() {
@@ -607,6 +614,7 @@ export const createTreegrid = (options: TreegridOptions = {}): Treegrid => {
       onKeyDown,
     }),
     expanderProps: (row) => ({
+      "data-part": "expander",
       role: "button",
       get "aria-label"() {
         return isExpanded(row) ? "Collapse" : "Expand";

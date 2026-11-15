@@ -54,6 +54,7 @@ export interface TreeviewOptions {
 
 /** Spread onto the element with `role=tree`. */
 export interface TreeviewTreeProps {
+  readonly "data-part": string;
   readonly role: "tree";
   readonly "aria-multiselectable": "true" | "false";
   readonly "aria-label": string | undefined;
@@ -65,6 +66,7 @@ export interface TreeviewTreeProps {
 
 /** Spread onto the element with `role=treeitem` for `id`. */
 export interface TreeviewItemProps {
+  readonly "data-part": string;
   readonly role: "treeitem";
   readonly "aria-level": number;
   readonly "aria-setsize": number;
@@ -433,6 +435,7 @@ export const createTreeview = (options: TreeviewOptions = {}): Treeview => {
     toggleSelected,
     resetTypeahead,
     treeProps: {
+      "data-part": "tree",
       role: "tree",
       get "aria-multiselectable"() {
         return multi() ? "true" : "false";
@@ -458,6 +461,7 @@ export const createTreeview = (options: TreeviewOptions = {}): Treeview => {
       },
     },
     itemProps: (id: number) => ({
+      "data-part": "item",
       role: "treeitem",
       "aria-level": levelOf(id),
       "aria-setsize": childrenOf(parentOf(id)).length,

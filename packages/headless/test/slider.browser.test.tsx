@@ -106,12 +106,8 @@ describe("createSlider disabled", () => {
       });
       return (
         <>
-          <div
-            data-part="track"
-            style={{ position: "absolute", inset: "0" }}
-            {...slider.trackProps}
-          />
-          <div data-part="thumb" {...slider.thumbProps} />
+          <div style={{ position: "absolute", inset: "0" }} {...slider.trackProps} />
+          <div {...slider.thumbProps} />
         </>
       );
     }, root);
@@ -185,8 +181,8 @@ describe("createSlider drag", () => {
       api = slider;
       // the thumb sits in the rail, as a host positions it over the track
       return (
-        <div data-part="track" style={{ position: "absolute", inset: "0" }} {...slider.trackProps}>
-          <div data-part="thumb" {...slider.thumbProps} />
+        <div style={{ position: "absolute", inset: "0" }} {...slider.trackProps}>
+          <div {...slider.thumbProps} />
         </div>
       );
     }, root);

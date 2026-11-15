@@ -295,6 +295,7 @@ export interface CanvasViewportStyle {
 
 /** Spread onto the labelled region that clips the canvas. */
 export interface CanvasViewportProps {
+  readonly "data-part": string;
   readonly ref: (element: HTMLElement) => void;
   readonly role: "region";
   readonly "aria-label": string;
@@ -316,10 +317,12 @@ export interface CanvasViewportProps {
  * `style` is a getter returning a fresh object: Solid spreads read it inside the tracking scope.
  */
 export interface CanvasLayerProps {
+  readonly "data-part": string;
   readonly style: Readonly<Record<string, string>>;
 }
 
 export interface CanvasNodeProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: CanvasNodeRole;
   readonly "aria-roledescription": string;
@@ -333,6 +336,7 @@ export interface CanvasNodeProps {
 }
 
 export interface CanvasLiveRegionProps {
+  readonly "data-part": string;
   readonly role: "status";
   readonly "aria-live": "polite";
   readonly "aria-atomic": "true";
@@ -1453,6 +1457,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
   };
 
   const viewportProps: CanvasViewportProps = {
+    "data-part": "viewport",
     ref: (element) => {
       viewport = element;
     },
@@ -1530,6 +1535,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       memos,
       dispose: made.dispose,
       props: {
+        "data-part": "node",
         id: domId(key),
         role: node?.role ?? "group",
         "aria-roledescription": node?.roleDescription ?? "canvas node",
@@ -1578,6 +1584,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
   };
 
   const layerProps: CanvasLayerProps = {
+    "data-part": "layer",
     get style() {
       return {
         position: "absolute",
@@ -1615,6 +1622,7 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
     layerProps,
     nodeProps: (id) => slotFor(id).props,
     liveRegionProps: {
+      "data-part": "live",
       role: "status",
       "aria-live": "polite",
       "aria-atomic": "true",

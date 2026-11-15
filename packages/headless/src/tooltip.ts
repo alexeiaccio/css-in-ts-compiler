@@ -41,6 +41,7 @@ export interface TooltipGroupOptions {
 }
 
 export interface TooltipTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-describedby": string | undefined;
   readonly onFocus: () => void;
@@ -50,6 +51,7 @@ export interface TooltipTriggerProps {
 }
 
 export interface TooltipContentProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "tooltip";
   readonly hidden: boolean;
@@ -395,6 +397,7 @@ export const createTooltipGroup = (options: TooltipGroupOptions): TooltipGroup =
     hostSet,
     hostToggle,
     triggerProps: (index) => ({
+      "data-part": "trigger",
       id: triggerId(index),
       get "aria-describedby"() {
         version();
@@ -434,6 +437,7 @@ export const createTooltipGroup = (options: TooltipGroupOptions): TooltipGroup =
       },
     }),
     tooltipProps: (index) => ({
+      "data-part": "tooltip",
       id: tooltipId(index),
       role: "tooltip",
       get hidden() {

@@ -22,6 +22,7 @@ export interface CheckboxOptions {
 
 /** Spread onto the focusable element with `role=checkbox`. */
 export interface CheckboxProps {
+  readonly "data-part": string;
   readonly role: "checkbox";
   readonly "aria-checked": CheckboxState;
   readonly "aria-disabled": "true" | undefined;
@@ -117,6 +118,7 @@ export const createCheckbox = (options: CheckboxOptions = {}): Checkbox => {
     },
     toggle,
     checkboxProps: {
+      "data-part": "checkbox",
       role: "checkbox",
       get "aria-checked"() {
         return checked();
