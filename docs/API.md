@@ -3852,8 +3852,14 @@ stand under it. The point is sticky: a hill still inside its zone (10 px, measur
 leaves the point where it is, so it cannot drift a pixel per drag. Inside the zone the edge lands on
 the point while the pointer keeps moving; hold Alt for the exact width, which is how the widths
 beside the point stay reachable, and `keyDown` never snaps — the keys are exact by contract.
-`snapPoint(index)` is the learned width, for a skin that marks it; the hills live in memory (a
-session's habit), while `storageKey` still carries the layout across visits.
+`snapPoint(index)` is the learned width, for a skin that marks it. **The marks are the whole state**:
+`onSnapMark(index, marks)` hands a release's list (at most 24, oldest first) to the host and
+`snapMarks` takes it back, so the habit survives a reload — the hills are rebuilt from the marks and
+age is a count of drags, not of days. The point belongs to the **separator**, not to a pane: the
+separator is the widget (the thing with the role and the focus), and a pane's size also moves when
+its other neighbour is dragged. A live region on a stick was weighed and dropped: a drag is
+pointer-only, a keyboard reader never snaps, and the separator's `aria-valuenow` already reads the
+stuck width. `storageKey` carries the layout; the marks are the host's.
 
 ```ts skip
 createResizablePanels(options: {
@@ -3875,6 +3881,8 @@ createResizablePanels(options: {
   storageKey?: string | undefined; // persist the layout in localStorage
   onSizesChange?(sizes: ReadonlyArray<number>): void; // a request the host may ignore
   snap?: boolean; // stick a divider to the width a few drags agree on; Alt asks for the exact width
+  snapMarks?: ReadonlyArray<ReadonlyArray<number>>; // marks a host kept, per separator, oldest first
+  onSnapMark?(index: number, marks: ReadonlyArray<number>): void; // a release's marks, for the host to keep
 }): {
   sizes(): ReadonlyArray<number>; // the committed layout, percent; sums to 100
   collapsed(index: number): boolean;

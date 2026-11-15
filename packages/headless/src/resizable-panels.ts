@@ -43,6 +43,14 @@ export interface ResizablePanelsOptions {
    * pointer nicety, like the capture and the storage: the model has no drag at all. Off by default.
    */
   readonly snap?: boolean | undefined;
+  /**
+   * The marks a host kept from `onSnapMark` — one list per separator, oldest first — so a preferred width survives a reload.
+   * Age is a count of drags and not of days: a week without a drag moves nothing, and replaying the marks fades them exactly
+   * as if they had never been put down.
+   */
+  readonly snapMarks?: ReadonlyArray<ReadonlyArray<number>> | undefined;
+  /** Called on every release with that separator's marks (at most 24, oldest first): what a host persists. */
+  readonly onSnapMark?: (index: number, marks: ReadonlyArray<number>) => void;
 }
 
 export interface ResizablePanelsGroupProps {
@@ -100,8 +108,30 @@ const SNAP_STEP = 0.5;
 const SNAP_DECAY = 2 ** (-1 / 5);
 /** The weight of about three recent drags standing on one hill: 1 + 0.87 + 0.76. */
 const SNAP_MIN = 2;
-/** A hill under this is spent, and is dropped: the map cannot grow with the drags. */
-const SNAP_FLOOR = 0.05;
+/** How many marks a separator keeps: past this a mark weighs under 0.05, which no hill can use. */
+const SNAP_MARKS = 24;
+
+/** The bucket a width falls in: half a percent, the distance a pointer cannot tell apart. */
+const bucketOf = (size: number): number => Math.round(size / SNAP_STEP) * SNAP_STEP;
+
+/** The hills of one separator, rebuilt from its marks (oldest first): a mark weighs half as much every five behind it. */
+const tallestHill = (marks: ReadonlyArray<number>): number | undefined => {
+  const hills = new Map<number, number>();
+  const newest = marks.length - 1;
+  marks.forEach((size, position) => {
+    const at = bucketOf(size);
+    hills.set(at, (hills.get(at) ?? 0) + SNAP_DECAY ** (newest - position));
+  });
+  let best: number | undefined;
+  let top = 0;
+  for (const [at, weight] of hills) {
+    if (weight > top) {
+      top = weight;
+      best = at;
+    }
+  }
+  return top < SNAP_MIN ? undefined : best;
+};
 const DEFAULT_MAX = 80;
 const DEFAULT_STEP = 10;
 const FULL = 100;
@@ -197,8 +227,9 @@ const writeStored = (key: string, sizes: ReadonlyArray<number>): void => {
  * under one hill, and a point that does not move while the tallest hill stays
  * inside its zone. Alt during a drag asks for the exact width, so the widths
  * beside the point stay reachable, and `keyDown` never snaps: the keys are
- * exact by contract. The model has none of this, like the capture and the
- * storage — it has no drag at all.
+ * exact by contract. The marks are the whole state — `onSnapMark` hands them to
+ * a host and `snapMarks` takes them back, so the habit survives a reload. The
+ * model has none of this, like the capture and the storage — it has no drag.
  *
  * Behaviour is `packages/apg-specs/specs/patterns/resizable-panels.qnt`; the
  * DOM is checked against it by the differential walk.
@@ -303,10 +334,13 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
 
   const [focusSeparator, setFocusSeparator] = createSignal<number | null>(null);
   const [resizing, setResizing] = createSignal<number | null>(null);
-  // The learned widths, one hill per width bucket per separator, and the point the magnet uses. In memory only: a hill is
-  // a session's habit, and `storageKey` already carries the layout across visits.
-  const hills: Array<Map<number, number>> = [];
-  const [snapPoints, setSnapPoints] = createSignal<ReadonlyArray<number | undefined>>([]);
+  // The learned widths: the widths each separator was dropped at, oldest first, and the point the magnet uses. The marks
+  // are the whole state — the hills are rebuilt from them, so a host that keeps `onSnapMark` gets the same habit back.
+  const kept = options.snap === true ? (options.snapMarks ?? []) : [];
+  const marks: Array<ReadonlyArray<number>> = kept.map((list) => [...list].slice(-SNAP_MARKS));
+  const [snapPoints, setSnapPoints] = createSignal<ReadonlyArray<number | undefined>>(
+    marks.map((list) => tallestHill(list)),
+  );
   // the last expanded size of each pane: the value a restore returns to. Derived
   // from the committed layout, so a collapse by any route (Enter, a host write)
   // remembers the size it left.
@@ -411,48 +445,27 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
     return orientation() === "vertical" ? rect.width : rect.height;
   };
 
-  const bucketOf = (size: number): number => Math.round(size / SNAP_STEP) * SNAP_STEP;
-
   /** The magnet's zone in percent, from the group's own length: a zone in percent would be 200 px on a wide group. */
   const zonePercent = (length: number): number | undefined =>
     options.snap === true && length > 0 ? (SNAP_ZONE / length) * FULL : undefined;
 
   /**
-   * A release is a mark: every hill fades a little, the width it was dropped at gains one. The point is the tallest hill
-   * once about three recent drags stand under it, and it is sticky: a winner already inside the old point's zone leaves the
-   * point where it is, so it cannot drift a pixel with every drag.
+   * A release is a mark. The point is the tallest hill once about three recent drags stand under it, and it is sticky: a
+   * winner already inside the old point's zone leaves the point where it is, so it cannot drift a pixel with every drag.
    */
   const learn = (index: number, size: number, length: number): void => {
     const zone = zonePercent(length);
     if (zone === undefined) {
       return;
     }
-    const hill = (hills[index] ??= new Map());
-    for (const [at, weight] of hill) {
-      const faded = weight * SNAP_DECAY;
-      if (faded < SNAP_FLOOR) {
-        hill.delete(at);
-      } else {
-        hill.set(at, faded);
-      }
-    }
-    const mark = bucketOf(size);
-    hill.set(mark, (hill.get(mark) ?? 0) + 1);
-    let best: number | undefined;
-    let top = 0;
-    for (const [at, weight] of hill) {
-      if (weight > top) {
-        top = weight;
-        best = at;
-      }
-    }
+    const list = [...(marks[index] ?? []), size].slice(-SNAP_MARKS);
+    marks[index] = list;
+    const best = tallestHill(list);
     const current = snapPoints()[index];
     const next =
-      best === undefined || top < SNAP_MIN
-        ? undefined
-        : current !== undefined && Math.abs(best - current) <= zone
-          ? current
-          : best;
+      best === undefined || (current !== undefined && Math.abs(best - current) <= zone)
+        ? current
+        : best;
     if (next !== current) {
       setSnapPoints((all) => {
         const copy = [...all];
@@ -460,6 +473,7 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
         return copy;
       });
     }
+    options.onSnapMark?.(index, list);
   };
 
   /** The magnet: an edge inside the zone lands on the learned width. Alt asks for the exact width and the keys never snap. */

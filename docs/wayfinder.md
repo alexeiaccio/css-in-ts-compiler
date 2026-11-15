@@ -5473,6 +5473,12 @@ Adopted in `createResizablePanels` as `snap`, a pointer nicety the model does no
   article's option to pass samples back as `initial` is the host's, should anyone want it.
 - **`snapPoint(index)`** is on the API so a skin can mark the learned width; the starter's grip turns into the accent when
   its divider has one, which is also what its conformance test reads.
+- **The point is the separator's, not a pane's.** The article's hook takes a panel id because its library is panel-shaped; here
+  the separator is the widget — the role, the focus, the `aria-valuenow` — and a pane's size also moves when its _other_
+  neighbour is dragged, so a per-pane habit would average two boundaries into one.
+- **No live region on a stick.** A drag is pointer-only, a keyboard reader never snaps, and the separator's `aria-valuenow`
+  already reads the stuck width while the pointer moves: an announcement per stick would chatter about a state the reader
+  cannot be in.
 
 Checked: `packages/headless/test/resizable-panels.browser.test.tsx` (two tests: three releases in one hill teach a width, a
 drag inside the zone sticks while the pointer moves, Alt lands on the exact width, a drag past the zone follows again; and

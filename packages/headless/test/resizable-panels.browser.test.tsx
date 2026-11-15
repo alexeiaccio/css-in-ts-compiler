@@ -155,7 +155,13 @@ describe("createResizablePanels persistence", () => {
 });
 
 /** A 600 px group of three panes with real separator bars: the drag measures the group, so a test needs a layout. */
-const mountSnap = (snap: boolean) => {
+const mountSnap = (
+  snap: boolean,
+  kept: {
+    readonly snapMarks?: ReadonlyArray<ReadonlyArray<number>>;
+    readonly onSnapMark?: (index: number, marks: ReadonlyArray<number>) => void;
+  } = {},
+) => {
   const root = document.createElement("div");
   document.body.append(root);
   let api: ResizablePanels | undefined;
@@ -164,6 +170,7 @@ const mountSnap = (snap: boolean) => {
       panes: [{}, {}, {}],
       defaultSizes: [20, 40, 40],
       snap,
+      ...kept,
     });
     api = panels;
     return (
@@ -245,6 +252,22 @@ describe("createResizablePanels snap", () => {
     // past the zone the edge follows the pointer again
     dragTo(split(0), 25, 30);
     expect(api.sizes()[0]).toBe(30);
+    dispose();
+  });
+
+  it("takes a host's marks back, and hands the next one out", () => {
+    const written: Array<{ readonly index: number; readonly marks: ReadonlyArray<number> }> = [];
+    const { api, split, dispose } = mountSnap(true, {
+      snapMarks: [[24, 24.2, 24]],
+      onSnapMark: (index, marks) => written.push({ index, marks }),
+    });
+    // the hills are rebuilt at mount: the width three drags agreed on before the reload is here before any drag
+    expect(api.snapPoint(0)).toBe(24);
+    // a release past the zone is a new mark, and the host gets the whole list back (the layout starts at 20)
+    dragTo(split(0), 20, 30);
+    expect(api.sizes()[0]).toBe(30);
+    expect(written.at(-1)).toEqual({ index: 0, marks: [24, 24.2, 24, 30] });
+    expect(api.snapPoint(0)).toBe(24);
     dispose();
   });
 
