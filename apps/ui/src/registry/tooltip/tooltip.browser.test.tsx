@@ -101,7 +101,7 @@ describe("Tooltip", () => {
     await userEvent.unhover(trigger(root));
     flush();
     // the kit's grace, not the primitive's immediate hide: a pointer crossing the gap must survive it
-    await waitFor(() => bubble(root).hidden);
+    await waitFor(() => bubble(root).hidden === true);
     expect(describedBy(root)).toBeNull();
   });
 
@@ -144,7 +144,7 @@ describe("Tooltip", () => {
     // leaving the bubble hides it again, after the same grace
     tip.dispatchEvent(new PointerEvent("pointerleave"));
     flush();
-    await waitFor(() => tip.hidden);
+    await waitFor(() => tip.hidden === true);
   });
 
   it("never opens while disabled, and no trigger is described", async () => {
