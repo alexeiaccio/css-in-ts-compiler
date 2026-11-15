@@ -5610,3 +5610,11 @@ which follows `open()` with `showModal()`, `show()` for `modal: false`, and `clo
 request never shows it; Escape fires `cancel` → `close`, and the platform gives the focus back. Five browser tests on a
 real `<dialog>` (`test/dialog-native.browser.test.tsx`), and the existing dialog-modal/alertdialog suites (71) are
 untouched. `confirm` and `drawer` still use `overlay-shell`; their move needs the tests to become a host fixture first.
+
+**The menu follows:** `createMenu({ overlay: "popover" })` puts the list in the same top layer, and the host's CSS anchor
+positioning replaces the anchor-absolute layout (`anchor-name` on the trigger, `position-anchor` + `inset: auto` +
+`top: anchor(bottom)` on the list — `inset: auto` is what beats the UA's `inset: 0; margin: auto`). The platform's light
+dismiss and Escape come back as `toggle` and the primitive treats them as the same `leave()` a pointer outside asks for,
+so a controlled host still refuses them. The kit decides the mode with `CSS.supports("anchor-name", "--a")` and keeps the
+inline absolute list elsewhere — no polyfill dependency for the gap. The menubar's submenu levels are the same pattern
+repeated and remain.

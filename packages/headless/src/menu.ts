@@ -16,6 +16,10 @@ import {
 } from "./focusgroup";
 import { type Prefs, withPrefs } from "./prefs";
 
+// The Popover API (Baseline newly: Chrome 114, Firefox 125, Safari 17) can put the list in the top layer; the placement
+// is the host's CSS anchor positioning, so the host opts in with `overlay: "popover"` only where it has both.
+const NATIVE_POPOVER = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
+
 /**
  * APG menu family on Solid 2: `createMenu` (menu button + the checkable /
  * menuitemcheckbox / menuitemradio capability) and `createMenubar` (roving
@@ -26,12 +30,15 @@ import { type Prefs, withPrefs } from "./prefs";
  * `menu-checkable.qnt` and `menu-menubar.qnt` (the generated models are the
  * differential-test oracle, see `test/menu-button.browser.test.tsx`).
  *
- * Platform: **hybrid** (map ticket `etfq`). `popover` gives top layer, light
- * dismiss and Esc; `focusgroup` gives the roving tab stop and the movement
- * along each level's axis (`shared/focusgroup.qnt`, `./focusgroup`). The
- * library owns the menu keys (activation, Escape, Tab, typeahead, submenu and
- * cross-axis keys), the `aria-haspopup` / `aria-expanded` sync, the checkable
- * state and the light dismiss.
+ * Platform: **hybrid** (map ticket `etfq`). `focusgroup` gives the roving tab
+ * stop and the movement along each level's axis (`shared/focusgroup.qnt`,
+ * `./focusgroup`). With `overlay: "popover"` the list is a popover in the top
+ * layer — the host places it with CSS anchor positioning — and the platform's
+ * light dismiss and Escape come back as a `toggle`, which the primitive treats
+ * as the same close a pointer outside the widget asks for. The library owns the
+ * menu keys (activation, Escape, Tab, typeahead, submenu and cross-axis keys),
+ * the `aria-haspopup` / `aria-expanded` sync, the checkable state and the focus
+ * contract.
  *
  * One owner per level, because the platform's contract is per segment: the menu
  * list (`menu`, block axis, wrap), the menubar (`menubar`, inline, wrap) and
@@ -84,6 +91,12 @@ export type MenuVariant = "plain" | "checkbox-items" | "radio-items" | "mixed";
 export interface MenuOptions {
   readonly items: ReadonlyArray<string | MenuItemInput>;
   readonly variant?: MenuVariant;
+  /**
+   * How the list is shown. `"inline"` (the default) is the `hidden` attribute, and the host places the list. `"popover"` is
+   * the Popover API: the top layer, no clipping by an ancestor, and the platform's light dismiss and Escape; the host then
+   * positions it with CSS anchor positioning (`position-anchor`, `top: anchor(bottom)`), not in the anchor's flow.
+   */
+  readonly overlay?: "inline" | "popover";
   /** Controlled: the host owns the open state and this is the only thing that opens or closes it. */
   readonly open?: boolean | undefined;
   /** Uncontrolled starting state; ignored while `open` is set. */
@@ -185,7 +198,9 @@ export interface MenuTriggerProps {
 export interface MenuProps {
   readonly id: string;
   readonly role: "menu";
-  readonly hidden: boolean;
+  /** The inline fallback's visibility; `undefined` under `overlay: "popover"`, where the UA hides a closed popover. */
+  readonly hidden: boolean | undefined;
+  readonly popover: "auto" | undefined;
   /** The definition as the `focusgroup` attribute (`"menu"`; `"none"` while hidden). */
   readonly focusgroup: string;
   readonly ref: (element: HTMLElement) => void;
@@ -302,6 +317,23 @@ export const createMenu = (options: MenuOptions): Menu => {
     initial: options.defaultOpen === true,
     onChange: () => options.onOpenChange,
   });
+
+  // The popover's element arrives from the list's ref (Solid runs refs in the effect phase, so the effect lives here).
+  const popover = options.overlay === "popover" && NATIVE_POPOVER;
+  const [panel, setPanel] = createSignal<HTMLElement | undefined>(undefined);
+  createEffect(
+    () => [isOpen(), panel()] as const,
+    ([open, element]) => {
+      if (!popover || element === undefined) {
+        return;
+      }
+      if (open && !element.matches(":popover-open")) {
+        element.showPopover();
+      } else if (!open && element.matches(":popover-open")) {
+        element.hidePopover();
+      }
+    },
+  );
   let checked = new Set<number>(options.defaultChecked ?? []);
   const variantChoice = (): number => {
     if (options.variant === "mixed") return 1;
@@ -670,11 +702,24 @@ export const createMenu = (options: MenuOptions): Menu => {
   };
 
   /** The owner's ref: the listener first, then the provider (see `./focusgroup`). */
+  const onToggle = (event: Event): void => {
+    // a light dismiss or an Escape the platform handled: the list is already closed there, and `leave` is the same close a
+    // pointer outside the widget asks for (a host that holds `open` keeps it)
+    if ((event as ToggleEvent).newState === "closed" && isOpen()) {
+      leave();
+    }
+  };
+
   const attach = (element: HTMLElement): void => {
     if (owner === element) {
       return;
     }
     owner = element;
+    if (popover) {
+      element.setAttribute("popover", "auto");
+      element.addEventListener("toggle", onToggle);
+      setPanel(element);
+    }
     element.addEventListener("keydown", keyDownEvent);
     const provider = options.provider === "polyfill" ? focusGroupPolyfill : focusGroup;
     group = provider(element, { definition: definition(isOpen()), items: itemElements });
@@ -692,6 +737,10 @@ export const createMenu = (options: MenuOptions): Menu => {
 
   onCleanup(() => {
     owner?.removeEventListener("keydown", keyDownEvent);
+    if (popover) {
+      owner?.removeEventListener("toggle", onToggle);
+      setPanel(undefined);
+    }
     group?.destroy();
     group = undefined;
   });
@@ -765,7 +814,10 @@ export const createMenu = (options: MenuOptions): Menu => {
       role: "menu",
       get hidden() {
         version();
-        return !isOpen();
+        return popover ? undefined : !isOpen();
+      },
+      get popover() {
+        return popover ? ("auto" as const) : undefined;
       },
       get focusgroup() {
         version();

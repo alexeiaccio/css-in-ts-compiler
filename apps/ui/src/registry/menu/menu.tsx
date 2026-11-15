@@ -97,28 +97,37 @@ const MenuContext = createContext<{
   readonly checkable: boolean;
 }>();
 
-// The anchor is the decision this component makes about floating: one box around the trigger and the menu, `position:
-// relative`, and the content is `position: absolute` in it. No measurement, no listener on scroll or resize, and the
-// content moves with the trigger for free. The cost is the wrapper (a box the caller's layout did not have) and any
-// `overflow: hidden` ancestor clips the menu; a real floating layer is the wayfinder entry's "left".
+// How the list floats. Where CSS anchor positioning exists the list is a `popover` in the top layer, positioned from the
+// trigger's `anchor-name`; the platform owns the layer, an ancestor's `overflow` no longer clips it, and its light dismiss
+// and Escape come back as a close request. Elsewhere the list is `position: absolute` in the anchor box around the
+// trigger (no measurement, and any `overflow: hidden` ancestor clips it).
+const ANCHORED =
+  typeof CSS !== "undefined" &&
+  CSS.supports("anchor-name", "--a") &&
+  CSS.supports("position-anchor", "--a");
+
 const anchorClass = css.cn(css.position("relative"), css.display("inline-flex"));
 
-const contentClass = css.cn(
-  css.position("absolute"),
-  css.insetBlockStart("100%"),
-  css.insetInlineStart("0"),
-  css.marginBlockStart(t.space._1),
+// The surface both floating modes paint; the placement is the one difference. No `display`: the UA hides a closed popover,
+// and the fallback's `[hidden] { display: none }` does it otherwise.
+const contentSurface = css.cn(
   // `z-index` takes an `<integer>`, which a `number` token is not: like Dialog, the class reads the token by hand
   css.zIndex("var(--z-popover)"),
   css.minWidth("max-content"),
-  // no `display`: the primitive hides the menu with the `hidden` attribute, and a display declaration in this class would
-  // override the UA's `[hidden] { display: none }` (the rows are block-level flex boxes, so they stack anyway)
   css.padding(t.space._1),
   css.bg(t.color.overlayBackground),
   css.color(t.color.text),
   css.border("1px solid", t.color.overlayBorder),
   css.borderRadius(t.radius.lg),
   css.boxShadow(t.shadow.popover),
+);
+
+const contentInline = css.cn(
+  contentSurface,
+  css.position("absolute"),
+  css.insetBlockStart("100%"),
+  css.insetInlineStart("0"),
+  css.marginBlockStart(t.space._1),
 );
 
 // The highlight is the row the primitive announces (`data-highlighted`, mirrored from `focusIndex`), not a second copy of
@@ -215,6 +224,7 @@ export const Menu = (props: MenuProps): JSX.Element => {
     get provider() {
       return props.provider;
     },
+    overlay: ANCHORED ? "popover" : "inline",
   });
   untrack(() => props.onReady)?.(menu);
   let anchor: HTMLDivElement | undefined;
@@ -259,6 +269,12 @@ export const MenuTrigger = (props: MenuTriggerProps): JSX.Element => {
     get class() {
       return css.cn(props.class);
     },
+    // the name the list's `position-anchor` reads; every instance has its own
+    get style() {
+      return ANCHORED
+        ? { "anchor-name": `--${menu.triggerProps.id}` as string }
+        : ({ "": "" } as Record<string, string>);
+    },
   }));
   return renderPart(props, merged, undefined, (part) => (
     <Button {...part}>{props.children}</Button>
@@ -292,7 +308,21 @@ export const MenuContent = (props: MenuContentProps): JSX.Element => {
   const merged = merge(menu.menuProps, () => ({
     "data-part": "menu",
     get class() {
-      return css.cn(contentClass, props.class);
+      return css.cn(ANCHORED ? contentSurface : contentInline, props.class);
+    },
+    // the top layer places the list from the trigger's anchor; `inset: auto` beats the UA's `inset: 0; margin: auto`,
+    // which would centre the panel instead
+    get style() {
+      return ANCHORED
+        ? ({
+            "position-anchor": `--${menu.triggerProps.id}`,
+            inset: "auto",
+            top: "anchor(bottom)",
+            left: "anchor(left)",
+            margin: "0",
+            "margin-block-start": "4px",
+          } as Record<string, string>)
+        : undefined;
     },
   }));
   return renderPart(props, merged, undefined, (part) => (

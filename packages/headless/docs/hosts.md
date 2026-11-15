@@ -208,8 +208,11 @@ should render the element and skip them.
 - **Overlays**: `createPopover` now hosts its panel on the Popover API where it exists — the top layer, so no ancestor
   clips it and no z-index fights it; the primitive keeps the focus contract, the outside click that does not take focus
   back, and the placement, and writes client coordinates with `position: fixed` (the top layer's containing block is the
-  viewport, and the UA's `inset: 0; margin: auto` has to be cancelled or the panel re-centres). The menu family keeps its
-  keys and typeahead and still implements its own overlay half; moving its panel to the same API is the next step.
-  `confirm` and `drawer` on `<dialog>` is the other: the shell's tab cycle and scroll lock are the platform's there.
+  viewport, and the UA's `inset: 0; margin: auto` has to be cancelled or the panel re-centres). `createMenu` takes the
+  same route with `overlay: "popover"`: the list is a popover, the host positions it with CSS anchor positioning
+  (`position-anchor`, `top: anchor(bottom)`), and its light dismiss and Escape come back as a `toggle` — the kit does
+  exactly this where `CSS.supports("anchor-name", "--a")`, and keeps the inline absolute list elsewhere. The menubar's
+  submenu levels and `confirm`/`drawer` on `<dialog>` (the shell's tab cycle and scroll lock are the platform's there) are
+  the next steps.
 - **State**: which tab is selected, which rows are checked, the open set of a tree, the value a slider holds — the
   platform has no element to hold it, so the primitives do.

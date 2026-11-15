@@ -34,6 +34,9 @@ import {
   Workspace,
 } from "./combos.fixture.tsx";
 
+// The menu list is a `popover` in Chromium: closed is the absence of `:popover-open`, not the `hidden` attribute.
+const shown = (element: HTMLElement): boolean => element.matches(":popover-open");
+
 const mount = (view: () => JSX.Element): HTMLElement => {
   const root = document.createElement("div");
   document.body.append(root);
@@ -348,7 +351,7 @@ describe("the kit composes", () => {
     const root = mount(() => <Menus />);
     const trigger = root.querySelector<HTMLElement>('[aria-haspopup="menu"]')!;
     const menu = root.querySelector<HTMLElement>('[data-part="menu"]')!;
-    expect(menu.hidden).toBe(true);
+    expect(shown(menu)).toBe(false);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     // hidden has to mean hidden: no display in the content's class may override the UA's `[hidden] { display: none }`
     expect(style(menu).display).toBe("none");
@@ -356,7 +359,7 @@ describe("the kit composes", () => {
     trigger.click();
     flush();
     // the trigger names the menu it controls, and the menu is the popup the primitive says it is
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(style(menu).display).not.toBe("none");
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(menu.getAttribute("role")).toBe("menu");
@@ -384,16 +387,16 @@ describe("the kit composes", () => {
     // Escape closes it and the focus goes back to what opened it
     await userEvent.keyboard("{Escape}");
     flush();
-    expect(menu.hidden).toBe(true);
+    expect(shown(menu)).toBe(false);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(trigger);
     // a pointer outside the anchor is the other way out
     trigger.click();
     flush();
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     flush();
-    expect(menu.hidden).toBe(true);
+    expect(shown(menu)).toBe(false);
   });
 
   it("checks a checkbox item from Space without closing, and moves the radio group's choice", () => {
@@ -404,7 +407,7 @@ describe("the kit composes", () => {
     trigger.focus();
     trigger.click();
     flush();
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     const rows = [...root.querySelectorAll<HTMLElement>('[data-part="menu-item"]')];
     // the variant decides each row's role by index: one checkbox, a radio group, then plain items
     expect(rows.map((row) => row.getAttribute("role"))).toEqual([
@@ -430,7 +433,7 @@ describe("the kit composes", () => {
     rows[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
     flush();
     expect(rows[0]!.getAttribute("aria-checked")).toBe("true");
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(style(marks[0]!).visibility).toBe("visible");
     expect(readout.textContent).toBe("0|1");
     // Space on a radio checks it and clears the one before it

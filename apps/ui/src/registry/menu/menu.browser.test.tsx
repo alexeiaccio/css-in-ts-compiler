@@ -34,6 +34,9 @@ import checkableDefinition from "@cssints/apg-specs/apg/menu-checkable.model.jso
 // oracle; it also walks `createMenubar`, which the kit ships as its own item (`menubar`), so the bar's
 // scenarios stay there.
 
+// The list is a `popover` in Chromium: closed is the absence of `:popover-open`, not the `hidden` attribute.
+const shown = (element: HTMLElement): boolean => element.matches(":popover-open");
+
 const checkableModel = makeReferenceModel(decodeDefinition(checkableDefinition));
 const menuButtonModel = makeReferenceModel(decodeDefinition(menuButtonDefinition));
 
@@ -224,7 +227,7 @@ describe("Menu (plain) x a host that owns the open state", () => {
     const mounted = mount(false, true);
     const menu = menuOf(mounted.root);
     const trigger = triggerOf(mounted.root);
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     // the host opened it: the focus is on the first item, as the model has it
     expect(mounted.focus?.()).toBe("menuitem:0");
@@ -238,19 +241,34 @@ describe("Menu (plain) x a host that owns the open state", () => {
     items[1]?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     flush();
     expect(mounted.events.get("onOpenChange")).toEqual([[false]]);
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(mounted.focus?.()).toBe("menuitem:1");
     // activating an item closes it too, and is ignored the same way (the
     // primitive activates its own focused item)
     items[1]?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     flush();
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(mounted.focus?.()).toBe("menuitem:1");
     // the trigger's own click toggles through the request as well
     trigger.click();
     flush();
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
+    mounted.dispose();
+  });
+
+  it("floats in the top layer, under the trigger, out of the anchor's flow", () => {
+    const mounted = mount(true, true);
+    const menu = menuOf(mounted.root);
+    const trigger = triggerOf(mounted.root);
+    expect(shown(menu)).toBe(true);
+    // a popover's containing block is the viewport, so the platform's `inset: 0; margin: auto` is cancelled and the CSS
+    // anchor positioning puts the list one 4 px gap under the trigger's bottom-left corner
+    expect(getComputedStyle(menu).position).toBe("fixed");
+    const a = trigger.getBoundingClientRect();
+    const m = menu.getBoundingClientRect();
+    expect(Math.round(m.top)).toBe(Math.round(a.bottom + 4));
+    expect(Math.round(m.left)).toBe(Math.round(a.left));
     mounted.dispose();
   });
 
@@ -258,11 +276,11 @@ describe("Menu (plain) x a host that owns the open state", () => {
     const mounted = mount(true, false);
     const menu = menuOf(mounted.root);
     const trigger = triggerOf(mounted.root);
-    expect(menu.hidden).toBe(true);
+    expect(shown(menu)).toBe(false);
     trigger.click();
     flush();
     expect(mounted.events.get("onOpenChange")).toEqual([[true]]);
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     // the accepted request moves the focus to the first item
     expect(mounted.focus?.()).toBe("menuitem:0");
@@ -271,7 +289,7 @@ describe("Menu (plain) x a host that owns the open state", () => {
     );
     flush();
     expect(mounted.events.get("onOpenChange")).toEqual([[true], [false]]);
-    expect(menu.hidden).toBe(true);
+    expect(shown(menu)).toBe(false);
     expect(mounted.focus?.()).toBe("trigger");
     mounted.dispose();
   });
