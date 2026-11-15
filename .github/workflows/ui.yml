@@ -50,7 +50,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # write, and only for the conformance results below: the smoke is what writes `public/r/*.result.json`,
+      # so master commits them. Nothing else in this job pushes.
+      contents: write
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -86,6 +88,31 @@ jobs:
         run: bun run test
       - name: The starter kit, end to end
         run: bun scripts/starter-smoke.mjs
+      # The smoke wrote the conformance record of every item it passed (`public/r/<name>.result.json`).
+      # Master commits it, so the docs page shows a section about the files that are committed, not about
+      # whoever released last; a pull request writes the files into its own checkout and stops there, since
+      # a stale record hides the section instead of lying (the fingerprint is what decides). The write is
+      # narrow: these files, an ordinary commit, and a GITHUB_TOKEN push starts no run of its own.
+      - name: The conformance results are current
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- 'apps/ui/public/r/*.result.json'
+          if git diff --cached --quiet; then
+            echo "the results the smoke wrote are the ones committed"
+            exit 0
+          fi
+          git commit -m "chore(ui): the conformance results the starter smoke wrote"
+          git push origin HEAD:master
+      # the deploy builds the site from its own checkout, so this run's results travel to it: the record a
+      # person reads is one deploy old otherwise
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        with:
+          name: conformance-results
+          path: apps/ui/public/r/*.result.json
+          if-no-files-found: error
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
@@ -102,6 +129,11 @@ jobs:
       - run: bun install --frozen-lockfile
       # the deploy builds the site here, and its config imports cssints/vite from the packages' dist
       - run: bun run build:packages
+      # the results the check job's smoke wrote, into the tree the deploy builds
+      - uses: actions/download-artifact@v8
+        with:
+          name: conformance-results
+          path: apps/ui/public/r
       - name: Deploy
         working-directory: apps/ui
         run: bun alchemy deploy --stage prod --yes

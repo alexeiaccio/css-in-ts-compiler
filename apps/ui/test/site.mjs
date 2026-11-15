@@ -4,6 +4,7 @@
 //     same page reached by a link
 //   - a control writes an arg and the story remounts: the disabled switch disables the preview's button
 //   - a story that takes a count (tabs, accordion) still receives it after the change
+//   - the conformance record draws only for a fingerprint that matches the item's files
 //   - the theme switch is a data-mode scope, and the tint group moves every token of the page
 //   node test/site.mjs
 import assert from "node:assert/strict";
@@ -206,6 +207,23 @@ try {
     await preview.locator('[data-part="board-viewport"]:visible').getAttribute("data-mode"),
     "dark",
   );
+
+  // The conformance record: the section draws for an item whose fingerprint matches the files on the page and
+  // stays hidden for a record written for other files, so the page's hash is the smoke's hash. A red first
+  // assertion means the starter smoke has not run since this item changed.
+  const conformance = page.locator(".docs__section h2", { hasText: "Conformance" });
+  await page.goto(`${base}#accordion`);
+  await conformance.waitFor();
+  assert.equal(await conformance.count(), 1);
+  await page.route("**/r/tabs.result.json", (route) =>
+    route.fulfill({ json: { item: "tabs", files: `sha256:${"0".repeat(64)}` } }),
+  );
+  // the record's own response is the moment the page can decide: nothing here is a guess about timing
+  const record = page.waitForResponse("**/r/tabs.result.json");
+  await page.goto(`${base}#tabs`);
+  await record;
+  assert.equal(await conformance.count(), 0);
+  await page.unroute("**/r/tabs.result.json");
 
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });

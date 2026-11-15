@@ -1,6 +1,7 @@
 // The docs page: one item at a time, from the registry build. The live preview comes from the item's CSF story file (with
 // the story ids Storybook builds, its args as controls); an item without one still shows its demo. The source that ships,
-// the add command, the tint picker that moves every preview, and the preflight result the published copy passed.
+// the add command, the tint picker that moves every preview, and the conformance record the starter smoke wrote for the
+// item's files — shown only while its fingerprint still matches them.
 //
 // The page is built on the registry's own components, so the chrome is one more reader of the kit: the theme switch, the
 // tint group, the story tabs, the controls and the copy buttons are the components on the pages they stand beside.
@@ -15,11 +16,10 @@ import { Tabs } from "../registry/tabs/tabs.tsx";
 import { Controls } from "../stories/controls.tsx";
 import { type Args, parseHash, storyOfId } from "@cssints/stories";
 import { type SiteEntry, storiesOf } from "../stories/site.ts";
+import { itemHash } from "./item-hash.ts";
 import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
-
-const HOST = "https://ui.cssints.dev";
 
 /** A preset is the reference theme's two numbers: the hue and the chroma of the tint scale. */
 const TINTS: ReadonlyArray<{
@@ -33,18 +33,19 @@ const TINTS: ReadonlyArray<{
   { name: "red", hue: "27.0726", chroma: "0.181447" },
 ];
 
+/** What the starter smoke wrote for an item: its name and the fingerprint of the files it installed. */
 interface Preflight {
-  readonly version: string;
-  readonly files: number;
-  readonly passedAt: string;
+  readonly item: string;
+  readonly files: string;
 }
 
 const isPreflight = (value: unknown): value is Preflight =>
   typeof value === "object" &&
   value !== null &&
-  "version" in value &&
+  "item" in value &&
+  typeof value.item === "string" &&
   "files" in value &&
-  "passedAt" in value;
+  typeof value.files === "string";
 
 const first = (): string => items[0]?.name ?? "";
 
@@ -190,8 +191,9 @@ export const Docs = (): JSX.Element => {
 
   const link = (id: string): string => `${location.origin}${location.pathname}#${id}`;
 
-  // Solid 2 has no `createResource`: the current item's result is a plain fetch into a signal. An
-  // item published before the preflight existed has no file, and the section stays hidden.
+  // Solid 2 has no `createResource`: the current item's result is a plain fetch into a signal. The
+  // record is only about the files it was written for — a missing file, or one whose fingerprint no
+  // longer matches this item's files, leaves the section hidden.
   const [preflight, setPreflight] = createSignal<Preflight>();
   // the body's first load and a first effect run can name the same item; one request is enough
   let requested: string | undefined;
@@ -201,14 +203,22 @@ export const Docs = (): JSX.Element => {
     }
     requested = target;
     setPreflight(undefined);
-    // a guide has no published item to ask about; only a widget page has a preflight result
-    if (GUIDES.some((entry) => entry.name === target)) {
+    // a guide has no item JSON, so it has no result to ask about
+    const current = items.find((entry) => entry.name === target);
+    if (current === undefined) {
       return;
     }
-    const response = await fetch(`${HOST}/r/${target}.result.json`).catch(() => undefined);
+    // the site serves its own results next to the items it serves: the deployment that answers this
+    // page answers the record, so a local run and a preview see the same thing the domain does
+    const response = await fetch(`/r/${target}.result.json`).catch(() => undefined);
     const body: unknown =
       response?.ok === true ? await response.json().catch(() => undefined) : undefined;
-    const result = isPreflight(body) ? body : undefined;
+    // an item that changed since the smoke ran is not the item this record describes: the fingerprint
+    // is what says so, and hiding the section again is the point of keeping it
+    const result =
+      isPreflight(body) && body.item === target && body.files === (await itemHash(current.files))
+        ? body
+        : undefined;
     // a slower response for an item the reader already left must not land
     if (target === name()) {
       setPreflight(result);
@@ -384,9 +394,11 @@ export const Docs = (): JSX.Element => {
                   <section class="docs__section">
                     <h2 class="docs__heading">Conformance</h2>
                     <p class="docs__note">
-                      Published as <code>{result().version}</code>: the copied test passed before
-                      the release was written ({result().files} files,{" "}
-                      {result().passedAt.slice(0, 10)}).
+                      The starter smoke test installed every file this item ships into the template
+                      and ran the copied conformance against it. This record is the fingerprint of
+                      exactly those files{" "}
+                      <code title={result().files}>{`${result().files.slice(0, 19)}…`}</code>, so
+                      what you copy above is what passed.
                     </p>
                   </section>
                 )}

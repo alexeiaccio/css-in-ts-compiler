@@ -51,7 +51,7 @@ apps/ui                the starters' site (Solid 2 + cssints): one page per regi
                        preview is the item's story (every page has one, 54 of them), read by @cssints/stories, with the controls the story declares (src/stories/:
                        site.ts the glob, controls.tsx the panel on the kit's own Field/Select/Switch/Slider); the chrome is the kit
                        itself (Tabs for the stories, Switch for the theme, RadioGroup for the tint, Button for the copies, the add
-                       command and the preflight result the published copy passed); scripts/registry-json.ts regenerates r/*.json;
+                       command and the conformance record the starter smoke wrote for the item's files); scripts/registry-json.ts regenerates r/*.json;
                        deploy is Cloudflare static assets (alchemy.run.ts); test/site.mjs drives the dev server in Chrome (not in `test`)
 apps/csssky            Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs/router 2.0.0-next.35, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),
                        src/api.ts (public AppView) and paged.ts; test/api.mjs (recorded fixtures), post.mjs (post model), home.mjs (tabs, paging), profile.mjs, thread.mjs, settings.mjs, contrast.mjs (the hue slider's range), build.mjs, dev.mjs (build, HMR), browser.mjs, posts-browser.mjs, home-browser.mjs, profile-browser.mjs, thread-browser.mjs and dev-browser.mjs (Chrome)

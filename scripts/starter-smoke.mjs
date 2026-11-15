@@ -4,7 +4,8 @@
 // JSON and the CDN are still exercised.
 //
 // What it proves is the whole chain a reader meets — template, `components.json`, the item JSON,
-// the plugin versions — for every item, not for the one the release happened to check.
+// the plugin versions — for every item, not for the one the release happened to check. It is also the
+// only producer of `apps/ui/public/r/<name>.result.json`, the conformance record the docs page reads.
 //
 //   node scripts/starter-smoke.mjs [--keep]
 import assert from "node:assert/strict";
@@ -22,6 +23,8 @@ import {
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+
+import { itemHash } from "../apps/ui/src/docs/item-hash.ts";
 
 const root = join(import.meta.dirname, "..");
 const template = join(root, "templates", "solid-vite");
@@ -227,6 +230,25 @@ try {
   // The items without a test at least have to type-check; the template's own tsc (from vite-plus)
   // checks the whole `src`, so every copied file is in it.
   await run("npx", ["tsc", "--noEmit"]);
+
+  // What the page reads: `r/<name>.result.json`, written here and nowhere else, once this item's copy
+  // has passed. The record is a fact about the files, not about a release — a version and a date would
+  // be stale by the next release and would make this file dirty on every merge, so the fingerprint of
+  // the item's `files` (see `apps/ui/src/docs/item-hash.ts`) is all of it: same item JSON the server
+  // above handed the CLI, so the hash describes what was installed. Rewritten only when it changes,
+  // which is what makes a second run a no-op.
+  let rewritten = 0;
+  for (const item of items.filter((candidate) => candidate.tested)) {
+    const manifest = JSON.parse(readFileSync(join(registry, `${item.name}.json`), "utf8"));
+    const result = `${JSON.stringify({ item: item.name, files: await itemHash(manifest.files) }, null, 2)}\n`;
+    const path = join(registry, `${item.name}.result.json`);
+    if (existsSync(path) && readFileSync(path, "utf8") === result) {
+      continue;
+    }
+    writeFileSync(path, result);
+    rewritten += 1;
+  }
+  process.stdout.write(`conformance results: ${tested.length} items, ${rewritten} rewritten\n`);
 
   // The published path, last: the JSON and the CDN, not a copy of the registry in this checkout.
   components.registries["@cssints"] = live;

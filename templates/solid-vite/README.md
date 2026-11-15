@@ -35,7 +35,7 @@ The component, its stylesheet, its fixture, the walk driver, its browser test an
 Behaviour is not copied: the component imports `@cssints/headless` from npm, so `npm update`
 carries the fixes. What you edit is markup and style.
 
-`components.json` points the registry at `https://packages.cssints.dev/r/{name}.json`, so
+`components.json` points the registry at `https://ui.cssints.dev/r/{name}.json`, so
 `add @cssints/<name>` works for every item in `registry.json`.
 
 ## Why the test ships with the copy
