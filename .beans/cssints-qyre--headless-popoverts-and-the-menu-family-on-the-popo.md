@@ -1,11 +1,11 @@
 ---
 # cssints-qyre
 title: 'headless: popover.ts and the menu family on the Popover API'
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-11-14T10:42:10Z
-updated_at: 2026-11-15T11:37:15Z
+updated_at: 2026-11-15T13:09:10Z
 parent: cssints-oeb0
 ---
 
@@ -19,8 +19,10 @@ anchor positioning for placement (C125 / F147 / S26).
 - [x] Port `popover.ts` to the Popover API behind the same props; the browser tests are the oracle
 - [x] `createMenu` on the popover: `overlay: "popover"`, `menuProps.popover`, a platform `toggle` as a close request, and
       the kit's native CSS anchor positioning where `CSS.supports("anchor-name", "--a")`
-- [ ] Menubar: the same for its submenu levels (a polyfill only if engines without anchor positioning matter)
-- [ ] Delete what the platform owns from the spec/model (the overlay stack, not the selection/keyboard contract)
+- [x] Menubar: the same for its submenu levels — `manual` popovers with the kit's anchor positioning (a polyfill only if
+      engines without anchor positioning matter)
+- [x] Delete what the platform owns from the spec/model — nothing in the models was an overlay stack: the close stays a
+      request, which is what the hosts hold or refuse
 
 
 
@@ -46,3 +48,14 @@ which also beats the UA's `inset: 0; margin: auto` centring), and falls back to 
 `leave()` — a close request a controlled host can refuse. Tests: the primitive's `test/menu-popover.browser.test.tsx`
 (3: top layer + placement, the toggle request, a refusing host) and the kit's menu suite (59, including the top-layer
 placement). The menubar's submenu levels and `confirm`/`drawer` on `<dialog>` remain.
+
+
+
+**Menubar, done:** `createMenubar({ overlay: "popover" })` makes every menu and submenu a popover; the levels are
+`manual` because the UA's close focus restore fought the move between bar item, menu and submenu (the scenario walks lost
+a focus row and left a menu announced open), so the platform keeps the top layer and the primitive keeps Escape and the
+host's outside press. The kit anchors each level to its bar item or parent row (`top: anchor(bottom)` / `top:
+anchor(top); left: anchor(right)`). One ordering lesson: `bump` syncs the popovers itself instead of an effect, because
+the kit focuses a row from the same state change and a focus into a still-closed popover is a no-op. Tests: the kit's
+menubar suite (52, including the top-layer placement of both levels), menu (59) and combos (28); the primitive's menu
+family 126. The `.changeset` covers `MenuOptions.overlay`/`MenubarOptions.overlay`.

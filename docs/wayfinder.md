@@ -5618,3 +5618,14 @@ dismiss and Escape come back as `toggle` and the primitive treats them as the sa
 so a controlled host still refuses them. The kit decides the mode with `CSS.supports("anchor-name", "--a")` and keeps the
 inline absolute list elsewhere — no polyfill dependency for the gap. The menubar's submenu levels are the same pattern
 repeated and remain.
+
+**The menubar, same pattern per level:** `createMenubar({ overlay: "popover" })` makes every menu and submenu a popover,
+and the kit anchors each level to its bar item or its parent row (the submenu opens beside the row: `top: anchor(top)`,
+`left: anchor(right)`). Its levels are `popover="manual"`, not `auto`: the menubar moves the focus itself between the bar,
+a menu and a submenu, and the UA's close — with its focus restore to whatever was focused before — fought that dance
+(scenario walks lost a row of focus and left a menu announced open). With `manual` the platform keeps the top layer only,
+and the primitive keeps Escape and the host's outside press, which is the close semantics the model has.
+
+One ordering lesson: the lists are shown and hidden in `bump`, the same function that bumps the state, not in an effect.
+The kit's focus effect runs from the same change, and `focus()` on a row inside a popover that is still closed is a no-op
+— measured as "the submenu is open and the focus is still on the parent row", which took a `focusin` log to see.

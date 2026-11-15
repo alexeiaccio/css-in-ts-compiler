@@ -5,7 +5,7 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-11-14T10:41:57Z
-updated_at: 2026-11-15T11:14:37Z
+updated_at: 2026-11-15T13:09:10Z
 ---
 
 ## What
@@ -43,3 +43,8 @@ existing 71 still green). What is left of the epic is the overlay host for `conf
 `overlay-shell`) and the menu family's panel attach (its blocker: the panel is the host's element, so `showPopover()` has
 no element to act on until the props gain a panel `attach`; the kit's anchor-absolute positioning also has to become a
 placement or anchor positioning).
+
+
+
+**qyre is complete:** the popover, the menu and now the menubar (manual levels, anchor positioning per level) are on the
+platform; the epic's remaining item is `cssints-dvq8`'s confirm/drawer (`overlay-shell` still owns their trap and lock).

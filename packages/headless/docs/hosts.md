@@ -211,8 +211,10 @@ should render the element and skip them.
   viewport, and the UA's `inset: 0; margin: auto` has to be cancelled or the panel re-centres). `createMenu` takes the
   same route with `overlay: "popover"`: the list is a popover, the host positions it with CSS anchor positioning
   (`position-anchor`, `top: anchor(bottom)`), and its light dismiss and Escape come back as a `toggle` — the kit does
-  exactly this where `CSS.supports("anchor-name", "--a")`, and keeps the inline absolute list elsewhere. The menubar's
-  submenu levels and `confirm`/`drawer` on `<dialog>` (the shell's tab cycle and scroll lock are the platform's there) are
-  the next steps.
+  exactly this where `CSS.supports("anchor-name", "--a")`, and keeps the inline absolute list elsewhere. `createMenubar`
+  takes `overlay: "popover"` the same way, one popover per level; its levels are `popover="manual"` because a UA close's
+  focus restore would fight the move between bar item, menu and submenu, so the primitive keeps the close (Escape and the
+  host's outside press) and the platform keeps only the top layer. `confirm`/`drawer` on `<dialog>` (the shell's tab
+  cycle and scroll lock are the platform's there) are the next step.
 - **State**: which tab is selected, which rows are checked, the open set of a tree, the value a slider holds — the
   platform has no element to hold it, so the primitives do.

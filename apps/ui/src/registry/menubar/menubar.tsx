@@ -92,6 +92,11 @@ const MenubarMenuContext = createContext<MenubarMenuContextValue>();
 // and its menu, `position: relative`, and the menu is `position: absolute` in it. Nothing is measured and nothing listens
 // to scroll or resize. ponytail: an inline absolute popup, so an `overflow: hidden` ancestor clips the menu and a menu
 // near the viewport's edge is not flipped; a real floating layer is the wayfinder entry's "left", and neither is attempted.
+const ANCHORED =
+  typeof CSS !== "undefined" &&
+  CSS.supports("anchor-name", "--a") &&
+  CSS.supports("position-anchor", "--a");
+
 const anchorClass = css.cn(css.position("relative"), css.display("inline-flex"));
 
 const barClass = css.cn(css.display("flex"), css.alignItems("center"), css.gap(t.space._1));
@@ -124,6 +129,8 @@ const surfaceClass = css.cn(
   css.boxShadow(t.shadow.popover),
 );
 
+// Where CSS anchor positioning exists the menus are popovers in the top layer (the primitive's `overlay: "popover"`), so an
+// `overflow: hidden` ancestor no longer clips them; elsewhere they are absolute in the anchor box, as before.
 const menuClass = css.cn(
   css.position("absolute"),
   css.insetBlockStart("100%"),
@@ -132,8 +139,6 @@ const menuClass = css.cn(
   surfaceClass,
 );
 
-// A submenu floats beside its parent row, which is the anchor: the row is `position: relative`. `inset-inline-start: 100%`
-// is the row's inline end, so the popup follows the writing direction with no kit copy of it.
 const submenuClass = css.cn(
   css.position("absolute"),
   css.insetBlockStart("0"),
@@ -220,6 +225,7 @@ export const Menubar = (props: MenubarProps): JSX.Element => {
     prefs: props.prefs,
     suppressFocusWrite: props.suppressFocusWrite,
     provider: props.provider,
+    overlay: ANCHORED ? "popover" : "inline",
   });
   props.onReady?.(menubar);
 
@@ -337,6 +343,11 @@ export const MenubarTrigger = (props: MenubarTriggerProps): JSX.Element => {
     get class() {
       return css.cn(triggerClass, props.class);
     },
+    get style() {
+      return ANCHORED
+        ? ({ "anchor-name": `--${menubar.barItemProps(bar).id}` } as Record<string, string>)
+        : undefined;
+    },
   }));
   return renderPart(props, merged, state, (part) => (
     <button type="button" {...part}>
@@ -356,7 +367,19 @@ export const MenubarContent = (props: MenubarContentProps): JSX.Element => {
   const merged = merge(menubar.menuProps(bar), () => ({
     "data-part": "menubar-menu",
     get class() {
-      return css.cn(menuClass, props.class);
+      return css.cn(ANCHORED ? surfaceClass : menuClass, props.class);
+    },
+    get style() {
+      return ANCHORED
+        ? ({
+            "position-anchor": `--${menubar.barItemProps(bar).id}`,
+            inset: "auto",
+            top: "anchor(bottom)",
+            left: "anchor(left)",
+            margin: "0",
+            "margin-block-start": "4px",
+          } as Record<string, string>)
+        : undefined;
     },
   }));
   return renderPart(props, merged, undefined, (part) => (
@@ -426,6 +449,13 @@ export const MenubarSub = (props: MenubarSubProps): JSX.Element | null => {
     get class() {
       return css.cn(subRowClass, props.class);
     },
+    get style() {
+      return ANCHORED
+        ? ({
+            "anchor-name": `--${menubar.menuItemProps(bar, props.index).id}`,
+          } as Record<string, string>)
+        : undefined;
+    },
   }));
   return (
     <MenubarMenuContext value={{ bar, item: props.index }}>
@@ -451,7 +481,19 @@ export const MenubarSubContent = (props: MenubarSubContentProps): JSX.Element =>
   const merged = merge(menubar.submenuProps(bar, item), () => ({
     "data-part": "menubar-submenu",
     get class() {
-      return css.cn(submenuClass, props.class);
+      return css.cn(ANCHORED ? surfaceClass : submenuClass, props.class);
+    },
+    get style() {
+      return ANCHORED
+        ? ({
+            "position-anchor": `--${menubar.menuItemProps(bar, item).id}`,
+            inset: "auto",
+            top: "anchor(top)",
+            left: "anchor(right)",
+            margin: "0",
+            "margin-inline-start": "4px",
+          } as Record<string, string>)
+        : undefined;
     },
   }));
   return renderPart(props, merged, undefined, (part) => (

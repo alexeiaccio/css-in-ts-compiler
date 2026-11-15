@@ -22,6 +22,9 @@ import definitionJson from "@cssints/apg-specs/apg/menu-menubar.model.json";
 import { menubarDriver } from "./menubar-driver.ts";
 import { mountBar, mountMenubar } from "./menubar.fixture";
 
+// The menus are `manual` popovers in Chromium: closed is the absence of `:popover-open`, not the `hidden` attribute.
+const shown = (element: HTMLElement): boolean => element.matches(":popover-open");
+
 const model = makeReferenceModel(decodeDefinition(definitionJson));
 
 const dom = (config: ScenarioConfig) => menubarDriver(mountMenubar(menuMenubarConfig(config)));
@@ -166,14 +169,36 @@ describe("Menubar (the kit's DOM)", () => {
     const menus = parts(root, "menubar-menu");
     expect(menus).toHaveLength(2);
     expect(menus.map((menu) => menu.getAttribute("role"))).toEqual(["menu", "menu"]);
-    expect(menus[0]!.hidden).toBe(true);
+    expect(shown(menus[0]!)).toBe(false);
     // hidden has to mean hidden: no display in the menu's class may override the UA's `[hidden] { display: none }`
     expect(style(menus[0]!).display).toBe("none");
     // the anchor is one box per bar item, and the menu is absolute in it, over the page
     const anchor = parts(root, "menubar-anchor")[0]!;
     expect(style(anchor).position).toBe("relative");
-    expect(style(menus[0]!).position).toBe("absolute");
+    expect(style(menus[0]!).position).toBe("fixed");
     expect(style(menus[0]!).zIndex).toBe("10");
+    dispose();
+  });
+
+  it("floats the menu and the submenu in the top layer, anchored to their rows", async () => {
+    const { root, dispose } = mountBar();
+    const trigger = parts(root, "menubar-trigger")[0]!;
+    const menu = parts(root, "menubar-menu")[0]!;
+    trigger.click();
+    flush();
+    expect(shown(menu)).toBe(true);
+    const a = trigger.getBoundingClientRect();
+    const m = menu.getBoundingClientRect();
+    expect(Math.round(m.top)).toBe(Math.round(a.bottom + 4));
+    const parent = rowsOf(menu)[1]!;
+    await key("ArrowDown");
+    await key("ArrowDown");
+    await key("ArrowRight");
+    const submenu = parent.querySelector<HTMLElement>('[data-part="menubar-submenu"]')!;
+    expect(shown(submenu)).toBe(true);
+    const p = parent.getBoundingClientRect();
+    const s = submenu.getBoundingClientRect();
+    expect(Math.round(s.left)).toBe(Math.round(p.right + 4));
     dispose();
   });
 
@@ -186,7 +211,7 @@ describe("Menubar (the kit's DOM)", () => {
     triggers[0]!.click();
     flush();
     expect(triggers[0]!.getAttribute("aria-expanded")).toBe("true");
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(style(menu).display).not.toBe("none");
     // a click opens the menu and the focus stays on the bar item; Down is what enters it
     expect(document.activeElement).toBe(triggers[0]);
@@ -222,18 +247,18 @@ describe("Menubar (the kit's DOM)", () => {
     expect(document.activeElement).toBe(parent);
     expect(parent.getAttribute("aria-haspopup")).toBe("menu");
     expect(parent.getAttribute("aria-expanded")).toBe("false");
-    expect(submenu.hidden).toBe(true);
+    expect(shown(submenu)).toBe(false);
     // the marker is the row's announcement: visible because it says it has a popup, and turned when it is open
     expect(style(chevron).visibility).toBe("visible");
     expect(style(chevron).transform).toBe("none");
     await key("ArrowRight");
     expect(parent.getAttribute("aria-expanded")).toBe("true");
-    expect(submenu.hidden).toBe(false);
+    expect(shown(submenu)).toBe(true);
     expect(submenu.getAttribute("role")).toBe("menu");
     expect(style(chevron).transform).not.toBe("none");
     // the submenu floats beside its parent row, which is its anchor
     expect(style(parent).position).toBe("relative");
-    expect(style(submenu).position).toBe("absolute");
+    expect(style(submenu).position).toBe("fixed");
     expect(style(submenu).zIndex).toBe("10");
     const subItems = rowsOf(submenu);
     expect(subItems.map((row) => row.getAttribute("role"))).toEqual(["menuitem", "menuitem"]);
@@ -243,16 +268,16 @@ describe("Menubar (the kit's DOM)", () => {
     expect(highlighted(subItems)).toEqual([null, "true"]);
     expect(document.activeElement).toBe(subItems[1]);
     await key("Escape");
-    expect(submenu.hidden).toBe(true);
+    expect(shown(submenu)).toBe(false);
     expect(parent.getAttribute("aria-expanded")).toBe("false");
     // the chevron is painted from `aria-expanded` through a 120 ms transition: let it land before reading it
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(style(chevron).transform).toBe("none");
-    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe(true);
     expect(document.activeElement).toBe(parent);
     const barItem = triggers[0]!;
     await key("Escape");
-    expect(menu.hidden).toBe(true);
+    expect(shown(menu)).toBe(false);
     expect(barItem.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(barItem);
     dispose();
@@ -269,8 +294,8 @@ describe("Menubar (the kit's DOM)", () => {
     // Right on the open menu's first row moves along the bar and opens that item's menu (the APG rule: the menu opens
     // without the focus going into it)
     await key("ArrowRight");
-    expect(menus[0]!.hidden).toBe(true);
-    expect(menus[1]!.hidden).toBe(false);
+    expect(shown(menus[0]!)).toBe(false);
+    expect(shown(menus[1]!)).toBe(true);
     expect(triggers[1]!.getAttribute("aria-expanded")).toBe("true");
     expect(highlighted(triggers)).toEqual([null, "true", null]);
     expect(document.activeElement).toBe(triggers[1]);
@@ -287,10 +312,10 @@ describe("Menubar (the kit's DOM)", () => {
     const menus = parts(root, "menubar-menu");
     triggers[0]!.click();
     flush();
-    expect(menus[0]!.hidden).toBe(false);
+    expect(shown(menus[0]!)).toBe(true);
     document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     flush();
-    expect(menus[0]!.hidden).toBe(true);
+    expect(shown(menus[0]!)).toBe(false);
     expect(triggers[0]!.getAttribute("aria-expanded")).toBe("false");
     dispose();
   });

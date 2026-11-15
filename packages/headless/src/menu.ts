@@ -896,6 +896,8 @@ export interface MenubarOptions {
   readonly items: ReadonlyArray<string | MenubarItemInput>;
   readonly orientation?: "horizontal" | "vertical";
   readonly wrap?: boolean;
+  /** How the menus and submenus are shown; see `MenuOptions.overlay`. Each level is its own popover. */
+  readonly overlay?: "inline" | "popover";
   readonly id?: string;
   /**
    * Structural mirror of `ing.lexicon.ui.prefs` (`./prefs`). Honoured here:
@@ -971,7 +973,9 @@ export interface Menubar {
   readonly menuProps: (index: number) => {
     readonly id: string;
     readonly role: "menu";
-    readonly hidden: boolean;
+    /** The inline fallback's visibility; `undefined` under `overlay: "popover"`. */
+    readonly hidden: boolean | undefined;
+    readonly popover: "manual" | undefined;
     /** `"menu"` while the menu is shown, `"none"` while it is hidden. */
     readonly focusgroup: string;
     readonly ref: (element: HTMLElement) => void;
@@ -995,7 +999,9 @@ export interface Menubar {
   ) => {
     readonly id: string;
     readonly role: "menu";
-    readonly hidden: boolean;
+    /** The inline fallback's visibility; `undefined` under `overlay: "popover"`. */
+    readonly hidden: boolean | undefined;
+    readonly popover: "manual" | undefined;
     readonly focusgroup: string;
     readonly ref: (element: HTMLElement) => void;
   };
@@ -1060,6 +1066,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
   const bump = (): void => {
     syncGroups();
     setVersion((v) => v + 1);
+    syncPanels();
   };
   const track =
     <T>(read: () => T): Accessor<T> =>
@@ -1067,6 +1074,51 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       version();
       return read();
     };
+
+  // The popover path: every menu and submenu list is a popover of its own (each level is a separate top-layer box). The refs
+  // register their elements with the level's open state; `bump` syncs them at once, not in an effect, because the kit moves
+  // the focus from the same state change and a focus into a popover that is still closed does nothing.
+  const popover = options.overlay === "popover" && NATIVE_POPOVER;
+  interface PopupPanel {
+    readonly key: string;
+    readonly element: HTMLElement;
+    readonly open: () => boolean;
+    readonly onToggle: (event: Event) => void;
+  }
+  const panels: PopupPanel[] = [];
+  const syncPanels = (): void => {
+    for (const panel of panels) {
+      if (!panel.element.isConnected) {
+        continue;
+      }
+      const isOpen = panel.open();
+      if (isOpen && !panel.element.matches(":popover-open")) {
+        panel.element.showPopover();
+      } else if (!isOpen && panel.element.matches(":popover-open")) {
+        panel.element.hidePopover();
+      }
+    }
+  };
+  const registerPanel = (key: string, element: HTMLElement, open: () => boolean): void => {
+    if (!popover) {
+      return;
+    }
+    const onToggle = (event: Event): void => {
+      // a light dismiss or an Escape the platform handled; our own keys close first, so this only sees a real outside close
+      if ((event as ToggleEvent).newState === "closed" && open()) {
+        leave();
+      }
+    };
+    element.setAttribute("popover", "manual");
+    element.addEventListener("toggle", onToggle);
+    panels.push({ key, element, open, onToggle });
+    syncPanels();
+  };
+  onCleanup(() => {
+    for (const panel of panels) {
+      panel.element.removeEventListener("toggle", panel.onToggle);
+    }
+  });
 
   // The platform's half, one owner per level because its contract is per
   // segment: the bar (`menubar`, the declared axis and wrap), every top-level
@@ -1615,7 +1667,11 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       role: "menu",
       get hidden() {
         version();
-        return openTop !== i;
+        return popover ? undefined : openTop !== i;
+      },
+      get popover() {
+        // `manual`: the top layer without the UA's close and its focus restore, which would fight the move between levels
+        return popover ? ("manual" as const) : undefined;
       },
       get focusgroup() {
         version();
@@ -1626,6 +1682,10 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       get ref() {
         return (element: HTMLElement) => {
           attach(menuOwner(i), element);
+          registerPanel(`menu:${i}`, element, () => {
+            version();
+            return openTop === i;
+          });
         };
       },
     }),
@@ -1687,7 +1747,11 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       role: "menu",
       get hidden() {
         version();
-        return !(openTop === b && openSub === item);
+        return popover ? undefined : !(openTop === b && openSub === item);
+      },
+      get popover() {
+        // `manual`, like the top-level menus: the focus dance between the levels is the primitive's
+        return popover ? ("manual" as const) : undefined;
       },
       get focusgroup() {
         version();
@@ -1698,6 +1762,10 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       get ref() {
         return (element: HTMLElement) => {
           attach(subOwner(b, item), element);
+          registerPanel(`sub:${b}:${item}`, element, () => {
+            version();
+            return openTop === b && openSub === item;
+          });
         };
       },
     }),

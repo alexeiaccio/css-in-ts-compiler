@@ -18,9 +18,12 @@ export interface CatalogItem {
 
 // `r/registry.json` is a module in the same directory and is not an item, so what the glob returns
 // is only known after the check below.
-const sources = import.meta.glob<{ readonly default: Partial<CatalogItem> }>("../../public/r/*.json", {
-  eager: true,
-});
+const sources = import.meta.glob<{ readonly default: Partial<CatalogItem> }>(
+  "../../public/r/*.json",
+  {
+    eager: true,
+  },
+);
 
 const order = new Map(index.items.map((item, at) => [item.name, at]));
 
