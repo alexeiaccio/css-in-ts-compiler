@@ -12,7 +12,7 @@ Every support claim below is the Baseline of 2026-11 (see that file and the Mode
 ## Disclosure: `<details>` / `<summary>`
 
 ```tsx
-<details class={row} ref={el => (details = el)}>
+<details class={row} ref={(el) => (details = el)}>
   <summary class={trigger}>{summary}</summary>
   <div class={panel}>{children}</div>
 </details>
@@ -26,14 +26,20 @@ the panel's hiding, find-in-page in closed content, and the `toggle` event. The 
 The open/close animation is CSS, not JS (Baseline newly 2025-09-16 for `::details-content`):
 
 ```css
-:root { interpolate-size: allow-keywords; }
+:root {
+  interpolate-size: allow-keywords;
+}
 details::details-content {
   block-size: 0;
   overflow: clip;
-  transition: block-size 0.3s, content-visibility 0.3s;
+  transition:
+    block-size 0.3s,
+    content-visibility 0.3s;
   transition-behavior: allow-discrete;
 }
-details[open]::details-content { block-size: auto; }
+details[open]::details-content {
+  block-size: auto;
+}
 ```
 
 ## Accordion: `<details name>`
@@ -84,9 +90,25 @@ pair and the `role=alertdialog` + `aria-describedby` wiring. A host that renders
 Entry and exit animation, no JS:
 
 ```css
-dialog { opacity: 0; translate: 0 8px; transition: opacity 0.2s, translate 0.2s, display 0.2s allow-discrete, overlay 0.2s allow-discrete; }
-dialog[open] { opacity: 1; translate: 0 0; }
-@starting-style { dialog[open] { opacity: 0; translate: 0 8px; } }
+dialog {
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity 0.2s,
+    translate 0.2s,
+    display 0.2s allow-discrete,
+    overlay 0.2s allow-discrete;
+}
+dialog[open] {
+  opacity: 1;
+  translate: 0 0;
+}
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
 ```
 
 ## Meter: `<meter>`
@@ -107,7 +129,7 @@ gauge (its fill is a div read off `aria-valuenow`), or for `aria-valuetext` form
 <input type="checkbox" role="switch" {...({ switch: "" } as Record<string, string>)} checked={on} onChange={…} />
 ```
 
-The `switch` attribute makes the control *look* like a switch in Safari 17.4+; Chrome, Edge and Firefox ignore it and
+The `switch` attribute makes the control _look_ like a switch in Safari 17.4+; Chrome, Edge and Firefox ignore it and
 render a checkbox (WHATWG PR open). The safe baseline is exactly this markup: `type=checkbox` + `role=switch`, which is
 what the primitive emits. Style it with `appearance: none` and your own track/thumb, or with `accent-color` when the
 native look is enough. No polyfill is needed for behaviour — only for the visual, and only if the design depends on it.
@@ -144,8 +166,14 @@ the primitive's custom slider (its keyboard and rail-pointer code is the price o
 ```
 
 ```css
-.grow { field-sizing: content; min-block-size: 2lh; max-block-size: 10lh; }
-.invalid:user-invalid { border-color: var(--color-error); }
+.grow {
+  field-sizing: content;
+  min-block-size: 2lh;
+  max-block-size: 10lh;
+}
+.invalid:user-invalid {
+  border-color: var(--color-error);
+}
 ```
 
 `field-sizing: content` (Baseline newly 2026-06-16) removes the auto-grow script. `:user-invalid` (widely) is the
@@ -174,7 +202,11 @@ should render the element and skip them.
   command palette, date picker's calendar, carousel's rotation, resizable panels, splitter, pan/zoom, knob, diagram,
   timeline, virtual windows. The platform supplies pieces (focusgroup, popover, anchor positioning, `content-visibility`),
   never the whole contract.
-- **Overlays**: `popover` gives the top layer, light dismiss, Esc and focus return; the menu's keys and typeahead stay.
-  `confirm` and `drawer` move to `<dialog>` (the shell's tab cycle and scroll lock are the platform's there).
+- **Overlays**: `createPopover` now hosts its panel on the Popover API where it exists — the top layer, so no ancestor
+  clips it and no z-index fights it; the primitive keeps the focus contract, the outside click that does not take focus
+  back, and the placement, and writes client coordinates with `position: fixed` (the top layer's containing block is the
+  viewport, and the UA's `inset: 0; margin: auto` has to be cancelled or the panel re-centres). The menu family keeps its
+  keys and typeahead and still implements its own overlay half; moving its panel to the same API is the next step.
+  `confirm` and `drawer` on `<dialog>` is the other: the shell's tab cycle and scroll lock are the platform's there.
 - **State**: which tab is selected, which rows are checked, the open set of a tree, the value a slider holds — the
   platform has no element to hold it, so the primitives do.

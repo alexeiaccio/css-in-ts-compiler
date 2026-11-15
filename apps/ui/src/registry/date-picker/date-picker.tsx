@@ -124,7 +124,8 @@ const DatePickerContext = createContext<{
 
 // The same decision as the popover's: the primitive's panel is `position: absolute` with page-space coordinates, so it is
 // portalled to the body, out of any `position: relative`, `transform` or `overflow: hidden` between it and the page. The cost
-// is a client-only island and a measurement of the trigger per open. No `display`: `hidden` on the panel is what closes it.
+// is a client-only island and a measurement of the trigger per open. No `display`: the panel is a `popover` under the
+// Popover API (the UA hides it) and `hidden` is the fallback's close.
 const contentClass = css.cn(
   css.zIndex("var(--z-popover)"),
   css.width("max-content"),

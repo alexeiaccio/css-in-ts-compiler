@@ -33,13 +33,21 @@ const validated = css.cn(
   css.bg(t.color.surface),
   css.color(t.color.fieldText),
   css.fontSize(t.font.size),
-  css.userInvalid(css.border("1px solid", t.color.invalid), css.outline("2px solid", t.color.invalid)),
+  css.userInvalid(
+    css.border("1px solid", t.color.invalid),
+    css.outline("2px solid", t.color.invalid),
+  ),
 );
 
 // The recipe (docs/hosts.md): the browser owns the validation state. `:user-invalid` is true after the user has
 // interacted with a control that fails its constraints — no `touched` flag, no aria-invalid written by hand.
 export const UserInvalid: Story<InputProps> = {
   render: () => (
-    <input class={validated} required minlength={3} placeholder="At least three characters, then leave the field" />
+    <input
+      class={validated}
+      required
+      minlength={3}
+      placeholder="At least three characters, then leave the field"
+    />
   ),
 };

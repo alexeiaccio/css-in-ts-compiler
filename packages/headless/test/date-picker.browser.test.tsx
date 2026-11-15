@@ -237,11 +237,12 @@ describe("createDatePicker (real DOM)", () => {
     await open(root);
     await tick();
     const popup = part(root, "popover");
-    expect(popup.style.position).toBe("absolute");
+    // the Popover API puts the panel in the top layer, whose containing block is the viewport: `fixed`, client coords
+    expect(popup.style.position).toBe("fixed");
     const anchor = triggerOf(root).getBoundingClientRect();
     const panel = popup.getBoundingClientRect();
-    // the default placement is bottom with a 4 px gap, measured in client space and written in page space
-    expect(Math.round(panel.top - window.scrollY)).toBe(Math.round(anchor.bottom + 4));
+    // the default placement is bottom with a 4 px gap
+    expect(Math.round(panel.top)).toBe(Math.round(anchor.bottom + 4));
   });
 
   it("moves the roving day and the focus by a day and a week", async () => {

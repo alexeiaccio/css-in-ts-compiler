@@ -5584,3 +5584,22 @@ and checkable items, and `confirm`/`drawer` on `<dialog>` delete `overlay-shell`
 Polyfills are not the lever: everything there is Baseline widely or newly, and the two non-interoperable features
 (`interestfor`, `switch`) are exactly where the JS state already stays. Three beans: cssints-jr2a, cssints-qyre,
 cssints-dvq8.
+
+## The popover moves into the top layer (cssints-qyre, 2026-11-15)
+
+`createPopover` now renders its panel through the Popover API where the engine has it (`popover="auto"` +
+`showPopover()`/`hidePopover()`), so the surface lives in the top layer: an ancestor's `overflow` or `transform` cannot clip
+it and no z-index can put something over it. What the primitive keeps is exactly what the platform does not give a
+non-modal surface: the outside press that does not take focus back, the focus into the panel and back to the trigger, and
+the placement with its flip at the viewport edge.
+
+Two platform details cost a measurement each. The top layer's containing block is the viewport, so the placement is
+written in client coordinates with `position: fixed` (the fallback's page-space `absolute` would land 470 px low on a
+scrolled page). And the UA's `[popover]:popover-open` rule is `inset: 0; margin: auto`: with only left/top set, the box is
+over-constrained and the browser centres it — `top: 38px` rendered at 363 px in a bare page until all four sides were
+given (`right/bottom: auto`, `margin: 0`). Both were caught by the kit's placement test, not by review.
+
+The API is the same `contentProps` with two changes: `popover` is added and `hidden` is `undefined` under the API (the UA
+hides a closed popover; the fallback keeps `hidden`). `date-picker.ts` composes the primitive and needed no code change;
+its two browser tests and the popover's own now assert `:popover-open` instead of `hidden`. The menu family is the next
+step (its panel is the host's, so it needs an attach first), then `confirm`/`drawer` on `<dialog>` (cssints-dvq8).

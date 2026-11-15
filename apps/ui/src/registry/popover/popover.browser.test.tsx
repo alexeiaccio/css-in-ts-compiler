@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { mountPopover } from "./popover.fixture";
 import { popoverDriver, settle, type PopoverMounted } from "./popover-driver.ts";
 
+// The panel is a `popover` in Chromium (the UA hides it and `showPopover()` puts it in the top layer), so "closed" is
+// not `hidden` any more: it is the absence of `:popover-open`. The `hidden` attribute stays the fallback's way.
+const shown = (element: HTMLElement): boolean => element.matches(":popover-open");
+
 const live: PopoverMounted[] = [];
 
 const mounted = (): ReturnType<typeof popoverDriver> & PopoverMounted => {
@@ -27,8 +31,8 @@ describe("Popover (the kit's DOM)", () => {
     expect(content().getAttribute("aria-modal")).toBeNull();
     expect(content().getAttribute("aria-label")).toBe("Rename file");
     expect(content().getAttribute("tabindex")).toBe("-1");
-    expect(content().hidden).toBe(true);
-    // hidden has to mean hidden: no display in the panel's class may override the UA's `[hidden] { display: none }`
+    expect(shown(content())).toBe(false);
+    // closed has to mean not painted: no display in the panel's class may override the UA's rule for a closed popover
     expect(getComputedStyle(content()).display).toBe("none");
   });
 
@@ -37,9 +41,9 @@ describe("Popover (the kit's DOM)", () => {
     await open();
     expect(root.contains(content())).toBe(false);
     expect(content().parentElement).toBe(document.body);
-    expect(content().hidden).toBe(false);
-    // the ancestor's transform is not the panel's containing block: it is placed in page space
-    expect(content().style.position).toBe("absolute");
+    expect(shown(content())).toBe(true);
+    // the top layer is the containing block now: the panel is fixed to the viewport, out of the ancestor's transform
+    expect(content().style.position).toBe("fixed");
     expect(content().style.top.endsWith("px")).toBe(true);
   });
 
@@ -49,9 +53,9 @@ describe("Popover (the kit's DOM)", () => {
     await settle();
     const anchor = trigger().getBoundingClientRect();
     const panel = content().getBoundingClientRect();
-    // placement="bottom-start", the primitive's default 4 px offset, both written in page space
-    expect(Math.round(panel.top - window.scrollY)).toBe(Math.round(anchor.bottom + 4));
-    expect(Math.round(panel.left - window.scrollX)).toBe(Math.round(anchor.left));
+    // placement="bottom-start", the primitive's default 4 px offset, both in the top layer's viewport space
+    expect(Math.round(panel.top)).toBe(Math.round(anchor.bottom + 4));
+    expect(Math.round(panel.left)).toBe(Math.round(anchor.left));
   });
 
   it("paints the surface from the theme and puts it under a dialog in the stack", async () => {
@@ -76,7 +80,7 @@ describe("Popover (the kit's DOM)", () => {
     await open();
     expect(document.activeElement).toBe(inside("popover-field"));
     await press("Escape");
-    expect(content().hidden).toBe(true);
+    expect(shown(content())).toBe(false);
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(trigger());
   });
@@ -89,7 +93,7 @@ describe("Popover (the kit's DOM)", () => {
     page.focus();
     page.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
     await settle();
-    expect(content().hidden).toBe(true);
+    expect(shown(content())).toBe(false);
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(page);
     page.remove();

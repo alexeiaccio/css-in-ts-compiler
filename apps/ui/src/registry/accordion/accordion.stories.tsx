@@ -89,9 +89,7 @@ const NativeAccordion = (props: AccordionExampleProps): JSX.Element => (
           name={props.multiple ? `native-${index}` : "native-accordion"}
           open={index === 0}
         >
-          <summary class={nativeSummary}>
-            {TRIGGERS[index] ?? `Section ${index + 1}`}
-          </summary>
+          <summary class={nativeSummary}>{TRIGGERS[index] ?? `Section ${index + 1}`}</summary>
           <div class={nativePanel}>{PANELS[index] ?? `The panel of section ${index + 1}.`}</div>
         </details>
       )}
@@ -102,4 +100,6 @@ const NativeAccordion = (props: AccordionExampleProps): JSX.Element => (
 // The recipe (docs/hosts.md): one `<details name>` group is the accordion. A shared `name` is the exclusivity (Baseline
 // 2024-09-03); `multiple` is a name per section. No primitive. The gap the recipe keeps: `summary` is not heading
 // content, so the heading list a screen reader gets is not the APG one.
-export const Native: Story<AccordionExampleProps> = { render: (args) => <NativeAccordion {...args} /> };
+export const Native: Story<AccordionExampleProps> = {
+  render: (args) => <NativeAccordion {...args} />,
+};

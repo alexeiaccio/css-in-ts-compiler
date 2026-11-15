@@ -27,7 +27,11 @@ export const WithValueText: Story<MeterProps> = {
 };
 
 const nativeMeter = css.cn(css.width("100%"), css.accentColor(t.color.highlight));
-const nativeLabel = css.cn(css.display("block"), css.fontSize(t.font.sizeSm), css.color(t.color.text));
+const nativeLabel = css.cn(
+  css.display("block"),
+  css.fontSize(t.font.sizeSm),
+  css.color(t.color.text),
+);
 
 const NativeMeter = (props: MeterProps): JSX.Element => (
   <div>
@@ -47,4 +51,7 @@ const NativeMeter = (props: MeterProps): JSX.Element => (
 // The recipe (docs/hosts.md): `<meter>` is the meter. The engine draws it, announces `aria-valuenow` and the low/high/
 // optimum thresholds, and `accent-color` is the colour. A value a reader must hear differently (`valueText`) keeps the
 // primitive: the native element does not produce `aria-valuetext`.
-export const Native: Story<MeterProps> = { args: { value: 64 }, render: (args) => <NativeMeter {...args} /> };
+export const Native: Story<MeterProps> = {
+  args: { value: 64 },
+  render: (args) => <NativeMeter {...args} />,
+};

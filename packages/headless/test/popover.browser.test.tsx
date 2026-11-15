@@ -105,6 +105,10 @@ const mount = (options: MountOptions = {}) => {
   };
 };
 
+// The panel is open when the Popover API says so (the UA hides it) or, without the API, when `hidden` is off.
+const shown = (element: HTMLElement): boolean =>
+  element.matches(":popover-open") || (!element.hasAttribute("popover") && !element.hidden);
+
 const press = (element: HTMLElement): void => {
   element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
 };
@@ -127,7 +131,7 @@ describe("createPopover", () => {
     expect(content.getAttribute("role")).toBe("dialog");
     expect(content.getAttribute("aria-modal")).toBeNull();
     expect(content.getAttribute("tabindex")).toBe("-1");
-    expect(content.hidden).toBe(true);
+    expect(shown(content)).toBe(false);
     dispose();
   });
 
@@ -137,11 +141,11 @@ describe("createPopover", () => {
     const content = part("content");
     trigger.click();
     await tick();
-    expect(content.hidden).toBe(false);
+    expect(shown(content)).toBe(true);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     trigger.click();
     await tick();
-    expect(content.hidden).toBe(true);
+    expect(shown(content)).toBe(false);
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     dispose();
   });
@@ -156,7 +160,7 @@ describe("createPopover", () => {
 
     escape(part("inside"));
     await tick();
-    expect(part("content").hidden).toBe(true);
+    expect(shown(part("content"))).toBe(false);
     expect(document.activeElement).toBe(trigger);
     dispose();
   });
@@ -169,7 +173,7 @@ describe("createPopover", () => {
     page.focus();
     press(page);
     await tick();
-    expect(part("content").hidden).toBe(true);
+    expect(shown(part("content"))).toBe(false);
     expect(document.activeElement).toBe(page);
     dispose();
   });
@@ -183,7 +187,7 @@ describe("createPopover", () => {
     page.click();
     await tick();
     expect(pageCount()).toBe(1);
-    expect(part("content").hidden).toBe(true);
+    expect(shown(part("content"))).toBe(false);
     expect(document.activeElement).not.toBe(part("trigger"));
     dispose();
   });
@@ -193,12 +197,12 @@ describe("createPopover", () => {
     part("trigger").click();
     await tick();
     expect(changes).toEqual([true]);
-    expect(part("content").hidden).toBe(true);
+    expect(shown(part("content"))).toBe(false);
     expect(part("trigger").getAttribute("aria-expanded")).toBe("false");
 
     setHost(true);
     await tick();
-    expect(part("content").hidden).toBe(false);
+    expect(shown(part("content"))).toBe(true);
     expect(part("trigger").getAttribute("aria-expanded")).toBe("true");
     dispose();
   });
@@ -209,7 +213,8 @@ describe("createPopover", () => {
     await tick();
     await tick();
     const content = part("content");
-    expect(content.style.position).toBe("absolute");
+    // the top layer's containing block is the viewport, so the native path writes client coords with `fixed`
+    expect(content.style.position).toBe("fixed");
     expect(content.style.top.endsWith("px")).toBe(true);
     expect(content.style.left.endsWith("px")).toBe(true);
     dispose();

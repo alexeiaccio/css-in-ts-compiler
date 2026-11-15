@@ -1,6 +1,11 @@
 import { type Accessor, createEffect, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
 
+// The Popover API (Baseline newly: Chrome 114, Firefox 125, Safari 17) owns the top layer, light dismiss and Escape. The
+// primitive keeps the focus contract, the outside click that does not take the focus back, and the placement: the
+// platform has none of those for a non-modal surface.
+const NATIVE_POPOVER = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
+
 export type PopoverPlacement =
   | "bottom-start"
   | "bottom"
@@ -30,9 +35,16 @@ export interface PopoverPosition {
 
 /** The last measure, as a style object for the content element. */
 export interface PopoverStyle {
-  readonly position: "absolute";
+  readonly position: "absolute" | "fixed";
   readonly top: string;
   readonly left: string;
+  /**
+   * `auto` under the Popover API: the UA sheet sets `inset: 0` and `margin: auto`, and a left/top pair alone leaves
+   * right/bottom at 0 — the box is then over-constrained and the UA centres it. All four sides say where it goes.
+   */
+  readonly right?: "auto";
+  readonly bottom?: "auto";
+  readonly margin?: "0";
   /** Custom properties, so the object is assignable to Solid's `style`. */
   readonly [property: `-${string}`]: string | number | undefined;
 }
@@ -75,7 +87,9 @@ export interface PopoverContentProps {
   /** Always absent: a popover is not modal. */
   readonly "aria-modal": undefined;
   readonly tabindex: -1;
-  readonly hidden: boolean;
+  /** The fallback's visibility; absent under the Popover API, where the UA hides it and `popover` opens it. */
+  readonly hidden: boolean | undefined;
+  readonly popover: "auto" | undefined;
   readonly onKeyDown: (event: KeyboardEvent) => void;
 }
 
@@ -200,11 +214,11 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
       { top: 0, left: 0, width: c.width, height: c.height },
       { width: window.innerWidth, height: window.innerHeight },
     );
-    // measured in client space (that is what the viewport is), written in page space, which is what `position: absolute`
-    // on the content means
+    // measured in client space (that is what the viewport is). The fallback writes page space, which is what
+    // `position: absolute` means; the top layer resolves the coords against the viewport, so the native path keeps them
     setMeasured({
-      top: at.top + window.scrollY,
-      left: at.left + window.scrollX,
+      top: NATIVE_POPOVER ? at.top : at.top + window.scrollY,
+      left: NATIVE_POPOVER ? at.left : at.left + window.scrollX,
       placement: at.placement,
     });
   };
@@ -218,10 +232,16 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
       if (isOpen) {
         restoreFocus = true;
         wasOpen = true;
+        if (NATIVE_POPOVER) {
+          if (!pair.content.hasAttribute("popover")) pair.content.setAttribute("popover", "auto");
+          if (!pair.content.matches(":popover-open")) pair.content.showPopover();
+        }
+        // after showPopover: a closed popover is `display: none`, and its rect is 0 x 0 until it is shown
         measure();
         (firstFocusable(pair.content) ?? pair.content).focus();
       } else if (wasOpen) {
         wasOpen = false;
+        if (NATIVE_POPOVER && pair.content.matches(":popover-open")) pair.content.hidePopover();
         if (restoreFocus && pair.trigger.isConnected) {
           pair.trigger.focus();
         }
@@ -240,6 +260,15 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
       requestOpen(false);
     };
 
+    // the platform closes on Escape and on a light dismiss; both come back as `toggle`, and a close we asked for is a
+    // no-op here because the state already moved
+    const onToggle = (event: Event): void => {
+      const state = (event as ToggleEvent).newState;
+      if (state === "open" && !open()) requestOpen(true);
+      else if (state === "closed" && open()) requestOpen(false);
+    };
+
+    content.addEventListener("toggle", onToggle);
     document.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
@@ -250,6 +279,7 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
 
     return () => {
       observer.disconnect();
+      content.removeEventListener("toggle", onToggle);
       document.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
@@ -282,7 +312,10 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
       "aria-modal": undefined,
       tabindex: -1,
       get hidden() {
-        return !open();
+        return NATIVE_POPOVER ? undefined : !open();
+      },
+      get popover() {
+        return NATIVE_POPOVER ? "auto" : undefined;
       },
       onKeyDown: (event) => {
         if (event.key === "Escape" && open()) {
@@ -293,11 +326,21 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
     },
     contentStyle: () => {
       const at = measured();
-      return {
-        position: "absolute",
-        top: `${at?.top ?? 0}px`,
-        left: `${at?.left ?? 0}px`,
-      };
+      return NATIVE_POPOVER
+        ? {
+            // the top layer's containing block is the viewport; the UA's `inset: 0; margin: auto` would centre it
+            position: "fixed",
+            top: `${at?.top ?? 0}px`,
+            left: `${at?.left ?? 0}px`,
+            right: "auto",
+            bottom: "auto",
+            margin: "0",
+          }
+        : {
+            position: "absolute",
+            top: `${at?.top ?? 0}px`,
+            left: `${at?.left ?? 0}px`,
+          };
     },
     position,
     attach,

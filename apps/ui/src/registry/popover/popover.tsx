@@ -58,8 +58,10 @@ const PopoverContext = createContext<{
 // island (no server paint) and it is not where the trigger is in the DOM, so the primitive measures the trigger once per
 // open and again on resize, scroll and a `ResizeObserver`.
 //
-// No `display` here on purpose: the primitive hides the panel with the `hidden` attribute, and a display declaration in this
-// class would override the UA's `[hidden] { display: none }`. The position comes from the primitive's `contentStyle()`.
+// No `display` here on purpose: where the Popover API exists the primitive makes the panel a `popover` and the UA keeps
+// it `display: none` until `showPopover()` (its own top layer: z-index and an ancestor's `overflow` no longer matter); the
+// fallback hides it with `hidden`, and a `display` declaration here would override the UA's `[hidden] { display: none }`.
+// The position still comes from the primitive's `contentStyle()`.
 const contentClass = css.cn(
   css.zIndex("var(--z-popover)"),
   css.minWidth("max-content"),

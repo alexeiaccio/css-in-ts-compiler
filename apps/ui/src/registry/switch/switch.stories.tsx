@@ -44,8 +44,18 @@ export const Controlled: Story<SwitchProps> = {
   },
 };
 
-const nativeRow = css.cn(css.display("flex"), css.alignItems("center"), css.gap(t.space._2), css.fontSize(t.font.size));
-const nativeBox = css.cn(css.width("1.5rem"), css.height("1.5rem"), css.accentColor(t.color.highlight), css.cursor("pointer"));
+const nativeRow = css.cn(
+  css.display("flex"),
+  css.alignItems("center"),
+  css.gap(t.space._2),
+  css.fontSize(t.font.size),
+);
+const nativeBox = css.cn(
+  css.width("1.5rem"),
+  css.height("1.5rem"),
+  css.accentColor(t.color.highlight),
+  css.cursor("pointer"),
+);
 
 const NativeSwitch = () => {
   const [on, setOn] = createSignal(false);

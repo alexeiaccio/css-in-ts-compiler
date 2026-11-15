@@ -61,8 +61,8 @@ const NativeDialog = () => {
       <dialog ref={dialog} class={css.cn(nativePanel, nativeBackdrop)} closedby="any">
         <h2 class={nativeTitle}>A native dialog</h2>
         <p class={nativeBody}>
-          The platform owns the top layer, the backdrop, focus in and out, Escape and the scroll lock.{" "}
-          <code>closedby="any"</code> adds click-outside in Chrome and Firefox.
+          The platform owns the top layer, the backdrop, focus in and out, Escape and the scroll
+          lock. <code>closedby="any"</code> adds click-outside in Chrome and Firefox.
         </p>
         <form method="dialog">
           <Button>Close</Button>
