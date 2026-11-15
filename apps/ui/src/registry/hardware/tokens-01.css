@@ -12,11 +12,14 @@
      near-black and the key colour comes back as a marker instead.
    - `--key-highlight`: that marker. The key colour for a light key, transparent for every other, so a rule can lay it behind
      a value unconditionally.
-   - `--key-cap`: a fill carrying a small light legend, never lighter than 0.55 so the legend reads. A light key, whose legend
-     is dark, keeps its colour.
+   - `--key-cap`: the fill that carries a small legend (the rocker's chosen end). It is the key colour: the legend on it is
+     `--on-accent`, which is chosen against the cap, so the cap never has to be darkened to make white read.
    - `--key-lamp`: a lit lamp on the panel, the key colour but never lighter than 0.86, so it still stands off the panel.
    - `--key-glow`: lit things on a dark screen, never darker than 0.72; a key with no chroma (black) lights near-white.
-   - `--on-accent`: the text on a `--key-cap`, white below 0.8 lightness and near-black above, by the same switch.
+   - `--on-accent`: the text on a `--key-cap` or a key's cap. Pure white or pure black, switching at the lightness where the
+     two cross (0.56 here, 0.179 relative luminance): one of them always clears 4.5 : 1, which is what an 8-10 px legend
+     needs. The reference switches at 0.8, which leaves a *white* legend at 3.35 : 1 on a mid-light key (0.62), so a legible
+     device legend could not be built on it.
    - `--ring`: the focus ring, which is the ink — the ring has to stand off the *panel*, and the ink is already capped for a
      light key, so the two are the same colour by construction and a light key can never paint an invisible ring.
 
@@ -48,27 +51,26 @@
       calc(c * (1 - clamp(0, (l - 0.68) * 1000, 1)) + 0.01 * clamp(0, (l - 0.68) * 1000, 1)) h
   );
   --key-highlight: color-mix(in oklab, var(--theme) calc(var(--key-tone) * 100%), transparent);
-  --key-cap: oklch(
-    from var(--theme) calc(l - max(0, l - 0.55) * (1 - clamp(0, (l - 0.8) * 1000, 1))) c h
-  );
+  --key-cap: var(--key-color);
   --key-lamp: oklch(from var(--theme) min(l, 0.86) c h);
   --key-glow: oklch(from var(--theme) max(l, calc(0.95 - 0.23 * clamp(0, c * 20, 1))) c h);
-  --on-accent: oklch(clamp(0.18, (0.8 - var(--theme-l)) * 1000, 1) 0 0);
+  --on-accent: oklch(calc(1 - clamp(0, (var(--theme-l) - 0.56) * 1000, 1)) 0 0);
   --ring: var(--key-ink);
 
   /* The panel: one light moulded grey, its lit top edge, the printed hairlines and the ink they are printed in. The dim tone
-     is darker than the reference's (#7a7a76) because these legends are real 8.5 px text and have to clear 4.5 : 1 on the
-     panel, which the reference's does not. */
+     is much darker than the reference's (#7a7a76), which is 2.9 : 1 on this panel: every legend here is real 8-10 px text,
+     so it clears 4.5 : 1 with room (#4c4c48 is 6.1 : 1) and still sits a clear step under `--ink` (11.9 : 1). */
   --paper: #f3f3f1;
   --panel: #d9d9d6;
   --panel-hi: #e6e6e3;
   --line: #b4b4b0;
   --ink: #1d1d1c;
-  --dim: #5c5c58;
+  --dim: #4c4c48;
 
   /* The hole a key stands in, the dark glass of the screen, the darker screen of the bar graph, the groove of a switch and
      the light slot of a fader. A screen is a well in the panel, not a light surface: what is on it is emissive print. */
   --well: linear-gradient(180deg, #0b0b0a, #1a1a19);
+  --glass-base: #191a1d;
   --glass: linear-gradient(180deg, #202124, #141518);
   --glass-ink: #f2f2ee;
   --glass-dim: rgb(242 242 238 / 0.62);

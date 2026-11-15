@@ -1,5 +1,6 @@
 import type { JSX } from "@solidjs/web";
 import { render } from "@solidjs/web";
+import { For } from "solid-js";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
@@ -113,6 +114,39 @@ const luminance = (colour: string): number => {
 const contrastRatio = (a: string, b: string): number => {
   const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
   return (lighter + 0.05) / (darker + 0.05);
+};
+
+/**
+ * The colour a reader sees: the text's colour painted over its backdrop at the element's whole opacity chain (the fill is
+ * done in a canvas, so a colour with alpha and an ancestor's `opacity` both land in the pixel, as they do on screen).
+ */
+const painted = (colour: string, backdrop: string, opacity: number): string => {
+  if (context === null) {
+    throw new Error("skin 01: no 2d context");
+  }
+  context.globalAlpha = 1;
+  context.clearRect(0, 0, 1, 1);
+  context.fillStyle = backdrop;
+  context.fillRect(0, 0, 1, 1);
+  context.globalAlpha = opacity;
+  context.fillStyle = colour;
+  context.fillRect(0, 0, 1, 1);
+  context.globalAlpha = 1;
+  const pixels = context.getImageData(0, 0, 1, 1).data;
+  return `rgb(${pixels[0] ?? 0} ${pixels[1] ?? 0} ${pixels[2] ?? 0})`;
+};
+
+/** How much of the legend reaches the screen: `opacity` is inert on an ancestor as much as on the text itself. */
+const opacityOf = (element: HTMLElement): number => {
+  let opacity = 1;
+  for (
+    let current: HTMLElement | null = element;
+    current !== null;
+    current = current.parentElement
+  ) {
+    opacity *= Number(getComputedStyle(current).opacity);
+  }
+  return opacity;
 };
 
 const TRANSPARENT = /^rgba\([^)]*,\s*0\)$/;
@@ -259,6 +293,123 @@ describe("the set", () => {
     expect([...graph.children]).toHaveLength(10);
     // the graph is the widest thing on the row: it takes the room the screen leaves
     expect(getComputedStyle(graph).flexGrow).toBe("1");
+  });
+});
+
+describe("the printed legends", () => {
+  /** Every part that sets type a reader has to read on the panel. */
+  const LEGEND_PARTS = new Set([
+    "faceplate-title",
+    "lcd-tag",
+    "lcd-value",
+    "lcd-body",
+    "led-legend",
+    "key-legend",
+    "rocker-legend",
+    "slide-switch-legend",
+    "fader-label",
+    "dial-label",
+  ]);
+
+  /** WCAG 1.4.3: 4.5 : 1 for text under 18.66 px, 3 : 1 for the large figure the screen alone carries. */
+  const floorFor = (size: number): number => (size >= 18.66 ? 3 : 4.5);
+
+  /**
+   * What a legend paints, measured the way a reader meets it: its colour over the surface it is printed on — the panel, the
+   * cap of a key, the glass of a screen — with its opacity applied. A legend dimmed with `opacity` measures low here, which
+   * is the point: a dim step is a colour, half an alpha is a defect.
+   */
+  const legendRatio = (element: HTMLElement): number => {
+    const style = getComputedStyle(element);
+    const backdrop = panelOf(element);
+    return contrastRatio(painted(style.color, backdrop, opacityOf(element)), backdrop);
+  };
+
+  it("keeps every legend at 4.5 : 1 on the surface it is printed on (1.4.3)", () => {
+    const { root } = mount(() => (
+      <Faceplate title="Test unit">
+        <Lcd tag="Level" value="40%">
+          take 3
+        </Lcd>
+        <Led label="Signal present" legend="Sig" on />
+        <Key label="Mute the output" legend="Mute" isToggle />
+        <Rocker label="Power" offLabel="Off" onLabel="On" />
+        <SlideSwitch label="Phantom power" offLabel="Off" onLabel="48V" />
+        <Fader label="Level" min={0} max={100} defaultValue={40} />
+        <Dial label="Tone" min={0} max={10} defaultValue={5} />
+      </Faceplate>
+    ));
+
+    const measured: string[] = [];
+    for (const element of root.querySelectorAll<HTMLElement>("[data-part]")) {
+      const name = element.dataset.part ?? "";
+      if (!LEGEND_PARTS.has(name)) {
+        continue;
+      }
+      const text = (element.textContent ?? "").trim();
+      if (text === "") {
+        continue;
+      }
+      const size = Number.parseFloat(getComputedStyle(element).fontSize);
+      const ratio = legendRatio(element);
+      measured.push(name);
+      expect(ratio, `${name} "${text}" at ${size}px`).toBeGreaterThanOrEqual(floorFor(size));
+    }
+
+    // the exception is the rule, not a hole in it: only the screen's figure is large enough to sit at 3 : 1
+    const value = part(root, "lcd-value");
+    expect(Number.parseFloat(getComputedStyle(value).fontSize)).toBeGreaterThanOrEqual(18.66);
+
+    // every legend of the set was measured: a renamed part fails here rather than passing unmeasured
+    for (const name of [
+      "faceplate-title",
+      "lcd-tag",
+      "lcd-value",
+      "lcd-body",
+      "led-legend",
+      "key-legend",
+      "rocker-legend",
+      "slide-switch-legend",
+      "fader-label",
+      "dial-label",
+    ]) {
+      expect(measured, name).toContain(name);
+    }
+  });
+
+  it("keeps the cap's legend readable at every key colour (1.4.3)", () => {
+    // the four the skin's own stories use, and the band the reference's 0.8 ink switch left at 3.35 : 1: a mid-light key
+    const colours = [
+      { l: 0.24, c: 0, h: 0 },
+      { l: 0.45, c: 0.14, h: 255 },
+      { l: 0.62, c: 0.2, h: 145 },
+      { l: 0.86, c: 0.16, h: 96 },
+    ].map((keyColor) => ({ keyColor }));
+
+    const { root } = mount(() => (
+      <For each={colours}>
+        {(colour) => (
+          <Faceplate keyColor={colour.keyColor}>
+            <Key label="Mute the output" legend="Mute" isToggle />
+            <Rocker label="Power" offLabel="Off" onLabel="On" defaultValue />
+          </Faceplate>
+        )}
+      </For>
+    ));
+
+    const legends = [
+      ...root.querySelectorAll<HTMLElement>(
+        '[data-part="key-legend"], [data-part="rocker-legend"]',
+      ),
+    ];
+    // two per faceplate: the key's cap and the rocker's two ends, one of which is the --key-cap chip
+    expect(legends.length).toBeGreaterThanOrEqual(12);
+    for (const legend of legends) {
+      expect(
+        legendRatio(legend),
+        `${legend.textContent ?? ""} on ${panelOf(legend)}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 
