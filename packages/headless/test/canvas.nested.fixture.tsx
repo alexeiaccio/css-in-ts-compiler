@@ -105,8 +105,8 @@ const SceneCanvas = (props: SceneCanvasProps) => {
 
   return (
     <div
-      data-part={`viewport:${props.id}`}
       {...vp}
+      data-part={`viewport:${props.id}`}
       style={{
         ...vp.style,
         width: `${canvas.state().viewport.width}px`,
@@ -153,7 +153,7 @@ const SceneCanvas = (props: SceneCanvasProps) => {
         own(event);
       }}
     >
-      <div data-part={`layer:${props.id}`} {...canvas.layerProps}>
+      <div {...canvas.layerProps} data-part={`layer:${props.id}`}>
         <For each={canvas.nodeIds()}>
           {(id) => {
             const inner = nestedOf(id);
@@ -161,8 +161,8 @@ const SceneCanvas = (props: SceneCanvasProps) => {
             const recurse = inner?.kind === "scene" ? inner : undefined;
             return (
               <div
-                data-part={`node:${props.id}:${id}`}
                 {...canvas.nodeProps(id)}
+                data-part={`node:${props.id}:${id}`}
                 tabindex={props.tabbable() ? 0 : -1}
               >
                 <Show when={!canvas.isCulled(id)}>

@@ -54,14 +54,10 @@ export const mountAccordion = (config: AccordionConfig): Mounted => {
       <div>
         {Array.from({ length: config.items }, (_, index) => (
           <>
-            <h3 data-part="heading" {...accordion.headingProps(index)}>
-              <button data-part="trigger" {...accordion.triggerProps(index)}>
-                Section {index + 1}
-              </button>
+            <h3 {...accordion.headingProps(index)}>
+              <button {...accordion.triggerProps(index)}>Section {index + 1}</button>
             </h3>
-            <div data-part="panel" {...accordion.panelProps(index)}>
-              Panel {index + 1}
-            </div>
+            <div {...accordion.panelProps(index)}>Panel {index + 1}</div>
           </>
         ))}
       </div>

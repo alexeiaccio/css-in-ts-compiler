@@ -40,13 +40,11 @@ export const mountBreadcrumb = (config: BreadcrumbConfig): Mounted => {
 
   const dispose = render(
     () => (
-      <nav data-part="nav" {...crumb.navProps}>
-        <ol data-part="breadcrumb" {...crumb.listProps}>
+      <nav {...crumb.navProps}>
+        <ol {...crumb.listProps}>
           {items.map((item, index) => (
-            <li data-part="item" {...crumb.itemProps(index)}>
-              <a data-part="link" {...crumb.linkProps(index)}>
-                {item.label}
-              </a>
+            <li {...crumb.itemProps(index)}>
+              <a {...crumb.linkProps(index)}>{item.label}</a>
             </li>
           ))}
         </ol>

@@ -58,13 +58,13 @@ export const mountTreegrid = (config: TreegridConfig): Mounted => {
     });
 
     return (
-      <div data-part="grid" {...grid.gridProps}>
+      <div {...grid.gridProps}>
         {rows.map((row) => (
-          <div data-part={`row:${row}`} {...grid.rowProps(row)}>
+          <div {...grid.rowProps(row)} data-part={`row:${row}`}>
             {columns.map((col) => (
-              <div data-part={`cell:${row},${col}`} {...grid.cellProps(row, col)}>
+              <div {...grid.cellProps(row, col)} data-part={`cell:${row},${col}`}>
                 {col === 0 && grid.hasChildren(row) ? (
-                  <span data-part={`row:${row}/expander`} {...grid.expanderProps(row)} />
+                  <span {...grid.expanderProps(row)} data-part={`row:${row}/expander`} />
                 ) : null}
               </div>
             ))}

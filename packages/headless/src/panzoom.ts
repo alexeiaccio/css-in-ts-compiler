@@ -34,6 +34,7 @@ export interface PanZoomOptions {
 }
 
 export interface PanZoomViewportProps {
+  readonly "data-part": string;
   readonly tabindex: number;
   readonly role: "group";
   readonly "aria-roledescription": string;
@@ -54,12 +55,14 @@ export interface PanZoomViewportProps {
  * drag from swallowing the pan gesture.
  */
 export interface PanZoomImageProps {
+  readonly "data-part": string;
   readonly draggable: false;
   readonly style: { readonly transform: string };
 }
 
 /** The live value: the current percentage, in a polite status region (`aria-describedby` of the viewport). */
 export interface PanZoomValueProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "status";
   readonly "aria-live": "polite";
@@ -361,6 +364,7 @@ export const createPanZoom = (options: PanZoomOptions = {}): PanZoom => {
     panBy,
     value: () => `${Math.round(scale() * 100)}%`,
     viewportProps: {
+      "data-part": "viewport",
       tabindex: 0,
       role: "group",
       "aria-roledescription": "zoomable image",
@@ -382,6 +386,7 @@ export const createPanZoom = (options: PanZoomOptions = {}): PanZoom => {
       },
     },
     imageProps: {
+      "data-part": "image",
       draggable: false,
       get style() {
         const at = offset();
@@ -389,6 +394,7 @@ export const createPanZoom = (options: PanZoomOptions = {}): PanZoom => {
       },
     },
     valueProps: {
+      "data-part": "value",
       id: valueId,
       role: "status",
       "aria-live": "polite",

@@ -29,6 +29,7 @@ export interface WindowSplitterOptions {
 
 /** Spread onto the focusable `role=separator` bar. */
 export interface WindowSplitterSeparatorProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "separator";
   readonly "aria-orientation": SplitterOrientation;
@@ -46,6 +47,7 @@ export interface WindowSplitterSeparatorProps {
 
 /** Spread onto a pane the F6 cycle can move focus to. */
 export interface WindowSplitterPaneProps {
+  readonly "data-part": string;
   readonly tabindex: 0;
   readonly onKeyDown: (event: KeyboardEvent) => void;
   readonly onFocus: () => void;
@@ -207,6 +209,7 @@ export const createWindowSplitter = (options: WindowSplitterOptions = {}): Windo
   };
 
   const paneProps = (part: "primary" | "secondary"): WindowSplitterPaneProps => ({
+    "data-part": part,
     tabindex: 0,
     onKeyDown: (event) => {
       if (KEY_TAGS.has(event.key)) {
@@ -252,6 +255,7 @@ export const createWindowSplitter = (options: WindowSplitterOptions = {}): Windo
       }
     },
     separatorProps: {
+      "data-part": "separator",
       id: `${base}-separator`,
       role: "separator",
       get "aria-orientation"() {

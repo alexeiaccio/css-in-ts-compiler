@@ -169,14 +169,10 @@ describe("createMenu (checkable) x a host that owns the readable pair", () => {
       api = menu;
       return (
         <>
-          <button data-part="trigger" {...menu.triggerProps}>
-            Menu
-          </button>
-          <div data-part="menu" {...menu.menuProps}>
+          <button {...menu.triggerProps}>Menu</button>
+          <div {...menu.menuProps}>
             {menu.items.map((item, index) => (
-              <div data-part="menuitem" {...menu.itemProps(index)}>
-                {item.label}
-              </div>
+              <div {...menu.itemProps(index)}>{item.label}</div>
             ))}
           </div>
         </>
@@ -282,14 +278,10 @@ describe("createMenu (checkable) x a host that owns the readable pair", () => {
       api = menu;
       return (
         <>
-          <button data-part="trigger" {...menu.triggerProps}>
-            Menu
-          </button>
-          <div data-part="menu" {...menu.menuProps}>
+          <button {...menu.triggerProps}>Menu</button>
+          <div {...menu.menuProps}>
             {menu.items.map((item, index) => (
-              <div data-part="menuitem" {...menu.itemProps(index)}>
-                {item.label}
-              </div>
+              <div {...menu.itemProps(index)}>{item.label}</div>
             ))}
           </div>
         </>

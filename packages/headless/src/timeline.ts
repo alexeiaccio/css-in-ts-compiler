@@ -62,12 +62,14 @@ export interface TimelineOptions {
 }
 
 export interface TimelineTreeProps {
+  readonly "data-part": string;
   readonly role: "tree";
   readonly "aria-label": string;
   readonly "aria-multiselectable": "false";
 }
 
 export interface TimelineRowProps {
+  readonly "data-part": string;
   readonly role: "treeitem";
   readonly "aria-level": number;
   /** Absent on leaves, like treeview's aria-expanded. */
@@ -83,6 +85,7 @@ export interface TimelineRowProps {
 
 /** The zoom window as a slider over the fixed 0..100 tick domain. */
 export interface TimelineRulerProps {
+  readonly "data-part": string;
   readonly role: "slider";
   readonly "aria-label": string;
   readonly "aria-valuemin": number;
@@ -147,11 +150,13 @@ export interface TimelineTick {
 }
 
 export interface TimelineListProps {
+  readonly "data-part": string;
   readonly role: "list";
   readonly "aria-label": string;
 }
 
 export interface TimelineSpanRowProps {
+  readonly "data-part": string;
   readonly role: "listitem";
   /** `depth + 1`: the nesting a flat list cannot show in the DOM. */
   readonly "aria-level": number;
@@ -164,6 +169,7 @@ export interface TimelineSpanRowProps {
 }
 
 export interface TimelineBarProps {
+  readonly "data-part": string;
   readonly "aria-hidden": "true";
   /** `left` / `width` are percentages of the extent; `--depth` is the row's depth. */
   readonly style: {
@@ -174,11 +180,13 @@ export interface TimelineBarProps {
 }
 
 export interface TimelineLabelProps {
+  readonly "data-part": string;
   /** `--depth`, so the host indents the label (`padding-inline-start: calc(var(--depth) * 1rem)`) instead of nesting it. */
   readonly style: { readonly "--depth": string };
 }
 
 export interface TimelineRulerRowsProps {
+  readonly "data-part": string;
   readonly role: "presentation";
   readonly "aria-hidden": "true";
   /** Ticks of a nice step across the extent; render them as children. */
@@ -416,11 +424,13 @@ const createDemoTimeline = (options: TimelineOptions = {}): Timeline => {
     panLeft,
     panRight,
     treeProps: {
+      "data-part": "timeline",
       role: "tree",
       "aria-label": "Span timeline",
       "aria-multiselectable": "false",
     },
     rowProps: (id) => ({
+      "data-part": "row",
       role: "treeitem",
       "aria-level": NODES.find((node) => node.id === id)?.level ?? 1,
       get "aria-expanded"() {
@@ -453,6 +463,7 @@ const createDemoTimeline = (options: TimelineOptions = {}): Timeline => {
       onKeyDown,
     }),
     rulerProps: {
+      "data-part": "ruler",
       role: "slider",
       "aria-label": "Visible time range",
       get "aria-valuemin"() {
@@ -598,10 +609,12 @@ const createRowsTimeline = (options: TimelineRowsOptions): TimelineRows => {
     extent,
     depthOf: (id) => rowOf(id).depth ?? 0,
     listProps: {
+      "data-part": "list",
       role: "list",
       "aria-label": "Span timeline",
     },
     rowProps: (id) => ({
+      "data-part": "row",
       role: "listitem",
       get "aria-level"() {
         return (rowOf(id).depth ?? 0) + 1;
@@ -622,17 +635,20 @@ const createRowsTimeline = (options: TimelineRowsOptions): TimelineRows => {
       onKeyDown: (event) => onKeyDown(id, event),
     }),
     barProps: (id) => ({
+      "data-part": "bar",
       "aria-hidden": "true",
       get style() {
         return barStyle(id);
       },
     }),
     labelProps: (id) => ({
+      "data-part": "label",
       get style() {
         return { "--depth": String(rowOf(id).depth ?? 0) };
       },
     }),
     rulerProps: {
+      "data-part": "ruler",
       role: "presentation",
       "aria-hidden": "true",
       get ticks() {

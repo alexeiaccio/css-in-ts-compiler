@@ -128,9 +128,9 @@ const mountRail = (config: MountConfig = {}) => {
     api = slider;
     // the thumbs sit in the rail, as a host positions them over the track
     return (
-      <div data-part="track" style={{ position: "absolute", inset: "0" }} {...slider.trackProps}>
-        <div data-part="thumb" {...slider.thumbProps(0)} />
-        <div data-part="thumb" {...slider.thumbProps(1)} />
+      <div style={{ position: "absolute", inset: "0" }} {...slider.trackProps}>
+        <div {...slider.thumbProps(0)} />
+        <div {...slider.thumbProps(1)} />
       </div>
     );
   }, root);

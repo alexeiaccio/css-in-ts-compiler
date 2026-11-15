@@ -13,6 +13,7 @@ export interface StatusOptions {
 
 /** Spread onto the `role=status` live region. Render it once, always. */
 export interface StatusProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "status";
   readonly "aria-live": "polite";
@@ -56,6 +57,7 @@ export const createStatus = (options: StatusOptions = {}): Status => {
       setLocal(undefined);
     },
     statusProps: {
+      "data-part": "status",
       id,
       role: "status",
       "aria-live": "polite",

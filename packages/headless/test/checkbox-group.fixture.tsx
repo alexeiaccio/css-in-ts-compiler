@@ -86,8 +86,8 @@ export const mountCheckboxGroup = (config: CheckboxGroupConfig): Mounted => {
     return (
       <div data-part="group" role="group" onKeyDown={group.groupProps.onKeyDown}>
         <div
-          data-part="checkbox:parent"
           {...group.parentProps}
+          data-part="checkbox:parent"
           onClick={(event) => {
             group.parentProps.onClick();
             event.currentTarget.focus();
@@ -95,8 +95,8 @@ export const mountCheckboxGroup = (config: CheckboxGroupConfig): Mounted => {
         />
         {([0, 1, 2] as const).map((index) => (
           <div
-            data-part={`checkbox:${index}`}
             {...group.childProps(index)}
+            data-part={`checkbox:${index}`}
             onClick={(event) => {
               group.childProps(index).onClick();
               event.currentTarget.focus();

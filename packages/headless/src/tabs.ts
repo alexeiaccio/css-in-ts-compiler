@@ -106,6 +106,7 @@ export interface TabsOptions {
  * the library's half (selection, activation, Delete).
  */
 export interface TabProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "tab";
   readonly "aria-selected": "true" | "false";
@@ -127,6 +128,7 @@ export interface TabProps {
  * platform reads for the arrows.
  */
 export interface TablistProps {
+  readonly "data-part": string;
   readonly role: "tablist";
   readonly "aria-orientation": "vertical" | undefined;
   readonly focusgroup: string;
@@ -136,6 +138,7 @@ export interface TablistProps {
 
 /** Spread onto the element with `role=tabpanel`. */
 export interface TabpanelProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "tabpanel";
   readonly "aria-labelledby": string;
@@ -150,6 +153,7 @@ export interface TabpanelProps {
  * collection, so the platform neither moves focus to it nor acts on its keys.
  */
 export interface TabCloseProps {
+  readonly "data-part": string;
   readonly "aria-label": string;
   readonly tabindex: -1;
   readonly onClick: () => void;
@@ -157,6 +161,7 @@ export interface TabCloseProps {
 
 /** Spread onto the inline `<input>` a renaming tab renders instead of its label. */
 export interface TabRenameInputProps {
+  readonly "data-part": string;
   readonly type: "text";
   readonly value: string;
   readonly "aria-label": string;
@@ -471,6 +476,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
     },
     focusAfterClose,
     tablistProps: {
+      "data-part": "tablist",
       role: "tablist",
       get "aria-orientation"() {
         return orientation() === "vertical" ? "vertical" : undefined;
@@ -487,6 +493,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       },
     },
     tabProps: (index) => ({
+      "data-part": "tab",
       get id() {
         return tabIdOf(index);
       },
@@ -550,6 +557,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       },
     }),
     tabpanelProps: (index) => ({
+      "data-part": "tabpanel",
       get id() {
         return panelIdOf(index);
       },
@@ -565,6 +573,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       },
     }),
     closeProps: (index) => ({
+      "data-part": "close",
       get "aria-label"() {
         return `Close ${labelOf(index)}`;
       },
@@ -578,6 +587,7 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
       commit,
       cancel,
       inputProps: {
+        "data-part": "rename",
         type: "text",
         get value() {
           return draft();

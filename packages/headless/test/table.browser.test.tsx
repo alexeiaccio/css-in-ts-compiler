@@ -77,7 +77,7 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
           <tr role="row">
             {selectAll === undefined ? null : (
               <th>
-                <span data-part="select-all" {...selectAll} />
+                <span {...selectAll} />
               </th>
             )}
             {columns.map((column) => {
@@ -87,7 +87,7 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
                   {button === undefined ? (
                     column.key
                   ) : (
-                    <button data-part={`header:${column.key}`} {...button}>
+                    <button {...button} data-part={`header:${column.key}`}>
                       {column.key}
                     </button>
                   )}
@@ -103,7 +103,7 @@ const mount = (options: Partial<TableOptions>, host: Host = "free") => {
               <tr data-row={id} {...table.rowProps(id)}>
                 {checkbox === undefined ? null : (
                   <td>
-                    <span data-part={`checkbox:${id}`} {...checkbox} />
+                    <span {...checkbox} data-part={`checkbox:${id}`} />
                   </td>
                 )}
                 {columns.map((column) => (

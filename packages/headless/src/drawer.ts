@@ -53,6 +53,7 @@ export interface DrawerOptions {
 }
 
 export interface DrawerTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-haspopup": "dialog";
   readonly "aria-expanded": "true" | "false";
@@ -62,6 +63,7 @@ export interface DrawerTriggerProps {
 }
 
 export interface DrawerBackdropProps {
+  readonly "data-part": string;
   readonly id: string;
   /** Always hidden when the drawer is closed or not modal: a non-modal drawer keeps the page clickable. */
   readonly hidden: boolean;
@@ -69,6 +71,7 @@ export interface DrawerBackdropProps {
 }
 
 export interface DrawerContentProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "dialog";
   readonly "aria-modal": "true" | undefined;
@@ -84,6 +87,7 @@ export interface DrawerContentProps {
 export interface DrawerNativeProps {
   readonly id: string;
   readonly role: "dialog";
+  readonly "data-part": string;
   readonly "aria-labelledby": string | undefined;
   /** A modal drawer lets the platform close it (`any` — Escape and outside, or `closerequest`); a non-modal one does not. */
   readonly closedby: "any" | "closerequest" | "none";
@@ -92,6 +96,7 @@ export interface DrawerNativeProps {
 
 /** A bottom sheet's grab handle. Decorative: there is no drag, so it says nothing. */
 export interface DrawerHandleProps {
+  readonly "data-part": string;
   readonly "aria-hidden": "true";
 }
 
@@ -295,6 +300,7 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
     open,
     side: () => options.side ?? "right",
     triggerProps: {
+      "data-part": "trigger",
       id: triggerId,
       "aria-haspopup": "dialog",
       get "aria-expanded"() {
@@ -313,6 +319,7 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
       },
     },
     backdropProps: {
+      "data-part": "backdrop",
       id: backdropId,
       get hidden() {
         return !open() || !isModal();
@@ -324,6 +331,7 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
       },
     },
     contentProps: {
+      "data-part": "content",
       id: contentId,
       role: "dialog",
       get "aria-modal"() {
@@ -343,7 +351,7 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
     nativeProps: {
       id: contentId,
       role: "dialog",
-      // no `aria-modal`: `showModal()` is the modal state (ARIA in HTML makes the attribute unnecessary on a dialog)
+      "data-part": "dialog",
       "aria-labelledby": options.labelledby,
       get closedby() {
         if (!isModal()) {
@@ -354,6 +362,6 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
       onClose: () => requestOpen(false),
     },
     attachDialog,
-    handleProps: { "aria-hidden": "true" },
+    handleProps: { "data-part": "handle", "aria-hidden": "true" },
   };
 };

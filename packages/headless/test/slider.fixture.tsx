@@ -57,7 +57,7 @@ export const mountSlider = (config: SliderConfig): Mounted => {
     return (
       <>
         <div data-part="track" />
-        <div data-part="thumb" {...slider.thumbProps} />
+        <div {...slider.thumbProps} />
       </>
     );
   }, root);

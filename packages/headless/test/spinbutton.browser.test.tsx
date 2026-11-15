@@ -108,9 +108,9 @@ describe("createSpinbutton disabled", () => {
       api = spin;
       return (
         <div role="group">
-          <input data-part="input" {...spin.inputProps} />
-          <div data-part="increment" {...spin.incrementProps} />
-          <div data-part="decrement" {...spin.decrementProps} />
+          <input {...spin.inputProps} />
+          <div {...spin.incrementProps} />
+          <div {...spin.decrementProps} />
         </div>
       );
     }, root);

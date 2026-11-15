@@ -66,6 +66,7 @@ export interface CommandPalette {
     readonly onKeyDown: (event: KeyboardEvent) => void;
   };
   readonly listProps: {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "listbox";
     readonly "aria-labelledby": string;
@@ -73,6 +74,7 @@ export interface CommandPalette {
     readonly onMouseDown: (event: MouseEvent) => void;
   };
   readonly optionProps: (id: string) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "option";
     readonly "aria-selected": "true" | "false";
@@ -80,11 +82,11 @@ export interface CommandPalette {
     readonly onClick: () => void;
     readonly onMouseEnter: () => void;
   };
-  readonly emptyProps: { readonly hidden: boolean };
+  readonly emptyProps: { readonly "data-part": string; readonly hidden: boolean };
   readonly statusProps: StatusProps;
   readonly dialogProps: DialogContentProps;
   readonly backdropProps: DialogBackdropProps;
-  readonly titleProps: { readonly id: string };
+  readonly titleProps: { readonly "data-part": string; readonly id: string };
   /** Runs the active command and closes the palette; a no-op with no highlight. */
   readonly runActive: () => void | Promise<void>;
   /** Binds the hotkey on the document; call once and call the teardown on cleanup. */
@@ -265,6 +267,7 @@ export const createCommandPalette = (options: CommandPaletteOptions): CommandPal
       onKeyDown,
     },
     listProps: {
+      "data-part": "list",
       id: listId,
       role: "listbox",
       "aria-labelledby": titleId,
@@ -272,6 +275,7 @@ export const createCommandPalette = (options: CommandPaletteOptions): CommandPal
     },
     // ponytail: a linear scan per option; a palette holds tens of commands.
     optionProps: (id) => ({
+      "data-part": "option",
       id: optionId(id),
       role: "option",
       get "aria-selected"() {
@@ -291,6 +295,7 @@ export const createCommandPalette = (options: CommandPaletteOptions): CommandPal
       },
     }),
     emptyProps: {
+      "data-part": "empty",
       get hidden() {
         return results().length > 0;
       },
@@ -298,7 +303,7 @@ export const createCommandPalette = (options: CommandPaletteOptions): CommandPal
     statusProps: status.statusProps,
     dialogProps: dialog.dialogProps,
     backdropProps: dialog.backdropProps,
-    titleProps: { id: titleId },
+    titleProps: { "data-part": "title", id: titleId },
     runActive,
     attach: () => {
       const hotkeys = createHotkeys();

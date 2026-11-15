@@ -27,6 +27,7 @@ export interface FieldOptions {
 
 /** Spread onto the form control (`input`, `textarea`, `select`, or a custom widget). */
 export interface FieldControlProps {
+  readonly "data-part": string;
   readonly id: string;
   /** The ids of the hint and the error that are shown, hint first, then the host's `describedby`; absent when there are none. */
   readonly "aria-describedby": string | undefined;
@@ -37,12 +38,14 @@ export interface FieldControlProps {
 }
 
 export interface FieldLabelProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly for: string;
 }
 
 /** Spread onto the hint and the error element; render both, always. */
 export interface FieldMessageProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly hidden: boolean;
 }
@@ -127,6 +130,7 @@ export const createField = (options: FieldOptions = {}): Field => {
     error,
     describedIds,
     controlProps: {
+      "data-part": "control",
       id: controlId,
       get "aria-describedby"() {
         const ids = describedIds();
@@ -142,14 +146,16 @@ export const createField = (options: FieldOptions = {}): Field => {
         return options.required === true ? true : undefined;
       },
     },
-    labelProps: { id: labelId, for: controlId },
+    labelProps: { "data-part": "label", id: labelId, for: controlId },
     hintProps: {
+      "data-part": "hint",
       id: hintId,
       get hidden() {
         return hint() === undefined;
       },
     },
     errorProps: {
+      "data-part": "error",
       id: errorId,
       get hidden() {
         return error() === undefined;

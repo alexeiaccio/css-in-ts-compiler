@@ -67,18 +67,14 @@ export const mountTooltip = (config: TooltipConfig): Mounted => {
     };
     return (
       <>
-        <button data-part="trigger" {...group.triggerProps(0)} onBlur={blur}>
+        <button {...group.triggerProps(0)} onBlur={blur}>
           A
         </button>
-        <button data-part="trigger" {...group.triggerProps(1)} onBlur={blur}>
+        <button {...group.triggerProps(1)} onBlur={blur}>
           B
         </button>
-        <div data-part="tooltip" {...group.tooltipProps(0)}>
-          Tip A
-        </div>
-        <div data-part="tooltip" {...group.tooltipProps(1)}>
-          Tip B
-        </div>
+        <div {...group.tooltipProps(0)}>Tip A</div>
+        <div {...group.tooltipProps(1)}>Tip B</div>
       </>
     );
   }, root);

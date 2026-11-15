@@ -41,11 +41,13 @@ export interface ConfirmView {
 export type ConfirmTriggerProps = Omit<DialogTriggerProps, "onClick" | "onKeyDown">;
 
 export interface ConfirmTextProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly hidden?: boolean;
 }
 
 export interface ConfirmButtonProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly type: "button";
   readonly onClick: () => void;
@@ -228,6 +230,7 @@ export const createConfirm = (options: ConfirmOptions = {}): Confirm => {
     open: dialog.open,
     request,
     triggerProps: {
+      "data-part": "trigger",
       id: dialog.triggerProps.id,
       "aria-haspopup": "dialog",
       get "aria-expanded"() {
@@ -239,14 +242,25 @@ export const createConfirm = (options: ConfirmOptions = {}): Confirm => {
     nativeProps: dialog.nativeProps,
     attachDialog,
     backdropProps: dialog.backdropProps,
-    titleProps: { id: titleId },
+    titleProps: { "data-part": "title", id: titleId },
     descriptionProps: {
+      "data-part": "description",
       id: descriptionId,
       get hidden() {
         return request()?.description === undefined;
       },
     },
-    cancelProps: { id: cancelId, type: "button", onClick: () => settle(false) },
-    confirmProps: { id: `${base}-confirm`, type: "button", onClick: () => settle(true) },
+    cancelProps: {
+      "data-part": "cancel",
+      id: cancelId,
+      type: "button",
+      onClick: () => settle(false),
+    },
+    confirmProps: {
+      "data-part": "confirm",
+      id: `${base}-confirm`,
+      type: "button",
+      onClick: () => settle(true),
+    },
   };
 };

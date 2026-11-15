@@ -75,10 +75,10 @@ export const mountTreeview = (config: TreeviewConfig): TreeviewMounted => {
       },
     );
     return (
-      <div data-part="tree" {...treeview.treeProps}>
+      <div {...treeview.treeProps}>
         <For each={TREEVIEW_NODES}>
           {(node) => (
-            <div data-part={nodeToPath(node.id)} {...treeview.itemProps(node.id)}>
+            <div {...treeview.itemProps(node.id)} data-part={nodeToPath(node.id)}>
               {node.label}
             </div>
           )}

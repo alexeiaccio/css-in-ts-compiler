@@ -66,17 +66,16 @@ const mount = (options: MountOptions = {}): Mounted => {
         >
           Page
         </button>
-        <button data-part="trigger" type="button" {...drawer.triggerProps}>
+        <button type="button" {...drawer.triggerProps}>
           Menu
         </button>
-        <div data-part="backdrop" {...drawer.backdropProps} />
+        <div {...drawer.backdropProps} />
         <div
-          data-part="content"
           {...drawer.contentProps}
           style={{ position: "fixed", width: "200px", height: "300px" }}
         >
           <h2 id="drawer-title">Site</h2>
-          <div data-part="handle" {...drawer.handleProps} />
+          <div {...drawer.handleProps} />
           <div data-part="scroller" style={{ overflow: "auto", height: "40px" }}>
             <button data-part="first" type="button">
               First

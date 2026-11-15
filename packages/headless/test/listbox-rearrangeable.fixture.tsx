@@ -68,10 +68,10 @@ export const mountRearrangeableListbox = (config: RearrangeableConfig): Mounted 
       },
     );
     const list = (which: RearrangeableList) => (
-      <div data-part={`list${which.toUpperCase()}`} {...listbox.listProps(which)}>
+      <div {...listbox.listProps(which)} data-part={`list${which.toUpperCase()}`}>
         <For each={listbox.order(which)}>
           {(id) => (
-            <div data-part={`option${which.toUpperCase()}`} {...listbox.optionProps(id)}>
+            <div {...listbox.optionProps(id)} data-part={`option${which.toUpperCase()}`}>
               {config.items[id]}
             </div>
           )}

@@ -73,6 +73,7 @@ export interface PopoverOptions {
 }
 
 export interface PopoverTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-haspopup": "dialog";
   readonly "aria-expanded": "true" | "false";
@@ -82,6 +83,7 @@ export interface PopoverTriggerProps {
 }
 
 export interface PopoverContentProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "dialog";
   /** Always absent: a popover is not modal. */
@@ -290,6 +292,7 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
   return {
     open,
     triggerProps: {
+      "data-part": "trigger",
       id: triggerId,
       "aria-haspopup": "dialog",
       get "aria-expanded"() {
@@ -307,6 +310,7 @@ export const createPopover = (options: PopoverOptions = {}): Popover => {
       },
     },
     contentProps: {
+      "data-part": "content",
       id: contentId,
       role: "dialog",
       "aria-modal": undefined,

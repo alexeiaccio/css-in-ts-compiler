@@ -72,22 +72,18 @@ const mount = (): Mounted => {
         <button data-part="before" type="button">
           Before
         </button>
-        <div data-part="backdrop" {...created.backdropProps} />
-        <div data-part="dialog" {...created.dialogProps}>
+        <div {...created.backdropProps} />
+        <div {...created.dialogProps}>
           <h2 {...created.titleProps}>{created.labels.title}</h2>
-          <input data-part="input" {...created.inputProps} />
-          <div data-part="list" {...created.listProps}>
+          <input {...created.inputProps} />
+          <div {...created.listProps}>
             <For each={groups()}>
               {(group) => (
                 <section data-part="group">
                   <h3>{group}</h3>
                   <For each={inGroup(group)}>
                     {(result) => (
-                      <div
-                        data-part="option"
-                        data-command={result.id}
-                        {...created.optionProps(result.id)}
-                      >
+                      <div data-command={result.id} {...created.optionProps(result.id)}>
                         {result.label}
                       </div>
                     )}
@@ -96,12 +92,8 @@ const mount = (): Mounted => {
               )}
             </For>
           </div>
-          <p data-part="empty" {...created.emptyProps}>
-            {created.labels.empty}
-          </p>
-          <div data-part="status" {...created.statusProps}>
-            {created.status()}
-          </div>
+          <p {...created.emptyProps}>{created.labels.empty}</p>
+          <div {...created.statusProps}>{created.status()}</div>
         </div>
       </>
     );
@@ -354,7 +346,7 @@ describe("createCommandPalette (real DOM)", () => {
         commands: makeCommands([]),
         labels: { placeholder: "Chercher" },
       });
-      return <input data-part="input" {...palette.inputProps} />;
+      return <input {...palette.inputProps} />;
     }, root);
     expect(inputOf(root).getAttribute("placeholder")).toBe("Chercher");
     dispose();

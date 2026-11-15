@@ -46,7 +46,6 @@ export const mountSwitch = (config: SwitchConfig): Mounted => {
     api = controller;
     return (
       <div
-        data-part="switch"
         {...controller.switchProps}
         onClick={(event) => {
           controller.switchProps.onClick();

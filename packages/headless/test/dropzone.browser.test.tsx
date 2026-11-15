@@ -55,7 +55,7 @@ const mount = (options: Omit<Partial<DropZoneOptions>, "onFiles" | "onReject"> =
     });
     api = zone;
     return (
-      <div data-part="zone" {...zone.zoneProps}>
+      <div {...zone.zoneProps}>
         <p data-part="child">Drop files here</p>
         <input {...zone.inputProps} />
         <button {...zone.browseProps}>Choose files</button>

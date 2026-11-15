@@ -67,11 +67,9 @@ export const mountCombobox = (config: ComboboxFixtureConfig): Mounted => {
     api = combobox;
     return (
       <div>
-        <input data-part="input" {...combobox.comboboxProps} />
-        <button data-part="trigger" {...combobox.triggerProps}>
-          {combobox.value() ?? ""}
-        </button>
-        <ul data-part="popup" {...combobox.listboxProps}>
+        <input {...combobox.comboboxProps} />
+        <button {...combobox.triggerProps}>{combobox.value() ?? ""}</button>
+        <ul {...combobox.listboxProps}>
           <For each={combobox.options()}>
             {(option) => (
               <li data-part="option" {...option.props}>

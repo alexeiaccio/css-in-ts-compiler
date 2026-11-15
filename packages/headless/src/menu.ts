@@ -178,6 +178,7 @@ export interface MenuItem {
 }
 
 export interface MenuTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly type: "button";
   readonly "aria-haspopup": "menu";
@@ -196,6 +197,7 @@ export interface MenuTriggerProps {
  * document, after the polyfill (also on the owner) has moved focus.
  */
 export interface MenuProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "menu";
   /** The inline fallback's visibility; `undefined` under `overlay: "popover"`, where the UA hides a closed popover. */
@@ -212,6 +214,7 @@ export interface MenuProps {
  * the focus.
  */
 export interface MenuItemProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "menuitem" | "menuitemcheckbox" | "menuitemradio";
   readonly "aria-checked": "true" | "false" | undefined;
@@ -763,6 +766,7 @@ export const createMenu = (options: MenuOptions): Menu => {
     typeaheadCode,
     setFocusItem,
     triggerProps: {
+      "data-part": "trigger",
       id: `${base}-trigger`,
       type: "button",
       "aria-haspopup": "menu",
@@ -810,6 +814,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       },
     },
     menuProps: {
+      "data-part": "menu",
       id: menuId,
       role: "menu",
       get hidden() {
@@ -829,6 +834,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       },
     },
     itemProps: (i) => ({
+      "data-part": "menuitem",
       id: items[i]?.id ?? `${base}-item-${i}`,
       get role() {
         const kind = items[i]?.kind ?? "item";
@@ -955,6 +961,7 @@ export interface Menubar {
   readonly typeaheadCode: (code: number) => void;
   /** The bar's owner: `focusgroup="menubar"` and the listener the `ref` registers first. */
   readonly menubarProps: {
+    readonly "data-part": string;
     readonly role: "menubar";
     readonly "aria-orientation": "horizontal" | "vertical";
     /** The definition as the `focusgroup` attribute (`"menubar inline wrap"`). */
@@ -962,6 +969,7 @@ export interface Menubar {
     readonly ref: (element: HTMLElement) => void;
   };
   readonly barItemProps: (index: number) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menuitem";
     readonly "aria-haspopup": "menu" | undefined;
@@ -971,6 +979,7 @@ export interface Menubar {
     readonly onFocus: () => void;
   };
   readonly menuProps: (index: number) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menu";
     /** The inline fallback's visibility; `undefined` under `overlay: "popover"`. */
@@ -984,6 +993,7 @@ export interface Menubar {
     bar: number,
     item: number,
   ) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menuitem";
     readonly "aria-haspopup": "menu" | undefined;
@@ -997,6 +1007,7 @@ export interface Menubar {
     bar: number,
     item: number,
   ) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menu";
     /** The inline fallback's visibility; `undefined` under `overlay: "popover"`. */
@@ -1010,6 +1021,7 @@ export interface Menubar {
     item: number,
     sub: number,
   ) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menuitem";
     readonly ref: (element: HTMLElement) => void;
@@ -1615,6 +1627,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       bump();
     },
     menubarProps: {
+      "data-part": "menubar",
       role: "menubar",
       "aria-orientation": orientation,
       get focusgroup() {
@@ -1628,6 +1641,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       },
     },
     barItemProps: (i) => ({
+      "data-part": "menuitem",
       id: items[i]?.id ?? `${base}-bar-${i}`,
       role: "menuitem",
       get "aria-haspopup"() {
@@ -1663,6 +1677,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       },
     }),
     menuProps: (i) => ({
+      "data-part": "menu",
       id: `${base}-menu-${i}`,
       role: "menu",
       get hidden() {
@@ -1690,6 +1705,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       },
     }),
     menuItemProps: (b, item) => ({
+      "data-part": "menuitem",
       id: items[b]?.menu[item]?.id ?? `${base}-menu-${b}-${item}`,
       role: "menuitem",
       get "aria-haspopup"() {
@@ -1743,6 +1759,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       },
     }),
     submenuProps: (b, item) => ({
+      "data-part": "submenu",
       id: `${base}-submenu-${b}-${item}`,
       role: "menu",
       get hidden() {
@@ -1770,6 +1787,7 @@ export const createMenubar = (options: MenubarOptions): Menubar => {
       },
     }),
     submenuItemProps: (b, item, sub) => ({
+      "data-part": "menuitem",
       id: items[b]?.menu[item]?.submenu[sub]?.id ?? `${base}-sub-${b}-${item}-${sub}`,
       role: "menuitem",
       ref: (element: HTMLElement) => {

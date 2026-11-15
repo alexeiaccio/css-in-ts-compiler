@@ -68,15 +68,13 @@ const mount = (options: TabsOptions = {}): Mounted => {
     );
     return (
       <div>
-        <div data-part="tablist" {...tabs.tablistProps}>
+        <div {...tabs.tablistProps}>
           {Array.from({ length: tabs.items }, (_, index) => (
-            <button data-part="tab" {...tabs.tabProps(index)}>
-              Tab {index + 1}
-            </button>
+            <button {...tabs.tabProps(index)}>Tab {index + 1}</button>
           ))}
         </div>
         {Array.from({ length: tabs.items }, (_, index) => (
-          <div data-part="tabpanel" {...tabs.tabpanelProps(index)}>
+          <div {...tabs.tabpanelProps(index)}>
             <button data-part="panel-button">Inside {index + 1}</button>
           </div>
         ))}

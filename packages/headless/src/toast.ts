@@ -37,6 +37,7 @@ export interface ToastItem {
 
 /** Spread onto the container that holds every toast and the F6 target. */
 export interface ToastRegionProps {
+  readonly "data-part": string;
   readonly role: "region";
   readonly "aria-label": string;
 }
@@ -46,6 +47,7 @@ export interface ToastRegionProps {
  * otherwise; both pause the countdown while hovered or focused.
  */
 export interface ToastItemProps {
+  readonly "data-part": string;
   readonly role: "alert" | "status";
   readonly "aria-atomic": "true";
   readonly onMouseEnter: () => void;
@@ -286,12 +288,14 @@ export const createToast = (options: ToastOptions = {}): Toast => {
       };
     },
     regionProps: {
+      "data-part": "region",
       role: "region",
       get "aria-label"() {
         return options.labels?.region ?? DEFAULT_REGION_LABEL;
       },
     },
     toastProps: (id) => ({
+      "data-part": "toast",
       get role() {
         return items.find((item) => item.id === id)?.tone === "error" ? "alert" : "status";
       },

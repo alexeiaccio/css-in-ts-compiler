@@ -146,11 +146,9 @@ export const mountListbox = (
       },
     );
     return (
-      <div data-part="listbox" {...listbox.listboxProps}>
+      <div {...listbox.listboxProps}>
         {labels.map((label, index) => (
-          <div data-part="option" {...listbox.optionProps(index)}>
-            {label}
-          </div>
+          <div {...listbox.optionProps(index)}>{label}</div>
         ))}
       </div>
     );

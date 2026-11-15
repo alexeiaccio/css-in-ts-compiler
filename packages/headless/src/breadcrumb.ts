@@ -16,22 +16,26 @@ export interface BreadcrumbOptions {
 }
 
 export interface BreadcrumbNavProps {
+  readonly "data-part": string;
   readonly "aria-label": string | undefined;
   readonly "aria-labelledby": string | undefined;
   readonly "aria-describedby": string | undefined;
 }
 
 export interface BreadcrumbListProps {
+  readonly "data-part": string;
   readonly role: "list";
 }
 
 export interface BreadcrumbItemProps {
+  readonly "data-part": string;
   readonly role: "listitem";
   readonly "aria-current": "page" | undefined;
   readonly "aria-disabled": "true" | undefined;
 }
 
 export interface BreadcrumbLinkProps {
+  readonly "data-part": string;
   readonly href: string | undefined;
   readonly "aria-current": "page" | undefined;
   readonly onClick: () => void;
@@ -57,6 +61,7 @@ export const createBreadcrumb = (options: BreadcrumbOptions): Breadcrumb => {
 
   return {
     navProps: {
+      "data-part": "nav",
       get "aria-label"() {
         return options.label ?? "Breadcrumbs";
       },
@@ -67,8 +72,9 @@ export const createBreadcrumb = (options: BreadcrumbOptions): Breadcrumb => {
         return options.describedby;
       },
     },
-    listProps: { role: "list" },
+    listProps: { "data-part": "breadcrumb", role: "list" },
     itemProps: (index) => ({
+      "data-part": "item",
       role: "listitem",
       get "aria-current"() {
         return index + 1 === current() ? "page" : undefined;
@@ -78,6 +84,7 @@ export const createBreadcrumb = (options: BreadcrumbOptions): Breadcrumb => {
       },
     }),
     linkProps: (index) => ({
+      "data-part": "link",
       get href() {
         return options.items[index]?.href ?? "#";
       },

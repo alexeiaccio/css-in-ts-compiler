@@ -127,7 +127,6 @@ export const mountRadio = (config: RadioConfig): Mounted => {
     api = group;
     return (
       <div
-        data-part="radiogroup"
         {...group.radiogroupProps}
         onKeyDown={(event) => {
           group.radiogroupProps.onKeyDown(event);
@@ -135,9 +134,7 @@ export const mountRadio = (config: RadioConfig): Mounted => {
         }}
       >
         {values.map((_value, index) => (
-          <div data-part="radio" {...group.radioProps(index)}>
-            {String(index)}
-          </div>
+          <div {...group.radioProps(index)}>{String(index)}</div>
         ))}
       </div>
     );

@@ -93,21 +93,17 @@ export const mountMenuButton = (
     );
     return (
       <>
-        <button data-part="trigger" {...menu.triggerProps}>
-          Menu
-        </button>
-        <div data-part="menu" {...menu.menuProps}>
+        <button {...menu.triggerProps}>Menu</button>
+        <div {...menu.menuProps}>
           {/* The native engine writes no tabindex and only moves to an item that is
               tabbable already, so its rows are `<button>`s; the polyfill decorates the
               rows itself and restores their authored `tabindex="-1"`, which is what the
               model's `-1` describes. */}
           {menu.items.map((item, index) =>
             provider === "auto" ? (
-              <button data-part="menuitem" {...menu.itemProps(index)}>
-                {item.label}
-              </button>
+              <button {...menu.itemProps(index)}>{item.label}</button>
             ) : (
-              <div data-part="menuitem" tabindex={-1} {...menu.itemProps(index)}>
+              <div tabindex={-1} {...menu.itemProps(index)}>
                 {item.label}
               </div>
             ),

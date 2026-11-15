@@ -72,9 +72,7 @@ const mount = (options: {
     api = diagram;
     return (
       <div data-part="diagram">
-        <p data-part="status" {...diagram.statusProps}>
-          {diagram.status()}
-        </p>
+        <p {...diagram.statusProps}>{diagram.status()}</p>
         <div data-part="nodes">
           <For each={options.nodes}>
             {(node) => (
@@ -168,7 +166,11 @@ describe("createDiagramFocus", () => {
     expect(first.getAttribute("aria-roledescription")).toBe("node");
     expect(first.getAttribute("aria-label")).toBe("A1");
     expect(node("b2").getAttribute("tabindex")).toBe("-1");
-    expect(api.statusProps).toEqual({ role: "status", "aria-live": "polite" });
+    expect(api.statusProps).toEqual({
+      "data-part": "status",
+      role: "status",
+      "aria-live": "polite",
+    });
   });
 
   it("moves the tab stop to the node that takes focus", async () => {

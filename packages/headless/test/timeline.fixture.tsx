@@ -58,14 +58,14 @@ export const mountTimeline = (config: TimelineConfig): Mounted => {
 
     return (
       <>
-        <div data-part="timeline" {...timeline.treeProps}>
+        <div {...timeline.treeProps}>
           {timeline.rows().map((row) => (
-            <div data-part="row" data-row={row.id} {...timeline.rowProps(row.id)}>
+            <div data-row={row.id} {...timeline.rowProps(row.id)}>
               {`span ${row.id}`}
             </div>
           ))}
         </div>
-        <div data-part="ruler" {...timeline.rulerProps} />
+        <div {...timeline.rulerProps} />
       </>
     );
   }, root);

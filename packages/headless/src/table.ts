@@ -111,6 +111,7 @@ export interface TableOptions {
 
 /** Spread onto `<table>`; the host renders the table, the head and the body. */
 export interface TableProps {
+  readonly "data-part": string;
   /** The role the element states for itself: a `display: contents` skin drops the box, not this. */
   readonly role: "table";
   /** `labels.table`; leave it out when the host renders a caption. */
@@ -123,16 +124,19 @@ export interface TableProps {
 
 /** Spread onto `<thead>`/`<tbody>`; a grid skin's `display: contents` drops the box, not the role. */
 export interface TableRowGroupProps {
+  readonly "data-part": string;
   readonly role: "rowgroup";
 }
 
 /** Spread onto `<caption>`. */
 export interface TableCaptionProps {
+  readonly "data-part": string;
   readonly id: string;
 }
 
 /** Spread onto `<th scope="col">` in the header row. */
 export interface TableHeaderCellProps {
+  readonly "data-part": string;
   readonly role: "columnheader";
   readonly scope: "col";
   /** The sorted column only; an unsorted one carries nothing (ARIA's default). */
@@ -142,6 +146,7 @@ export interface TableHeaderCellProps {
 
 /** Spread onto the `<button type="button">` inside a sortable `<th>`. */
 export interface TableHeaderButtonProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly onClick: () => void;
 }
@@ -154,6 +159,7 @@ export interface TableHeaderButtonProps {
  * `Table.renderRow`, whose second argument is that index.
  */
 export interface TableRowProps {
+  readonly "data-part": string;
   readonly role: "row";
   readonly "aria-selected": "true" | "false" | undefined;
   /** Selects the row; `undefined` when nothing is selectable. */
@@ -162,6 +168,7 @@ export interface TableRowProps {
 
 /** Spread onto a `<td>`; `aria-colindex` only while the host windows its columns. */
 export interface TableCellProps {
+  readonly "data-part": string;
   readonly role: "cell";
   readonly "aria-colindex": number | undefined;
 }
@@ -171,6 +178,7 @@ export interface TableCellProps {
  * `input`, which spells the mixed state as a DOM property, not an attribute).
  */
 export interface TableSelectAllProps {
+  readonly "data-part": string;
   readonly role: "checkbox";
   readonly "aria-checked": "true" | "false" | "mixed";
   readonly "aria-label": string;
@@ -181,6 +189,7 @@ export interface TableSelectAllProps {
 
 /** Spread onto a row's selection control. */
 export interface TableRowCheckboxProps {
+  readonly "data-part": string;
   readonly role: "checkbox";
   readonly "aria-checked": "true" | "false";
   readonly "aria-label": string;
@@ -322,6 +331,7 @@ export const createTable = (options: TableOptions): Table => {
       return undefined;
     }
     return {
+      "data-part": "select-all",
       role: "checkbox",
       get "aria-checked"() {
         return allSelected() ? "true" : someSelected() ? "mixed" : "false";
@@ -342,6 +352,7 @@ export const createTable = (options: TableOptions): Table => {
       return undefined;
     }
     return {
+      "data-part": "checkbox",
       role: "checkbox",
       get "aria-checked"() {
         return isSelected(id) ? "true" : "false";
@@ -365,6 +376,7 @@ export const createTable = (options: TableOptions): Table => {
     selected,
     isSelected,
     tableProps: {
+      "data-part": "table",
       role: "table",
       get "aria-label"() {
         return options.labels?.table;
@@ -376,9 +388,10 @@ export const createTable = (options: TableOptions): Table => {
         return options.columnCount;
       },
     },
-    rowGroupProps: { role: "rowgroup" },
-    captionProps: { id: `${base}-caption` },
+    rowGroupProps: { "data-part": "row-group", role: "rowgroup" },
+    captionProps: { "data-part": "caption", id: `${base}-caption` },
     headerCellProps: (key) => ({
+      "data-part": "header-cell",
       role: "columnheader",
       scope: "col",
       get "aria-sort"() {
@@ -396,6 +409,7 @@ export const createTable = (options: TableOptions): Table => {
         return undefined;
       }
       return {
+        "data-part": "header",
         type: "button",
         onClick: () => {
           requestSort(nextSort(key));
@@ -403,6 +417,7 @@ export const createTable = (options: TableOptions): Table => {
       };
     },
     rowProps: (id) => ({
+      "data-part": "row",
       role: "row",
       get "aria-selected"() {
         if (!selectable()) {
@@ -415,6 +430,7 @@ export const createTable = (options: TableOptions): Table => {
       },
     }),
     cellProps: (_rowId, key) => ({
+      "data-part": "cell",
       role: "cell",
       get "aria-colindex"() {
         // ponytail: a column window is numbered from the first column given;

@@ -52,6 +52,7 @@ export interface TextAreaOptions extends TextInputOptions {
 }
 
 export interface TextControlProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-describedby": string | undefined;
   readonly "aria-invalid": "true" | undefined;
@@ -88,6 +89,7 @@ export interface TextArea extends Field {
 
 const control = (field: Field, options: TextInputOptions): TextControlProps => ({
   ...field.controlProps,
+  "data-part": "input",
   get type() {
     return options.type ?? "text";
   },
@@ -158,6 +160,7 @@ export const createTextArea = (options: TextAreaOptions = {}): TextArea => {
     ...field,
     controlProps: {
       ...control(field, options),
+      "data-part": "textarea",
       get rows() {
         return options.rows;
       },

@@ -54,16 +54,19 @@ export interface ResizablePanelsOptions {
 }
 
 export interface ResizablePanelsGroupProps {
+  readonly "data-part": string;
   readonly role: "group";
   readonly "aria-label": string | undefined;
 }
 
 export interface ResizablePaneProps {
+  readonly "data-part": string;
   readonly id: string;
 }
 
 /** Spread onto the focusable `role=separator` bar between pane `index` and `index + 1`. */
 export interface ResizableSeparatorProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "separator";
   readonly "aria-orientation": PanelsOrientation;
@@ -571,6 +574,7 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
   }
 
   const separatorProps = (index: number): ResizableSeparatorProps => ({
+    "data-part": "separator",
     id: `${base}-separator-${index}`,
     role: "separator",
     get "aria-orientation"() {
@@ -616,12 +620,13 @@ export const createResizablePanels = (options: ResizablePanelsOptions): Resizabl
     keyDown,
     snapPoint: (index) => snapPoints()[index],
     groupProps: {
+      "data-part": "group",
       role: "group",
       get "aria-label"() {
         return options.label;
       },
     },
-    paneProps: (index) => ({ id: paneId(index) }),
+    paneProps: (index) => ({ "data-part": "pane", id: paneId(index) }),
     separatorProps,
   };
 };

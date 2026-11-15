@@ -78,42 +78,32 @@ const mount = (): Mounted => {
       created.results().filter((row) => (row.group ?? "") === group);
     return (
       <>
-        <button data-part="trigger" {...created.triggerProps}>
-          Actions
-        </button>
+        <button {...created.triggerProps}>Actions</button>
         {/* Mounted only while open: the trigger must work before the field exists. */}
         <Show when={created.open()}>
-          <div data-part="backdrop" {...created.backdropProps} />
-          <div data-part="dialog" {...created.dialogProps}>
+          <div {...created.backdropProps} />
+          <div {...created.dialogProps}>
             <h2 {...created.titleProps}>Actions</h2>
-            <input data-part="input" {...created.inputProps} />
-            <button data-part="clear" {...created.clearProps}>
-              {created.labels.clear}
-            </button>
-            <div data-part="menu" {...created.menuProps}>
+            <input {...created.inputProps} />
+            <button {...created.clearProps}>{created.labels.clear}</button>
+            <div {...created.menuProps}>
               <For each={groups()}>
                 {(group) => (
-                  <div data-part="group" {...created.groupProps(group)}>
-                    <h3 data-part="group-label" {...created.groupLabelProps(group)}>
-                      {group}
-                    </h3>
+                  <div {...created.groupProps(group)}>
+                    <h3 {...created.groupLabelProps(group)}>{group}</h3>
                     <For each={rowsIn(group)}>
                       {(row) => (
                         <Show
                           when={row.hasSubmenu}
                           fallback={
-                            <div data-part="item" data-id={row.id} {...created.itemProps(row.id)}>
+                            <div data-id={row.id} {...created.itemProps(row.id)}>
                               {row.label}
                             </div>
                           }
                         >
-                          <div
-                            data-part="item"
-                            data-id={row.id}
-                            {...created.submenuTriggerProps(row.id)}
-                          >
+                          <div data-id={row.id} {...created.submenuTriggerProps(row.id)}>
                             {row.label}
-                            <div data-part="submenu" {...created.submenuProps(row.id)} />
+                            <div {...created.submenuProps(row.id)} />
                           </div>
                         </Show>
                       )}
@@ -122,12 +112,8 @@ const mount = (): Mounted => {
                 )}
               </For>
             </div>
-            <p data-part="empty" {...created.emptyProps}>
-              {created.emptyProps.text}
-            </p>
-            <div data-part="status" {...created.statusProps}>
-              {created.status()}
-            </div>
+            <p {...created.emptyProps}>{created.emptyProps.text}</p>
+            <div {...created.statusProps}>{created.status()}</div>
           </div>
         </Show>
         <button data-part="after" type="button">

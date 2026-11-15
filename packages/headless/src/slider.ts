@@ -38,6 +38,7 @@ export interface SliderOptions {
 }
 
 export interface SliderThumbProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "slider";
   readonly "aria-valuenow": string;
@@ -59,6 +60,7 @@ export interface SliderThumbProps {
  * whichever element took the press, so the moves and the release are here.
  */
 export interface SliderTrackProps {
+  readonly "data-part": string;
   readonly onPointerDown: (event: PointerEvent) => void;
   readonly onPointerMove: (event: PointerEvent) => void;
   readonly onPointerUp: (event: PointerEvent) => void;
@@ -206,6 +208,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
     keyDown,
     pointerDown,
     thumbProps: {
+      "data-part": "thumb",
       id: `${base}-thumb`,
       role: "slider",
       get "aria-valuenow"() {
@@ -239,6 +242,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
       },
     },
     trackProps: {
+      "data-part": "track",
       onPointerDown: (event) => {
         if (disabled()) {
           return;

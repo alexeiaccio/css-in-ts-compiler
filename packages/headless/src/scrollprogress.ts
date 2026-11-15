@@ -13,6 +13,7 @@ export interface ScrollProgressOptions {
 }
 
 export interface ScrollProgressBarProps {
+  readonly "data-part": string;
   readonly role: "progressbar";
   readonly "aria-valuemin": 0;
   readonly "aria-valuemax": 100;
@@ -101,6 +102,7 @@ export const createScrollProgress = (options: ScrollProgressOptions = {}): Scrol
     scrolled,
     distance,
     barProps: {
+      "data-part": "bar",
       role: "progressbar",
       "aria-valuemin": 0,
       "aria-valuemax": 100,

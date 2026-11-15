@@ -14,6 +14,7 @@ export interface AlertDialogOptions {
 }
 
 export interface AlertDialogTriggerProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly "aria-haspopup": "dialog";
   readonly "aria-expanded": "true" | "false";
@@ -24,6 +25,7 @@ export interface AlertDialogTriggerProps {
 }
 
 export interface AlertDialogDialogProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "alertdialog";
   readonly "aria-modal": "true" | undefined;
@@ -35,6 +37,7 @@ export interface AlertDialogDialogProps {
 }
 
 export interface AlertDialogButtonProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly type: "button";
   readonly "aria-disabled": "true" | undefined;
@@ -42,6 +45,7 @@ export interface AlertDialogButtonProps {
 }
 
 export interface AlertDialogBackdropProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly hidden: boolean;
   readonly onClick: () => void;
@@ -76,6 +80,7 @@ export interface AlertDialog {
   readonly confirmProps: AlertDialogButtonProps;
   readonly saveProps: AlertDialogButtonProps;
   readonly inputProps: {
+    readonly "data-part": string;
     readonly id: string;
     readonly "aria-label": string;
     readonly onFocus: () => void;
@@ -238,7 +243,8 @@ export const createAlertDialog = (options: AlertDialogOptions = {}): AlertDialog
     }
   };
 
-  const button = (onClick: () => void): AlertDialogButtonProps => ({
+  const button = (part: string, onClick: () => void): AlertDialogButtonProps => ({
+    "data-part": part,
     id: `${base}-button`,
     type: "button",
     "aria-disabled": undefined,
@@ -276,6 +282,7 @@ export const createAlertDialog = (options: AlertDialogOptions = {}): AlertDialog
     ctrlS,
     pointerOutside: () => {},
     triggerProps: {
+      "data-part": "trigger",
       id: `${base}-trigger`,
       "aria-haspopup": "dialog",
       get "aria-expanded"() {
@@ -303,6 +310,7 @@ export const createAlertDialog = (options: AlertDialogOptions = {}): AlertDialog
       },
     },
     dialogProps: {
+      "data-part": "dialog",
       id: `${base}-dialog`,
       role: "alertdialog",
       get "aria-modal"() {
@@ -321,21 +329,23 @@ export const createAlertDialog = (options: AlertDialogOptions = {}): AlertDialog
       },
     },
     backdropProps: {
+      "data-part": "backdrop",
       id: `${base}-backdrop`,
       get hidden() {
         return !open();
       },
       onClick: () => {},
     },
-    cancelProps: button(() => {
+    cancelProps: button("cancel", () => {
       focusAt(100 + NO_POS);
       activate();
     }),
-    confirmProps: button(() => {
+    confirmProps: button("confirm", () => {
       focusAt(100 + YES_POS);
       activate();
     }),
     saveProps: {
+      "data-part": "save",
       id: `${base}-save`,
       type: "button",
       get "aria-disabled"() {
@@ -348,6 +358,7 @@ export const createAlertDialog = (options: AlertDialogOptions = {}): AlertDialog
       },
     },
     inputProps: {
+      "data-part": "input",
       id: `${base}-notes`,
       "aria-label": "Notes",
       onFocus: () => {

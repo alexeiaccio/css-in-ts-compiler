@@ -51,15 +51,10 @@ const mountToast = (options: ToastOptions = {}): MountedToast => {
       },
     });
     return (
-      <div data-part="region" {...api.regionProps}>
+      <div {...api.regionProps}>
         <For each={api.toasts()}>
           {(item) => (
-            <div
-              data-part="toast"
-              data-id={item.id}
-              data-tone={item.tone}
-              {...api.toastProps(item.id)}
-            >
+            <div data-id={item.id} data-tone={item.tone} {...api.toastProps(item.id)}>
               <span data-part="title">{item.title}</span>
               <span data-part="description">{item.description}</span>
               <button data-part="close" type="button" onClick={() => api.dismiss(item.id)}>
@@ -93,11 +88,7 @@ const mountStatus = (): MountedStatus => {
 
   const dispose = render(() => {
     api = createStatus();
-    return (
-      <p data-part="status" {...api.statusProps}>
-        {api.message()}
-      </p>
-    );
+    return <p {...api.statusProps}>{api.message()}</p>;
   }, root);
 
   const teardown = (): void => {

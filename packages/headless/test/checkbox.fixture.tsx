@@ -48,7 +48,6 @@ export const mountCheckbox = (config: CheckboxConfig): Mounted => {
     api = checkbox;
     return (
       <div
-        data-part="checkbox"
         {...checkbox.checkboxProps}
         onClick={(event) => {
           checkbox.checkboxProps.onClick();

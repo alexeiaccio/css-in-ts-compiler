@@ -30,6 +30,71 @@ Why: the machine adds Effect + a model evaluator to every consumer's bundle and 
 
 Conventions: `visible` lists the hideable content parts only; boolean attributes read `"true"` when present; `key`/`type` on a target focuses it first; `data-*` attributes are library styling hooks (`Unsupported`); `aria-controls`-style references read back as part targets.
 
+## Part names
+
+Every props object a primitive returns carries `data-part`: the name that part goes by in the primitive's own vocabulary. It is additive — no behaviour, no new option, no ARIA — and it exists because the props are the only stable styling contract a consumer has, so a skin can write `[data-part="trigger"]` once instead of asking every host for a class name.
+
+The value is typed `string`, not a literal, so the host may replace it, and a fixture that must address one instance renames it after the spread: `<div {...canvas.nodeProps(id)} data-part={`node${id}`}>`. Where a part is not an element of its own (`TabRenameProps` is the rename controller: `onDblClick`, `begin`, `commit`, `cancel`), there is no marker.
+
+| primitive             | parts                                                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| accordion             | `heading` `trigger` `panel`                                                                                                                              |
+| alert                 | `alert` `close`                                                                                                                                          |
+| alertdialog           | `trigger` `dialog` `backdrop` `cancel` `confirm` `save` `input`                                                                                          |
+| breadcrumb            | `nav` `breadcrumb` `item` `link`                                                                                                                         |
+| button                | `button`                                                                                                                                                 |
+| canvas                | `viewport` `layer` `node` `live`                                                                                                                         |
+| carousel              | `carousel` `rotation` `prev` `next` `slide` `tablist` `tab`                                                                                              |
+| checkbox              | `checkbox`                                                                                                                                               |
+| checkbox-group        | `group` `checkbox` (the parent and each child)                                                                                                           |
+| combobox              | `input` `trigger` `popup`                                                                                                                                |
+| command-palette       | `input` `list` `option` `empty` `status` `dialog` `backdrop` `title`                                                                                     |
+| confirm               | `trigger` `dialog` `backdrop` `title` `description` `cancel` `confirm`                                                                                   |
+| date-picker           | `status` `trigger` `popover` `title` `previous` `next` `grid` `weekday` `cell`                                                                           |
+| diagram               | `node` `edge` `status`                                                                                                                                   |
+| dialog-modal          | `trigger` `dialog` (polyfill and native) `backdrop` `dismiss`                                                                                            |
+| disclosure            | `trigger` `panel`                                                                                                                                        |
+| drawer                | `trigger` `backdrop` `content` `handle`                                                                                                                  |
+| dropzone              | `input` `zone` `browse` `status`                                                                                                                         |
+| feed                  | `feed` `article` `before-feed` `after-feed`                                                                                                              |
+| field                 | `control` `label` `hint` `error`                                                                                                                         |
+| filterable-menu       | `trigger` `input` `menu` `group` `group-label` `item` `item` (a submenu trigger is a row) `submenu` `empty` `status` `clear` `dialog` `backdrop` `title` |
+| grid                  | `grid` `row` `cell` `widget` `header`                                                                                                                    |
+| knob                  | `knob` `value`                                                                                                                                           |
+| link                  | `link`                                                                                                                                                   |
+| listbox               | `listbox` `option`                                                                                                                                       |
+| listbox-rearrangeable | `list` `option`                                                                                                                                          |
+| menu                  | `trigger` `menu` `menuitem`                                                                                                                              |
+| menubar               | `menubar` `menuitem` `menu` `submenu`                                                                                                                    |
+| meter                 | `meter`                                                                                                                                                  |
+| pagination            | `nav` `list` `item` `link` `previous` `next` `status`                                                                                                    |
+| panzoom               | `viewport` `image` `value`                                                                                                                               |
+| player                | `surface` `play` `seek` `mute` `fullscreen`                                                                                                              |
+| popover               | `trigger` `content`                                                                                                                                      |
+| radio                 | `radiogroup` `radio`                                                                                                                                     |
+| resizable-panels      | `group` `pane` `separator`                                                                                                                               |
+| scrollprogress        | `bar`                                                                                                                                                    |
+| scrollspy             | `nav` `list` `item` `link`                                                                                                                               |
+| slider                | `thumb` `track`                                                                                                                                          |
+| slider-multithumb     | `thumb` `track`                                                                                                                                          |
+| spinbutton            | `input` `increment` `decrement`                                                                                                                          |
+| status                | `status`                                                                                                                                                 |
+| switch                | `switch`                                                                                                                                                 |
+| table                 | `table` `row-group` `caption` `header-cell` `header` `row` `cell` `select-all` `checkbox`                                                                |
+| tabs                  | `tablist` `tab` `tabpanel` `close` `input`                                                                                                               |
+| textbox               | `input` (also textarea, `createTextArea`)                                                                                                                |
+| timeline              | `timeline` `row` `ruler` `list` `bar` `label`                                                                                                            |
+| toast                 | `region` `toast`                                                                                                                                         |
+| toolbar               | `toolbar` `item`                                                                                                                                         |
+| tooltip               | `trigger` `tooltip`                                                                                                                                      |
+| treegrid              | `grid` `row` `cell` `expander`                                                                                                                           |
+| treeview              | `tree` `item`                                                                                                                                            |
+| view-transition       | `view-transition` (both `persist` and `name`)                                                                                                            |
+| virtual               | `scroll` `item` `spacer`                                                                                                                                 |
+| windowsplitter        | `primary` `secondary` `separator`                                                                                                                        |
+
+`test/parts.test.ts` fails a primitive whose props type omits the marker, whose inline props type omits it, or that names a part `""`.
+
 ## Divergence policy
 
 When a ported scenario and the primitive disagree, decide it this way:

@@ -67,7 +67,6 @@ export const mountCanvas = (config: CanvasFixtureConfig): CanvasMounted => {
     return (
       <>
         <div
-          data-part="viewport"
           {...canvas.viewportProps}
           style={{
             ...canvas.viewportProps.style,
@@ -77,7 +76,7 @@ export const mountCanvas = (config: CanvasFixtureConfig): CanvasMounted => {
             "box-shadow": "inset 0 0 0 1px #8a8579",
           }}
         >
-          <div data-part="layer" {...canvas.layerProps}>
+          <div {...canvas.layerProps}>
             <For each={canvas.nodeIds()}>
               {(id) => {
                 let editor: HTMLTextAreaElement | undefined;
@@ -94,7 +93,7 @@ export const mountCanvas = (config: CanvasFixtureConfig): CanvasMounted => {
                   },
                 );
                 return (
-                  <div data-part={`node${id}`} {...canvas.nodeProps(id)}>
+                  <div {...canvas.nodeProps(id)} data-part={`node${id}`}>
                     {/* Culling is the host's job: the shell above always renders, the body
                         drops when the primitive says the node is culled (off screen and not
                         selected / focused / editing), so the node stays a focusable tab stop. */}
@@ -167,9 +166,7 @@ export const mountCanvas = (config: CanvasFixtureConfig): CanvasMounted => {
             </Show>
           </div>
         </div>
-        <div data-part="live" {...canvas.liveRegionProps}>
-          {canvas.state().announcement}
-        </div>
+        <div {...canvas.liveRegionProps}>{canvas.state().announcement}</div>
       </>
     );
   }, root);

@@ -44,6 +44,7 @@ export interface CheckboxGroupOptions<T = unknown> {
 
 /** Spread onto the controller element with `role=checkbox`. */
 export interface CheckboxGroupParentProps {
+  readonly "data-part": string;
   readonly role: "checkbox";
   readonly "aria-checked": ParentChecked;
   readonly tabindex: 0;
@@ -53,6 +54,7 @@ export interface CheckboxGroupParentProps {
 
 /** Spread onto a child element with `role=checkbox`. */
 export interface CheckboxGroupChildProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "checkbox";
   readonly "aria-checked": "true" | "false";
@@ -62,6 +64,7 @@ export interface CheckboxGroupChildProps {
 }
 
 export interface CheckboxGroupProps {
+  readonly "data-part": string;
   /** The group element: a host's label can name it, and a controller can `aria-controls` it. */
   readonly id: string;
   readonly role: "group";
@@ -292,6 +295,7 @@ export const createCheckboxGroup = <T = unknown>(
       requestPacked(packed(normalizeChildren(next)));
     },
     groupProps: {
+      "data-part": "group",
       id: field.controlProps.id,
       role: "group",
       get "aria-label"() {
@@ -318,6 +322,7 @@ export const createCheckboxGroup = <T = unknown>(
     },
     errorProps: field.errorProps,
     parentProps: {
+      "data-part": "checkbox",
       role: "checkbox",
       get "aria-checked"() {
         return parentChecked();
@@ -331,6 +336,7 @@ export const createCheckboxGroup = <T = unknown>(
       },
     },
     childProps: (index) => ({
+      "data-part": "checkbox",
       id: `${base}-${index}`,
       role: "checkbox",
       get "aria-checked"() {

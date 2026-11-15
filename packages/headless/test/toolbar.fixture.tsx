@@ -150,13 +150,13 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
     }
     return (
       <>
-        <div data-part="toolbar" tabindex={-1} {...toolbar.toolbarProps}>
+        <div tabindex={-1} {...toolbar.toolbarProps}>
           {toolbar.items.map((item, index) =>
             menu !== undefined && index === triggerIndex ? (
               <button
-                data-part="item"
                 {...toolbar.itemProps(index)}
                 {...menu.triggerProps}
+                data-part="item"
                 onFocus={() => {
                   toolbar.focusItem(index);
                   menu.focusTrigger();
@@ -184,18 +184,16 @@ export const mountToolbar = (config: ToolbarConfig): Mounted => {
                 {item.label}
               </button>
             ) : (
-              <button data-part="item" {...toolbar.itemProps(index)}>
-                {item.label}
-              </button>
+              <button {...toolbar.itemProps(index)}>{item.label}</button>
             ),
           )}
         </div>
         {menu !== undefined ? (
-          <div data-part="popup" {...menu.menuProps}>
+          <div {...menu.menuProps} data-part="popup">
             {menu.items.map((item, index) => (
               // a row is focusable (`tabindex="-1"`): the native engine writes no
               // tabindex, so the platform can only focus an authored one
-              <div data-part="menuitem" tabindex={-1} {...menu.itemProps(index)}>
+              <div tabindex={-1} {...menu.itemProps(index)}>
                 {item.label}
               </div>
             ))}

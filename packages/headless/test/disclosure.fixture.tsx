@@ -43,12 +43,8 @@ export const mountDisclosure = (config: DisclosureConfig): Mounted => {
     api = disclosure;
     return (
       <>
-        <button data-part="trigger" {...disclosure.triggerProps}>
-          Details
-        </button>
-        <div data-part="panel" {...disclosure.panelProps}>
-          Content
-        </div>
+        <button {...disclosure.triggerProps}>Details</button>
+        <div {...disclosure.panelProps}>Content</div>
         <button
           data-part="trigger"
           type="button"

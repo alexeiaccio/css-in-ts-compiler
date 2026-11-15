@@ -55,6 +55,7 @@ export interface FilterableMenuOptions {
 }
 
 export interface FilterableMenuInputProps extends TextControlProps {
+  readonly "data-part": string;
   readonly role: "searchbox";
   readonly value: string;
   readonly "aria-controls": string;
@@ -67,6 +68,7 @@ export interface FilterableMenuInputProps extends TextControlProps {
 }
 
 export interface FilterableMenuClearProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly tabindex: -1;
   readonly "aria-label": string;
@@ -93,22 +95,26 @@ export interface FilterableMenu {
   readonly triggerProps: DialogTriggerProps;
   readonly inputProps: FilterableMenuInputProps;
   readonly menuProps: {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menu";
     readonly "aria-labelledby": string;
     readonly onMouseDown: (event: MouseEvent) => void;
   };
   readonly groupProps: (name: string) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "group";
     readonly "aria-labelledby": string;
   };
   /** `aria-hidden`: the group is already named through `groupProps`. */
   readonly groupLabelProps: (name: string) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly "aria-hidden": "true";
   };
   readonly itemProps: (id: string) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menuitem";
     readonly tabindex: -1;
@@ -118,6 +124,7 @@ export interface FilterableMenu {
     readonly onClick: () => void;
   };
   readonly submenuTriggerProps: (id: string) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menuitem";
     readonly tabindex: -1;
@@ -130,6 +137,7 @@ export interface FilterableMenu {
     readonly onClick: () => void;
   };
   readonly submenuProps: (id: string) => {
+    readonly "data-part": string;
     readonly id: string;
     readonly role: "menu";
     readonly "aria-labelledby": string;
@@ -137,12 +145,16 @@ export interface FilterableMenu {
     readonly onMouseDown: (event: MouseEvent) => void;
     readonly onMouseEnter: () => void;
   };
-  readonly emptyProps: { readonly hidden: boolean; readonly text: string };
+  readonly emptyProps: {
+    readonly "data-part": string;
+    readonly hidden: boolean;
+    readonly text: string;
+  };
   readonly statusProps: StatusProps;
   readonly clearProps: FilterableMenuClearProps;
   readonly dialogProps: DialogContentProps;
   readonly backdropProps: DialogBackdropProps;
-  readonly titleProps: { readonly id: string };
+  readonly titleProps: { readonly "data-part": string; readonly id: string };
 }
 
 interface Row {
@@ -493,6 +505,7 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
       },
     },
     menuProps: {
+      "data-part": "menu",
       get id() {
         return menuId();
       },
@@ -501,12 +514,18 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
       onMouseDown: (event) => event.preventDefault(),
     },
     groupProps: (name) => ({
+      "data-part": "group",
       id: groupId(name),
       role: "group",
       "aria-labelledby": `${groupId(name)}-label`,
     }),
-    groupLabelProps: (name) => ({ id: `${groupId(name)}-label`, "aria-hidden": "true" }),
+    groupLabelProps: (name) => ({
+      "data-part": "group-label",
+      id: `${groupId(name)}-label`,
+      "aria-hidden": "true",
+    }),
     itemProps: (id) => ({
+      "data-part": "item",
       id: itemId(id),
       role: "menuitem",
       tabindex: -1,
@@ -520,6 +539,7 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
       },
     }),
     submenuTriggerProps: (id) => ({
+      "data-part": "item",
       id: itemId(id),
       role: "menuitem",
       tabindex: -1,
@@ -539,6 +559,7 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
       onClick: () => openSub(id, true),
     }),
     submenuProps: (id) => ({
+      "data-part": "submenu",
       id: submenuId(id),
       role: "menu",
       "aria-labelledby": itemId(id),
@@ -553,6 +574,7 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
       },
     }),
     emptyProps: {
+      "data-part": "empty",
       get hidden() {
         return results().length > 0;
       },
@@ -560,6 +582,7 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
     },
     statusProps: status.statusProps,
     clearProps: {
+      "data-part": "clear",
       type: "button",
       tabindex: -1,
       "aria-label": labels.clear,
@@ -571,6 +594,6 @@ export const createFilterableMenu = (options: FilterableMenuOptions): Filterable
     },
     dialogProps: dialog.dialogProps,
     backdropProps: dialog.backdropProps,
-    titleProps: { id: titleId },
+    titleProps: { "data-part": "title", id: titleId },
   };
 };

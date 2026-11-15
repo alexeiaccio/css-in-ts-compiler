@@ -68,6 +68,7 @@ export interface PlayerOptions {
 }
 
 export interface PlayerSurfaceProps {
+  readonly "data-part": string;
   readonly tabindex: number;
   readonly onKeyDown: (event: KeyboardEvent) => void;
   readonly onFocus: () => void;
@@ -75,6 +76,7 @@ export interface PlayerSurfaceProps {
 }
 
 export interface PlayerButtonProps {
+  readonly "data-part": string;
   readonly type: "button";
   readonly onClick: () => void;
   /** Keep a pointer click from stealing focus, so the spec's `focus` scope holds. */
@@ -92,6 +94,7 @@ export interface PlayerToggleProps extends PlayerButtonProps {
 }
 
 export interface PlayerSeekProps {
+  readonly "data-part": string;
   readonly role: "slider";
   readonly tabindex: number;
   readonly "aria-valuemin": number;
@@ -390,12 +393,14 @@ export const createPlayer = (options: PlayerOptions): Player => {
     setRate,
     toggleFullscreen,
     surfaceProps: {
+      "data-part": "surface",
       tabindex: 0,
       onKeyDown: surfaceKey,
       onFocus: () => setFocus("surface"),
       onBlur: () => setFocus("none"),
     },
     playProps: {
+      "data-part": "play",
       type: "button",
       ...button(togglePlay),
       get "aria-label"() {
@@ -403,6 +408,7 @@ export const createPlayer = (options: PlayerOptions): Player => {
       },
     },
     seekProps: {
+      "data-part": "seek",
       role: "slider",
       tabindex: 0,
       "aria-valuemin": 0,
@@ -420,6 +426,7 @@ export const createPlayer = (options: PlayerOptions): Player => {
       onBlur: () => setFocus("none"),
     },
     muteProps: {
+      "data-part": "mute",
       type: "button",
       ...button(toggleMute),
       get "aria-pressed"() {
@@ -427,6 +434,7 @@ export const createPlayer = (options: PlayerOptions): Player => {
       },
     },
     fullscreenProps: {
+      "data-part": "fullscreen",
       type: "button",
       ...button(toggleFullscreen),
       get "aria-pressed"() {

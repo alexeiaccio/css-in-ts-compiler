@@ -53,9 +53,8 @@ export const mountSpinbutton = (config: SpinbuttonConfig): Mounted => {
     };
     return (
       <div data-part="group" role="group">
-        <input data-part="input" {...spin.inputProps} />
+        <input {...spin.inputProps} />
         <div
-          data-part="increment"
           {...spin.incrementProps}
           onClick={() => {
             spin.incrementProps.onClick();
@@ -65,7 +64,6 @@ export const mountSpinbutton = (config: SpinbuttonConfig): Mounted => {
           +
         </div>
         <div
-          data-part="decrement"
           {...spin.decrementProps}
           onClick={() => {
             spin.decrementProps.onClick();

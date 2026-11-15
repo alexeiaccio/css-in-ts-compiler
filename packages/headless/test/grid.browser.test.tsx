@@ -383,11 +383,11 @@ describe("createGrid x focusgroup V2 (the provider-switched path, real keys)", (
         },
       });
       return (
-        <div data-part="grid" {...created.gridProps}>
+        <div {...created.gridProps}>
           {created.renderedRows().map((row) => (
             <div {...created.rowProps(row)}>
               {[0, 1].map((col) => (
-                <div data-part={`cell:${row},${col}`} {...created.cellProps(row, col)} />
+                <div {...created.cellProps(row, col)} data-part={`cell:${row},${col}`} />
               ))}
             </div>
           ))}

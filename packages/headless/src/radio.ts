@@ -59,6 +59,7 @@ export interface RadioGroupOptions<T = unknown> {
 
 /** Spread onto the element with `role=radiogroup`. */
 export interface RadioGroupProps {
+  readonly "data-part": string;
   readonly role: "radiogroup";
   readonly "aria-orientation": "horizontal" | "vertical" | undefined;
   readonly "aria-activedescendant": string | undefined;
@@ -77,6 +78,7 @@ export interface RadioGroupProps {
 
 /** Spread onto an element with `role=radio`. */
 export interface RadioProps {
+  readonly "data-part": string;
   readonly id: string;
   readonly role: "radio";
   readonly "aria-checked": "true" | "false";
@@ -578,6 +580,7 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
       reconcile();
     },
     radiogroupProps: {
+      "data-part": "radiogroup",
       role: "radiogroup",
       get "aria-orientation"() {
         return options.orientation;
@@ -617,6 +620,7 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
       },
     },
     radioProps: (index) => ({
+      "data-part": "radio",
       id: `${base}-radio-${index}`,
       role: "radio",
       get "aria-checked"() {

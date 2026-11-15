@@ -15,6 +15,7 @@ export interface LinkOptions {
 
 /** Spread onto the `<a>` or the custom `role=link` element. */
 export interface LinkProps {
+  readonly "data-part": string;
   readonly role: "link" | undefined;
   readonly tabindex: number | undefined;
   readonly href: string | undefined;
@@ -56,6 +57,7 @@ export const createLink = (options: LinkOptions = {}): Link => {
     href,
     disabled,
     linkProps: {
+      "data-part": "link",
       get role() {
         return native() ? undefined : "link";
       },

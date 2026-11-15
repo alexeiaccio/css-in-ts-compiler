@@ -373,9 +373,9 @@ describe("createCombobox disabled", () => {
       api = combobox;
       return (
         <div>
-          <input data-part="input" {...combobox.comboboxProps} />
-          <button data-part="trigger" {...combobox.triggerProps} />
-          <ul data-part="popup" {...combobox.listboxProps}>
+          <input {...combobox.comboboxProps} />
+          <button {...combobox.triggerProps} />
+          <ul {...combobox.listboxProps}>
             <For each={combobox.options()}>
               {(option) => (
                 <li data-part="option" {...option.props}>
