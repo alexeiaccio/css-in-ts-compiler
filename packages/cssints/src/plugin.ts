@@ -70,9 +70,12 @@ const Manifest = Schema.fromJsonString(
 );
 const decodeManifest = Schema.decodeUnknownOption(Manifest);
 
-// The direct dependencies of the app that depend on cssints (a package whose files carry the attribute imports
-// "cssints", so it lists it). The optimizer and the ssr externalization would strip or never run the attributes of
-// these, so they are excluded from both. A transitive one is not found: list it in the app's dependencies.
+// The packages the app installs that are written on cssints (a package whose files carry the attribute imports
+// "cssints", so it lists it) — the app's own dependencies and the ones behind them, since such a package usually arrives
+// through another (@cssints/reveal imports @cssints/motion). The optimizer and the ssr externalization would strip or
+// never run the attributes of these: externalized, Node loads the package itself, meets the attribute in its code and
+// refuses it. The walk follows what an install puts in the tree: dependencies and peers, from each package's own
+// package.json, so a nested (not hoisted) copy is found where the importing package finds it.
 const packagesOnCssints = (root: string) =>
   Effect.sync(() => {
     const read = (file: string) =>
@@ -82,12 +85,33 @@ const packagesOnCssints = (root: string) =>
           decodeManifest,
         ),
       );
+    const manifestAt = (from: string, name: string) => {
+      for (const dir of createRequire(from).resolve.paths(RUNTIME) ?? []) {
+        const file = join(dir, name, "package.json");
+        const manifest = read(file);
+        if (manifest) return { file, manifest };
+      }
+      return undefined;
+    };
+    const found = new Set<string>();
+    const seen = new Set<string>();
+    const walk = (from: string, names: ReadonlyArray<string>) => {
+      for (const name of names) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        const at = manifestAt(from, name);
+        if (!at) continue;
+        const deps = { ...at.manifest.dependencies, ...at.manifest.peerDependencies };
+        if (Object.hasOwn(deps, RUNTIME)) found.add(name);
+        walk(at.file, Object.keys(deps));
+      }
+    };
     const app = read(join(root, "package.json"));
-    const lookup = createRequire(join(root, "package.json")).resolve.paths(RUNTIME) ?? [];
-    return Object.keys({ ...app?.dependencies, ...app?.devDependencies }).filter((name) => {
-      const m = lookup.map((dir) => read(join(dir, name, "package.json"))).find(Boolean);
-      return !!m && Object.hasOwn({ ...m.dependencies, ...m.peerDependencies }, RUNTIME);
-    });
+    walk(
+      join(root, "package.json"),
+      Object.keys({ ...app?.dependencies, ...app?.devDependencies }),
+    );
+    return [...found];
   });
 
 const hash = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 8);

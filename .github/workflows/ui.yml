@@ -17,6 +17,9 @@ on:
       - packages/headless/src/**
       - packages/headless/test/**
       - packages/headless/vite.config.ts
+      # the engine the starter is compiled with: the plugin decides whether a package written on cssints is evaluated
+      # or handed to Node, and the smoke is what catches it (0.37.0 made this job red from a plugin change)
+      - packages/cssints/src/**
       - packages/apg-specs/src/**
       - packages/apg-specs/specs/**
       - packages/apg-specs/scenarios/**
@@ -30,6 +33,7 @@ on:
       - packages/headless/src/**
       - packages/headless/test/**
       - packages/headless/vite.config.ts
+      - packages/cssints/src/**
       - packages/apg-specs/src/**
       - packages/apg-specs/specs/**
       - packages/apg-specs/scenarios/**

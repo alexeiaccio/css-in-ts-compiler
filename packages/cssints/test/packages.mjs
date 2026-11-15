@@ -1,5 +1,6 @@
 // A package written on cssints (pkg/ui, built by tsdown) in an app's node_modules: its attributes survive the build,
-// the engine evaluates it with the app's sheet, targets and themes, in dev (no optimizer, no externalization) and in a build.
+// the engine evaluates it with the app's sheet, targets and themes, in dev (no optimizer, no externalization) and in a
+// build. pkg/behind is a second one that arrives behind pkg/ui: no app lists it, as none lists @cssints/motion.
 // Run: node packages.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -21,18 +22,25 @@ import cssints from "../src/plugin.ts";
 const here = import.meta.dirname;
 const tmp = join(here, ".tmp-packages");
 const lib = join(tmp, "ui");
+const behind = join(tmp, "behind");
 const app = join(tmp, "app");
 const pkgName = "cssints-fixture-ui";
+const behindName = "cssints-fixture-behind";
 
 rmSync(tmp, { recursive: true, force: true });
-mkdirSync(join(lib, "node_modules"), { recursive: true });
-cpSync(join(here, "pkg/ui"), lib, { recursive: true });
-symlinkSync(join(here, ".."), join(lib, "node_modules/cssints"));
-execFileSync(
-  join(here, "../../../node_modules/.bin/vp"),
-  ["pack", "--no-config", "src/index.ts", "--dts", "--platform", "neutral"],
-  { cwd: lib, stdio: "pipe" },
-);
+// Packs the fixture in `pkg/<dir>` into `to`, the way a dependency of the app is built.
+const pack = (dir, to) => {
+  mkdirSync(join(to, "node_modules"), { recursive: true });
+  cpSync(join(here, "pkg", dir), to, { recursive: true });
+  symlinkSync(join(here, ".."), join(to, "node_modules/cssints"));
+  execFileSync(
+    join(here, "../../../node_modules/.bin/vp"),
+    ["pack", "--no-config", "src/index.ts", "--dts", "--platform", "neutral"],
+    { cwd: to, stdio: "pipe" },
+  );
+};
+pack("behind", behind);
+pack("ui", lib);
 
 // What tsdown emitted: the attributes kept, `cssints` external, the declarations next to the code.
 const dist = readFileSync(join(lib, "dist/index.js"), "utf8");
@@ -50,10 +58,15 @@ const put = (file, text) => {
   mkdirSync(join(file, ".."), { recursive: true });
   writeFileSync(file, text);
 };
-const installed = join(app, "node_modules", pkgName);
-mkdirSync(installed, { recursive: true });
-cpSync(join(lib, "dist"), join(installed, "dist"), { recursive: true });
-cpSync(join(lib, "package.json"), join(installed, "package.json"));
+// Installs a packed fixture as a real directory of the app's node_modules: a link would resolve outside it.
+const install = (from, name) => {
+  const to = join(app, "node_modules", name);
+  mkdirSync(to, { recursive: true });
+  cpSync(join(from, "dist"), join(to, "dist"), { recursive: true });
+  cpSync(join(from, "package.json"), join(to, "package.json"));
+};
+install(lib, pkgName);
+install(behind, behindName);
 symlinkSync(join(here, ".."), join(app, "node_modules/cssints"));
 put(
   join(app, "package.json"),
@@ -105,12 +118,27 @@ const get = async (path) => (await fetch(new URL(path, base))).text();
 const main = await get("/main.ts");
 const ui = await get(`/node_modules/${pkgName}/dist/index.js`);
 assert.ok(!/createTokens|\bcv\(|type: "cssints"/.test(ui), `the package is compiled:\n${ui}`);
+// The one behind it: no app lists it, and the engine must still inline and compile it rather than hand it to Node.
+const behindServed = await get(`/node_modules/${behindName}/dist/index.js`);
+assert.ok(
+  !/type: "cssints"/.test(behindServed),
+  `the package behind is compiled:\n${behindServed}`,
+);
 const classes = [...classesIn(ui), ...classesIn(main)];
 assert.ok(classes.length >= 4, ui);
+assert.deepEqual(
+  classesIn(behindServed).filter((c) => !classes.includes(c)),
+  [],
+  `the classes of the package behind are the app's (${classesIn(behindServed).join(" ")}):\n${ui}`,
+);
 assert.ok(!main.includes("createGlobalTheme(t"), main);
 const scan = server.environments.client.depsOptimizer;
 await scan?.scanProcessing;
 assert.ok(!(pkgName in (scan?.metadata.optimized ?? {})), "the package is not pre-bundled");
+assert.ok(
+  !(behindName in (scan?.metadata.optimized ?? {})),
+  "the package behind is not pre-bundled",
+);
 checkSheet(plugins[0].api.sheet(), classes);
 // the sheet as the browser gets it: a module that updates a style tag
 const sheetModule = await get("/@id/__x00__virtual:cssints.css");
@@ -139,6 +167,6 @@ assert.ok(classesIn(js).length >= 4, js);
 
 rmSync(tmp, { recursive: true, force: true });
 console.log(
-  `packages: ${pkgName} kept its attributes, dev and build evaluate it (${sheets[0].fileName})`,
+  `packages: ${pkgName} and ${behindName} kept their attributes, dev and build evaluate them (${sheets[0].fileName})`,
 );
 process.exit(0);
