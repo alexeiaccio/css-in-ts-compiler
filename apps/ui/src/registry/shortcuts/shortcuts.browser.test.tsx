@@ -1,12 +1,24 @@
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
 import { type MountedShortcuts, mountShortcuts } from "./shortcuts.fixture";
 
 // No APG pattern and no Quint spec exists for a shortcut sheet, so this file is the skin's oracle. It mounts the starter in
-// a real Chromium: `?` is a real key on the page, the sheet is the kit's Dialog, and the demo's own chords are the host's.
+// a real Chromium: `?` is a real key on the page, the sheet is the kit's Dialog — a native `<dialog>` in the top layer — and
+// the demo's own chords are the host's.
 
 /** Solid 2 delivers events through its delegated listener on a later turn; `onSettled` binds on the flush. */
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+
+/** The resolved value of a theme colour, read without naming the format the engine emitted. */
+const background = (token: string): string => {
+  const probe = document.createElement("div");
+  probe.style.backgroundColor = `var(${token})`;
+  document.body.append(probe);
+  const value = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return value;
+};
 
 const live: MountedShortcuts[] = [];
 
@@ -37,6 +49,12 @@ const press = async (
   return event;
 };
 
+/** Escape is the UA's on a modal `<dialog>`: a synthetic `keydown` never reaches its cancel step, so a real key is sent. */
+const escape = async (): Promise<void> => {
+  await userEvent.keyboard("{Escape}");
+  await vi.waitFor(() => expect(document.querySelector('[data-part="dialog"]')).toBeNull());
+};
+
 const open = (root: HTMLElement): HTMLButtonElement => {
   const found = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
     (element) => element.textContent?.trim() === "Keyboard shortcuts",
@@ -64,18 +82,36 @@ const capsOf = (element: HTMLElement): string[] =>
   [...element.querySelectorAll('[data-part="kbd-cap"]')].map((cap) => cap.textContent ?? "");
 
 describe("Shortcuts", () => {
-  it("opens the sheet from ? on the page", async () => {
-    const { sheet } = mounted({ isApple: false });
-    expect(sheet()).toBeUndefined();
+  it("opens the sheet from ? on the page, in the platform's top layer", async () => {
+    const instance = mounted({ isApple: false });
+    expect(instance.sheet()).toBeUndefined();
 
     await press("?", { shiftKey: true });
 
-    const dialog = sheet();
+    const dialog = instance.sheet() as HTMLDialogElement;
     expect(dialog).toBeDefined();
-    expect(dialog?.getAttribute("role")).toBe("dialog");
-    expect(dialog?.getAttribute("aria-modal")).toBe("true");
-    expect(dialog?.getAttribute("aria-label")).toBe("Keyboard shortcuts");
-    expect(text(dialog as HTMLElement, "dialog-title")).toBe("Keyboard shortcuts");
+    // a native `<dialog>`: the element is the role, and `showModal()` is both the modal state and the top layer
+    expect(dialog.tagName).toBe("DIALOG");
+    expect(dialog.open).toBe(true);
+    expect(dialog.matches(":modal")).toBe(true);
+    expect(dialog.getAttribute("role")).toBe("dialog");
+    // ARIA in HTML: a modal `<dialog>` is `aria-modal`, and a panel that was unmounted is not `hidden`
+    expect(dialog.getAttribute("aria-modal")).toBeNull();
+    expect(dialog.hasAttribute("hidden")).toBe(false);
+    expect(dialog.getAttribute("aria-label")).toBe("Keyboard shortcuts");
+    expect(text(dialog, "dialog-title")).toBe("Keyboard shortcuts");
+    // the id a host trigger's `aria-controls` would name exists on the element it controls
+    expect(dialog.id).not.toBe("");
+    // the top layer, not a portal: the panel is where the skin rendered it, and it is not painted `hidden`
+    expect(instance.root.contains(dialog)).toBe(true);
+    expect(getComputedStyle(dialog).display).not.toBe("none");
+    // the wash is the platform's `::backdrop` on the theme's scrim, not a kit div under the panel
+    expect(dialog.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
+    expect(getComputedStyle(dialog, "::backdrop").backgroundColor).toBe(
+      background("--color-scrim"),
+    );
+    // the platform moves the focus into the modal: the reader's next key goes to the panel, not to the page
+    expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
   it("does not open while a ? is typed in a field", async () => {
@@ -106,7 +142,7 @@ describe("Shortcuts", () => {
     expect(dialog).toBeDefined();
     expect(dialog?.contains(document.activeElement)).toBe(true);
 
-    await press("Escape");
+    await escape();
 
     expect(instance.sheet()).toBeUndefined();
     expect(document.activeElement).toBe(trigger);
@@ -129,6 +165,8 @@ describe("Shortcuts", () => {
     await settle();
 
     expect(instance.sheet()).toBeUndefined();
+    // the unmounted panel cannot give the focus back itself, so the kit does: the reader lands on the control that
+    // opened the sheet, not on the body
     expect(document.activeElement).toBe(trigger);
   });
 
@@ -212,7 +250,7 @@ describe("Shortcuts", () => {
     await press("?", { shiftKey: true });
     expect(instance.sheet()).toBeDefined();
 
-    await press("Escape");
+    await escape();
     expect(instance.sheet()).toBeUndefined();
 
     instance.disposeShortcuts();

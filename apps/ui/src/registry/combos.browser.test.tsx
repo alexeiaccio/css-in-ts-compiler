@@ -5,7 +5,7 @@
 import { render } from "@solidjs/web";
 import type { JSX } from "@solidjs/web";
 import { flush } from "solid-js";
-import { describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
 import {
@@ -37,11 +37,24 @@ import {
 // The menu list is a `popover` in Chromium: closed is the absence of `:popover-open`, not the `hidden` attribute.
 const shown = (element: HTMLElement): boolean => element.matches(":popover-open");
 
+// A case that ends with a modal open leaves the page under it inert, and the next case cannot focus or click anything: the
+// roots are torn down after every case, not left to the runner's page.
+const live: Array<{ readonly root: HTMLElement; readonly dispose: () => void }> = [];
+
+afterEach(() => {
+  for (const { root, dispose } of live.splice(0)) {
+    // unmounting removes the panel from the DOM, and a removed `<dialog>` leaves the top layer with it
+    dispose();
+    root.remove();
+  }
+});
+
 const mount = (view: () => JSX.Element): HTMLElement => {
   const root = document.createElement("div");
   document.body.append(root);
-  render(view, root);
+  const dispose = render(view, root);
   flush();
+  live.push({ root, dispose });
   return root;
 };
 
@@ -170,7 +183,7 @@ describe("the kit composes", () => {
     expect(style(buttons[4]!).paddingTop).toBe("4px");
   });
 
-  it("puts a modal above the page, names it, keeps focus and gives it back", () => {
+  it("puts a modal in the top layer, names it, keeps focus and gives it back", async () => {
     const root = mount(() => <Dialogs />);
     const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
     expect(document.querySelector('[data-part="dialog"]')).toBeNull();
@@ -178,47 +191,58 @@ describe("the kit composes", () => {
     trigger.focus();
     trigger.click();
     flush();
-    // the layer is portalled out of the view and into the body, so the whole document is where the panel lives
-    const panel = document.querySelector<HTMLElement>('[data-part="dialog"]')!;
-    const backdrop = document.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!;
-    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
-    expect(root.contains(layer)).toBe(false);
-    expect(document.body.contains(layer)).toBe(true);
+    // the panel is the `<dialog>` itself: the top layer is the platform's, so it stays where the kit rendered it
+    const panel = document.querySelector<HTMLDialogElement>('[data-part="dialog"]')!;
+    expect(panel.tagName).toBe("DIALOG");
+    expect(panel.open).toBe(true);
+    expect(panel.matches(":modal")).toBe(true);
+    expect(root.contains(panel)).toBe(true);
+    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    expect(document.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
     // the panel is the dialog: a role and a name from the prop, the description it renders, and the modal state
     expect(panel.getAttribute("role")).toBe("dialog");
     expect(panel.getAttribute("aria-label")).toBe("Rename file");
-    expect(panel.getAttribute("aria-modal")).toBe("true");
+    // ARIA in HTML: a modal `<dialog>` is `aria-modal` already, and the kit does not say it twice
+    expect(panel.getAttribute("aria-modal")).toBeNull();
     const described = panel.getAttribute("aria-describedby")!;
     expect(document.getElementById(described)?.getAttribute("data-part")).toBe(
       "dialog-description",
     );
-    // above the page, behind a wash, and the page does not scroll under it
-    expect(style(layer).zIndex).toBe("20");
-    expect(style(panel).position).toBe("relative");
-    expect(style(backdrop).position).toBe("absolute");
-    expect(style(backdrop).backgroundColor).not.toBe(style(panel).backgroundColor);
-    expect(document.body.style.overflow).toBe("hidden");
-    // focus went into the panel: a screen reader's reader starts where the message is
-    expect(document.activeElement).toBe(panel);
-    panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    flush();
-    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
-    expect(document.querySelector('[data-part="dialog-backdrop"]')).toBeNull();
-    expect(document.activeElement).toBe(trigger);
+    // above the page, behind the platform's wash, and the kit writes no scroll lock: the modal state holds the page
+    expect(getComputedStyle(panel, "::backdrop").backgroundColor).not.toBe(
+      getComputedStyle(panel).backgroundColor,
+    );
     expect(document.body.style.overflow).toBe("");
-    // and the backdrop is a way out too
+    expect(document.documentElement.style.overflow).toBe("");
+    // focus went into the panel: a screen reader's reader starts where the message is
+    expect(panel.contains(document.activeElement)).toBe(true);
+    // Escape is the platform's cancel: a real key reaches it, a synthetic `keydown` does not
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(document.querySelector('[data-part="dialog"]')).toBeNull());
+    expect(document.activeElement).toBe(trigger);
+    // and the backdrop is a way out too: `closedby="any"` is the policy the platform applies, and a click outside arrives
+    // as the same close a synthetic press cannot make
     trigger.click();
     flush();
-    document.querySelector<HTMLElement>('[data-part="dialog-backdrop"]')!.click();
-    flush();
-    expect(document.querySelector('[data-part="dialog"]')).toBeNull();
+    const again = document.querySelector<HTMLDialogElement>('[data-part="dialog"]')!;
+    expect(again.getAttribute("closedby")).toBe("any");
+    again.close();
+    await vi.waitFor(() => expect(document.querySelector('[data-part="dialog"]')).toBeNull());
+    expect(document.activeElement).toBe(trigger);
   });
 
-  it("covers the viewport from a transformed, clipped ancestor", () => {
-    // a card with a hover lift (`transform`) and a scroll box (`overflow: hidden`) is both a containing block for
-    // `position: fixed` and a clip: inline, the layer would be as tall as the card and its `top: 0` would be the card's
+  it("is not clipped by a transformed, clipped ancestor: the top layer is the viewport's", async () => {
+    // a small box with a hover lift (`transform`) and a scroll box (`overflow: hidden`) is both a containing block for
+    // `position: fixed` and a clip; the platform's top layer is not inside it
     const view = (): JSX.Element => (
-      <div style={{ transform: "translateZ(0)", overflow: "hidden" }}>
+      <div
+        style={{
+          width: "200px",
+          height: "100px",
+          transform: "translateZ(0)",
+          overflow: "hidden",
+        }}
+      >
         <Dialogs />
       </div>
     );
@@ -227,42 +251,39 @@ describe("the kit composes", () => {
     trigger.focus();
     trigger.click();
     flush();
-    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
-    const rect = layer.getBoundingClientRect();
-    // the layer is the viewport, not the ancestor: `fixed` resolves against it and no ancestor clips it
-    expect(Math.round(rect.top)).toBe(0);
-    expect(Math.round(rect.left)).toBe(0);
-    expect(Math.round(rect.width)).toBe(window.innerWidth);
-    expect(Math.round(rect.height)).toBe(window.innerHeight);
-    // a fixed box with no containing block above it, and it is a child of the document's body
-    expect(layer.offsetParent).toBeNull();
-    expect(document.body.contains(layer)).toBe(true);
-    expect(root.contains(layer)).toBe(false);
-    document
-      .querySelector<HTMLElement>('[data-part="dialog"]')!
-      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    flush();
-    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    const panel = document.querySelector<HTMLDialogElement>('[data-part="dialog"]')!;
+    const box = panel.getBoundingClientRect();
+    const ancestor = panel.parentElement!.getBoundingClientRect();
+    expect(panel.matches(":modal")).toBe(true);
+    // taller than the box that clips it, and wholly inside the viewport: the ancestor neither clips nor contains it
+    expect(box.height).toBeGreaterThan(ancestor.height);
+    expect(Math.round(box.top)).toBeGreaterThanOrEqual(0);
+    expect(Math.round(box.bottom)).toBeLessThanOrEqual(window.innerHeight);
+    // and it paints above the page at its own centre: a clipped box would have left the page's own element on top
+    expect(
+      panel.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)),
+    ).toBe(true);
+    panel.close();
+    // the platform queues `close` as its own task: wait for the state it delivers
+    await vi.waitFor(() => expect(document.querySelector('[data-part="dialog"]')).toBeNull());
     expect(document.activeElement).toBe(trigger);
   });
 
-  it("sends the layer to the host's own modal root", () => {
+  it("puts the panel in the host's tree: `mount` is not read by a plain dialog", async () => {
     const root = mount(() => <MountedDialogs />);
     const trigger = root.querySelector<HTMLElement>('[aria-haspopup="dialog"]')!;
     trigger.focus();
     trigger.click();
     flush();
-    const layer = document.querySelector<HTMLElement>('[data-part="dialog-layer"]')!;
-    // the `mount` prop is the portal's target: the layer's parent is the host's root, not the body
-    const target = document.getElementById("combos-modal-root")!;
-    expect(layer.parentElement).toBe(target);
-    expect(document.body.contains(layer)).toBe(true);
-    expect(root.contains(layer)).toBe(false);
-    document
-      .querySelector<HTMLElement>('[data-part="dialog"]')!
-      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    flush();
-    expect(document.querySelector('[data-part="dialog-layer"]')).toBeNull();
+    const panel = document.querySelector<HTMLDialogElement>('[data-part="dialog"]')!;
+    // `mount` is the animated layer's portal, and a plain dialog never reads it: this host's lazy root is not even
+    // created, and the panel stays in the host's tree, because the top layer is the viewport whatever the DOM parent is
+    expect(document.getElementById("combos-modal-root")).toBeNull();
+    expect(panel.tagName).toBe("DIALOG");
+    expect(panel.matches(":modal")).toBe(true);
+    expect(root.contains(panel)).toBe(true);
+    panel.close();
+    await vi.waitFor(() => expect(document.querySelector('[data-part="dialog"]')).toBeNull());
     expect(document.activeElement).toBe(trigger);
   });
 

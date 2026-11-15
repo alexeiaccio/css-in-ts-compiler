@@ -127,7 +127,7 @@ describe("Dialog (the primitive's contract: specs/apg/dialog-modal.qnt)", () => 
     expect(fixed.panel()?.getAttribute("closedby")).toBe("closerequest");
   });
 
-  it("closes from the close control inside the panel", async () => {
+  it("closes from the close control inside the panel, and the focus goes back to the trigger", async () => {
     const instance = mounted();
     await openAndSettle(instance);
     const close = instance.panel()?.querySelector<HTMLElement>("[data-part] button");
@@ -136,6 +136,9 @@ describe("Dialog (the primitive's contract: specs/apg/dialog-modal.qnt)", () => 
     await settle();
     expect(instance.panel()).toBeNull();
     expect(instance.requests).toEqual([true, false]);
+    // the panel is unmounted on close, so a detached `<dialog>` never runs the platform's focusing steps: the kit's
+    // layer returns the focus to what opened it
+    expect(document.activeElement).toBe(instance.trigger());
   });
 });
 

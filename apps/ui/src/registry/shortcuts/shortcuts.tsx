@@ -41,8 +41,6 @@ export interface ShortcutsProps {
   readonly defaultOpen?: boolean | undefined;
   /** A request to open or close: the close control, Escape and the backdrop all ask the host. */
   readonly onOpenChange?: ((open: boolean) => void) | undefined;
-  /** The element the sheet is portalled into (default `document.body`). */
-  readonly mount?: Element | undefined;
   readonly class?: string | undefined;
 }
 
@@ -218,7 +216,6 @@ export const Shortcuts = (props: ShortcutsProps): JSX.Element => {
       open={props.open}
       defaultOpen={props.defaultOpen}
       onOpenChange={props.onOpenChange}
-      mount={props.mount}
     >
       <DialogContent class={props.class}>
         <div data-part="shortcuts-header" class={headerClass}>
