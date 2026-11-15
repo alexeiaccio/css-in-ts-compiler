@@ -590,6 +590,29 @@ const STARTERS: ReadonlyArray<Starter> = [
     description:
       "A link on `createLink`: a native `<a href>` or a custom `role=link` with its own tab stop and Enter, a muted tone, and the current page marked `aria-current=page`",
   },
+  {
+    tested: true,
+    // a skin, not a starter: plain CSS scoped to [data-skin="01"], over primitives the other items already use. The parts
+    // and the sheet are `with` files, so a copy lands flat beside the entry and their `./` imports already point at it.
+    name: "hardware",
+    with: [
+      "hardware/faceplate.tsx",
+      "hardware/key.tsx",
+      "hardware/rocker.tsx",
+      "hardware/slide-switch.tsx",
+      "hardware/fader.tsx",
+      "hardware/dial.tsx",
+      "hardware/lcd.tsx",
+      "hardware/led.tsx",
+      "hardware/bar-graph.tsx",
+      "hardware/device.tsx",
+      "hardware/skin.css",
+      "hardware/tokens-01.css",
+    ],
+    title: "Hardware (skin 01)",
+    description:
+      'A second look after SPEC-01: a moulded faceplate, keys standing in their holes, a rocker, a slide switch, a fader with a printed scale, a dial with a tick arc, an LCD, a lamp and a bar graph — one OKLCH key colour turned into every role, in a plain sheet scoped to `[data-skin="01"]`',
+  },
 ];
 
 // A component is one `.tsx` that styles itself with cssints, so a copy needs the plugin in the project's build; the kit files

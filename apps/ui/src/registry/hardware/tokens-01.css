@@ -1,0 +1,113 @@
+/* The one colour of skin 01, as the roles it is turned into.
+
+   Ported from SPEC-01's hardware skin, `tokens.css` (github.com/shuding/spec-01, MIT, Copyright (c) 2026 Shu Ding). The rule
+   is the reference's, restated on our own property names; the panel greys below it are ours.
+
+   One colour in, six roles out, all worked out with relative colour syntax, so a host writes an OKLCH lightness, chroma and
+   hue (`--theme-l`, `--theme-c`, `--theme-h`, set inline by `Faceplate`'s `keyColor`):
+
+   - `--key-color`, the theme itself: caps, wedges, fills, anything large.
+   - `--key-ink`: text and thin marks on the light panel, its lightness capped at 0.62 so a light key still reads. A key above
+     0.68 lightness (yellow, a bright green) cannot be darkened into a readable ink and still look like itself, so its ink goes
+     near-black and the key colour comes back as a marker instead.
+   - `--key-highlight`: that marker. The key colour for a light key, transparent for every other, so a rule can lay it behind
+     a value unconditionally.
+   - `--key-cap`: the fill that carries a small legend (the rocker's chosen end). It is the key colour: the legend on it is
+     `--on-accent`, which is chosen against the cap, so the cap never has to be darkened to make white read.
+   - `--key-lamp`: a lit lamp on the panel, the key colour but never lighter than 0.86, so it still stands off the panel.
+   - `--key-glow`: lit things on a dark screen, never darker than 0.72; a key with no chroma (black) lights near-white.
+   - `--on-accent`: the text on a `--key-cap` or a key's cap. Pure white or pure black, switching at the lightness where the
+     two cross (0.56 here, 0.179 relative luminance): one of them always clears 4.5 : 1, which is what an 8-10 px legend
+     needs. The reference switches at 0.8, which leaves a *white* legend at 3.35 : 1 on a mid-light key (0.62), so a legible
+     device legend could not be built on it.
+   - `--ring`: the focus ring, which is the ink — the ring has to stand off the *panel*, and the ink is already capped for a
+     light key, so the two are the same colour by construction and a light key can never paint an invisible ring.
+
+   `clamp(0, (l - 0.68) * 1000, 1)` is a switch: 0 for a key at or below 0.68 lightness, 1 above. `--key-tone` is the same
+   switch on `--theme-l`, for the one place it is used outside a colour. */
+
+/* How far a key's cap stands out of its hole, and the one thing its travel animates: the cap's position, every layer of its
+   side wall and the shadow it casts are worked out from it, so the wall always reaches exactly down to the opening. Only a
+   registered property can be interpolated. */
+@property --lift {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+[data-skin="01"] {
+  --theme-l: 0.24;
+  --theme-c: 0;
+  --theme-h: 0;
+  --theme: oklch(var(--theme-l) var(--theme-c) var(--theme-h));
+  --key-tone: clamp(0, (var(--theme-l) - 0.68) * 1000, 1);
+
+  --key-color: var(--theme);
+  --key-ink: oklch(
+    from var(--theme)
+      calc(
+        min(l, 0.62) * (1 - clamp(0, (l - 0.68) * 1000, 1)) + 0.22 * clamp(0, (l - 0.68) * 1000, 1)
+      )
+      calc(c * (1 - clamp(0, (l - 0.68) * 1000, 1)) + 0.01 * clamp(0, (l - 0.68) * 1000, 1)) h
+  );
+  --key-highlight: color-mix(in oklab, var(--theme) calc(var(--key-tone) * 100%), transparent);
+  --key-cap: var(--key-color);
+  --key-lamp: oklch(from var(--theme) min(l, 0.86) c h);
+  --key-glow: oklch(from var(--theme) max(l, calc(0.95 - 0.23 * clamp(0, c * 20, 1))) c h);
+  --on-accent: oklch(calc(1 - clamp(0, (var(--theme-l) - 0.56) * 1000, 1)) 0 0);
+  --ring: var(--key-ink);
+
+  /* The panel: one light moulded grey, its lit top edge, the printed hairlines and the ink they are printed in. The dim tone
+     is much darker than the reference's (#7a7a76), which is 2.9 : 1 on this panel: every legend here is real 8-10 px text,
+     so it clears 4.5 : 1 with room (#4c4c48 is 6.1 : 1) and still sits a clear step under `--ink` (11.9 : 1). */
+  --paper: #f3f3f1;
+  --panel: #d9d9d6;
+  --panel-hi: #e6e6e3;
+  --line: #b4b4b0;
+  --ink: #1d1d1c;
+  --dim: #4c4c48;
+
+  /* The hole a key stands in, the dark glass of the screen, the darker screen of the bar graph, the groove of a switch and
+     the light slot of a fader. A screen is a well in the panel, not a light surface: what is on it is emissive print. */
+  --well: linear-gradient(180deg, #0b0b0a, #1a1a19);
+  --glass-base: #191a1d;
+  --glass: linear-gradient(180deg, #202124, #141518);
+  --glass-ink: #f2f2ee;
+  --glass-dim: rgb(242 242 238 / 0.62);
+  --glass-ghost: rgb(242 242 238 / 0.045);
+  --glass-well: inset 0 2px 6px rgb(0 0 0 / 0.7), inset 0 0 0 1px rgb(0 0 0 / 0.45);
+  --screen: linear-gradient(180deg, #17181a, #101113 60%);
+  --groove: linear-gradient(180deg, #1b1b1a, #2c2c2a);
+  --slot: linear-gradient(180deg, #c9c9c5, #dededa);
+
+  /* The reference's shadows: one light above and to the left, so a soft shadow falls right and down at 1:2 and is tinted
+     with the panel's own warm hue instead of black. A key's hard side wall is its thickness and stays straight down. */
+  --shadow-color: 45deg 8% 30%;
+
+  /* The printed legends are the only mono text on the panel: caps, printed scales, key legends, the dial's name. Prose on a
+     screen is the system sans, so the two never read as the same voice. No web font: the workspace ships no mono face. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --label: 500 9px/1.2 var(--mono);
+
+  /* A squircle's curve is shorter than a circle's at the same radius, so where corners are squircles every radius grows to
+     keep the corner its visual size. */
+  --corner-scale: 1;
+  --key-radius: calc(10px * var(--corner-scale));
+
+  /* The two easings of the reference: `detent` for anything that snaps to a position (a key, a lever, a dial's pointer) — a
+     moment's resistance, then a quick travel that stops dead; `settle` for things that do not click (a screen, a meter). */
+  --ease-detent: cubic-bezier(0.45, 0, 0.15, 1);
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@supports (corner-shape: squircle) {
+  [data-skin="01"] {
+    --corner-scale: 2;
+  }
+}
+
+/* WebKit flashes a grey box over anything tapped; the skin draws its own pressed states. */
+[data-skin="01"] {
+  -webkit-tap-highlight-color: transparent;
+}
