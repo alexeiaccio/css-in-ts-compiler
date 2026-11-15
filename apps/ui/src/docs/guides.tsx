@@ -62,7 +62,7 @@ const COMPONENTS_JSON = `{
     "utils": "~/lib/utils"
   },
   "registries": {
-    "@cssints": "https://packages.cssints.dev/r/{name}.json"
+    "@cssints": "https://ui.cssints.dev/r/{name}.json"
   }
 }`;
 

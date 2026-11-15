@@ -689,7 +689,7 @@ const theme = {
 
 const items = [theme, ...STARTERS.map(starter)];
 
-const out = join(root, "r");
+const out = join(root, "public", "r");
 mkdirSync(out, { recursive: true });
 for (const [name, item] of items.map((item) => [item.name, item] as const)) {
   writeFileSync(join(out, `${name}.json`), `${JSON.stringify(item, null, 2)}\n`);
@@ -725,7 +725,7 @@ const lines = [
   "npx shadcn@latest add @cssints/<name>",
   "```",
   "",
-  `Registry: https://packages.cssints.dev/r/{name}.json (index: /r/registry.json)`,
+  `Registry: https://ui.cssints.dev/r/{name}.json (index: /r/registry.json)`,
   "",
   "## Items",
   "",
