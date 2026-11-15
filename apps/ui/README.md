@@ -1,8 +1,8 @@
 # The starters' site
 
 The registry items, one page each: a live preview on the neutral theme, the source that ships, the add command, a tint
-picker and the preflight result the published copy passed. `src/docs/catalog.ts` reads the registry build (`r/*.json`), so
-a page cannot describe an item that was not generated.
+picker and the conformance record the starter smoke wrote for the item's files. `src/docs/catalog.ts` reads the registry
+build (`r/*.json`), so a page cannot describe an item that was not generated.
 
 The preview is the item's CSF story. `src/registry/<name>/<name>.stories.tsx` is a Storybook CSF 3 file — a
 default `meta` (title, `component`, `args`, `argTypes`) and one object per named export — so a story file moves into a real
@@ -25,7 +25,9 @@ field, an item matches by its title or by one of its stories, and Escape clears 
 - `node scripts/starter-smoke.mjs` — copies `templates/solid-vite` into a temporary project, installs it with the packages
   of this checkout (tarballs packed from `packages/`, so a kit change is checked before its release), adds every item of
   `r/` from a local server, runs the copied conformance tests, type-checks the copy, and adds `@cssints/switch` from the
-  live registry last: the whole chain a reader meets, on this commit.
+  live registry last: the whole chain a reader meets, on this commit. It also writes `r/<name>.result.json` — the
+  fingerprint (`src/docs/item-hash.ts`) of the files a passed item installed, which is what the page's Conformance
+  section reads, and only while that fingerprint still matches the item.
 
 The theme (`src/registry/theme.ts`, `tokens.ts`) is tokens-as-code; `scripts/theme-css.ts` compiles the same data to plain
 custom properties for a project that has no cssints plugin.
