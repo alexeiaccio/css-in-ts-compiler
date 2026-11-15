@@ -154,6 +154,7 @@ describe("the set", () => {
       "faceplate-title",
       "lcd",
       "lcd-tag",
+      "lcd-screen",
       "lcd-value",
       "lcd-body",
       "led",

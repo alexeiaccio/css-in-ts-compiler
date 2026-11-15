@@ -66,13 +66,14 @@
   --ink: #1d1d1c;
   --dim: #5c5c58;
 
-  /* The hole a key stands in, the gray glass of a reflective LCD, the dark screen of the bar graph, and the white legend a
-     printed mark keeps on the panel. */
+  /* The hole a key stands in, the dark glass of the screen, the darker screen of the bar graph, the groove of a switch and
+     the light slot of a fader. A screen is a well in the panel, not a light surface: what is on it is emissive print. */
   --well: linear-gradient(180deg, #0b0b0a, #1a1a19);
-  --gray-glass: linear-gradient(180deg, #b6b7b1, #c8c9c3 35%, #c2c3bd);
-  --gray-ink: #141413;
-  --gray-dim: rgb(20 20 19 / 0.85);
-  --gray-ghost: rgb(20 20 19 / 0.07);
+  --glass: linear-gradient(180deg, #202124, #141518);
+  --glass-ink: #f2f2ee;
+  --glass-dim: rgb(242 242 238 / 0.62);
+  --glass-ghost: rgb(242 242 238 / 0.045);
+  --glass-well: inset 0 2px 6px rgb(0 0 0 / 0.7), inset 0 0 0 1px rgb(0 0 0 / 0.45);
   --screen: linear-gradient(180deg, #17181a, #101113 60%);
   --groove: linear-gradient(180deg, #1b1b1a, #2c2c2a);
   --slot: linear-gradient(180deg, #c9c9c5, #dededa);
@@ -81,8 +82,11 @@
      with the panel's own warm hue instead of black. A key's hard side wall is its thickness and stays straight down. */
   --shadow-color: 45deg 8% 30%;
 
-  --mono: ui-monospace, "SF Mono", Menlo, monospace;
-  --label: 500 8.5px/1.2 var(--mono);
+  /* The printed legends are the only mono text on the panel: caps, printed scales, key legends, the dial's name. Prose on a
+     screen is the system sans, so the two never read as the same voice. No web font: the workspace ships no mono face. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --label: 500 9px/1.2 var(--mono);
 
   /* A squircle's curve is shorter than a circle's at the same radius, so where corners are squircles every radius grows to
      keep the corner its visual size. */

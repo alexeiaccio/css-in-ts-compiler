@@ -1,7 +1,7 @@
 import type { JSX } from "@solidjs/web";
 
 export interface LcdProps {
-  /** The printed tag over the readout: a static legend, not a live region. */
+  /** The printed tag over the glass: a static legend on the panel, not on the screen and not a live region. */
   readonly tag?: string | undefined;
   /**
    * The value the screen shows. It is the screen's live region — `role="status"`, `aria-live="polite"` — because a value
@@ -13,18 +13,25 @@ export interface LcdProps {
 }
 
 /**
- * The screen: a recessed window of gray reflective glass with dark print, its own faint grid, and the print a hair above the
- * glass. There is no primitive behind it — a readout has no contract to keep — so this part is the one place the skin takes
- * the live region seriously itself: only `value` is one.
+ * The screen: a dark window sunk into the panel, its figure lit in the key's glow and its prose dim behind the glass. There is
+ * no primitive behind it — a readout has no contract to keep — so this part is the one place the skin takes the live region
+ * seriously itself: only `value` is one.
+ *
+ * The glass has two body slots because it has two voices: the figure is the lamp (`lcd-value`), anything else is prose
+ * (`lcd-body`, the system sans). The tag is printed on the panel, above the well, like every other legend in this skin.
  */
 export const Lcd = (props: LcdProps): JSX.Element => (
   <div data-part="lcd">
     {props.tag === undefined ? undefined : <span data-part="lcd-tag">{props.tag}</span>}
-    {props.value === undefined ? undefined : (
-      <span data-part="lcd-value" role="status" aria-live="polite">
-        {props.value}
-      </span>
-    )}
-    {props.children === undefined ? undefined : <span data-part="lcd-body">{props.children}</span>}
+    <div data-part="lcd-screen">
+      {props.value === undefined ? undefined : (
+        <span data-part="lcd-value" role="status" aria-live="polite">
+          {props.value}
+        </span>
+      )}
+      {props.children === undefined ? undefined : (
+        <span data-part="lcd-body">{props.children}</span>
+      )}
+    </div>
   </div>
 );
