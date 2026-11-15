@@ -5603,3 +5603,10 @@ The API is the same `contentProps` with two changes: `popover` is added and `hid
 hides a closed popover; the fallback keeps `hidden`). `date-picker.ts` composes the primitive and needed no code change;
 its two browser tests and the popover's own now assert `:popover-open` instead of `hidden`. The menu family is the next
 step (its panel is the host's, so it needs an attach first), then `confirm`/`drawer` on `<dialog>` (cssints-dvq8).
+
+**Follow-up, same day:** `createDialogModal` has the native host path the recipe described: `nativeProps` (`role`, the
+ARIA labels, `closedby` derived from `dismissable`/`keyboardDismissDisabled`, `onCancel`/`onClose`) and `attachDialog`,
+which follows `open()` with `showModal()`, `show()` for `modal: false`, and `close()`. A controlled host that refuses the
+request never shows it; Escape fires `cancel` → `close`, and the platform gives the focus back. Five browser tests on a
+real `<dialog>` (`test/dialog-native.browser.test.tsx`), and the existing dialog-modal/alertdialog suites (71) are
+untouched. `confirm` and `drawer` still use `overlay-shell`; their move needs the tests to become a host fixture first.

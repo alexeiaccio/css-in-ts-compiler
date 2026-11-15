@@ -85,7 +85,10 @@ Chrome 134 and Firefox 141, **not Safari**; treat it as progressive enhancement,
 close a modal. `requestClose()` (or `command="request-close"`) is the Cancel path that fires `cancel` first.
 
 The primitive (`createDialogModal`) still gives the controlled open state, the trigger's `aria-haspopup`/`aria-expanded`
-pair and the `role=alertdialog` + `aria-describedby` wiring. A host that renders `<dialog>` usually needs only the state.
+pair and the `role=alertdialog` + `aria-describedby` wiring. A host that renders `<dialog>` spreads `nativeProps`
+(`role`, `aria-labelledby`, `closedby` from the options, `onCancel`/`onClose`) and hands the element to `attachDialog`:
+the primitive then follows `open()` with `showModal()`/`show()`/`close()`, and the platform does the rest. `dialogProps`
+(the element-agnostic `hidden` + `onKeyDown` contract) stays for a host without `<dialog>`.
 
 Entry and exit animation, no JS:
 

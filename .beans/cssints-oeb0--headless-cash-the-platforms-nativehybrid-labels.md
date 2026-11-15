@@ -5,7 +5,7 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-11-14T10:41:57Z
-updated_at: 2026-11-15T11:03:15Z
+updated_at: 2026-11-15T11:14:37Z
 ---
 
 ## What
@@ -35,3 +35,11 @@ The overlay family and the kit markup are the only places where the platform wou
 - `cssints-dvq8` — **not started**: a `<dialog>` host path for confirm and drawer (the primitive would sync
   `showModal()`/`close()` and let the platform own Esc, focus containment and the scroll lock; `closedby` is the
   enhancement), then the kit's dialog/drawer items can render it.
+
+
+
+**Second pass:** `cssints-dvq8`'s dialog-modal half is done (`nativeProps` + `attachDialog`, 5 new browser tests, the
+existing 71 still green). What is left of the epic is the overlay host for `confirm`/`drawer` (they still use
+`overlay-shell`) and the menu family's panel attach (its blocker: the panel is the host's element, so `showPopover()` has
+no element to act on until the props gain a panel `attach`; the kit's anchor-absolute positioning also has to become a
+placement or anchor positioning).

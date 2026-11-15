@@ -1,4 +1,4 @@
-import { type Accessor, createUniqueId } from "solid-js";
+import { type Accessor, createEffect, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
 
 export type DialogRole = "dialog" | "alertdialog";
@@ -43,6 +43,22 @@ export interface DialogContentProps {
   readonly onKeyDown: (event: KeyboardEvent) => void;
 }
 
+/**
+ * The props of a native `<dialog>` host: the platform owns the top layer, focus containment, Escape, focus return and the
+ * scroll lock, so none of `dialogProps`' `hidden` / `onKeyDown` machinery is needed. Spread it on the element and hand the
+ * element to `attachDialog`.
+ */
+export interface DialogNativeProps {
+  readonly id: string;
+  readonly role: DialogRole;
+  readonly "aria-labelledby": string | undefined;
+  readonly "aria-describedby": string | undefined;
+  /** The platform's close policy: `any` is Escape and a click outside, `closerequest` Escape only, `none` the caller's. */
+  readonly closedby: "any" | "closerequest" | "none";
+  readonly onCancel: (event: Event) => void;
+  readonly onClose: () => void;
+}
+
 export interface DialogBackdropProps {
   readonly id: string;
   readonly hidden: boolean;
@@ -55,6 +71,10 @@ export interface DialogModal {
   readonly close: () => void;
   readonly triggerProps: DialogTriggerProps;
   readonly dialogProps: DialogContentProps;
+  /** For a native `<dialog>` host; `dialogProps` is the element-agnostic fallback. */
+  readonly nativeProps: DialogNativeProps;
+  /** Wires a native `<dialog>`: `showModal()` / `show()` / `close()` follow `open()`. Call from the element's ref. */
+  readonly attachDialog: (dialog: HTMLDialogElement) => () => void;
   readonly backdropProps: DialogBackdropProps;
   readonly dismissProps: {
     readonly id: string;
@@ -86,6 +106,33 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
 
   const openDialog = (): void => requestOpen(true);
   const close = (): void => requestOpen(false);
+
+  // The native host: the element arrives from a ref (Solid runs refs in the effect phase, so the primitive is created
+  // here, not there), and one effect follows the open state. `modal: false` is `show()`, which a `dialog` also allows.
+  const [attachedDialog, setAttachedDialog] = createSignal<HTMLDialogElement | undefined>(
+    undefined,
+  );
+  createEffect(
+    () => [open(), attachedDialog()] as const,
+    ([isOpen, dialog]) => {
+      if (dialog === undefined) {
+        return;
+      }
+      if (isOpen && !dialog.open) {
+        if (modal) {
+          dialog.showModal();
+        } else {
+          dialog.show();
+        }
+      } else if (!isOpen && dialog.open) {
+        dialog.close();
+      }
+    },
+  );
+  const attachDialog = (dialog: HTMLDialogElement): (() => void) => {
+    setAttachedDialog(dialog);
+    return () => setAttachedDialog(undefined);
+  };
 
   return {
     open,
@@ -128,6 +175,27 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
         }
       },
     },
+    nativeProps: {
+      id: `${base}-dialog`,
+      role,
+      "aria-labelledby": options.labelledby,
+      "aria-describedby":
+        options.describedby ?? (role === "alertdialog" ? "description" : undefined),
+      get closedby() {
+        if (options.keyboardDismissDisabled) {
+          return "none";
+        }
+        return (options.dismissable ?? true) ? "any" : "closerequest";
+      },
+      onCancel: (event) => {
+        // the platform closes on cancel; a dialog whose keys may not close it says so
+        if (options.keyboardDismissDisabled) {
+          event.preventDefault();
+        }
+      },
+      onClose: () => requestOpen(false),
+    },
+    attachDialog,
     backdropProps: {
       id: `${base}-backdrop`,
       get hidden() {
