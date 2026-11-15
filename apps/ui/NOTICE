@@ -8,3 +8,19 @@ Copyright Adobe. Licensed under the Apache License, Version 2.0:
 
 Portions restated in cssints tokens: the 16 lightness steps of the scale, its chroma curve, the named hue presets, the
 semantic colours, the 4px spacing steps, the radii and the font sizes.
+
+The hardware skin in src/registry/hardware/ restates the look of SPEC-01:
+
+  https://github.com/shuding/spec-01
+
+Copyright (c) 2026 Shu Ding. Licensed under the MIT License:
+
+  https://opensource.org/licenses/MIT
+
+Portions restated in our own selectors, scoped to [data-skin="01"]: the one-colour role derivation (key ink capped for a
+light key, the highlighter, the lamp and the glow) and its motion easings from registry/hardware/ui/hardware/tokens.css; the
+moulded panel, the hole a cap stands in and its travel, the printed slider scale and the key shadows from
+.../hardware-field.css; the gray glass and its print from .../hardware-lcd.css; the tick arc and the pointer from
+.../hardware-dials.css; the slot with its detent and the ribbed lever from .../hardware-slide-switch.css; the two-wall
+rocker from .../hardware-rocker.css; the segment pitch and glow of the bar graph from .../hardware-bar-graph.css. No file of
+theirs is copied: the geometry, the numbers and the shadow layering are, and each ported file says so in its header.

@@ -3225,6 +3225,98 @@
           "type": "registry:file"
         }
       ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "hardware",
+      "type": "registry:ui",
+      "title": "Hardware (skin 01)",
+      "description": "A second look after SPEC-01: a moulded faceplate, keys standing in their holes, a rocker, a slide switch, a fader with a printed scale, a dial with a tick arc, an LCD, a lamp and a bar graph — one OKLCH key colour turned into every role, in a plain sheet scoped to `[data-skin=\"01\"]`",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "hardware.tsx",
+          "target": "src/components/ui/hardware.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "faceplate.tsx",
+          "target": "src/components/ui/faceplate.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "key.tsx",
+          "target": "src/components/ui/key.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "rocker.tsx",
+          "target": "src/components/ui/rocker.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "slide-switch.tsx",
+          "target": "src/components/ui/slide-switch.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "fader.tsx",
+          "target": "src/components/ui/fader.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dial.tsx",
+          "target": "src/components/ui/dial.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "lcd.tsx",
+          "target": "src/components/ui/lcd.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "led.tsx",
+          "target": "src/components/ui/led.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "bar-graph.tsx",
+          "target": "src/components/ui/bar-graph.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "device.tsx",
+          "target": "src/components/ui/device.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "skin.css",
+          "target": "src/components/ui/skin.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens-01.css",
+          "target": "src/components/ui/tokens-01.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "hardware.browser.test.tsx",
+          "target": "src/components/ui/hardware.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
     }
   ]
 }
