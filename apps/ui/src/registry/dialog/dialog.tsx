@@ -217,11 +217,12 @@ export const DialogTrigger = (props: DialogTriggerProps): JSX.Element => {
 /**
  * The panel and the wash under it. Nothing is in the DOM while the dialog is closed.
  *
- * A plain dialog is a native `<dialog>`: `showModal()` owns the top layer, the `::backdrop` is the wash, and focus, Escape,
- * the inert page and the scroll lock are the platform's. `animated` is the machine's: the layer is portalled into
- * `document.body` (or `mount`), stays mounted through `leaving` and is removed at `closed`, the panel keeps no `hidden`
- * attribute while it leaves (a panel cut from the page mid-slide is the frame `Atomic` rules out) and its `data-state` is
- * the box's phase. That path is also the fallback where `showModal` is missing.
+ * A plain dialog is a native `<dialog>`: `showModal()` owns the top layer, the `::backdrop` is the wash, and focus into the
+ * panel, Escape, the inert page and the scroll lock are the platform's; the panel is unmounted on close, so the focus back
+ * to whatever opened it is the one step the platform cannot run and this layer does. `animated` is the machine's: the layer
+ * is portalled into `document.body` (or `mount`), stays mounted through `leaving` and is removed at `closed`, the panel keeps
+ * no `hidden` attribute while it leaves (a panel cut from the page mid-slide is the frame `Atomic` rules out) and its
+ * `data-state` is the box's phase. That path is also the fallback where `showModal` is missing.
  */
 export const DialogContent = (props: DialogContentProps): JSX.Element => {
   const { dialog, descriptionId, label, description, mount, animated, motion } =
@@ -234,10 +235,13 @@ export const DialogContent = (props: DialogContentProps): JSX.Element => {
     "showModal" in HTMLDialogElement.prototype;
   let panel: HTMLElement | undefined;
   let detach: (() => void) | undefined;
+  let restore: HTMLElement | null = null;
   // stable, so Solid does not run a cleanup and a re-attach on every render (the primitive's `close` listener lives on the
   // element and must survive a re-render)
   const attach = (element: HTMLDialogElement): void => {
     panel = element;
+    // the element arrives before the primitive's `showModal()`, so this is what had the focus when the platform took it
+    restore = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     detach?.();
     detach = dialog.attachDialog(element);
   };
@@ -245,13 +249,21 @@ export const DialogContent = (props: DialogContentProps): JSX.Element => {
     detach?.();
     detach = undefined;
   });
-  let restore: HTMLElement | null = null;
   let scroll: string | undefined;
   createEffect(
     () => dialog.open(),
     (open) => {
       if (native) {
-        // `showModal()` focuses into the dialog and the platform locks the page; nothing here to do
+        // `showModal()` focuses into the dialog and the platform locks the page. The one thing it cannot do here is
+        // return the focus: the layer is a `<Show>` on the open state, so the element is gone before the primitive's
+        // `close()` reaches the platform — and a detached `<dialog>` skips its focusing steps. So return it ourselves.
+        if (!open) {
+          const back = restore;
+          restore = null;
+          if (back?.isConnected === true) {
+            back.focus();
+          }
+        }
         return;
       }
       if (open) {
