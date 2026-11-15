@@ -1,5 +1,44 @@
 # @cssints/headless
 
+## 0.40.0
+
+### Minor Changes
+
+- 3f31391: `createConfirm` can host its alert dialog on a native `<dialog>`: it exposes the dialog modal's `nativeProps` (the
+  `alertdialog` role, the title/description ids, `closedby="any"`) and `attachDialog`. The platform then owns the modal
+  layer, the focus containment and return, Escape, the light dismiss and the scroll lock; the promise, the Cancel-first
+  focus and the request/answer split stay the primitive's, and a platform close answers `false`. `dialogProps` and
+  `backdropProps` remain the element-free shell.
+- 794913d: `createDrawer` gains the native `<dialog>` host path: `nativeProps` (`role`, `aria-modal`, `aria-labelledby`, and
+  `closedby` — `any` or `closerequest` from `dismissable`, `none` for a non-modal rail) and `attachDialog`, which is
+  `showModal()` for a modal drawer and `show()` for a non-modal one. A modal drawer hands the top layer, the focus
+  containment and return, Escape, the outside press and the scroll lock to the platform; a non-modal one keeps the shell's
+  Escape and outside press (a non-modal `dialog` has neither) and takes only the top layer.
+  
+  On the native path the primitive keeps two contracts the platform does not give: the focus `showModal()` misses when the
+  panel's controls are not laid out yet (a microtask after the flush, with `autofocus` on the least destructive control in
+  the kit), and the APG's Tab wrap at the panel's ends — a native modal makes the rest of the page inert but lets Tab leave
+  to the browser's chrome. `attachDialog` sets `tabIndex = -1` on the panel for the focus fallback (Solid's JSX forbids `tabindex` on a dialog), and no `aria-modal` (`showModal()`
+  is the modal state).
+- 789a1b0: `createMenu` gains `overlay: "popover"` (the default stays `"inline"`): the list is a `popover` in the top layer, placed
+  by the host's CSS anchor positioning (`position-anchor`, `top: anchor(bottom)`), and the platform's light dismiss and
+  Escape arrive as a `toggle` — the primitive treats that as the same close a pointer outside the widget asks for, so a
+  controlled host still holds or refuses it. `menuProps` gains `popover`, and its `hidden` is `undefined` under the API.
+  `createMenubar` takes the same `overlay: "popover"` for every level, with `popover="manual"`: the menubar moves the focus
+  between the bar, a menu and a submenu itself, and a UA close's focus restore would fight it, so the platform keeps the top
+  layer there and the primitive keeps Escape and the host's outside press. The lists are synced with the state at the moment
+  it changes (`bump`), not in an effect: the kit focuses a row from the same change, and a focus into a popover that is
+  still closed does nothing. The kit's `Menu` and `Menubar` use the mode where `CSS.supports("anchor-name", "--a")` and
+  keep the inline absolute lists elsewhere.
+
+### Patch Changes
+
+- 1e12a8e: `attachDialog` listens for `close` and `cancel` on the element it is given, instead of relying on the host spreading
+  `nativeProps.onClose`/`onCancel`. A host whose `<dialog>` is created by a component (a `<Show>`, a render prop) still gets
+  a platform Escape or `close()` back into the open state; the props stay for hosts that prefer them, and the two requests
+  are idempotent.
+- @cssints/machine@0.40.0
+
 ## 0.39.0
 
 ### Minor Changes
