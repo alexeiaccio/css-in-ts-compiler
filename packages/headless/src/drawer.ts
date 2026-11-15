@@ -1,4 +1,4 @@
-import { type Accessor, createEffect, createUniqueId, onCleanup } from "solid-js";
+import { type Accessor, createEffect, createSignal, createUniqueId, onCleanup } from "solid-js";
 import { createControllable } from "./controllable";
 import {
   claimOverlay,
@@ -78,6 +78,20 @@ export interface DrawerContentProps {
   readonly onKeyDown: (event: KeyboardEvent) => void;
 }
 
+/**
+ * The props of a native `<dialog>` host (a modal drawer's panel, or a non-modal rail's): the platform owns the top layer,
+ * focus containment and return, Escape and the scroll lock; `contentProps` is the element-agnostic shell.
+ */
+export interface DrawerNativeProps {
+  readonly id: string;
+  readonly role: "dialog";
+  readonly "aria-modal": "true" | undefined;
+  readonly "aria-labelledby": string | undefined;
+  /** A modal drawer lets the platform close it (`any` — Escape and outside, or `closerequest`); a non-modal one does not. */
+  readonly closedby: "any" | "closerequest" | "none";
+  readonly onClose: () => void;
+}
+
 /** A bottom sheet's grab handle. Decorative: there is no drag, so it says nothing. */
 export interface DrawerHandleProps {
   readonly "aria-hidden": "true";
@@ -89,6 +103,10 @@ export interface Drawer {
   readonly triggerProps: DrawerTriggerProps;
   readonly backdropProps: DrawerBackdropProps;
   readonly contentProps: DrawerContentProps;
+  /** For a native `<dialog>` panel; `contentProps` is the shell for hosts without one. */
+  readonly nativeProps: DrawerNativeProps;
+  /** Wires a native `<dialog>`: `showModal()` (modal), `show()` (non-modal) and `close()` follow `open()`. */
+  readonly attachDialog: (dialog: HTMLDialogElement) => () => void;
   readonly handleProps: DrawerHandleProps;
 }
 
@@ -146,6 +164,32 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
     onChange: () => options.onOpenChange,
   });
 
+  // The native host: the modal path hands the trap, the lock and Escape to the platform; a non-modal one keeps the
+  // shell's Escape and outside press (a non-modal `dialog` has neither) and the platform gives the top layer only.
+  const [dialogElement, setDialogElement] = createSignal<HTMLDialogElement | undefined>(undefined);
+  const nativeModal = (): boolean => dialogElement() !== undefined && isModal();
+  createEffect(
+    () => [open(), dialogElement()] as const,
+    ([isOpen, element]) => {
+      if (element === undefined) {
+        return;
+      }
+      if (isOpen && !element.open) {
+        if (isModal()) {
+          element.showModal();
+        } else {
+          element.show();
+        }
+      } else if (!isOpen && element.open) {
+        element.close();
+      }
+    },
+  );
+  const attachDialog = (dialog: HTMLDialogElement): (() => void) => {
+    setDialogElement(dialog);
+    return () => setDialogElement(undefined);
+  };
+
   const onDocumentKeyDown = (event: KeyboardEvent): void => {
     if (!isTopOverlay(self) || !open()) {
       return;
@@ -169,6 +213,10 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
   createEffect(
     () => open(),
     (isOpen) => {
+      // a native modal dialog owns the focus, the Tab cycle, Escape and the stack
+      if (nativeModal()) {
+        return;
+      }
       if (isOpen) {
         wasOpen = true;
         const panel = content();
@@ -196,14 +244,15 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
   createEffect(
     () => open() && isModal(),
     (locked) => {
-      if (locked) {
+      if (locked && !nativeModal()) {
         return lockScroll();
       }
     },
   );
 
   const onPointerDown = (event: PointerEvent): void => {
-    if (!open() || !dismissable()) {
+    // a modal dialog with `closedby="any"` closes itself on the same press
+    if (nativeModal() || !open() || !dismissable()) {
       return;
     }
     const target = event.target;
@@ -268,6 +317,22 @@ export const createDrawer = (options: DrawerOptions = {}): Drawer => {
         }
       },
     },
+    nativeProps: {
+      id: contentId,
+      role: "dialog",
+      get "aria-modal"() {
+        return isModal() ? "true" : undefined;
+      },
+      "aria-labelledby": options.labelledby,
+      get closedby() {
+        if (!isModal()) {
+          return "none" as const;
+        }
+        return dismissable() ? ("any" as const) : ("closerequest" as const);
+      },
+      onClose: () => requestOpen(false),
+    },
+    attachDialog,
     handleProps: { "aria-hidden": "true" },
   };
 };

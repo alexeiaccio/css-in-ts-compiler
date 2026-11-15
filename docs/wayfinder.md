@@ -5629,3 +5629,11 @@ and the primitive keeps Escape and the host's outside press, which is the close 
 One ordering lesson: the lists are shown and hidden in `bump`, the same function that bumps the state, not in an effect.
 The kit's focus effect runs from the same change, and `focus()` on a row inside a popover that is still closed is a no-op
 — measured as "the submenu is open and the focus is still on the parent row", which took a `focusin` log to see.
+
+**And the drawer:** `createDrawer` gets the same host path as the dialog modal — `nativeProps` (`closedby` is `any`/`closerequest`
+from `dismissable`, `none` for a non-modal rail) and `attachDialog`, which is `showModal()` for a modal drawer, `show()` for
+a non-modal one, and `close()`. A modal drawer hands the focus, the Tab cycle, Escape, the outside press and the scroll
+lock to the platform (the shell's effects return early when the element is a modal dialog); a non-modal one keeps the
+shell's Escape and outside press, because a non-modal `dialog` has neither, and takes only the top layer. Five browser
+tests on a real `<dialog>`; the existing drawer suite (14) is untouched. `confirm` still owns its shell: its promise and
+view shape are the host's, and changing it is a different design.

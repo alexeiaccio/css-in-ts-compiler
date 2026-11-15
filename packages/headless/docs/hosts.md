@@ -215,6 +215,9 @@ should render the element and skip them.
   takes `overlay: "popover"` the same way, one popover per level; its levels are `popover="manual"` because a UA close's
   focus restore would fight the move between bar item, menu and submenu, so the primitive keeps the close (Escape and the
   host's outside press) and the platform keeps only the top layer. `confirm`/`drawer` on `<dialog>` (the shell's tab
-  cycle and scroll lock are the platform's there) are the next step.
+  cycle and scroll lock are the platform's there) are the next step. `createDrawer` has the same path: `nativeProps`
+  (`closedby` from a modal drawer's `dismissable`, `none` for a non-modal rail) and `attachDialog`, which is `showModal()`
+  for a modal drawer, `show()` for a non-modal one (which keeps the shell's Escape and outside press, since a non-modal
+  `dialog` has neither), and `close()`; `confirm` still owns its own shell (its promise and view shape are the host's).
 - **State**: which tab is selected, which rows are checked, the open set of a tree, the value a slider holds — the
   platform has no element to hold it, so the primitives do.

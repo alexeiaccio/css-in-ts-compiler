@@ -5,7 +5,7 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-11-14T10:41:57Z
-updated_at: 2026-11-15T13:09:10Z
+updated_at: 2026-11-15T13:15:08Z
 ---
 
 ## What
@@ -48,3 +48,10 @@ placement or anchor positioning).
 
 **qyre is complete:** the popover, the menu and now the menubar (manual levels, anchor positioning per level) are on the
 platform; the epic's remaining item is `cssints-dvq8`'s confirm/drawer (`overlay-shell` still owns their trap and lock).
+
+
+
+**dvq8's drawer half is done.** The epic is now: `confirm` on `<dialog>` (the last primitive still owning `overlay-shell`'s
+trap and lock) and the kit's dialog/drawer items rendering `<dialog>` with the platform's backdrop and `@starting-style`
+motion instead of the JS overlay. Everything else the assessment listed is done: recipes and stories, the popover, the
+menu and the menubar in the top layer, the dialog modal and the drawer on `<dialog>`.
