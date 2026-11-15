@@ -236,7 +236,7 @@ pointer().axis("x" | "y");
   painted edge is still on its way across the element, and the element that was last scrubbed keeps receiving the moves its
   own scale would otherwise steal. Leaving the element holds the last value — there is no position to read outside it.
 - **Conflicts.** It sets `transform-origin`, so that in the same `cn()` is a build error (`cssints: reveal: kernel pt sets
-  transform-origin (this style also sets transform-origin)`).
+transform-origin (this style also sets transform-origin)`).
 - **No `prefers-reduced-motion` branch.** The element never moves on its own: it follows the pointer, and a reader who does
   not move it does not see it move.
 
