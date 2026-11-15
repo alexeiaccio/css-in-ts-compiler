@@ -131,7 +131,21 @@ export const createDialogModal = (options: DialogModalOptions = {}): DialogModal
   );
   const attachDialog = (dialog: HTMLDialogElement): (() => void) => {
     setAttachedDialog(dialog);
-    return () => setAttachedDialog(undefined);
+    // the element's own listeners, not the host's `onClose`/`onCancel` props: a host that spreads `nativeProps` on
+    // something other than the dialog itself (a wrapper component, a render prop) still gets the close back
+    const onClose = (): void => requestOpen(false);
+    const onCancel = (event: Event): void => {
+      if (options.keyboardDismissDisabled) {
+        event.preventDefault();
+      }
+    };
+    dialog.addEventListener("close", onClose);
+    dialog.addEventListener("cancel", onCancel);
+    return () => {
+      dialog.removeEventListener("close", onClose);
+      dialog.removeEventListener("cancel", onCancel);
+      setAttachedDialog(undefined);
+    };
   };
 
   return {
