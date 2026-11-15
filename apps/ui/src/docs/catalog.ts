@@ -1,6 +1,6 @@
 // The catalog the docs site renders, read from the registry build itself: the same JSON the CLI
 // fetches, so a page cannot describe an item that was not published.
-import index from "../../r/registry.json";
+import index from "../../public/r/registry.json";
 
 export interface ItemFile {
   readonly path: string;
@@ -18,7 +18,7 @@ export interface CatalogItem {
 
 // `r/registry.json` is a module in the same directory and is not an item, so what the glob returns
 // is only known after the check below.
-const sources = import.meta.glob<{ readonly default: Partial<CatalogItem> }>("../../r/*.json", {
+const sources = import.meta.glob<{ readonly default: Partial<CatalogItem> }>("../../public/r/*.json", {
   eager: true,
 });
 

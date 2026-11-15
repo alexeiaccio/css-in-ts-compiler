@@ -73,6 +73,14 @@ jobs:
       - name: The compiled theme is current
         working-directory: apps/ui
         run: bun run theme:check
+      # The items are committed and the starter smoke test installs them, so an item that drifted from
+      # its sources is tested in its old shape. Regenerate and format the way a person does, then require
+      # the tree to be unchanged.
+      - name: The registry items are current
+        run: |
+          bun apps/ui/scripts/registry-json.ts
+          cd apps/ui && bunx vp fmt public/r public/llms.txt
+          cd ../.. && git diff --exit-code -- apps/ui/public
       - name: The starters' own conformance
         working-directory: apps/ui
         run: bun run test

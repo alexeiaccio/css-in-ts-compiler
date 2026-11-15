@@ -25,7 +25,7 @@ import { basename, join } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 const template = join(root, "templates", "solid-vite");
-const registry = join(root, "apps", "ui", "r");
+const registry = join(root, "apps", "ui", "public", "r");
 const keep = process.argv.includes("--keep");
 const dest = mkdtempSync(join(tmpdir(), "cssints-starter-"));
 

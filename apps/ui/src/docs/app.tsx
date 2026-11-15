@@ -19,7 +19,7 @@ import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
 
-const HOST = "https://packages.cssints.dev";
+const HOST = "https://ui.cssints.dev";
 
 /** A preset is the reference theme's two numbers: the hue and the chroma of the tint scale. */
 const TINTS: ReadonlyArray<{
