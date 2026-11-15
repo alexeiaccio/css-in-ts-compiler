@@ -1,5 +1,28 @@
 # @cssints/headless
 
+## 0.39.0
+
+### Minor Changes
+
+- 027b615: `createDialogModal` gains the native `<dialog>` host path: `nativeProps` (`role`, `aria-labelledby`/`aria-describedby`,
+  `closedby` from `dismissable` / `keyboardDismissDisabled`, `onCancel` and `onClose`) and `attachDialog(element)`, which
+  follows the open state with `showModal()`, `show()` (`modal: false`) and `close()`. The platform then owns the top layer,
+  the backdrop, focus containment and return, Escape and the scroll lock; `dialogProps` remains the element-agnostic
+  fallback for hosts without `<dialog>`.
+- 61f95b2: `createPopover` hosts its panel on the Popover API where the engine has it: the panel becomes a `popover` in the top
+  layer, so no ancestor's `overflow` or `transform` clips it and no z-index decides its stack. `contentProps` gains
+  `popover: "auto"` and its `hidden` is `undefined` under the API (the UA hides a closed popover); the fallback keeps
+  `hidden`. The placement is written in client coordinates with `position: fixed` there, and cancels the UA's
+  `inset: 0; margin: auto`, which otherwise re-centres the panel. `PopoverStyle.position` is `"absolute" | "fixed"`; a
+  host that styled the closed panel through `[hidden]` should use `:not(:popover-open)` where the API exists.
+- 91d3691: `createResizablePanels` keeps the snap marks as its state: `onSnapMark(index, marks)` hands a release's list to the host and
+  `snapMarks` takes it back, so the preferred width survives a reload. The hills are rebuilt from the marks, and a separator
+  keeps 24 of them — the whole history the decay can still see.
+
+### Patch Changes
+
+- @cssints/machine@0.39.0
+
 ## 0.38.0
 
 ### Minor Changes

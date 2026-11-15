@@ -2,6 +2,39 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.39.0 (2026-11-15)
+
+### Minor changes
+
+- `createDialogModal` gains the native `<dialog>` host path: `nativeProps` (`role`, `aria-labelledby`/`aria-describedby`,
+  `closedby` from `dismissable` / `keyboardDismissDisabled`, `onCancel` and `onClose`) and `attachDialog(element)`, which
+  follows the open state with `showModal()`, `show()` (`modal: false`) and `close()`. The platform then owns the top layer,
+  the backdrop, focus containment and return, Escape and the scroll lock; `dialogProps` remains the element-agnostic
+  fallback for hosts without `<dialog>`.
+- `createPopover` hosts its panel on the Popover API where the engine has it: the panel becomes a `popover` in the top
+  layer, so no ancestor's `overflow` or `transform` clips it and no z-index decides its stack. `contentProps` gains
+  `popover: "auto"` and its `hidden` is `undefined` under the API (the UA hides a closed popover); the fallback keeps
+  `hidden`. The placement is written in client coordinates with `position: fixed` there, and cancels the UA's
+  `inset: 0; margin: auto`, which otherwise re-centres the panel. `PopoverStyle.position` is `"absolute" | "fixed"`; a
+  host that styled the closed panel through `[hidden]` should use `:not(:popover-open)` where the API exists.
+- `createResizablePanels` keeps the snap marks as its state: `onSnapMark(index, marks)` hands a release's list to the host and
+  `snapMarks` takes it back, so the preferred width survives a reload. The hills are rebuilt from the marks, and a separator
+  keeps 24 of them — the whole history the decay can still see.
+- `pointer()` in `@cssints/reveal`: the element's own `scale`, scrubbed by the pointer's position across (or down) it —
+  `axis("x" | "y")`. No engine ships `pointer-timeline` (a draft with no BCD key), so the runtime is the feature and it is
+  delivered to every target; it measures the layout box, so the scrub survives its own shrink.
+
+### Patch changes
+
+- A package written on cssints that arrives behind another one is now compiled too. `packagesOnCssints`
+  read only the app's own dependencies, so a transitive one — `@cssints/reveal` importing
+  `@cssints/motion`, the shape of every starter that installs from npm — was externalized in the
+  evaluation server, and Node loaded its module itself: the `with { type: "cssints" }` attribute that
+  marks a published package as build-time code is not an attribute Node knows, so the run died with
+  `Import attribute "type" with value "cssints" is not supported`. The walk now follows the installed
+  graph (dependencies and peers, from each package's own manifest), so every package on cssints is kept
+  out of the optimizer and inlined where the engine evaluates it.
+
 ## 0.38.0 (2026-11-15)
 
 ### Minor changes
