@@ -28,7 +28,50 @@ Why: the machine adds Effect + a model evaluator to every consumer's bundle and 
 3. `src/<pattern>.ts` primitive; `test/<pattern>.fixture.tsx` renders parts with `data-part="<name>"` and returns a `Mounted`; `test/<pattern>.browser.test.tsx` runs scenarios + `differentialWalk` (copy `disclosure.browser.test.tsx`).
 4. Every scenario expectation the primitive deliberately misses goes into `DIVERGENCES` with a reason; the test requires it to still fail.
 
-Conventions: `visible` lists the hideable content parts only; boolean attributes read `"true"` when present; `key`/`type` on a target focuses it first; `data-*` attributes are library styling hooks (`Unsupported`); `aria-controls`-style references read back as part targets.
+Conventions: `visible` lists the hideable content parts only; boolean attributes read `"true"` when present; `key`/`type` on a target focuses it first, and a key whose target is the widget's owner (`menu`, `grid`) is pressed on the part the primitive says is focused; `data-*` attributes are library styling hooks (`Unsupported`); `aria-controls`-style references read back as part targets.
+
+## Walking the DOM: a fixture reports focus, it does not move it
+
+The walk's focus observation is `Mounted.focus()` — the part the primitive itself considers focused (`trigger`,
+`menuitem:2`, `null` for outside). `document.activeElement` is **not** the observation: a page that mirrors the
+primitive's state into DOM focus (which is what a host does, see `docs/hosts.md`) has the mirror's focus event delivered
+by the browser when it gets round to it, not when `focus()` returns.
+
+Why that matters, measured (bean `cssints-6fau`): the menu fixture mirrored `focusLevel`/`focusIndex` in a `createEffect`.
+The primitive's item props take `onFocus` as the platform's word on where focus is (`setFocusItem`), so the mirror fed
+back into the primitive. In a page that is not the focused one — a background test page, a window that just lost focus —
+the browser delivers that focus event one task (or several) later, and by then the primitive has moved on: the event
+rewinds it to the item the fixture focused a step or two ago. Instrumented over 4 800 walk steps, **795 of 795** adopted
+focus events were stale (the focused item was not the primitive's item). That is what a walk reports as a divergence the
+model never produced. It cannot be waited out (a longer settle widens the window), retried (the rewind repeats), or
+guarded (a suppression flag set around `focus()` is cleared before the browser dispatches).
+
+So the contract is:
+
+- the fixture renders the parts, spreads the props, applies programmatic input through `setProp`, and returns `Mounted`
+  with a `focus()` that maps the primitive's focus to a part name;
+- the fixture does **not** add a `createEffect` that mirrors state into DOM focus. If it needs one for a real-page path,
+  guard it on that path: `menu.fixture.tsx` keeps its sync for `provider: "auto"` (the native engine, where no walk runs)
+  and leaves the polyfill path, which the walks force, alone;
+- the driver moves DOM focus where a step needs it: a `key`/`type` step focuses its target, and when the target is the
+  widget's owner (`menu`, `grid`) it focuses the part the primitive reports instead, because that is where a user's focus
+  would be and where the platform's own key handling looks.
+
+## What is still timing-coupled (the open part)
+
+Two things remain, both measured and neither closed by the fixture change above:
+
+- **The provider's own moves are programmatic focus.** On the polyfill, `ArrowUp`/`ArrowDown`/`Home`/`End` are the
+  platform's, and the polyfill moves focus with `focus()`; the primitive follows through `onFocus`. Suppress that write
+  and the walk fails every configuration at the first arrow (measured), because the primitive has no other source for the
+  move. So the walk still depends on focus-event delivery for those keys.
+- **A probe of a DOM-written decoration.** `menu-button.qnt`'s walk reads the rows' `tabindex`, which the polyfill writes
+  on the item that has focus; that fixture therefore keeps its mirror.
+
+The durable fix for the first is to let the primitive own the block-axis movement on the polyfill path (it already owns
+the activation, typeahead and Escape keys), so no focus event is an input to the state; the second follows once the
+provider places its tab stop from state (`focusgroupstart`, which both providers read) instead of from focus. Both are
+primitive changes, not fixture ones — see the follow-up on `cssints-6fau`.
 
 ## Part names
 
