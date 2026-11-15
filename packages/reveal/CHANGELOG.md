@@ -1,5 +1,12 @@
 # @cssints/reveal
 
+## 0.40.0
+
+### Patch Changes
+
+- cssints@0.40.0
+  - @cssints/motion@0.40.0
+
 ## 0.39.0
 
 ### Minor Changes
