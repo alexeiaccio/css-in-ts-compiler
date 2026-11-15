@@ -2,6 +2,15 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.38.0 (2026-11-15)
+
+### Minor changes
+
+- `createResizablePanels` takes `snap`: a divider learns the width it is dropped at — a mark per
+  release, weighted by recency on a half-percent grid — and sticks to it once about three drags agree,
+  inside a 10 px zone. The point is sticky, Alt asks for the exact width, the keys never snap, and
+  `snapPoint(index)` is the learned width for a skin that marks it.
+
 ## 0.37.0 (2026-11-14)
 
 ### Minor changes
