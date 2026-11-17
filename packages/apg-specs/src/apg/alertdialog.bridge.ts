@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 
@@ -44,7 +45,8 @@ export const alertdialogConfig = (config: ScenarioConfig): AlertDialogConfig => 
   let accepts = true;
   for (const [key, raw] of Object.entries(config)) {
     if (!CONFIG_KEYS.has(key)) {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
+      continue;
     }
     if ((key === "open" || key === "defaultOpen") && typeof raw === "boolean") {
       open = raw;

@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -47,7 +48,7 @@ export const comboboxDialogConfig = (config: ScenarioConfig): ComboboxDialogConf
     } else if (key === "controlled" && typeof value_ === "boolean") {
       controlled ||= value_;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value_)}`);
+      checkUnknownConfigKey(key, value_);
     }
   }
   return { value, controlled, accepts: controlled && pinned === null, pinned };

@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -52,7 +53,8 @@ export const menuMenubarConfig = (config: ScenarioConfig): MenuMenubarConfig => 
   let value = 0;
   for (const [key, raw] of Object.entries(config)) {
     if (!CONFIG_KEYS.has(key)) {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
+      continue;
     }
     if (key === "items") {
       items = toItems(raw);

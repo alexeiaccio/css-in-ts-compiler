@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -92,7 +93,7 @@ export const meterConfig = (config: ScenarioConfig): MeterConfig => {
         label = asString(key, entry);
         break;
       default:
-        throw new Unsupported(`config ${key}=${JSON.stringify(entry)}`);
+        checkUnknownConfigKey(key, entry);
     }
   }
   return { value, min, max, valueText, labelId, label };

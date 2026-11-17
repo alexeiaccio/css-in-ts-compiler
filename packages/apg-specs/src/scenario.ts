@@ -176,6 +176,30 @@ export const parseScenarioFile = (input: unknown): ScenarioFile =>
 /** A step or observation the target does not model. Skips, never fails. */
 export class Unsupported extends Error {}
 
+/**
+ * Sink config keys: what a scenario may carry that the model cannot observe — an
+ * output callback, a preference, a host seam. A JSON scenario carries the marker
+ * (`true`) because JSON has no functions; the fixture attaches the real thing.
+ *
+ * One list, one place: a normaliser routes every config key it does not know
+ * through `checkUnknownConfigKey`, so a new sink key is an edit here, not one
+ * per bridge. The guard stays — a key that would change modelled behaviour must
+ * reach the model, so it is not listed and still throws `Unsupported`.
+ */
+export const IGNORED_CONFIG_KEYS: ReadonlySet<string> = new Set(["feedback"]);
+
+/**
+ * The unknown-config-key verdict every normaliser ends on: a sink key is
+ * accepted and dropped, any other key keeps the guard and throws `Unsupported`
+ * naming it.
+ */
+export const checkUnknownConfigKey = (key: string, value: Schema.Json): void => {
+  if (IGNORED_CONFIG_KEYS.has(key)) {
+    return;
+  }
+  throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+};
+
 /** The target disagreed with the scenario (or, in a walk, with the other target). */
 export class ScenarioMismatch extends Error {}
 

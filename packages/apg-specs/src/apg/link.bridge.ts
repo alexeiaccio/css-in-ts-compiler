@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent } from "@quint-machine/core";
 
@@ -59,7 +60,7 @@ export const linkConfig = (config: ScenarioConfig): LinkConfig => {
         if (PART_URLS.has(key)) {
           break;
         }
-        throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+        checkUnknownConfigKey(key, value);
     }
   }
   if (href !== undefined) {

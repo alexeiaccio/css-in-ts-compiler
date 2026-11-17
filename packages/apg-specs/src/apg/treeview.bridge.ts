@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -187,7 +188,7 @@ export const treeviewConfig = (config: ScenarioConfig): TreeviewConfig => {
         orientation = "vertical";
         break;
       default:
-        throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+        checkUnknownConfigKey(key, value);
     }
   }
   return {

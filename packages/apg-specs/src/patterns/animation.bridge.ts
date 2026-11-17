@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 
@@ -33,7 +34,7 @@ export const animationConfig = (config: ScenarioConfig): AnimationConfig => {
     if (key === "reducedMotion" && typeof raw === "boolean") {
       reducedMotion = raw;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
     }
   }
   return { reducedMotion };

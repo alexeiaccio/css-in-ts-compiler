@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 
@@ -92,7 +93,7 @@ export const feedConfig = (config: ScenarioConfig): FeedConfig => {
       pinned = value;
       controlled = true;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return {

@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -37,7 +38,7 @@ export const alertConfig = (config: ScenarioConfig): AlertConfig => {
     } else if (key === "descriptionId") {
       descriptionId = asString(key, value);
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return { titleId, descriptionId };

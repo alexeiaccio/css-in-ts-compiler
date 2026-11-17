@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -82,7 +83,6 @@ interface SliderSlice {
   readonly dir: "ltr" | "rtl";
   readonly controlled: boolean;
   readonly pinned: boolean;
-  readonly feedback: boolean;
 }
 
 const DEFAULT_SLICE: SliderSlice = {
@@ -95,7 +95,6 @@ const DEFAULT_SLICE: SliderSlice = {
   dir: "ltr",
   controlled: false,
   pinned: false,
-  feedback: false,
 };
 
 const parseSlice = (slice: SliderSlice, key: string, raw: Schema.Json) => {
@@ -136,23 +135,17 @@ const parseSlice = (slice: SliderSlice, key: string, raw: Schema.Json) => {
         throw new Unsupported(`config controlled=${JSON.stringify(raw)}`);
       }
       return { ...slice, controlled: raw };
-    case "feedback":
-      if (typeof raw !== "boolean") {
-        throw new Unsupported(`config feedback=${JSON.stringify(raw)}`);
-      }
-      return { ...slice, feedback: raw };
     default:
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
+      return slice;
   }
 };
 
 /** Scenario `config` -> what both targets are mounted with. */
 export const sliderConfig = (config: ScenarioConfig) => {
-  const { min, max, step, largeStep, value, orientation, dir, controlled, pinned, feedback } =
-    Object.entries(config).reduce(
-      (slice: SliderSlice, [key, raw]) => parseSlice(slice, key, raw),
-      DEFAULT_SLICE,
-    );
+  const { min, max, step, largeStep, value, orientation, dir, controlled, pinned } = Object.entries(
+    config,
+  ).reduce((slice: SliderSlice, [key, raw]) => parseSlice(slice, key, raw), DEFAULT_SLICE);
   const flavor = VARIANTS.findIndex(
     (variant) =>
       variant.min === min &&
@@ -183,7 +176,8 @@ export const sliderConfig = (config: ScenarioConfig) => {
     dir,
     controlled,
     accepts: controlled && !pinned,
-    feedback,
+    // the sink marker, not spec state: JSON carries `true`, the fixture mounts the spy
+    feedback: config["feedback"] === true,
   };
 };
 

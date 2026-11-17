@@ -5,6 +5,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -63,7 +64,7 @@ export const buttonConfig = (config: ScenarioConfig): ButtonConfig => {
     } else if (key === "controlled") {
       controlled ||= value === true;
     } else if (!NEUTRAL_KEYS.has(key)) {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return {

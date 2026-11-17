@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -31,7 +32,7 @@ export const dropzoneConfig = (config: ScenarioConfig): DropZoneConfig => {
     if (key === "disabled" && typeof raw === "boolean") {
       disabled = raw;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
     }
   }
   return { disabled };

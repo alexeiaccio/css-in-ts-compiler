@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -77,7 +78,7 @@ export const windowsplitterConfig = (config: ScenarioConfig): WindowsplitterConf
       // remembered at collapse; the spec chooses it, the config only hints
       continue;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
     }
   }
   if (value < MIN || value > MAX || value % STEP !== 0) {
