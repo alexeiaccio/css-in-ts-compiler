@@ -1,5 +1,11 @@
 # @cssints/stuck
 
+## 0.43.0
+
+### Patch Changes
+
+- cssints@0.43.0
+
 ## 0.42.0
 
 ### Patch Changes
