@@ -48,6 +48,11 @@ export interface SliderConfig {
   readonly controlled: boolean;
   /** Controlled only: the host writes every request's intent back as the value. */
   readonly accepts: boolean;
+  /**
+   * Mount with a feedback listener: not behaviour (it changes no state), so the
+   * walk is the proof that a host listening to the intents sees the same widget.
+   */
+  readonly feedback: boolean;
 }
 
 /**
@@ -77,6 +82,7 @@ interface SliderSlice {
   readonly dir: "ltr" | "rtl";
   readonly controlled: boolean;
   readonly pinned: boolean;
+  readonly feedback: boolean;
 }
 
 const DEFAULT_SLICE: SliderSlice = {
@@ -89,6 +95,7 @@ const DEFAULT_SLICE: SliderSlice = {
   dir: "ltr",
   controlled: false,
   pinned: false,
+  feedback: false,
 };
 
 const parseSlice = (slice: SliderSlice, key: string, raw: Schema.Json) => {
@@ -129,6 +136,11 @@ const parseSlice = (slice: SliderSlice, key: string, raw: Schema.Json) => {
         throw new Unsupported(`config controlled=${JSON.stringify(raw)}`);
       }
       return { ...slice, controlled: raw };
+    case "feedback":
+      if (typeof raw !== "boolean") {
+        throw new Unsupported(`config feedback=${JSON.stringify(raw)}`);
+      }
+      return { ...slice, feedback: raw };
     default:
       throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
   }
@@ -136,9 +148,11 @@ const parseSlice = (slice: SliderSlice, key: string, raw: Schema.Json) => {
 
 /** Scenario `config` -> what both targets are mounted with. */
 export const sliderConfig = (config: ScenarioConfig) => {
-  const { min, max, step, largeStep, value, orientation, dir, controlled, pinned } = Object.entries(
-    config,
-  ).reduce((slice: SliderSlice, [key, raw]) => parseSlice(slice, key, raw), DEFAULT_SLICE);
+  const { min, max, step, largeStep, value, orientation, dir, controlled, pinned, feedback } =
+    Object.entries(config).reduce(
+      (slice: SliderSlice, [key, raw]) => parseSlice(slice, key, raw),
+      DEFAULT_SLICE,
+    );
   const flavor = VARIANTS.findIndex(
     (variant) =>
       variant.min === min &&
@@ -169,6 +183,7 @@ export const sliderConfig = (config: ScenarioConfig) => {
     dir,
     controlled,
     accepts: controlled && !pinned,
+    feedback,
   };
 };
 

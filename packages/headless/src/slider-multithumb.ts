@@ -2,6 +2,7 @@ import { type Accessor, createSignal, createUniqueId } from "solid-js";
 
 import type { SliderDirection, SliderOrientation, SliderTrackProps } from "./slider";
 import { createControllable } from "./controllable";
+import { type Feedback, createFeedback } from "./feedback";
 import { type RailDrag, beginRailDrag, endRailDrag, railPositionAt } from "./rail-pointer";
 
 export type SliderMultiThumbIndex = 0 | 1;
@@ -31,6 +32,13 @@ export interface SliderMultiThumbOptions {
    * it.
    */
   readonly onValueChange?: (values: readonly [number, number]) => void;
+  /**
+   * The physical side of a user's gesture, as named intents: `detent` per
+   * landed step on the thumb that moved, `limit` when that thumb is already
+   * against its bound (its neighbour, or `min` / `max`). Never fired for
+   * `setValues` or for the host writing `value`.
+   */
+  readonly feedback?: Feedback | undefined;
 }
 
 export interface SliderMultiThumbProps {
@@ -93,6 +101,11 @@ const pairOf = (key: string): readonly [number, number] => {
  * Request/commit (map ticket `rt1p`): uncontrolled by default (`defaultValue`);
  * pass `value` + `onValueChange` to own the pair. The pair is packed into a
  * string so it rides the scalar `createControllable`.
+ *
+ * `feedback` (`src/feedback.ts`) reports a user's gesture as named intents:
+ * `detent` per landed step on the thumb that moved, `limit` when it is already
+ * against its bound (its neighbour, or `min` / `max`), nothing for `setValues`
+ * or for the host writing `value`.
  *
  * `disabled` is a widget-level extension of the pattern (the spec lists it under
  * its deliberate omissions): both thumbs keep their tab stops and announce
@@ -161,6 +174,19 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
     requestPacked(keyOf(nextPair));
   };
 
+  const feedback = createFeedback(() => options.feedback);
+
+  // A user's step on one thumb, as opposed to `setValues`: the landed value
+  // decides between a detent (it moved) and a limit (its neighbour or the end).
+  const userCommit = (index: SliderMultiThumbIndex, next: number): void => {
+    const [currentLo, currentHi] = values();
+    const boundLo = index === 0 ? min : currentLo;
+    const boundHi = index === 0 ? currentHi : max;
+    const landed = Math.max(boundLo, Math.min(boundHi, snap(next)));
+    commit(index, next);
+    feedback.step(index === 0 ? currentLo : currentHi, landed);
+  };
+
   const boundsOf = (index: SliderMultiThumbIndex): number =>
     index === 0 ? values()[0] : values()[1];
   const minOf = (index: SliderMultiThumbIndex): number => (index === 0 ? min : values()[0]);
@@ -191,18 +217,18 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
       return false;
     }
     if (key === "Home") {
-      commit(index, minOf(index));
+      userCommit(index, minOf(index));
       return true;
     }
     if (key === "End") {
-      commit(index, maxOf(index));
+      userCommit(index, maxOf(index));
       return true;
     }
     const change = delta(key);
     if (change === 0) {
       return false;
     }
-    commit(index, boundsOf(index) + change);
+    userCommit(index, boundsOf(index) + change);
     return true;
   };
 
@@ -211,7 +237,7 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
       return;
     }
     const steps = Math.round((position * (max - min)) / step);
-    commit(index, min + steps * step);
+    userCommit(index, min + steps * step);
     setFocused(index);
   };
 
@@ -245,6 +271,7 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
     }
     drag = endRailDrag(drag, event);
     dragIndex = undefined;
+    feedback.rearm();
   };
 
   return {
@@ -289,6 +316,9 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
       onFocus: () => setFocused(index),
       onBlur: () => setFocused(null),
       onKeyDown: (event) => {
+        if (!event.repeat) {
+          feedback.rearm();
+        }
         if (keyDown(event.key)) {
           event.preventDefault();
         }
@@ -310,6 +340,7 @@ export const createSliderMultiThumb = (options: SliderMultiThumbOptions = {}): S
           return;
         }
         drag = next;
+        feedback.rearm();
         if (onThumb(event) && pressed !== undefined) {
           dragIndex = pressed.index;
           setFocused(pressed.index);

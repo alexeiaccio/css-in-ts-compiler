@@ -52,6 +52,14 @@ export const mountSlider = (config: SliderConfig): Mounted => {
           setHost(value);
         }
       },
+      // a listener, not behaviour: the walk compares the DOM with the model
+      // while this records, and "haptic" / "sound" stay out of the probe
+      feedback: config.feedback
+        ? {
+            haptic: (intent) => push("haptic", intent),
+            sound: (intent) => push("sound", intent),
+          }
+        : undefined,
     });
     api = slider;
     return (

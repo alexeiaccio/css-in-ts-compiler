@@ -1,4 +1,5 @@
 import {
+  type Driver,
   type ScenarioConfig,
   ScenarioMismatch,
   differentialWalk,
@@ -87,6 +88,35 @@ describe("createSlider x spec (differential walk)", () => {
       });
     });
   }
+
+  // `feedback` is output, not state: the walk must stay green with a listener
+  // attached, and the listener must hear only the four intents, the same on both
+  // channels. The alphabet crosses steps and hits both bounds, so it hears both.
+  it("matches the generated model with a feedback listener, and hears no state", async () => {
+    const mounted: Driver[] = [];
+    const pair = () => {
+      const driver = dom({ feedback: true });
+      mounted.push(driver);
+      return Promise.resolve([
+        specDriver(model, sliderBridge, { feedback: true }),
+        driver,
+      ] as const);
+    };
+    await differentialWalk({
+      alphabet: sliderSteps,
+      probe: sliderProbe,
+      makePair: pair,
+      runs: 15,
+      steps: 25,
+      seed: 7,
+    });
+    const heard = (name: string) => mounted.flatMap((driver) => driver.observer.events(name));
+    const haptic = heard("haptic");
+    const sound = heard("sound");
+    expect(haptic.length).toBeGreaterThan(0);
+    expect(sound).toEqual(haptic);
+    expect(new Set(haptic)).toEqual(new Set(["detent", "limit"]));
+  });
 });
 
 // `disabled` is a widget-level extension of the pattern (the spec omits it): the thumb

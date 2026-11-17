@@ -1,5 +1,6 @@
 import { type Accessor, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
+import { type Feedback, createFeedback } from "./feedback";
 
 /** How a drag turns the knob: the angle around the centre, a straight slide, or whichever the drag starts as. */
 export type KnobGesture = "spin" | "slide" | "both";
@@ -35,6 +36,12 @@ export interface KnobOptions {
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.
    */
   readonly onValueChange?: ((value: number) => void) | undefined;
+  /**
+   * The physical side of a user's gesture, as named intents: `detent` per
+   * landed step (a key, the wheel, a drag), `limit` at a bound on a clamped
+   * dial (`wrap` never has one). Never fired for `setValue` / `stepBy`.
+   */
+  readonly feedback?: Feedback | undefined;
 }
 
 /** Spread onto the knob element, the focusable control. */
@@ -72,7 +79,7 @@ export interface Knob {
    * by 360 for degrees). Clamped to 0..1, or the wrapped fraction when `wrap`.
    */
   readonly percentOf: (value: number) => number;
-  /** A request to move by `delta` value units (a key, a wheel, a host button). */
+  /** A request to move by `delta` value units; silent, like `setValue` (the keys, the wheel and a drag report through `feedback`). */
   readonly stepBy: (delta: number) => void;
   readonly knobProps: KnobProps;
   readonly valueProps: KnobValueProps;
@@ -128,6 +135,11 @@ const angleDelta = (from: number, to: number): number => {
  * pass `value` + `onValueChange` to own the value. A key, a wheel, a drag and
  * `setValue`/`stepBy` are requests the host may ignore.
  *
+ * `feedback` (`src/feedback.ts`) reports a user's gesture as named intents:
+ * `detent` per landed step (a key, the wheel, a drag that crossed a step),
+ * `limit` at a bound, nothing for `setValue` / `stepBy` or for the host writing
+ * `value`. A `wrap` dial has no bound, so it never says `limit`.
+ *
  * Gestures (`gesture`, default "both"), decided once on the first meaningful
  * movement so a drag never switches modes:
  * - a movement that stays on one axis (the other axis under `SLIDE_VARIANCE` of
@@ -179,6 +191,17 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
 
   const commit = (next: number): void => request(quantize(next));
 
+  const feedback = createFeedback(() => options.feedback);
+
+  // A user's step, as opposed to `setValue` / a host's own button: the landed
+  // value decides between a detent (it moved) and a limit (it was at the bound).
+  const userStep = (next: number): void => {
+    const from = value();
+    const to = quantize(next);
+    commit(next);
+    feedback.step(from, to);
+  };
+
   const percentOf = (at: number): number => {
     if (span <= 0) {
       return 0;
@@ -190,26 +213,29 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
   const stepBy = (delta: number): void => commit(value() + delta);
 
   const onKeyDown = (event: KeyboardEvent): void => {
+    if (!event.repeat) {
+      feedback.rearm();
+    }
     switch (event.key) {
       case "ArrowUp":
       case "ArrowRight":
-        stepBy(step);
+        userStep(value() + step);
         break;
       case "ArrowDown":
       case "ArrowLeft":
-        stepBy(-step);
+        userStep(value() - step);
         break;
       case "PageUp":
-        stepBy(step * 10);
+        userStep(value() + step * 10);
         break;
       case "PageDown":
-        stepBy(-step * 10);
+        userStep(value() - step * 10);
         break;
       case "Home":
-        commit(min);
+        userStep(min);
         break;
       case "End":
-        commit(max);
+        userStep(max);
         break;
       default:
         return;
@@ -252,6 +278,7 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
     const centreX = rect.left + rect.width / 2;
     const centreY = rect.top + rect.height / 2;
     const startAngle = angleOf(event.clientX - centreX, event.clientY - centreY);
+    feedback.rearm();
     drag = {
       pointerId: event.pointerId,
       centreX,
@@ -301,7 +328,7 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
       current.lastY = event.clientY;
       current.raw = bound(current.raw + pixels * (span / SLIDE_PX_PER_RANGE) * current.side);
     }
-    commit(current.raw);
+    userStep(current.raw);
   };
 
   const pointerUp = (event: PointerEvent): void => {
@@ -310,6 +337,7 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
       return;
     }
     drag = undefined;
+    feedback.rearm();
     const target = event.currentTarget;
     if (target instanceof Element) {
       try {
@@ -325,7 +353,7 @@ export const createKnob = (options: KnobOptions = {}): Knob => {
       return;
     }
     event.preventDefault();
-    stepBy(event.deltaY < 0 ? step : -step);
+    userStep(value() + (event.deltaY < 0 ? step : -step));
   };
 
   return {

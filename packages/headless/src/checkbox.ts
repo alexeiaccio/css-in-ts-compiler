@@ -1,5 +1,6 @@
 import { type Accessor, createSignal } from "solid-js";
 import { createControllable } from "./controllable";
+import { type Feedback, createFeedback } from "./feedback";
 
 export type CheckboxState = "true" | "false" | "mixed";
 
@@ -18,6 +19,12 @@ export interface CheckboxOptions {
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.
    */
   readonly onValueChange?: (state: CheckboxState) => void;
+  /**
+   * The physical side of a user's activation, as named intents: `latch` when it
+   * checks, `release` when it unchecks (a `mixed` box checks). Never fired for
+   * `setChecked` or for the host writing `value`.
+   */
+  readonly feedback?: Feedback | undefined;
 }
 
 /** Spread onto the focusable element with `role=checkbox`. */
@@ -60,6 +67,11 @@ export interface Checkbox {
  *
  * Request/commit (map ticket `rt1p`): uncontrolled by default (`defaultValue`);
  * pass `value` + `onValueChange` to own the state.
+ *
+ * `feedback` (`src/feedback.ts`): a user's activation reports `latch` when the
+ * box ends up checked and `release` when it ends up unchecked (a `mixed` box
+ * checks, so it latches); `setChecked`, the host writing `value` and the
+ * internal resolve-on-`allowMixed` change are silent.
  */
 export const createCheckbox = (options: CheckboxOptions = {}): Checkbox => {
   // A dual-state control resolving "mixed" is an internal state change, not a
@@ -86,11 +98,15 @@ export const createCheckbox = (options: CheckboxOptions = {}): Checkbox => {
 
   const blocked = (): boolean => disabled() || readOnly();
 
+  const feedback = createFeedback(() => options.feedback);
+
   const toggle = (): void => {
     if (blocked()) {
       return;
     }
-    requestState(nextState());
+    const next = nextState();
+    requestState(next);
+    feedback.turn(next === "true");
   };
 
   return {
@@ -143,7 +159,7 @@ export const createCheckbox = (options: CheckboxOptions = {}): Checkbox => {
         const armed = spaceArmed();
         setSpaceArmed(false);
         if (armed && !blocked()) {
-          requestState(nextState());
+          toggle();
         }
       },
       onClick: () => {
@@ -151,7 +167,7 @@ export const createCheckbox = (options: CheckboxOptions = {}): Checkbox => {
           return;
         }
         setFocused(true);
-        requestState(nextState());
+        toggle();
       },
       onFocus: () => {
         setFocused(true);
