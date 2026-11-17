@@ -132,6 +132,15 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is",
   },
   {
+    name: "canvas",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: ["theme.ts", "tokens.ts"],
+    title: "Canvas",
+    description:
+      "A canvas of cards on @cssints/headless's createCanvas: drag, marquee, arrow keys, zoom, and the primitive's own live region — plus the two things a skin adds, a minimap that is also a camera and a drag that pulls the camera when it reaches the frame's edge",
+  },
+  {
     name: "shortcuts",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
