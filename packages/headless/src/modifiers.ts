@@ -107,14 +107,15 @@ export interface ModifierToolbarProps {
 
 /**
  * Spread onto a unit. The name carries the span and the lock, since the visible text is only the
- * action's label; the host adds `aria-expanded` from its menu.
+ * action's label. What activation opens is the host's: it adds `aria-haspopup="menu"` for a menu,
+ * or `aria-expanded` and `aria-controls` for a panel of its own — an inline form of checkboxes and
+ * radios is a disclosure, not a menu, and saying "menu" there would be a promise it does not keep.
  */
 export interface ModifierItemProps {
   readonly "data-part": string;
   readonly role: "button";
   readonly id: string;
   readonly "aria-label": string;
-  readonly "aria-haspopup": "menu";
   readonly tabindex: 0 | -1;
   readonly onKeyDown: (event: KeyboardEvent) => void;
   readonly onClick: () => void;
@@ -626,7 +627,6 @@ export const createModifiers = (options: ModifiersOptions): Modifiers => {
       get "aria-label"() {
         return nameOf(id);
       },
-      "aria-haspopup": "menu",
       get tabindex() {
         return activeId() === id ? 0 : -1;
       },

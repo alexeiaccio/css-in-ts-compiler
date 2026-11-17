@@ -288,7 +288,8 @@ describe("createModifiers: the rail's contract", () => {
     expect(rail.toolbarProps["aria-orientation"]).toBe("vertical");
     expect(rail.toolbarProps["aria-label"]).toBe("Table transformations");
     expect(rail.itemProps(first).role).toBe("button");
-    expect(rail.itemProps(first)["aria-haspopup"]).toBe("menu");
+    // what activation opens is the host's: a menu says `aria-haspopup`, an inline panel says `aria-expanded`
+    expect("aria-haspopup" in rail.itemProps(first)).toBe(false);
     expect(rail.itemProps(first)["aria-label"]).toBe("Color, applied to Audience, Critics");
     expect(rail.itemProps(first).tabindex).toBe(0);
     expect(rail.itemProps(second).tabindex).toBe(-1);

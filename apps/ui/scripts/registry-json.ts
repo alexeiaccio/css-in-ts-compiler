@@ -540,6 +540,14 @@ const STARTERS: ReadonlyArray<Starter> = [
   },
   {
     tested: true,
+    name: "modifiers",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Modifiers",
+    description:
+      "A table you reshape in place: every transformation is a unit on a rail — a tint, a bar, an order — with its span, its input column and its place in the stack in the unit's own panel, and the values still cells of text",
+  },
+  {
+    tested: true,
     name: "virtual-list",
     with: ["render.tsx", "theme.ts", "tokens.ts"],
     title: "Virtual list",

@@ -5718,3 +5718,13 @@ it (`createControllable`'s split, the same discipline as `createTable`'s sort). 
 reason: what "inherited" means is the host's computation. And the paper's encodings are exactly where a11y usually
 breaks — a number that became a bar keeps its number in the tree; `mark` is a smaller rendering, not `aria-hidden`.
 Skipped: a Quint spec (pure dataflow, no interleavings — `test/modifiers.test.ts` is the oracle) and the kit's visuals.
+
+**The modifiers, in the kit:** the starter draws exactly what the stack owns — a tint at the bars' strength (22 % of the
+highlight, not a solid, so a number sitting on the wash still reads), a bar under the number, and the row order for `Sort`;
+aggregation, the paper's other half, is skipped because a table of nine rows does not need it. The unit opens an **inline
+panel**, not a menu: checkboxes for the span, radios for the input column, buttons for join/split/move/remove. That made the
+primitive drop `aria-haspopup="menu"` from `itemProps` — what activation opens is the host's, and a disclosure that claims to
+be a menu is a promise it cannot keep. The add buttons are a plain group; the panel's title is the same sentence as the
+unit's `aria-label`, so a screen reader that moved into the panel still knows which unit it is in. Seven browser checks: the
+table before the rail touches it, the tint and its transparency at zero share, the bar as decoration, the order, the panel's
+span/lock, join/split/move/remove, and `Alt`+arrow with the focus and the panel following the moved unit.
