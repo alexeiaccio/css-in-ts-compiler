@@ -72,6 +72,16 @@ No package's `dist/` is in git: `bun run build:packages` builds the 32 packages,
 (the docs deploy, `bun run release:check`, an app's production build) runs it first; development resolves the sources
 through the `development` export condition.
 
+**A fresh worktree needs `bun install` before `bun run build:packages`.** Without it the build fails on
+`Could not resolve 'vite-plus'`, and — the trap — `apps/ui`'s generators still write their files: `registry-json.ts`
+succeeds while `vp fmt` fails on the same missing `dist`, so `apps/ui/public/r` ends up **unformatted** and a commit
+carries a thousand lines of noise instead of the four that changed. `bun run skin:check` and `theme:check` fail the
+same way. If a generator's output looks suspiciously large, run `bun install` and regenerate before committing.
+
+**Never push from the middle of a rebase.** A conflict leaves `HEAD` detached at the upstream commit, so
+`git push --force HEAD:<branch>` replaces the branch with upstream: the PR loses its diff and GitHub closes it. Resolve
+(`git add`), `git rebase --continue`, and check `git log --oneline -1` before any push.
+
 ## Commands
 
 ```bash
