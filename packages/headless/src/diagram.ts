@@ -20,6 +20,13 @@ import { type Accessor, createSignal, createUniqueId } from "solid-js";
  * A move also focuses the node it lands on, through the `id` `nodeProps` puts
  * on each element, so the tab stop and the focused element always agree.
  *
+ * **And an edge is never pointer-only either** — the one thing the big node
+ * libraries leave out. `c` starts a link from the active node, the arrows pick
+ * the node it should join (the tab stop is the target, so the live region names
+ * it), Enter makes the edge and Escape forgets it; the same pending state is
+ * what a pointer drag reports to, so both halves draw one line and announce the
+ * same thing.
+ *
  * Geometry is owned by the host and is read, not written: `x`/`y` are the
  * node's top-left in diagram space, `width`/`height` only size its centre. The
  * host renders the nodes and the edges wherever it likes; this primitive only
@@ -74,6 +81,13 @@ export interface DiagramOptions {
   readonly onActivate?: ((nodeId: string) => void) | undefined;
   /** Enter on the edge cursor, or a click on an edge. */
   readonly onEdgeActivate?: ((edgeId: string) => void) | undefined;
+  /** Enter, or a pointer release, on a node while a link from another one is pending: make that edge. */
+  readonly onConnect?: ((from: string, to: string) => void) | undefined;
+  /**
+   * Whether a link from `from` to `to` is allowed (default: any other node). A refusal keeps the link pending, so the
+   * reader can pick another target; the live region says the pair is not allowed.
+   */
+  readonly canConnect?: ((from: string, to: string) => boolean) | undefined;
   readonly labels?: DiagramLabels | undefined;
   /**
    * Base for the nodes' element ids (`<id>-node-<node id>`), which is how a
@@ -128,6 +142,17 @@ export interface DiagramFocus {
   /** What a polite live region says now; empty while the diagram is empty. */
   readonly status: Accessor<string>;
   readonly statusProps: DiagramStatusProps;
+  /** The node a link is being made from, or `undefined` when no link is pending. */
+  readonly connectFrom: Accessor<string | undefined>;
+  /** Start a link from `id`, or from the active node when it is left out. A node that does not exist is a no-op. */
+  readonly startConnect: (id?: string) => void;
+  /** Forget the pending link, making no edge. */
+  readonly cancelConnect: () => void;
+  /**
+   * Make the pending link to `id` if `canConnect` allows it, and forget it: what Enter does, and what a host's pointer
+   * gesture reports on release. Returns whether an edge was asked for.
+   */
+  readonly connectTo: (id: string) => boolean;
 }
 
 type Direction = "up" | "down" | "left" | "right";
@@ -256,6 +281,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     typeof options.edges === "function" ? options.edges() : options.edges;
   const [stored, setStored] = createSignal<string | undefined>();
   const [cursor, setCursor] = createSignal(-1);
+  const [pending, setPending] = createSignal<string | undefined>();
 
   const nodeOf = (id: string): DiagramNodeInput | undefined =>
     nodeSource().find((node) => node.id === id);
@@ -294,6 +320,15 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
 
   const labelOf = (id: string): string => nodeOf(id)?.label ?? id;
 
+  /** The pending source, once it still names a node: a node that goes away cannot hold a link open. */
+  const connectFrom = (): string | undefined => {
+    const from = pending();
+    return from !== undefined && nodeOf(from) !== undefined ? from : undefined;
+  };
+
+  const allowed = (from: string, to: string): boolean =>
+    to !== from && nodeOf(to) !== undefined && (options.canConnect?.(from, to) ?? true);
+
   const edgesNoun = (): string => options.labels?.edges ?? "edges";
 
   const nodeSentence = (id: string): string => {
@@ -314,6 +349,19 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
   };
 
   const status = (): string => {
+    const from = connectFrom();
+    const prefix = options.labels?.diagram === undefined ? "" : `${options.labels.diagram}. `;
+    if (from !== undefined) {
+      // the tab stop *is* the target while a link is pending, so a move is a choice and the region says the pair
+      const to = active();
+      if (to === undefined) {
+        return `${prefix}Link from ${labelOf(from)}. Escape to cancel.`;
+      }
+      const sentence = allowed(from, to)
+        ? `Link ${labelOf(from)} to ${labelOf(to)}. Enter to connect, Escape to cancel.`
+        : `Link ${labelOf(from)} to ${labelOf(to)}: not allowed. Escape to cancel.`;
+      return prefix + sentence;
+    }
     const id = active();
     if (id === undefined) {
       return "";
@@ -365,6 +413,29 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     }
   };
 
+  const startConnect = (id?: string): void => {
+    const from = id ?? active();
+    if (from === undefined || nodeOf(from) === undefined) {
+      return;
+    }
+    setPending(from);
+    setCursor(-1);
+  };
+
+  const cancelConnect = (): void => {
+    setPending(undefined);
+  };
+
+  const connectTo = (id: string): boolean => {
+    const from = connectFrom();
+    if (from === undefined || !allowed(from, id)) {
+      return false;
+    }
+    setPending(undefined);
+    options.onConnect?.(from, id);
+    return true;
+  };
+
   const keyDown = (id: string, event: KeyboardEvent): void => {
     if (nodeOf(id) === undefined) {
       return;
@@ -374,6 +445,23 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
       setCursor(-1);
     }
     const key = event.key;
+    if (connectFrom() !== undefined) {
+      if (key === "Escape") {
+        event.preventDefault();
+        cancelConnect();
+        return;
+      }
+      if (isActivation(key)) {
+        event.preventDefault();
+        connectTo(id);
+        return;
+      }
+      if (key.toLowerCase() === "e" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        // the edge cursor belongs to the node, not to a link: Enter is spoken for
+        event.preventDefault();
+        return;
+      }
+    }
     const outgoing = edgesOf(id);
     const raw = cursor();
     const index = raw >= 0 && raw < outgoing.length ? raw : -1;
@@ -428,6 +516,11 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     if (key.toLowerCase() === "e" && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       setCursor(edgesOf(id).length === 0 ? -1 : 0);
+      return;
+    }
+    if (key.toLowerCase() === "c" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      startConnect(id);
     }
   };
 
@@ -493,5 +586,9 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     setEdgeCursor,
     status,
     statusProps: { "data-part": "status", role: "status", "aria-live": "polite" },
+    connectFrom,
+    startConnect,
+    cancelConnect,
+    connectTo,
   };
 };

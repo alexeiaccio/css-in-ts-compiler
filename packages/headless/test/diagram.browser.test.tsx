@@ -54,6 +54,8 @@ const mount = (options: {
   readonly edges: ReadonlyArray<DiagramEdgeInput>;
   readonly labels?: DiagramLabels | undefined;
   readonly id?: string | undefined;
+  readonly canConnect?: ((from: string, to: string) => boolean) | undefined;
+  readonly connected?: Array<readonly [from: string, to: string]> | undefined;
 }): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
@@ -68,6 +70,8 @@ const mount = (options: {
       id: options.id,
       onActivate: (id) => activated.push(id),
       onEdgeActivate: (id) => edgeActivated.push(id),
+      canConnect: options.canConnect,
+      onConnect: (from, to) => options.connected?.push([from, to]),
     });
     api = diagram;
     return (
@@ -421,5 +425,114 @@ describe("createDiagramFocus", () => {
       expect(stops[0]?.dataset.node).toBe(api.active());
       expect(stops[0]).toBe(document.activeElement);
     }
+  });
+});
+
+describe("createDiagramFocus: making an edge", () => {
+  it("c starts a link from the active node, Enter makes it, and the region says the pair", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { node, status } = mount({ nodes: STATE, edges: TRANSITIONS, connected });
+    await settled();
+    node("payment").focus();
+    await settled();
+    await pressFocused("c");
+    expect(status().textContent).toBe("Link Payment to Payment: not allowed. Escape to cancel.");
+    // the arrows choose the target: the tab stop is the target, so the live region names it
+    await pressFocused("ArrowRight");
+    expect(status().textContent).toBe(
+      "Link Payment to Pending. Enter to connect, Escape to cancel.",
+    );
+    await pressFocused("Enter");
+    expect(connected).toEqual([["payment", "pending"]]);
+    // committed, so the region is back to the node's own sentence
+    expect(status().textContent).toBe("Pending. No edges.");
+  });
+
+  it("Escape forgets the link without making an edge", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { node, status } = mount({ nodes: STATE, edges: TRANSITIONS, connected });
+    await settled();
+    node("payment").focus();
+    await settled();
+    await pressFocused("c");
+    await pressFocused("ArrowRight");
+    await pressFocused("Escape");
+    expect(connected).toEqual([]);
+    expect(status().textContent).toBe("Pending. No edges.");
+  });
+
+  it("a refusal keeps the link pending, so another target can be chosen", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { node, status } = mount({
+      nodes: STATE,
+      edges: TRANSITIONS,
+      connected,
+      // the graph already has submit: payment -> pending, and a second one would be a duplicate
+      canConnect: (from, to) => !(from === "payment" && to === "pending"),
+    });
+    await settled();
+    node("payment").focus();
+    await settled();
+    await pressFocused("c");
+    await pressFocused("ArrowRight");
+    await pressFocused("Enter");
+    expect(connected).toEqual([]);
+    expect(status().textContent).toBe("Link Payment to Pending: not allowed. Escape to cancel.");
+    // down is another node, and that one is allowed
+    await pressFocused("ArrowDown");
+    expect(status().textContent).toBe(
+      "Link Payment to Failed. Enter to connect, Escape to cancel.",
+    );
+    await pressFocused("Enter");
+    expect(connected).toEqual([["payment", "failed"]]);
+  });
+
+  it("startConnect and connectTo are the pointer half of the same state", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { api, status } = mount({ nodes: STATE, edges: TRANSITIONS, connected });
+    await settled();
+    // a gesture is two ticks apart: a write is read after a flush, as every signal here is
+    api.startConnect("payment");
+    await settled();
+    expect(api.connectFrom()).toBe("payment");
+    // what a host does on release over another node
+    expect(api.connectTo("failed")).toBe(true);
+    await settled();
+    expect(api.connectFrom()).toBeUndefined();
+    expect(connected).toEqual([["payment", "failed"]]);
+    // nothing pending, so nothing to commit
+    expect(api.connectTo("failed")).toBe(false);
+    // the tab stop never moved, so the region is back to the node it is on
+    expect(status().textContent).toBe("Payment. 2 edges: to Pending, to Failed.");
+  });
+
+  it("the edge cursor is Enter's other meaning, so e does nothing while a link is pending", async () => {
+    const { api, node } = mount({ nodes: STATE, edges: TRANSITIONS });
+    await settled();
+    node("payment").focus();
+    await settled();
+    await pressFocused("c");
+    await pressFocused("e");
+    expect(api.edgeCursor()).toBe(-1);
+    expect(api.connectFrom()).toBe("payment");
+  });
+
+  it("a pending link whose source goes away is no link at all", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { api } = mount({
+      nodes: [{ id: "only", label: "Only", x: 0, y: 0 }],
+      edges: [],
+      connected,
+    });
+    await settled();
+    api.startConnect("only");
+    await settled();
+    expect(api.connectFrom()).toBe("only");
+    api.startConnect("ghost");
+    await settled();
+    expect(api.connectFrom()).toBe("only");
+    api.cancelConnect();
+    await settled();
+    expect(api.connectFrom()).toBeUndefined();
   });
 });

@@ -740,6 +740,8 @@ const diagram = createDiagramFocus({
   edges,
   onActivate: (id) => select(id),
   onEdgeActivate: (id) => fire(id),
+  // the graph is the host's: `c` and Enter, or a drag, only say which pair was asked for
+  onConnect: (from, to) => setEdges((all) => [...all, { id: nextId(), from, to }]),
 });
 
 <div role="group" aria-label="Checkout state chart">
@@ -768,6 +770,7 @@ const diagram = createDiagramFocus({
 
 - **The layout is the navigation.** `x`/`y` are the node's top-left in diagram space and `width`/`height` only size its centre (default 0). An arrow moves to the nearest node whose centre is in that half-plane — right is `dx > 0`, up is `dy < 0` — by smallest squared distance from the active centre, ties by id. Nothing that way? It wraps to the opposite end of that axis (right wraps to the leftmost node, down to the topmost), so every arrow does something. Home / End are the first and last node in option order.
 - **A diagram is never drag-only.** The pointer path is the host's drawing; the keyboard path is arrows, Enter / Space (`onActivate`), and `e`.
+- **Making an edge is not pointer-only either.** `c` starts a link from the active node, the arrows pick the node it should join, Enter fires `onConnect(from, to)` and Escape forgets it; `canConnect(from, to)` refuses a pair and leaves the link pending, so another target can be chosen. The tab stop _is_ the target, so the live region says the pair ("Link Payment to Pending. Enter to connect, Escape to cancel") and the same state is what a host's pointer drag reports to: `diagram.startConnect(id)` on the press, `diagram.connectTo(id)` on the release (or `cancelConnect()` on nothing), `diagram.connectFrom()` for the line it draws. The big node libraries (React Flow, Svelte Flow, Vue Flow) announce and move nodes by keyboard but make every connection with a pointer; this is the one part of that model they leave out.
 - **`e` opens the outgoing edges.** The cursor starts on the first edge of `edgesOf(active)` (in option order, endpoints present) and the live region reads "Edge Payment → Pending. Enter to activate". Arrows move the cursor and wrap, Enter (or Space) fires `onEdgeActivate`, Escape — or any other navigation key — leaves the cursor. `edgeCursor()` is -1 while off and `setEdgeCursor(index)` is the programmatic version.
 - **The live region is the announcement.** `status()` says "Payment. 2 edges: to Pending, to Failed" or the edge sentence; it is derived, so it changes with every move (that is what makes a screen reader read it). Render it once and always: `statusProps` is `{ role: "status", "aria-live": "polite" }`. When the diagram is empty, `status()` is empty and nothing is tabbable.
 - **Exactly one node is in the tab order**, and it is the active one. `nodeProps` sets `tabindex="0"` on it and `-1` on the rest, and `onFocus` moves the tab stop to whatever node took focus — so a host that focuses the node it selects keeps the two in step.

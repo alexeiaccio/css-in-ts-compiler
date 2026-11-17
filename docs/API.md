@@ -2405,6 +2405,8 @@ createDiagramFocus(options: {
   edges: ReadonlyArray<{ id: string; from: string; to: string; label?: string }> | (() => ...); // in option order; an edge with a missing endpoint is ignored
   onActivate?(nodeId: string): void; // Enter or Space on the active node
   onEdgeActivate?(edgeId: string): void; // Enter on the edge cursor, or a click on an edge
+  onConnect?(from: string, to: string): void; // Enter, or a pointer release, on a node while a link from another is pending
+  canConnect?(from: string, to: string): boolean; // default: any other node; a refusal keeps the link pending
   labels?: { diagram?: string; edges?: string } | undefined; // the diagram's name in the announcement; the edge noun ("transitions", default "edges")
   id?: string | undefined; // base for the nodes' element ids (<id>-node-<node id>), which is how a move focuses the node; generated when absent
 }): {
@@ -2417,11 +2419,16 @@ createDiagramFocus(options: {
   setEdgeCursor(index: number): void; // the programmatic version; a negative index clears
   status(): string; // "Payment. 2 edges: to Pending, to Failed" / "Edge Payment → Pending. Enter to activate"; empty when the diagram is empty
   statusProps: { role: "status"; "aria-live": "polite" }; // render once, always
+  connectFrom(): string | undefined; // the node a link is being made from, or undefined
+  startConnect(id?: string): void; // from `id`, else from the active node; what a host's pointer press calls
+  cancelConnect(): void; // forget the pending link, making no edge
+  connectTo(id: string): boolean; // make the pending link to `id` if canConnect allows it; what a release calls
 };
 ```
 
 - **The layout is the navigation.** An arrow moves to the nearest node whose centre is in that direction's half-plane (right is `dx > 0`, up is `dy < 0`), by smallest squared distance, ties by id; when nothing lies that way it wraps to the opposite end of that axis (right to the leftmost node, down to the topmost, ties by id), so every arrow does something. Home / End are the first and last node in option order. The arrows compare **centres**, which is why `width`/`height` exist at all.
 - **A diagram is never drag-only.** The pointer path is the host's drawing; the keyboard path is the arrows plus Enter / Space (`onActivate`) and `e`, so a graph that was drawn with a mouse is still readable and operable from the keyboard.
+- **Making an edge is not pointer-only either** — the one thing the node-UI libraries leave out. `c` starts a link from the active node, the arrows pick the node it should join (the tab stop _is_ the target, so the live region says "Link Payment to Pending. Enter to connect, Escape to cancel"), Enter fires `onConnect`, and Escape forgets it. A refusal from `canConnect` keeps the link pending, so the reader picks another target. The same pending state is what a host's pointer drag reports to: `startConnect(id)` on the press, `connectTo(id)` (or `cancelConnect()`) on the release, and `connectFrom()` for the line it draws — one state, so the two halves draw one line and announce the same sentence.
 - **`e` opens the outgoing edges.** The cursor starts on the first edge of `edgesOf(active)` and the region says "Edge Payment → Pending. Enter to activate". Arrows move the cursor and wrap, Enter (or Space) fires `onEdgeActivate`, Escape — or any other navigation key — leaves the cursor. Edges are `role="button"` with `tabindex="-1"`: the keyboard path to an edge is the cursor, not a Tab stop, so 40 transitions do not add 40 stops.
 - **The live region is the announcement.** `status()` is derived from the active node and the cursor, so it changes with every move (that is what makes a screen reader read it). Render `statusProps` once and always; a region that mounts with its text announces nothing.
 - **Exactly one node is in the tab order.** `nodeProps` sets `tabindex="0"` on the active node and `-1` on the rest, and `onFocus` moves the tab stop to whatever node took focus, so a host that focuses the node it selects keeps the two in step. Tab then leaves the diagram (there is no `Tab` handling and no sentinels).
