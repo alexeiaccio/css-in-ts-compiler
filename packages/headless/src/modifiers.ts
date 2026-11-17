@@ -98,6 +98,7 @@ export interface ModifiersOptions {
 
 /** Spread onto the rail: one tab stop, arrows between the units. */
 export interface ModifierToolbarProps {
+  readonly "data-part": string;
   readonly role: "toolbar";
   readonly id: string;
   readonly "aria-label": string;
@@ -109,6 +110,7 @@ export interface ModifierToolbarProps {
  * action's label; the host adds `aria-expanded` from its menu.
  */
 export interface ModifierItemProps {
+  readonly "data-part": string;
   readonly role: "button";
   readonly id: string;
   readonly "aria-label": string;
@@ -609,6 +611,7 @@ export const createModifiers = (options: ModifiersOptions): Modifiers => {
     targets,
     actions,
     toolbarProps: {
+      "data-part": "toolbar",
       role: "toolbar",
       id: base,
       get "aria-label"() {
@@ -617,6 +620,7 @@ export const createModifiers = (options: ModifiersOptions): Modifiers => {
       "aria-orientation": "vertical",
     },
     itemProps: (id: string): ModifierItemProps => ({
+      "data-part": "item",
       role: "button",
       id: itemId(id),
       get "aria-label"() {
