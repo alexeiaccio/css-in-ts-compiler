@@ -147,7 +147,11 @@ const verify = (
   el.after(clone);
   const ccs = getComputedStyle(clone);
   const inline = el instanceof HTMLElement || el instanceof SVGElement ? el.style : undefined;
-  const animated = el.getAnimations().length > 0;
+  // a pseudo-element's transition is motion on the element, and `Element.getAnimations()` leaves it out (`::before` is
+  // `target: el, pseudoElement: "::before"`): the element's document is asked, filtered to this element
+  const animated = el.ownerDocument
+    .getAnimations()
+    .some((animation) => (animation.effect as KeyframeEffect | null)?.target === el);
   const out = longhands.map((l) => {
     const computed = cs.getPropertyValue(l).trim();
     const expected = ccs.getPropertyValue(l).trim();

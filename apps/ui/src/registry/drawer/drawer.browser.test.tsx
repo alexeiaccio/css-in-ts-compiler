@@ -21,8 +21,19 @@ import {
 /** Solid 2 delivers events through its delegated listener on a later turn. */
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
 
-/** The slide is 200 ms: the geometry is final only after it, as a reader sees it. */
-const settleSlide = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 260));
+/**
+ * The slide is 200 ms of `transform` on the panel: the geometry is final at the transition's end, so the end is taken from
+ * the transition itself — `finish()` — instead of a 260 ms sleep that a loaded runner can still outrun. The list comes from
+ * the page (`Element.getAnimations()` leaves a pseudo-element's transition out) and covers the panel's subtree.
+ */
+const settleSlide = (panel: Element): void => {
+  for (const animation of document.getAnimations()) {
+    const target = (animation.effect as KeyframeEffect | null)?.target;
+    if (target instanceof Element && (target === panel || panel.contains(target))) {
+      animation.finish();
+    }
+  }
+};
 
 /** Poll a condition the platform settles on its own schedule (a focus fixup, a dialog's close event). */
 const until = async (check: () => boolean, ms = 1000): Promise<void> => {
@@ -206,8 +217,8 @@ describe("Drawer", () => {
   it("renders the bottom variant as a full-width sheet on its own surface", async () => {
     const { root } = mounted();
     await click(trigger(root, "Open the sheet"));
-    await settleSlide();
     const sheet = panel("Share");
+    settleSlide(sheet);
     const style = getComputedStyle(sheet);
     const rect = sheet.getBoundingClientRect();
 

@@ -229,6 +229,13 @@ export const button = cn(
 export const pressed = cn(bg(accent), color("#0b1220"));
 
 export const section = cn(p(2), borderBottom("1px solid", line));
+/** a section's own controls: the bar's buttons, in a row, without the bar */
+export const controls = cn(
+  flex().alignItems("center"),
+  gap(2),
+  flexWrap("wrap"),
+  marginBottom("6px"),
+);
 export const heading = cn(
   marginBlock("0 6px"),
   fontSize("11px"),

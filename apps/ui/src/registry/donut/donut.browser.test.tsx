@@ -38,6 +38,16 @@ const band = (slice: HTMLElement): { from: number; to: number } => ({
 });
 const ring = (slice: HTMLElement): CSSStyleDeclaration => getComputedStyle(slice, "::before");
 
+/**
+ * The motion on an element and its pseudo-elements: `Element.getAnimations()` leaves a pseudo-element's transition out, so
+ * the list comes from the page and is filtered by the effect's target — the same list the browser is drawing from.
+ */
+const motion = (element: Element): readonly Animation[] =>
+  document.getAnimations().filter((animation) => {
+    const target = (animation.effect as KeyframeEffect | null)?.target;
+    return target === element || (target instanceof Element && element.contains(target));
+  });
+
 describe("Donut", () => {
   it("is a named figure over one item per slice, its name and its share in text", () => {
     const { root, dispose } = mount(() => <Donut label="Traffic by region" slices={SLICES} />);
@@ -137,8 +147,13 @@ describe("Donut", () => {
       rows: slices(root).map((row) => row.getBoundingClientRect()),
     };
     await userEvent.hover(slices(root)[0]!);
-    // the ring's lift is a transition: let it arrive before reading it
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    // the ring's lift is a transition on the slice's ::before: its end is what the reader's eye lands on, so ask it for
+    // that end instead of sleeping through it — and the animation has to exist, or the "transition" is the assertion's lie
+    const lift = motion(slices(root)[0]!);
+    expect(lift.length).toBeGreaterThan(0);
+    for (const animation of lift) {
+      animation.finish();
+    }
     // the hover is a scale on the pseudo-element: the legend keeps every box it had
     const after = {
       list: list.getBoundingClientRect(),

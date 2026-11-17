@@ -121,6 +121,124 @@ const Conditions = (props: { of: readonly Condition[] }) => (
 
 const where = (c: Candidate) => `${c.selector}  ${c.layer || "unlayered"}`;
 
+// --- motion: what the page is running, read as data -----------------------------------------------------------
+// The same list the two controls act on: `document.getAnimations()`, CSS transitions included (a hover lift is motion a
+// reader sees, and the panel exists to explain what they see).
+
+/** One animation the page is running, as the panel prints it. */
+interface Running {
+  /** the properties its keyframes set, in the order the first frame names them (`transform`, `opacity`, …) */
+  readonly properties: readonly string[];
+  readonly duration: number;
+  readonly easing: string;
+  /** its `animation-name` for a CSS animation, the property for a CSS transition, its id for a plain WAAPI animation */
+  readonly name: string;
+  /** `running`, `paused`, `finished`, … as the animation reports it */
+  readonly playState: string;
+  /** the pseudo-element it paints, `""` for the element itself */
+  readonly pseudo: string;
+}
+
+/** The keys a computed keyframe carries beside the values: they describe the frame, not what the animation moves. */
+const FRAME_KEYS = new Set(["offset", "computedOffset", "easing", "composite"]);
+
+const propertiesOf = (frames: readonly Keyframe[]) => {
+  const names = new Set<string>();
+  for (const frame of frames) {
+    for (const key of Object.keys(frame)) {
+      if (!FRAME_KEYS.has(key)) names.add(key);
+    }
+  }
+  return [...names];
+};
+
+const nameOf = (animation: Animation) => {
+  if (animation.id) return animation.id;
+  if ("animationName" in animation) return String(animation.animationName);
+  if ("transitionProperty" in animation) return String(animation.transitionProperty);
+  return "web animation";
+};
+
+// How the animation eases. A CSS animation's `animation-timing-function` is the easing of each keyframe interval, so the
+// effect reports `linear` while the frames carry `ease-in-out`; a WAAPI easing sits on the effect. Show the one a reader set.
+const easingOf = (effect: string, frames: readonly Keyframe[]) => {
+  if (effect !== "linear") return effect;
+  const first = frames[0]?.easing;
+  const shared = frames.every((frame) => frame.easing === first) ? first : undefined;
+  return typeof shared === "string" ? shared : effect;
+};
+
+const readRunning = (animations: readonly Animation[]) =>
+  animations.map((animation) => {
+    const effect = animation.effect as KeyframeEffect | null;
+    const frames = effect?.getKeyframes() ?? [];
+    const timing = effect?.getComputedTiming();
+    return {
+      properties: propertiesOf(frames),
+      duration: typeof timing?.duration === "number" ? Math.round(timing.duration) : 0,
+      easing: easingOf(timing?.easing ?? "", frames),
+      name: nameOf(animation),
+      playState: animation.playState,
+      pseudo: effect?.pseudoElement ?? "",
+    };
+  });
+
+/** The speed the slow-motion preview runs at: a quarter, so a 200 ms exit is a glance rather than a flash. */
+const SLOW = 0.25;
+
+// Two controls and a readout of the page's motion: nothing here is a frame loop, the panel re-reads on its own 600 ms timer,
+// and nothing is a live region — the list is read with the eyes, not announced.
+function Motion(props: {
+  running: readonly Running[];
+  slow: boolean;
+  onSlow: () => void;
+  onReduced: () => void;
+}) {
+  return (
+    <div class={s.section} data-devtools="motion">
+      <h3 class={s.heading}>Motion</h3>
+      <div class={s.controls}>
+        <button
+          class={cn(s.button, props.slow && s.pressed)}
+          data-devtools="motion-slow"
+          data-on={props.slow ? "yes" : "no"}
+          aria-pressed={props.slow ? "true" : "false"}
+          title="every running animation at a quarter speed"
+          onClick={props.onSlow}
+        >
+          slow motion ×0.25
+        </button>
+        <button
+          class={s.button}
+          data-devtools="motion-reduced"
+          title="what a reader with prefers-reduced-motion: reduce sees: every running animation finished"
+          onClick={props.onReduced}
+        >
+          reduced motion preview
+        </button>
+      </div>
+      <For
+        each={props.running}
+        fallback={
+          <div class={cn(s.sub, s.muted)} data-motion="none">
+            nothing is running
+          </div>
+        }
+      >
+        {(m) => (
+          <div class={s.prop} data-motion={m.name} data-play-state={m.playState}>
+            <div class={s.propHead}>
+              <span class={s.propName}>{m.properties.join(", ") || "no properties"}</span>
+              <span class={s.value}>{`${m.duration}ms ${m.easing}`}</span>
+            </div>
+            <div class={cn(s.sub, s.muted)}>{`${m.name}${m.pseudo} · ${m.playState}`}</div>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
 function PropRow(props: { row: Row }) {
   const verdict = () => {
     const vs = props.row.verdicts;
@@ -527,6 +645,36 @@ function App(props: {
     return Object.fromEntries(DOCKS.map((d) => [d, d === dock ? at : ""]));
   };
   const target = () => (picking() ? (hovered() ?? selected()) : selected());
+  const [slow, setSlow] = createSignal(false);
+  // the page's motion, on the panel's timer: the set is read again every 600 ms, so a transition that started while the
+  // panel was open shows up, and nothing polls per frame
+  const motions = createMemo(() => {
+    tick();
+    return open() ? readRunning(document.getAnimations()) : [];
+  });
+  const previewReduced = () => {
+    for (const animation of document.getAnimations()) {
+      try {
+        animation.finish();
+      } catch {
+        // an infinite animation has no end to jump to: it stays as it is
+      }
+    }
+    setTick((n) => n + 1);
+  };
+  const toggleSlow = () => {
+    const next = !slow();
+    setSlow(next);
+    if (!next) for (const animation of document.getAnimations()) animation.playbackRate = 1;
+  };
+  // the preview follows the page while it is on: an animation started after the toggle is slowed on the next read
+  createEffect(
+    () => (slow() ? tick() : null),
+    (read) => {
+      if (read === null) return;
+      for (const animation of document.getAnimations()) animation.playbackRate = SLOW;
+    },
+  );
   const [input, setInput] = createSignal<HTMLTextAreaElement>();
   // the box keeps its text until the session exists, so that a missing service costs no retyping
   createEffect(
@@ -568,8 +716,11 @@ function App(props: {
     setPicking(on && !selected());
     props.setActive(on);
     if (on) props.link?.();
-    if (!on) closeWin();
-    else if (place().detached && !win()) detach();
+    if (!on) {
+      // closing the panel drops the preview: the page is not left at a quarter speed behind a closed panel
+      if (slow()) toggleSlow();
+      closeWin();
+    } else if (place().detached && !win()) detach();
   };
   // one button, four scopes: the panel is narrow, and the mode is a glance, not a setting
   const cycleXray = () =>
@@ -787,6 +938,12 @@ function App(props: {
                 {(i) => <Panel inspection={i()} build={props.build} xray={measured()} />}
               </Show>
             </Show>
+            <Motion
+              running={motions()}
+              slow={slow()}
+              onSlow={toggleSlow}
+              onReduced={previewReduced}
+            />
           </div>
         </div>
         <Show when={props.ask}>
