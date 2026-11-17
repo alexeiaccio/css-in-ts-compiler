@@ -1,5 +1,11 @@
 # @cssints/gradient-2d
 
+## 0.44.0
+
+### Patch Changes
+
+- cssints@0.44.0
+
 ## 0.43.0
 
 ### Patch Changes
