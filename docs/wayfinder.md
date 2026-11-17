@@ -5101,7 +5101,7 @@ is the finding worth keeping.
 - **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
   whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
   (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
-round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+  round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
   host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
   limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
   and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
@@ -5658,3 +5658,51 @@ primitive keeps one capture listener for the wrap (the overlay claim exists for 
 and the lock stay the platform's. Motion: a keyframe enters (cssints has no `@starting-style` at-rule), and
 `transition-behavior: allow-discrete` on `transform, display, overlay` lets the closed state's transform play the exit.
 The drawer's suite (35) and the dialog's (18) pass; the animated drawers keep the machine's tracks.
+
+## xyflow, and the three things it has that we did not (cssints-7hbv, 2026-11-17)
+
+`xyflow/xyflow` is React Flow, Svelte Flow and Vue Flow: node-based UI libraries over one shared core, `@xyflow/system`
+(nodes and edges as state, a pan/zoom viewport with `fitView`, drag with a threshold, multi-select, grid snap and auto-pan,
+connection handles with `isValidConnection` and a snapping radius, edge routing in four shapes, a minimap, and keyboard
+a11y: Tab through nodes and edges, Enter/Space to select, Escape, arrows to move, Shift faster, auto-pan to a focused node,
+an assertive live region).
+
+Read against this repo, most of it was already here: `createCanvas` (pan/zoom, drag, marquee, snap, keyboard move, focus
+auto-pan, live region, a Quint model), `createDiagramFocus` (one roving tab stop, geometric arrows, an edge cursor), the
+board's outline view, `createPanZoom`. Two of ours are _stronger_: a diagram has **one** Tab stop where every React Flow node
+is its own, and a canvas keeps a culled node's shell and tab stop.
+
+The delta, taken:
+
+- **Four routing shapes** — `shapeBetween(shape, from, to)` in `apps/ui/src/registry/route.ts`: `straight`, `step`,
+  `smoothstep` (a step with rounded corners), `bezier`. All four start and end on the border midpoints that face each other,
+  so the shapes are one function of one `facing()` and not four derivations; each returns a `d`, its arrow and its label. The
+  diagram takes one as `edge`, and its old `<line>` became a `<path>` (one element for all four).
+- **Crossings** — `crossingsOf(routes)` is the standard parametric segment test, once per pair of segments and once per pair
+  of edges, over the same polyline the `d` is drawn from (`PathRoute.points`; a cubic is sampled at 1/24 of its length). The
+  ends are skipped, so two edges that share a node are not a crossing, and collinear segments overlap rather than cross. The
+  diagram draws the **later** edge with a stroke of the canvas colour under its line: a break, which is the oldest convention
+  a diagram has for "these two lines do not meet" — no dot, no arc, and nothing painted over the nodes.
+- **Making an edge by keyboard** — `createDiagramFocus`: `c` starts a link from the active node, the arrows pick the target
+  (the tab stop _is_ the target, so the region says "Link Payment to Pending. Enter to connect, Escape to cancel"), Enter
+  fires `onConnect`, Escape forgets it, `canConnect` refuses a pair and leaves it pending so another target can be chosen.
+  `startConnect` / `connectTo` / `connectFrom` are the same pending state for a host's pointer drag (a threshold of 6 px, so a
+  click is still a click), and the starter draws the pending line dashed. **This is the one thing the mature libraries leave
+  out**: React Flow announces and moves nodes by keyboard and makes every connection with a pointer.
+- **A minimap and a drag's auto-pan** — a starter (`apps/ui/src/registry/canvas/`), not a primitive change: the minimap is
+  `screenToWorld` on the frame's corners and `animateTo({ kind: "centre" })` on a click, and auto-pan is `panBy` on the
+  pointermoves of a drag that is inside a 48 px margin. Both are _policies over the camera_, so the canvas's Quint model does
+  not move for either; the frame uses the primitive's `touch-action`, `overflow: clip` and live region as they are.
+
+Rejected, with reasons: the library itself (a node model and a rendering model over components that are attributes, plus a
+weaker a11y story than ours); orthogonal routing that _avoids_ nodes (A\*/ELK is a layout problem, and a break is what a
+diagram reads); a handle per port, `isValidConnection` and a connection radius (a graph here is nodes joined by a line, and a
+host that needs ports owns them); and `autoPan` as a member (a pointer held still at the edge does not keep pulling — noted in
+the code, a frame loop if it is ever wanted).
+
+**Verified:** `packages/headless/test/diagram.browser.test.tsx` (26 tests: the six of making an edge, the refusal, the pointer
+half, `e` ignored while linking, a source that goes away), `apps/ui/src/registry/diagram/diagram.browser.test.tsx` (16: the
+four shapes' `d`, the crossing's break on the later edge only, `c` + arrows + Enter adding an edge, a drag adding one, a click
+still activating, a release on nothing dropping the link), `apps/ui/src/registry/canvas/canvas.browser.test.tsx` (4: the
+frame's own style, culling that keeps the shell, the minimap's boxes and view rect, a click recentring the camera, a drag at
+the edge panning and one in the middle not), typecheck, fmt and lint.
