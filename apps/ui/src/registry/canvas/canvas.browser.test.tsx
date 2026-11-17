@@ -162,4 +162,32 @@ describe("Canvas", () => {
     pointer(frame, "pointerup", box.right - 4, box.top + 120);
     await settle();
   });
+
+  it("keeps pulling while the pointer rests at the edge, and stops on release", async () => {
+    const host = mount();
+    const frame = part<HTMLElement>(host, "canvas-frame");
+    const box = frame.getBoundingClientRect();
+    const card = part<HTMLElement>(host, "canvas-card");
+    const start = card.getBoundingClientRect();
+
+    pointer(frame, "pointerdown", start.left + 20, start.top + 20);
+    pointer(frame, "pointermove", box.right - 6, box.top + 160);
+    await settle();
+    const armed = camera(host).x;
+
+    // no further moves: the loop is what keeps the camera going while the pointer is held in the margin
+    for (let i = 0; i < 6; i += 1) {
+      await frames();
+    }
+    const pulled = camera(host).x;
+    expect(pulled).not.toBe(armed);
+
+    pointer(frame, "pointerup", box.right - 6, box.top + 160);
+    await settle();
+    const released = camera(host).x;
+    for (let i = 0; i < 6; i += 1) {
+      await frames();
+    }
+    expect(camera(host).x).toBe(released);
+  });
 });

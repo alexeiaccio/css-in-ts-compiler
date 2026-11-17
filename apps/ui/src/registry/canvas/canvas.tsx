@@ -9,7 +9,7 @@ import {
 } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createMemo, For, Show } from "solid-js";
+import { createMemo, For, onCleanup, Show } from "solid-js";
 
 import { t } from "../theme.ts" with { type: "cssints" };
 
@@ -211,6 +211,9 @@ const Minimap = (props: {
  */
 export const Canvas = (props: CanvasProps): JSX.Element => {
   let frame: HTMLElement | undefined;
+  // the frame loop of an auto-pan, and the pointer it is panning about (the last one the drag reported)
+  let raf: number | undefined;
+  let held: { readonly x: number; readonly y: number } | undefined;
   const canvas = createCanvas({
     nodes: props.nodes,
     label: props.label,
@@ -220,23 +223,60 @@ export const Canvas = (props: CanvasProps): JSX.Element => {
     },
   });
 
-  // Auto-pan is a policy, not a member: the primitive already draws a drag from the pointer's world position, so panning
-  // the camera under a pointer at the edge is the whole of it. It runs on the pointer's own moves — a pointer held still at
-  // the edge does not keep pulling (ponytail: a frame loop if a user ever asks for that).
-  const autoPan = (event: PointerEvent): void => {
-    if (props.autoPan === false || frame === undefined) {
-      return;
+  /** Stop pulling, and forget the pointer: a release, a cancel, an unmount, or a drag that ended. */
+  const stopPanning = (): void => {
+    held = undefined;
+    if (raf !== undefined) {
+      cancelAnimationFrame(raf);
+      raf = undefined;
     }
-    if (canvas.state().mode !== "dragging") {
+  };
+
+  /**
+   * One frame of the pull: pan by how deep the pointer is in the margin, then ask for another frame while it is still
+   * there. `panBy` re-derives the drag against the new camera (the primitive's own `derive`), so the dragged card stays
+   * under the pointer and the world slides beneath it — that re-derivation is why a *held* pointer can keep panning at all.
+   */
+  const pull = (): void => {
+    raf = undefined;
+    const at = held;
+    if (at === undefined || frame === undefined || canvas.state().mode !== "dragging") {
+      stopPanning();
       return;
     }
     const box = frame.getBoundingClientRect();
-    const dx = depth(event.clientX - box.left, box.width) * AUTO_PAN_STEP;
-    const dy = depth(event.clientY - box.top, box.height) * AUTO_PAN_STEP;
-    if (dx !== 0 || dy !== 0) {
-      canvas.panBy(dx, dy);
+    const dx = depth(at.x - box.left, box.width) * AUTO_PAN_STEP;
+    const dy = depth(at.y - box.top, box.height) * AUTO_PAN_STEP;
+    if (dx === 0 && dy === 0) {
+      // out of the margin: the drag carries on, the camera does not
+      return;
+    }
+    const before = canvas.peek().camera;
+    canvas.panBy(dx, dy);
+    // the world's own edge: pulling further moves nothing, so the loop stops instead of spinning
+    const after = canvas.peek().camera;
+    if (after.tx === before.tx && after.ty === before.ty) {
+      return;
+    }
+    raf = requestAnimationFrame(pull);
+  };
+
+  // Auto-pan is a policy, not a member: the primitive draws a drag from the pointer's world position and `panBy` re-derives
+  // it, so pulling the camera under a pointer in the edge margin is the whole of it. A move arms the loop; the loop itself
+  // keeps going while the pointer rests there, which is what a drag past the edge is for.
+  const autoPan = (event: PointerEvent): void => {
+    if (props.autoPan === false) {
+      return;
+    }
+    // the mode is read by the frame, not here: the primitive's writes land on the microtask flush, so a move that starts
+    // the drag still reads the mode before it (and a move with no drag arms one frame that decides and stops)
+    held = { x: event.clientX, y: event.clientY };
+    if (raf === undefined) {
+      raf = requestAnimationFrame(pull);
     }
   };
+
+  onCleanup(stopPanning);
 
   const wheel = (event: WheelEvent): void => {
     const box = frame?.getBoundingClientRect();
@@ -261,6 +301,18 @@ export const Canvas = (props: CanvasProps): JSX.Element => {
         onPointerMove={(event) => {
           canvas.viewportProps.onPointerMove(event);
           autoPan(event);
+        }}
+        onPointerUp={(event) => {
+          canvas.viewportProps.onPointerUp(event);
+          stopPanning();
+        }}
+        onPointerCancel={(event) => {
+          canvas.viewportProps.onPointerCancel(event);
+          stopPanning();
+        }}
+        onLostPointerCapture={(event) => {
+          canvas.viewportProps.onLostPointerCapture(event);
+          stopPanning();
         }}
         onWheel={wheel}
         data-part="canvas-frame"
