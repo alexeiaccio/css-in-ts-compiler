@@ -171,7 +171,9 @@ Then, per package, Settings, Publishing access: "Require two-factor authenticati
 2. Merge to master. The `release` workflow opens or updates the pull request "Version Packages": `changeset version` (versions, `CHANGELOG.md` files, peer ranges), the release's entry at the top of the root `CHANGELOG.md` (`scripts/changelog.mjs`, from the changesets' summaries: for a breaking change, add the migration in that pull request before merging it) and `bun install --lockfile-only` (bun.lock records the workspace versions).
 3. Merge that pull request. The workflow runs on master with no changesets left: `bun install --frozen-lockfile`, `bun run release:check` (build, stage, check, dist freshness), then `changeset publish` through trusted publishing, then pushes the tags.
 
-Checks run with the token of the Actions bot do not start on the version pull request; start them by hand if you want them.
+**Merge it only when it is current.** A version pull request is cut from master and consumes the changesets that existed then; a changeset that lands afterwards stays on master, and merging the older pull request publishes the previous set and immediately opens the next version pull request. That is how 0.40.0 and 0.42.0 were committed, tagged and never published. The `version PR` workflow enforces the invariant (`scripts/version-pr-fresh.sh`): a version pull request must carry **no** changeset — if it does, wait for the release workflow to regenerate it, then merge.
+
+Checks run with the token of the Actions bot do not start on the version pull request; start them by hand if you want them. The `version PR` workflow does start, because a `pull_request` run is not filtered by the token that wrote the branch.
 
 ## When something fails
 
