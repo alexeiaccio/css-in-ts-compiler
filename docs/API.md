@@ -2418,7 +2418,7 @@ createDiagramFocus(options: {
   edgeCursor(): number; // an index into edgesOf(active()), or -1 while off
   setEdgeCursor(index: number): void; // the programmatic version; a negative index clears
   status(): string; // "Payment. 2 edges: to Pending, to Failed" / "Edge Payment → Pending. Enter to activate"; empty when the diagram is empty
-  statusProps: { role: "status"; "aria-live": "polite" }; // render once, always
+  statusProps: { "data-part": "status"; role: "status"; "aria-live": "polite" }; // render once, always
   connectFrom(): string | undefined; // the node a link is being made from, or undefined
   startConnect(id?: string): void; // from `id`, else from the active node; what a host's pointer press calls
   cancelConnect(): void; // forget the pending link, making no edge
