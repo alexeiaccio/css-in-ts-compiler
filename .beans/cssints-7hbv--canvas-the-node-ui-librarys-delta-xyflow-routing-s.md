@@ -25,4 +25,4 @@ Read against what this repo already had, which was most of it: `createCanvas` (p
 
 - **The library itself** (a node model, a handle per port, `isValidConnection`, connection radius, `fitView`): a second rendering model over components that are attributes, and its a11y is weaker than ours (every node is a Tab stop; ours is one roving stop).
 - **Orthogonal routing that avoids nodes** (A*/ELK): a layout problem, not a skin's; crossings are handled by the break instead.
-- **`autoPan` as a primitive member**: it is `panBy` on a pointermove at the edge; a frame loop can come later if a user holds a drag still at the edge and wants it to keep pulling (marked in the code).
+- **`autoPan` as a primitive member**: it is `panBy` in a frame loop while a drag's pointer is in the edge margin (12 px a frame, scaled by how deep it is), which is a policy a skin can own; the loop stops on a release, a cancel or a lost capture, and `panBy`'s own `derive` is what keeps the card under the pointer while the world slides. The first version ran on pointermoves only and could not pull against a pointer held still; the loop replaced it the same day.

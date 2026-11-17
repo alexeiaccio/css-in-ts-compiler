@@ -5690,15 +5690,20 @@ The delta, taken:
   click is still a click), and the starter draws the pending line dashed. **This is the one thing the mature libraries leave
   out**: React Flow announces and moves nodes by keyboard and makes every connection with a pointer.
 - **A minimap and a drag's auto-pan** — a starter (`apps/ui/src/registry/canvas/`), not a primitive change: the minimap is
-  `screenToWorld` on the frame's corners and `animateTo({ kind: "centre" })` on a click, and auto-pan is `panBy` on the
-  pointermoves of a drag that is inside a 48 px margin. Both are _policies over the camera_, so the canvas's Quint model does
-  not move for either; the frame uses the primitive's `touch-action`, `overflow: clip` and live region as they are.
+  `screenToWorld` on the frame's corners and `animateTo({ kind: "centre" })` on a click, and auto-pan is `panBy` in a frame
+  loop while a drag's pointer is inside a 48 px margin — `12 px` per frame, scaled by how deep in the margin it is. The loop
+  is what makes a _held_ pointer keep pulling, and it is the primitive's own `derive` that makes it work: `panBy` re-derives
+  the drag against the new camera, so the card stays under the pointer while the world slides beneath it. Both are _policies
+  over the camera_, so the canvas's Quint model does not move for either; the frame uses the primitive's `touch-action`,
+  `overflow: clip` and live region as they are, and a release, a cancel or a lost capture stops the loop. The mode is read by
+  the frame rather than at the move, because the primitive's writes land on the microtask flush and the very move that starts
+  a drag still reads the mode from before it.
 
 Rejected, with reasons: the library itself (a node model and a rendering model over components that are attributes, plus a
 weaker a11y story than ours); orthogonal routing that _avoids_ nodes (A\*/ELK is a layout problem, and a break is what a
 diagram reads); a handle per port, `isValidConnection` and a connection radius (a graph here is nodes joined by a line, and a
-host that needs ports owns them); and `autoPan` as a member (a pointer held still at the edge does not keep pulling — noted in
-the code, a frame loop if it is ever wanted).
+host that needs ports owns them); and `autoPan` as a member (four lines of `panBy` in a frame loop is a policy a skin can
+have, and the primitive has no opinion about margins or speeds).
 
 **Verified:** `packages/headless/test/diagram.browser.test.tsx` (26 tests: the six of making an edge, the refusal, the pointer
 half, `e` ignored while linking, a source that goes away), `apps/ui/src/registry/diagram/diagram.browser.test.tsx` (16: the
