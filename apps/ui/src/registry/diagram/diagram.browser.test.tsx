@@ -50,6 +50,15 @@ const press = async (element: HTMLElement, key: string): Promise<void> => {
   await settle();
 };
 
+/** A key goes to whatever has focus, which is the node the tab stop is on: the arrows then move from there. */
+const pressFocused = async (key: string): Promise<void> => {
+  const element = document.activeElement;
+  if (!(element instanceof HTMLElement)) {
+    throw new Error("nothing has focus");
+  }
+  await press(element, key);
+};
+
 describe("Diagram", () => {
   it("is a named group of node buttons with one tab stop", () => {
     const { root } = mounted();
@@ -175,9 +184,10 @@ describe("Diagram", () => {
 
   it("activates an edge from a click on its line", async () => {
     const instance = mounted();
-    const line = required<SVGLineElement>(instance.root, '[data-edge="pay"] line');
+    // the transparent wide stroke is the target a pointer finds; it carries the same `d` as the thin line
+    const hit = required<SVGPathElement>(instance.root, '[data-edge="pay"] path[class]');
 
-    line.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    hit.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     await settle();
 
     expect(instance.fired).toEqual(["pay"]);
@@ -226,7 +236,7 @@ describe("Diagram", () => {
     expect(document.activeElement).toBe(required(root, '[data-part="diagram-after"]'));
   });
 
-  it("draws a line, an arrow and a label per edge, trimmed to the nodes' borders", () => {
+  it("draws a path, an arrow and a label per edge, trimmed to the nodes' borders", () => {
     const { root } = mounted();
     const edges = [...root.querySelectorAll<SVGGElement>('[data-part="diagram-edge"]')];
 
@@ -237,7 +247,7 @@ describe("Diagram", () => {
       "refund",
       "resend",
     ]);
-    expect(edges.map((edge) => edge.querySelectorAll("line").length)).toEqual([2, 2, 2, 2, 2]);
+    expect(edges.map((edge) => edge.querySelectorAll("path").length)).toEqual([2, 2, 2, 2, 2]);
     expect(edges.map((edge) => edge.querySelectorAll("polygon").length)).toEqual([1, 1, 1, 1, 1]);
     expect(edges.map((edge) => edge.querySelector("text")?.textContent)).toEqual([
       "pay",
@@ -248,10 +258,172 @@ describe("Diagram", () => {
     ]);
 
     // pay runs from cart's right border (128) to paid's left border (196), arrow included, at the two centres' y
-    const line = required<SVGLineElement>(root, '[data-edge="pay"] line');
-    expect(Number(line.getAttribute("x1"))).toBeGreaterThan(128);
-    expect(Number(line.getAttribute("x2"))).toBeLessThan(196);
-    expect(line.getAttribute("y1")).toBe("48");
-    expect(line.getAttribute("y2")).toBe("48");
+    const d = required<SVGPathElement>(root, '[data-edge="pay"] path:not([class])').getAttribute(
+      "d",
+    )!;
+    const [, x1, y1, x2, y2] = /^M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)$/.exec(d)!.map(Number) as [
+      string,
+      number,
+      number,
+      number,
+      number,
+    ];
+    expect(x1).toBeGreaterThan(128);
+    expect(x2!).toBeLessThan(196);
+    expect(y1).toBe(48);
+    expect(y2).toBe(48);
+  });
+
+  it("draws the same graph in any of the four shapes", () => {
+    for (const shape of ["straight", "bezier", "step", "smoothstep"] as const) {
+      const { root } = mountDiagram({ edge: shape });
+      const d = required<SVGPathElement>(root, '[data-edge="pay"] path:not([class])').getAttribute(
+        "d",
+      )!;
+      expect(d.startsWith("M "), shape).toBe(true);
+      if (shape === "bezier") {
+        expect(d, shape).toContain(" C ");
+      }
+      if (shape === "smoothstep") {
+        expect(d, shape).toContain(" Q ");
+      }
+      if (shape === "step" || shape === "smoothstep") {
+        // orthogonal: every segment shares an x or a y with the one before it
+        const points = d
+          .split(/[MLQ]|\s(?=\()/)
+          .map((part) => part.trim())
+          .filter((part) => /^[\d.]+ [\d.]+$/.test(part))
+          .map((part) => part.split(" ").map(Number) as [number, number]);
+        const orthogonal = points
+          .slice(1)
+          .every(
+            (p, index) =>
+              p[0] === points[index]![0] || p[1] === points[index]![1] || d.includes(" Q "),
+          );
+        expect(orthogonal, shape).toBe(true);
+      }
+    }
+  });
+
+  it("makes an edge with c and Enter, and the pending line follows the tab stop", async () => {
+    const instance = mounted();
+    const { root } = instance;
+    const cart = node(root, "cart");
+    cart.focus();
+    await settle();
+
+    await pressFocused("c");
+    expect(status(root).textContent).toBe(
+      "Payment flow. Link Cart to Cart: not allowed. Escape to cancel.",
+    );
+    // nothing to draw to itself, so the skin draws no line until a target is chosen
+
+    // the arrows choose the target, and the skin draws the line that Enter would make, dashed
+    await pressFocused("ArrowRight");
+    expect(status(root).textContent).toBe(
+      "Payment flow. Link Cart to Paid. Enter to connect, Escape to cancel.",
+    );
+    const pending = required<SVGPathElement>(root, '[data-part="diagram-pending"]').getAttribute(
+      "d",
+    );
+    expect(pending).toMatch(/^M [\d.]+ [\d.]+ L [\d.]+ [\d.]+$/);
+    await pressFocused("ArrowDown");
+    expect(
+      required<SVGPathElement>(root, '[data-part="diagram-pending"]').getAttribute("d"),
+    ).not.toBe(pending);
+    await pressFocused("ArrowUp");
+
+    await pressFocused("Enter");
+    expect(instance.connected).toEqual([["cart", "paid"]]);
+    expect(instance.edges()).toHaveLength(6);
+    expect(root.querySelector('[data-edge="new-1"]')).not.toBeNull();
+    // no link is pending any more, so no line
+    expect(root.querySelector('[data-part="diagram-pending"]')).toBeNull();
+    expect(instance.log()).toBe("Link “link 1” made: Cart → Paid.");
+  });
+
+  it("makes an edge by dragging from one node to another, and a click is still a click", async () => {
+    const instance = mounted();
+    const { root } = instance;
+    const frame = required<HTMLElement>(root, '[data-part="diagram-frame"]');
+    const cart = node(root, "cart");
+    const refunded = node(root, "refunded");
+    const from = cart.getBoundingClientRect();
+    const to = refunded.getBoundingClientRect();
+    const send = (target: Element, type: string, x: number, y: number): void => {
+      target.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }),
+      );
+    };
+
+    // a press that does not move is a click, and a click is the browser's: the drag starts nothing
+    send(cart, "pointerdown", from.left + 10, from.top + 10);
+    send(frame, "pointerup", from.left + 12, from.top + 12);
+    await settle();
+    expect(root.querySelector('[data-part="diagram-pending"]')).toBeNull();
+    cart.click();
+    await settle();
+    expect(instance.activated).toEqual(["cart"]);
+
+    // a press that moves is a drag: the link is pending until the release lands on a node
+    send(cart, "pointerdown", from.left + 10, from.top + 10);
+    send(frame, "pointermove", from.right + 40, from.top);
+    await settle();
+    expect(instance.activated).toEqual(["cart"]);
+    expect(root.querySelector('[data-part="diagram-pending"]')).not.toBeNull();
+    expect(status(root).textContent).toContain("Escape to cancel");
+
+    send(refunded, "pointerup", to.left + 10, to.top + 10);
+    await settle();
+    expect(instance.connected).toEqual([["cart", "refunded"]]);
+    expect(root.querySelector('[data-edge="new-1"]')).not.toBeNull();
+    expect(root.querySelector('[data-part="diagram-pending"]')).toBeNull();
+
+    // the click a browser sends after the release is not an activation: the same node does not "press" as well
+    cart.click();
+    await settle();
+    expect(instance.activated).toEqual(["cart"]);
+  });
+
+  it("drops the pending link when the release lands on nothing", async () => {
+    const instance = mounted();
+    const { root } = instance;
+    const frame = required<HTMLElement>(root, '[data-part="diagram-frame"]');
+    const cart = node(root, "cart");
+    const from = cart.getBoundingClientRect();
+    const send = (target: Element, type: string, x: number, y: number): void => {
+      target.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }),
+      );
+    };
+    send(cart, "pointerdown", from.left + 10, from.top + 10);
+    send(frame, "pointermove", from.left + 80, from.top + 40);
+    send(frame, "pointerup", from.left + 80, from.top + 40);
+    await settle();
+    expect(instance.connected).toEqual([]);
+    expect(root.querySelector('[data-part="diagram-pending"]')).toBeNull();
+  });
+
+  it("breaks the later of two edges where they cross", () => {
+    // the two diagonals of a square meet in the middle, by construction
+    const { root } = mountDiagram({
+      nodes: [
+        { id: "a", label: "A", x: 0, y: 0, width: 80, height: 40 },
+        { id: "b", label: "B", x: 240, y: 0, width: 80, height: 40 },
+        { id: "c", label: "C", x: 240, y: 200, width: 80, height: 40 },
+        { id: "d", label: "D", x: 0, y: 200, width: 80, height: 40 },
+      ],
+      edges: [
+        { id: "ac", from: "a", to: "c" },
+        { id: "bd", from: "b", to: "d" },
+      ],
+    });
+    const over = required<SVGGElement>(root, '[data-edge="bd"]');
+    const under = required<SVGGElement>(root, '[data-edge="ac"]');
+    expect(over.dataset.crossing).toBe("true");
+    expect(over.querySelector('[data-part="diagram-cutout"]')).not.toBeNull();
+    // the one underneath is not cut and carries no break of its own
+    expect(under.dataset.crossing).toBeUndefined();
+    expect(under.querySelector('[data-part="diagram-cutout"]')).toBeNull();
   });
 });

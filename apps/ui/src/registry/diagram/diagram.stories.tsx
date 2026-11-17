@@ -50,3 +50,86 @@ export const Default: Story = {
     );
   },
 };
+
+// The same graph in the shape a flow is usually read in: orthogonal routes out of each box and into the next, one corner
+// radius, no arithmetic in the host.
+export const Smoothstep: Story = {
+  name: "Smooth step",
+  render: (): JSX.Element => (
+    <div class="demo-diagram">
+      <Diagram
+        nodes={NODES}
+        edges={EDGES}
+        edge="smoothstep"
+        labels={{ diagram: "Payment flow, smooth step" }}
+      />
+      <p class="demo-text">
+        <code>edge="smoothstep"</code>: every line leaves its box, turns on a shared centre line and
+        arrives square; <code>step</code> is the same route with sharp corners, and{" "}
+        <code>bezier</code> is one cubic between them.
+      </p>
+    </div>
+  ),
+};
+
+// Making an edge, both ways: c on a node and the arrows, or a drag from one node to another. The story keeps the graph — the
+// primitive only says which pair was asked for.
+export const Connect: Story = {
+  name: "Making an edge",
+  render: (): JSX.Element => {
+    const [edges, setEdges] = createSignal<ReadonlyArray<DiagramEdgeInput>>(EDGES);
+    const [log, setLog] = createSignal(
+      "Press c on a node, or drag from one to another; Enter or the release makes the edge.",
+    );
+    return (
+      <div class="demo-diagram">
+        <Diagram
+          nodes={NODES}
+          edges={edges()}
+          labels={{ diagram: "Payment flow, editable" }}
+          onConnect={(from, to) => {
+            setEdges((all) => [
+              ...all,
+              { id: `new-${all.length}`, from, to, label: `${labelOf(from)} → ${labelOf(to)}` },
+            ]);
+            setLog(`Edge “${labelOf(from)} → ${labelOf(to)}” made.`);
+          }}
+        />
+        <p class="demo-text">
+          <code>c</code> starts a link from the active node, the arrows pick the node it should join
+          and Enter makes it; Escape forgets it. A drag from one node to another does the same, and
+          the dashed line follows the pointer.
+        </p>
+        <p class="demo-text">{log()}</p>
+      </div>
+    );
+  },
+};
+
+// Two diagonals of a square meet in the middle: the later edge is drawn with a break over the earlier one, so a reader can
+// follow either line without a dot or a jump.
+export const Crossings: Story = {
+  name: "Crossings",
+  render: (): JSX.Element => (
+    <div class="demo-diagram">
+      <Diagram
+        nodes={[
+          { id: "a", label: "A", x: 0, y: 0, width: 96, height: 44 },
+          { id: "b", label: "B", x: 280, y: 0, width: 96, height: 44 },
+          { id: "c", label: "C", x: 280, y: 220, width: 96, height: 44 },
+          { id: "d", label: "D", x: 0, y: 220, width: 96, height: 44 },
+        ]}
+        edges={[
+          { id: "ac", from: "a", to: "c" },
+          { id: "bd", from: "b", to: "d" },
+          { id: "ab", from: "a", to: "b" },
+        ]}
+        labels={{ diagram: "Two diagonals" }}
+      />
+      <p class="demo-text">
+        The diagonals cross, so the second one carries a break: a stroke of the canvas's own colour
+        under its line, wide enough to cut the first.
+      </p>
+    </div>
+  ),
+};

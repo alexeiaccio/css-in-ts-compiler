@@ -6,9 +6,9 @@ import {
 } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createMemo, For } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 
-import { type Route, routeBetween } from "../route.ts";
+import { crossingsOf, type EdgeShape, type PathRoute, shapeBetween } from "../route.ts";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 export type { DiagramEdgeInput, DiagramLabels, DiagramNodeInput };
@@ -22,12 +22,21 @@ export interface DiagramProps {
   readonly nodes: ReadonlyArray<DiagramNodeInput>;
   /** The edges, in option order; one whose endpoints are missing is neither drawn nor offered. */
   readonly edges: ReadonlyArray<DiagramEdgeInput>;
+  /** How a line is drawn (default `straight`): the four shapes a node UI is read in. */
+  readonly edge?: EdgeShape | undefined;
   /** The diagram's name in the live region, and the group's accessible name; the noun for the edges (default "edges"). */
   readonly labels?: DiagramLabels | undefined;
   /** Enter or Space on the active node, and a click on it. */
   readonly onActivate?: ((nodeId: string) => void) | undefined;
   /** Enter on the edge cursor, and a click on an edge's line or label. */
   readonly onEdge?: ((edgeId: string) => void) | undefined;
+  /**
+   * A link was made, by `c` and Enter or by dragging from one node to another: the host's to keep. The skin draws the
+   * pending link and hands the pair over; it does not add the edge itself.
+   */
+  readonly onConnect?: ((from: string, to: string) => void) | undefined;
+  /** Whether a link may be made (default: any other node). */
+  readonly canConnect?: ((from: string, to: string) => boolean) | undefined;
   readonly class?: string | undefined;
 }
 
@@ -35,16 +44,25 @@ export interface DiagramProps {
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 44;
 
+/** How far a press must move before it is a drag that makes a link, rather than a click that activates a node. */
+const DRAG_THRESHOLD = 6;
+
 interface RoutedEdge {
   readonly edge: DiagramEdgeInput;
-  readonly route: Route;
+  readonly route: PathRoute;
 }
 
 const rootClass = css.cn(css.display("grid"), css.gap(t.space._2), css.width("100%"));
 
 // The frame is exactly the diagram's own coordinates: the SVG's viewBox and every node's left/top are in the same px, so a
-// line and a node meet at the numbers the caller passed.
-const frameClass = css.cn(css.position("relative"), css.flex("none"));
+// line and a node meet at the numbers the caller passed. It is also the canvas a crossing breaks against: the edge drawn
+// over another cuts it with this colour.
+const frameClass = css.cn(
+  css.position("relative"),
+  css.flex("none"),
+  css.bg(t.color.surface),
+  css.borderRadius(t.radius.md),
+);
 
 const edgesClass = css.cn(
   css.position("absolute"),
@@ -76,6 +94,26 @@ const hitClass = css.cn(
   css.strokeWidth("14"),
   css.fill("none"),
   css.pointerEvents("stroke"),
+);
+
+// A crossing is a break, not a dot: the edge drawn later is what a reader sees continuous, so it carries a stroke of the
+// canvas's own colour under its line, wide enough to cut the one beneath. Nothing is painted over the nodes — they are DOM
+// after the SVG.
+const cutoutClass = css.cn(
+  css.stroke(t.color.surface),
+  css.strokeWidth("6"),
+  css.fill("none"),
+  css.pointerEvents("none"),
+);
+
+// The link that is being made: dashed, in the accent, from the node it leaves to the pointer (a drag) or to the node the
+// keyboard's tab stop is on (Enter will make it).
+const pendingClass = css.cn(
+  css.stroke(t.color.highlight),
+  css.strokeWidth("1.5"),
+  css.strokeDasharray("5 4"),
+  css.fill("none"),
+  css.pointerEvents("none"),
 );
 
 const labelClass = css.cn(
@@ -123,8 +161,10 @@ const statusClass = css.cn(css.margin("0"), css.fontSize(t.font.sizeSm), css.col
  * that says where the user is; the skin owns the geometry, the SVG lines behind the nodes, the tokens, the focus ring and
  * the active look it paints from `tabindex="0"`.
  *
- * A node is a button, positioned at its `x` / `y`; an edge is a line under the nodes, from border to border, with an arrow
- * head and its label, and a click on one is `onEdge` — the same activation the keyboard's edge cursor gives.
+ * A node is a button, positioned at its `x` / `y`; an edge is a path under the nodes, from border to border, with an arrow
+ * head and its label, and a click on one is `onEdge` — the same activation the keyboard's edge cursor gives. Where two edges
+ * cross, the later one is drawn with a break over the earlier one, which is the oldest convention a diagram has for
+ * "these two lines do not meet".
  */
 export const Diagram = (props: DiagramProps): JSX.Element => {
   const nodes = createMemo(() =>
@@ -150,7 +190,21 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
     get onEdgeActivate() {
       return props.onEdge;
     },
+    get onConnect() {
+      return props.onConnect;
+    },
+    get canConnect() {
+      return props.canConnect;
+    },
   });
+
+  // A pointer drag is the second way to make a link: a press is a click until it has moved DRAG_THRESHOLD px, and only
+  // then does the primitive learn about it, so a click still activates the node.
+  let press:
+    | { readonly id: string; readonly x: number; readonly y: number; moved: boolean }
+    | undefined;
+  let suppressClick = false;
+  const [pointer, setPointer] = createSignal<{ readonly x: number; readonly y: number }>();
 
   // the ids the edges name, and the frame the nodes fill
   const byId = createMemo(() => new Map(nodes().map((node) => [node.id, node])));
@@ -166,13 +220,81 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
   // An edge whose endpoint is missing is the primitive's to ignore, and the skin's not to draw.
   const routed = createMemo<RoutedEdge[]>(() => {
     const found = byId();
+    const shape = props.edge ?? "straight";
     return props.edges.flatMap((edge) => {
       const from = found.get(edge.from);
       const to = found.get(edge.to);
-      const route = from === undefined || to === undefined ? undefined : routeBetween(from, to);
+      const route =
+        from === undefined || to === undefined ? undefined : shapeBetween(shape, from, to);
       return route === undefined ? [] : [{ edge, route }];
     });
   });
+  // The link being made, from the node it leaves to the node the tab stop is on, or to the pointer while one is dragged.
+  const pendingRoute = createMemo<PathRoute | undefined>(() => {
+    const from = diagram.connectFrom();
+    const source = from === undefined ? undefined : byId().get(from);
+    if (source === undefined) {
+      return undefined;
+    }
+    const at = pointer();
+    const target =
+      at === undefined
+        ? byId().get(diagram.active() ?? "")
+        : { x: at.x, y: at.y, width: 0, height: 0 };
+    return target === undefined
+      ? undefined
+      : shapeBetween(props.edge ?? "straight", source, target);
+  });
+
+  const local = (event: PointerEvent, frame: Element): { x: number; y: number } => {
+    const box = frame.getBoundingClientRect();
+    return { x: event.clientX - box.left, y: event.clientY - box.top };
+  };
+
+  const pointerDown = (event: PointerEvent, id: string): void => {
+    suppressClick = false;
+    press = { id, x: event.clientX, y: event.clientY, moved: false };
+  };
+
+  const pointerMove = (event: PointerEvent): void => {
+    if (press === undefined) {
+      return;
+    }
+    if (!press.moved) {
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < DRAG_THRESHOLD) {
+        return;
+      }
+      press.moved = true;
+      diagram.startConnect(press.id);
+    }
+    setPointer(local(event, event.currentTarget as Element));
+  };
+
+  const pointerUp = (event: PointerEvent): void => {
+    const moved = press?.moved === true;
+    press = undefined;
+    setPointer(undefined);
+    if (!moved) {
+      return;
+    }
+    // the release is over the target, so the click that follows a drag is not an activation
+    suppressClick = true;
+    const element = event.target instanceof Element ? event.target.closest("[data-node]") : null;
+    const to = element instanceof HTMLElement ? element.dataset.node : undefined;
+    if (to === undefined || !diagram.connectTo(to)) {
+      diagram.cancelConnect();
+    }
+  };
+
+  // The edges that are drawn over another one: each carries the canvas-coloured stroke that breaks the line beneath it.
+  const cutouts = createMemo(
+    () =>
+      new Set(
+        crossingsOf(routed().map((item) => ({ id: item.edge.id, route: item.route }))).map(
+          (crossing) => crossing.over,
+        ),
+      ),
+  );
   // the edge the primitive's cursor is on, for the one look the keyboard moves
   const cursor = (edgeId: string): "true" | undefined => {
     const outgoing = diagram.edgesOf(diagram.active() ?? "");
@@ -190,6 +312,8 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
       <div
         data-part="diagram-frame"
         class={frameClass}
+        onPointerMove={pointerMove}
+        onPointerUp={pointerUp}
         style={{ width: `${bounds().width}px`, height: `${bounds().height}px` }}
       >
         <svg
@@ -204,21 +328,14 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
                 data-part="diagram-edge"
                 data-edge={item.edge.id}
                 data-cursor={cursor(item.edge.id)}
+                data-crossing={cutouts().has(item.edge.id) ? "true" : undefined}
                 class={edgeClass}
               >
-                <line
-                  class={hitClass}
-                  x1={item.route.from.x}
-                  y1={item.route.from.y}
-                  x2={item.route.to.x}
-                  y2={item.route.to.y}
-                />
-                <line
-                  x1={item.route.from.x}
-                  y1={item.route.from.y}
-                  x2={item.route.to.x}
-                  y2={item.route.to.y}
-                />
+                <Show when={cutouts().has(item.edge.id)}>
+                  <path class={cutoutClass} d={item.route.d} data-part="diagram-cutout" />
+                </Show>
+                <path class={hitClass} d={item.route.d} />
+                <path d={item.route.d} />
                 <polygon points={item.route.arrow} />
                 {item.edge.label === undefined ? undefined : (
                   <text
@@ -232,12 +349,31 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
               </g>
             )}
           </For>
+          <For each={pendingRoute() === undefined ? [] : [pendingRoute()!]}>
+            {(route) => (
+              <path
+                class={pendingClass}
+                d={route.d}
+                data-part="diagram-pending"
+                aria-hidden="true"
+              />
+            )}
+          </For>
         </svg>
         <For each={nodes()}>
           {(node) => (
             <button
               type="button"
               {...diagram.nodeProps(node.id)}
+              onClick={(event) => {
+                if (suppressClick) {
+                  suppressClick = false;
+                  event.preventDefault();
+                  return;
+                }
+                diagram.nodeProps(node.id).onClick();
+              }}
+              onPointerDown={(event) => pointerDown(event, node.id)}
               data-part="diagram-node"
               data-node={node.id}
               class={nodeClass}

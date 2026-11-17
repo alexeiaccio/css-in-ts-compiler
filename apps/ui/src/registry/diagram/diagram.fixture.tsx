@@ -2,6 +2,7 @@ import { render } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import { Diagram, type DiagramEdgeInput, type DiagramNodeInput } from "./diagram.tsx";
+import type { EdgeShape } from "../route.ts";
 
 /** A payment flow: four steps and the five ways between them. Not a state chart — any graph reads the same. */
 export const PAYMENT_NODES: ReadonlyArray<DiagramNodeInput> = [
@@ -21,7 +22,7 @@ export const PAYMENT_EDGES: ReadonlyArray<DiagramEdgeInput> = [
 
 /** The one sentence the demo shows about the keys: the primitive's, in the demo's words. */
 export const DIAGRAM_HINT =
-  "Keys: the arrows move along the layout, Home and End jump to the ends, e lists the edges of the active node and Enter opens one. Tab leaves the diagram.";
+  "Keys: the arrows move along the layout, Home and End jump to the ends, e lists the edges of the active node and Enter opens one, c starts a link and Enter makes it. Tab leaves the diagram.";
 
 /** The label of a node, the way the demo's line names it. */
 export const nodeLabel = (id: string): string =>
@@ -44,26 +45,52 @@ export interface MountedDiagram {
   readonly fired: ReadonlyArray<string>;
   /** The line under the diagram: what the host was told, in the page's words. */
   readonly log: () => string;
+  /** Every link the host was asked to keep, in order. */
+  readonly connected: ReadonlyArray<readonly [from: string, to: string]>;
+  /** The edges drawn now: the demo's own state, which a link adds to. */
+  readonly edges: () => ReadonlyArray<DiagramEdgeInput>;
   readonly dispose: () => void;
+}
+
+/** What a mount may change: the graph, and how its lines are drawn. The rest of the demo (the hint, the log, the Tab stop
+ * after it) is the same, so a test of a shape drives the same page a reader does. */
+export interface DiagramOverrides {
+  readonly nodes?: ReadonlyArray<DiagramNodeInput>;
+  readonly edges?: ReadonlyArray<DiagramEdgeInput>;
+  readonly edge?: EdgeShape;
 }
 
 /**
  * Mounts the styled diagram in ordinary use: the payment flow, the sentence about the keys, and the line that says what the
  * host got. A button after the diagram is where Tab lands, so the demo shows that the tab stop leaves the graph.
  */
-export const mountDiagram = (): MountedDiagram => {
+export const mountDiagram = (overrides: DiagramOverrides = {}): MountedDiagram => {
   const root = document.createElement("div");
   document.body.append(root);
   const activated: string[] = [];
   const fired: string[] = [];
+  const nodes = overrides.nodes ?? PAYMENT_NODES;
+  const connected: Array<readonly [string, string]> = [];
+  const [edges, setEdges] = createSignal<ReadonlyArray<DiagramEdgeInput>>(
+    overrides.edges ?? PAYMENT_EDGES,
+  );
   const [log, setLog] = createSignal("Nothing activated yet: click a node, or press Enter on it.");
+  // The demo keeps the edges: the primitive hands a made link over and draws nothing of its own, so adding the edge is the
+  // host's one line.
+  const onConnect = (from: string, to: string): void => {
+    connected.push([from, to]);
+    const label = `link ${connected.length}`;
+    setEdges((all) => [...all, { id: `new-${connected.length}`, from, to, label }]);
+    setLog(`Link “${label}” made: ${nodeLabel(from)} → ${nodeLabel(to)}.`);
+  };
 
   const dispose = render(
     () => (
       <div style={{ display: "grid", gap: "12px" }}>
         <Diagram
-          nodes={PAYMENT_NODES}
-          edges={PAYMENT_EDGES}
+          nodes={nodes}
+          edges={edges()}
+          edge={overrides.edge}
           labels={{ diagram: "Payment flow" }}
           onActivate={(id) => {
             activated.push(id);
@@ -73,6 +100,7 @@ export const mountDiagram = (): MountedDiagram => {
             fired.push(id);
             setLog(edgeLabel(id));
           }}
+          onConnect={onConnect}
         />
         <p data-part="diagram-hint" style={{ margin: "0", "font-size": "12px", color: "#666" }}>
           {DIAGRAM_HINT}
@@ -92,6 +120,8 @@ export const mountDiagram = (): MountedDiagram => {
     root,
     activated,
     fired,
+    connected,
+    edges: edges,
     log: () => root.querySelector('[data-part="diagram-log"]')?.textContent ?? "",
     dispose: () => {
       dispose();
