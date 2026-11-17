@@ -81,14 +81,14 @@ jobs:
       - name: The compiled theme is current
         working-directory: apps/ui
         run: bun run theme:check
-      # The items are committed and the starter smoke test installs them, so an item that drifted from
-      # its sources is tested in its old shape. Regenerate and format the way a person does, then require
-      # the tree to be unchanged.
-      - name: The registry items are current
+      # The smoke installs the *committed* items, so a drifted item would be tested in its old shape. Regenerate
+      # and format the way a person does, and let the run continue on the fresh tree: the diff is no longer a
+      # gate, because a generated file should never be a person's ritual — master commits it below (see the race
+      # note there), and a pull request simply tests what its own sources produce.
+      - name: The registry items follow their sources
         run: |
           bun apps/ui/scripts/registry-json.ts
           cd apps/ui && bunx vp fmt public/r public/llms.txt
-          cd ../.. && git diff --exit-code -- apps/ui/public
       - name: The starters' own conformance
         working-directory: apps/ui
         run: bun run test
@@ -99,17 +99,18 @@ jobs:
       # whoever released last; a pull request writes the files into its own checkout and stops there, since
       # a stale record hides the section instead of lying (the fingerprint is what decides). The write is
       # narrow: these files, an ordinary commit, and a GITHUB_TOKEN push starts no run of its own.
-      - name: The conformance results are current
+      - name: The generated registry files are committed
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- 'apps/ui/public/r/*.result.json'
+          # the items the step above regenerated, and the records the smoke just wrote
+          git add -- 'apps/ui/public/r/*.json'
           if git diff --cached --quiet; then
-            echo "the results the smoke wrote are the ones committed"
+            echo "the items and records on disk are the committed ones"
             exit 0
           fi
-          git commit -m "chore(ui): the conformance results the starter smoke wrote"
+          git commit -m "chore(ui): the registry items and the conformance records the smoke wrote"
           # A merge can land while this job runs, and a plain push is then rejected (`fetch first`) — which is
           # how the first version of this step failed and left the deployed records behind. The files are
           # generated, so the fix is to replay them on the newest master and try again. A record that still
@@ -123,12 +124,12 @@ jobs:
             sleep 5
             git fetch -q origin master
             git reset --soft origin/master
-            git add -- 'apps/ui/public/r/*.result.json'
+            git add -- 'apps/ui/public/r/*.json'
             if ! git diff --cached --quiet; then
-              git commit -q -m "chore(ui): the conformance results the starter smoke wrote"
+              git commit -q -m "chore(ui): the registry items and the conformance records the smoke wrote"
             fi
           done
-          echo "::warning::the conformance results could not be committed; the next master run will write them"
+          echo "::warning::the registry files could not be committed; the next master run will write them"
           exit 0
       # the deploy builds the site from its own checkout, so this run's results travel to it: the record a
       # person reads is one deploy old otherwise
