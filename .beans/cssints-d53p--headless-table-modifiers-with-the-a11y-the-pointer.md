@@ -1,13 +1,14 @@
 ---
 # cssints-d53p
 title: 'headless: table modifiers with the a11y the pointer version loses'
-status: todo
+status: completed
 type: feature
+priority: normal
 tags:
     - headless
     - a11y
 created_at: 2026-11-17T06:14:11Z
-updated_at: 2026-11-17T06:14:11Z
+updated_at: 2026-11-17T06:17:09Z
 ---
 
 ## Why
@@ -33,3 +34,16 @@ MuTable (Sun, Hayatpur, E, Sultanum, Xia — UIST '26, arXiv:2609.19294) reifies
 No Quint spec: the stack is dataflow with no interleavings to model (`grid-sort.qnt` is the precedent for a descriptor), so `test/modifiers.test.ts` (15) is the oracle.
 
 Skipped: the kit's rendering (colours, axes, aggregation), the drag itself (a pointer's `move` call), mouse-selection for a join (join-with-above needs no multi-select).
+
+
+## Summary of Changes
+
+- `packages/headless/src/modifiers.ts`: `createModifiers()` — units over columns with ordered `parts` (coverage by
+  position), `owner`/`encoded` by the topmost covering unit, `locked` as a descriptor, and `add`/`remove`/`move`/
+  `toggleTarget`/`lock`/`joinWithAbove`/`split`.
+- The rail: a `toolbar` of menu buttons, one tab stop, arrows/Home/End, `Alt`+arrow reorder, Enter/Space/Shift+F10 menu,
+  Delete remove; a unit's name is its span and its lock; a `createStatus` region announces the committed delta only.
+- `test/modifiers.test.ts` (15): ownership by order, join/reuse/split, the brush, the lock, the announcements, a
+  controlled host's refusal, the keyboard.
+- `README.md` section, changeset `headless-modifiers`, a wayfinder entry.
+- Skipped: a Quint spec (dataflow, no interleavings) and the kit's visuals.
