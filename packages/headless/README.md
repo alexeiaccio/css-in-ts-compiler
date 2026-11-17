@@ -505,6 +505,41 @@ const table = createTable({
 - **`numeric` is a layout hint** for the host's skin (right alignment, tabular figures): HTML has no attribute for it, so the primitive carries nothing.
 - Solid 2 arrives through delegated events; a host that reads the DOM right after a click waits a tick.
 
+## Modifiers
+
+`createModifiers` is MuTable's mechanic (Sun et al., UIST '26) as a rail: a transformation is **data, not a command**. Each one stays on the stack as a unit over the columns it spans — `Color`, `Size`, `Axis`, whatever the host declares — so the current view can be explained, revisited and extended instead of being a one-way command whose result is all that remains. One encoding has one owner (the topmost unit that covers the column and declares it), which is what makes the order mean something: `Group` then `Count` is not `Count` then `Group`. A unit that is joined (`parts.length > 1`) is the reusable sequence, and retargeting it moves every step of it.
+
+```tsx
+const modifiers = createModifiers({
+  targets: [
+    { key: "audience", label: "Audience" },
+    { key: "critics", label: "Critics" },
+  ],
+  actions: [
+    { kind: "color", label: "Color", encodings: ["color"] },
+    { kind: "axis", label: "Axis", encodings: ["y", "order"] },
+  ],
+  defaultModifiers: [
+    { id: "m1", targets: ["audience"], parts: [{ kind: "color", slots: [0] }] },
+  ],
+  onActivate: (id) => setMenu(id), // the host's menu: span, lock, reorder, join, split, remove
+});
+
+<div {...modifiers.toolbarProps}>
+  <For each={modifiers.modifiers()}>
+    {(unit) => <button {...modifiers.itemProps(unit.id)}>{shortLabel(unit)}</button>}
+  </For>
+</div>
+<p {...modifiers.status.statusProps}>{modifiers.status.message()}</p>;
+```
+
+- **Every pointer gesture has a keyboard route.** The paper's drag is a modifier's span being brushed across columns; a keyboard has no drag, so the span is a checkbox per column in the unit's menu, exactly as the lock is a radio and a reorder is `Alt`+`ArrowUp`/`Down` (dragging is the pointer's version of the same request), and `Delete` removes. The rail is a `toolbar` with one tab stop: arrows move, `Enter`/`Space`/`Shift+F10` opens the menu.
+- **The name carries what the visible text cannot.** A unit's `aria-label` is `Color, applied to Audience, Critics, locked to Audience`: the span and the lock are the state a reader needs before acting, and an option's visible label is only the action's name.
+- **The announcement follows the commit, not the request.** `add`, `move`, `lock`, `joinWithAbove` and the rest are requests (the `createControllable` split, as in `createTable`): a controlled host that ignores one gets no message, because nothing changed. The status region is the one from `createStatus` and says the delta — "Axis moved to position 2 of 4", "2 modifiers joined".
+- **The lock is a descriptor.** The primitive carries which column is the input (`locked`, by position) and names it; what "the others inherit" means is the host's computation, the same split `createTable` makes with a sort. Adding a column to a unit is the brush, and it applies every step of the unit to it.
+- **Encodings are decoration; the values stay text.** `encoded(key)` and `owner(key, encoding)` say who owns what, and the host paints beside the value. `mark` — the "dense" cell — is a smaller rendering of the number, never an `aria-hidden` one: a table that turned its values into bars for a sighted reader must not turn them into nothing for the next one.
+- There is no spec of its own: the stack is dataflow with no interleavings to model, so `test/modifiers.test.ts` is the oracle (ownership by order, join/reuse/split, the lock, and the announcements).
+
 ## Timeline
 
 `createTimeline` has two modes over one axis. Without `rows` it renders the package's demo tree of five fixed spans (collapsing, a zoom window, the differential walk against `specs/apg/timeline.qnt`); with `rows` it takes real span data and lays it out as a trace waterfall.

@@ -81,6 +81,7 @@ export * from "./link";
 export * from "./listbox";
 export * from "./menu";
 export * from "./meter";
+export * from "./modifiers";
 export * from "./prefs";
 export * from "./radio";
 export * from "./resizable-panels";

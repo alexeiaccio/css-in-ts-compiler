@@ -4738,7 +4738,6 @@ checkbox-group and command-palette still compute their own movement (another fou
 listbox's own `disabled` mask is static (an item's own `disabled` field may change, and the collection re-reads
 it on `update()`); and hidden options are still handed to the polyfill rather than filtered, which is the
 adapter's documented limit, not this widget's.
-||||||| parent of 4a516140 (docs: focusGrid in the API reference and the wayfinder)
 
 ## The V2 grid as our own runtime, on the attribute the platform will read (2026-11-06)
 
@@ -4818,7 +4817,6 @@ three hand-roll the same movement today (`grid.ts`'s `rightIdx` / `downIdx` / `p
 `grid.ts` must keep its `mode`, its selection rectangle, its sort, its cell/widget focus target and its page-sized
 movement while delegating the roving stop and the four edges. A native implementation needs nothing from us but the
 attribute, which is why it is rendered from the same definition object.
-||||||| parent of 4b256880 (headless: the tabs break, its docs and the registry entry)
 
 ## The tablist on the platform contract, and the tab stop it cannot pin to the selection (2026-11-06)
 
@@ -4890,7 +4888,6 @@ Which of the remaining widgets with a roving model (`listbox`, `radio`, `menu`, 
 `menu-button`, `feed`, `grid`, `checkbox-group`, `command-palette`) move next is unchanged, but the shape is now
 settled twice over: the pattern keeps selection, the platform keeps the stop, and a spec that pins the stop to
 the selection is modelling the provider.
-||||||| parent of f69da799 (docs: what the radio group kept, and what the platform now owns)
 
 ## The radio group: the platform moves, the pattern selects (2026-11-06)
 
@@ -4975,7 +4972,6 @@ attribute, as before), no RTL (the scenarios' `direction` is proven by the polyf
 by the model) and no Home / End, and no "a disabled radio loses the check when it disables the checked one
 mid-walk" beyond the existing re-mount pool. `checkbox-group` does not share this shape (every checkbox is its
 own tab stop), so it was not touched.
-||||||| parent of 24e63ad7 (docs: the menu family's per-level focusgroups, and the wayfinder entry)
 
 ## The menu family on the same adapter: one segment per level (2026-11-06)
 
@@ -5556,7 +5552,6 @@ fmt and lint.
 **Left:** the native form (a kernel change plus an `AHEAD_OF_CHROME` grammar entry when an engine ships it), a headless half
 for a bar that also has to report a value (`createScrollProgress` has no pointer twin yet), and touch: `pointermove` during a
 touch scroll is a different gesture, and nothing here reads `pointerdown`/`pointerup` yet.
-||||||| parent of b1ac1cc2 (chore(skills): Modern Web Guidance, the legacy scan, and the headless delta)
 
 ## Modern Web Guidance: installed, scanned, and what it says about headless (cssints-oeb0, 2026-11-14)
 
@@ -5711,3 +5706,15 @@ four shapes' `d`, the crossing's break on the later edge only, `c` + arrows + En
 still activating, a release on nothing dropping the link), `apps/ui/src/registry/canvas/canvas.browser.test.tsx` (4: the
 frame's own style, culling that keeps the shell, the minimap's boxes and view rect, a click recentring the camera, a drag at
 the edge panning and one in the middle not), typecheck, fmt and lint.
+
+**Modifiers, and what a11y changes about the paper's mechanics:** MuTable's four moves (persistent stack, lock, join,
+brush) are one data model — a unit spans columns, holds ordered `parts` with their coverage by position, and one encoding
+has one owner, the topmost covering unit. Three of the paper's interactions are pointer gestures with no keyboard
+equivalent, so each became a menu item and a key: the brush is the span's checkbox per column, the lock is a radio, the
+drag is `Alt`+arrow (plus a move in the unit's menu), and join-with-above replaced multi-select — a joined unit is the
+stack's neighbour, so nothing has to be selected, and the rail keeps one tab stop. The announcement is diffed from the
+committed stack, not fired by the request: a controlled host that refuses a change must not be described as having made
+it (`createControllable`'s split, the same discipline as `createTable`'s sort). The lock stays a descriptor, for the same
+reason: what "inherited" means is the host's computation. And the paper's encodings are exactly where a11y usually
+breaks — a number that became a bar keeps its number in the tree; `mark` is a smaller rendering, not `aria-hidden`.
+Skipped: a Quint spec (pure dataflow, no interleavings — `test/modifiers.test.ts` is the oracle) and the kit's visuals.
