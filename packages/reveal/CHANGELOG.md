@@ -1,5 +1,13 @@
 # @cssints/reveal
 
+## 0.42.0
+
+### Patch Changes
+
+- Updated dependencies [a4edd40]
+  - cssints@0.42.0
+  - @cssints/motion@0.42.0
+
 ## 0.41.2
 
 ### Patch Changes
