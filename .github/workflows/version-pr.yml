@@ -1,0 +1,29 @@
+# A Version Packages pull request is cut from master with `changeset version`, which deletes the changesets it consumed,
+# so the invariant is absolute: a version PR carries no changeset. One left in its tree means it was cut before that
+# changeset landed (or rebased onto a newer master without being regenerated); merging it publishes the older set,
+# leaves the new changeset behind and the release workflow opens another version PR — which is how 0.40.0 and 0.42.0
+# were committed, tagged and never published.
+#
+# Seconds, not minutes: this is one `git ls-tree`. It runs on its own workflow because `ui.yml` is path-filtered to the
+# packages a version PR does not touch.
+name: version PR
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions: {}
+
+jobs:
+  fresh:
+    if: startsWith(github.head_ref, 'changeset-release/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # the branch, not the synthetic merge: the merge would fold master's newest changesets in and always pass
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: The version PR carries no changeset
+        run: bash scripts/version-pr-fresh.sh HEAD
