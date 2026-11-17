@@ -125,6 +125,9 @@ export const Slider = (props: SliderProps): JSX.Element => {
     get onValueChange() {
       return props.onValueChange;
     },
+    get feedback() {
+      return props.feedback;
+    },
   });
   untrack(() => props.onReady)?.(slider);
 

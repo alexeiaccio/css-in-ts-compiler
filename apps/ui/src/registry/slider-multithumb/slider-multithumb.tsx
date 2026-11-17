@@ -136,6 +136,9 @@ export const SliderMultithumb = (props: SliderMultithumbProps): JSX.Element => {
     get onValueChange() {
       return props.onValueChange;
     },
+    get feedback() {
+      return props.feedback;
+    },
   });
   untrack(() => props.onReady)?.(slider);
 
