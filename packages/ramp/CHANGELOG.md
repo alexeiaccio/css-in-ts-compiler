@@ -1,5 +1,12 @@
 # @cssints/ramp
 
+## 0.42.0
+
+### Patch Changes
+
+- Updated dependencies [a4edd40]
+  - cssints@0.42.0
+
 ## 0.41.2
 
 No changes in this release.

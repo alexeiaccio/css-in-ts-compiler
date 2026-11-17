@@ -1,5 +1,31 @@
 # @cssints/headless
 
+## 0.42.0
+
+### Minor Changes
+
+- 69dc082: `createDiagramFocus` makes edges from the keyboard: `c` starts a link from the active node, the arrows pick the node it
+  should join, Enter fires `onConnect(from, to)` and Escape forgets it, with `canConnect(from, to)` refusing a pair and the
+  live region announcing the link. `startConnect(id)`, `connectTo(id)` and `connectFrom()` are the same pending state for a
+  host's pointer drag, so both halves draw one line and say one sentence.
+- e852380: `createModifiers`: table transformations reified as a persistent stack of units over columns (MuTable,
+  UIST '26), with the accessibility a pointer-only version would lose. One encoding has one owner — the
+  topmost unit covering the column — so the order means what it means; a unit's `parts` carry its coverage
+  by position, so a joined unit is a reusable sequence and retargeting it moves every step. `locked` says
+  which column is the input, as a table's sort is a descriptor the host computes with.
+  
+  The rail is a `toolbar` of menu buttons: arrows move focus, `Alt`+arrow reorders (the drag's keyboard
+  route, where dragging is the pointer's), `Enter`/`Space`/`Shift+F10` opens the unit's menu (its span as
+  checkboxes, the lock as radios, join with above, split, remove), and `Delete` removes. A unit's
+  `aria-label` is its span and its lock; every structural change is announced through a `createStatus`
+  region, and only once the host's stack says it happened — a controlled host that refuses a request gets
+  no message. Encodings stay decoration: the values remain text, `mark` being a smaller rendering of them.
+
+### Patch Changes
+
+- 48a1000: `createModifiers`' two props objects name their parts (`data-part="toolbar"` and `data-part="item"`), like every other primitive since 0.41.0 — the primitive landed after that pass and the source-shape guard in `test/parts.test.ts` caught it, which is what the guard is for.
+- @cssints/machine@0.42.0
+
 ## 0.41.2
 
 ### Patch Changes
