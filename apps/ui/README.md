@@ -32,6 +32,38 @@ field, an item matches by its title or by one of its stories, and Escape clears 
 The theme (`src/registry/theme.ts`, `tokens.ts`) is tokens-as-code; `scripts/theme-css.ts` compiles the same data to plain
 custom properties for a project that has no cssints plugin.
 
+## Writing a skin
+
+A skin is a look that changes _shape_, not only values, and it is written in three levels:
+
+- **tokens — the values.** `packages/tokens` holds the DTCG source; `scripts/theme-css.ts` compiles it to
+  `src/registry/theme.css`. A skin that needs values of its own ships a token file beside its sheet:
+  `hardware/tokens-01.css` turns one OKLCH key colour into `--key-ink`, `--key-cap`, `--key-lamp`, `--ring`, and the panel
+  greys, hairs and shadows the sheet builds every rule from.
+- **theme — a named set of those values.** `tokens.ts` is the light set, `darkTheme` and `forcedColorsTheme` are the others,
+  and mise-en-mode exposes the dark one as the `[data-mode="dark"]` scope. A skin's own set is the block its token file
+  declares under its `[data-skin="01"]` scope.
+- **parts — the CSS that styles `data-part` names.** `hardware/skin.css` is the worked example: every rule scoped to
+  `[data-skin="01"]`, styling `[data-part="key"]`, `[data-part="rocker-cap"]`, `[data-part="lcd-screen"]` and the markup the
+  skin itself adds (`faceplate`, `key`, `fader`, …).
+
+A skin styles parts, it does not reimplement them: the primitive owns the behaviour and puts `data-part` on the props it
+ships, the skin owns the sheet and its own parts' markup. Both ways that seam can be crossed render — so
+`bun run skin:check` (in this directory, and beside `theme:check` in the `ui` workflow) enforces the two rules:
+
+- **every part a skin styles exists**: a `[data-part="x"]` in the skin's CSS must name a part some primitive in
+  `packages/headless/src` emits, or one the skin's own `.tsx` declares. A name from neither matches no element.
+- **every token a skin reads resolves**: a `var(--x)` outside the skin's own declarations must be declared by the skin's
+  token file or by the theme layer. An undeclared read is `unset`, not an error, so a surface silently loses its paint.
+
+The check scans the text of the skin's sheets, not a CSS parse, with comments and at-rule preludes blanked first. It does not
+check contrast (that is `check.contrast` in `theme.ts`, per theme) and it does not know whether a part is used on the page —
+only that it can be.
+
+The **directory is the installable artifact**: `node scripts/registry-json.ts` emits `public/r/hardware.json` whose files are
+the skin's `.tsx`, `skin.css`, `tokens-01.css` and its browser test — one registry item, `add hardware`, that arrives with the
+token file it reads, leaning on `@cssints/theme` through `registryDependencies`. A skin is not a package.
+
 ## The no-JS contract
 
 `src/registry/tabs/tabs.tsx` exports `TabsFallback`: a list of in-page links, then a heading and the full content per
