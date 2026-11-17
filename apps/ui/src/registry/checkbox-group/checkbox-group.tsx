@@ -73,6 +73,12 @@ export const CheckboxGroup = <T,>(props: CheckboxGroupProps<T>): JSX.Element => 
     get onValueChange() {
       return props.onValueChange;
     },
+    // the group reports for its boxes (each kit `Checkbox` asks the group to
+    // click, and the group's `click` is what emits): passing `feedback` to the
+    // children as well would tick twice for one activation
+    get feedback() {
+      return props.feedback;
+    },
     get onFocus() {
       return props.onFocus;
     },

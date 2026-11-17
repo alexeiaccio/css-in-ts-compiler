@@ -1,5 +1,6 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
+import { type Feedback, createFeedback } from "./feedback";
 
 export interface SpinbuttonOptions {
   readonly min?: number;
@@ -26,6 +27,13 @@ export interface SpinbuttonOptions {
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.
    */
   readonly onValueChange?: (value: number) => void;
+  /**
+   * The physical side of a user's gesture, as named intents: `detent` per
+   * landed step (a key, a stepper button), `limit` at a bound. Never fired for
+   * a typed value committed with Enter/blur, for `setValue`, or for the host
+   * writing `value`.
+   */
+  readonly feedback?: Feedback | undefined;
 }
 
 export interface SpinbuttonInputProps {
@@ -98,6 +106,11 @@ export interface Spinbutton {
  * stepper buttons, Enter and blur are requests the host may ignore; typing and
  * Escape change no committed value.
  *
+ * `feedback` (`src/feedback.ts`) reports a user's gesture as named intents:
+ * `detent` per landed step (a key, a stepper), `limit` at a bound, nothing for a
+ * typed draft committed with Enter/blur, for `setValue`, or for the host
+ * writing `value`.
+ *
  * `disabled` is a widget-level extension of the pattern (the spec models the
  * steppers' bound only, and lists this under its deliberate omissions): the
  * field announces `aria-disabled` and carries the native `disabled`, every key,
@@ -134,6 +147,8 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
 
   const commitValue = (next: number): void => request(clamp(next));
 
+  const feedback = createFeedback(() => options.feedback);
+
   const clearDraft = (): void => {
     setEditing(false);
     setDraft("");
@@ -162,6 +177,9 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
     const next = direction === 1 ? up(from, distance) : down(from, distance);
     clearDraft();
     commitValue(next);
+    // a step that lands where the value already was hit a bound (or a `wrap`
+    // round trip, which is a step like any other)
+    feedback.step(from, clamp(next));
   };
 
   const keyDown = (key: string): boolean => {
@@ -181,14 +199,20 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       case "PageDown":
         applyStep(-1, largeStep);
         return true;
-      case "Home":
+      case "Home": {
+        const from = baseValue();
         clearDraft();
         commitValue(min);
+        feedback.step(from, min);
         return true;
-      case "End":
+      }
+      case "End": {
+        const from = baseValue();
         clearDraft();
         commitValue(max);
+        feedback.step(from, max);
         return true;
+      }
       case "Enter":
         commit();
         return true;
@@ -229,6 +253,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       return;
     }
     setFocused(true);
+    feedback.rearm();
     applyStep(1, step);
   };
 
@@ -237,6 +262,7 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       return;
     }
     setFocused(true);
+    feedback.rearm();
     applyStep(-1, step);
   };
 
@@ -297,6 +323,9 @@ export const createSpinbutton = (options: SpinbuttonOptions = {}): Spinbutton =>
       onFocus: () => setFocused(true),
       onBlur: blurField,
       onKeyDown: (event) => {
+        if (!event.repeat) {
+          feedback.rearm();
+        }
         if (keyDown(event.key)) {
           event.preventDefault();
         }

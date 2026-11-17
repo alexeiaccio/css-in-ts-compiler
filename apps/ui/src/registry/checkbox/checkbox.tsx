@@ -71,6 +71,9 @@ export const Checkbox = (props: CheckboxProps): JSX.Element => {
     get onValueChange() {
       return props.onValueChange;
     },
+    get feedback() {
+      return props.feedback;
+    },
   });
   untrack(() => props.onReady)?.(checkbox);
   return (

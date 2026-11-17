@@ -1,5 +1,6 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
+import { type Feedback, createFeedback } from "./feedback";
 import {
   type RailDrag,
   type SliderDirection,
@@ -35,6 +36,12 @@ export interface SliderOptions {
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.
    */
   readonly onValueChange?: (value: number) => void;
+  /**
+   * The physical side of a user's gesture, as named intents: `detent` per
+   * landed step, `limit` when the thumb is already at a bound. Never fired for
+   * `setValue` or for a host writing `value`.
+   */
+  readonly feedback?: Feedback | undefined;
 }
 
 export interface SliderThumbProps {
@@ -101,6 +108,11 @@ const valueTextFor = (value: number): string =>
  * pass `value` + `onValueChange` to own the value. A key, a rail press and a
  * drag are requests the host may ignore.
  *
+ * `feedback` (`src/feedback.ts`) reports a user's gesture as named intents:
+ * `detent` per landed step, `limit` at a bound, nothing for `setValue` or for
+ * the host writing `value`. A press that jumps several steps is one detent — the
+ * tick marks where the thumb landed, not every step it crossed.
+ *
  * A press on the rail jumps to the pointer and starts a drag: while the pointer
  * is held the value follows its position on the rail, and `pointerup`,
  * `pointercancel` or a lost capture ends it. The rail owns the drag whichever
@@ -137,6 +149,17 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
 
   const commit = (next: number): void => request(clamp(next));
 
+  const feedback = createFeedback(() => options.feedback);
+
+  // A user's step, as opposed to `setValue`: the landed value decides between a
+  // detent (it moved) and a limit (it was already at the bound).
+  const userStep = (next: number): void => {
+    const from = value();
+    const to = clamp(next);
+    commit(next);
+    feedback.step(from, to);
+  };
+
   const delta = (key: string): number => {
     switch (key) {
       case "ArrowUp":
@@ -161,18 +184,18 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
       return false;
     }
     if (key === "Home") {
-      commit(min);
+      userStep(min);
       return true;
     }
     if (key === "End") {
-      commit(max);
+      userStep(max);
       return true;
     }
     const change = delta(key);
     if (change === 0) {
       return false;
     }
-    commit(value() + change);
+    userStep(value() + change);
     return true;
   };
 
@@ -181,7 +204,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
       return;
     }
     const steps = Math.round((position * (max - min)) / step);
-    commit(min + steps * step);
+    userStep(min + steps * step);
     setFocused(true);
   };
 
@@ -197,6 +220,8 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
 
   const endDrag = (event: PointerEvent): void => {
     drag = endRailDrag(drag, event);
+    // a new press may hit the same bound again
+    feedback.rearm();
   };
 
   return {
@@ -231,6 +256,11 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
       onFocus: () => setFocused(true),
       onBlur: () => setFocused(false),
       onKeyDown: (event) => {
+        // a held key repeats the same bound many times a second: a fresh press
+        // re-arms the limit, its own repeats do not
+        if (!event.repeat) {
+          feedback.rearm();
+        }
         if (keyDown(event.key)) {
           event.preventDefault();
         }
@@ -252,6 +282,7 @@ export const createSlider = (options: SliderOptions = {}): Slider => {
           return;
         }
         drag = next;
+        feedback.rearm();
         if (!onThumb(event)) {
           const position = railPositionAt(event, next.element, orientation(), direction());
           if (position !== undefined) {

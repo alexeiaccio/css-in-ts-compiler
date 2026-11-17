@@ -191,6 +191,40 @@ Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, bu
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
+## Feedback
+
+The physical side of a gesture is **output, not state**. Nothing about a detent being felt changes what a widget is, so it is not a primitive, not a spec and not a provider/context: `@cssints/headless` takes options in and returns props out, and a `<Haptics>` provider would be exactly the ambient state every primitive here was written to avoid. The primitives with physical semantics — `knob`, `slider`, `slider-multithumb`, `spinbutton`, `switch`, `checkbox` (and `checkbox-group`, once for its children) — take one option, the same name and shape on every one of them:
+
+```ts
+export type FeedbackIntent = "detent" | "latch" | "release" | "limit";
+
+export interface Feedback {
+  /** The vibration channel; the host maps an intent to `navigator.vibrate(...)`, or to nothing. */
+  readonly haptic?: (intent: FeedbackIntent) => void;
+  /** The sound channel: the same intents, for a click sample or a beep. */
+  readonly sound?: (intent: FeedbackIntent) => void;
+}
+```
+
+`feedback?: Feedback` — both channels optional, both called with the same intent, and nothing is called when the host passes neither. It is read lazily, so a host that flips its "haptics off" preference does not rebuild the widget.
+
+**Named intents, never milliseconds, never the platform.** The string union is the whole contract. `navigator.vibrate` is missing entirely on iOS Safari and inert in a background tab, so a primitive that promised a haptic would lie on half the targets; the host decides what `"detent"` is (`navigator.vibrate(8)`, a click sample, nothing), and its off switch belongs next to `announce` in its preferences, not in a primitive. The pattern and the sample are the skin's or the app's.
+
+| intent    | when it fires                                                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `detent`  | a user interaction crossed a step: a drag landed on a new value, a wheel notch (`knob`), an arrow / PageUp / PageDown key, a stepper button                                                |
+| `latch`   | a two-state control turned **on** — `switch`, `checkbox`, a box in a `checkbox-group` (a `mixed` box checks, so it latches; the group's controller latches only when every box ends up on) |
+| `release` | that control turned **off**                                                                                                                                                                |
+| `limit`   | a user interaction hit a bound (min, max, the neighbouring thumb) and could move no further                                                                                                |
+
+No intent on `focus`, on a programmatic change (`setValue`, `setChecked`, `setValues`, `setChildren`, `stepBy`), or when the host writes `value`. A press that jumps several steps is **one** detent: the tick marks where the thumb landed, not every step it crossed.
+
+**One `limit` per interaction, not one per frame.** A held arrow key, a wheel still spinning and a pointer pressed against the end all arrive many times a second, and a tick each is a buzz. The primitive emits the first `limit` and stops until something moves the value or a new interaction starts — a fresh key press or pointer press against the same bound ticks again.
+
+**A vetoed request still ticks once.** The intent is issued with the request the user made. The primitive cannot see a controlled host's veto without a frame of delay, and a late tick is worse than a missing one, so a host that refuses changes gates `feedback` itself (the same gate as "haptics off").
+
+**`checkbox-group`**: pass `feedback` to the group, not to each box. The group reports for its children — a kit `Checkbox` inside a group asks the group to click — so one activation is one intent instead of two.
+
 ## Canvas
 
 `createCanvas` is a headless viewport: the host renders the DOM, the primitive owns the camera, the gesture machine, the focus contract and the state. Its behaviour is `packages/apg-specs/specs/canvas/{camera,pointer}.qnt`, and the DOM is checked against it by the differential walk.

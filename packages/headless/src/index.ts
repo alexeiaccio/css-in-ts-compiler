@@ -67,6 +67,7 @@ export * from "./dialog-modal";
 export * from "./drawer";
 export * from "./dropzone";
 export * from "./feed";
+export { type Feedback, type FeedbackIntent } from "./feedback";
 export * from "./field";
 export * from "./focusgroup";
 export * from "./focusgrid";

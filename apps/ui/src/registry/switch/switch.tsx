@@ -60,6 +60,7 @@ export const Switch = (props: SwitchProps): JSX.Element => {
     readOnly: props.readOnly,
     enterToggles: props.enterToggles,
     onValueChange: props.onValueChange,
+    feedback: props.feedback,
   });
   untrack(() => props.onReady)?.(sw);
   return (

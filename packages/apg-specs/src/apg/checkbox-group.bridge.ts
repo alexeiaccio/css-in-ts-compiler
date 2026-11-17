@@ -89,6 +89,12 @@ export const checkboxGroupConfig = (config: ScenarioConfig): CheckboxGroupConfig
           throw new Unsupported(`items ${JSON.stringify(value)}`);
         }
         break;
+      // a host option, not behaviour: a scenario may carry it, the walk ignores it
+      case "feedback":
+        if (typeof value !== "boolean") {
+          throw new Unsupported(`config feedback=${JSON.stringify(value)}`);
+        }
+        break;
       default:
         throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
     }

@@ -33,6 +33,8 @@ const CONFIG_KEYS = new Set([
   "isReadOnly",
   "enterToggles",
   "controlled",
+  // a host option, not behaviour: a scenario may carry it, the walk ignores it
+  "feedback",
 ]);
 
 /**

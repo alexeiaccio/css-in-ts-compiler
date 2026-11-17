@@ -1,5 +1,6 @@
 import { type Accessor, createSignal } from "solid-js";
 import { createControllable } from "./controllable";
+import { type Feedback, createFeedback } from "./feedback";
 
 export interface SwitchOptions {
   /** Controlled: the host owns the state and this is the only thing that changes it. */
@@ -15,6 +16,12 @@ export interface SwitchOptions {
    * current value. Uncontrolled it is accepted; controlled the host may ignore it.
    */
   readonly onValueChange?: (checked: boolean) => void;
+  /**
+   * The physical side of a user's turn, as named intents: `latch` when it turns
+   * on, `release` when it turns off. Never fired for `setChecked` or for the
+   * host writing `value`.
+   */
+  readonly feedback?: Feedback | undefined;
 }
 
 /** Spread onto the focusable element with `role=switch`. */
@@ -56,6 +63,10 @@ export interface Switch {
  *
  * Request/commit (map ticket `rt1p`): uncontrolled by default (`defaultValue`);
  * pass `value` + `onValueChange` to own the state.
+ *
+ * `feedback` (`src/feedback.ts`): a user's turn reports `latch` when the state
+ * lands on and `release` when it lands off; `setChecked` and the host writing
+ * `value` are silent, and so is a blocked (disabled / read-only) turn.
  */
 export const createSwitch = (options: SwitchOptions = {}): Switch => {
   const [checked, requestChecked] = createControllable<boolean>({
@@ -71,11 +82,15 @@ export const createSwitch = (options: SwitchOptions = {}): Switch => {
 
   const blocked = (): boolean => disabled() || readOnly();
 
+  const feedback = createFeedback(() => options.feedback);
+
   const toggle = (): void => {
     if (blocked()) {
       return;
     }
-    requestChecked(!checked());
+    const next = !checked();
+    requestChecked(next);
+    feedback.turn(next);
   };
 
   return {
@@ -118,7 +133,7 @@ export const createSwitch = (options: SwitchOptions = {}): Switch => {
         }
         if (event.key === "Enter" && enterToggles() && !blocked()) {
           event.preventDefault();
-          requestChecked(!checked());
+          toggle();
         }
       },
       onKeyUp: (event) => {
@@ -128,7 +143,7 @@ export const createSwitch = (options: SwitchOptions = {}): Switch => {
         const armed = spaceArmed();
         setSpaceArmed(false);
         if (armed && !blocked()) {
-          requestChecked(!checked());
+          toggle();
         }
       },
       onClick: () => {
@@ -136,7 +151,7 @@ export const createSwitch = (options: SwitchOptions = {}): Switch => {
           return;
         }
         setFocused(true);
-        requestChecked(!checked());
+        toggle();
       },
       onFocus: () => {
         setFocused(true);

@@ -1,6 +1,7 @@
 import { type Accessor, createSignal, createUniqueId } from "solid-js";
 import { createControllable } from "./controllable";
 import { createField, type FieldErrorProps } from "./field";
+import { type Feedback, createFeedback } from "./feedback";
 
 export type CheckboxGroupFocus = "none" | "parent" | "c0" | "c1" | "c2";
 export type ParentChecked = "true" | "false" | "mixed";
@@ -38,6 +39,14 @@ export interface CheckboxGroupOptions<T = unknown> {
    * ignore it.
    */
   readonly onValueChange?: (checked: ReadonlyArray<T>) => void;
+  /**
+   * The physical side of a user's activation, as named intents, for the group's
+   * own props (`childProps`, `parentProps`): the activated box reports `latch`
+   * when it ends up checked and `release` when it ends up unchecked; the
+   * controller latches only when it turns every box on. Never fired for
+   * `setChildren` or for the host writing `value`.
+   */
+  readonly feedback?: Feedback | undefined;
   readonly onFocus?: (target: string) => void;
   readonly onBlur?: () => void;
 }
@@ -152,6 +161,11 @@ const nextFocus = (focus: CheckboxGroupFocus): CheckboxGroupFocus => {
  * pass `value` + `onValueChange` to own the checked subset. The checked set is
  * packed internally so it rides the scalar `createControllable`.
  *
+ * `feedback` (`src/feedback.ts`): the group's own props report one `latch` /
+ * `release` per user activation (`childProps`, `parentProps`, `click`,
+ * `keySpace`), so a host that renders the children as its own checkboxes still
+ * gets one tick: pass `feedback` here, not to each child.
+ *
  * The name, the description and the error are `createField`'s contract on the
  * `role="group"` element (`aria-label` / `aria-labelledby`, `aria-describedby`,
  * `aria-invalid`, an error element that is `role="alert"` while it is shown), so
@@ -197,6 +211,8 @@ export const createCheckboxGroup = <T = unknown>(
   const [memory, setMemory] = createSignal<ReadonlyArray<boolean>>(normalizeChildren([]));
   const [remember, setRememberSignal] = createSignal(options.remember === true);
   const [focused, setFocused] = createSignal<CheckboxGroupFocus>("none");
+
+  const feedback = createFeedback(() => options.feedback);
 
   const children = (): ReadonlyArray<boolean> =>
     [0, 1, 2].map((index) => bitAt(packedChildren(), index));
@@ -260,6 +276,10 @@ export const createCheckboxGroup = <T = unknown>(
     const nextPacked = packed(next);
     if (nextPacked !== packedChildren()) {
       requestPacked(nextPacked);
+      // the box the user activated: a child latches on, releases off; the
+      // controller counts as "on" only when every child ends up checked
+      const on = target === "parent" ? isAll(next) : next[Number(target.slice(1))] === true;
+      feedback.turn(on);
     }
   };
 
