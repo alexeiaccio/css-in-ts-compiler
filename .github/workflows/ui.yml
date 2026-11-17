@@ -81,6 +81,11 @@ jobs:
       - name: The compiled theme is current
         working-directory: apps/ui
         run: bun run theme:check
+      # A skin's two silent failures: a part selector nothing emits and a token nothing declares. Both render, and
+      # both are dead CSS a reviewer reads as fine, so they are checked here before a directory becomes an item.
+      - name: Every skin's parts and tokens resolve
+        working-directory: apps/ui
+        run: bun run skin:check
       # The smoke installs the *committed* items, so a drifted item would be tested in its old shape. Regenerate
       # and format the way a person does, and let the run continue on the fresh tree: the diff is no longer a
       # gate, because a generated file should never be a person's ritual — master commits it below (see the race

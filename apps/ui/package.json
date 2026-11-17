@@ -11,6 +11,7 @@
     "test": "vp test run --config vitest.browser.config.ts",
     "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
     "theme:check": "node --experimental-strip-types scripts/theme-css.ts --check",
+    "skin:check": "node --experimental-strip-types scripts/skin-check.ts",
     "test:site": "node test/site.mjs",
     "test:vitals": "node test/vitals.mjs"
   },
