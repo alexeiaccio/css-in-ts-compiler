@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -78,7 +79,7 @@ export const resizablePanelsConfig = (config: ScenarioConfig): PanelsConfig => {
     } else if (key === "max" && raw === PANEL_MAX) {
       continue;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
     }
   }
   if (!controlled && layout !== "initial") {

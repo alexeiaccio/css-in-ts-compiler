@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 
@@ -36,7 +37,7 @@ export const viewTransitionConfig = (config: ScenarioConfig): ViewTransitionConf
     if (key === "motion" && (raw === "full" || raw === "reduce")) {
       motion = raw;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
     }
   }
   return { motion };

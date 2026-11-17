@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 
@@ -67,9 +68,8 @@ const DISPLAY: Readonly<Record<string, string>> = {
  * config is not modelled.
  */
 export const reactiveConfig = (config: ScenarioConfig): void => {
-  const key = Object.keys(config)[0];
-  if (key !== undefined) {
-    throw new Unsupported(`config ${key}=${JSON.stringify(config[key])}`);
+  for (const [key, value] of Object.entries(config)) {
+    checkUnknownConfigKey(key, value);
   }
 };
 

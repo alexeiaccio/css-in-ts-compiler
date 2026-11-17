@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -81,7 +82,7 @@ export const disclosureConfig = (config: ScenarioConfig): DisclosureConfig => {
     } else if (key === "nativeButton" && value === true) {
       continue;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return { expanded, disabled, controlled, accepts: controlled && !pinned };

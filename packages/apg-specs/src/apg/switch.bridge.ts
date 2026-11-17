@@ -1,7 +1,7 @@
 import type { ActionStep, ExtendedStepField, Probe, ScenarioConfig, SpecBridge } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
-import { Unsupported } from "../scenario";
+import { Unsupported, checkUnknownConfigKey } from "../scenario";
 
 // The spec's events are `{ _tag }` records by construction (quint-machine's QuintEvent).
 // oxlint-disable-next-line automation/no-manual-tagged-construction
@@ -33,8 +33,6 @@ const CONFIG_KEYS = new Set([
   "isReadOnly",
   "enterToggles",
   "controlled",
-  // a host option, not behaviour: a scenario may carry it, the walk ignores it
-  "feedback",
 ]);
 
 /**
@@ -55,7 +53,8 @@ export const switchConfig = (config: ScenarioConfig): SwitchConfig => {
   let pinned = false;
   for (const [key, value] of Object.entries(config)) {
     if (!CONFIG_KEYS.has(key)) {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
+      continue;
     }
     switch (key) {
       case "part":

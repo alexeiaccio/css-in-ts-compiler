@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -126,14 +127,8 @@ export const sliderMultithumbConfig = (config: ScenarioConfig): SliderMultithumb
         }
         dir = raw;
         break;
-      // a host option, not behaviour: a scenario may carry it, the walk ignores it
-      case "feedback":
-        if (typeof raw !== "boolean") {
-          throw new Unsupported(`config feedback=${JSON.stringify(raw)}`);
-        }
-        break;
       default:
-        throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+        checkUnknownConfigKey(key, raw);
     }
   }
   return {

@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { ComboboxSelectOnlyConfig } from "./combobox-select-only.bridge";
@@ -98,7 +99,7 @@ export const comboboxAutocompleteConfig = (config: ScenarioConfig): ComboboxAuto
       }
       controlled = true;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return {

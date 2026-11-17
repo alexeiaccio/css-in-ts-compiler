@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintValue } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -49,7 +50,7 @@ export const playerConfig = (config: ScenarioConfig): PlayerConfig => {
     } else if (key === "accepts" && typeof value === "boolean") {
       accepts = value;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return { duration, controlled, accepts };

@@ -1,7 +1,7 @@
 import type { ActionStep, Probe, ScenarioConfig, SpecBridge } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 import type { Schema } from "effect";
-import { Unsupported } from "../scenario";
+import { Unsupported, checkUnknownConfigKey } from "../scenario";
 
 // The spec's events are `{ _tag }` records by construction (quint-machine's QuintEvent).
 // oxlint-disable-next-line automation/no-manual-tagged-construction
@@ -89,14 +89,8 @@ export const checkboxGroupConfig = (config: ScenarioConfig): CheckboxGroupConfig
           throw new Unsupported(`items ${JSON.stringify(value)}`);
         }
         break;
-      // a host option, not behaviour: a scenario may carry it, the walk ignores it
-      case "feedback":
-        if (typeof value !== "boolean") {
-          throw new Unsupported(`config feedback=${JSON.stringify(value)}`);
-        }
-        break;
       default:
-        throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+        checkUnknownConfigKey(key, value);
     }
   }
 

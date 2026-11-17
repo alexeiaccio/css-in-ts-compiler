@@ -1,5 +1,5 @@
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
-import { type ScenarioConfig, Unsupported } from "../scenario";
+import { type ScenarioConfig, Unsupported, checkUnknownConfigKey } from "../scenario";
 import type { Schema } from "effect";
 
 // The spec's events are `{ _tag }` records by construction (quint-machine's QuintEvent).
@@ -182,7 +182,7 @@ export const listboxConfig = (
         ariaLabel = value;
         break;
       default:
-        throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+        checkUnknownConfigKey(key, value);
     }
   }
   if (items.length === 0) {

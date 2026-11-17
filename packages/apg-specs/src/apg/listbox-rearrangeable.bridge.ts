@@ -8,7 +8,7 @@ import {
   requestedIndices,
   specEvent,
 } from "./listbox-shared";
-import { Unsupported } from "../scenario";
+import { Unsupported, checkUnknownConfigKey } from "../scenario";
 
 /**
  * Rearrangeable listbox vocabulary <-> `specs/apg/listbox-rearrangeable.qnt`.
@@ -59,7 +59,7 @@ export const listboxRearrangeableConfig = (config: ScenarioConfig): Rearrangeabl
       accepts = config[key] === true;
       continue;
     }
-    throw new Unsupported(`config ${key}`);
+    checkUnknownConfigKey(key, config[key] ?? null);
   }
   return { items: raw, multi: config["multi"] === true, controlled, accepts };
 };

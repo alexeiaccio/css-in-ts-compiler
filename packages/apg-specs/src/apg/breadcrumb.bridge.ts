@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent } from "@quint-machine/core";
 import type { Schema } from "effect";
@@ -71,7 +72,7 @@ export const breadcrumbConfig = (config: ScenarioConfig): BreadcrumbConfig => {
         }
         break;
       default:
-        throw new Unsupported(`config ${key}=${JSON.stringify(value)}`);
+        checkUnknownConfigKey(key, value);
     }
   }
   return { count, disabled, label, labelledby, describedby };

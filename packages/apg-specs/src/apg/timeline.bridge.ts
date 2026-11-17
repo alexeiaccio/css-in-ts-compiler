@@ -5,6 +5,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintValue } from "@quint-machine/core";
 
@@ -95,7 +96,7 @@ export const timelineConfig = (config: ScenarioConfig): TimelineConfig => {
       pinned = nodeValue(key, value);
       controlled = true;
     } else {
-      throw new Unsupported(`config ${key}=${String(value)}`);
+      checkUnknownConfigKey(key, value);
     }
   }
   return {

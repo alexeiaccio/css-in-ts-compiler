@@ -4,6 +4,7 @@ import {
   type ScenarioConfig,
   type SpecBridge,
   Unsupported,
+  checkUnknownConfigKey,
 } from "../scenario";
 import type { QuintEvent, QuintModelValue } from "@quint-machine/core";
 
@@ -55,7 +56,8 @@ export const dialogModalConfig = (config: ScenarioConfig): DialogModalConfig => 
   let accepts = true;
   for (const [key, raw] of Object.entries(config)) {
     if (!CONFIG_KEYS.has(key)) {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
+      continue;
     }
     if ((key === "open" || key === "defaultOpen") && typeof raw === "boolean") {
       open = raw;
@@ -82,7 +84,7 @@ export const dialogModalConfig = (config: ScenarioConfig): DialogModalConfig => 
     } else if (key === "isKeyboardDismissDisabled" && typeof raw === "boolean") {
       keyboardDismissDisabled = raw;
     } else {
-      throw new Unsupported(`config ${key}=${JSON.stringify(raw)}`);
+      checkUnknownConfigKey(key, raw);
     }
   }
   return {
