@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      /* a finite CSS animation (3 s, three turns) and a transition the test starts: the two kinds the panel lists */
+      #pulse {
+        width: 40px;
+        height: 40px;
+        background: #60a5fa;
+        animation: pulse 3s ease-in-out 3;
+        transition: opacity 1s linear;
+      }
+      @keyframes pulse {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(1.5);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p id="p">hello</p>
+    <div id="pulse"></div>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

@@ -11,8 +11,18 @@ import { type MountedResizablePanels, mountResizablePanels } from "./resizable-p
 const frame = (): Promise<void> =>
   new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
-/** A layout change eases over 160 ms for a reader who allows motion: wait it out before measuring a pane. */
-const settleMotion = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 200));
+/**
+ * A layout change eases over 160 ms for a reader who allows motion. The panes are measured at the ease's end, and the end
+ * is the grid's own transition — `finish()` — so a runner that is slow to paint cannot measure a half-moved pane.
+ */
+const settleMotion = (root: ParentNode): void => {
+  const grid = group(root);
+  for (const animation of document.getAnimations()) {
+    if ((animation.effect as KeyframeEffect | null)?.target === grid) {
+      animation.finish();
+    }
+  }
+};
 
 /** Polls until `done` holds, so a transition is waited for rather than assumed. */
 const waitFor = async (done: () => boolean, limit = 2000): Promise<void> => {
@@ -171,7 +181,7 @@ describe("ResizablePanels", () => {
     expect(value(first)).toBe(32);
     expect(template(root)).toBe("32fr auto 40fr auto 28fr");
 
-    await settleMotion();
+    await settleMotion(root);
     const wider = panes(root)[0]?.getBoundingClientRect().width ?? 0;
     expect(wider).toBeGreaterThan(startWidth);
 

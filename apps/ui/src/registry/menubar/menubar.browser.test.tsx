@@ -135,6 +135,16 @@ const key = async (name: string): Promise<void> => {
   await userEvent.keyboard(`{${name}}`);
   flush();
 };
+/** The frame an attribute change reaches style on: a transition starts there, not when the event fires. */
+const frame = (): Promise<void> =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+/** The animations an element is running, read from the page (`Element.getAnimations()` leaves a pseudo-element's out). */
+const motion = (element: Element): ReadonlyArray<Animation> =>
+  document
+    .getAnimations()
+    .filter((animation) => (animation.effect as KeyframeEffect | null)?.target === element);
 const highlighted = (rows: ReadonlyArray<HTMLElement>): ReadonlyArray<string | null> =>
   rows.map((row) => row.getAttribute("data-highlighted"));
 
@@ -255,6 +265,7 @@ describe("Menubar (the kit's DOM)", () => {
     expect(parent.getAttribute("aria-expanded")).toBe("true");
     expect(shown(submenu)).toBe(true);
     expect(submenu.getAttribute("role")).toBe("menu");
+    await frame();
     expect(style(chevron).transform).not.toBe("none");
     // the submenu floats beside its parent row, which is its anchor
     expect(style(parent).position).toBe("relative");
@@ -270,8 +281,14 @@ describe("Menubar (the kit's DOM)", () => {
     await key("Escape");
     expect(shown(submenu)).toBe(false);
     expect(parent.getAttribute("aria-expanded")).toBe("false");
-    // the chevron is painted from `aria-expanded` through a 120 ms transition: let it land before reading it
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // the chevron is painted from `aria-expanded` through a 120 ms transition: the assertion is about its end, so the
+    // transition is the thing asked — it has to be there, and `finish()` is the end a reader sees, however loaded the runner
+    await frame();
+    const turn = motion(chevron);
+    expect(turn.length).toBeGreaterThan(0);
+    for (const animation of turn) {
+      animation.finish();
+    }
     expect(style(chevron).transform).toBe("none");
     expect(shown(menu)).toBe(true);
     expect(document.activeElement).toBe(parent);
