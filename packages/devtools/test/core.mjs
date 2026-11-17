@@ -10,6 +10,7 @@ import { Window } from "happy-dom";
 
 import {
   buildPrompt,
+  domPage,
   inspect,
   pagePrompt,
   toModel,
@@ -641,6 +642,49 @@ ${odd} {
   const exit = await Effect.runPromiseExit(toModel({ sheet: 1 }));
   assert.ok(Exit.isFailure(exit));
   assert.match(String(exit.cause), /TableError/);
+}
+
+// ---------- verify()'s `animated` flag, on the real layer: a pseudo-element's transition
+// dom.ts is the browser's page and reads the page's globals, so this one case lends it happy-dom's; every other case here
+// stubs `Page`. The flag is what turns a mismatch into "an animation or a transition is running on the element".
+{
+  const lent = ["document", "getComputedStyle", "Element", "HTMLElement", "SVGElement"];
+  const saved = new Map(lent.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const key of lent) {
+    Object.defineProperty(globalThis, key, {
+      configurable: true,
+      writable: true,
+      value: key === "getComputedStyle" ? window.getComputedStyle.bind(window) : window[key],
+    });
+  }
+  try {
+    const lift = document.createElement("div");
+    lift.id = "lift";
+    // the element and the clone agree on the value: this case is about the flag, not about a verdict
+    lift.style.setProperty("scale", "1.5");
+    document.body.append(lift);
+    const dom = Effect.runSync(Effect.service(Page).pipe(Effect.provide(domPage)));
+    const animatedOf = (animations) => {
+      document.getAnimations = () => animations;
+      const [observed] = Effect.runSync(dom.verify(lift, "scale", "#lift", "1.5", ["scale"]));
+      return observed.animated;
+    };
+    // the donut's hover lift: a transition on the element's ::before, which Element.getAnimations() does not return
+    assert.equal(animatedOf([{ effect: { target: lift, pseudoElement: "::before" } }]), true);
+    assert.equal(
+      animatedOf([{ effect: { target: document.body } }]),
+      false,
+      "another element's motion",
+    );
+    assert.equal(animatedOf([]), false, "nothing running");
+    lift.remove();
+  } finally {
+    delete document.getAnimations;
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
 }
 
 console.log("devtools core ok");
