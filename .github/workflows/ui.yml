@@ -117,22 +117,29 @@ jobs:
           fi
           git commit -m "chore(ui): the registry items and the conformance records the smoke wrote"
           # A merge can land while this job runs, and a plain push is then rejected (`fetch first`) — which is
-          # how the first version of this step failed and left the deployed records behind. The files are
-          # generated, so the fix is to replay them on the newest master and try again. A record that still
-          # cannot be written is a warning, never a red gate: a stale record hides a section (the fingerprint
-          # decides), it does not lie.
+          # how the first version of this step failed and left the deployed records behind.
+          #
+          # The retry must NOT move this checkout's HEAD: its tree contains everything the run merged, so a
+          # `git reset --soft origin/master` turns those commits into *staged reversals* and the next commit
+          # deletes the merge — which is exactly what it did once (a bean commit and an AGENTS.md section gone,
+          # a deleted scratch file back). Instead the generated files are staged onto master's tree in an index
+          # of their own and committed with `commit-tree`, so the commit's parent is master and its tree is
+          # master plus these files: nothing else can travel with it, whatever the checkout held.
           for attempt in 1 2 3; do
-            if git push origin HEAD:master; then
+            git fetch -q origin master
+            git read-tree origin/master
+            git add -- 'apps/ui/public/r/*.json'
+            if git diff-index --cached --quiet origin/master --; then
+              echo "the generated files are the ones on master"
               exit 0
             fi
-            echo "master moved under the results (attempt $attempt); replaying on the new tip"
-            sleep 5
-            git fetch -q origin master
-            git reset --soft origin/master
-            git add -- 'apps/ui/public/r/*.json'
-            if ! git diff --cached --quiet; then
-              git commit -q -m "chore(ui): the registry items and the conformance records the smoke wrote"
+            tree="$(git write-tree)"
+            commit="$(git commit-tree "$tree" -p origin/master -m "chore(ui): the registry items and the conformance records the smoke wrote")"
+            if git push origin "$commit:master"; then
+              exit 0
             fi
+            echo "master moved under the generated files (attempt $attempt); staging them on the new tip"
+            sleep 5
           done
           echo "::warning::the registry files could not be committed; the next master run will write them"
           exit 0
