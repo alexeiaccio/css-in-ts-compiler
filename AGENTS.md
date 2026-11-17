@@ -82,6 +82,12 @@ same way. If a generator's output looks suspiciously large, run `bun install` an
 `git push --force HEAD:<branch>` replaces the branch with upstream: the PR loses its diff and GitHub closes it. Resolve
 (`git add`), `git rebase --continue`, and check `git log --oneline -1` before any push.
 
+**Never commit generated files from a checkout that carries a merge.** `git reset --soft origin/master` in such a
+checkout turns the merged commits into *staged reversals*, and the next commit deletes them — one run of the generated
+registry files did exactly that (two merged PRs undone: a deleted scratch file came back, bean files and an `AGENTS.md`
+section vanished). Stage the generated paths onto master's tree in an index of its own
+(`git read-tree origin/master` + `git add -- <paths>` + `git commit-tree -p origin/master`) so nothing else can travel.
+
 ## Commands
 
 ```bash
