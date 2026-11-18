@@ -231,6 +231,13 @@ being the tsc 5.9 pass of the four apps and the two token checks. `effect-tsrs` 
 `scripts/typecheck.mjs` is a pass-through: the docs app type-checks the engine's sources under its own defaults, where
 three `@effect-diagnostics` directives have no effect, and those three warnings are printed and not fatal, as under `tsc`.
 
+**Lint's type-aware pass is tsrs too, since vite-plus 1.7.0** (oxlint 1.94, `tsrs 7.1.0-beta.tsrs2` in place of
+`oxlint-tsgolint`): `bun run lint` went **116 s -> 17 s** on the same 1184 files and the same 200 rules, with identical
+diagnostics, and `bun run typecheck` 292 s -> 108 s of wall time on this machine (user+sys 231 s -> 170 s, so it is work,
+not just waiting; wall times here move with the load of the parallel sessions either way). The versions are in the root
+`catalog`: `vite-plus 1.7.0` and the `vite` alias `@voidzero-dev/vite-plus-core@8.3.8000` — the core package now follows
+Vite's majors, so a manifest that names `vite` by hand needs `^8.3.0` (or `catalog:` in devDependencies).
+
 It reads the same plugin entry as `@effect/language-service`, so `tsconfig.effect.json` keeps its shape: every diagnostic
 of the 0.56 rule set an error (the off-by-default ones and the suggestions too), the reasons for the off ones beside them.
 The port is why three of them are on now: `anyUnknownInErrorContext` (tsc-rs answered TS2590, no file, no position),

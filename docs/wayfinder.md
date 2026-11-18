@@ -5728,3 +5728,17 @@ be a menu is a promise it cannot keep. The add buttons are a plain group; the pa
 unit's `aria-label`, so a screen reader that moved into the panel still knows which unit it is in. Seven browser checks: the
 table before the rail touches it, the tint and its transparency at zero share, the bar as decoration, the order, the panel's
 span/lock, join/split/move/remove, and `Alt`+arrow with the focus and the panel following the moved unit.
+
+**Vite+ 1.5.0 → 1.7.0, and the lint backend that came with it (2026-11-18):** Oxlint's type-aware pass now runs on `tsrs`
+(the Rust port of TypeScript the `effect-tsrs` typecheck already used) instead of `oxlint-tsgolint`, and the numbers are not
+subtle: `bun run lint` **116 s → 17 s** on the same 1184 files and the same 200 rules with identical diagnostics (the same two
+in `confirm-native`), `bun run typecheck` **292 s → 108 s** of wall (user+sys 231 s → 170 s), `bun run build:packages` 89 s →
+37 s (32/32), and oxfmt 0.79 asked for no reformatting anywhere (the same six files were already drifting on master). The
+core package also lost its own versioning: `@voidzero-dev/vite-plus-core` 1.5.0 → **8.3.8000** follows Vite's majors, which
+brought out two manifests that named `vite` by hand — `packages/cssints`'s devDependency `^1.4.0` (→ `catalog:`, like every
+other package) and `packages/mcp`'s published dependency (→ `^8.3.0`, since a `catalog:` range cannot be published). The
+first symptom was `vp run --filter "./packages/*" build` refusing mcp's stale nested core (`Expected
+@voidzero-dev/vite-plus-core@8.3.8000, but found 1.5.0`). **Checked:** four app builds (ui, docs, csssky, demo),
+`release:check` green, and the suites green — the parallel `bun run test` did fail, but only on the documented load-flakes:
+two Quint explorations at their 300 s timeout, four browser differential walks, and css-grammar's tsc killed with 137 (OOM);
+each passes alone (apg-specs 43, headless 86, css-grammar 33 s).
