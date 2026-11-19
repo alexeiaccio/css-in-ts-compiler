@@ -390,7 +390,9 @@ export const createTabs = (options: TabsOptions = {}): Tabs => {
   const itemElements = (): HTMLElement[] =>
     [...elements.entries()]
       .sort(([a], [b]) => a - b)
-      .filter(([index]) => !disabled.has(index))
+      // a host that removed an item from the start of its list leaves a stale
+      // entry behind (a ref is called once); a detached element is no tab stop
+      .filter(([index, element]) => !disabled.has(index) && element.isConnected)
       .map(([, element]) => element);
 
   /** One source for the attribute, the polyfill's definition and `dir`. */
