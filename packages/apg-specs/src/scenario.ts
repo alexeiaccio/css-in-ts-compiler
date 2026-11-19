@@ -178,15 +178,17 @@ export class Unsupported extends Error {}
 
 /**
  * Sink config keys: what a scenario may carry that the model cannot observe — an
- * output callback, a preference, a host seam. A JSON scenario carries the marker
- * (`true`) because JSON has no functions; the fixture attaches the real thing.
+ * output callback, a preference, a host seam (`tabs`: the opaque payload a tab
+ * hosts — the model knows the id, never the payload). A JSON scenario carries
+ * the marker (`true`) because JSON has no functions; the fixture attaches the
+ * real thing.
  *
  * One list, one place: a normaliser routes every config key it does not know
  * through `checkUnknownConfigKey`, so a new sink key is an edit here, not one
  * per bridge. The guard stays — a key that would change modelled behaviour must
  * reach the model, so it is not listed and still throws `Unsupported`.
  */
-export const IGNORED_CONFIG_KEYS: ReadonlySet<string> = new Set(["feedback"]);
+export const IGNORED_CONFIG_KEYS: ReadonlySet<string> = new Set(["feedback", "tabs"]);
 
 /**
  * The unknown-config-key verdict every normaliser ends on: a sink key is
