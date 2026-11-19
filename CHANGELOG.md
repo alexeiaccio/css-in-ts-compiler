@@ -2,6 +2,23 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.45.0 (2026-11-19)
+
+### Minor changes
+
+- The panel and the prompt carry what the picked element is **built of**, not only which rule won: a `Structure` block lists
+  the `data-part` tree under it, with a repeat counted (`landing-card ×3` → `landing-card-title`, `landing-card-badge ×2`) —
+  the picture a reader draws by hand to explain a screen, read from the only vocabulary the markup states for itself. An
+  element with no part is a wrapper and is walked through, so its labelled children stay at their structural level; the walk
+  stops at four levels and 24 lines and says that it did. `createModifiers`-style spreads are not needed: any host that marks
+  its parts gets the tree for free.
+
+### Patch changes
+
+- `createCanvas` leaves the machine idle on a press that began on a control inside a node — a button, a link, a field, a form-control role, editable content, or anything marked `data-canvas-ignore` — so a card that carries its own controls works: the press is the control's, the node is not selected and no drag starts. The same class as a non-primary button, and the rule react-resizable-panels arrived at for its tabs in 4.22.1.
+- `@cssints/mcp`'s `vite` dependency goes from `^1.4.0` to `^8.3.0`: the Vite+ core package dropped its own versioning and now
+  follows Vite's majors (`@voidzero-dev/vite-plus-core@8.3.8000`), so the old range no longer matched any published core.
+
 ## 0.44.0 (2026-11-17)
 
 ### Minor changes
