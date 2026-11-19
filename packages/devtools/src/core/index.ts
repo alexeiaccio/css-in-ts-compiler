@@ -15,7 +15,7 @@ export { parseSheet, specificity, stripStates } from "./css.ts";
 export type { Decl, Sheet, SheetRule } from "./css.ts";
 export { domPage } from "./dom.ts";
 export { Page } from "./page.ts";
-export { buildPrompt, pagePrompt, relative } from "./prompt.ts";
+export { buildPrompt, pagePrompt, relative, structureOf } from "./prompt.ts";
 export type { Foreign, Observed, Probe } from "./page.ts";
 export { ASK, ASKED, LINKED, session, STALE, TABLE, Transport } from "./session.ts";
 export type { Asked, Linked } from "./session.ts";

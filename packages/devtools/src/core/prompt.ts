@@ -13,6 +13,8 @@ const INSTRUCTION = 4000;
 const VALUE = 80;
 const ATTRS = 8;
 const HTML_ATTRS = 12;
+const STRUCTURE_DEPTH = 4;
+const STRUCTURE_NODES = 24;
 // what tells what an element is; never `value`: a form's values stay in the page
 const IDENTITY = new Set([
   "id",
@@ -66,6 +68,49 @@ const dataLines = (el: Element) => {
       e && e !== el.ownerDocument.documentElement && attrs(e, (n) => n.startsWith("data-"), ATTRS);
     return e && data ? [`Data of ${label(e)}: ${data}`] : [];
   });
+};
+
+/**
+ * The parts a subtree is built of, one line per distinct `data-part` at each level, a repeat counted ("landing-card ×3"):
+ * the picture a reader draws by hand to explain a screen, read from the only vocabulary the markup states for itself.
+ * An element without a part is a wrapper and is walked through, so its labelled children stay at their structural level;
+ * the walk stops at `STRUCTURE_DEPTH` levels and `STRUCTURE_NODES` lines, and says that it did.
+ */
+export const structureOf = (el: Element) => {
+  const state = { lines: [] as string[], cut: false };
+  const walk = (node: Element, depth: number) => {
+    if (depth > STRUCTURE_DEPTH) {
+      state.cut = true;
+      return;
+    }
+    // the same part twice side by side is one line with a count, and the order is the document's
+    const groups = new Map<string, { el: Element; count: number }>();
+    for (const child of node.children) {
+      const part = child.getAttribute("data-part");
+      if (part === null) {
+        walk(child, depth);
+        continue;
+      }
+      const seen = groups.get(part);
+      if (seen === undefined) {
+        groups.set(part, { el: child, count: 1 });
+      } else {
+        seen.count += 1;
+      }
+    }
+    for (const [part, group] of groups) {
+      if (state.lines.length >= STRUCTURE_NODES) {
+        state.cut = true;
+        return;
+      }
+      state.lines.push(
+        `${"  ".repeat(depth)}- ${part}${group.count > 1 ? ` ×${group.count}` : ""}`,
+      );
+      walk(group.el, depth + 1);
+    }
+  };
+  walk(el, 0);
+  return state.cut ? [...state.lines, "- … (the rest is cut)"] : state.lines;
 };
 
 // the route, the title and what decides how the page looks now: the same for both prompts
@@ -147,6 +192,9 @@ export const buildPrompt = (inspection: Inspection, el: Element, instruction: st
     `Classes: ${[...el.classList].slice(0, 12).join(" ") || "(none)"}`,
     `Attributes: ${attrs(el, (n) => IDENTITY.has(n), IDENTITY.size) || "(none)"}`,
     ...dataLines(el),
+    "",
+    `Structure of <${label(el)}> (its parts; a repeat is counted):`,
+    ...(structureOf(el).length ? structureOf(el) : ["- no data-part inside"]),
     "",
     "Styled by (file:line, the call as written):",
   ];

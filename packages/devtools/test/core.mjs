@@ -567,6 +567,34 @@ ${odd} {
   assert.ok(text.length < 6000, `${text.length} characters`);
   assert.ok(!text.includes("/app/"), "paths are relative to the root");
 
+  // the structure of the region: a repeat counted, a wrapper walked through, the parts at their own level
+  const region = html(`<main id="t"><div class="wrap">
+    <article data-part="landing-card"><h3 data-part="landing-card-title">A</h3>
+      <span data-part="landing-card-badge"></span><span data-part="landing-card-badge"></span></article>
+    <article data-part="landing-card"><h3 data-part="landing-card-title">B</h3></article></div>
+    <section data-part="landing-feed"><p data-part="landing-post"></p></section></main>`);
+  const section = buildPrompt(await run(t, region), region, "restyle the cards");
+  assert.match(
+    section,
+    /Structure of <main#t> \(its parts; a repeat is counted\):\n- landing-card ×2\n {2}- landing-card-title\n {2}- landing-card-badge ×2\n- landing-feed\n {2}- landing-post/,
+  );
+
+  // a pick with nothing inside it says so, instead of an empty list
+  const leaf = html(`<main><button id="t" data-part="button">Buy</button></main>`);
+  assert.match(
+    buildPrompt(await run(t, leaf), leaf, "make it bigger"),
+    /Structure of <button#t> \(its parts; a repeat is counted\):\n- no data-part inside/,
+  );
+
+  // a wide region is cut at the cap, and the cut is said out loud
+  const wide = html(
+    `<main id="t">${Array.from({ length: 40 }, (_, i) => `<div data-part="row-${i}"></div>`).join("")}</main>`,
+  );
+  const cutText = buildPrompt(await run(t, wide), wide, "cut it");
+  const listed = cutText.split("\n").filter((line) => /^- (row-|…)/.test(line));
+  assert.equal(listed.length, 25, `24 parts and the cut: ${listed.length}`);
+  assert.match(cutText, /\n- … \(the rest is cut\)/);
+
   // no element picked: the instruction, the route and the display
   const site = new Window({
     url: "http://localhost:5173/docs/install?tab=npm#top",

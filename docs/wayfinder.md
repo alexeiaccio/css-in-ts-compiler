@@ -5742,3 +5742,11 @@ first symptom was `vp run --filter "./packages/*" build` refusing mcp's stale ne
 `release:check` green, and the suites green — the parallel `bun run test` did fail, but only on the documented load-flakes:
 two Quint explorations at their 300 s timeout, four browser differential walks, and css-grammar's tsc killed with 137 (OOM);
 each passes alone (apg-specs 43, headless 86, css-grammar 33 s).
+
+**Structure, not just the cascade (from React Anatomy):** the devtools prompt and panel name the class that won each
+property; React Anatomy (a DevTools panel over React's privates) answers the other question — *what is this region built
+of*. For us the vocabulary already exists: `data-part` on every kit part. So `structureOf(el)` (packages/devtools/core/prompt)
+walks the subtree, counts repeats (`landing-card ×3`), walks through unlabelled wrappers so their parts keep their level, and
+caps at four levels / 24 lines with "the rest is cut"; the prompt gets a `Structure of <main#t>` block and the panel a
+`Structure` section. Skipped: the 3D explosion, `auto depth` and reading private internals — none of them says anything the
+DOM and the cascade do not, and a component is not a runtime object in Solid the way it is in React.

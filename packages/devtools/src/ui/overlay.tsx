@@ -12,6 +12,7 @@ import {
   type Asked,
   type Box,
   buildPrompt,
+  structureOf,
   type Candidate,
   type Condition,
   domPage,
@@ -316,7 +317,12 @@ function PropRow(props: { row: Row }) {
 // loses its scroll position)
 const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
-function Panel(props: { inspection: Inspection; build?: boolean; xray?: Xray }) {
+function Panel(props: {
+  inspection: Inspection;
+  build?: boolean;
+  xray?: Xray;
+  element?: () => Element | undefined;
+}) {
   const i = () => props.inspection;
   return (
     <>
@@ -348,6 +354,21 @@ function Panel(props: { inspection: Inspection; build?: boolean; xray?: Xray }) 
                   </div>
                 </Show>
               </div>
+            </div>
+          );
+        }}
+      </Show>
+      <Show when={props.element?.()}>
+        {(el) => {
+          const lines = () => structureOf(el());
+          return (
+            <div class={s.section} data-devtools="structure">
+              <h3 class={s.heading}>Structure</h3>
+              <Show when={lines().length} fallback={<div class={s.muted}>no data-part inside</div>}>
+                <pre class={s.callText} data-structure>
+                  {lines().join("\n")}
+                </pre>
+              </Show>
             </div>
           );
         }}
@@ -935,7 +956,14 @@ function App(props: {
                   </div>
                 }
               >
-                {(i) => <Panel inspection={i()} build={props.build} xray={measured()} />}
+                {(i) => (
+                  <Panel
+                    inspection={i()}
+                    build={props.build}
+                    xray={measured()}
+                    element={() => target()}
+                  />
+                )}
               </Show>
             </Show>
             <Motion
