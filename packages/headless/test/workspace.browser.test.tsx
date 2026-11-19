@@ -317,3 +317,65 @@ describe("createWorkspace announcements, veto and detach", () => {
     }
   });
 });
+
+describe("createWorkspace panels, initial layout and names", () => {
+  // The panels are the reason a host binds `hidden` straight from the bag: the active tab decides
+  // which one is visible, and a panel that never hides is a stack of four overlapping panels. The
+  // workspace mutates `active` in place, so this only holds when the inner tab list reads the
+  // version signal — a regression test for 0.46.0's dead `hidden`.
+  it("hides every panel but the active tab's, and the active one changes", async () => {
+    const mounted = mountWorkspace({});
+    try {
+      await settle();
+      const panels = (): ReadonlyArray<HTMLElement> => [
+        ...mounted.root.querySelectorAll<HTMLElement>('[data-part="tabpanel"]'),
+      ];
+      const visible = (): number => panels().filter((panel) => !panel.hidden).length;
+      // four tabs, two tabsets: one visible panel in each
+      expect(panels().length).toBe(4);
+      expect(visible()).toBe(2);
+
+      // the second tab of the right tabset was never active
+      mounted.root.querySelector<HTMLElement>('[data-part="tab:3"]')?.click();
+      await settle();
+      expect(visible()).toBe(2);
+      expect(
+        panels()
+          .filter((panel) => !panel.hidden)
+          .map((panel) => panel.textContent),
+      ).toContain("tabset1:Preview");
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("starts where the host says, without replaying a move", async () => {
+    const mounted = mountWorkspace({}, { initial: { 2: "tabset0", 3: "tabset0" } });
+    try {
+      await settle();
+      const workspace = mounted.workspace;
+      expect(workspace.tabsIn("tabset0").map((tab) => tab.id)).toEqual([0, 1, 2, 3]);
+      expect(workspace.tabsetOpen("tabset1")).toBe(false);
+      // the dealt layout would have written a sentence and asked for focus; the host's does neither
+      expect(workspace.announcement()).toBe("");
+      expect(workspace.focusRequested()).toBeNull();
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("speaks the tabset name the host chose", async () => {
+    const mounted = mountWorkspace({}, { labels: { tabset0: "Detail" } });
+    try {
+      await settle();
+      expect(partOf(mounted.root, "tablist:0").getAttribute("aria-label")).toBe("Detail tabs");
+      expect(partOf(mounted.root, "tabset:0").getAttribute("aria-label")).toBe("Detail");
+      // an unnamed tabset keeps the positional default
+      expect(partOf(mounted.root, "tablist:1").getAttribute("aria-label")).toBe(
+        "Right tabset tabs",
+      );
+    } finally {
+      mounted.dispose();
+    }
+  });
+});
