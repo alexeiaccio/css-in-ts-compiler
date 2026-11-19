@@ -1,0 +1,654 @@
+{
+  "pattern": "workspace",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Not an APG pattern (bean cssints-2v5r): a workspace is a layout of APG tabsets, written from specs/patterns/workspace.qnt (homes, a drop as a request with its target as data, the empty-tabset rule) on the tab vocabulary of specs/apg/tabs.qnt. Config is the fixed instance: four tabs, two docked tabsets in one row split, a floating tabset and the edge tabset an edge drop creates. A drop is its own vocabulary: pick a tab, then drop it on a target (tab:0, tab:1, tabF, edge-left/right/top/bottom, float).",
+  "skipped": [
+    {
+      "id": "workspace.spec.tear-off",
+      "reason": "tear-off and popout windows are not modelled: the platform reports no reliable release position for a drag that ends outside the window, so a tab leaves as a serialisable value (transferOut) and the transport is the host's"
+    },
+    {
+      "id": "workspace.spec.reorder-within-a-tabset",
+      "reason": "a drop on the tab's own tabset is a no-op: the model has no tab order, so a reorder within one tabset is the host's"
+    },
+    {
+      "id": "workspace.spec.copied-tab",
+      "reason": "a copy duplicates the tab into a new id the four-tab instance cannot name; the model proves the source did not move and reports onCopy, the new tab is the host's"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "workspace.spec.initial-layout",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "focus": null,
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "visible": [
+              "tab:0",
+              "tab:1",
+              "tab:2",
+              "tab:3",
+              "tabset:0",
+              "tabset:1"
+            ],
+            "attrs": {
+              "tab:0": {
+                "data-home": "tabset0",
+                "aria-selected": "true"
+              },
+              "tab:3": {
+                "data-home": "tabset1",
+                "aria-selected": "false"
+              },
+              "tabset:0": {
+                "data-tabs": "2"
+              },
+              "tabset:1": {
+                "data-tabs": "2"
+              },
+              "tabset:F": {
+                "data-tabs": "0",
+                "data-open": "false"
+              },
+              "tabset:E": {
+                "data-tabs": "0",
+                "data-open": "false"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.move-between-tabsets",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:0"
+        },
+        {
+          "expect": {
+            "focus": "tab:0",
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ]
+          }
+        },
+        {
+          "event": "drop",
+          "target": "tab:1"
+        },
+        {
+          "expect": {
+            "focus": null,
+            "value": [
+              "tabset1",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "attrs": {
+              "tab:0": {
+                "data-home": "tabset1",
+                "aria-selected": "true"
+              },
+              "tab:1": {
+                "data-home": "tabset0",
+                "aria-selected": "true"
+              },
+              "tabset:0": {
+                "data-tabs": "1"
+              },
+              "tabset:1": {
+                "data-tabs": "3"
+              }
+            },
+            "events": {
+              "onTabsChange": [
+                [
+                  "tabset1",
+                  "tabset0",
+                  "tabset1",
+                  "tabset1"
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.drop-on-its-own-tabset-is-no-move",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:1"
+        },
+        {
+          "event": "drop",
+          "target": "tab:0"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "events": {
+              "onTabsChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.edge-drop-creates-a-tabset",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:2"
+        },
+        {
+          "event": "drop",
+          "target": "edge-bottom"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "edge",
+              "tabset1"
+            ],
+            "visible": [
+              "tab:0",
+              "tab:1",
+              "tab:2",
+              "tab:3",
+              "tabset:0",
+              "tabset:1",
+              "tabset:E"
+            ],
+            "attrs": {
+              "tab:2": {
+                "data-home": "edge",
+                "aria-selected": "true"
+              },
+              "tabset:E": {
+                "data-tabs": "1",
+                "data-open": "true",
+                "data-side": "bottom"
+              },
+              "tabset:1": {
+                "data-tabs": "1"
+              }
+            }
+          }
+        },
+        {
+          "event": "pick",
+          "target": "tab:3"
+        },
+        {
+          "event": "drop",
+          "target": "edge-right"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "edge",
+              "edge"
+            ],
+            "attrs": {
+              "tabset:E": {
+                "data-tabs": "2",
+                "data-side": "bottom"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.copy-keeps-the-source",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:0"
+        },
+        {
+          "event": "copy"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "attrs": {
+              "tab:0": {
+                "data-home": "tabset0",
+                "aria-selected": "true"
+              }
+            },
+            "events": {
+              "onCopy": [
+                [
+                  0,
+                  "tabset1"
+                ]
+              ],
+              "onTabsChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.last-tab-closed-removes-the-tabset",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:2"
+        },
+        {
+          "event": "close"
+        },
+        {
+          "event": "pick",
+          "target": "tab:3"
+        },
+        {
+          "event": "close"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "closed",
+              "closed"
+            ],
+            "visible": [
+              "tab:0",
+              "tab:1",
+              "tabset:0"
+            ],
+            "attrs": {
+              "tabset:1": {
+                "data-tabs": "0",
+                "data-open": "false"
+              },
+              "tab:2": {
+                "data-home": "closed"
+              }
+            },
+            "events": {
+              "onClose": [
+                [
+                  2
+                ],
+                [
+                  3
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.keep-when-empty-keeps-the-tabset",
+      "apg": "extension",
+      "config": {
+        "keepWhenEmpty": true
+      },
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:2"
+        },
+        {
+          "event": "close"
+        },
+        {
+          "event": "pick",
+          "target": "tab:3"
+        },
+        {
+          "event": "close"
+        },
+        {
+          "expect": {
+            "visible": [
+              "tab:0",
+              "tab:1",
+              "tabset:0",
+              "tabset:1"
+            ],
+            "attrs": {
+              "tabset:1": {
+                "data-tabs": "0",
+                "data-open": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.float-and-dock",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:0"
+        },
+        {
+          "event": "drop",
+          "target": "float"
+        },
+        {
+          "expect": {
+            "value": [
+              "float",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "attrs": {
+              "tabset:F": {
+                "data-tabs": "1",
+                "data-open": "true"
+              },
+              "tab:0": {
+                "data-home": "float",
+                "aria-selected": "true"
+              }
+            },
+            "events": {
+              "onFloatingChange": [
+                [
+                  true
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "event": "dock"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset1",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "attrs": {
+              "tabset:F": {
+                "data-tabs": "0",
+                "data-open": "false"
+              }
+            },
+            "events": {
+              "onFloatingChange": [
+                [
+                  true
+                ],
+                [
+                  false
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.transfer-out-and-attach",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:1"
+        },
+        {
+          "event": "transferOut"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "out",
+              "tabset1",
+              "tabset1"
+            ],
+            "visible": [
+              "tab:0",
+              "tab:2",
+              "tab:3",
+              "tabset:0",
+              "tabset:1"
+            ],
+            "events": {
+              "onTransfer": [
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "event": "attach"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset1",
+              "tabset1",
+              "tabset1"
+            ],
+            "events": {
+              "onTransfer": [
+                [
+                  1
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.collapse-keeps-its-tabs",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "collapse",
+          "target": "tabset:0"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "attrs": {
+              "tabset:0": {
+                "data-tabs": "2",
+                "data-open": "true"
+              }
+            },
+            "events": {
+              "onCollapse": [
+                [
+                  true,
+                  false
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "event": "collapse",
+          "target": "tabset:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onCollapse": [
+                [
+                  true,
+                  false
+                ],
+                [
+                  false,
+                  false
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "event": "pick",
+          "target": "tab:2"
+        },
+        {
+          "event": "drop",
+          "target": "tab:0"
+        },
+        {
+          "event": "pick",
+          "target": "tab:3"
+        },
+        {
+          "event": "drop",
+          "target": "tab:0"
+        },
+        {
+          "event": "collapse",
+          "target": "tabset:1"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset0",
+              "tabset0"
+            ],
+            "events": {
+              "onCollapse": [
+                [
+                  true,
+                  false
+                ],
+                [
+                  false,
+                  false
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workspace.spec.refused-drops-change-nothing",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "attach"
+        },
+        {
+          "event": "dock"
+        },
+        {
+          "event": "copy"
+        },
+        {
+          "event": "close"
+        },
+        {
+          "event": "drop",
+          "target": "tab:1"
+        },
+        {
+          "expect": {
+            "focus": null,
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "events": {
+              "onCopy": [],
+              "onClose": [],
+              "onTransfer": [],
+              "onTabsChange": []
+            }
+          }
+        },
+        {
+          "event": "pick",
+          "target": "tab:2"
+        },
+        {
+          "event": "close"
+        },
+        {
+          "event": "pick",
+          "target": "tab:2"
+        },
+        {
+          "expect": {
+            "focus": null
+          }
+        }
+      ]
+    }
+  ]
+}
