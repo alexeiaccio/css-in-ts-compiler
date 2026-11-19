@@ -5744,9 +5744,53 @@ two Quint explorations at their 300 s timeout, four browser differential walks, 
 each passes alone (apg-specs 43, headless 86, css-grammar 33 s).
 
 **Structure, not just the cascade (from React Anatomy):** the devtools prompt and panel name the class that won each
-property; React Anatomy (a DevTools panel over React's privates) answers the other question — *what is this region built
-of*. For us the vocabulary already exists: `data-part` on every kit part. So `structureOf(el)` (packages/devtools/core/prompt)
+property; React Anatomy (a DevTools panel over React's privates) answers the other question — _what is this region built
+of_. For us the vocabulary already exists: `data-part` on every kit part. So `structureOf(el)` (packages/devtools/core/prompt)
 walks the subtree, counts repeats (`landing-card ×3`), walks through unlabelled wrappers so their parts keep their level, and
 caps at four levels / 24 lines with "the rest is cut"; the prompt gets a `Structure of <main#t>` block and the panel a
 `Structure` section. Skipped: the 3D explosion, `auto depth` and reading private internals — none of them says anything the
 DOM and the cascade do not, and a component is not a runtime object in Solid the way it is in React.
+
+## A2UI 1.0: the catalog we already had, and the screen it was missing (2026-11-19)
+
+Google's A2UI 1.0 (open protocol for generative UI, stable Nov 2026) is the clearest statement yet of the "the agent
+describes, the app draws" model: four messages (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) on
+any ordered transport; a **catalog** per app, JSON Schema, of the components and functions an agent may reference; a data
+model a component binds to by reference, so values the model never sees can fill a form; typed function calls back into the
+renderer; no theme in the payload — the app's own tokens decide how it looks. Renderers for React, Angular, Lit, Flutter,
+SwiftUI and Jetpack Compose, agent SDKs for Python, TypeScript and Dart, and MCP Apps hosting.
+
+Read against this repo, the _catalog_ half was already here in another form: 66 starters with a one-line description each
+(`public/r/*.json`, `llms.txt`), CSF stories with Storybook's ids, their args and the controls they declare
+(`@cssints/stories`), and the site drawing any story from a hash. The MCP server (`compile`, `check_declaration`,
+`search_docs`) is the writing half. What was missing is the one thing A2UI puts at the centre: **the catalog as data** — an
+agent could read prose, not a machine list of what it may name and what args each component takes.
+
+Taken, as a page and a file (no protocol):
+
+- **`/catalog.json`** (`apps/ui/scripts/catalog.ts`, run by `bun run build`): every item, its story ids, each story's own
+  JSON args, and the args each story declares (its args plus its `argTypes`). A function arg is declared by name and kept
+  out of the data. `#catalog` shows the same JSON, and `llms.txt` now states the contract and points at the file.
+- **A screen** (`apps/ui/src/docs/surface.ts`, `screen-page.tsx`): `#screen={"blocks":[{"starter":"bars","args":{…}}]}` — a
+  list of blocks drawn by the catalog's own stories, each block a starter, one of its stories and the args it is drawn with.
+  **Closed by construction**: an unknown starter, a story its starter does not ship, or an arg the story does not declare is
+  refused _whole_, with the reasons on the page and the names that would have worked ("`bars` does not declare `colour`:
+  `label`, `values`, `format`, `max`"). Nothing is guessed, so a typo cannot become a silently missing prop.
+- The rules are plain data (`parseScreen`, `checkScreen`, `catalogOf`, `routeOf`), tested without a browser.
+
+Not taken, with reasons:
+
+- **The wire protocol.** Streaming, `updateDataModel` binding, actions and function calls exist to let _a hosted agent_ drive
+  _someone else's_ app. Our agent writes `.tsx` with the engine's members, and the plugin compiles it: grammar, tokens,
+  contrast and layers are checked at build time, which is a stronger guarantee than a schema-validated component tree, and
+  it needs no renderer SDK. A2UI's payload cannot express a `cn()` that the grammar refused.
+- **JSON Schema from the TS props.** That is what would make the catalog complete, and it is a project (unions, render
+  props, generics, JSX children). The catalog says what it honestly knows — story, args, declared names — and points at the
+  item's `tsx` and the MCP server for types.
+- **Streaming and partial surfaces.** One document, one screen; a screen that changes is a new hash.
+
+**Verified:** `apps/ui/src/docs/surface.browser.test.ts` (8: the catalog from a registry and two stories, the parser's five
+refusals, the three catalog checks with the names they offer, the three kinds of hash), `apps/ui/test/site.mjs` in Chrome (a
+two-block screen draws `stat` and `bars` and its own `label` reaches the story, a `colour` arg and an unknown starter are
+refused with the reason and draw nothing, `#catalog` equals `/catalog.json`, 65 items with `bars`' `max`), `bun run
+typecheck`, fmt and lint.
