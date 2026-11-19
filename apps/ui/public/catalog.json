@@ -1,0 +1,4060 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "name": "card",
+      "title": "Card",
+      "description": "A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`",
+      "stories": [
+        {
+          "id": "card--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "card--in-dark-mode",
+          "name": "In dark mode",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "field",
+      "title": "Field",
+      "description": "A label, a control, a hint and an error: the ids and the ARIA are `createField`'s",
+      "stories": [
+        {
+          "id": "field--error",
+          "name": "Error",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "field--hint",
+          "name": "Hint",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "dialog",
+      "title": "Dialog",
+      "description": "APG modal dialog: a scrim, a panel on the surface, focus in and back, Escape or the backdrop to close, and an `animated` panel that reverses from where it is when it is interrupted",
+      "stories": [
+        {
+          "id": "dialog--native",
+          "name": "Native",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "dialog--rename",
+          "name": "Rename",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "drawer",
+      "title": "Drawer",
+      "description": "An edge-anchored panel on Dialog (Modal): a side rail or a bottom sheet, with the focus trap, Escape, the backdrop, the scroll lock and the focus return — and an `animated` slide that leaves the page only when it has finished",
+      "stories": [
+        {
+          "id": "drawer--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "drawer--side-sheet",
+          "name": "SideSheet",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "panzoom",
+      "title": "Pan and zoom",
+      "description": "One image in a frame: drag or flick to pan, pinch or Ctrl/⌘ + wheel to zoom, a double click or Reset to go back, and the keys and the live value that stand in for every gesture",
+      "stories": [
+        {
+          "id": "panzoom--default",
+          "name": "Default",
+          "args": {
+            "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221600%22%20height%3D%22900%22%20viewBox%3D%220%200%201600%20900%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23cfe4f5%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f3e3cf%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221180%22%20cy%3D%22250%22%20r%3D%2292%22%20fill%3D%22%23f4c66a%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M0%20700%20L320%20430%20L640%20700%20Z%22%20fill%3D%22%238fa6a0%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M420%20700%20L820%20350%20L1220%20700%20Z%22%20fill%3D%22%235f7f77%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M1000%20700%20L1320%20470%20L1640%20700%20Z%22%20fill%3D%22%237d968f%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M0%20760%20Q400%20690%20800%20740%20T1600%20730%20V900%20H0%20Z%22%20fill%3D%22%233d5a52%22%2F%3E%0A%3C%2Fsvg%3E",
+            "alt": "A mountain lake at dusk",
+            "width": 1600,
+            "height": 900,
+            "label": "A mountain lake at dusk"
+          },
+          "declares": [
+            "src",
+            "alt",
+            "width",
+            "height",
+            "label",
+            "defaultScale",
+            "min",
+            "max",
+            "step",
+            "bounds"
+          ]
+        },
+        {
+          "id": "panzoom--free-bounds",
+          "name": "Free bounds",
+          "args": {
+            "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221600%22%20height%3D%22900%22%20viewBox%3D%220%200%201600%20900%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23cfe4f5%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f3e3cf%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221180%22%20cy%3D%22250%22%20r%3D%2292%22%20fill%3D%22%23f4c66a%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M0%20700%20L320%20430%20L640%20700%20Z%22%20fill%3D%22%238fa6a0%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M420%20700%20L820%20350%20L1220%20700%20Z%22%20fill%3D%22%235f7f77%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M1000%20700%20L1320%20470%20L1640%20700%20Z%22%20fill%3D%22%237d968f%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M0%20760%20Q400%20690%20800%20740%20T1600%20730%20V900%20H0%20Z%22%20fill%3D%22%233d5a52%22%2F%3E%0A%3C%2Fsvg%3E",
+            "alt": "A mountain lake at dusk",
+            "width": 1600,
+            "height": 900,
+            "label": "A mountain lake at dusk",
+            "defaultScale": 2,
+            "bounds": "free"
+          },
+          "declares": [
+            "src",
+            "alt",
+            "width",
+            "height",
+            "label",
+            "defaultScale",
+            "bounds",
+            "min",
+            "max",
+            "step"
+          ]
+        },
+        {
+          "id": "panzoom--zoomed-in",
+          "name": "Zoomed in",
+          "args": {
+            "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221600%22%20height%3D%22900%22%20viewBox%3D%220%200%201600%20900%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23cfe4f5%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f3e3cf%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221180%22%20cy%3D%22250%22%20r%3D%2292%22%20fill%3D%22%23f4c66a%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M0%20700%20L320%20430%20L640%20700%20Z%22%20fill%3D%22%238fa6a0%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M420%20700%20L820%20350%20L1220%20700%20Z%22%20fill%3D%22%235f7f77%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M1000%20700%20L1320%20470%20L1640%20700%20Z%22%20fill%3D%22%237d968f%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M0%20760%20Q400%20690%20800%20740%20T1600%20730%20V900%20H0%20Z%22%20fill%3D%22%233d5a52%22%2F%3E%0A%3C%2Fsvg%3E",
+            "alt": "A mountain lake at dusk",
+            "width": 1600,
+            "height": 900,
+            "label": "A mountain lake at dusk",
+            "defaultScale": 2.5
+          },
+          "declares": [
+            "src",
+            "alt",
+            "width",
+            "height",
+            "label",
+            "defaultScale",
+            "min",
+            "max",
+            "step",
+            "bounds"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "scrollspy",
+      "title": "Scrollspy",
+      "description": "A table of contents whose current entry is the last heading to pass the top of its scroll container, indented by level and marked `aria-current=location`",
+      "stories": [
+        {
+          "id": "scrollspy--contents",
+          "name": "Contents",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "progress",
+      "title": "Progress",
+      "description": "A reading-progress bar on one element: a scroll timeline scrubs the fill where the browser has one, and `createScrollProgress` keeps the `progressbar` value and drives the same fill where it has not",
+      "stories": [
+        {
+          "id": "progress--default",
+          "name": "Default",
+          "args": {
+            "sections": [
+              {
+                "title": "1. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "2. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "3. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "4. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "5. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "6. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              }
+            ]
+          },
+          "declares": ["sections"]
+        },
+        {
+          "id": "progress--named",
+          "name": "Named",
+          "args": {
+            "sections": [
+              {
+                "title": "1. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "2. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "3. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "4. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "5. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              },
+              {
+                "title": "6. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              }
+            ],
+            "label": "How far through the article"
+          },
+          "declares": ["sections", "label"]
+        },
+        {
+          "id": "progress--short",
+          "name": "Short",
+          "args": {
+            "sections": [
+              {
+                "title": "1. Section",
+                "text": "A bar that fills with the scroll is the one progress indicator a reader never has to look away for. The pane below is the scroll container: the bar reads its own nearest scrollport for the animation, and the primitive reads the same element for the value. Where the browser has scroll-driven animations the fill is the compositor's; where it has not, the inline scale is a listener's. Either way the number a screen reader hears is the same one the pane's position says."
+              }
+            ]
+          },
+          "declares": ["sections"]
+        }
+      ]
+    },
+    {
+      "name": "diagram",
+      "title": "Diagram",
+      "description": "A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is",
+      "stories": [
+        {
+          "id": "diagram--crossings",
+          "name": "Crossings",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "diagram--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "diagram--making-an-edge",
+          "name": "Making an edge",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "diagram--smooth-step",
+          "name": "Smooth step",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "canvas",
+      "title": "Canvas",
+      "description": "A canvas of cards on @cssints/headless's createCanvas: drag, marquee, arrow keys, zoom, and the primitive's own live region — plus the two things a skin adds, a minimap that is also a camera and a drag that pulls the camera when it reaches the frame's edge",
+      "stories": [
+        {
+          "id": "canvas--board",
+          "name": "Board",
+          "args": {
+            "nodes": [
+              {
+                "id": "backlog-0",
+                "x": 0,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Rotate the release notes",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "backlog-1",
+                "x": 0,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Ship the snapping drag",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "backlog-2",
+                "x": 0,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Split the router",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "in-progress-0",
+                "x": 280,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Cache the tokens",
+                "role": "article",
+                "roleDescription": "In progress card"
+              },
+              {
+                "id": "in-progress-1",
+                "x": 280,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Rewrite the empty state",
+                "role": "article",
+                "roleDescription": "In progress card"
+              },
+              {
+                "id": "in-progress-2",
+                "x": 280,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Trace the slow build",
+                "role": "article",
+                "roleDescription": "In progress card"
+              },
+              {
+                "id": "review-0",
+                "x": 560,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Measure the menu",
+                "role": "article",
+                "roleDescription": "Review card"
+              },
+              {
+                "id": "review-1",
+                "x": 560,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Retire the old grid",
+                "role": "article",
+                "roleDescription": "Review card"
+              },
+              {
+                "id": "review-2",
+                "x": 560,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Audit the palette",
+                "role": "article",
+                "roleDescription": "Review card"
+              },
+              {
+                "id": "done-0",
+                "x": 840,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Fold the two stores",
+                "role": "article",
+                "roleDescription": "Done card"
+              },
+              {
+                "id": "done-1",
+                "x": 840,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Name the breakpoints",
+                "role": "article",
+                "roleDescription": "Done card"
+              },
+              {
+                "id": "done-2",
+                "x": 840,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Draw the minimap",
+                "role": "article",
+                "roleDescription": "Done card"
+              }
+            ],
+            "label": "Release board",
+            "width": 720,
+            "height": 460
+          },
+          "declares": ["nodes", "label", "width", "height"]
+        },
+        {
+          "id": "canvas--one-column",
+          "name": "One column",
+          "args": {
+            "nodes": [
+              {
+                "id": "backlog-0",
+                "x": 0,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Rotate the release notes",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "backlog-1",
+                "x": 0,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Ship the snapping drag",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "backlog-2",
+                "x": 0,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Split the router",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              }
+            ],
+            "label": "One column",
+            "width": 720,
+            "height": 460
+          },
+          "declares": ["nodes", "label", "width", "height"]
+        },
+        {
+          "id": "canvas--two-canvases",
+          "name": "Two canvases",
+          "args": {
+            "nodes": [
+              {
+                "id": "backlog-0",
+                "x": 0,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Rotate the release notes",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "backlog-1",
+                "x": 0,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Ship the snapping drag",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "backlog-2",
+                "x": 0,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Split the router",
+                "role": "article",
+                "roleDescription": "Backlog card"
+              },
+              {
+                "id": "in-progress-0",
+                "x": 280,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Cache the tokens",
+                "role": "article",
+                "roleDescription": "In progress card"
+              },
+              {
+                "id": "in-progress-1",
+                "x": 280,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Rewrite the empty state",
+                "role": "article",
+                "roleDescription": "In progress card"
+              },
+              {
+                "id": "in-progress-2",
+                "x": 280,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Trace the slow build",
+                "role": "article",
+                "roleDescription": "In progress card"
+              },
+              {
+                "id": "review-0",
+                "x": 560,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Measure the menu",
+                "role": "article",
+                "roleDescription": "Review card"
+              },
+              {
+                "id": "review-1",
+                "x": 560,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Retire the old grid",
+                "role": "article",
+                "roleDescription": "Review card"
+              },
+              {
+                "id": "review-2",
+                "x": 560,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Audit the palette",
+                "role": "article",
+                "roleDescription": "Review card"
+              },
+              {
+                "id": "done-0",
+                "x": 840,
+                "y": 0,
+                "width": 232,
+                "height": 96,
+                "label": "Fold the two stores",
+                "role": "article",
+                "roleDescription": "Done card"
+              },
+              {
+                "id": "done-1",
+                "x": 840,
+                "y": 130,
+                "width": 232,
+                "height": 96,
+                "label": "Name the breakpoints",
+                "role": "article",
+                "roleDescription": "Done card"
+              },
+              {
+                "id": "done-2",
+                "x": 840,
+                "y": 260,
+                "width": 232,
+                "height": 96,
+                "label": "Draw the minimap",
+                "role": "article",
+                "roleDescription": "Done card"
+              }
+            ],
+            "label": "Release board",
+            "width": 720,
+            "height": 460
+          },
+          "declares": ["nodes", "label", "width", "height"]
+        }
+      ]
+    },
+    {
+      "name": "shortcuts",
+      "title": "Shortcuts",
+      "description": "A keyboard-shortcuts sheet opened by `?`: the kit's dialog with a group per area and a key cap per chord, and the registry the page binds its own chords to",
+      "stories": [
+        {
+          "id": "shortcuts--sheet",
+          "name": "Sheet",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "shortcuts--windows",
+          "name": "Windows",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "carousel",
+      "title": "Carousel",
+      "description": "APG carousel: auto-rotating slides that pause on hover and focus, previous and next, dots and a count as the indicator, arrow keys on a focused slide, and a touch swipe",
+      "stories": [
+        {
+          "id": "carousel--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "carousel--paused",
+          "name": "Paused",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "input",
+      "title": "Input",
+      "description": "A text field on the neutral theme, and the control `Field` puts in by default",
+      "stories": [
+        {
+          "id": "input--default",
+          "name": "Default",
+          "args": {
+            "placeholder": "A plain input"
+          },
+          "declares": ["placeholder", "disabled"]
+        },
+        {
+          "id": "input--disabled",
+          "name": "Disabled",
+          "args": {
+            "placeholder": "A plain input",
+            "disabled": true,
+            "value": "Disabled"
+          },
+          "declares": ["placeholder", "disabled", "value"]
+        },
+        {
+          "id": "input--invalid",
+          "name": "Invalid",
+          "args": {
+            "placeholder": "A plain input",
+            "aria-invalid": "true",
+            "value": "not-an-email"
+          },
+          "declares": ["placeholder", "aria-invalid", "value", "disabled"]
+        },
+        {
+          "id": "input--user-invalid",
+          "name": "UserInvalid",
+          "args": {
+            "placeholder": "A plain input"
+          },
+          "declares": ["placeholder", "disabled"]
+        }
+      ]
+    },
+    {
+      "name": "toolbar",
+      "title": "Toolbar",
+      "description": "A toolbar: `role=toolbar`, a name, and a size the controls inside read as their context",
+      "stories": [
+        {
+          "id": "toolbar--compact",
+          "name": "Compact",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "toolbar--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "toolbar--vertical",
+          "name": "Vertical",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "button-group",
+      "title": "Button group",
+      "description": "Buttons in one line: the corners two neighbours share and the border between them are the group's, not a prop's",
+      "stories": [
+        {
+          "id": "button-group--horizontal",
+          "name": "Horizontal",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "button-group--vertical",
+          "name": "Vertical",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "switch",
+      "title": "Switch",
+      "description": "APG switch on @cssints/headless, on the neutral theme, with its scenario test",
+      "stories": [
+        {
+          "id": "switch--controlled",
+          "name": "Controlled",
+          "args": {
+            "children": "Dark theme",
+            "defaultValue": false
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "switch--disabled",
+          "name": "Disabled",
+          "args": {
+            "children": "Dark theme",
+            "defaultValue": false,
+            "disabled": true
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "switch--native",
+          "name": "Native",
+          "args": {
+            "children": "Dark theme",
+            "defaultValue": false
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "switch--off",
+          "name": "Off",
+          "args": {
+            "children": "Dark theme",
+            "defaultValue": false
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "switch--on",
+          "name": "On",
+          "args": {
+            "children": "Dark theme",
+            "defaultValue": true
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "switch--read-only",
+          "name": "ReadOnly",
+          "args": {
+            "children": "Dark theme",
+            "defaultValue": false,
+            "readOnly": true
+          },
+          "declares": ["children", "defaultValue", "readOnly", "disabled"]
+        }
+      ]
+    },
+    {
+      "name": "disclosure",
+      "title": "Disclosure",
+      "description": "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
+      "stories": [
+        {
+          "id": "disclosure--closed",
+          "name": "Closed",
+          "args": {
+            "summary": "Shipping, returns and refunds",
+            "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`."
+          },
+          "declares": ["summary", "children", "disabled"]
+        },
+        {
+          "id": "disclosure--disabled",
+          "name": "Disabled",
+          "args": {
+            "summary": "Shipping, returns and refunds",
+            "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`.",
+            "disabled": true
+          },
+          "declares": ["summary", "children", "disabled"]
+        },
+        {
+          "id": "disclosure--native",
+          "name": "Native",
+          "args": {
+            "summary": "Shipping, returns and refunds",
+            "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`."
+          },
+          "declares": ["summary", "children", "disabled"]
+        },
+        {
+          "id": "disclosure--open",
+          "name": "Open",
+          "args": {
+            "summary": "Shipping, returns and refunds",
+            "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`.",
+            "defaultValue": true
+          },
+          "declares": ["summary", "children", "defaultValue", "disabled"]
+        }
+      ]
+    },
+    {
+      "name": "disclosure-animated",
+      "title": "Animated disclosure",
+      "description": "A disclosure whose panel animates on `@cssints/machine`: an interrupted animation reverses from where the box is, a cancelled one's completion is ignored, a hover burst is debounced, and reduced motion skips the transition",
+      "stories": [
+        {
+          "id": "disclosure-animated--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "disclosure-animated--reduced-motion",
+          "name": "ReducedMotion",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "button",
+      "title": "Button",
+      "description": "APG button and toggle button: `tone` and `size` variants, and `render` for a link",
+      "stories": [
+        {
+          "id": "button--accent",
+          "name": "Accent",
+          "args": {
+            "children": "Publish",
+            "tone": "accent",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--as-a-link",
+          "name": "As a link",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--default",
+          "name": "Default",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--disabled",
+          "name": "Disabled",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md",
+            "disabled": true
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--quiet",
+          "name": "Quiet",
+          "args": {
+            "children": "Cancel",
+            "tone": "quiet",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--sizes",
+          "name": "Sizes",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--toggle",
+          "name": "Toggle",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        },
+        {
+          "id": "button--tones",
+          "name": "Tones",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md"
+          },
+          "declares": ["children", "tone", "size", "disabled"]
+        }
+      ]
+    },
+    {
+      "name": "checkbox",
+      "title": "Checkbox",
+      "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
+      "stories": [
+        {
+          "id": "checkbox--disabled",
+          "name": "Disabled",
+          "args": {
+            "children": "Send me the changelog",
+            "defaultValue": "false",
+            "disabled": true
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "checkbox--mixed",
+          "name": "Mixed",
+          "args": {
+            "children": "Send me the changelog",
+            "defaultValue": "false"
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "checkbox--off",
+          "name": "Off",
+          "args": {
+            "children": "Send me the changelog",
+            "defaultValue": "false"
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        },
+        {
+          "id": "checkbox--on",
+          "name": "On",
+          "args": {
+            "children": "Send me the changelog",
+            "defaultValue": "true"
+          },
+          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+        }
+      ]
+    },
+    {
+      "name": "radio",
+      "title": "Radio group",
+      "description": "APG radio group with roving tabindex or aria-activedescendant focus",
+      "stories": [
+        {
+          "id": "radio--horizontal",
+          "name": "Horizontal",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "radio--vertical",
+          "name": "Vertical",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "tabs",
+      "title": "Tabs",
+      "description": "APG tabs: the platform's single tab stop, automatic or manual activation, wrapped arrows",
+      "stories": [
+        {
+          "id": "tabs--narrow",
+          "name": "Narrow",
+          "args": {
+            "count": 3,
+            "disabledTab": false,
+            "narrow": true
+          },
+          "declares": ["count", "disabledTab", "narrow"]
+        },
+        {
+          "id": "tabs--three",
+          "name": "Three",
+          "args": {
+            "count": 3,
+            "disabledTab": false,
+            "narrow": false
+          },
+          "declares": ["count", "disabledTab", "narrow"]
+        },
+        {
+          "id": "tabs--with-disabled",
+          "name": "WithDisabled",
+          "args": {
+            "count": 3,
+            "disabledTab": true,
+            "narrow": false
+          },
+          "declares": ["count", "disabledTab", "narrow"]
+        }
+      ]
+    },
+    {
+      "name": "accordion",
+      "title": "Accordion",
+      "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
+      "stories": [
+        {
+          "id": "accordion--always-open",
+          "name": "AlwaysOpen",
+          "args": {
+            "count": 3,
+            "multiple": false,
+            "collapsible": false
+          },
+          "declares": ["count", "multiple", "collapsible"]
+        },
+        {
+          "id": "accordion--multiple",
+          "name": "Multiple",
+          "args": {
+            "count": 3,
+            "multiple": true,
+            "collapsible": true
+          },
+          "declares": ["count", "multiple", "collapsible"]
+        },
+        {
+          "id": "accordion--native",
+          "name": "Native",
+          "args": {
+            "count": 3,
+            "multiple": false,
+            "collapsible": true
+          },
+          "declares": ["count", "multiple", "collapsible"]
+        },
+        {
+          "id": "accordion--single",
+          "name": "Single",
+          "args": {
+            "count": 3,
+            "multiple": false,
+            "collapsible": true
+          },
+          "declares": ["count", "multiple", "collapsible"]
+        }
+      ]
+    },
+    {
+      "name": "separator",
+      "title": "Separator",
+      "description": "A rule between two groups: `role=separator` with its orientation, or a decorative `role=none`",
+      "stories": [
+        {
+          "id": "separator--decorative",
+          "name": "Decorative",
+          "args": {
+            "decorative": true
+          },
+          "declares": ["decorative", "orientation"]
+        },
+        {
+          "id": "separator--horizontal",
+          "name": "Horizontal",
+          "args": {},
+          "declares": ["orientation", "decorative"]
+        },
+        {
+          "id": "separator--vertical",
+          "name": "Vertical",
+          "args": {
+            "orientation": "vertical"
+          },
+          "declares": ["orientation", "decorative"]
+        }
+      ]
+    },
+    {
+      "name": "badge",
+      "title": "Badge",
+      "description": "A small label in three tones, a pill at 999px because the theme's steps stop at 16px",
+      "stories": [
+        {
+          "id": "badge--accent",
+          "name": "Accent",
+          "args": {
+            "children": "Accent",
+            "tone": "accent"
+          },
+          "declares": ["children", "tone"]
+        },
+        {
+          "id": "badge--all-tones",
+          "name": "All tones",
+          "args": {
+            "children": "Neutral"
+          },
+          "declares": ["children", "tone"]
+        },
+        {
+          "id": "badge--neutral",
+          "name": "Neutral",
+          "args": {
+            "children": "Neutral"
+          },
+          "declares": ["children", "tone"]
+        },
+        {
+          "id": "badge--quiet",
+          "name": "Quiet",
+          "args": {
+            "children": "Quiet",
+            "tone": "quiet"
+          },
+          "declares": ["children", "tone"]
+        }
+      ]
+    },
+    {
+      "name": "skeleton",
+      "title": "Skeleton",
+      "description": "A placeholder box that pulses only when the reader has not asked for less motion",
+      "stories": [
+        {
+          "id": "skeleton--block",
+          "name": "Block",
+          "args": {
+            "height": "2.5rem"
+          },
+          "declares": ["height", "width"]
+        },
+        {
+          "id": "skeleton--lines",
+          "name": "Lines",
+          "args": {
+            "height": "2.5rem"
+          },
+          "declares": ["height", "width"]
+        }
+      ]
+    },
+    {
+      "name": "alert",
+      "title": "Alert",
+      "description": "APG alert: a title and a body in a live region, with an `invalid` tone",
+      "stories": [
+        {
+          "id": "alert--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "alert--dismissible",
+          "name": "Dismissible",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "alert--invalid",
+          "name": "Invalid",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "dropzone",
+      "title": "Drop zone",
+      "description": "A file drop target: a dashed zone, a browse button over the primitive's hidden input, and a live region for the last batch",
+      "stories": [
+        {
+          "id": "dropzone--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "dropzone--multiple",
+          "name": "Multiple",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "columns",
+      "title": "Columns",
+      "description": "A column chart as a list: one bar per category, its height the value, and the number in text above it",
+      "stories": [
+        {
+          "id": "columns--few-categories",
+          "name": "Few categories",
+          "args": {
+            "points": [
+              {
+                "label": "0 ms",
+                "value": 120
+              },
+              {
+                "label": "25",
+                "value": 840
+              },
+              {
+                "label": "50",
+                "value": 2310
+              },
+              {
+                "label": "75",
+                "value": 3120
+              },
+              {
+                "label": "100",
+                "value": 2480
+              },
+              {
+                "label": "125",
+                "value": 1520
+              },
+              {
+                "label": "150",
+                "value": 830
+              },
+              {
+                "label": "175",
+                "value": 410
+              },
+              {
+                "label": "200",
+                "value": 220
+              },
+              {
+                "label": "225",
+                "value": 130
+              },
+              {
+                "label": "250",
+                "value": 70
+              },
+              {
+                "label": "300+",
+                "value": 60
+              }
+            ],
+            "label": "Requests per 25 ms bucket, last hour"
+          },
+          "declares": ["points", "label", "max", "height"]
+        },
+        {
+          "id": "columns--flat",
+          "name": "Flat",
+          "args": {
+            "points": [
+              {
+                "label": "0 ms",
+                "value": 120
+              },
+              {
+                "label": "25",
+                "value": 840
+              },
+              {
+                "label": "50",
+                "value": 2310
+              },
+              {
+                "label": "75",
+                "value": 3120
+              },
+              {
+                "label": "100",
+                "value": 2480
+              },
+              {
+                "label": "125",
+                "value": 1520
+              },
+              {
+                "label": "150",
+                "value": 830
+              },
+              {
+                "label": "175",
+                "value": 410
+              },
+              {
+                "label": "200",
+                "value": 220
+              },
+              {
+                "label": "225",
+                "value": 130
+              },
+              {
+                "label": "250",
+                "value": 70
+              },
+              {
+                "label": "300+",
+                "value": 60
+              }
+            ],
+            "label": "Requests per 25 ms bucket, last hour"
+          },
+          "declares": ["points", "label", "max", "height"]
+        },
+        {
+          "id": "columns--latency",
+          "name": "Latency",
+          "args": {
+            "points": [
+              {
+                "label": "0 ms",
+                "value": 120
+              },
+              {
+                "label": "25",
+                "value": 840
+              },
+              {
+                "label": "50",
+                "value": 2310
+              },
+              {
+                "label": "75",
+                "value": 3120
+              },
+              {
+                "label": "100",
+                "value": 2480
+              },
+              {
+                "label": "125",
+                "value": 1520
+              },
+              {
+                "label": "150",
+                "value": 830
+              },
+              {
+                "label": "175",
+                "value": 410
+              },
+              {
+                "label": "200",
+                "value": 220
+              },
+              {
+                "label": "225",
+                "value": 130
+              },
+              {
+                "label": "250",
+                "value": 70
+              },
+              {
+                "label": "300+",
+                "value": 60
+              }
+            ],
+            "label": "Requests per 25 ms bucket, last hour"
+          },
+          "declares": ["points", "label", "max", "height"]
+        }
+      ]
+    },
+    {
+      "name": "bars",
+      "title": "Bars",
+      "description": "A multi-series bar chart as a table: each bar a background sized by its value, and the header row a legend of checkboxes that hide a series",
+      "stories": [
+        {
+          "id": "bars--by-region",
+          "name": "ByRegion",
+          "args": {
+            "series": [
+              {
+                "key": "eu",
+                "label": "eu-west"
+              },
+              {
+                "key": "us",
+                "label": "us-east"
+              },
+              {
+                "key": "ap",
+                "label": "ap-south"
+              }
+            ],
+            "categories": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            "values": [
+              [412, 980, 310],
+              [388, 1024, 292],
+              [1204, 2410, 866],
+              [1480, 3120, 1042],
+              [1390, 2870, 1180],
+              [820, 1640, 640]
+            ],
+            "label": "Requests by region, last day"
+          },
+          "declares": ["series", "categories", "values", "label", "format", "max"]
+        },
+        {
+          "id": "bars--hidden-series",
+          "name": "Hidden series",
+          "args": {
+            "series": [
+              {
+                "key": "eu",
+                "label": "eu-west"
+              },
+              {
+                "key": "us",
+                "label": "us-east"
+              },
+              {
+                "key": "ap",
+                "label": "ap-south"
+              }
+            ],
+            "categories": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            "values": [
+              [412, 980, 310],
+              [388, 1024, 292],
+              [1204, 2410, 866],
+              [1480, 3120, 1042],
+              [1390, 2870, 1180],
+              [820, 1640, 640]
+            ],
+            "label": "Requests by region, last day"
+          },
+          "declares": ["series", "categories", "values", "label", "format", "max"]
+        }
+      ]
+    },
+    {
+      "name": "donut",
+      "title": "Donut",
+      "description": "A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row",
+      "stories": [
+        {
+          "id": "donut--traffic",
+          "name": "Traffic",
+          "args": {
+            "slices": [
+              {
+                "label": "Europe",
+                "value": 38
+              },
+              {
+                "label": "North America",
+                "value": 31
+              },
+              {
+                "label": "Asia",
+                "value": 18
+              },
+              {
+                "label": "South America",
+                "value": 8
+              },
+              {
+                "label": "Oceania",
+                "value": 5
+              }
+            ],
+            "label": "Traffic by region, last 24 hours"
+          },
+          "declares": ["slices", "label", "size"]
+        },
+        {
+          "id": "donut--two-slices",
+          "name": "Two slices",
+          "args": {
+            "slices": [
+              {
+                "label": "Europe",
+                "value": 38
+              },
+              {
+                "label": "North America",
+                "value": 31
+              },
+              {
+                "label": "Asia",
+                "value": 18
+              },
+              {
+                "label": "South America",
+                "value": 8
+              },
+              {
+                "label": "Oceania",
+                "value": 5
+              }
+            ],
+            "label": "Traffic by region, last 24 hours"
+          },
+          "declares": ["slices", "label", "size"]
+        }
+      ]
+    },
+    {
+      "name": "stat",
+      "title": "Stat",
+      "description": "A stat tile: the metric's name, the value as `<data>`, the change in words on a chip and its samples as a sparkline",
+      "stories": [
+        {
+          "id": "stat--default",
+          "name": "Default",
+          "args": {
+            "label": "Requests per second",
+            "value": 1350,
+            "previous": 1310,
+            "unit": "req/s",
+            "samples": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ]
+          },
+          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+        },
+        {
+          "id": "stat--no-previous-value",
+          "name": "No previous value",
+          "args": {
+            "label": "Requests per second",
+            "value": 1350,
+            "previous": 1310,
+            "unit": "req/s",
+            "samples": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ]
+          },
+          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+        },
+        {
+          "id": "stat--row",
+          "name": "Row",
+          "args": {
+            "label": "Requests per second",
+            "value": 1350,
+            "previous": 1310,
+            "unit": "req/s",
+            "samples": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ]
+          },
+          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+        },
+        {
+          "id": "stat--worse",
+          "name": "Worse",
+          "args": {
+            "label": "Requests per second",
+            "value": 1350,
+            "previous": 1310,
+            "unit": "req/s",
+            "samples": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ]
+          },
+          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+        }
+      ]
+    },
+    {
+      "name": "heatmap",
+      "title": "Heatmap",
+      "description": "A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale",
+      "stories": [
+        {
+          "id": "heatmap--a-wider-scale",
+          "name": "A wider scale",
+          "args": {
+            "rows": [
+              {
+                "label": "Mon",
+                "values": [
+                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
+                  30, 22, 11
+                ]
+              },
+              {
+                "label": "Tue",
+                "values": [
+                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
+                  35, 20, 13
+                ]
+              },
+              {
+                "label": "Wed",
+                "values": [
+                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
+                  36, 17, 12
+                ]
+              },
+              {
+                "label": "Thu",
+                "values": [
+                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
+                  38, 19, 11
+                ]
+              },
+              {
+                "label": "Fri",
+                "values": [
+                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
+                  37, 22, 13
+                ]
+              },
+              {
+                "label": "Sat",
+                "values": [
+                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
+                  10, 6
+                ]
+              },
+              {
+                "label": "Sun",
+                "values": [
+                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  6
+                ]
+              }
+            ],
+            "columns": [
+              "00",
+              "01",
+              "02",
+              "03",
+              "04",
+              "05",
+              "06",
+              "07",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23"
+            ],
+            "label": "Requests by hour, last week",
+            "unit": "thousands of requests",
+            "max": 250
+          },
+          "declares": ["rows", "columns", "label", "unit", "max"]
+        },
+        {
+          "id": "heatmap--small",
+          "name": "Small",
+          "args": {
+            "rows": [
+              {
+                "label": "Mon",
+                "values": [
+                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
+                  30, 22, 11
+                ]
+              },
+              {
+                "label": "Tue",
+                "values": [
+                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
+                  35, 20, 13
+                ]
+              },
+              {
+                "label": "Wed",
+                "values": [
+                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
+                  36, 17, 12
+                ]
+              },
+              {
+                "label": "Thu",
+                "values": [
+                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
+                  38, 19, 11
+                ]
+              },
+              {
+                "label": "Fri",
+                "values": [
+                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
+                  37, 22, 13
+                ]
+              },
+              {
+                "label": "Sat",
+                "values": [
+                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
+                  10, 6
+                ]
+              },
+              {
+                "label": "Sun",
+                "values": [
+                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  6
+                ]
+              }
+            ],
+            "columns": [
+              "00",
+              "01",
+              "02",
+              "03",
+              "04",
+              "05",
+              "06",
+              "07",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23"
+            ],
+            "label": "Requests by hour, last week",
+            "unit": "thousands of requests"
+          },
+          "declares": ["rows", "columns", "label", "unit", "max"]
+        },
+        {
+          "id": "heatmap--week",
+          "name": "Week",
+          "args": {
+            "rows": [
+              {
+                "label": "Mon",
+                "values": [
+                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
+                  30, 22, 11
+                ]
+              },
+              {
+                "label": "Tue",
+                "values": [
+                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
+                  35, 20, 13
+                ]
+              },
+              {
+                "label": "Wed",
+                "values": [
+                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
+                  36, 17, 12
+                ]
+              },
+              {
+                "label": "Thu",
+                "values": [
+                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
+                  38, 19, 11
+                ]
+              },
+              {
+                "label": "Fri",
+                "values": [
+                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
+                  37, 22, 13
+                ]
+              },
+              {
+                "label": "Sat",
+                "values": [
+                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
+                  10, 6
+                ]
+              },
+              {
+                "label": "Sun",
+                "values": [
+                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  6
+                ]
+              }
+            ],
+            "columns": [
+              "00",
+              "01",
+              "02",
+              "03",
+              "04",
+              "05",
+              "06",
+              "07",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23"
+            ],
+            "label": "Requests by hour, last week",
+            "unit": "thousands of requests"
+          },
+          "declares": ["rows", "columns", "label", "unit", "max"]
+        },
+        {
+          "id": "heatmap--with-gaps",
+          "name": "With gaps",
+          "args": {
+            "rows": [
+              {
+                "label": "Mon",
+                "values": [
+                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
+                  30, 22, 11
+                ]
+              },
+              {
+                "label": "Tue",
+                "values": [
+                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
+                  35, 20, 13
+                ]
+              },
+              {
+                "label": "Wed",
+                "values": [
+                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
+                  36, 17, 12
+                ]
+              },
+              {
+                "label": "Thu",
+                "values": [
+                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
+                  38, 19, 11
+                ]
+              },
+              {
+                "label": "Fri",
+                "values": [
+                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
+                  37, 22, 13
+                ]
+              },
+              {
+                "label": "Sat",
+                "values": [
+                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
+                  10, 6
+                ]
+              },
+              {
+                "label": "Sun",
+                "values": [
+                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  6
+                ]
+              }
+            ],
+            "columns": [
+              "00",
+              "01",
+              "02",
+              "03",
+              "04",
+              "05",
+              "06",
+              "07",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23"
+            ],
+            "label": "Requests by hour, last week",
+            "unit": "thousands of requests"
+          },
+          "declares": ["rows", "columns", "label", "unit", "max"]
+        }
+      ]
+    },
+    {
+      "name": "board",
+      "title": "Board",
+      "description": "A design system on a DOM plane: token cards with their value and their rule, the components that use them, a line per use, a token's value you type into and watch the whole map follow, and an outline that reads the plane in order",
+      "stories": [
+        {
+          "id": "board--current",
+          "name": "Current",
+          "args": {
+            "label": "The design system, one canvas",
+            "nodes": [
+              {
+                "id": "color-page",
+                "title": "color.page",
+                "detail": "the plane",
+                "note": "Everything sits on it.",
+                "property": "color",
+                "swatch": "var(--color-page)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 16
+              },
+              {
+                "id": "color-surface",
+                "title": "color.surface",
+                "detail": "panel",
+                "note": "Cards above the page.",
+                "property": "color",
+                "swatch": "var(--color-surface)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 16
+              },
+              {
+                "id": "color-text",
+                "title": "color.text",
+                "detail": "body text",
+                "note": "7:1 against the page.",
+                "property": "color",
+                "swatch": "var(--color-text)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 16
+              },
+              {
+                "id": "color-muted",
+                "title": "color.muted",
+                "detail": "hints",
+                "note": "4.5:1, one step quieter.",
+                "property": "color",
+                "swatch": "var(--color-muted)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 16
+              },
+              {
+                "id": "color-border",
+                "title": "color.border",
+                "detail": "hairline",
+                "note": "Between blocks, never a shadow.",
+                "property": "color",
+                "swatch": "var(--color-border)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 16
+              },
+              {
+                "id": "color-highlight",
+                "title": "color.highlight",
+                "detail": "accent",
+                "note": "The one accent.",
+                "property": "color",
+                "swatch": "var(--color-highlight)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 162
+              },
+              {
+                "id": "color-on-highlight",
+                "title": "color.on-highlight",
+                "detail": "on accent",
+                "note": "Text on a highlight fill.",
+                "property": "color",
+                "swatch": "var(--color-on-highlight)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 162
+              },
+              {
+                "id": "color-link",
+                "title": "color.link",
+                "detail": "link",
+                "note": "On a card, at 4.5:1.",
+                "property": "color",
+                "swatch": "var(--color-link)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 162
+              },
+              {
+                "id": "color-invalid",
+                "title": "color.invalid",
+                "detail": "error",
+                "note": "Errors and the invalid ring.",
+                "property": "color",
+                "swatch": "var(--color-invalid)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 162
+              },
+              {
+                "id": "color-focus-ring",
+                "title": "color.focus-ring",
+                "detail": "focus",
+                "note": "The keyboard's ring, 3:1.",
+                "property": "color",
+                "swatch": "var(--color-focus-ring)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 162
+              },
+              {
+                "id": "radius-sm",
+                "title": "radius.sm",
+                "detail": "6px",
+                "note": "Controls inside a card.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 308
+              },
+              {
+                "id": "radius-md",
+                "title": "radius.md",
+                "detail": "8px",
+                "note": "Cards and sheets.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 308
+              },
+              {
+                "id": "radius-xl",
+                "title": "radius.xl",
+                "detail": "16px",
+                "note": "The frame of a surface.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 308
+              },
+              {
+                "id": "space-1",
+                "title": "space.1",
+                "detail": "4px",
+                "note": "The gap inside a label.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 308
+              },
+              {
+                "id": "space-2",
+                "title": "space.2",
+                "detail": "8px",
+                "note": "Padding inside a control.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 308
+              },
+              {
+                "id": "space-4",
+                "title": "space.4",
+                "detail": "16px",
+                "note": "Between blocks.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 454
+              },
+              {
+                "id": "font-sm",
+                "title": "font.sizeSm",
+                "detail": "12px",
+                "note": "Captions and hints.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 454
+              },
+              {
+                "id": "font-base",
+                "title": "font.size",
+                "detail": "14px",
+                "note": "The body.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 454
+              },
+              {
+                "id": "font-lg",
+                "title": "font.sizeLg",
+                "detail": "16px",
+                "note": "A section's lead.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 454
+              },
+              {
+                "id": "button",
+                "kind": "part",
+                "title": "Button",
+                "width": 250,
+                "height": 168,
+                "x": 16,
+                "y": 624
+              },
+              {
+                "id": "badge",
+                "kind": "part",
+                "title": "Badge",
+                "width": 250,
+                "height": 168,
+                "x": 284,
+                "y": 624
+              },
+              {
+                "id": "switch",
+                "kind": "part",
+                "title": "Switch",
+                "width": 250,
+                "height": 168,
+                "x": 552,
+                "y": 624
+              },
+              {
+                "id": "input",
+                "kind": "part",
+                "title": "Input",
+                "width": 250,
+                "height": 168,
+                "x": 820,
+                "y": 624
+              },
+              {
+                "id": "tabs",
+                "kind": "part",
+                "title": "Tabs",
+                "width": 250,
+                "height": 168,
+                "x": 1088,
+                "y": 624
+              }
+            ],
+            "edges": [
+              {
+                "from": "button",
+                "to": "color-highlight",
+                "line": "shape"
+              },
+              {
+                "from": "button",
+                "to": "color-on-highlight"
+              },
+              {
+                "from": "button",
+                "to": "radius-sm"
+              },
+              {
+                "from": "button",
+                "to": "space-2"
+              },
+              {
+                "from": "button",
+                "to": "font-base"
+              },
+              {
+                "from": "badge",
+                "to": "color-highlight"
+              },
+              {
+                "from": "badge",
+                "to": "color-on-highlight"
+              },
+              {
+                "from": "badge",
+                "to": "space-1"
+              },
+              {
+                "from": "badge",
+                "to": "font-sm"
+              },
+              {
+                "from": "switch",
+                "to": "color-highlight"
+              },
+              {
+                "from": "switch",
+                "to": "color-border"
+              },
+              {
+                "from": "switch",
+                "to": "space-1"
+              },
+              {
+                "from": "switch",
+                "to": "font-base"
+              },
+              {
+                "from": "input",
+                "to": "color-surface"
+              },
+              {
+                "from": "input",
+                "to": "color-border"
+              },
+              {
+                "from": "input",
+                "to": "color-focus-ring"
+              },
+              {
+                "from": "input",
+                "to": "space-2"
+              },
+              {
+                "from": "input",
+                "to": "font-base"
+              },
+              {
+                "from": "tabs",
+                "to": "color-highlight"
+              },
+              {
+                "from": "tabs",
+                "to": "color-muted"
+              },
+              {
+                "from": "tabs",
+                "to": "color-border"
+              },
+              {
+                "from": "tabs",
+                "to": "space-2"
+              },
+              {
+                "from": "tabs",
+                "to": "font-base"
+              }
+            ]
+          },
+          "declares": ["label", "nodes", "edges"]
+        },
+        {
+          "id": "board--dark",
+          "name": "Dark",
+          "args": {
+            "label": "The design system, one canvas",
+            "nodes": [
+              {
+                "id": "color-page",
+                "title": "color.page",
+                "detail": "the plane",
+                "note": "Everything sits on it.",
+                "property": "color",
+                "swatch": "var(--color-page)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 16
+              },
+              {
+                "id": "color-surface",
+                "title": "color.surface",
+                "detail": "panel",
+                "note": "Cards above the page.",
+                "property": "color",
+                "swatch": "var(--color-surface)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 16
+              },
+              {
+                "id": "color-text",
+                "title": "color.text",
+                "detail": "body text",
+                "note": "7:1 against the page.",
+                "property": "color",
+                "swatch": "var(--color-text)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 16
+              },
+              {
+                "id": "color-muted",
+                "title": "color.muted",
+                "detail": "hints",
+                "note": "4.5:1, one step quieter.",
+                "property": "color",
+                "swatch": "var(--color-muted)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 16
+              },
+              {
+                "id": "color-border",
+                "title": "color.border",
+                "detail": "hairline",
+                "note": "Between blocks, never a shadow.",
+                "property": "color",
+                "swatch": "var(--color-border)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 16
+              },
+              {
+                "id": "color-highlight",
+                "title": "color.highlight",
+                "detail": "accent",
+                "note": "The one accent.",
+                "property": "color",
+                "swatch": "var(--color-highlight)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 162
+              },
+              {
+                "id": "color-on-highlight",
+                "title": "color.on-highlight",
+                "detail": "on accent",
+                "note": "Text on a highlight fill.",
+                "property": "color",
+                "swatch": "var(--color-on-highlight)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 162
+              },
+              {
+                "id": "color-link",
+                "title": "color.link",
+                "detail": "link",
+                "note": "On a card, at 4.5:1.",
+                "property": "color",
+                "swatch": "var(--color-link)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 162
+              },
+              {
+                "id": "color-invalid",
+                "title": "color.invalid",
+                "detail": "error",
+                "note": "Errors and the invalid ring.",
+                "property": "color",
+                "swatch": "var(--color-invalid)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 162
+              },
+              {
+                "id": "color-focus-ring",
+                "title": "color.focus-ring",
+                "detail": "focus",
+                "note": "The keyboard's ring, 3:1.",
+                "property": "color",
+                "swatch": "var(--color-focus-ring)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 162
+              },
+              {
+                "id": "radius-sm",
+                "title": "radius.sm",
+                "detail": "6px",
+                "note": "Controls inside a card.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 308
+              },
+              {
+                "id": "radius-md",
+                "title": "radius.md",
+                "detail": "8px",
+                "note": "Cards and sheets.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 308
+              },
+              {
+                "id": "radius-xl",
+                "title": "radius.xl",
+                "detail": "16px",
+                "note": "The frame of a surface.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 308
+              },
+              {
+                "id": "space-1",
+                "title": "space.1",
+                "detail": "4px",
+                "note": "The gap inside a label.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 308
+              },
+              {
+                "id": "space-2",
+                "title": "space.2",
+                "detail": "8px",
+                "note": "Padding inside a control.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 308
+              },
+              {
+                "id": "space-4",
+                "title": "space.4",
+                "detail": "16px",
+                "note": "Between blocks.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 454
+              },
+              {
+                "id": "font-sm",
+                "title": "font.sizeSm",
+                "detail": "12px",
+                "note": "Captions and hints.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 454
+              },
+              {
+                "id": "font-base",
+                "title": "font.size",
+                "detail": "14px",
+                "note": "The body.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 454
+              },
+              {
+                "id": "font-lg",
+                "title": "font.sizeLg",
+                "detail": "16px",
+                "note": "A section's lead.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 454
+              },
+              {
+                "id": "button",
+                "kind": "part",
+                "title": "Button",
+                "width": 250,
+                "height": 168,
+                "x": 16,
+                "y": 624
+              },
+              {
+                "id": "badge",
+                "kind": "part",
+                "title": "Badge",
+                "width": 250,
+                "height": 168,
+                "x": 284,
+                "y": 624
+              },
+              {
+                "id": "switch",
+                "kind": "part",
+                "title": "Switch",
+                "width": 250,
+                "height": 168,
+                "x": 552,
+                "y": 624
+              },
+              {
+                "id": "input",
+                "kind": "part",
+                "title": "Input",
+                "width": 250,
+                "height": 168,
+                "x": 820,
+                "y": 624
+              },
+              {
+                "id": "tabs",
+                "kind": "part",
+                "title": "Tabs",
+                "width": 250,
+                "height": 168,
+                "x": 1088,
+                "y": 624
+              }
+            ],
+            "edges": [
+              {
+                "from": "button",
+                "to": "color-highlight",
+                "line": "shape"
+              },
+              {
+                "from": "button",
+                "to": "color-on-highlight"
+              },
+              {
+                "from": "button",
+                "to": "radius-sm"
+              },
+              {
+                "from": "button",
+                "to": "space-2"
+              },
+              {
+                "from": "button",
+                "to": "font-base"
+              },
+              {
+                "from": "badge",
+                "to": "color-highlight"
+              },
+              {
+                "from": "badge",
+                "to": "color-on-highlight"
+              },
+              {
+                "from": "badge",
+                "to": "space-1"
+              },
+              {
+                "from": "badge",
+                "to": "font-sm"
+              },
+              {
+                "from": "switch",
+                "to": "color-highlight"
+              },
+              {
+                "from": "switch",
+                "to": "color-border"
+              },
+              {
+                "from": "switch",
+                "to": "space-1"
+              },
+              {
+                "from": "switch",
+                "to": "font-base"
+              },
+              {
+                "from": "input",
+                "to": "color-surface"
+              },
+              {
+                "from": "input",
+                "to": "color-border"
+              },
+              {
+                "from": "input",
+                "to": "color-focus-ring"
+              },
+              {
+                "from": "input",
+                "to": "space-2"
+              },
+              {
+                "from": "input",
+                "to": "font-base"
+              },
+              {
+                "from": "tabs",
+                "to": "color-highlight"
+              },
+              {
+                "from": "tabs",
+                "to": "color-muted"
+              },
+              {
+                "from": "tabs",
+                "to": "color-border"
+              },
+              {
+                "from": "tabs",
+                "to": "space-2"
+              },
+              {
+                "from": "tabs",
+                "to": "font-base"
+              }
+            ]
+          },
+          "declares": ["label", "nodes", "edges"]
+        },
+        {
+          "id": "board--design-system",
+          "name": "DesignSystem",
+          "args": {
+            "label": "The design system, one canvas",
+            "nodes": [
+              {
+                "id": "color-page",
+                "title": "color.page",
+                "detail": "the plane",
+                "note": "Everything sits on it.",
+                "property": "color",
+                "swatch": "var(--color-page)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 16
+              },
+              {
+                "id": "color-surface",
+                "title": "color.surface",
+                "detail": "panel",
+                "note": "Cards above the page.",
+                "property": "color",
+                "swatch": "var(--color-surface)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 16
+              },
+              {
+                "id": "color-text",
+                "title": "color.text",
+                "detail": "body text",
+                "note": "7:1 against the page.",
+                "property": "color",
+                "swatch": "var(--color-text)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 16
+              },
+              {
+                "id": "color-muted",
+                "title": "color.muted",
+                "detail": "hints",
+                "note": "4.5:1, one step quieter.",
+                "property": "color",
+                "swatch": "var(--color-muted)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 16
+              },
+              {
+                "id": "color-border",
+                "title": "color.border",
+                "detail": "hairline",
+                "note": "Between blocks, never a shadow.",
+                "property": "color",
+                "swatch": "var(--color-border)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 16
+              },
+              {
+                "id": "color-highlight",
+                "title": "color.highlight",
+                "detail": "accent",
+                "note": "The one accent.",
+                "property": "color",
+                "swatch": "var(--color-highlight)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 162
+              },
+              {
+                "id": "color-on-highlight",
+                "title": "color.on-highlight",
+                "detail": "on accent",
+                "note": "Text on a highlight fill.",
+                "property": "color",
+                "swatch": "var(--color-on-highlight)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 162
+              },
+              {
+                "id": "color-link",
+                "title": "color.link",
+                "detail": "link",
+                "note": "On a card, at 4.5:1.",
+                "property": "color",
+                "swatch": "var(--color-link)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 162
+              },
+              {
+                "id": "color-invalid",
+                "title": "color.invalid",
+                "detail": "error",
+                "note": "Errors and the invalid ring.",
+                "property": "color",
+                "swatch": "var(--color-invalid)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 162
+              },
+              {
+                "id": "color-focus-ring",
+                "title": "color.focus-ring",
+                "detail": "focus",
+                "note": "The keyboard's ring, 3:1.",
+                "property": "color",
+                "swatch": "var(--color-focus-ring)",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 162
+              },
+              {
+                "id": "radius-sm",
+                "title": "radius.sm",
+                "detail": "6px",
+                "note": "Controls inside a card.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 308
+              },
+              {
+                "id": "radius-md",
+                "title": "radius.md",
+                "detail": "8px",
+                "note": "Cards and sheets.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 308
+              },
+              {
+                "id": "radius-xl",
+                "title": "radius.xl",
+                "detail": "16px",
+                "note": "The frame of a surface.",
+                "property": "border-radius",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 308
+              },
+              {
+                "id": "space-1",
+                "title": "space.1",
+                "detail": "4px",
+                "note": "The gap inside a label.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 308
+              },
+              {
+                "id": "space-2",
+                "title": "space.2",
+                "detail": "8px",
+                "note": "Padding inside a control.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 840,
+                "y": 308
+              },
+              {
+                "id": "space-4",
+                "title": "space.4",
+                "detail": "16px",
+                "note": "Between blocks.",
+                "property": "padding",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 16,
+                "y": 454
+              },
+              {
+                "id": "font-sm",
+                "title": "font.sizeSm",
+                "detail": "12px",
+                "note": "Captions and hints.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 222,
+                "y": 454
+              },
+              {
+                "id": "font-base",
+                "title": "font.size",
+                "detail": "14px",
+                "note": "The body.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 428,
+                "y": 454
+              },
+              {
+                "id": "font-lg",
+                "title": "font.sizeLg",
+                "detail": "16px",
+                "note": "A section's lead.",
+                "property": "font-size",
+                "kind": "token",
+                "width": 190,
+                "height": 132,
+                "x": 634,
+                "y": 454
+              },
+              {
+                "id": "button",
+                "kind": "part",
+                "title": "Button",
+                "width": 250,
+                "height": 168,
+                "x": 16,
+                "y": 624
+              },
+              {
+                "id": "badge",
+                "kind": "part",
+                "title": "Badge",
+                "width": 250,
+                "height": 168,
+                "x": 284,
+                "y": 624
+              },
+              {
+                "id": "switch",
+                "kind": "part",
+                "title": "Switch",
+                "width": 250,
+                "height": 168,
+                "x": 552,
+                "y": 624
+              },
+              {
+                "id": "input",
+                "kind": "part",
+                "title": "Input",
+                "width": 250,
+                "height": 168,
+                "x": 820,
+                "y": 624
+              },
+              {
+                "id": "tabs",
+                "kind": "part",
+                "title": "Tabs",
+                "width": 250,
+                "height": 168,
+                "x": 1088,
+                "y": 624
+              }
+            ],
+            "edges": [
+              {
+                "from": "button",
+                "to": "color-highlight",
+                "line": "shape"
+              },
+              {
+                "from": "button",
+                "to": "color-on-highlight"
+              },
+              {
+                "from": "button",
+                "to": "radius-sm"
+              },
+              {
+                "from": "button",
+                "to": "space-2"
+              },
+              {
+                "from": "button",
+                "to": "font-base"
+              },
+              {
+                "from": "badge",
+                "to": "color-highlight"
+              },
+              {
+                "from": "badge",
+                "to": "color-on-highlight"
+              },
+              {
+                "from": "badge",
+                "to": "space-1"
+              },
+              {
+                "from": "badge",
+                "to": "font-sm"
+              },
+              {
+                "from": "switch",
+                "to": "color-highlight"
+              },
+              {
+                "from": "switch",
+                "to": "color-border"
+              },
+              {
+                "from": "switch",
+                "to": "space-1"
+              },
+              {
+                "from": "switch",
+                "to": "font-base"
+              },
+              {
+                "from": "input",
+                "to": "color-surface"
+              },
+              {
+                "from": "input",
+                "to": "color-border"
+              },
+              {
+                "from": "input",
+                "to": "color-focus-ring"
+              },
+              {
+                "from": "input",
+                "to": "space-2"
+              },
+              {
+                "from": "input",
+                "to": "font-base"
+              },
+              {
+                "from": "tabs",
+                "to": "color-highlight"
+              },
+              {
+                "from": "tabs",
+                "to": "color-muted"
+              },
+              {
+                "from": "tabs",
+                "to": "color-border"
+              },
+              {
+                "from": "tabs",
+                "to": "space-2"
+              },
+              {
+                "from": "tabs",
+                "to": "font-base"
+              }
+            ]
+          },
+          "declares": ["label", "nodes", "edges"]
+        }
+      ]
+    },
+    {
+      "name": "scale",
+      "title": "Scale",
+      "description": "A bar list whose scale is its own largest value, read out of layout: one `auto` grid column measures the widest mark, `round(100cqw / 1px)` in a registered `@property` carries it back as a number, and a counter prints it — no script computes the scale, and the numbers are text where container units are missing",
+      "stories": [
+        {
+          "id": "scale--default",
+          "name": "Default",
+          "args": {
+            "label": "Requests per second, by region",
+            "items": [
+              {
+                "label": "us-east",
+                "value": 420
+              },
+              {
+                "label": "eu-west",
+                "value": 310
+              },
+              {
+                "label": "ap-south",
+                "value": 96
+              },
+              {
+                "label": "sa-east",
+                "value": 42
+              }
+            ]
+          },
+          "declares": ["label", "items"]
+        },
+        {
+          "id": "scale--new-largest",
+          "name": "NewLargest",
+          "args": {
+            "label": "A fifth region",
+            "items": [
+              {
+                "label": "us-east",
+                "value": 420
+              },
+              {
+                "label": "eu-west",
+                "value": 310
+              },
+              {
+                "label": "ap-south",
+                "value": 96
+              },
+              {
+                "label": "sa-east",
+                "value": 42
+              },
+              {
+                "label": "af-south",
+                "value": 900
+              }
+            ]
+          },
+          "declares": ["label", "items"]
+        },
+        {
+          "id": "scale--single",
+          "name": "Single",
+          "args": {
+            "label": "One region",
+            "items": [
+              {
+                "label": "us-east",
+                "value": 420
+              }
+            ]
+          },
+          "declares": ["label", "items"]
+        }
+      ]
+    },
+    {
+      "name": "meter",
+      "title": "Meter",
+      "description": "APG meter: a track and the fill of the value, on `createMeter`",
+      "stories": [
+        {
+          "id": "meter--default",
+          "name": "Default",
+          "args": {
+            "label": "Storage",
+            "value": 64
+          },
+          "declares": ["label", "value"]
+        },
+        {
+          "id": "meter--full",
+          "name": "Full",
+          "args": {
+            "label": "Storage",
+            "value": 100
+          },
+          "declares": ["label", "value"]
+        },
+        {
+          "id": "meter--native",
+          "name": "Native",
+          "args": {
+            "label": "Storage",
+            "value": 64
+          },
+          "declares": ["label", "value"]
+        },
+        {
+          "id": "meter--with-value-text",
+          "name": "WithValueText",
+          "args": {
+            "label": "Upload",
+            "value": 92,
+            "valueText": "92% of the file sent"
+          },
+          "declares": ["label", "value", "valueText"]
+        }
+      ]
+    },
+    {
+      "name": "sparkline",
+      "title": "Sparkline",
+      "description": "A sparkline as a list of samples: the line is CSS (`hypot` and `atan2`), with no SVG and no canvas",
+      "stories": [
+        {
+          "id": "sparkline--against-a-wider-axis",
+          "name": "Against a wider axis",
+          "args": {
+            "label": "Requests per second, the last 20 samples",
+            "values": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ]
+          },
+          "declares": ["label", "values", "tone", "height"]
+        },
+        {
+          "id": "sparkline--default",
+          "name": "Default",
+          "args": {
+            "label": "Requests per second, the last 20 samples",
+            "values": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ]
+          },
+          "declares": ["label", "values", "tone", "height"]
+        },
+        {
+          "id": "sparkline--muted",
+          "name": "Muted",
+          "args": {
+            "label": "Requests per second, the last 20 samples",
+            "values": [
+              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
+              1515, 1470, 1462, 1420, 1377, 1350
+            ],
+            "tone": "muted"
+          },
+          "declares": ["label", "values", "tone", "height"]
+        }
+      ]
+    },
+    {
+      "name": "breadcrumb",
+      "title": "Breadcrumb",
+      "description": "APG breadcrumb: a trail whose current page is marked `aria-current=page` and painted from it",
+      "stories": [
+        {
+          "id": "breadcrumb--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "treeview",
+      "title": "Tree view",
+      "description": "APG tree view: roving focus, expanded rows and levels on `createTreeview`",
+      "stories": [
+        {
+          "id": "treeview--collapsed",
+          "name": "Collapsed",
+          "args": {
+            "nodes": [
+              {
+                "id": 1,
+                "parent": 0,
+                "label": "Projects"
+              },
+              {
+                "id": 2,
+                "parent": 1,
+                "label": "Reports"
+              },
+              {
+                "id": 3,
+                "parent": 2,
+                "label": "Roadmap"
+              },
+              {
+                "id": 4,
+                "parent": 2,
+                "label": "Summary"
+              },
+              {
+                "id": 5,
+                "parent": 1,
+                "label": "Notes"
+              },
+              {
+                "id": 6,
+                "parent": 0,
+                "label": "Photos"
+              }
+            ],
+            "label": "Files",
+            "defaultValue": [2],
+            "defaultExpanded": [1, 2]
+          },
+          "declares": ["nodes", "label", "defaultValue", "defaultExpanded"]
+        },
+        {
+          "id": "treeview--files",
+          "name": "Files",
+          "args": {
+            "nodes": [
+              {
+                "id": 1,
+                "parent": 0,
+                "label": "Projects"
+              },
+              {
+                "id": 2,
+                "parent": 1,
+                "label": "Reports"
+              },
+              {
+                "id": 3,
+                "parent": 2,
+                "label": "Roadmap"
+              },
+              {
+                "id": 4,
+                "parent": 2,
+                "label": "Summary"
+              },
+              {
+                "id": 5,
+                "parent": 1,
+                "label": "Notes"
+              },
+              {
+                "id": 6,
+                "parent": 0,
+                "label": "Photos"
+              }
+            ],
+            "label": "Files",
+            "defaultValue": [2],
+            "defaultExpanded": [1, 2]
+          },
+          "declares": ["nodes", "label", "defaultValue", "defaultExpanded"]
+        }
+      ]
+    },
+    {
+      "name": "treegrid",
+      "title": "Tree grid",
+      "description": "APG treegrid: a file tree with columns, the expander in the name cell, roving focus across rows and cells, and the selected row painted from `aria-selected`",
+      "stories": [
+        {
+          "id": "treegrid--collapsed",
+          "name": "Collapsed",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "treegrid--files",
+          "name": "Files",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "feed",
+      "title": "Feed",
+      "description": "APG feed: articles that load as the end of the list scrolls into view, with the primitive's position and size, a loading sentinel and the status line a screen reader hears",
+      "stories": [
+        {
+          "id": "feed--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "player",
+      "title": "Player",
+      "description": "A media player on an injected `PlaybackAdapter`: a video frame or an audio bar, play and pause named from the stage, the m:ss time, a seek slider with the APG keys, and a mute toggle",
+      "stories": [
+        {
+          "id": "player--audio",
+          "name": "Audio",
+          "args": {
+            "label": "A short film about the coast",
+            "title": "The coast at dusk",
+            "kind": "audio",
+            "aspect": "3 / 2"
+          },
+          "declares": ["label", "title", "kind", "aspect"]
+        },
+        {
+          "id": "player--default",
+          "name": "Default",
+          "args": {
+            "label": "A short film about the coast",
+            "title": "The coast at dusk",
+            "kind": "video",
+            "aspect": "3 / 2"
+          },
+          "declares": ["label", "title", "kind", "aspect"]
+        }
+      ]
+    },
+    {
+      "name": "resizable-panels",
+      "title": "Resizable panels",
+      "description": "A group of panes with a separator between each pair: drag or use the arrows, Home and End jump a pair to its bounds, Enter collapses and restores, and the primitive keeps the layout summing to 100%",
+      "stories": [
+        {
+          "id": "resizable-panels--editor",
+          "name": "Editor",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "resizable-panels--stacked",
+          "name": "Stacked",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "menu",
+      "title": "Menu",
+      "description": "APG menu button: one trigger, a list with a roving tab stop, arrows, Home and End, Escape and a click outside to close; a variant gives the rows checkbox and radio items",
+      "stories": [
+        {
+          "id": "menu--actions",
+          "name": "Actions",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "menu--edit",
+          "name": "Edit",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "menubar",
+      "title": "Menubar",
+      "description": "APG menu and menubar: a roving bar whose menus float under their items, rows with one tab stop, and nested submenus that open beside the parent row",
+      "stories": [
+        {
+          "id": "menubar--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "menubar--disabled-item",
+          "name": "Disabled item",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "tooltip",
+      "title": "Tooltip",
+      "description": "APG tooltip: a text bubble on hover and on focus, wired to its trigger by `aria-describedby`",
+      "stories": [
+        {
+          "id": "tooltip--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "tooltip--on-a-link",
+          "name": "On a link",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "popover",
+      "title": "Popover",
+      "description": "A non-modal panel anchored to a trigger: a dialog surface that flips at the viewport edge, closes on an outside press or Escape, and returns the focus",
+      "stories": [
+        {
+          "id": "popover--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "popover--end-aligned",
+          "name": "End-aligned",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "date-picker",
+      "title": "Date picker",
+      "description": "A calendar in a popover: a 6x7 month grid with arrows, Home and End, PageUp and PageDown, min and max, and the chosen day on the trigger",
+      "stories": [
+        {
+          "id": "date-picker--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "date-picker--picked",
+          "name": "Picked",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "title": "Select",
+      "description": "APG select-only combobox: the button that shows the chosen label is the combobox, a floating listbox follows it with `aria-activedescendant`, and Enter, Tab or a click commits",
+      "stories": [
+        {
+          "id": "select--chosen",
+          "name": "Chosen",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "select--empty",
+          "name": "Empty",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "command-palette",
+      "title": "Command palette",
+      "description": "A modal dialog with a search field: the primitive filters the commands, `aria-activedescendant` marks the active row, and arrows, Enter, Escape and a hotkey are its keys",
+      "stories": [
+        {
+          "id": "command-palette--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "textarea",
+      "title": "Textarea",
+      "description": "A multi-line field styled like `Input`, and the control `Field` puts in with `render`",
+      "stories": [
+        {
+          "id": "textarea--auto-grow",
+          "name": "AutoGrow",
+          "args": {
+            "placeholder": "A plain textarea"
+          },
+          "declares": ["placeholder", "disabled", "rows"]
+        },
+        {
+          "id": "textarea--default",
+          "name": "Default",
+          "args": {
+            "placeholder": "A plain textarea"
+          },
+          "declares": ["placeholder", "disabled", "rows"]
+        },
+        {
+          "id": "textarea--in-a-field",
+          "name": "In a field",
+          "args": {
+            "placeholder": "A plain textarea"
+          },
+          "declares": ["placeholder", "disabled", "rows"]
+        }
+      ]
+    },
+    {
+      "name": "slider",
+      "title": "Slider",
+      "description": "APG slider: the rail, the fill and the thumb, with the fill's share of the rail from `aria-valuenow`",
+      "stories": [
+        {
+          "id": "slider--horizontal",
+          "name": "Horizontal",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "slider--range",
+          "name": "Range",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "slider--vertical",
+          "name": "Vertical",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "slider-multithumb",
+      "title": "Range slider",
+      "description": "APG multi-thumb slider: two thumbs whose bounds follow each other, and the interval between them as the fill",
+      "stories": [
+        {
+          "id": "slider-multithumb--controlled",
+          "name": "Controlled",
+          "args": {
+            "label": "Price",
+            "defaultValue": [3, 7]
+          },
+          "declares": ["label", "defaultValue", "disabled"]
+        },
+        {
+          "id": "slider-multithumb--range",
+          "name": "Range",
+          "args": {
+            "label": "Price",
+            "defaultValue": [3, 7]
+          },
+          "declares": ["label", "defaultValue", "disabled"]
+        },
+        {
+          "id": "slider-multithumb--vertical",
+          "name": "Vertical",
+          "args": {
+            "label": "Price",
+            "defaultValue": [3, 7]
+          },
+          "declares": ["label", "defaultValue", "disabled"]
+        }
+      ]
+    },
+    {
+      "name": "spinbutton",
+      "title": "Spinbutton",
+      "description": "APG spinbutton: a number field with steppers it disables at the bounds, and the id a `Field` names it by",
+      "stories": [
+        {
+          "id": "spinbutton--at-the-bound",
+          "name": "At the bound",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "spinbutton--in-a-field",
+          "name": "In a field",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "checkbox-group",
+      "title": "Checkbox group",
+      "description": "APG tri-state checkbox group: three of the kit's `Checkbox`, and the all/none/mixed parent derived from them",
+      "stories": [
+        {
+          "id": "checkbox-group--notifications",
+          "name": "Notifications",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "checkbox-group--without-the-parent-box",
+          "name": "Without the parent box",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "toast",
+      "title": "Toast",
+      "description": "A queue of toasts in a portalled fixed stack: info, success and error tones, a close button, and a countdown that pauses while the pointer or the focus is on the toast",
+      "stories": [
+        {
+          "id": "toast--stack",
+          "name": "Stack",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "table",
+      "title": "Table",
+      "description": "A data table on a native `<table>`: sortable headers whose arrow is `aria-sort`, row selection with a select-all that covers the rendered rows, a numeric column right-aligned from the column's hint, and an optional window over 10 000 rows that keeps `aria-rowcount` and every `aria-rowindex`",
+      "stories": [
+        {
+          "id": "table--issues",
+          "name": "Issues",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "table--single-choice",
+          "name": "SingleChoice",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "virtual-list",
+      "title": "Virtual list",
+      "description": "A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set",
+      "stories": [
+        {
+          "id": "virtual-list--short",
+          "name": "Short",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "virtual-list--ten-thousand",
+          "name": "TenThousand",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "pagination",
+      "title": "Pagination",
+      "description": "A page list in a nav: the current page is `aria-current=page` and painted from it, the elided runs are text, the ends stay in place, and one live status announces the count",
+      "stories": [
+        {
+          "id": "pagination--default",
+          "name": "Default",
+          "args": {
+            "page": 12,
+            "pageCount": 24
+          },
+          "declares": ["page", "pageCount"]
+        },
+        {
+          "id": "pagination--first-page",
+          "name": "First page",
+          "args": {
+            "page": 1,
+            "pageCount": 24
+          },
+          "declares": ["page", "pageCount"]
+        },
+        {
+          "id": "pagination--last-page",
+          "name": "Last page",
+          "args": {
+            "page": 24,
+            "pageCount": 24
+          },
+          "declares": ["page", "pageCount"]
+        }
+      ]
+    },
+    {
+      "name": "knob",
+      "title": "Knob",
+      "description": "A dial on `createKnob`: a three-quarter arc, a pointer and the value in the middle, turned by a drag, the wheel or the arrows, Page Up and Page Down, Home and End",
+      "stories": [
+        {
+          "id": "knob--default",
+          "name": "Default",
+          "args": {
+            "label": "Volume",
+            "defaultValue": 65,
+            "min": 0,
+            "max": 100,
+            "step": 1
+          },
+          "declares": ["label", "defaultValue", "min", "max", "step", "format", "size"]
+        },
+        {
+          "id": "knob--large-dial",
+          "name": "Large dial",
+          "args": {
+            "label": "Master",
+            "defaultValue": 80,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "size": "8rem"
+          },
+          "declares": ["label", "defaultValue", "min", "max", "step", "format", "size"]
+        },
+        {
+          "id": "knob--pan",
+          "name": "Pan",
+          "args": {
+            "label": "Pan",
+            "defaultValue": 0,
+            "min": -50,
+            "max": 50,
+            "step": 5
+          },
+          "declares": ["label", "defaultValue", "min", "max", "step", "format", "size"]
+        }
+      ]
+    },
+    {
+      "name": "timeline",
+      "title": "Timeline",
+      "description": "A trace waterfall on `createTimeline`: a name column indented by depth, each span a bar at its share of the whole trace, a ruler of nice ticks, the cursor and selection keys, and the selected span's status line",
+      "stories": [
+        {
+          "id": "timeline--request",
+          "name": "Request",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "reorder",
+      "title": "Reorderable list",
+      "description": "A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved",
+      "stories": [
+        {
+          "id": "reorder--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "reorder--labels-only",
+          "name": "Labels only",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
+      "name": "combobox",
+      "title": "Combobox",
+      "description": "A searchable picker: the field filters a listbox as the reader types, `aria-activedescendant` marks the active option, and Enter, Space or a click chooses it",
+      "stories": [
+        {
+          "id": "combobox--default",
+          "name": "Default",
+          "args": {
+            "disabled": false
+          },
+          "declares": ["disabled"]
+        },
+        {
+          "id": "combobox--disabled",
+          "name": "Disabled",
+          "args": {
+            "disabled": true
+          },
+          "declares": ["disabled"]
+        }
+      ]
+    },
+    {
+      "name": "listbox",
+      "title": "Listbox",
+      "description": "A plain listbox on `createListbox`: one roving tab stop, arrows, Home and End, type-ahead, and single or multiple selection with a check mark",
+      "stories": [
+        {
+          "id": "listbox--cursor-only",
+          "name": "Cursor only",
+          "args": {
+            "items": ["Apple", "Apricot", "Banana", "Blackberry", "Cherry", "Fig", "Grape", "Kiwi"],
+            "label": "Fruit",
+            "selectionMode": "none",
+            "defaultValue": []
+          },
+          "declares": [
+            "items",
+            "label",
+            "selectionMode",
+            "defaultValue",
+            "followsFocus",
+            "focusOnHover"
+          ]
+        },
+        {
+          "id": "listbox--default",
+          "name": "Default",
+          "args": {
+            "items": ["Apple", "Apricot", "Banana", "Blackberry", "Cherry", "Fig", "Grape", "Kiwi"],
+            "label": "Fruit",
+            "selectionMode": "single",
+            "defaultValue": [2]
+          },
+          "declares": [
+            "items",
+            "label",
+            "selectionMode",
+            "defaultValue",
+            "followsFocus",
+            "focusOnHover"
+          ]
+        },
+        {
+          "id": "listbox--multiple",
+          "name": "Multiple",
+          "args": {
+            "items": ["Apple", "Apricot", "Banana", "Blackberry", "Cherry", "Fig", "Grape", "Kiwi"],
+            "label": "Fruit",
+            "selectionMode": "multiple",
+            "defaultValue": [0, 3]
+          },
+          "declares": [
+            "items",
+            "label",
+            "selectionMode",
+            "defaultValue",
+            "followsFocus",
+            "focusOnHover"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "link",
+      "title": "Link",
+      "description": "A link on `createLink`: a native `<a href>` or a custom `role=link` with its own tab stop and Enter, a muted tone, and the current page marked `aria-current=page`",
+      "stories": [
+        {
+          "id": "link--current-page",
+          "name": "Current page",
+          "args": {
+            "children": "Installation",
+            "href": "#link",
+            "tone": "default",
+            "current": true
+          },
+          "declares": ["children", "href", "tone", "current", "native", "disabled"]
+        },
+        {
+          "id": "link--default",
+          "name": "Default",
+          "args": {
+            "children": "Read the guide",
+            "href": "#link",
+            "tone": "default"
+          },
+          "declares": ["children", "href", "tone", "native", "current", "disabled"]
+        },
+        {
+          "id": "link--disabled",
+          "name": "Disabled",
+          "args": {
+            "children": "Read the guide",
+            "href": "#link",
+            "tone": "default",
+            "disabled": true
+          },
+          "declares": ["children", "href", "tone", "disabled", "native", "current"]
+        }
+      ]
+    },
+    {
+      "name": "hardware",
+      "title": "Hardware (skin 01)",
+      "description": "A second look after SPEC-01: a moulded faceplate, keys standing in their holes, a rocker, a slide switch, a fader with a printed scale, a dial with a tick arc, an LCD, a lamp and a bar graph — one OKLCH key colour turned into every role, in a plain sheet scoped to `[data-skin=\"01\"]`",
+      "stories": [
+        {
+          "id": "hardware--controls",
+          "name": "Controls",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "hardware--dashboard",
+          "name": "Dashboard",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "hardware--key-colours",
+          "name": "Key colours",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "hardware--keys",
+          "name": "Keys",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "hardware--readouts",
+          "name": "Readouts",
+          "args": {},
+          "declares": []
+        }
+      ]
+    }
+  ]
+}

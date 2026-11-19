@@ -17,6 +17,8 @@ import { Controls } from "../stories/controls.tsx";
 import { type Args, parseHash, storyOfId } from "@cssints/stories";
 import { type SiteEntry, storiesOf } from "../stories/site.ts";
 import { itemHash } from "./item-hash.ts";
+import { CatalogPage, ScreenPage } from "./screen-page.tsx";
+import { routeOf, screenHash } from "./surface.ts";
 import type { JSX } from "@solidjs/web";
 
 import "./docs.css";
@@ -49,7 +51,10 @@ const isPreflight = (value: unknown): value is Preflight =>
 
 const first = (): string => items[0]?.name ?? "";
 
-const start = parseHash(location.hash);
+// A hash names an item and a story (`#button--accent`), the catalog, or a screen; the page draws one of the three.
+const startRoute = routeOf(location.hash);
+const start =
+  startRoute.kind === "item" ? { name: startRoute.name, story: startRoute.story } : parseHash("");
 
 /**
  * One story on the canvas: its args in a signal, a control writing into it, and the story remounted on every change, so an
@@ -91,6 +96,13 @@ const StoryCanvas = (props: { readonly entry: SiteEntry }): JSX.Element => {
 
 export const Docs = (): JSX.Element => {
   const [name, setName] = createSignal(start.name || first());
+  // a screen and the catalog are pages of their own: the item page is what a hash draws when it names neither
+  const [surface, setSurface] = createSignal<"screen" | "catalog" | undefined>(
+    startRoute.kind === "item" ? undefined : startRoute.kind,
+  );
+  const [screenText, setScreenText] = createSignal(
+    startRoute.kind === "screen" ? startRoute.text : "",
+  );
   const [story, setStory] = createSignal(start.story);
   const [tint, setTint] = createSignal(TINTS[0] ?? { name: "neutral", hue: "0", chroma: "0" });
   const [copied, setCopied] = createSignal("");
@@ -137,9 +149,13 @@ export const Docs = (): JSX.Element => {
   );
 
   const follow = (): void => {
-    const next = parseHash(location.hash);
-    setName(next.name || first());
-    setStory(next.story);
+    const route = routeOf(location.hash);
+    setSurface(route.kind === "item" ? undefined : route.kind);
+    setScreenText(route.kind === "screen" ? route.text : "");
+    if (route.kind === "item") {
+      setName(route.name || first());
+      setStory(route.story);
+    }
   };
   // `/` reaches the search from anywhere but a field (the shortcut every documentation site has), and Escape clears it
   let search: HTMLInputElement | undefined;
@@ -320,162 +336,189 @@ export const Docs = (): JSX.Element => {
             dark
           </Switch>
         </div>
+        <p class="docs__note">
+          <a href="#catalog">Catalog</a> ·{" "}
+          <a
+            href={screenHash({
+              title: "Release health",
+              blocks: [
+                { starter: "stat" },
+                { starter: "bars", args: { label: "Requests by region, last day" } },
+                { starter: "scale", args: { label: "Discount depth, by store" } },
+              ],
+            })}
+          >
+            A screen
+          </a>
+        </p>
       </aside>
 
       <main class="docs__main">
-        <Show when={guide()} keyed>
-          {(entry) => <entry.Page />}
+        <Show when={surface() === "catalog"}>
+          <CatalogPage />
         </Show>
-        <Show
-          when={item()}
-          fallback={
-            <Show when={!guide()}>
-              <p>Pick a widget.</p>
-            </Show>
-          }
-        >
-          {(current) => (
-            <>
-              <h1 class="docs__title">{current().title}</h1>
-              <p class="docs__description">{current().description}</p>
-
-              <Show when={entry()}>
-                {(story) => (
-                  <div class="docs__story">
-                    <code>{story().id}</code>
-                    <Button tone="quiet" size="sm" onClick={() => void copy(link(story().id))}>
-                      {copied() === link(story().id) ? "copied" : "copy link"}
-                    </Button>
-                  </div>
-                )}
+        <Show when={surface() === "screen"}>
+          <ScreenPage text={screenText()} />
+        </Show>
+        <Show when={surface() === undefined}>
+          <Show when={guide()} keyed>
+            {(entry) => <entry.Page />}
+          </Show>
+          <Show
+            when={item()}
+            fallback={
+              <Show when={!guide()}>
+                <p>Pick a widget.</p>
               </Show>
+            }
+          >
+            {(current) => (
+              <>
+                <h1 class="docs__title">{current().title}</h1>
+                <p class="docs__description">{current().description}</p>
 
-              <section class="docs__preview">
-                <Show when={stories().length > 0} fallback={<p>No story yet.</p>}>
-                  <Show
-                    when={stories().length > 1}
-                    fallback={
-                      <Show when={entry()} keyed>
-                        {(story) => <StoryCanvas entry={story} />}
-                      </Show>
-                    }
-                  >
-                    <Tabs
-                      items={stories().length}
-                      value={at()}
-                      onValueChange={pick}
-                      tab={(index) => stories()[index]?.name ?? ""}
-                      panel={(index) => (
-                        <Show when={stories()[index]} keyed>
+                <Show when={entry()}>
+                  {(story) => (
+                    <div class="docs__story">
+                      <code>{story().id}</code>
+                      <Button tone="quiet" size="sm" onClick={() => void copy(link(story().id))}>
+                        {copied() === link(story().id) ? "copied" : "copy link"}
+                      </Button>
+                    </div>
+                  )}
+                </Show>
+
+                <section class="docs__preview">
+                  <Show when={stories().length > 0} fallback={<p>No story yet.</p>}>
+                    <Show
+                      when={stories().length > 1}
+                      fallback={
+                        <Show when={entry()} keyed>
                           {(story) => <StoryCanvas entry={story} />}
                         </Show>
-                      )}
-                    />
+                      }
+                    >
+                      <Tabs
+                        items={stories().length}
+                        value={at()}
+                        onValueChange={pick}
+                        tab={(index) => stories()[index]?.name ?? ""}
+                        panel={(index) => (
+                          <Show when={stories()[index]} keyed>
+                            {(story) => <StoryCanvas entry={story} />}
+                          </Show>
+                        )}
+                      />
+                    </Show>
                   </Show>
+                </section>
+
+                <section class="docs__section">
+                  <h2 class="docs__heading">Add it</h2>
+                  <div class="docs__command">
+                    <code>{command(current().name)}</code>
+                    <Button
+                      tone="quiet"
+                      size="sm"
+                      onClick={() => void copy(command(current().name))}
+                    >
+                      {copied() === command(current().name) ? "copied" : "copy"}
+                    </Button>
+                  </div>
+                  <p class="docs__note">
+                    Solid 2 (<code>2.0.0-rc.13</code>) and Vite+ are required; see the starter
+                    template in the repository. The theme arrives with the first starter.
+                  </p>
+                </section>
+
+                <Show when={preflight()}>
+                  {(result) => (
+                    <section class="docs__section">
+                      <h2 class="docs__heading">Conformance</h2>
+                      <p class="docs__note">
+                        The starter smoke test installed every file this item ships into the
+                        template and ran the copied conformance against it. This record is the
+                        fingerprint of exactly those files{" "}
+                        <code title={result().files}>{`${result().files.slice(0, 19)}…`}</code>, so
+                        what you copy above is what passed.
+                      </p>
+                    </section>
+                  )}
                 </Show>
-              </section>
 
-              <section class="docs__section">
-                <h2 class="docs__heading">Add it</h2>
-                <div class="docs__command">
-                  <code>{command(current().name)}</code>
-                  <Button tone="quiet" size="sm" onClick={() => void copy(command(current().name))}>
-                    {copied() === command(current().name) ? "copied" : "copy"}
-                  </Button>
-                </div>
-                <p class="docs__note">
-                  Solid 2 (<code>2.0.0-rc.13</code>) and Vite+ are required; see the starter
-                  template in the repository. The theme arrives with the first starter.
-                </p>
-              </section>
-
-              <Show when={preflight()}>
-                {(result) => (
-                  <section class="docs__section">
-                    <h2 class="docs__heading">Conformance</h2>
+                <section class="docs__section">
+                  <h2 class="docs__heading">How the component is written</h2>
+                  <Show
+                    when={current().files.some((file) =>
+                      file.target.endsWith(`${current().name}.css`),
+                    )}
+                    fallback={
+                      <>
+                        <p class="docs__note">
+                          Styles live in{" "}
+                          <code>{`src/registry/${current().name}/${current().name}.tsx`}</code>:{" "}
+                          <code>cn()</code> and <code>cv()</code> with the theme's tokens, states
+                          read off the attributes the widget announces (<code>css.attr()</code>,{" "}
+                          <code>css.within()</code>), and <code>render</code> replacing a part with
+                          another component or tag. The declarations are checked against the CSS
+                          grammar and the theme against <code>check.contrast</code> at build time.
+                        </p>
+                        <p class="docs__note">
+                          A copy ships that source, so <strong>your project needs cssints</strong>{" "}
+                          in its Vite config (and the theme: <code>theme.ts</code> with{" "}
+                          <code>tokens.ts</code> arrives with the item). The look is composed beside
+                          other components: <code>Card</code> hands its inner radius down through{" "}
+                          <code>frame()</code>, a <code>data-mode</code> scope moves every token of
+                          the subtree, and an ancestor's <code>data-size="sm"</code> sizes what it
+                          holds.
+                        </p>
+                      </>
+                    }
+                  >
                     <p class="docs__note">
-                      The starter smoke test installed every file this item ships into the template
-                      and ran the copied conformance against it. This record is the fingerprint of
-                      exactly those files{" "}
-                      <code title={result().files}>{`${result().files.slice(0, 19)}…`}</code>, so
-                      what you copy above is what passed.
+                      The skin is authored on cssints,{" "}
+                      <code>{`src/registry/${current().name}/${current().name}.ts`}</code>:
+                      declarations checked against the CSS grammar, states written with{" "}
+                      <code>css.attr()</code> and the pseudo-class wrappers, selectors as the{" "}
+                      <code>ui-*</code> contract the markup uses. A script compiles it to{" "}
+                      <code>{current().name}.css</code> before the item is built.
                     </p>
-                  </section>
-                )}
-              </Show>
+                    <p class="docs__note">
+                      What you copy is that compiled sheet, so{" "}
+                      <strong>your project needs no cssints plugin</strong>: the cssints helpers run
+                      at build time here, once, and a copy that imported them could not run its own
+                      conformance test. The theme works the same way — tokens compiled to custom
+                      properties.
+                    </p>
+                  </Show>
+                </section>
 
-              <section class="docs__section">
-                <h2 class="docs__heading">How the component is written</h2>
-                <Show
-                  when={current().files.some((file) =>
-                    file.target.endsWith(`${current().name}.css`),
-                  )}
-                  fallback={
-                    <>
-                      <p class="docs__note">
-                        Styles live in{" "}
-                        <code>{`src/registry/${current().name}/${current().name}.tsx`}</code>:{" "}
-                        <code>cn()</code> and <code>cv()</code> with the theme's tokens, states read
-                        off the attributes the widget announces (<code>css.attr()</code>,{" "}
-                        <code>css.within()</code>), and <code>render</code> replacing a part with
-                        another component or tag. The declarations are checked against the CSS
-                        grammar and the theme against <code>check.contrast</code> at build time.
-                      </p>
-                      <p class="docs__note">
-                        A copy ships that source, so <strong>your project needs cssints</strong> in
-                        its Vite config (and the theme: <code>theme.ts</code> with{" "}
-                        <code>tokens.ts</code> arrives with the item). The look is composed beside
-                        other components: <code>Card</code> hands its inner radius down through{" "}
-                        <code>frame()</code>, a <code>data-mode</code> scope moves every token of
-                        the subtree, and an ancestor's <code>data-size="sm"</code> sizes what it
-                        holds.
-                      </p>
-                    </>
-                  }
-                >
+                <section class="docs__section">
+                  <h2 class="docs__heading">Source</h2>
                   <p class="docs__note">
-                    The skin is authored on cssints,{" "}
-                    <code>{`src/registry/${current().name}/${current().name}.ts`}</code>:
-                    declarations checked against the CSS grammar, states written with{" "}
-                    <code>css.attr()</code> and the pseudo-class wrappers, selectors as the{" "}
-                    <code>ui-*</code> contract the markup uses. A script compiles it to{" "}
-                    <code>{current().name}.css</code> before the item is built.
+                    The first file is the component; the rest are what <code>add</code> writes.
                   </p>
-                  <p class="docs__note">
-                    What you copy is that compiled sheet, so{" "}
-                    <strong>your project needs no cssints plugin</strong>: the cssints helpers run
-                    at build time here, once, and a copy that imported them could not run its own
-                    conformance test. The theme works the same way — tokens compiled to custom
-                    properties.
-                  </p>
-                </Show>
-              </section>
-
-              <section class="docs__section">
-                <h2 class="docs__heading">Source</h2>
-                <p class="docs__note">
-                  The first file is the component; the rest are what <code>add</code> writes.
-                </p>
-                <For
-                  each={[
-                    ...current().files.filter((file) => file === componentFile(current())),
-                    ...current().files.filter((file) => file !== componentFile(current())),
-                  ]}
-                >
-                  {(file) => (
-                    <details class="docs__file" open={file === componentFile(current())}>
-                      <summary>
-                        <code>{file.target}</code>
-                      </summary>
-                      <pre class="docs__code">
-                        <code>{file.content}</code>
-                      </pre>
-                    </details>
-                  )}
-                </For>
-              </section>
-            </>
-          )}
+                  <For
+                    each={[
+                      ...current().files.filter((file) => file === componentFile(current())),
+                      ...current().files.filter((file) => file !== componentFile(current())),
+                    ]}
+                  >
+                    {(file) => (
+                      <details class="docs__file" open={file === componentFile(current())}>
+                        <summary>
+                          <code>{file.target}</code>
+                        </summary>
+                        <pre class="docs__code">
+                          <code>{file.content}</code>
+                        </pre>
+                      </details>
+                    )}
+                  </For>
+                </section>
+              </>
+            )}
+          </Show>
         </Show>
       </main>
     </div>

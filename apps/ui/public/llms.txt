@@ -11,6 +11,16 @@ npx shadcn@latest add @cssints/<name>
 
 Registry: https://ui.cssints.dev/r/{name}.json (index: /r/registry.json)
 
+## The catalog
+
+The items are a closed catalog: an agent composes a screen only from what is listed here, and only with the args each
+story declares. `/catalog.json` is that catalog as data — every starter, its story ids, the args each story uses and
+the args each one takes (`node apps/ui/scripts/catalog.ts` writes it) — and a screen is
+`{"title":"…","blocks":[{"starter":"bars","story":"bars--by-region","args":{"label":"…"}}]}` in a `#screen=` hash of
+https://ui.cssints.dev: any starter, story or arg the catalog does not name is refused with the reason, not ignored.
+A component is not configured by a schema of its props: it is configured by its CSF story, and its props are typed in
+TypeScript — read the item's `tsx` beside the story, or `compile` it through cssints's MCP server.
+
 ## Items
 
 - card: A surface and a frame with parts: `Card.Header`, `Card.Body`, `Card.Footer`. `add @cssints/card`

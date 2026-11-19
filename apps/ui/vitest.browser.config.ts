@@ -32,7 +32,13 @@ export default defineConfig({
     setupFiles: ["src/registry/sheet.ts", "src/registry/diagnostics.ts"],
     // `src/components/ui/` is where a copy lands; `registry/` is where the items are authored
     // in this repository, next to the page that renders them.
-    include: ["src/components/ui/**/*.browser.test.tsx", "src/registry/**/*.browser.test.tsx"],
+    // `src/docs/` is the site's own logic (the catalog and a screen), which has no DOM of its own but shares the rules it
+    // tests with what the page draws.
+    include: [
+      "src/components/ui/**/*.browser.test.tsx",
+      "src/registry/**/*.browser.test.tsx",
+      "src/docs/**/*.browser.test.ts",
+    ],
     browser: {
       enabled: true,
       provider: playwright(),

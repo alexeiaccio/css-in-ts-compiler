@@ -225,6 +225,45 @@ try {
   assert.equal(await conformance.count(), 0);
   await page.unroute("**/r/tabs.result.json");
 
+  // A screen is a list of catalog blocks, drawn by the kit's own stories — and refused whole when a block names
+  // something the catalog does not declare, so a typo cannot become a silently missing prop.
+  const screen = (body) => `${base}#screen=${encodeURIComponent(JSON.stringify(body))}`;
+  await page.goto(
+    screen({
+      title: "Release health",
+      blocks: [{ starter: "stat" }, { starter: "bars", args: { label: "A screen's own label" } }],
+    }),
+  );
+  assert.equal(await page.getByRole("heading", { level: 1 }).innerText(), "Release health");
+  const blocks = page.locator('[data-part="screen-block"]');
+  assert.deepEqual(await blocks.evaluateAll((all) => all.map((el) => el.dataset.starter)), [
+    "stat",
+    "bars",
+  ]);
+  // the block's own arg reached the story: its caption is the screen's, not the story's
+  assert.ok((await blocks.nth(1).innerText()).includes("A screen's own label"));
+  assert.equal(await page.locator('[data-part="screen-problems"]').count(), 0);
+
+  await page.goto(screen({ blocks: [{ starter: "bars", args: { colour: "red" } }] }));
+  assert.equal(await blocks.count(), 0);
+  const problems = await page.locator('[data-part="screen-problems"]').innerText();
+  assert.match(problems, /does not declare `colour`/);
+  await page.goto(screen({ blocks: [{ starter: "chart" }] }));
+  assert.match(
+    await page.locator('[data-part="screen-problems"]').innerText(),
+    /no starter `chart`/,
+  );
+
+  // The catalog is a page and a file: the same JSON, one for a reader and one for an agent.
+  await page.goto(`${base}#catalog`);
+  const catalogJson = await page.locator('[data-part="catalog-json"]').innerText();
+  const served = await (await page.request.get(`${base}catalog.json`)).json();
+  assert.equal(served.items.length, 65);
+  assert.equal(JSON.parse(catalogJson).items.length, served.items.length);
+  assert.ok(
+    served.items.find((entry) => entry.name === "bars").stories[0].declares.includes("max"),
+  );
+
   // The chrome is the kit: the theme switch is a `data-mode` scope on the document, so every token moves with it.
   const mode = nav.getByRole("switch", { name: "dark" });
   const pageBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -243,7 +282,9 @@ try {
   );
 
   assert.deepEqual(errors, []);
-  console.log("site: stories, ids, controls, the theme switch and the tint group ok");
+  console.log(
+    "site: stories, ids, controls, screens, the catalog, the theme switch and the tint group ok",
+  );
 } finally {
   await browser.close();
   await server.close();

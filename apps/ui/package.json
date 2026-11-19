@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vp build",
+    "build": "bun run catalog && vp build",
     "deploy": "bun alchemy deploy --stage prod --yes",
     "destroy": "bun alchemy destroy --stage prod",
     "dev": "vp dev",
@@ -13,7 +13,8 @@
     "theme:check": "node --experimental-strip-types scripts/theme-css.ts --check",
     "skin:check": "node --experimental-strip-types scripts/skin-check.ts",
     "test:site": "node test/site.mjs",
-    "test:vitals": "node test/vitals.mjs"
+    "test:vitals": "node test/vitals.mjs",
+    "catalog": "node scripts/catalog.ts"
   },
   "dependencies": {
     "@cssints/css-grammar": "workspace:*",
