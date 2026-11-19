@@ -342,3 +342,22 @@ code {
     position: static;
   }
 }
+
+/* The sink: every starter on one page. A block that is off screen is not laid out or painted until it is near, which is
+   what lets 65 live stories share a page without a virtual list of their own. */
+.docs__sink {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.docs__sink-block {
+  display: grid;
+  gap: var(--space-3);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+.docs__sink-block > h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}

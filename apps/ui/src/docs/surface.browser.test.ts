@@ -111,6 +111,7 @@ describe("checkScreen", () => {
 describe("routeOf and screenHash", () => {
   it("splits the three kinds of hash", () => {
     expect(routeOf("#catalog")).toEqual({ kind: "catalog" });
+    expect(routeOf("#sink")).toEqual({ kind: "sink" });
     expect(routeOf("#button--accent")).toEqual({
       kind: "item",
       name: "button",

@@ -255,10 +255,21 @@ try {
   );
 
   // The catalog is a page and a file: the same JSON, one for a reader and one for an agent.
+  // The sink is the catalog as something you can look at: every starter on one page, one live story each.
+  const served = await (await page.request.get(`${base}catalog.json`)).json();
+  await page.goto(`${base}#sink`);
+  const sink = page.locator('[data-part="sink-block"]');
+  // the page draws the catalog and nothing else: the count is the file's, not a number the test remembers
+  assert.equal(await sink.count(), served.items.length);
+  const names = await sink.evaluateAll((all) => all.map((block) => block.dataset.item));
+  assert.ok(names.includes("button") && names.includes("resizable-panels"), names.join(","));
+  // the blocks are live stories, not descriptions: the button's own button is drawn, and the page has one per starter
+  const buttonBlock = page.locator('[data-part="sink-block"][data-item="button"]');
+  assert.ok((await buttonBlock.locator("button").count()) > 0);
+  assert.equal(await buttonBlock.locator("h2 a").getAttribute("href"), "#button");
+
   await page.goto(`${base}#catalog`);
   const catalogJson = await page.locator('[data-part="catalog-json"]').innerText();
-  const served = await (await page.request.get(`${base}catalog.json`)).json();
-  assert.equal(served.items.length, 65);
   assert.equal(JSON.parse(catalogJson).items.length, served.items.length);
   assert.ok(
     served.items.find((entry) => entry.name === "bars").stories[0].declares.includes("max"),

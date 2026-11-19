@@ -114,3 +114,36 @@ export const CatalogPage = (): JSX.Element => {
     </section>
   );
 };
+
+/**
+ * The sink: every starter on one page, its first story drawn live — the catalogue as something you can look at rather
+ * than read. Each block links to the item's own page, which has its other stories, its controls and its code.
+ */
+export const SinkPage = (): JSX.Element => (
+  <section data-part="sink">
+    <h1 class="docs__title">Sink</h1>
+    <p class="docs__description">
+      Every starter on one page, its first story drawn live. Open one for its code, its controls and
+      its conformance record; the same list, with the args each story takes, is{" "}
+      <a href="#catalog">the catalog</a>.
+    </p>
+    <div class="docs__sink">
+      <For each={items}>
+        {(item) => {
+          const story = (): SiteEntry | undefined => storiesOf(item.name)[0];
+          return (
+            <section class="docs__sink-block" data-part="sink-block" data-item={item.name}>
+              <h2>
+                <a href={`#${item.name}`}>{item.title}</a>
+              </h2>
+              <p class="docs__description">{item.description}</p>
+              <Show when={story()}>
+                {(entry) => <div class="docs__preview">{entry().view(entry().args)}</div>}
+              </Show>
+            </section>
+          );
+        }}
+      </For>
+    </div>
+  </section>
+);

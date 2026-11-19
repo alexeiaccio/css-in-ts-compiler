@@ -206,19 +206,23 @@ export const screenHash = (screen: Screen): string =>
   `#screen=${encodeURIComponent(JSON.stringify(screen))}`;
 
 /**
- * Where a hash points: a screen, the catalog, or an item and one of its stories.
+ * Where a hash points: a screen, the catalog, the sink, or an item and one of its stories.
  *
  * @param {string} hash the address bar's hash, with its `#`
- * @returns {{ kind: "screen"; text: string } | { kind: "catalog" } | { kind: "item"; name: string; story: string | undefined }} what to draw
+ * @returns {{ kind: "screen"; text: string } | { kind: "catalog" } | { kind: "sink" } | { kind: "item"; name: string; story: string | undefined }} what to draw
  */
 export const routeOf = (
   hash: string,
 ):
   | { readonly kind: "screen"; readonly text: string }
   | { readonly kind: "catalog" }
+  | { readonly kind: "sink" }
   | { readonly kind: "item"; readonly name: string; readonly story: string | undefined } => {
   if (hash === "#catalog") {
     return { kind: "catalog" };
+  }
+  if (hash === "#sink") {
+    return { kind: "sink" };
   }
   if (hash.startsWith("#screen=")) {
     return { kind: "screen", text: decodeURIComponent(hash.slice("#screen=".length)) };

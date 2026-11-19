@@ -3768,6 +3768,237 @@
       ]
     },
     {
+      "name": "modifiers",
+      "title": "Modifiers",
+      "description": "A table you reshape in place: every transformation is a unit on a rail — a tint, a bar, an order — with its span, its input column and its place in the stack in the unit's own panel, and the values still cells of text",
+      "stories": [
+        {
+          "id": "modifiers--films",
+          "name": "Films",
+          "args": {
+            "rows": [
+              {
+                "id": "anora",
+                "cells": {
+                  "title": "Anora",
+                  "audience": 91,
+                  "critics": 88,
+                  "gross": 41
+                }
+              },
+              {
+                "id": "brutalist",
+                "cells": {
+                  "title": "The Brutalist",
+                  "audience": 78,
+                  "critics": 87,
+                  "gross": 15
+                }
+              },
+              {
+                "id": "conclave",
+                "cells": {
+                  "title": "Conclave",
+                  "audience": 84,
+                  "critics": 82,
+                  "gross": 33
+                }
+              },
+              {
+                "id": "dune",
+                "cells": {
+                  "title": "Dune: Part Two",
+                  "audience": 95,
+                  "critics": 92,
+                  "gross": 282
+                }
+              },
+              {
+                "id": "emilia",
+                "cells": {
+                  "title": "Emilia Pérez",
+                  "audience": 66,
+                  "critics": 74,
+                  "gross": 13
+                }
+              },
+              {
+                "id": "nickel",
+                "cells": {
+                  "title": "Nickel Boys",
+                  "audience": 71,
+                  "critics": 91,
+                  "gross": 3
+                }
+              },
+              {
+                "id": "seed",
+                "cells": {
+                  "title": "The Seed of the Sacred Fig",
+                  "audience": 74,
+                  "critics": 89,
+                  "gross": 4
+                }
+              },
+              {
+                "id": "substance",
+                "cells": {
+                  "title": "The Substance",
+                  "audience": 68,
+                  "critics": 79,
+                  "gross": 16
+                }
+              },
+              {
+                "id": "wicked",
+                "cells": {
+                  "title": "Wicked",
+                  "audience": 88,
+                  "critics": 73,
+                  "gross": 472
+                }
+              }
+            ],
+            "columns": [
+              {
+                "key": "title",
+                "label": "Film"
+              },
+              {
+                "key": "audience",
+                "label": "Audience",
+                "numeric": true
+              },
+              {
+                "key": "critics",
+                "label": "Critics",
+                "numeric": true
+              },
+              {
+                "key": "gross",
+                "label": "Gross, $m",
+                "numeric": true
+              }
+            ],
+            "caption": "Oscar hopefuls, 2026: the audience's score, the critics', and the gross"
+          },
+          "declares": ["rows", "columns", "caption"]
+        },
+        {
+          "id": "modifiers--one-column",
+          "name": "One column",
+          "args": {
+            "rows": [
+              {
+                "id": "anora",
+                "cells": {
+                  "title": "Anora",
+                  "audience": 91,
+                  "critics": 88,
+                  "gross": 41
+                }
+              },
+              {
+                "id": "brutalist",
+                "cells": {
+                  "title": "The Brutalist",
+                  "audience": 78,
+                  "critics": 87,
+                  "gross": 15
+                }
+              },
+              {
+                "id": "conclave",
+                "cells": {
+                  "title": "Conclave",
+                  "audience": 84,
+                  "critics": 82,
+                  "gross": 33
+                }
+              },
+              {
+                "id": "dune",
+                "cells": {
+                  "title": "Dune: Part Two",
+                  "audience": 95,
+                  "critics": 92,
+                  "gross": 282
+                }
+              },
+              {
+                "id": "emilia",
+                "cells": {
+                  "title": "Emilia Pérez",
+                  "audience": 66,
+                  "critics": 74,
+                  "gross": 13
+                }
+              },
+              {
+                "id": "nickel",
+                "cells": {
+                  "title": "Nickel Boys",
+                  "audience": 71,
+                  "critics": 91,
+                  "gross": 3
+                }
+              },
+              {
+                "id": "seed",
+                "cells": {
+                  "title": "The Seed of the Sacred Fig",
+                  "audience": 74,
+                  "critics": 89,
+                  "gross": 4
+                }
+              },
+              {
+                "id": "substance",
+                "cells": {
+                  "title": "The Substance",
+                  "audience": 68,
+                  "critics": 79,
+                  "gross": 16
+                }
+              },
+              {
+                "id": "wicked",
+                "cells": {
+                  "title": "Wicked",
+                  "audience": 88,
+                  "critics": 73,
+                  "gross": 472
+                }
+              }
+            ],
+            "columns": [
+              {
+                "key": "title",
+                "label": "Film"
+              },
+              {
+                "key": "audience",
+                "label": "Audience",
+                "numeric": true
+              },
+              {
+                "key": "critics",
+                "label": "Critics",
+                "numeric": true
+              },
+              {
+                "key": "gross",
+                "label": "Gross, $m",
+                "numeric": true
+              }
+            ],
+            "caption": "Oscar hopefuls, 2026: the audience's score, the critics', and the gross"
+          },
+          "declares": ["rows", "columns", "caption"]
+        }
+      ]
+    },
+    {
       "name": "virtual-list",
       "title": "Virtual list",
       "description": "A scrolling list on `createVirtualizer`: only the declared rows are built (10 000 rows cost a screenful), two spacers stand in for the rest, and every row announces its place in the whole set",

@@ -17,7 +17,7 @@ import { Controls } from "../stories/controls.tsx";
 import { type Args, parseHash, storyOfId } from "@cssints/stories";
 import { type SiteEntry, storiesOf } from "../stories/site.ts";
 import { itemHash } from "./item-hash.ts";
-import { CatalogPage, ScreenPage } from "./screen-page.tsx";
+import { CatalogPage, ScreenPage, SinkPage } from "./screen-page.tsx";
 import { routeOf, screenHash } from "./surface.ts";
 import type { JSX } from "@solidjs/web";
 
@@ -97,7 +97,7 @@ const StoryCanvas = (props: { readonly entry: SiteEntry }): JSX.Element => {
 export const Docs = (): JSX.Element => {
   const [name, setName] = createSignal(start.name || first());
   // a screen and the catalog are pages of their own: the item page is what a hash draws when it names neither
-  const [surface, setSurface] = createSignal<"screen" | "catalog" | undefined>(
+  const [surface, setSurface] = createSignal<"screen" | "catalog" | "sink" | undefined>(
     startRoute.kind === "item" ? undefined : startRoute.kind,
   );
   const [screenText, setScreenText] = createSignal(
@@ -337,7 +337,7 @@ export const Docs = (): JSX.Element => {
           </Switch>
         </div>
         <p class="docs__note">
-          <a href="#catalog">Catalog</a> ·{" "}
+          <a href="#sink">Sink</a> · <a href="#catalog">Catalog</a> ·{" "}
           <a
             href={screenHash({
               title: "Release health",
@@ -356,6 +356,9 @@ export const Docs = (): JSX.Element => {
       <main class="docs__main">
         <Show when={surface() === "catalog"}>
           <CatalogPage />
+        </Show>
+        <Show when={surface() === "sink"}>
+          <SinkPage />
         </Show>
         <Show when={surface() === "screen"}>
           <ScreenPage text={screenText()} />
