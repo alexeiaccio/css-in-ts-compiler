@@ -19,6 +19,12 @@ export interface WorkspaceFixtureOptions {
   readonly canDrop?: (change: WorkspaceChange) => boolean;
   readonly float?: boolean;
   readonly name?: string;
+  /** Where each tab starts; the walk never needs it, real hosts do. */
+  readonly initial?: Readonly<
+    Record<string, "tabset0" | "tabset1" | "float" | "edge" | "out" | "closed">
+  >;
+  /** The spoken name of a tabset, when the position in the row is the wrong one. */
+  readonly labels?: Partial<Record<WorkspaceContainer, string>>;
 }
 
 const configTabs = (tabs: ReadonlyArray<Json>): ReadonlyArray<WorkspaceTab> =>
@@ -67,6 +73,8 @@ export const mountWorkspace = (
       tabLabel: (tab) => String(tab.data),
       float: extra.float === true,
       name: extra.name ?? "Workspace",
+      ...(extra.initial === undefined ? {} : { initial: extra.initial }),
+      ...(extra.labels === undefined ? {} : { labels: extra.labels }),
       ...(extra.canDrop === undefined ? {} : { canDrop: extra.canDrop }),
       onTabsChange: (homes) => push("onTabsChange", [...homes]),
       onCopy: (tab, target) => push("onCopy", [tab.id, target]),

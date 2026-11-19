@@ -71,8 +71,20 @@ export interface WorkspaceOptions {
   readonly keepWhenEmpty?: boolean;
   /** Start with the floating tabset open (the model starts with it hidden: a drop shows it). */
   readonly float?: boolean;
+  /**
+   * Where each tab starts. Tabs not named here are dealt one per tabset, `ceil(n / 2)` on the left,
+   * which is a guess: a host that knows its layout (both tabs in the right one, a tab detached)
+   * should say so instead of replaying `pick`/`drop` after mount and living with the focus and
+   * announcement that fire.
+   */
+  readonly initial?: Readonly<Record<TabId, WorkspaceHome>>;
   /** A tab's spoken name for the live region ("Logs"); `String(id)` when absent. */
   readonly tabLabel?: (tab: WorkspaceTab) => string;
+  /**
+   * The spoken name of a tabset ("Detail", "Logs"). The defaults name the position in the row
+   * ("Left tabset"), which is wrong for a pane whose only tabset is not on the left.
+   */
+  readonly labels?: Partial<Record<WorkspaceContainer, string>>;
   /** The workspace's accessible name. */
   readonly name?: string;
   /** Base for the generated ids. */
@@ -334,7 +346,7 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
   const homes = new Map<TabId, WorkspaceHome>();
   const split = Math.ceil(options.tabs.length / 2);
   options.tabs.forEach((tab, index) => {
-    homes.set(tab.id, index < split ? "tabset0" : "tabset1");
+    homes.set(tab.id, options.initial?.[tab.id] ?? (index < split ? "tabset0" : "tabset1"));
   });
 
   /** A tabset's tabs in host order; every read is reactive through `version`. */
@@ -781,6 +793,9 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
         return options.tabs.length;
       },
       get value() {
+        // `active` is a plain record mutated in place, so the list has to read the signal itself:
+        // without this, `tabpanelProps().hidden` never updates and every panel stays visible.
+        version();
         const id = active[container];
         return id === null ? -1 : options.tabs.findIndex((tab) => tab.id === id);
       },
@@ -882,7 +897,7 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
     tabsetProps: (container) => ({
       "data-part": PART[container],
       role: "group",
-      "aria-label": NAME[container],
+      "aria-label": options.labels?.[container] ?? NAME[container],
       get "data-tabs"() {
         return members(container).length;
       },
@@ -911,7 +926,7 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
       return {
         "data-part": LIST_PART[container],
         role: "tablist",
-        "aria-label": `${NAME[container]} tabs`,
+        "aria-label": `${options.labels?.[container] ?? NAME[container]} tabs`,
         get "aria-orientation"() {
           return inner["aria-orientation"];
         },
