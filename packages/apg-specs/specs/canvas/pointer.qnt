@@ -66,7 +66,9 @@
 //
 // NOT MODELLED: host-set sizes and z-order (see HOST-CONTROLLED POSITIONS), resize / rotate
 // handles, edge auto-pan, pinch (two-pointer) zoom, locked / hidden nodes, groups and frames,
-// hollow-shape hit rules, undo, keyboard, wheel normalisation. A touch
+// hollow-shape hit rules, undo, keyboard, wheel normalisation. A press on a control inside a node
+// (a button, a field, a `data-canvas-ignore` island) never reaches the machine: the DOM adapter
+// drops it, like a non-primary button, because a press on a control is not a gesture. A touch
 // (coarse) threshold is host policy. The grid is this model's instance of the host's snap
 // candidates: the primitive takes them as an injected per-axis function (whole world units) and
 // defaults to this grid.
