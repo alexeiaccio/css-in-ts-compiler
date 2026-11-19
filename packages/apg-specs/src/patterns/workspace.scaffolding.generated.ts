@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/patterns/workspace.qnt
-// Spec hash (sha256): 36b247658710a29293b4a5a14a08f43a7d308515beb53db9b46b299e21934061
+// Spec hash (sha256): 36ce13bfe1d9018d6409d906953c1323143855c4a515af645f3052b140829701
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
@@ -24,6 +24,7 @@ export const PatternsWorkspaceFields = {
     target: Schema.String,
     reason: Schema.String,
     copies: Schema.BigInt,
+    copyTo: Schema.String,
     bW0: Schema.BigInt,
     bW1: Schema.BigInt,
     bW2: Schema.BigInt,
@@ -49,7 +50,9 @@ export const PatternsWorkspaceEvents = Machine.events({
     dropEdgeBottom: {},
     dropFloat: {},
     dockFloat: {},
-    copyTab: {},
+    copyTab: {
+        dest: Schema.String
+    },
     closeTab: {},
     transferOut: {},
     attach: {},

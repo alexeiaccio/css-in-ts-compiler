@@ -14,7 +14,8 @@ import scenarios from "../../scenarios/patterns/workspace.spec.json";
 // Spec-only verification for specs/patterns/workspace.qnt: four tabs, two docked
 // tabsets in one row split, one floating tabset, one edge tabset a drop creates.
 // A drop names its target as data (`tab0` .. `edge-bottom`), so the model never
-// sees a pointer. There are no nondet pools, so `explore` walks the 22 actions.
+// sees a pointer; a copy names its destination the same way, through the one
+// nondet pool, so `explore` walks every copy target as well as the 22 actions.
 
 const definition = decodeDefinition(definitionJson);
 const model = makeReferenceModel(definition);
@@ -29,6 +30,10 @@ const step = (state: QuintModelValue, event: Record<string, unknown>): QuintMode
 
 const run = (start: QuintModelValue, ...tags: ReadonlyArray<string>): QuintModelValue =>
   tags.reduce((state, tag) => step(state, { _tag: tag }), start);
+
+/** `copyTab` is the one action with a payload: the destination the host named. */
+const copy = (start: QuintModelValue, dest = "tab1"): QuintModelValue =>
+  step(start, { _tag: "copyTab", dest });
 
 const initial = model.initial;
 
@@ -57,6 +62,7 @@ describe("patterns workspace (spec-only)", () => {
       "RefusalKeepsTheTabs",
       "MoveTouchesOneTab",
       "CopyKeepsSource",
+      "CopyNamesItsTarget",
       "CloseTouchesOneTab",
       "TransferTouchesOneTab",
       "CollapseMovesNoTab",
@@ -109,6 +115,7 @@ describe("patterns workspace (spec-only)", () => {
     expect(violatedInvariants(model, { ...initial, ...moved })).toEqual(["RefusalKeepsTheTabs"]);
     expect(violatedInvariants(model, { ...initial, ...moved, reason: "copy" })).toEqual([
       "CopyKeepsSource",
+      "CopyNamesItsTarget",
     ]);
     expect(violatedInvariants(model, { ...initial, ...moved, reason: "close" })).toEqual([
       "CloseTouchesOneTab",
@@ -215,12 +222,35 @@ describe("patterns workspace (spec-only)", () => {
     expect(gone).toMatchObject({ side: "none", activeE: -1n });
   });
 
-  it("a copy never removes the source, and reports it", () => {
-    const copied = run(initial, "pick0", "copyTab");
-    expect(copied).toMatchObject({ copies: 1n, reason: "copy", drag: -1n });
+  it("a copy names its destination, never removes the source, and reports both", () => {
+    const copied = copy(run(initial, "pick0"), "tab1");
+    expect(copied).toMatchObject({
+      copies: 1n,
+      reason: "copy",
+      copyTo: "tab1",
+      target: "tab1",
+      drag: -1n,
+    });
     expect(value(copied)).toEqual(value(initial));
-    // a copy with nothing in hand does not count
-    expect(run(initial, "copyTab")).toMatchObject({ copies: 0n, reason: "none" });
+
+    // the destination travels: the float, and an edge the duplicate alone names
+    const floated = copy(run(initial, "pick0"), "tabF");
+    expect(floated).toMatchObject({ copies: 1n, copyTo: "tabF", reason: "copy" });
+    // recording a copy into the floating tabset does not turn the tabset on here
+    expect(floated).toMatchObject({ floatOn: false });
+    const edged = copy(run(initial, "pick1"), "edge-bottom");
+    expect(edged).toMatchObject({ copyTo: "edge-bottom", side: "none", copies: 1n });
+
+    // a copy with nothing in hand does not count, and names nothing
+    expect(copy(initial)).toMatchObject({ copies: 0n, copyTo: "none", reason: "none" });
+
+    // the tab's own container is refused, like a drop on it
+    const own = copy(run(initial, "pick1"), "tab0");
+    expect(own).toMatchObject({ copies: 0n, copyTo: "none", reason: "none", drag: 1n });
+
+    // a tab that is out of the window cannot be copied either
+    const out = copy(run(initial, "pick1", "transferOut"));
+    expect(out).toMatchObject({ copies: 0n, copyTo: "none", reason: "none" });
   });
 
   it("float shows the floating tabset; dock takes every floating tab back", () => {
@@ -279,10 +309,14 @@ describe("patterns workspace (spec-only)", () => {
 
   it("a refused request leaves every observable as it was and says nothing", () => {
     const before = value(initial);
-    for (const tag of ["cancel", "attach", "dockFloat", "copyTab", "closeTab"]) {
+    for (const tag of ["cancel", "attach", "dockFloat", "closeTab"]) {
       const after = run(initial, tag);
       expect(after).toMatchObject({ reason: "none" });
       expect(value(after), tag).toEqual(before);
+    }
+    // a copy with no tab in hand changes nothing either, whatever it names
+    for (const dest of ["tab0", "tab1", "tabF", "edge-left", "float"]) {
+      expect(copy(initial, dest)).toMatchObject({ reason: "none", copies: 0n, copyTo: "none" });
     }
     // a drop with no target named, and a prop the model cannot honour
     expect(value(run(initial, "dropTab1"))).toEqual(before);
@@ -302,6 +336,11 @@ describe("patterns workspace (spec-only)", () => {
     expect(() => workspaceBridge.event({ event: "drop", target: "tab:9" })).toThrow();
     expect(() => workspaceBridge.event({ event: "pick", target: "tabset:0" })).toThrow();
     expect(() => workspaceBridge.event({ event: "collapse", target: "tabset:F" })).toThrow();
+    // a copy names a destination, so a copy without one is not a step
+    expect(() => workspaceBridge.event({ event: "copy" })).toThrow();
+    expect(workspaceBridge.event({ event: "copy", target: "tabF" })).toEqual([
+      { _tag: "copyTab", dest: "tabF" },
+    ]);
   });
 });
 

@@ -207,8 +207,8 @@ export interface Workspace {
   readonly drop: (target: WorkspaceTarget) => boolean;
   readonly cancel: () => void;
   readonly close: (id: TabId) => boolean;
-  /** Ask the host to duplicate `id` into the right tabset; the source does not move. */
-  readonly copy: (id: TabId) => boolean;
+  /** Ask the host to duplicate `id` into `target`; the source does not move. */
+  readonly copy: (id: TabId, target: WorkspaceTarget) => boolean;
   /** Take the tab out of the window as a serialisable value; it stays in hand. */
   readonly detach: (id: TabId) => WorkspaceTab | null;
   /** Place a tab that is `out` back into the right tabset. */
@@ -298,7 +298,9 @@ interface HomesSnapshot {
  * workspace adds the delta the spec models — a tab lives in exactly one home, a
  * drop names its target as data, an emptied tabset disappears unless
  * `keepWhenEmpty`, a move is destructive and a copy keeps its source, and a
- * refused drop changes nothing and keeps the tab in hand (`reason = "none"`).
+ * refused drop changes nothing and keeps the tab in hand (`reason = "none"`). A
+ * copy names its destination exactly as a move does (`copy(id, target)`): the
+ * host duplicates into the container the pointer named, not into "the other one".
  *
  * A tab leaves the window as a serialisable value (`detach`) and comes back
  * (`attach`); the transport (a `BroadcastChannel`, another window) is the host's.
@@ -475,7 +477,11 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
     setFocusRequested({ id, nonce });
   };
 
-  const placeName = (dest: WorkspaceHome): string => {
+  /**
+   * The destination in words. `side` is for a copy: the destination may not exist
+   * yet, and the target's edge is what the host is about to create.
+   */
+  const placeName = (dest: WorkspaceHome, side?: WorkspaceEdge): string => {
     switch (dest) {
       case "tabset0":
         return "the left tabset";
@@ -483,8 +489,10 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
         return "the right tabset";
       case "float":
         return "the floating tabset";
-      case "edge":
-        return edge === "none" ? "the edge tabset" : `the ${edge} edge tabset`;
+      case "edge": {
+        const at = edge === "none" ? side : edge;
+        return at === undefined ? "the edge tabset" : `the ${at} edge tabset`;
+      }
       default:
         return "another window";
     }
@@ -586,24 +594,25 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
     return true;
   };
 
-  const copy = (id: TabId): boolean => {
+  const copy = (id: TabId, target: WorkspaceTarget): boolean => {
     const tab = tabOf(id);
     const from = homes.get(id);
-    if (tab === undefined || !isContainer(from)) {
+    const dest = DEST[target];
+    if (tab === undefined || !isContainer(from) || dest === from) {
       reason = "none";
       bump();
       return false;
     }
-    if (vetoed(tab, "duplicated", { reason: "copy", tab, from, to: "tabset1" })) {
+    if (vetoed(tab, "duplicated there", { reason: "copy", tab, from, to: dest, target })) {
       return false;
     }
     const was = snapshot();
     if (picked === id) {
       picked = null;
     }
-    fire(was, { tab, target: "tabset1" });
+    fire(was, { tab, target });
     reason = "copy";
-    live = `${nameOf(tab)} duplicated to the right tabset`;
+    live = `${nameOf(tab)} duplicated to ${placeName(dest, SIDE[target])}`;
     bump();
     return true;
   };
@@ -795,7 +804,8 @@ export const createWorkspace = (options: WorkspaceOptions): Workspace => {
   };
 
   // A tab the workspace has not seen (one the host opened or pasted) joins the
-  // right tabset: it is where the model's copy and attach land.
+  // right tabset: that is where an attach lands, and an arrival has no modelled
+  // home of its own.
   createEffect(
     () => options.tabs,
     (tabs) => {

@@ -68,9 +68,14 @@ export const workspaceDriver = (mounted: WorkspaceMounted): Driver => {
         break;
       }
       case "copy": {
+        // a copy names its destination, like a drop
+        const target = TARGET[step.target ?? ""];
+        if (target === undefined) {
+          throw new Unsupported(`target ${step.target ?? ""}`);
+        }
         const id = workspace.picked();
         if (id !== null) {
-          workspace.copy(id);
+          workspace.copy(id, target);
         }
         break;
       }

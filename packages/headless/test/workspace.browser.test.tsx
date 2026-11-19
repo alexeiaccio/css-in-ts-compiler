@@ -134,6 +134,24 @@ describe("createWorkspace keyboard move", () => {
     }
   });
 
+  it("says so when the host refuses a close, instead of doing nothing", async () => {
+    const mounted = mountWorkspace({}, { canDrop: (change) => change.reason !== "close" });
+    try {
+      partOf(mounted.root, "tab:2").focus();
+      await userEvent.keyboard("{Delete}");
+      await settle();
+      // the key was handled - the page did not get it - and the tab is still there
+      expect(mounted.workspace.home(2)).toBe("tabset1");
+      expect(mounted.workspace.reason()).toBe("none");
+      expect(partOf(mounted.root, "tab:2")).toBeDefined();
+      // a key that does nothing is a mystery: the refusal is in words
+      expect(partOf(mounted.root, "live").textContent).toBe("Files cannot be closed");
+      expect(document.activeElement).toBe(partOf(mounted.root, "tab:2"));
+    } finally {
+      mounted.dispose();
+    }
+  });
+
   it("floats a tab with Ctrl+Alt+ArrowUp and docks it back with Ctrl+Alt+ArrowDown", async () => {
     const mounted = mountWorkspace({});
     try {
@@ -210,6 +228,39 @@ describe("createWorkspace announcements, veto and detach", () => {
       expect(partOf(mounted.root, "tab:0").getAttribute("data-home")).toBe("tabset1");
       expect(partOf(mounted.root, "tab:0").getAttribute("aria-selected")).toBe("true");
       expect(partOf(mounted.root, "live").textContent).toBe("Logs attached");
+    } finally {
+      mounted.dispose();
+    }
+  });
+
+  it("copies into the target the host names", async () => {
+    const mounted = mountWorkspace({});
+    try {
+      mounted.workspace.pick(0);
+      expect(mounted.workspace.copy(0, "tabsetF")).toBe(true);
+      await settle();
+      // the source stays where it was; the host was asked for a duplicate elsewhere
+      expect(mounted.workspace.home(0)).toBe("tabset0");
+      expect(mounted.events.get("onCopy")).toEqual([[0, "tabsetF"]]);
+      expect(partOf(mounted.root, "live").textContent).toBe(
+        "Logs duplicated to the floating tabset",
+      );
+
+      // the tab's own container is refused, like a drop on it
+      expect(mounted.workspace.copy(0, "tabset0")).toBe(false);
+      expect(mounted.workspace.reason()).toBe("none");
+      expect(mounted.events.get("onCopy")).toEqual([[0, "tabsetF"]]);
+
+      // an edge target travels too, and the words name the edge it will make
+      expect(mounted.workspace.copy(1, "edge-left")).toBe(true);
+      await settle();
+      expect(mounted.events.get("onCopy")).toEqual([
+        [0, "tabsetF"],
+        [1, "edge-left"],
+      ]);
+      expect(partOf(mounted.root, "live").textContent).toBe(
+        "Runs duplicated to the left edge tabset",
+      );
     } finally {
       mounted.dispose();
     }
