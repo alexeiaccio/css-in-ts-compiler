@@ -2,6 +2,12 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.45.1 (2026-11-19)
+
+### Patch changes
+
+- `specs/patterns/workspace.qnt`: tabs and tabsets in one window — a tab lives in exactly one home (docked, floating, an edge tabset, out of the window, or closed), a drop names its target as data and the model never sees a pixel, an emptied tabset disappears unless `keepWhenEmpty`, a copy keeps its source, and a refused drop changes nothing and says `reason = "none"`. The vocabulary is `specs/apg/tabs.qnt`'s; this spec models only the delta. Its bridge marks the per-tab payload (`tabs`) as a sink key, so `IGNORED_CONFIG_KEYS` grows by the one entry that made no other bridge change.
+
 ## 0.45.0 (2026-11-19)
 
 ### Minor changes
