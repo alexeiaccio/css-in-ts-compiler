@@ -2,6 +2,28 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.46.0 (2026-11-19)
+
+### Minor changes
+
+- `workspace`: tabs in tabsets, tabsets in a row with a floating and an edge group. The tabset half is APG Tabs (one tab list per tabset, roving focus, arrows inside a list, automatic activation); the workspace adds the delta `specs/patterns/workspace.qnt` models — a tab lives in exactly one home, a drop names its target as data (`tabset0` | `tabset1` | `tabsetF` | `float` | `edge-*`), an emptied tabset disappears unless `keepWhenEmpty`, a move is destructive, a copy names its destination (`copy(id, target)`) and keeps its source, and a refused drop changes nothing and keeps the tab in hand (`reason = "none"`).
+  
+  A tab leaves the window as a serialisable value (`detach` → `{ id, data }`) and comes back (`attach`); the transport is the host's. Tear-off is deliberately absent — the platform reports no release position for a drag that ends outside the window — so "open in a window" is a button, not a gesture.
+  
+  The keyboard move is not a drag: `Ctrl+Alt+ArrowLeft/Right` moves the focused tab along the row, `Ctrl+Alt+ArrowUp` floats it, `Ctrl+Alt+ArrowDown` docks the floating tabset, `Delete` closes a focused tab (VS Code's Move Editor to Next/Previous Group; `Ctrl+Cmd` on macOS). Plain arrows stay the tab list's.
+  
+  `canDrop(change)` is the host's veto, the `onBeforeModelChange` seam: a change it refuses lands nowhere, keeps the tab in hand and says so in the live region. Every landed change is announced in words ("Logs moved to the right tabset", "Runs closed", "Files detached").
+  
+  Verified by a differential walk over `workspaceSteps` against the generated model through the bridge, and by the ported scenarios in `scenarios/patterns/workspace.spec.json` on the real DOM.
+  
+  `tabs`: the focusgroup item collection now drops elements that are no longer connected, so a host that removes an item from the start of its list leaves no detached entry for the provider to focus.
+
+### Patch changes
+
+- `specs/patterns/workspace.qnt`: a copy names its destination, like a drop does. `copyTab` was pinned to `tab1`, which made "duplicate" mean "put the duplicate in the right tabset" for every host; it now takes one nondet `dest` over the drop targets, records it in `copyTo`, and refuses (reason `"none"`, nothing changed) when there is no tab in hand, the tab is out of the window, or the destination is the container the tab is already in. `CopyKeepsSource` still holds for every target, and `CopyNamesItsTarget` says a landed copy recorded where it was asked to go. The copy's duplicate and the existence of a container it alone would create stay the host's (see NOT MODELLED).
+  
+  The bridge's `copy` step carries the target, and `onCopy`'s payload is the recorded destination in the host's vocabulary (`tabset0`, `tabsetF`, `edge-left`, …) instead of the literal `"tabset1"`. The scenario set gains a copy into an edge target (and a refused copy onto the tab's own container).
+
 ## 0.45.1 (2026-11-19)
 
 ### Patch changes
