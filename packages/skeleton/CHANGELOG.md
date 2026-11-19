@@ -1,5 +1,11 @@
 # @cssints/skeleton
 
+## 0.46.0
+
+### Patch Changes
+
+- cssints@0.46.0
+
 ## 0.45.1
 
 No changes in this release.
