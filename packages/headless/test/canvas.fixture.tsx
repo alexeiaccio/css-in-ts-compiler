@@ -21,6 +21,8 @@ export interface CanvasFixtureConfig {
    * contract; the primitive owns the IME guard, the focus-out and the layer's `user-select: none`.
    */
   readonly editor?: boolean;
+  /** Put a button, a field and a `data-canvas-ignore` island inside each node (the controls contract). */
+  readonly controls?: boolean;
 }
 
 export interface CanvasMounted extends Mounted {
@@ -113,6 +115,21 @@ export const mountCanvas = (config: CanvasFixtureConfig): CanvasMounted => {
                             }}
                           >
                             {labelOf(id)}
+                            {/* The host's half of the controls contract: what is inside a node
+                                that owns its own press - a button, a field, or anything marked
+                                `data-canvas-ignore`. The canvas must stay idle on a press there. */}
+                            <Show when={config.controls === true}>
+                              <button type="button" data-part={`button${id}`}>
+                                act
+                              </button>
+                              <input
+                                data-part={`input${id}`}
+                                aria-label={`name of ${labelOf(id)}`}
+                              />
+                              <span data-part={`ignore${id}`} data-canvas-ignore="">
+                                ignore me
+                              </span>
+                            </Show>
                           </div>
                         }
                       >

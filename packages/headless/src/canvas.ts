@@ -446,6 +446,38 @@ const DEFAULT_STEP = 10;
 const DEFAULT_SHIFT_MULTIPLIER = 5;
 const PRIMARY_BUTTON = 0;
 
+/**
+ * A press that began on a control inside a node is the control's, not the canvas's: the node is not
+ * selected and no drag starts, so a button, a field, a link or a host's own interactive island works
+ * inside a card, and `data-canvas-ignore` opts anything else out. The same class as a non-primary
+ * button — the model is never told, because a press on a control is not a gesture. react-resizable-panels
+ * learned it for its tabs in 4.22.1 (form controls, editable content and form-control roles, plus
+ * `data-tab-ignore`); the role list is the part of that rule a canvas needs.
+ */
+const PRESS_CONTROLS = [
+  "button",
+  "a[href]",
+  "input",
+  "select",
+  "textarea",
+  "summary",
+  "label",
+  "[contenteditable]:not([contenteditable='false'])",
+  "[role='button']",
+  "[role='checkbox']",
+  "[role='combobox']",
+  "[role='link']",
+  "[role='radio']",
+  "[role='slider']",
+  "[role='spinbutton']",
+  "[role='switch']",
+  "[role='textbox']",
+  "[data-canvas-ignore]",
+].join(",");
+
+const controlOwnsPress = (target: EventTarget | null): boolean =>
+  target instanceof Element && target.closest(PRESS_CONTROLS) !== null;
+
 const DEFAULT_MESSAGES: CanvasMessages = {
   selection: (labels) => {
     if (labels.length === 0) {
@@ -1470,11 +1502,12 @@ export const createCanvas = (options: CanvasOptions): Canvas => {
       "touch-action": "none",
     },
     onPointerDown: (event) => {
-      if (event.button === PRIMARY_BUTTON) {
-        pointerDown(local(event));
-        if (state.owner === event.pointerId) {
-          capture(event);
-        }
+      if (event.button !== PRIMARY_BUTTON || controlOwnsPress(event.target)) {
+        return;
+      }
+      pointerDown(local(event));
+      if (state.owner === event.pointerId) {
+        capture(event);
       }
     },
     onPointerMove: (event) => pointerMove(local(event)),
