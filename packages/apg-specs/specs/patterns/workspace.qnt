@@ -24,9 +24,15 @@
 //   - VS Code editor groups / `workbench.editor.closeEmptyGroups` (default
 //     true): an empty editor group is closed unless it is the only one, and
 //     dragging an editor between groups does not create a second copy of it.
-//     Settled: the default is "an empty tabset goes away", the policy is the
-//     host's flag, and a move is destructive (a copy is the one operation that
-//     keeps the source).
+//     Copying is its own command and names its group (`Copy Editor into Next
+//     Group`, `... into Group 2`), so a duplicate is never "put it over there"
+//     but always "put it here". Settled: the default is "an empty tabset goes
+//     away", the policy is the host's flag, a move is destructive (a copy is the
+//     one operation that keeps the source), and a copy names its destination.
+//   - flexlayout-react and dockview both add a tab to a group you name (a
+//     location, a group id) and neither has a "duplicate next to the original"
+//     verb. Settled: a copy names its destination like a move does, so a host
+//     that duplicates into the group the pointer named needs no second step.
 //   - react-resizable-panels 4.22 deprecated tear-off. The platform reports no
 //     reliable release position for a drag that ends outside the window, so a
 //     tab cannot be dropped where the model would never see it. Settled: no
@@ -66,6 +72,12 @@
 // the host is carrying it to the other window, so the tab stays named until
 // `attach` lands it back in this one.
 //
+// A COPY is a drop that duplicates instead of moving, so it names its
+// destination exactly as a move does (`copyTo`, one of the drop targets) and is
+// refused on the same terms: no tab in hand, a tab that is out of the window, or
+// the container the tab is already in. What lands is `reason = "copy"`, a
+// `copies` count and the destination that was asked for.
+//
 // REQUEST VS COMMIT does not apply as a controlled value: a workspace layout is
 // the primitive's own (the host persists it, it does not own it per render), so
 // there is no `controlled` / `accepting` pair and no layout prop to write back.
@@ -78,9 +90,11 @@
 //     no reorder *within* a tabset (a drop on the tab's own tabset is a no-op,
 //     not a move to index k). The host maps a position to `target`.
 //   - The copied tab of a `copy` drop: a duplicate needs a tab id this instance
-//     has no room for, so the model records that the copy happened (`copies`)
-//     and proves the source did not move; the new tab, its id and its selection
-//     are the host's.
+//     has no room for, so the model records that the copy happened (`copies`),
+//     where it was asked to go (`copyTo`) and proves the source did not move.
+//     The new tab, its id, its selection and the existence of a container the
+//     duplicate alone would create are the host's: a copy into the floating or
+//     the edge tabset is recorded without turning that container on here.
 //   - The tab payload (`data`, a component, a title): opaque, and the reason a
 //     config key carries it through `checkUnknownConfigKey`.
 //   - Window positions and sizes of the floating tabset, tabset weights, split
@@ -93,9 +107,11 @@
 // GENERATOR GAPS HIT: no collections and no parameterized actions, so the four
 // tabs and four containers are vars and one action per target; every action
 // assigns every var; no `let` / `const`, so each helper is a `def` over the vars;
-// `size`-like builtin names are rejected. The copy is the one operation whose
-// effect on the tab list is out of the instance's reach (see NOT MODELLED), so
-// it is observable only through `copies`.
+// `size`-like builtin names are rejected; `nondet` is the one parameter a
+// parameterless action can take, so a copy's destination is a `nondet dest` over
+// the target set. The copy is the one operation whose effect on the tab list is
+// out of the instance's reach (see NOT MODELLED), so it is observable only
+// through `copies` and `copyTo`.
 module patterns_workspace {
   var where0: int // home of tab 0: 0 tabset 0 | 1 tabset 1 | 2 floating | 3 edge | 4 out | 5 closed
   var where1: int // tab 1
@@ -116,6 +132,7 @@ module patterns_workspace {
   var target: str // the drop target of the last drop, as data: "none" | "tab0" | "tab1" | "tabF" | "edge-*" | "float"
   var reason: str // what the last event did: "move" | "copy" | "transfer" | "collapse" | "float" | "dock" | "close" | "none"
   var copies: int // copies the host made: a duplicated tab is an id this instance cannot name
+  var copyTo: str // where the last landed copy was asked to put the duplicate: "none" or a drop target
   var bW0: int // home of tab 0 before the last event (what it changed is the report)
   var bW1: int
   var bW2: int
@@ -211,6 +228,9 @@ module patterns_workspace {
   // the drop changes the layout: a tab is in hand and the target is another container
   def moves(t: str): bool = and(pickedInWindow, destOf(t) != pickedHome)
 
+  // a copy names its destination like a drop does, and lands on the same terms
+  def copyLands(t: str): bool = and(pickedInWindow, destOf(t) != pickedHome)
+
   // the other window hands a tab back: only a tab that is out can be attached
   def attachOk: bool = and(pickedOk, pickedHome == OUT)
 
@@ -272,6 +292,7 @@ module patterns_workspace {
     target' = "none",
     reason' = "none",
     copies' = 0,
+    copyTo' = "none",
     bW0' = TS0,
     bW1' = TS0,
     bW2' = TS1,
@@ -299,6 +320,7 @@ module patterns_workspace {
     target' = target,
     reason' = "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -325,6 +347,7 @@ module patterns_workspace {
     target' = "none",
     reason' = "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -351,6 +374,7 @@ module patterns_workspace {
     target' = "none",
     reason' = "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -377,6 +401,7 @@ module patterns_workspace {
     target' = "none",
     reason' = "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -403,6 +428,7 @@ module patterns_workspace {
     target' = "none",
     reason' = "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -429,6 +455,7 @@ module patterns_workspace {
     target' = "none",
     reason' = "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -455,6 +482,7 @@ module patterns_workspace {
     target' = if (moves("tab0")) "tab0" else target,
     reason' = if (moves("tab0")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -481,6 +509,7 @@ module patterns_workspace {
     target' = if (moves("tab1")) "tab1" else target,
     reason' = if (moves("tab1")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -507,6 +536,7 @@ module patterns_workspace {
     target' = if (moves("tabF")) "tabF" else target,
     reason' = if (moves("tabF")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -533,6 +563,7 @@ module patterns_workspace {
     target' = if (moves("edge-left")) "edge-left" else target,
     reason' = if (moves("edge-left")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -559,6 +590,7 @@ module patterns_workspace {
     target' = if (moves("edge-right")) "edge-right" else target,
     reason' = if (moves("edge-right")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -585,6 +617,7 @@ module patterns_workspace {
     target' = if (moves("edge-top")) "edge-top" else target,
     reason' = if (moves("edge-top")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -611,6 +644,7 @@ module patterns_workspace {
     target' = if (moves("edge-bottom")) "edge-bottom" else target,
     reason' = if (moves("edge-bottom")) "move" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -638,6 +672,7 @@ module patterns_workspace {
     target' = if (moves("float")) "float" else target,
     reason' = if (moves("float")) "float" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -665,37 +700,49 @@ module patterns_workspace {
     target' = if (dockChanges) "tab1" else target,
     reason' = if (dockChanges) "dock" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
     bW3' = where3
   }
 
-  // a copy drop: the host duplicates the tab; the source does not move
-  action copyTab = all {
-    where0' = where0,
-    where1' = where1,
-    where2' = where2,
-    where3' = where3,
-    active0' = active0,
-    active1' = active1,
-    activeF' = activeF,
-    activeE' = activeE,
-    exists0' = exists0,
-    exists1' = exists1,
-    floatOn' = floatOn,
-    side' = side,
-    collapsed0' = collapsed0,
-    collapsed1' = collapsed1,
-    keepEmpty' = keepEmpty,
-    drag' = if (pickedInWindow) NONE else drag,
-    target' = if (pickedInWindow) "tab1" else target,
-    reason' = if (pickedInWindow) "copy" else "none",
-    copies' = if (pickedInWindow) copies + 1 else copies,
-    bW0' = where0,
-    bW1' = where1,
-    bW2' = where2,
-    bW3' = where3
+  // a copy drop names its destination the way a move does: the host duplicates
+  // the tab into that container. The duplicate is an id this instance has no room
+  // for (see NOT MODELLED), so a landed copy leaves every home where it was and
+  // records where the host was asked to put the duplicate. A copy with no tab in
+  // hand, of a tab that is out of the window, or onto the container the tab is
+  // already in is REFUSED, exactly like a drop.
+  action copyTab = {
+    nondet dest = Set(
+      "tab0", "tab1", "tabF", "edge-left", "edge-right", "edge-top", "edge-bottom", "float"
+    ).oneOf()
+    all {
+      where0' = where0,
+      where1' = where1,
+      where2' = where2,
+      where3' = where3,
+      active0' = active0,
+      active1' = active1,
+      activeF' = activeF,
+      activeE' = activeE,
+      exists0' = exists0,
+      exists1' = exists1,
+      floatOn' = floatOn,
+      side' = side,
+      collapsed0' = collapsed0,
+      collapsed1' = collapsed1,
+      keepEmpty' = keepEmpty,
+      drag' = if (copyLands(dest)) NONE else drag,
+      target' = if (copyLands(dest)) dest else target,
+      reason' = if (copyLands(dest)) "copy" else "none",
+      copies' = if (copyLands(dest)) copies + 1 else copies,
+      copyTo' = if (copyLands(dest)) dest else copyTo,
+      bW0' = where0,
+      bW1' = where1,
+      bW2' = where2,
+      bW3' = where3
+    }
   }
 
   action closeTab = all {
@@ -718,6 +765,7 @@ module patterns_workspace {
     target' = if (moves("closed")) "closed" else target,
     reason' = if (moves("closed")) "close" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -745,6 +793,7 @@ module patterns_workspace {
     target' = if (moves("out")) "out" else target,
     reason' = if (moves("out")) "transfer" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -772,6 +821,7 @@ module patterns_workspace {
     target' = if (attachOk) "tab1" else target,
     reason' = if (attachOk) "transfer" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -798,6 +848,7 @@ module patterns_workspace {
     target' = target,
     reason' = if (collapse0Changes) "collapse" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -824,6 +875,7 @@ module patterns_workspace {
     target' = target,
     reason' = if (collapse1Changes) "collapse" else "none",
     copies' = copies,
+    copyTo' = copyTo,
     bW0' = where0,
     bW1' = where1,
     bW2' = where2,
@@ -873,6 +925,8 @@ module patterns_workspace {
   val MoveTouchesOneTab: bool = or(not(reason == "move"), changedCount == 1)
   // a copy never removes the source
   val CopyKeepsSource: bool = or(not(reason == "copy"), changedCount == 0)
+  // a copy that landed named the destination the host was asked for
+  val CopyNamesItsTarget: bool = or(not(reason == "copy"), copyTo != "none")
   // a close removes exactly one tab, and it is the closed one
   val CloseTouchesOneTab: bool =
     and(or(not(reason == "close"), changedCount == 1),

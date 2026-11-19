@@ -242,7 +242,8 @@
           "target": "tab:0"
         },
         {
-          "event": "copy"
+          "event": "copy",
+          "target": "tabF"
         },
         {
           "expect": {
@@ -262,14 +263,15 @@
               "onCopy": [
                 [
                   0,
-                  "tabset1"
+                  "tabsetF"
                 ]
               ],
               "onTabsChange": []
             }
           }
         }
-      ]
+      ],
+      "notes": "the duplicate is the host's, so the model records where it was asked to go; copying into the floating tabset keeps the source in tabset 0 and names tabF"
     },
     {
       "id": "workspace.spec.last-tab-closed-removes-the-tabset",
@@ -606,7 +608,8 @@
           "event": "dock"
         },
         {
-          "event": "copy"
+          "event": "copy",
+          "target": "tab:1"
         },
         {
           "event": "close"
@@ -649,6 +652,73 @@
           }
         }
       ]
+    },
+    {
+      "id": "workspace.spec.copy-into-an-edge-target",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "pick",
+          "target": "tab:1"
+        },
+        {
+          "event": "copy",
+          "target": "edge-bottom"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "attrs": {
+              "tab:1": {
+                "data-home": "tabset0"
+              }
+            },
+            "events": {
+              "onCopy": [
+                [
+                  1,
+                  "edge-bottom"
+                ]
+              ],
+              "onTabsChange": []
+            }
+          }
+        },
+        {
+          "event": "pick",
+          "target": "tab:1"
+        },
+        {
+          "event": "copy",
+          "target": "tab:0"
+        },
+        {
+          "expect": {
+            "value": [
+              "tabset0",
+              "tabset0",
+              "tabset1",
+              "tabset1"
+            ],
+            "events": {
+              "onCopy": [
+                [
+                  1,
+                  "edge-bottom"
+                ]
+              ],
+              "onTabsChange": []
+            }
+          }
+        }
+      ],
+      "notes": "a copy names any target a drop can; an edge target lands (the host creates the edge tabset to hold the duplicate), and the tab's own container is refused like a drop"
     }
   ]
 }

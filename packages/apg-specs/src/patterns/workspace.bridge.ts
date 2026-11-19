@@ -11,7 +11,10 @@ import type { Schema } from "effect";
 
 // The spec's events are `{ _tag }` records by construction (quint-machine's QuintEvent).
 // oxlint-disable-next-line automation/no-manual-tagged-construction
-const specEvent = (tag: string): QuintEvent => ({ _tag: tag });
+const specEvent = (tag: string, params: Record<string, string> = {}): QuintEvent => ({
+  _tag: tag,
+  ...params,
+});
 
 const num = (value: QuintModelValue[string] | undefined): number =>
   value === undefined ? 0 : Number(value);
@@ -109,14 +112,41 @@ const DROP_EVENTS: Readonly<Record<string, string>> = {
   float: "dropFloat",
 };
 
+/** A scenario target in the spec's vocabulary: the `target` var and a copy's `copyTo`. */
+const SPEC_TARGET: Readonly<Record<string, string>> = {
+  "tab:0": "tab0",
+  "tab:1": "tab1",
+  tabF: "tabF",
+  "edge-left": "edge-left",
+  "edge-right": "edge-right",
+  "edge-top": "edge-top",
+  "edge-bottom": "edge-bottom",
+  float: "float",
+};
+
+/** The spec's target in the host's vocabulary: what a callback payload names. */
+const HOST_TARGET: Readonly<Record<string, string>> = {
+  tab0: "tabset0",
+  tab1: "tabset1",
+  tabF: "tabsetF",
+  float: "float",
+  "edge-left": "edge-left",
+  "edge-right": "edge-right",
+  "edge-top": "edge-top",
+  "edge-bottom": "edge-bottom",
+};
+
+const hostTarget = (target: string): string => HOST_TARGET[target] ?? target;
+
 /**
  * Workspace vocabulary <-> `specs/patterns/workspace.qnt`. A drop is `drop` with
  * the target as data (`tab:0`, `tab:1`, `tabF`, `edge-left` ... `edge-bottom`,
  * `float`), which is exactly the spec's `target` var; the host maps a pointer
  * position to that string and the model never sees a pixel. `pick` is
- * pointerdown on a tab, `cancel` is pointerup with no target, `close` / `copy`
- * / `transferOut` / `attach` name the tab in hand, `dock` is the host docking
- * the floating tabset and `collapse` toggles one docked tabset.
+ * pointerdown on a tab, `cancel` is pointerup with no target, `copy` is a drop
+ * that duplicates and names the same target, `close` / `transferOut` / `attach`
+ * name the tab in hand, `dock` is the host docking the floating tabset and
+ * `collapse` toggles one docked tabset.
  */
 export const workspaceBridge: SpecBridge = {
   setup: (config) => {
@@ -138,8 +168,14 @@ export const workspaceBridge: SpecBridge = {
         return [specEvent("cancel")];
       case "close":
         return [specEvent("closeTab")];
-      case "copy":
-        return [specEvent("copyTab")];
+      case "copy": {
+        // a copy names its destination like a drop does; the spec takes it as data
+        const dest = SPEC_TARGET[step.target ?? ""];
+        if (dest === undefined) {
+          throw new Unsupported(`target ${step.target ?? ""}`);
+        }
+        return [specEvent("copyTab", { dest })];
+      }
       case "transferOut":
         return [specEvent("transferOut")];
       case "attach":
@@ -250,7 +286,8 @@ export const workspaceBridge: SpecBridge = {
       fired.push(["onTabsChange", [...now]]);
     }
     if (num(after["copies"]) !== num(before["copies"])) {
-      fired.push(["onCopy", [num(before["drag"]), "tabset1"]]);
+      // the destination the model recorded, not a pinned one
+      fired.push(["onCopy", [num(before["drag"]), hostTarget(text(after["copyTo"]))]]);
     }
     if (
       before["collapsed0"] !== after["collapsed0"] ||
@@ -295,7 +332,10 @@ export const workspaceSteps: ReadonlyArray<ActionStep> = [
   { event: "drop", target: "edge-bottom" },
   { event: "drop", target: "float" },
   { event: "cancel" },
-  { event: "copy" },
+  // a copy names its destination, so the walk must not pass with a pinned one
+  { event: "copy", target: "tab:1" },
+  { event: "copy", target: "tabF" },
+  { event: "copy", target: "edge-left" },
   { event: "close" },
   { event: "transferOut" },
   { event: "attach" },

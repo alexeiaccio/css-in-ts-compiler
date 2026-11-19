@@ -105,4 +105,5 @@ export * from "./treeview";
 export * from "./view-transition";
 export * from "./virtual";
 export * from "./windowsplitter";
+export * from "./workspace";
 export * from "./listbox-rearrangeable";

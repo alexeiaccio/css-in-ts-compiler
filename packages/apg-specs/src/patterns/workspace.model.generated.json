@@ -1,6 +1,6 @@
 {
   "generatedFrom": "../../specs/patterns/workspace.qnt",
-  "specHash": "36b247658710a29293b4a5a14a08f43a7d308515beb53db9b46b299e21934061",
+  "specHash": "36ce13bfe1d9018d6409d906953c1323143855c4a515af645f3052b140829701",
   "module": "patterns_workspace",
   "vars": [
     {
@@ -78,6 +78,10 @@
     {
       "name": "copies",
       "type": "int"
+    },
+    {
+      "name": "copyTo",
+      "type": "str"
     },
     {
       "name": "bW0",
@@ -1645,6 +1649,42 @@
       }
     },
     "moves": {
+      "kind": "function",
+      "params": [
+        "t"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "pickedInWindow"
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "destOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "t"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "pickedHome"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "copyLands": {
       "kind": "function",
       "params": [
         "t"
@@ -3787,6 +3827,50 @@
         ]
       }
     },
+    "CopyNamesItsTarget": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reason"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "copy"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "copyTo"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      }
+    },
     "CloseTouchesOneTab": {
       "kind": "invariant",
       "params": [],
@@ -4792,6 +4876,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -4955,6 +5046,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
@@ -5144,6 +5242,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -5327,6 +5432,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
@@ -5516,6 +5628,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -5702,6 +5821,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -5865,6 +5991,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
@@ -6578,6 +6711,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -7285,6 +7425,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
@@ -7998,6 +8145,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -8705,6 +8859,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
@@ -9418,6 +9579,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -10125,6 +10293,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
@@ -10838,6 +11013,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -11548,6 +11730,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -12014,6 +12203,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -12045,6 +12241,20 @@
     },
     {
       "name": "copyTab",
+      "nondet": {
+        "name": "dest",
+        "kind": "str",
+        "pool": [
+          "tab0",
+          "tab1",
+          "tabF",
+          "edge-left",
+          "edge-right",
+          "edge-top",
+          "edge-bottom",
+          "float"
+        ]
+      },
       "assignments": [
         {
           "field": "where0",
@@ -12158,8 +12368,14 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "pickedInWindow"
+                "kind": "app",
+                "opcode": "copyLands",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dest"
+                  }
+                ]
               },
               {
                 "kind": "name",
@@ -12179,12 +12395,18 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "pickedInWindow"
+                "kind": "app",
+                "opcode": "copyLands",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dest"
+                  }
+                ]
               },
               {
-                "kind": "str",
-                "value": "tab1"
+                "kind": "name",
+                "name": "dest"
               },
               {
                 "kind": "name",
@@ -12200,8 +12422,14 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "pickedInWindow"
+                "kind": "app",
+                "opcode": "copyLands",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dest"
+                  }
+                ]
               },
               {
                 "kind": "str",
@@ -12221,8 +12449,14 @@
             "opcode": "ite",
             "args": [
               {
-                "kind": "name",
-                "name": "pickedInWindow"
+                "kind": "app",
+                "opcode": "copyLands",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dest"
+                  }
+                ]
               },
               {
                 "kind": "app",
@@ -12241,6 +12475,33 @@
               {
                 "kind": "name",
                 "name": "copies"
+              }
+            ]
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "copyLands",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dest"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "dest"
+              },
+              {
+                "kind": "name",
+                "name": "copyTo"
               }
             ]
           }
@@ -12956,6 +13217,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -13646,6 +13914,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -14254,6 +14529,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -14448,6 +14730,13 @@
           }
         },
         {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
+          }
+        },
+        {
           "field": "bW0",
           "rhs": {
             "kind": "name",
@@ -14639,6 +14928,13 @@
           "rhs": {
             "kind": "name",
             "name": "copies"
+          }
+        },
+        {
+          "field": "copyTo",
+          "rhs": {
+            "kind": "name",
+            "name": "copyTo"
           }
         },
         {
