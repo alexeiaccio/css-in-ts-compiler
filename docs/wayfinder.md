@@ -5794,3 +5794,40 @@ refusals, the three catalog checks with the names they offer, the three kinds of
 two-block screen draws `stat` and `bars` and its own `label` reaches the story, a `colour` arg and an unknown starter are
 refused with the reason and draw nothing, `#catalog` equals `/catalog.json`, 65 items with `bars`' `max`), `bun run
 typecheck`, fmt and lint.
+
+## UI SDK's sink, and the same library written the other way round (2026-11-20)
+
+Vercel Labs' **UI SDK** (`ui-sdk.dev`, `vercel-labs/ui`, beta) is the closest thing to this repository's thesis that exists
+outside it: "a TypeScript library of UI behaviors, the layers that make up a component library" — keyboard navigation,
+focus, selection, popups, drag and drop, and the ARIA those need — with adapters for React, Vue, Svelte, **Solid** and Web
+Components, and `@ui-sdk/react` shipping Select, Dialog and Tabs built on them, markup and styles the app's. Their `/sink`
+is one page of ~150 live demos, each with a one-line caption of the interaction ("Drag the edge, or press Enter on it —
+Fold the sidebar", "Wire the flow. Pan, zoom, move nodes, connect ports", "Ten thousand tracks. Only the rows in view
+render", "Will it pass AA? Any CSS color in, a WCAG ratio out").
+
+The overlap is near-total and independent: the same primitives (virtual lists, resizable panels, drag with springs,
+`daysBetween`/`monthGrid`, `parseColor`/`contrastRatio`, roving focus, `spatialMove`) and the same discipline (behaviours,
+not opinions; ARIA from the state). The halves differ, and the sink is where it shows:
+
+- **They went wide, we went deep.** Five framework adapters against one (Solid, the app's own). In exchange, a component
+  here is a `cn()` whose every declaration the engine compiles and checks — grammar, tokens, contrast, layers — and whose
+  protocols are modelled in Quint (`@cssints/apg-specs`) and replayed in Chromium. A behaviour library cannot check the
+  styles its consumers write; it does not own them. That trade is the whole argument of this repository, and it is the
+  reason not to take the adapters: the CSS engine is one per framework, and a second rendering model under components that
+  are attributes is what `cssints` exists to avoid.
+- **They have a sink, we had a catalogue.** The site was one page per starter (with its stories, controls, code and
+  conformance record) and a rail; there was no single page showing everything. Taken: `#sink` — every starter in the
+  registry's order, its first story drawn live, a caption from the catalogue and a link into the item's own page. 66
+  stories on one page, `content-visibility: auto` per block so an off-screen demo is neither laid out nor painted, and the
+  page is driven by the same `items` + `stories` the catalogue and a screen already read, so an item that arrives is on it.
+- **Their sink demos are agent-drivable; ours are human-drivable.** One block reads "Let the agent fill it. A scripted
+  agent reads the form with `snapshot()`, then fills it with `act()`" — an API over the behaviours' own state, so a test or
+  an agent drives what a person drives. Ours is close in shape (a primitive is plain state plus attribute objects) and has
+  no such entry point: `@cssints/mcp` inspects and compiles, and the browser tools read a running page; nothing _acts_ on a
+  widget's state. Recorded as the one idea to take later (a `snapshot()`/`act()` over a headless primitive, which would
+  also make the kit's demos testable without a browser), not taken now: the sink is the page that would make it visible,
+  and it landed first.
+
+**Verified:** `apps/ui/src/docs/surface.browser.test.ts` (`#sink` is a route like the other three), `apps/ui/test/site.mjs`
+in Chrome (the sink draws as many live stories as `/catalog.json` has items, `button`'s block has a real `button` and links
+to `#button`, and the page raises no error), `bun run typecheck`, fmt.
