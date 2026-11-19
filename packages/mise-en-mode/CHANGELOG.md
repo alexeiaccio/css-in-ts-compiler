@@ -1,5 +1,11 @@
 # @cssints/mise-en-mode
 
+## 0.45.0
+
+### Patch Changes
+
+- cssints@0.45.0
+
 ## 0.44.0
 
 ### Patch Changes
