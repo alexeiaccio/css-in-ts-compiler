@@ -1,7 +1,7 @@
 ---
 # cssints-vjna
 title: a snapshot()/act() over a headless primitive, so a demo is agent-drivable
-status: todo
+status: completed
 type: feature
 priority: low
 tags:
@@ -20,3 +20,13 @@ Ours is close in shape: a primitive in `@cssints/headless` is plain state plus a
 Why it is worth it: the kit's demos could then be driven without a browser (today a headless test mounts Solid and dispatches events), `@cssints/mcp` could act on a live page's widget, and the docs could ship a scripted demo. Contract sketch: one intent list per primitive, the same one its keymap already switches on; `snapshot()` returns only what the ARIA attributes expose, so it cannot drift from what a reader hears.
 
 Not started: the sink page landed first (the page that would show it).
+
+## Done (2026-11-20)
+
+First primitive: `createRadioGroup` (wayfinder entry, same date). `snapshot()` returns JSON of what ARIA says
+(`checked`, `focused`, `count`, `disabled`, `flavor`, `orientation`); `act()` takes `next` / `previous` / `first` / `last`,
+`focus` and `check`, through the keys' and the pointer's own functions. Five browser tests, one of which caught a real bug
+(an all-disabled group could focus index `count()`).
+
+Left: the same pair on `createListbox` and the rest, and a `Driver` over `act`/`snapshot` so a ported scenario runs against
+the primitive without a DOM — the reason the vocabulary is per pattern rather than a generic step type.

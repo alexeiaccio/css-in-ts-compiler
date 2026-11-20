@@ -5922,3 +5922,33 @@ browser's button and mirror, every option readable as a sentence, `appearance` c
 three-column grid, the value a change reports plus the mirror in the closed control, and a controlled value), the engine's
 sheet through `node test/run.mjs` (`.k::picker(select){…}`, and the support warning for Firefox 154 and old Chrome), the
 site test (the picker is a catalog item and a sink block), typecheck, fmt, and the registry/catalog regenerated (68 items).
+
+## A script's vocabulary over a primitive: `snapshot()` and `act()` (cssints-vjna, 2026-11-20)
+
+From UI SDK's sink: one of its demos reads "a scripted agent reads the form with `snapshot()`, then fills it with `act()`" —
+an API over the behaviour's own state, so a test or an agent drives what a person drives. Our primitives are close in shape
+(plain state plus attribute objects), and had no such entry point: a script had to dispatch a keydown or a pointer event and
+read attributes back.
+
+Taken on `createRadioGroup`, as the first primitive (the pattern is small, it has a Quint model, and its state is exactly what
+ARIA already says):
+
+- `snapshot()` returns JSON — `{ checked, focused, count, disabled, flavor, orientation }`, indices because an index is the
+  identity ARIA carries — so it cannot say anything a reader would not hear.
+- `act(intent)` takes `next` / `previous` / `first` / `last` (focus moves and checks what it lands on, the pattern's
+  selection-follows-focus), `focus` (focus alone) and `check` (a request against an index), and routes each through the same
+  functions the keys and the pointer use: the request/commit split, `onValueChange` / `onFocus`, and the ARIA all follow.
+
+Two things fell out of writing the test. First, `act` must be read after a flush — Solid 2 applies a write on the microtask —
+so the API is `act()` then `snapshot()`, never a value returned from act. Second, an intent that lands nowhere has to be
+refused by the range as well as by the disabled set: `stepIndex` returns its `from` when every radio is disabled, and
+`previous` from "nothing focused" starts at `count()`, so the empty group moved focus to index 4 — a state no ARIA attribute
+could describe. The empty-group test is what caught it.
+
+The vocabulary is per pattern and deliberately not a generic `{ type: string }`: a listbox's intents are not a radio group's,
+and the keymap is the source. The next step, if it is wanted, is the same pair on `createListbox` and a `Driver` over
+`act`/`snapshot` so a ported scenario can run against the primitive with no DOM at all.
+
+**Verified:** `packages/headless/test/radio.act.browser.test.tsx` (5 in Chromium: the snapshot and its JSON round-trip, the
+four moves with their checks and callbacks, focus-without-check plus the two refusals, a controlled host that answers late,
+and an all-disabled group that stays still), typecheck, lint, fmt.

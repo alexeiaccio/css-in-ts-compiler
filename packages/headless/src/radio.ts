@@ -105,6 +105,32 @@ export interface RadioProps {
   readonly onFocus: () => void;
 }
 
+/**
+ * The group's observable state, JSON: the checked and focused radios by index (the identity ARIA carries), the disabled
+ * ones, the flavor and the orientation — nothing whose reader would hear something the snapshot does not say.
+ */
+export interface RadioSnapshot {
+  readonly checked: number | null;
+  readonly focused: number | null;
+  readonly count: number;
+  readonly disabled: ReadonlyArray<number>;
+  readonly flavor: RadioFlavor;
+  readonly orientation: "horizontal" | "vertical" | null;
+}
+
+/**
+ * What a script may ask of the group, in the vocabulary its keys and its pointer already speak: `next` / `previous` /
+ * `first` / `last` move focus and check what they land on (selection follows focus, the pattern's rule), `focus` moves
+ * focus alone, and `check` is a request against an index.
+ */
+export type RadioIntent =
+  | { readonly type: "next" }
+  | { readonly type: "previous" }
+  | { readonly type: "first" }
+  | { readonly type: "last" }
+  | { readonly type: "focus"; readonly index: number }
+  | { readonly type: "check"; readonly index: number };
+
 export interface RadioGroup<T = unknown> {
   readonly checked: Accessor<number | null>;
   readonly focused: Accessor<number | null>;
@@ -117,6 +143,16 @@ export interface RadioGroup<T = unknown> {
   readonly setDisabled: (indices: ReadonlyArray<number>) => void;
   readonly setFlavor: (flavor: RadioFlavor) => void;
   readonly setPreselect: (index: number | null) => void;
+  /**
+   * The group's state as JSON, for a test, a demo script or an agent: read it after a flush, since Solid 2 applies a write
+   * on the microtask.
+   */
+  readonly snapshot: () => RadioSnapshot;
+  /**
+   * Drive the group without a DOM event: an intent goes through the same paths its keys and its pointer do, so a script
+   * gets the same request/commit, the same callbacks and the same ARIA. Read `snapshot()` after a flush.
+   */
+  readonly act: (intent: RadioIntent) => void;
   readonly radiogroupProps: RadioGroupProps;
   readonly radioProps: (index: number) => RadioProps;
 }
@@ -547,6 +583,53 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     }
   };
 
+  const nextEnabled = (from: number | null, delta: 1 | -1): number => {
+    if (count() === 0) {
+      return -1;
+    }
+    return stepIndex(from ?? (delta === 1 ? -1 : count()), delta);
+  };
+
+  const moveAndCheck = (next: number): void => {
+    if (next < 0 || next >= count()) {
+      return;
+    }
+    moveFocus(next);
+    select(next);
+  };
+
+  const act = (intent: RadioIntent): void => {
+    if (intent.type === "check" || intent.type === "focus") {
+      if (intent.index < 0 || intent.index >= count() || isDisabled(intent.index)) {
+        return;
+      }
+      if (intent.type === "focus") {
+        moveFocus(intent.index);
+        return;
+      }
+      moveAndCheck(intent.index);
+      return;
+    }
+    if (intent.type === "next") {
+      moveAndCheck(nextEnabled(focused() ?? checked(), 1));
+      return;
+    }
+    if (intent.type === "previous") {
+      moveAndCheck(nextEnabled(focused() ?? checked(), -1));
+      return;
+    }
+    moveAndCheck(nextEnabled(null, intent.type === "first" ? 1 : -1));
+  };
+
+  const snapshot = (): RadioSnapshot => ({
+    checked: checked(),
+    focused: focused(),
+    count: count(),
+    disabled: [...disabledSet()].sort((a, b) => a - b),
+    flavor: flavor(),
+    orientation: options.orientation ?? null,
+  });
+
   return {
     checked,
     focused,
@@ -579,6 +662,8 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
       navigating = false;
       reconcile();
     },
+    snapshot,
+    act,
     radiogroupProps: {
       "data-part": "radiogroup",
       role: "radiogroup",

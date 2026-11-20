@@ -178,6 +178,19 @@ Implemented for `disclosure` (reference: `specs/apg/disclosure.qnt`, `src/disclo
 
 Generator limits met and worked around (no parameterized actions, no `let`): a request action spells `landed(...)` out per assignment; every action assigns every var.
 
+## A script's vocabulary: `snapshot()` and `act()`
+
+A demo, a test or an agent should not have to synthesise a keydown to move a widget. On `createRadioGroup` (the first
+primitive to carry it), `snapshot()` is the observable state as JSON — the checked and focused radios by index, the
+disabled ones, the flavor, `aria-orientation` — and `act()` takes the intents the keyboard and the pointer already speak:
+`next` / `previous` / `first` / `last` (focus moves and checks what it lands on, the pattern's selection-follows-focus),
+`focus` (focus alone) and `check` (a request against an index). An intent goes through the primitive's own paths, so the
+request/commit split, the callbacks and the ARIA are the same as a key's.
+
+The snapshot is JSON and nothing else: every field is what an ARIA attribute already says, so it cannot drift from what a
+screen reader hears. Read it after a flush — Solid 2 applies a write on the microtask — which is what a browser test does
+and what an MCP tool would do between two messages.
+
 ## Preferences
 
 A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>`, `src/prefs.ts`). **The host resolves its preferences and injects the values**; `@cssints/headless` depends on `solid-js` only and never imports a preferences store — `Prefs` is a structural type, and an absent pref keeps today's behaviour.
