@@ -5955,8 +5955,19 @@ active option, focus, the count, the disabled options and the selection mode (`a
 radio fix removed: `hostActive` and `hostValue` were signals written by effects, and both are memos now.
 
 The vocabulary is per pattern and deliberately not a generic `{ type: string }`: a listbox's intents are not a radio group's,
-and the keymap is the source. Left: the rest of the patterns, and a `Driver` over `act`/`snapshot` so a ported scenario runs
-against the primitive with no DOM at all — the reason the vocabulary is per pattern rather than a generic step type.
+and the keymap is the source.
+
+**A `Driver` over `act`/`snapshot` was weighed and dropped.** The idea was to replay a ported scenario against the primitive
+with no DOM. The corpus says no: across the three radio scenario files (56 scenarios) the steps are Tab 20 times and an arrow
+45 (`ArrowDown` 20, `ArrowRight` 11, `ArrowUp` 8, `ArrowLeft` 6), against Space 5 and Enter 1 — Tab and the arrows are the
+_platform's_ half (focusgroup), which a headless driver would have to re-implement to have anything to replay, and a driver
+that re-implements the thing under test is testing itself. What a driver could replay is the library's own keys and the
+pointer, which `act` already is, in the browser, over the real DOM.
+
+The same look says how far the pair should spread: most primitives already publish their vocabulary as methods (`createTabs`
+has `select`, `setSelected`, `focusTab`; a checkbox group has `toggle`), so a JSON `act` adds little there. It earns its
+place where the intents are a small set with a _shape_ the methods do not name — an index plus disabled plus a controlled
+value (radio), a selection plus an active option plus type-ahead (listbox).
 
 **Verified:** `packages/headless/test/radio.act.browser.test.tsx` (5 in Chromium: the snapshot and its JSON round-trip, the
 four moves with their checks and callbacks, focus-without-check plus the two refusals, a controlled host that answers late,

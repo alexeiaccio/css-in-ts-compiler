@@ -32,5 +32,9 @@ Second: `createListbox` (same day), with the distinction the radio did not have 
 the option's element and the state follows `focusin`; its two controlled props stopped being effect-written signals in the
 same change.
 
-Left: the rest of the patterns, and a `Driver` over `act`/`snapshot` so a ported scenario runs against the primitive without
-a DOM — the reason the vocabulary is per pattern rather than a generic step type.
+The `Driver` over `act`/`snapshot` was weighed against the corpus and dropped (wayfinder, same date): Tab 20 + arrows 45 vs
+Space 5 / Enter 1 across the radio scenarios means a headless driver re-implements the platform's half, and that is the half a
+browser test must own.
+
+Left, deliberately: more patterns only where the intents are a small shaped set the methods do not already name (a checkbox
+group and tabs publish `toggle` / `select` / `focusTab` and need nothing).
