@@ -506,14 +506,15 @@ export const Docs = (): JSX.Element => {
                       ...current().files.filter((file) => file === componentFile(current())),
                       ...current().files.filter((file) => file !== componentFile(current())),
                     ]}
+                    keyed={(file) => file.target}
                   >
                     {(file) => (
-                      <details class="docs__file" open={file === componentFile(current())}>
+                      <details class="docs__file" open={file() === componentFile(current())}>
                         <summary>
-                          <code>{file.target}</code>
+                          <code>{file().target}</code>
                         </summary>
                         <pre class="docs__code">
-                          <code>{file.content}</code>
+                          <code>{file().content}</code>
                         </pre>
                       </details>
                     )}
