@@ -10,6 +10,7 @@ import { RuleTester } from "oxlint/plugins-dev";
 import { changedFileRules } from "../src/changed-file-rules.ts";
 import noExplicitFunctionReturnType from "../src/rules/no-explicit-function-return-type.ts";
 import noLet from "../src/rules/no-let.ts";
+import noProseComments from "../src/rules/no-prose-comments.ts";
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -29,6 +30,27 @@ tester.run("diff-check/no-let", noLet, {
     {
       code: "let value = 1;",
       errors: [/Do not use let/],
+    },
+  ],
+});
+
+tester.run("diff-check/no-prose-comments", noProseComments, {
+  valid: [
+    "// oxlint-disable-next-line no-console\nconst value = 1;",
+    "// @ts-expect-error the shape is the wire format\nconst value: number = 'x';",
+    "// WARNING: the retry reuses the socket\nconst value = 1;",
+    "// ponytail: one global lock, per-account locks if throughput matters\nconst value = 1;",
+    "/** What the function promises. */\nexport const value = 1;",
+    "/*! @license MIT */\nconst value = 1;",
+  ],
+  invalid: [
+    {
+      code: "// the reason this exists\nconst value = 1;",
+      errors: [/Do not explain code/],
+    },
+    {
+      code: "/* two lines\n   of why */\nconst value = 1;",
+      errors: [/Do not explain code/],
     },
   ],
 });

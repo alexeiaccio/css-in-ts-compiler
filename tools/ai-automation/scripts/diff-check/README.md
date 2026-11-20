@@ -3,9 +3,9 @@
 **Agent action: copy this script when review-time added-line policy is useful,
 then adapt its configuration.**
 
-The script runs `no-let`, `no-explicit-function-return-type`, and the
-`anti-slop` profile (`automation/*`) only on lines added since a selected base
-revision. It can also report configurable key-file changes. Existing lines are
+The script runs `no-let`, `no-explicit-function-return-type`,
+`no-prose-comments`, and the `anti-slop` profile (`automation/*`) only on lines
+added since a selected base revision. It can also report configurable key-file changes. Existing lines are
 intentionally outside its scope, so this check stays separate from full-source
 validation. The harness itself (`tools/ai-automation/`) is excluded, mirroring
 the linter-implementation exemption in the root config — its rule code

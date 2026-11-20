@@ -20,8 +20,9 @@
     "bench": "vp run -r bench",
     "typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/lab --filter ./apps/csssky --filter ./apps/csssky-tui --filter ./apps/docs --filter ./apps/ui typecheck",
     "diff:check": "node tools/ai-automation/scripts/diff-check/src/main.ts --config tools/ai-automation/scripts/diff-check/diff-check.config.json",
-    "check": "vp check && bun run typecheck",
+    "check": "vp check && bun run lint:flakes && bun run typecheck",
     "lint": "vp lint",
+    "lint:flakes": "oxlint -c tools/flakes.oxlintrc.jsonc packages apps tools",
     "lint:fix": "vp lint --fix",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check"
@@ -30,6 +31,7 @@
     "@changesets/cli": "^3.0.3",
     "@effect/language-service": "^0.87.5",
     "@effect/tsgo": "^0.57.0",
+    "@interfere/landmines": "^0.1.1",
     "@types/bun": "^1.4.4",
     "@types/node": "^25.9.9",
     "@typescript/native": "npm:typescript@7.0.2",

@@ -83,7 +83,7 @@ same way. If a generator's output looks suspiciously large, run `bun install` an
 (`git add`), `git rebase --continue`, and check `git log --oneline -1` before any push.
 
 **Never commit generated files from a checkout that carries a merge.** `git reset --soft origin/master` in such a
-checkout turns the merged commits into *staged reversals*, and the next commit deletes them — one run of the generated
+checkout turns the merged commits into _staged reversals_, and the next commit deletes them — one run of the generated
 registry files did exactly that (two merged PRs undone: a deleted scratch file came back, bean files and an `AGENTS.md`
 section vanished). Stage the generated paths onto master's tree in an index of its own
 (`git read-tree origin/master` + `git add -- <paths>` + `git commit-tree -p origin/master`) so nothing else can travel.
@@ -111,7 +111,8 @@ cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's But
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
 cd packages/cssints && bun run groups         # regenerate src/groups/<id>.ts and src/groups-data.ts (cssints/widely-available, cssints/css-grid-2, ...: web-features, @webref/css 6, BCD); then bun run build
 bun run typecheck                             # per package: node ../../scripts/typecheck.mjs (effect-tsrs: tsc 7 and the Effect diagnostics in one pass, tsconfig.effect.json); the apps also run tsc 5.9
-bun run diff:check                            # the lines added since master, linted by the anti-slop rules, plus key-file changes (bun.lock, vite.config.ts, ...); exit 1 on a warning
+bun run diff:check                            # the lines added since master, linted by the anti-slop rules and `no-prose-comments`, plus key-file changes (bun.lock, vite.config.ts, ...); exit 1 on a warning
+bun run lint:flakes                           # landmines' testing rules over `**/test/**` and `apps/**` (the main lint leaves both out): no fixed sleep, no poll on a recorder, no raised timeout. Its allowlist has exact per-file counts, so a file that improves reports itself
 cd packages/tui && bun run test               # the system theme (node test/system.ts), cssints/tui through the plugin (node --conditions=development test/tui.mjs), the OpenTUI adapter under Bun (test/render.ts), the bomb.sh adapter (node test/bomb.ts)
 cd tools/ai-automation && bun run test        # the rule tests and the diff-check tests (vp test run)
 cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed; a browser without style queries is detected, so an older playwright-core's WebKit runs with `PW=` and `PLAYWRIGHT_BROWSERS_PATH=`)
@@ -140,6 +141,19 @@ properties) and `.ts` import specifiers. `cssints` exports `types` (src/types.ts
 `browser` (src/runtime.ts: `_cx`, the runtime of `cn` with runtime arguments, and `_cv`, no imports, no Effect) and `default` (src/index.ts: the eval-time library).
 
 `vp <name>` is a Vite+ built-in, `vp run <name>` is a package.json script: `vp test` is vitest (unused here), `vp run test` is ours. Docs ship in `node_modules/vite-plus/docs`.
+
+### Comments and test timing
+
+Two policies, both enforced rather than remembered:
+
+- **A new line of code does not explain itself.** `diff:check` runs `no-prose-comments` on the lines added since master: a
+  `//` line or a `/* */` block is a violation unless it is a functional directive (`oxlint-`, `eslint-`, `@ts-`, an
+  `@effect-diagnostics-next-line`), a single-line `// WARNING:`/`// SAFETY:`/`// ponytail:` marker, TSDoc on public API, or a
+  licence banner. The reason goes in the commit message or `docs/wayfinder.md`; the name of the thing goes in the code. The
+  comments already written are untouched — the rule is a ratchet on new lines, not a sweep that deletes the reasoning.
+- **A test waits on a signal, not on the clock.** `bun run lint:flakes` (landmines' `no-fixed-sleep`,
+  `no-unsignaled-poll`, `no-flake-masking`) covers the test files the main lint skips. Its allowlist counts are exact, so
+  every entry names a delay that _is_ the subject, and fixing one of those sleeps fails the pass until the entry is removed.
 
 ### Linting & Formatting
 

@@ -1,0 +1,45 @@
+// The flake pass: landmines' testing rules over the files the main lint leaves out (`**/test/**`, `apps/**`), because a test
+// that waits on the clock instead of on a signal is exactly what the main pass cannot see. Run with `bun run lint:flakes`.
+//
+// `no-test-doubles` and `strict-msw` are not on: our doubles are fixtures of a protocol (a fake dev server, a fake clock, a
+// fake terminal palette), not stubs of the thing under test, and we do not use MSW.
+//
+// The allowlist is a ratchet: a file may keep exactly the count it has, and the rule reports a file with fewer, so the list
+// only shrinks. Every entry below is a delay that *is* the subject — a real 200 ms interval, a 300 ms grace, a velocity
+// window — and each would have to stop testing timing to lose it.
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  // this pass is the flake rules and nothing else: the built-in plugins belong to the main pass
+  "plugins": [],
+  "categories": { "correctness": "off" },
+  "jsPlugins": [{ "name": "landmines-testing", "specifier": "@interfere/landmines/testing" }],
+  "rules": {
+    "landmines-testing/no-fixed-sleep": [
+      "warn",
+      {
+        "allow": {
+          "apps/ui/src/registry/carousel/carousel.browser.test.tsx": 1,
+          "apps/ui/src/registry/drawer/drawer.browser.test.tsx": 1,
+          "apps/ui/src/registry/textarea/textarea.browser.test.tsx": 1,
+          "apps/ui/src/registry/tooltip/tooltip.browser.test.tsx": 1,
+        },
+      },
+    ],
+    "landmines-testing/no-unsignaled-poll": "warn",
+    "landmines-testing/no-flake-masking": [
+      "warn",
+      {
+        "allow": {
+          "apps/ui/vitest.browser.config.ts": 1,
+          "packages/apg-specs/vite.config.ts": 1,
+          "packages/apg-specs/test/apg/listbox-multi.test.ts": 1,
+          "packages/apg-specs/test/apg/listbox-rearrangeable.test.ts": 1,
+          "packages/apg-specs/test/apg/listbox-single.test.ts": 1,
+          "packages/apg-specs/test/apg/listbox-typeahead.test.ts": 1,
+          "packages/headless/vite.config.ts": 1,
+          "tools/ai-automation/vite.config.ts": 1,
+        },
+      },
+    ],
+  },
+}
