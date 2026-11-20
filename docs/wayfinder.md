@@ -5864,7 +5864,7 @@ cannot follow the call. So `tools/flakes.oxlintrc.jsonc` runs landmines' three t
 reports itself as stale. The first paydown took `packages/headless` from 94 `setTimeout`s in 86 files to 73 in 65: a
 microtask where the wait was Solid's delegated event (20 files, green), a `requestAnimationFrame` where it was a scroll
 (`scrollspy`) or the platform's own `close` (`dialog-native`, `drawer-native`) — those three failed with a microtask, which
-is the finding: a frame is the signal there, not a turn. Kept on the allowlist, because the delay *is* the subject: a real
+is the finding: a frame is the signal there, not a turn. Kept on the allowlist, because the delay _is_ the subject: a real
 200 ms carousel interval, a 300 ms tooltip grace, a velocity window, the page-side task boundaries in the vitals test, and
 the five 300 s exploration timeouts.
 
@@ -5877,3 +5877,42 @@ vitals test's page-side tasks). **The testTimeout did not come down.** It was tr
 six differential walks failed under load — the walks are bounded by model work, not by a deadline, so the 60 s is a
 safety net for a busy machine rather than a mask over a race. Reverted, with the reason in this line. `bun run lint:flakes`
 is 0/0 on 1984 files in ~1 s and both suites are green (headless 81 files / 1499 tests, `apps/ui` 69 / 1020).
+
+## A select should tell you something: the platform's select, not ours (2026-11-20)
+
+Ahmad Alfy's piece (_A select should tell you something_, 27 Oct 2026) is about `appearance: base-select`: once the popup is
+part of the page, an option can hold what a person decides with — a preview, a time, a price, a job title, a badge — and the
+control is still the browser's, so the keys, type-to-jump, the form value, `required` and the role stay the platform's. The
+"before/after" pairs make the argument better than any component demo: a font list where the option is set in its own face, a
+time-zone list that shows the time instead of an offset, delivery rows whose arrival and price line up in columns, two
+colleagues with one name told apart by title and department, and the rows that need approval saying so before the value moves.
+
+Read against the kit, the article names two gaps, both of them the engine's rather than a component's:
+
+- **The grammar refused the value.** `css.appearance("base-select")` was an error — `expected none | auto | <compat-auto> |
+  <compat-special>` — because mdn-data 2.27.1 still lists `<compat-auto>` without it, while BCD 8.1.3 has
+  `css.properties.appearance.base-select` (Chrome 135, Safari 27, Firefox 149). Fixed where the other shipped-but-stale
+  keywords are fixed (`scripts/extract.mjs`): an `EXTRA` type patch that appends `base-select` to mdn-data's own
+  `<compat-auto>`, in every mode, so both twins accept it and the support warning comes from BCD. `display: grid-lanes` is
+  the precedent, and `bun run extract` regenerates `mdn.ts` and `keywords.ts` (one line each).
+- **`::picker(select)` had no wrapper.** The generated pseudo-elements are the argument-less ones, and a functional element
+  was not expressible at all. `css.picker(styles)` is now the wrapper, printing `.k::picker(select)` in the element layer; it
+  takes no argument because `select` is the only one, and it joins the subject like every other element wrapper.
+
+And one starter, `picker`: a native `<select>` with a `button > selectedcontent` mirror, options on a grid
+(`--picker-columns`), a badge for the rows that need one, and an inline `style` per option for the typeface case. It is gated
+twice — `@supports (appearance: base-select)` **and** `@media (hover: hover) and (pointer: fine)` — because on a touch device
+the operating system's picker is the better control, which is the article's own advice; a browser that fails either gate gets
+the ordinary select. The separator spans are the other half of that: hidden in the rich layout, they make the plain option
+read as a sentence ("Express, Tomorrow, $8.50"), which is also what a screen reader hears.
+
+**A bug the starter found:** a `value` bound on `<select>` while its options are still being appended leaves the control at
+`selectedIndex -1` (Chrome resets the property), so a controlled value has to be written after the children exist — an
+effect with the element from a ref, not a JSX prop. The `selectedcontent` mirror then follows within two frames, which is
+also what the browser test waits for.
+
+**Verified:** `apps/ui/src/registry/picker/picker.browser.test.tsx` (5 in Chromium 156: the labelled control with the
+browser's button and mirror, every option readable as a sentence, `appearance` computing to `base-select` and the option's
+three-column grid, the value a change reports plus the mirror in the closed control, and a controlled value), the engine's
+sheet through `node test/run.mjs` (`.k::picker(select){…}`, and the support warning for Firefox 154 and old Chrome), the
+site test (the picker is a catalog item and a sink block), typecheck, fmt, and the registry/catalog regenerated (68 items).
