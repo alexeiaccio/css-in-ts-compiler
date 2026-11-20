@@ -85,7 +85,7 @@ describe("createDropZone x spec (the per-file decision)", () => {
     return transfer;
   };
 
-  const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+  const tick = () => Promise.resolve();
 
   const dropFiles = async (mounted: ReturnType<typeof mountDropZone>, files: readonly File[]) => {
     mounted.root.querySelector('[data-part="zone"]')!.dispatchEvent(

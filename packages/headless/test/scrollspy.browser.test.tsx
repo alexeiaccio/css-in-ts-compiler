@@ -8,7 +8,8 @@ const ENTRIES = Array.from({ length: 6 }, (_, index) => ({
   label: `Heading ${index + 1}`,
 }));
 
-const tick = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<unknown> =>
+  new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 
 const waitFor = async (done: () => boolean, limit = 2000): Promise<void> => {
   const start = Date.now();

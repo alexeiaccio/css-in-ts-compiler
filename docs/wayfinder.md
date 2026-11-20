@@ -5856,3 +5856,14 @@ diagnostic is the oracle.
 a decision made at mount in every skin today; if a host ever flips the flavor at runtime it will not follow. The four other
 warnings the sink page prints (`createTreeview.hasFocus`, `createTreegrid.inGrid`, `createFeed.phase`/`.active`,
 `createListbox.focused`, `placed`) are the same class and are not touched here.
+
+**The flake pass, measured and ratcheted (landmines, 2026-11-20):** `@interfere/landmines` sees 12 things in this repo and
+would see none of the 125 sleeps we actually have — they hide behind a `settle()` helper, and a rule that reports call sites
+cannot follow the call. So `tools/flakes.oxlintrc.jsonc` runs landmines' three testing rules **and** our own
+`flakes/no-test-sleep`, which names the call wherever it is and keeps an exact per-file allowlist; a file that improves
+reports itself as stale. The first paydown took `packages/headless` from 94 `setTimeout`s in 86 files to 73 in 65: a
+microtask where the wait was Solid's delegated event (20 files, green), a `requestAnimationFrame` where it was a scroll
+(`scrollspy`) or the platform's own `close` (`dialog-native`, `drawer-native`) — those three failed with a microtask, which
+is the finding: a frame is the signal there, not a turn. Kept on the allowlist, because the delay *is* the subject: a real
+200 ms carousel interval, a 300 ms tooltip grace, a velocity window, the page-side task boundaries in the vitals test, and
+the five 300 s exploration timeouts.

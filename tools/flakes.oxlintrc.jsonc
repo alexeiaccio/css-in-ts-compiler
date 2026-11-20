@@ -1,18 +1,22 @@
-// The flake pass: landmines' testing rules over the files the main lint leaves out (`**/test/**`, `apps/**`), because a test
-// that waits on the clock instead of on a signal is exactly what the main pass cannot see. Run with `bun run lint:flakes`.
+// The flake pass: the testing rules over the files the main lint leaves out (`**/test/**`, `apps/**`), because a test that
+// waits on the clock instead of on a signal is exactly what the main pass cannot see. Run with `bun run lint:flakes`.
 //
 // `no-test-doubles` and `strict-msw` are not on: our doubles are fixtures of a protocol (a fake dev server, a fake clock, a
 // fake terminal palette), not stubs of the thing under test, and we do not use MSW.
 //
-// The allowlist is a ratchet: a file may keep exactly the count it has, and the rule reports a file with fewer, so the list
-// only shrinks. Every entry below is a delay that *is* the subject — a real 200 ms interval, a 300 ms grace, a velocity
-// window — and each would have to stop testing timing to lose it.
+// Every allowlist here is a ratchet with exact per-file counts: a file may keep what it has, and a file that improves
+// reports itself as stale until its entry is lowered. `no-fixed-sleep` and `no-flake-masking` keep the delays that ARE the
+// subject (a real 200 ms interval, a 300 ms grace, a velocity window) and the exploration timeouts the repo documents;
+// `flakes/no-test-sleep` is ours, because 125 sleeps hide behind a `settle()` helper that landmines cannot see.
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   // this pass is the flake rules and nothing else: the built-in plugins belong to the main pass
   "plugins": [],
   "categories": { "correctness": "off" },
-  "jsPlugins": [{ "name": "landmines-testing", "specifier": "@interfere/landmines/testing" }],
+  "jsPlugins": [
+    { "name": "landmines-testing", "specifier": "@interfere/landmines/testing" },
+    { "name": "flakes", "specifier": "./ai-automation/scripts/flakes/plugin.ts" },
+  ],
   "rules": {
     "landmines-testing/no-fixed-sleep": [
       "warn",
@@ -31,13 +35,85 @@
       {
         "allow": {
           "apps/ui/vitest.browser.config.ts": 1,
-          "packages/apg-specs/vite.config.ts": 1,
           "packages/apg-specs/test/apg/listbox-multi.test.ts": 1,
           "packages/apg-specs/test/apg/listbox-rearrangeable.test.ts": 1,
           "packages/apg-specs/test/apg/listbox-single.test.ts": 1,
           "packages/apg-specs/test/apg/listbox-typeahead.test.ts": 1,
+          "packages/apg-specs/vite.config.ts": 1,
           "packages/headless/vite.config.ts": 1,
           "tools/ai-automation/vite.config.ts": 1,
+        },
+      },
+    ],
+    "flakes/no-test-sleep": [
+      "warn",
+      {
+        "allow": {
+          "apps/csssky-tui/test/screens.mjs": 1,
+          "apps/ui/src/registry/button/button.browser.test.tsx": 1,
+          "apps/ui/src/registry/canvas/canvas.browser.test.tsx": 1,
+          "apps/ui/src/registry/carousel/carousel.browser.test.tsx": 1,
+          "apps/ui/src/registry/combobox/combobox.browser.test.tsx": 1,
+          "apps/ui/src/registry/diagram/diagram.browser.test.tsx": 1,
+          "apps/ui/src/registry/dialog/dialog.browser.test.tsx": 1,
+          "apps/ui/src/registry/disclosure-animated/disclosure-animated.browser.test.tsx": 1,
+          "apps/ui/src/registry/drawer/drawer.browser.test.tsx": 3,
+          "apps/ui/src/registry/input/input.browser.test.tsx": 1,
+          "apps/ui/src/registry/link/link.browser.test.tsx": 1,
+          "apps/ui/src/registry/listbox/listbox.browser.test.tsx": 1,
+          "apps/ui/src/registry/modifiers/modifiers.browser.test.tsx": 1,
+          "apps/ui/src/registry/pagination/pagination.browser.test.tsx": 1,
+          "apps/ui/src/registry/panzoom/panzoom.browser.test.tsx": 1,
+          "apps/ui/src/registry/player/player.browser.test.tsx": 1,
+          "apps/ui/src/registry/progress/progress.browser.test.tsx": 1,
+          "apps/ui/src/registry/reorder/reorder.browser.test.tsx": 1,
+          "apps/ui/src/registry/select/select.browser.test.tsx": 1,
+          "apps/ui/src/registry/shortcuts/shortcuts.browser.test.tsx": 1,
+          "apps/ui/src/registry/slider/slider.browser.test.tsx": 1,
+          "apps/ui/src/registry/spinbutton/spinbutton.browser.test.tsx": 1,
+          "apps/ui/src/registry/table/table.browser.test.tsx": 1,
+          "apps/ui/src/registry/tabs/tabs.browser.test.tsx": 1,
+          "apps/ui/src/registry/textarea/textarea.browser.test.tsx": 1,
+          "apps/ui/src/registry/timeline/timeline.browser.test.tsx": 1,
+          "apps/ui/src/registry/toast/toast.browser.test.tsx": 1,
+          "apps/ui/src/registry/tooltip/tooltip.browser.test.tsx": 2,
+          "apps/ui/src/registry/treegrid/treegrid.browser.test.tsx": 1,
+          "apps/ui/src/registry/treeview/treeview.browser.test.tsx": 2,
+          "apps/ui/test/vitals.mjs": 1,
+          "packages/cssints/test/browsers.mjs": 2,
+          "packages/cssints/test/fixtures/eval-timeout-wait.ts": 1,
+          "packages/devtools/test/vitals-browser.mjs": 4,
+          "packages/headless/test/canvas.a11y.browser.test.tsx": 1,
+          "packages/headless/test/canvas.content-visibility.browser.test.tsx": 1,
+          "packages/headless/test/canvas.controlled.browser.test.tsx": 1,
+          "packages/headless/test/canvas.controls.browser.test.tsx": 1,
+          "packages/headless/test/canvas.driver.ts": 1,
+          "packages/headless/test/canvas.landing.browser.test.tsx": 1,
+          "packages/headless/test/canvas.nested.fixture.tsx": 1,
+          "packages/headless/test/canvas.snap.browser.test.tsx": 1,
+          "packages/headless/test/carousel.browser.test.tsx": 1,
+          "packages/headless/test/diagram.browser.test.tsx": 1,
+          "packages/headless/test/dom-driver.ts": 1,
+          "packages/headless/test/dropzone.driver.ts": 1,
+          "packages/headless/test/feed.browser.test.tsx": 1,
+          "packages/headless/test/focusgrid.browser.test.tsx": 1,
+          "packages/headless/test/grid.browser.test.tsx": 1,
+          "packages/headless/test/parts-driver.ts": 1,
+          "packages/headless/test/player.browser.test.tsx": 1,
+          "packages/headless/test/resizable-panels.driver.ts": 1,
+          "packages/headless/test/tabs-close.browser.test.tsx": 1,
+          "packages/headless/test/tabs-requirements.browser.test.tsx": 1,
+          "packages/headless/test/tabs.browser.test.tsx": 1,
+          "packages/headless/test/timeline-rows.browser.test.tsx": 1,
+          "packages/headless/test/toast.browser.test.tsx": 1,
+          "packages/headless/test/treeview.browser.test.tsx": 1,
+          "packages/headless/test/view-transition.driver.ts": 1,
+          "packages/headless/test/virtual.browser.test.tsx": 1,
+          "packages/headless/test/workspace.browser.test.tsx": 1,
+          "packages/headless/test/workspace.driver.ts": 1,
+          "packages/machine/test/store.mjs": 1,
+          "packages/reveal/test/browsers.mjs": 1,
+          "packages/tui/test/render.ts": 1,
         },
       },
     ],

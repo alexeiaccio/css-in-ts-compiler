@@ -7,7 +7,7 @@ import { userEvent } from "vite-plus/test/browser";
 
 import { type Drawer, type DrawerOptions, createDrawer } from "../src/drawer";
 
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 
 interface MountOptions extends DrawerOptions {
   readonly controlled?: boolean;

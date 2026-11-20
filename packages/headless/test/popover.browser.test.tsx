@@ -4,7 +4,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { render } from "@solidjs/web";
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 interface MountOptions {
   readonly placement?: PopoverPlacement;

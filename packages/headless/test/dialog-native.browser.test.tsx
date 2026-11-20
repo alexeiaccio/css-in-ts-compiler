@@ -8,7 +8,7 @@ import { userEvent } from "vite-plus/test/browser";
 import { type DialogModal, type DialogModalOptions, createDialogModal } from "../src/dialog-modal";
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 
 interface MountOptions extends DialogModalOptions {
   readonly controlled?: boolean;

@@ -8,7 +8,7 @@ import {
   createCommandPalette,
 } from "../src/command-palette";
 
-const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<void> => Promise.resolve();
 
 const makeCommands = (ran: string[]): ReadonlyArray<PaletteCommand> => [
   {

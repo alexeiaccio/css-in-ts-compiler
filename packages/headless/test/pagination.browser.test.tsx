@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 import { render } from "@solidjs/web";
 
 const mount = (options: Parameters<typeof createPagination>[0]) => {

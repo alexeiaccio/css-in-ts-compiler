@@ -6,7 +6,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { type Menu, createMenu } from "../src/menu";
 
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 const mount = () => {
   const root = document.createElement("div");

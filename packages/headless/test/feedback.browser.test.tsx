@@ -17,7 +17,7 @@ import { render } from "@solidjs/web";
  */
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 /** Both channels record into one list per channel, so "same intent on both" is one assertion. */
 const spy = () => {

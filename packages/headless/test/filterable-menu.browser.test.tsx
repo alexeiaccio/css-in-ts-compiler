@@ -8,7 +8,7 @@ import {
   createFilterableMenu,
 } from "../src/filterable-menu";
 
-const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<void> => Promise.resolve();
 
 const makeItems = (ran: string[]): ReadonlyArray<FilterableMenuItem> => [
   {

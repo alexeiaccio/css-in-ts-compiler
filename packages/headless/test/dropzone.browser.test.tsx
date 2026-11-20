@@ -9,7 +9,7 @@ import { render } from "@solidjs/web";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 const fileOf = (name: string, type = "image/png", bytes = 8): File =>
   new File([new Uint8Array(bytes)], name, { type });

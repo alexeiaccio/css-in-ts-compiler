@@ -347,7 +347,7 @@ describe("createCombobox (filtering)", () => {
 });
 
 // Solid 2 delivers events through its delegated listener on a later turn, and applies setters on its flush.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 // `disabled` is a widget-level extension of the pattern (the spec lists it under
 // its deliberate omissions): the combobox keeps its tab stop, announces

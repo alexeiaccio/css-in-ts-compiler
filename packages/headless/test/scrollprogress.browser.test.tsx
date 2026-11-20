@@ -2,7 +2,7 @@ import { createScrollProgress, type ScrollProgress } from "../src/scrollprogress
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { render } from "@solidjs/web";
 
-const tick = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<unknown> => Promise.resolve();
 
 const waitFor = async (done: () => boolean, limit = 2000): Promise<void> => {
   const start = Date.now();

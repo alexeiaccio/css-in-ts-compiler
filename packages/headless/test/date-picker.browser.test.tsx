@@ -4,7 +4,7 @@ import { render } from "@solidjs/web";
 import { userEvent } from "vite-plus/test/browser";
 import { type DatePicker, type DatePickerLabels, createDatePicker } from "../src/date-picker";
 
-const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<void> => Promise.resolve();
 
 interface MountOptions {
   readonly value?: string | undefined;

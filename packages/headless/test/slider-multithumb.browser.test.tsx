@@ -91,7 +91,7 @@ describe("createSliderMultiThumb x spec (differential walk)", () => {
 // combinations agree with the arrow keys, a thumb cannot be dragged past its
 // neighbour, and `disabled` drops every press and every move.
 
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 interface MountConfig {
   readonly orientation?: SliderOrientation;

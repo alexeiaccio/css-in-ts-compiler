@@ -151,9 +151,13 @@ Two policies, both enforced rather than remembered:
   `@effect-diagnostics-next-line`), a single-line `// WARNING:`/`// SAFETY:`/`// ponytail:` marker, TSDoc on public API, or a
   licence banner. The reason goes in the commit message or `docs/wayfinder.md`; the name of the thing goes in the code. The
   comments already written are untouched — the rule is a ratchet on new lines, not a sweep that deletes the reasoning.
-- **A test waits on a signal, not on the clock.** `bun run lint:flakes` (landmines' `no-fixed-sleep`,
-  `no-unsignaled-poll`, `no-flake-masking`) covers the test files the main lint skips. Its allowlist counts are exact, so
-  every entry names a delay that _is_ the subject, and fixing one of those sleeps fails the pass until the entry is removed.
+- **A test waits on a signal, not on the clock.** `bun run lint:flakes` covers the test files the main lint skips
+  (`**/test/**`, `apps/**`): landmines' `no-fixed-sleep`, `no-unsignaled-poll` and `no-flake-masking`, plus our own
+  `flakes/no-test-sleep` (`tools/ai-automation/scripts/flakes/`) for the sleeps landmines cannot see — a `settle()` helper
+  hides the `await` from a rule that reports call sites. Its allowlist counts are exact, so every entry names a delay that
+  _is_ the subject, and a file that improves reports itself as stale until the entry is lowered. The first pass took the
+  headless suite from 94 `setTimeout`s in 86 files to 73 in 65: a microtask where Solid's delegation was the wait, a frame
+  where a scroll or the platform's `close` event was.
 
 ### Linting & Formatting
 

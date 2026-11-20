@@ -7,7 +7,7 @@ import { userEvent } from "vite-plus/test/browser";
 
 import { ConfirmPendingError, type Confirm, createConfirm } from "../src/confirm";
 
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 const mount = () => {
   const root = document.createElement("div");

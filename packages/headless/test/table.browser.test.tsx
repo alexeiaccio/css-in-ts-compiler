@@ -11,7 +11,7 @@ import { render } from "@solidjs/web";
 import { userEvent } from "vite-plus/test/browser";
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 const COLUMNS: ReadonlyArray<TableColumn> = [
   { key: "title", abbr: "Title" },
