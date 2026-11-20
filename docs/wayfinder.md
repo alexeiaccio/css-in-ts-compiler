@@ -5831,3 +5831,28 @@ not opinions; ARIA from the state). The halves differ, and the sink is where it 
 **Verified:** `apps/ui/src/docs/surface.browser.test.ts` (`#sink` is a route like the other three), `apps/ui/test/site.mjs`
 in Chrome (the sink draws as many live stories as `/catalog.json` has items, `button`'s block has a real `button` and links
 to `#button`, and the page raises no error), `bun run typecheck`, fmt.
+
+## A controlled prop is a memo, not a signal written by an effect (2026-11-20)
+
+Solid's dev build flagged `createRadioGroup.host` in the site: an effect whose compute is `readHost` writes it into a signal,
+and nothing else writes that signal — derived state kept one flush late (`EFFECT_RELAY_TEAR`). The shape was deliberate:
+the host's `value` is a JSX prop, and in Solid 2 reading a prop creates a computation, which is refused inside an effect
+callback or a ref — and this state is read from both (the group's `attach`, and a probe during a flush). Snapshotting it in
+a signal moved the read into an effect's compute and made every other read a plain signal read… at the cost of the tear.
+
+The fix is what the diagnostic asks for: `createMemo` **is** that computation. The prop is read once per change in the
+memo's own compute (the one place a computation may start) and every other read is a derived read that lands in the same
+flush. `createMenu` had the same shape for `open` and gets the same change; both are one line and the memo replaces the
+signal, so nothing else moves.
+
+**Checked red then green:** `apps/ui/test/site.mjs` now fails on a console `EFFECT_RELAY_TEAR` (it is a warning, so the page
+still works and only a listener sees it) — with the signal put back it fails on `createRadioGroup.host`, with the memo it
+reports none. `test:site` is a step of the `ui` workflow now, because the dev-build diagnosis only exists in a dev server in
+a browser, and the sink page is where it surfaced. The case is not: a unit test that reads the checked radio after one
+`flush()` passes either way (DOM updates run after effects), so the flush-internal tear has no honest unit oracle — the
+diagnostic is the oracle.
+
+**Left:** `createRadioGroup.flavor` is still read untracked in `attach` (a ref) — `STRICT_READ_UNTRACKED`, a warning, and
+a decision made at mount in every skin today; if a host ever flips the flavor at runtime it will not follow. The four other
+warnings the sink page prints (`createTreeview.hasFocus`, `createTreegrid.inGrid`, `createFeed.phase`/`.active`,
+`createListbox.focused`, `placed`) are the same class and are not touched here.

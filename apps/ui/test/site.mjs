@@ -25,7 +25,10 @@ const { chromium } = await import(
 const server = await createServer({ root, logLevel: "warn", server: { port: 0 } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch({ channel: "chrome" });
+// The installed Chrome is what a reader runs; a CI image may have only Playwright's own Chromium, so fall back to it.
+const browser = await chromium
+  .launch({ channel: "chrome" })
+  .catch(() => chromium.launch({ channel: undefined }));
 
 try {
   const page = await browser.newPage({ viewport: { width: 1300, height: 1000 } });
@@ -34,11 +37,17 @@ try {
   page.setDefaultTimeout(300_000);
   page.setDefaultNavigationTimeout(300_000);
   const errors = [];
+  // A relay is derived state kept one flush late (Solid's own diagnosis). The dev build reports it and the page still works,
+  // so only a listener sees it; the kit fixes them one by one, and this page is where they surfaced.
+  const relays = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     // a page asks the registry host for its preflight result: an item that is not published yet answers 404, and the page
     // hides the section on purpose — the browser's own "Failed to load resource" line for it is not an error of the page
     const text = message.text();
+    if (text.includes("[EFFECT_RELAY_TEAR]")) {
+      relays.push(text.split("\n")[0]);
+    }
     if (
       message.type() === "error" &&
       !message.location().url.endsWith("/favicon.ico") &&
@@ -292,6 +301,7 @@ try {
     "27.0726",
   );
 
+  assert.deepEqual([...new Set(relays)], [], "a primitive relays derived state through an effect");
   assert.deepEqual(errors, []);
   console.log(
     "site: stories, ids, controls, screens, the catalog, the theme switch and the tint group ok",

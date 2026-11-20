@@ -97,6 +97,13 @@ jobs:
       - name: The starters' own conformance
         working-directory: apps/ui
         run: bun run test
+      # The site in Chrome: every page's story and its id, a control remounting it, the sink, the catalog and a screen.
+      # It is also where Solid's dev-build relay diagnosis is caught — a primitive that keeps derived state in a signal
+      # written by an effect answers a frame late (the site test fails on `EFFECT_RELAY_TEAR`).
+      - name: The site in Chrome
+        working-directory: apps/ui
+        timeout-minutes: 15
+        run: bun run test:site
       - name: The starter kit, end to end
         run: bun scripts/starter-smoke.mjs
       # The smoke wrote the conformance record of every item it passed (`public/r/<name>.result.json`).

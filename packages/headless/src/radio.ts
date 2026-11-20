@@ -1,6 +1,7 @@
 import {
   type Accessor,
   createEffect,
+  createMemo,
   createSignal,
   createUniqueId,
   getOwner,
@@ -190,18 +191,17 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
   // the controlled value prop wins; the bare `undefined` prop is uncontrolled,
   // while a getter may return `undefined` for "nothing checked".
   //
-  // The prop is read in an effect's *compute* and snapshotted: in Solid 2 reading a
-  // JSX prop creates a computation, which is refused in an effect callback or a ref
-  // — and this state is read from both (the group's `attach`, and a probe during a
-  // flush; a dev build halts reactivity instead of ignoring it).
-  const readHost = (): { readonly controlled: boolean; readonly value: T | undefined } => {
+  // The prop is read in a memo's own compute: in Solid 2 reading a JSX prop creates a
+  // computation, which is refused in an effect callback or a ref, and this state is read
+  // from both (the group's `attach`, and a probe during a flush). A memo is that compute,
+  // so the prop is read once per change in the one place a computation may start and
+  // every other read is a plain derived read — a signal written by an effect would be
+  // this value one flush late (EFFECT_RELAY_TEAR: readers of `checked` would paint a
+  // frame behind readers of the prop).
+  const host = createMemo((): { readonly controlled: boolean; readonly value: T | undefined } => {
     const raw = options.value;
     const value = typeof raw === "function" ? (raw as () => T | undefined)() : raw;
     return { controlled: raw !== undefined, value };
-  };
-  const [host, setHost] = createSignal(readHost());
-  createEffect(readHost, (next) => {
-    setHost(() => next);
   });
   const controlled = (): boolean => host().controlled;
   const controlledIndex = (): number => indexOfValue(host().value);

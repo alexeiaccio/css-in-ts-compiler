@@ -1,6 +1,7 @@
 import {
   type Accessor,
   createEffect,
+  createMemo,
   createSignal,
   createUniqueId,
   onCleanup,
@@ -303,17 +304,15 @@ export const createMenu = (options: MenuOptions): Menu => {
   const held = (options.triggerMode ?? "outside") === "held";
   // The open state is a request/commit pair: uncontrolled it commits here,
   // controlled the host's `open` prop is the only thing that changes it.
-  // The host's `open` is a JSX prop: reading it creates a computation in Solid 2,
-  // which is refused in an effect callback or a ref (both reach this state, and so
-  // does a probe during a flush). The read happens in an effect's compute and is
-  // snapshotted; every other read is a plain signal read.
-  const readOpen = (): { readonly controlled: boolean; readonly open: boolean } => {
+  // The host's `open` is a JSX prop: reading it creates a computation in Solid 2, which is
+  // refused in an effect callback or a ref (both reach this state, and so does a probe during
+  // a flush). A memo is that computation: the prop is read once per change in the one place a
+  // computation may start, and every other read is a derived read. A signal written by an
+  // effect would be this value one flush late — the menu would answer a host's `open` a frame
+  // after the prop moved (EFFECT_RELAY_TEAR).
+  const hostOpen = createMemo((): { readonly controlled: boolean; readonly open: boolean } => {
     const raw = options.open;
     return { controlled: raw !== undefined, open: raw === true };
-  };
-  const [hostOpen, setHostOpen] = createSignal(readOpen());
-  createEffect(readOpen, (next) => {
-    setHostOpen(() => next);
   });
   const [isOpen, requestOpen] = createControllable<boolean>({
     value: () => (hostOpen().controlled ? hostOpen().open : undefined),
