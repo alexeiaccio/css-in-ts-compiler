@@ -40,6 +40,9 @@ try {
   // A relay is derived state kept one flush late (Solid's own diagnosis). The dev build reports it and the page still works,
   // so only a listener sees it; the kit fixes them one by one, and this page is where they surfaced.
   const relays = [];
+  // The dev build's structural warnings: a reactive value read outside a tracking scope. They are live behaviour today (the
+  // select's aria-expanded test flips true and false), so the count is logged, not failed — `.beans/cssints-b876` is the work.
+  const untracked = new Set();
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     // a page asks the registry host for its preflight result: an item that is not published yet answers 404, and the page
@@ -47,6 +50,10 @@ try {
     const text = message.text();
     if (text.includes("[EFFECT_RELAY_TEAR]")) {
       relays.push(text.split("\n")[0]);
+    }
+    const read = /\[STRICT_READ_UNTRACKED\] Reactive value "([^"]+)"/.exec(text);
+    if (read?.[1] !== undefined) {
+      untracked.add(read[1]);
     }
     if (
       message.type() === "error" &&
@@ -301,6 +308,11 @@ try {
     "27.0726",
   );
 
+  if (untracked.size > 0) {
+    console.log(
+      `site: ${untracked.size} values are read outside a tracking scope (cssints-b876): ${[...untracked].join(", ")}`,
+    );
+  }
   assert.deepEqual([...new Set(relays)], [], "a primitive relays derived state through an effect");
   assert.deepEqual(errors, []);
   console.log(

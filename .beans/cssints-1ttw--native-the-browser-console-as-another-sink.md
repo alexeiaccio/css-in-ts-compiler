@@ -1,12 +1,12 @@
 ---
 # cssints-1ttw
 title: 'native: the browser console as another sink'
-status: todo
+status: completed
 type: epic
 tags:
     - wayfinder:task
 created_at: 2026-11-04T10:36:03Z
-updated_at: 2026-11-04T10:36:03Z
+updated_at: 2026-11-20T21:10:00Z
 ---
 
 The browser console as one more sink for the same tree. The reference is [textjs](https://github.com/anomalyco/textjs) (MIT): React + Yoga, a cell buffer, a frame run-length encoded into `%c` spans and written in one `console.log`, and a frame with no changed cells logging nothing.
@@ -16,3 +16,9 @@ What we take is the **sink and the rule**, not the stack. We already produce cel
 What it buys: a fourth screen for free (the same page, the same Clay numbers, another surface), a debugging channel that prints a whole frame rather than the dev panel's lines, and a cheap demonstration that one tree reaches many displays. What it cannot be: accessible (a console has no tree), typed (a console takes `keydown` on the page, not text input), typographic (monospace only), or portable (desktop Chrome/Edge/Firefox/Safari; no console on a phone).
 
 Children: the sink, the diff rule, the page, and FIGlet titles (deferred).
+
+## Closed (2026-11-20)
+
+Epic of the native target, which left this repository (`cssints-native`, its own package and repository). Nothing in this
+repo can close its items — the console sink, its fonts and its figures are that repository's work now. Closed rather than
+left open as an epic with no files here to touch.
