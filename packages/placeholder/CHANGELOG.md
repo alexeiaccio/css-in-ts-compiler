@@ -1,5 +1,12 @@
 # @cssints/placeholder
 
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [301675e]
+  - cssints@0.47.0
+
 ## 0.46.1
 
 No changes in this release.
