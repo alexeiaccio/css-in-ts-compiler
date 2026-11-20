@@ -648,7 +648,7 @@ export const syntaxes = {
   "single-animation-composition": "replace | add | accumulate",
   "timeline-range-name": "cover | contain | entry | exit | entry-crossing | exit-crossing",
   "animation-action": "none | play | play-once | play-forwards | play-backwards | pause | reset | replay",
-  "compat-auto": "searchfield | textarea | checkbox | radio | menulist | listbox | meter | progress-bar | button",
+  "compat-auto": "searchfield | textarea | checkbox | radio | menulist | listbox | meter | progress-bar | button | base-select",
   "compat-special": "textfield | menulist-button",
   ratio: "<number [0,∞]> [ / <number [0,∞]> ]?",
   "filter-value-list": "[ <filter-function> | <url> ]+",

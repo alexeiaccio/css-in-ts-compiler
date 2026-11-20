@@ -151,12 +151,20 @@ const COLOR = {
   "if-boolean-expr": webS["boolean-expr"].replaceAll("boolean-expr-group", "if-group"),
   "if-group": "<if-test> | ( <if-boolean-expr> )",
 };
+// A type mdn-data lists without a keyword an engine already draws. Each is added to mdn-data's own type, in every mode, so
+// both twins of the rule accept it; the support warning, if any, is BCD's.
+const EXTRA = {
+  // css-ui-4's customizable select (Chrome 135, Safari 27, Firefox 149): `appearance: base-select` is what turns a select
+  // into the ::picker(select) model. mdn-data 2.27.1 still lists <compat-auto> without it.
+  "compat-auto": `${syn["compat-auto"].syntax} | base-select`,
+};
 // the if() family goes through addC below: its conditions are the ones of @media, @container and @supports
 const IF = /^if(-|\(\))/;
 // names the twin reads as primitives or scans, which webref also defines (as `<number-token>`, `<url()> | <src()>`, ...)
 const NATIVE = new Set(["length-percentage", "integer", "url", "calc-sum"]);
 // a type mdn-data lacks (<autospace>, <attr-unit>) comes from the spec grammar
 const typeText = (n, web) =>
+  EXTRA[n] ??
   COLOR[n] ??
   (web && webS[n] && !NATIVE.has(n) && (MODE === "all" || !(n.endsWith("()") && syn[n]))
     ? webS[n]
@@ -193,7 +201,7 @@ const COND = {
   ].join(" | "),
 };
 const addC = (n) => {
-  const g = COND[n] ?? COLOR[n] ?? webS[n] ?? syn[n]?.syntax;
+  const g = COND[n] ?? EXTRA[n] ?? COLOR[n] ?? webS[n] ?? syn[n]?.syntax;
   if (S[n] || !g) return;
   S[n] = g.replace(/ \| <general-enclosed>/g, "").replaceAll("<ident>", "<custom-ident>");
   refs(S[n]).forEach(addC);
