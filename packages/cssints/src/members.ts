@@ -1175,6 +1175,8 @@ export declare const outOfRange: StateWrap;
 export declare const past: StateWrap;
 /** Chrome no, Edge no, Firefox 150, Safari 15.4, iOS 15.4, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/:paused) */
 export declare const paused: StateWrap;
+/** `::picker(select)`. Chrome 135, Edge 135, Firefox no, Safari 27, iOS 27, Android 135. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Selectors/::picker) */
+export declare const picker: StateWrap;
 /** Chrome 133, Edge 133, Firefox no, Safari 27, iOS 27, Android 133. [MDN](https://developer.mozilla.org/docs/Web/CSS/::picker-icon) */
 export declare const pickerIcon: StateWrap;
 /** Chrome 110, Edge 110, Firefox 153, Safari 13.1, iOS 13.4, Android 110. [MDN](https://developer.mozilla.org/docs/Web/CSS/:picture-in-picture) */
