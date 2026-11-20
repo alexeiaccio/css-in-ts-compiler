@@ -18,6 +18,10 @@ field, an item matches by its title or by one of its stories, and Escape clears 
   conformance of every starter in this directory and of any copy in `src/components/ui/`.
 - `bun run test:site` — the site itself in Chrome: the story tabs and their ids, a control remounting the story, the theme
   switch and the tint group (a dev-server test, so it is not part of `test`).
+- `bun run test:forced` — the kit under `forcedColors` (Windows high contrast), emulated in Chrome: the mode takes every
+  background, shadow and colour with it, so a button and a field must keep a solid border and the selected tab must keep a
+  thicker underline than the unselected ones. That is the guard: a redesign that moves a boundary to a `box-shadow`, or the
+  tab state to colour alone, fails here and nowhere else.
 - `node scripts/registry-json.ts` — regenerates `r/<name>.json`, `r/registry.json` and `public/llms.txt` after a component
   changes (a component is one `.tsx` that styles itself; `node scripts/theme-css.ts > src/registry/theme.css` recompiles the
   theme for a project without the plugin). Publishing is `apps/registry-host` in effects-of-atmosphere: it builds each item into one signed

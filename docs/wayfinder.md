@@ -5986,3 +5986,15 @@ out of 226 512. The reusable part is the ratchet: `bun run lint:comments` holds 
 the number cannot creep back, and `/delete-comment` is the pass that lowers it. The next tranche, measured but not taken:
 586 blocks / 1761 lines whose six-word shingle already appears in this file — a second copy of an ADR, but usually the only
 sentence a reader of that function sees.
+
+**Forced colours, verified for the first time (ReliCSS Code Scrolls, 2026-11-20):** Stu Robson's bookmarklets are a set of
+front-end archaeology tools; four of the five have a superset in `@cssints/devtools`, and the fifth — a *simulation* of forced
+colours — is exactly the tool not to copy, because the mode cannot be faked (`@media (forced-colors: active)` will not match,
+`forced-color-adjust` is ignored). It pointed at a real hole instead: `forcedColorsTheme` was defined and applied since the
+kit existed and **no test ever ran in the mode**. `apps/ui/test/forced-colors.mjs` (playwright-core, `emulateMedia({
+forcedColors: "active" })`) now does, on a button, a tabs strip and a field, and it holds the properties that survive a
+mode where every colour is one of four system colours: the button and the input keep a `solid` border (a `box-shadow` frame
+would be gone), and the selected tab keeps a **thicker** underline than its siblings (3px vs 2px — the colour is forced, the
+width is not). The kit passed without a fix, by construction rather than by luck: the components frame with `border`, never a
+shadow, and the tab state is a width. The guard is the deliverable — one redesign that moves a boundary to a shadow fails
+here and nowhere else.
