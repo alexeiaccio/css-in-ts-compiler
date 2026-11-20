@@ -9,7 +9,7 @@ import { type MountedTreegrid, mountTreegrid } from "./treegrid.fixture";
 // observable through the DOM.
 
 /** Solid 2 delivers events through its delegated listener on a later turn. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 const live: MountedTreegrid[] = [];
 

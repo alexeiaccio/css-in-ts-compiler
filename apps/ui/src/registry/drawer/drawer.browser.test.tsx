@@ -19,7 +19,8 @@ import {
 } from "./drawer.fixture";
 
 /** Solid 2 delivers events through its delegated listener on a later turn. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> =>
+  new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 
 /**
  * The slide is 200 ms of `transform` on the panel: the geometry is final at the transition's end, so the end is taken from

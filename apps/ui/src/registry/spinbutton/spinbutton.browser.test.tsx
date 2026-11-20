@@ -29,7 +29,7 @@ import reactAria from "@cssints/apg-specs/scenarios/apg/spinbutton.react-aria.js
 const model = makeReferenceModel(decodeDefinition(definitionJson));
 
 // Solid 2 delivers events through its delegated listener on a later turn, and applies setters on its flush.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 const dom = (config: ScenarioConfig) =>
   domDriver(mountSpinbutton(spinbuttonConfig(config)), { hideableParts: [] });

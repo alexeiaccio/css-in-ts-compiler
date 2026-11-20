@@ -205,8 +205,7 @@ describe("Textarea (the kit's DOM)", () => {
     textarea().focus();
     textarea().value = "one\ntwo";
     textarea().dispatchEvent(new Event("input", { bubbles: true }));
-    // Solid 2 delivers delegated events on a later turn
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await Promise.resolve();
     expect(seen).toBe("one\ntwo");
     expect(textarea().value).toBe("one\ntwo");
   });

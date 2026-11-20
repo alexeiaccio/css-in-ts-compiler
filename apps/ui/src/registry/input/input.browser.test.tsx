@@ -43,7 +43,7 @@ const token = (property: "backgroundColor" | "borderTopColor", name: string): st
 };
 
 /** Solid 2 delivers delegated events on a later turn. */
-const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<void> => Promise.resolve();
 
 type FieldOptions = Parameters<typeof createField>[0];
 

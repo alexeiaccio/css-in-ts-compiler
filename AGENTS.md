@@ -155,9 +155,13 @@ Two policies, both enforced rather than remembered:
   (`**/test/**`, `apps/**`): landmines' `no-fixed-sleep`, `no-unsignaled-poll` and `no-flake-masking`, plus our own
   `flakes/no-test-sleep` (`tools/ai-automation/scripts/flakes/`) for the sleeps landmines cannot see — a `settle()` helper
   hides the `await` from a rule that reports call sites. Its allowlist counts are exact, so every entry names a delay that
-  _is_ the subject, and a file that improves reports itself as stale until the entry is lowered. The first pass took the
-  headless suite from 94 `setTimeout`s in 86 files to 73 in 65: a microtask where Solid's delegation was the wait, a frame
-  where a scroll or the platform's `close` event was.
+  _is_ the subject, and a file that improves reports itself as stale until the entry is lowered. Two passes took the repo
+  from **94 `setTimeout`s in 86 files to 17 in 14**: a microtask where the wait was Solid 2's delegated event, a frame where
+  it was a scroll, an animation or the platform's own `close`/`load`, and nothing at all for a zero-delay task hop. What is
+  left is a toast's timeout, a real 200 ms carousel interval, a 300 ms tooltip grace, a velocity window and the vitals
+  test's page-side tasks. The suites' `testTimeout` stays at 60 s on purpose: with the sleeps gone, the slow tests are the
+  CPU-bound differential walks, and lowering the deadline to 20 s made six of them fail under load — the deadline was never
+  what made them flaky.
 
 ### Linting & Formatting
 

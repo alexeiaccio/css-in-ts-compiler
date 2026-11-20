@@ -38,7 +38,7 @@ const paneOf = (host: HTMLElement): HTMLElement =>
 const barOf = (host: HTMLElement): HTMLElement =>
   host.querySelector<HTMLElement>('[data-part="progress-bar"]')!;
 
-const tick = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 30));
+const tick = (): Promise<unknown> => Promise.resolve();
 
 const waitFor = async (done: () => boolean, limit = 2000): Promise<void> => {
   const start = Date.now();

@@ -22,7 +22,7 @@ afterEach(() => {
 
 const settle = (): Promise<void> =>
   new Promise((resolve) => {
-    setTimeout(resolve, 30);
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
   });
 
 const frames = (): Promise<void> =>

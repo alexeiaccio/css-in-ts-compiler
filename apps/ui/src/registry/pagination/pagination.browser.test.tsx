@@ -4,7 +4,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { Pagination, PaginationContent, PaginationStatus } from "./pagination.tsx";
 
 // Solid 2 delivers events through its delegated listener on a later turn.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 const mountPagination = (options: { page: number; pageCount: number }) => {
   const root = document.createElement("div");

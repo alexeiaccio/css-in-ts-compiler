@@ -85,7 +85,7 @@ const colorToken = (name: string): string => {
 };
 
 /** Solid 2 delivers delegated events on a later turn. */
-const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<void> => Promise.resolve();
 
 const live: Mounted[] = [];
 

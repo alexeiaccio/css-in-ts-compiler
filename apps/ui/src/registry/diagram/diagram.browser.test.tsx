@@ -11,7 +11,7 @@ import { type MountedDiagram, mountDiagram } from "./diagram.fixture";
 // 172), each node 128 x 48. Right from cart is paid, down from paid is refunded, and shipped has no outgoing edge.
 
 /** Solid 2 delivers events through its delegated listener on a later turn. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 const live: MountedDiagram[] = [];
 

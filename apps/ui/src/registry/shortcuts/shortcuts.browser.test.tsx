@@ -8,7 +8,7 @@ import { type MountedShortcuts, mountShortcuts } from "./shortcuts.fixture";
 // the demo's own chords are the host's.
 
 /** Solid 2 delivers events through its delegated listener on a later turn; `onSettled` binds on the flush. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 /** The resolved value of a theme colour, read without naming the format the engine emitted. */
 const background = (token: string): string => {

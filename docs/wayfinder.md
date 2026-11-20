@@ -5867,3 +5867,13 @@ microtask where the wait was Solid's delegated event (20 files, green), a `reque
 is the finding: a frame is the signal there, not a turn. Kept on the allowlist, because the delay *is* the subject: a real
 200 ms carousel interval, a 300 ms tooltip grace, a velocity window, the page-side task boundaries in the vitals test, and
 the five 300 s exploration timeouts.
+
+**The second flake pass, and a timeout that should not move:** `apps/ui` and the remaining `headless` files went the same way
+as the first batch — a microtask for Solid's delegated event (20 files), a frame for an animation or a scroll (`drawer`,
+`timeline`, `canvas`), and the rule stopped reporting a zero delay at all, because a task boundary is the browser's own turn
+and not a race with the clock. Repo total: **94 `setTimeout`s in 86 files → 17 in 14**, every survivor a delay that is the
+subject (toast timeouts, the carousel's 200 ms interval, the tooltip's 300 ms grace, the drawer's velocity window, the
+vitals test's page-side tasks). **The testTimeout did not come down.** It was tried at 20 s on `apps/ui` and `headless`, and
+six differential walks failed under load — the walks are bounded by model work, not by a deadline, so the 60 s is a
+safety net for a busy machine rather than a mask over a race. Reverted, with the reason in this line. `bun run lint:flakes`
+is 0/0 on 1984 files in ~1 s and both suites are green (headless 81 files / 1499 tests, `apps/ui` 69 / 1020).

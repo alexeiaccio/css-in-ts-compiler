@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 /** Solid delivers a click through its delegated listener on a later turn. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 const COLUMNS: ReadonlyArray<ModifiersColumn> = [
   { key: "title", label: "Film" },

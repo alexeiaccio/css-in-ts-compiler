@@ -293,7 +293,7 @@ const colorToken = (name: string): string => {
 };
 
 /** Solid 2 applies setters and the primitive's effects on later turns. */
-const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = (): Promise<void> => Promise.resolve();
 
 const live: Mounted[] = [];
 

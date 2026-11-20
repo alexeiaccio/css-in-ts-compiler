@@ -44,7 +44,10 @@ const rule: Rule = {
           (callee.type === "MemberExpression" &&
             callee.property.type === "Identifier" &&
             callee.property.name === "setTimeout");
-        if (timer) {
+        // a zero delay is a task boundary, not a race with the clock: the browser's own turn is the signal there
+        const delay = node.arguments[1];
+        const zero = delay !== undefined && delay.type === "Literal" && delay.value === 0;
+        if (timer && !zero) {
           seen.push(node);
         }
       },

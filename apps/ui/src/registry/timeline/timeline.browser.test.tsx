@@ -14,7 +14,8 @@ import {
 // reader does. The trace is normalized: its whole extent is 1 s, so a span's start and duration are its percentages.
 
 /** Solid 2 applies setters and the primitive's effects on later turns. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> =>
+  new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
 
 /** A frame for the computed styles, after a focus-visible state has been applied. */
 const frame = (): Promise<void> =>

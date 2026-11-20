@@ -31,7 +31,7 @@ import type { Slider as SliderController, SliderOptions } from "@cssints/headles
 const model = makeReferenceModel(decodeDefinition(definitionJson));
 
 // Solid 2 delivers events through its delegated listener on a later turn, and applies setters on its flush.
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+const tick = () => Promise.resolve();
 
 type Driver = ReturnType<typeof domDriver>;
 

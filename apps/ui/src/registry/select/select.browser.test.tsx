@@ -10,7 +10,7 @@ import { type MountedSelect, SELECT_LABEL, mountSelect } from "./select.fixture"
 // reader does. DOM focus never leaves the trigger; `aria-activedescendant` and `aria-selected` are the primitive's.
 
 /** Solid 2 applies setters and the primitive's effects on later turns. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 const live: MountedSelect[] = [];
 

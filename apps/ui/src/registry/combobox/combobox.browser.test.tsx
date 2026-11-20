@@ -10,7 +10,7 @@ import { COMBOBOX_LABEL, type MountedCombobox, mountCombobox } from "./combobox.
 // `aria-*` are the primitive's; the field's display of the chosen label after a commit is the skin's.
 
 /** Solid 2 applies setters and the primitive's effects on later turns. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 /** A frame for the computed styles, after a transition has been given time to start. */
 const frame = (): Promise<void> =>

@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 /** Solid 2 applies setters and the primitive's effects on later turns. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 const frame = (): Promise<void> =>
   new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));

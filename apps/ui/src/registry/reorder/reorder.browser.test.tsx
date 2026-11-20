@@ -9,7 +9,7 @@ import { REORDER_LABEL, type MountedReorder, mountReorder } from "./reorder.fixt
 // never changes: that is the skin's decision, and it is checked here.
 
 /** Solid 2 applies setters and the primitive's effects on later turns. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+const settle = (): Promise<void> => Promise.resolve();
 
 const live: MountedReorder[] = [];
 
