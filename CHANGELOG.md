@@ -2,6 +2,22 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.47.0 (2026-11-20)
+
+### Minor changes
+
+- The customizable select is writable. `css.picker(styles)` is `::picker(select)` — a functional pseudo-element whose only
+  argument is the element it belongs to, so the wrapper takes none — and the grammar accepts `appearance: base-select`
+  (css-ui-4: Chrome 135, Safari 27, Firefox 149), which mdn-data 2.27.1 leaves out of `<compat-auto>`. The value carries
+  BCD's support warning for the targets that lack it, and `::checkmark` / `::picker-icon` were already wrappers.
+
+### Patch changes
+
+- A controlled prop is answered in the same flush. `createRadioGroup` and `createMenu` snapshot the host's `value` / `open`
+  in a memo instead of a signal written by an effect: the effect's write was derived state one flush late (Solid's
+  `EFFECT_RELAY_TEAR`), so anything derived from the checked value or the open state — a skin's class, a projection — could
+  paint a frame behind the prop that moved.
+
 ## 0.46.1 (2026-11-19)
 
 ### Patch changes

@@ -1,5 +1,9 @@
 # @cssints/machine
 
+## 0.47.0
+
+No changes in this release.
+
 ## 0.46.1
 
 No changes in this release.
