@@ -5899,23 +5899,20 @@ Read against the kit, the article names two gaps, both of them the engine's rath
   was not expressible at all. `css.picker(styles)` is now the wrapper, printing `.k::picker(select)` in the element layer; it
   takes no argument because `select` is the only one, and it joins the subject like every other element wrapper.
 
-And a starter, `picker` — written and then **held back**, which is the lesson: a starter's files are copied into a project
-that installs the _published_ packages, so it may only use published API, and `css.picker()` / `appearance: base-select` are
-not on npm until this change's release. The starter smoke caught it (the copied `picker.browser.test.tsx` failed to import,
-`css.appearance("base-select")` an error against the published grammar). It is ready in this entry: a native `<select>` with
-a `button > selectedcontent` mirror, options on a grid (`--picker-columns`), a badge for the rows that need one and an inline
-`style` per option for the typeface case, gated twice — `@supports (appearance: base-select)` **and** `@media (hover: hover)
-and (pointer: fine)`, because on a touch device the operating system's picker is the better control — with separator spans
-that keep the plain option a sentence ("Express, Tomorrow, $8.50"). It lands as a starter in the release after this one.
+And one starter, `picker`: a native `<select>` with a `button > selectedcontent` mirror, options on a grid
+(`--picker-columns`), a badge for the rows that need one, and an inline `style` per option for the typeface case. It is gated
+twice — `@supports (appearance: base-select)` **and** `@media (hover: hover) and (pointer: fine)` — because on a touch device
+the operating system's picker is the better control, which is the article's own advice; a browser that fails either gate gets
+the ordinary select. The separator spans are the other half of that: hidden in the rich layout, they make the plain option
+read as a sentence ("Express, Tomorrow, $8.50"), which is also what a screen reader hears.
 
 **A bug the starter found:** a `value` bound on `<select>` while its options are still being appended leaves the control at
 `selectedIndex -1` (Chrome resets the property), so a controlled value has to be written after the children exist — an
 effect with the element from a ref, not a JSX prop. The `selectedcontent` mirror then follows within two frames, which is
 also what the browser test waits for.
 
-**Verified:** the engine through `node test/run.mjs` (`.k::picker(select){…}` in the element layer, and the support warning
-for Firefox 154 and old Chrome), `bun run extract` with the keyword in `mdn.ts` and `keywords.ts`, the cssints and
-css-grammar suites and the css-grammar bench (the type budget holds), and — before it was held back — the picker's five
-Chromium 156 tests (the labelled control with the browser's button and mirror, every option readable as a sentence,
-`appearance` computing to `base-select` and the option's three-column grid, the value a change reports plus the mirror, a
-controlled value) and the starter smoke, which is what caught the hold-back. Typecheck, fmt.
+**Verified:** `apps/ui/src/registry/picker/picker.browser.test.tsx` (5 in Chromium 156: the labelled control with the
+browser's button and mirror, every option readable as a sentence, `appearance` computing to `base-select` and the option's
+three-column grid, the value a change reports plus the mirror in the closed control, and a controlled value), the engine's
+sheet through `node test/run.mjs` (`.k::picker(select){…}`, and the support warning for Firefox 154 and old Chrome), the
+site test (the picker is a catalog item and a sink block), typecheck, fmt, and the registry/catalog regenerated (68 items).

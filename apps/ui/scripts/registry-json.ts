@@ -132,6 +132,15 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A graph of nodes and edges drawn in SVG: one roving tab stop over the nodes, arrows that follow the layout, Enter for the outgoing edges of a node, and a live region that says where the user is",
   },
   {
+    name: "picker",
+    tested: true,
+    // a native <select>: the browser is the behaviour, so there is no primitive to walk and no spec to replay
+    with: ["theme.ts", "tokens.ts"],
+    title: "Picker",
+    description:
+      "A native `select` whose options carry a name, the fact the choice turns on and a note, in aligned columns — `appearance: base-select` where the browser has it (and a precise pointer), the ordinary control and the option text everywhere else",
+  },
+  {
     name: "canvas",
     tested: true,
     // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle

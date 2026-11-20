@@ -288,6 +288,184 @@
       ]
     },
     {
+      "name": "picker",
+      "title": "Picker",
+      "description": "A native `select` whose options carry a name, the fact the choice turns on and a note, in aligned columns — `appearance: base-select` where the browser has it (and a precise pointer), the ordinary control and the option text everywhere else",
+      "stories": [
+        {
+          "id": "picker--controlled",
+          "name": "Controlled",
+          "args": {
+            "label": "Delivery",
+            "name": "delivery",
+            "options": [
+              {
+                "value": "same-day",
+                "label": "Same-day courier",
+                "detail": "Today by 9 pm",
+                "note": "$14.00"
+              },
+              {
+                "value": "express",
+                "label": "Express",
+                "detail": "Tomorrow",
+                "note": "$8.50"
+              },
+              {
+                "value": "standard",
+                "label": "Standard",
+                "detail": "3–5 days",
+                "note": "$3.90"
+              },
+              {
+                "value": "pickup",
+                "label": "Pickup point",
+                "detail": "2–3 days",
+                "note": "Free"
+              }
+            ],
+            "columns": "1fr 7rem 4.5rem"
+          },
+          "declares": ["label", "name", "options", "columns"]
+        },
+        {
+          "id": "picker--delivery",
+          "name": "Delivery",
+          "args": {
+            "label": "Delivery",
+            "name": "delivery",
+            "options": [
+              {
+                "value": "same-day",
+                "label": "Same-day courier",
+                "detail": "Today by 9 pm",
+                "note": "$14.00"
+              },
+              {
+                "value": "express",
+                "label": "Express",
+                "detail": "Tomorrow",
+                "note": "$8.50"
+              },
+              {
+                "value": "standard",
+                "label": "Standard",
+                "detail": "3–5 days",
+                "note": "$3.90"
+              },
+              {
+                "value": "pickup",
+                "label": "Pickup point",
+                "detail": "2–3 days",
+                "note": "Free"
+              }
+            ],
+            "columns": "1fr 7rem 4.5rem"
+          },
+          "declares": ["label", "name", "options", "columns"]
+        },
+        {
+          "id": "picker--notes",
+          "name": "Notes",
+          "args": {
+            "label": "Share the report with",
+            "name": "team",
+            "options": [
+              {
+                "value": "engineering",
+                "label": "Engineering"
+              },
+              {
+                "value": "design",
+                "label": "Design"
+              },
+              {
+                "value": "finance",
+                "label": "Finance",
+                "note": "needs approval"
+              },
+              {
+                "value": "legal",
+                "label": "Legal",
+                "note": "needs approval"
+              },
+              {
+                "value": "security",
+                "label": "Security",
+                "note": "needs approval"
+              },
+              {
+                "value": "support",
+                "label": "Support"
+              }
+            ],
+            "columns": "1fr"
+          },
+          "declares": ["label", "name", "options", "columns"]
+        },
+        {
+          "id": "picker--typefaces",
+          "name": "Typefaces",
+          "args": {
+            "label": "Heading font",
+            "name": "font",
+            "options": [
+              {
+                "value": "gentium",
+                "label": "Gentium Book Basic",
+                "detail": "Serif",
+                "style": {
+                  "font-family": "serif"
+                }
+              },
+              {
+                "value": "fraunces",
+                "label": "Fraunces",
+                "detail": "Serif",
+                "style": {
+                  "font-family": "Georgia, serif"
+                }
+              },
+              {
+                "value": "literata",
+                "label": "Literata",
+                "detail": "Serif",
+                "style": {
+                  "font-family": "Palatino, serif"
+                }
+              },
+              {
+                "value": "grotesk",
+                "label": "Space Grotesk",
+                "detail": "Sans",
+                "style": {
+                  "font-family": "system-ui, sans-serif"
+                }
+              },
+              {
+                "value": "mono",
+                "label": "IBM Plex Mono",
+                "detail": "Mono",
+                "style": {
+                  "font-family": "ui-monospace, monospace"
+                }
+              },
+              {
+                "value": "caveat",
+                "label": "Caveat",
+                "detail": "Handwriting",
+                "style": {
+                  "font-family": "cursive"
+                }
+              }
+            ],
+            "columns": "1fr 6rem"
+          },
+          "declares": ["label", "name", "options", "columns"]
+        }
+      ]
+    },
+    {
       "name": "canvas",
       "title": "Canvas",
       "description": "A canvas of cards on @cssints/headless's createCanvas: drag, marquee, arrow keys, zoom, and the primitive's own live region — plus the two things a skin adds, a minimap that is also a camera and a drag that pulls the camera when it reaches the frame's edge",

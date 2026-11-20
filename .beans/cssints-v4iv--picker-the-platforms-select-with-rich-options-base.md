@@ -1,7 +1,7 @@
 ---
 # cssints-v4iv
 title: 'picker: the platform''s select with rich options (base-select, ::picker(select))'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 tags:
@@ -27,11 +27,3 @@ A `value` bound on `<select>` while its options are still being appended leaves 
 ## Not taken
 
 Nothing from the article was left out; the alternatives it weighs (a group of radios with the facts in prose) are the reason the picker exists, and the pointer gate is the article's own advice implemented as written.
-
-## Held back (2026-11-20)
-
-The starter's files and the `picker` registry item were written and then removed from the change: the starter smoke installs
-the *published* packages, and `css.picker()` / `appearance: base-select` are not on npm until the release this changeset is in
-— the copied `picker.browser.test.tsx` failed to import against the published grammar. The component, its stories and its
-five browser tests are in the commit's parent if the release lands and the item is re-added (generate the registry and the
-catalog again, which is all `picker` needs).
