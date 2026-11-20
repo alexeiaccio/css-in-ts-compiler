@@ -117,9 +117,6 @@ const elementNames = Object.entries(SELECTORS)
   .filter(([k, v]) => /^::[a-z-]+$/.test(k) && v?.status === "standard")
   .map(([k]) => k.slice(2));
 
-// `::picker(select)` (css-ui-4's customizable select) is a functional pseudo-element whose only argument is the element
-// it belongs to, so its wrapper takes none and prints the whole selector: `picker(x)` is `.k::picker(select)`. mdn-data
-// lists it among the argument-taking selectors, which is why it is not in `elementNames`.
 const PICKER: Cond = {
   text: "::picker(select)",
   rank: FIRST.length + pseudoNames.length + elementNames.length,

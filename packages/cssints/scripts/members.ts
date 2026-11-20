@@ -56,12 +56,12 @@ const propDoc = (p: string) =>
     `css.properties.${p}`,
     propPages[p]?.mdn_url,
   );
+const selectorKey = (text: string): string =>
+  `css.selectors.${text.replace(/\(.*\)$/u, "").replace(/^:+/u, "")}`;
 const pseudoDoc = (n: string) => {
   const { text } = PSEUDOS[n]!;
-  // `:hover` and `::before` are both `css.selectors.<name>` in BCD; only the selector text keeps the colons. A functional
-  // element (`::picker(select)`) answers to its name without the argument, and prints the whole selector as its grammar.
-  const key = `css.selectors.${text.replace(/\(.*\)$/u, "").replace(/^:+/u, "")}`;
-  return doc(text.includes("(") ? `\`${text}\`` : "", key, selectorPages[text]?.mdn_url);
+  const functional = text.includes("(");
+  return doc(functional ? `\`${text}\`` : "", selectorKey(text), selectorPages[text]?.mdn_url);
 };
 // The css functions (extract.mjs): the syntax of mdn-data, the BCD row of `css.types.<name>` (or of its group), and the page.
 const fnPages = need("mdn-data/css/functions.json") as Record<
