@@ -5974,3 +5974,15 @@ four moves with their checks and callbacks, focus-without-check plus the two ref
 and an all-disabled group that stays still) and `listbox.act.browser.test.tsx` (5: the snapshot, the four moves with DOM
 focus, Space activating the active option, a click in both selection modes, and type-ahead plus the disabled refusals),
 typecheck, lint, fmt.
+
+**The comment audit (2026-11-20):** 6846 prose `//` lines in 933 files across `packages/*` and `apps/*`, classified by
+`.agents/skills/delete-comment/classify.mjs` (a `//` block joined into one comment, generated files and tests excluded):
+**2 tautologies, 0 stale, 0 excuses, everything else a decision record** — 3 % of the sources. The two went ("Info section"
+above `infoSection`, "Monaco's own worker" above the import that says it), and the one excuse-shaped comment turned out to be
+a `ponytail:` marker already naming its own ceiling (`windowsplitter`'s controlled `collapsed`), so it became a bean rather
+than a deletion. **6846 - 2 lines is the whole yield**: the premise of the exercise — that comments mostly restate the code —
+does not hold here, and deleting them all would take 6846 prose lines plus ~10 400 TSDoc lines (the published API's contract)
+out of 226 512. The reusable part is the ratchet: `bun run lint:comments` holds a per-package budget that only goes down, so
+the number cannot creep back, and `/delete-comment` is the pass that lowers it. The next tranche, measured but not taken:
+586 blocks / 1761 lines whose six-word shingle already appears in this file — a second copy of an ADR, but usually the only
+sentence a reader of that function sees.

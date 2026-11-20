@@ -55,7 +55,6 @@ const subtitle = [color(t.color.muted), marginBottom("2rem"), fontSize("1.125rem
 const row = [flex().gap("0.5rem").wrap("wrap")];
 const column = [flex().direction("column").gap("1rem")];
 
-// Info section
 const infoSection = [
   marginTop("2rem"),
   padding("1.5rem"),

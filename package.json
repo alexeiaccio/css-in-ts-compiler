@@ -20,9 +20,10 @@
     "bench": "vp run -r bench",
     "typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/lab --filter ./apps/csssky --filter ./apps/csssky-tui --filter ./apps/docs --filter ./apps/ui typecheck",
     "diff:check": "node tools/ai-automation/scripts/diff-check/src/main.ts --config tools/ai-automation/scripts/diff-check/diff-check.config.json",
-    "check": "vp check && bun run lint:flakes && bun run typecheck",
+    "check": "vp check && bun run lint:flakes && bun run lint:comments && bun run typecheck",
     "lint": "vp lint",
     "lint:flakes": "oxlint -c tools/flakes.oxlintrc.jsonc packages apps tools",
+    "lint:comments": "node scripts/comment-budget.mjs",
     "lint:fix": "vp lint --fix",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check"

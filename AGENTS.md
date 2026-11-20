@@ -163,6 +163,12 @@ Two policies, both enforced rather than remembered:
   CPU-bound differential walks, and lowering the deadline to 20 s made six of them fail under load — the deadline was never
   what made them flaky.
 
+The comment budget is the third leg (`bun run lint:comments`, `scripts/comment-budget.mjs`): `comment-budget.json` holds a
+prose-line count per package, a package over it fails, and a package under it fails until its entry is lowered. It exists
+because an audit (`.agents/skills/delete-comment/`) found the repository at the far end of the comment scale — **6846 prose
+`//` lines across 933 files, of which 2 are tautologies, 0 stale and 0 excuses**: the rest are decision records, ~3 % of the
+sources. The pass is for finding the handful that lie, not for shedding lines; `/delete-comment` runs it.
+
 ### Linting & Formatting
 
 Config lives in the root `vite.config.ts` (`lint` and `fmt` blocks); `vp` is the local `vite-plus` binary.
