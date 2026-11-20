@@ -5906,6 +5906,12 @@ the operating system's picker is the better control, which is the article's own 
 the ordinary select. The separator spans are the other half of that: hidden in the rich layout, they make the plain option
 read as a sentence ("Express, Tomorrow, $8.50"), which is also what a screen reader hears.
 
+It landed a release late, and that is the finding worth keeping: a starter's files are copied into a project that installs
+the _published_ packages, so a starter may only use published API, and `css.picker()` / `appearance: base-select` were in the
+engine commits before they were on npm. The starter smoke caught it exactly — the copied `picker.browser.test.tsx` failed to
+import, `css.appearance("base-select")` an error against the published grammar — so the item was reverted the same day and
+came back with 0.47.0, the release that published the pair.
+
 **A bug the starter found:** a `value` bound on `<select>` while its options are still being appended leaves the control at
 `selectedIndex -1` (Chrome resets the property), so a controlled value has to be written after the children exist — an
 effect with the element from a ref, not a JSX prop. The `selectedcontent` mirror then follows within two frames, which is

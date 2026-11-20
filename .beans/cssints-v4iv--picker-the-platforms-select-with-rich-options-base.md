@@ -27,3 +27,6 @@ A `value` bound on `<select>` while its options are still being appended leaves 
 ## Not taken
 
 Nothing from the article was left out; the alternatives it weighs (a group of radios with the facts in prose) are the reason the picker exists, and the pointer gate is the article's own advice implemented as written.
+
+Landed with 0.47.0, the release that published `css.picker()` and `appearance: base-select`; the item, its stories and its
+five browser tests returned unchanged, and the starter smoke installs them against the published packages.
