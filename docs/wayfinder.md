@@ -5945,10 +5945,21 @@ refused by the range as well as by the disabled set: `stepIndex` returns its `fr
 `previous` from "nothing focused" starts at `count()`, so the empty group moved focus to index 4 — a state no ARIA attribute
 could describe. The empty-group test is what caught it.
 
+`createListbox` followed with the same pair, and it drew the line the radio did not: a radio group moves by _state_ (the host
+puts DOM focus where the state says), so its `act` never touches the DOM; a listbox's whole model is "the option's `focus` is
+the move", so `act({ type: "next" })` focuses the next enabled option's element and the state follows the `focusin`, exactly
+as the platform's arrow does — which means the host must have rendered the option, and a headless act with no elements is a
+no-op rather than a state the platform would not have. Its intents are the moves (`next` / `previous` / `first` / `last`, no
+wrap), the library's `activate` (Space) and `type` (type-ahead), and the pointer's `click`; `snapshot()` is the selection, the
+active option, focus, the count, the disabled options and the selection mode (`aria-multiselectable`). Writing it also turned up the same relay the
+radio fix removed: `hostActive` and `hostValue` were signals written by effects, and both are memos now.
+
 The vocabulary is per pattern and deliberately not a generic `{ type: string }`: a listbox's intents are not a radio group's,
-and the keymap is the source. The next step, if it is wanted, is the same pair on `createListbox` and a `Driver` over
-`act`/`snapshot` so a ported scenario can run against the primitive with no DOM at all.
+and the keymap is the source. Left: the rest of the patterns, and a `Driver` over `act`/`snapshot` so a ported scenario runs
+against the primitive with no DOM at all — the reason the vocabulary is per pattern rather than a generic step type.
 
 **Verified:** `packages/headless/test/radio.act.browser.test.tsx` (5 in Chromium: the snapshot and its JSON round-trip, the
 four moves with their checks and callbacks, focus-without-check plus the two refusals, a controlled host that answers late,
-and an all-disabled group that stays still), typecheck, lint, fmt.
+and an all-disabled group that stays still) and `listbox.act.browser.test.tsx` (5: the snapshot, the four moves with DOM
+focus, Space activating the active option, a click in both selection modes, and type-ahead plus the disabled refusals),
+typecheck, lint, fmt.

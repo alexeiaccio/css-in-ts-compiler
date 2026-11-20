@@ -2744,7 +2744,7 @@ createRadioGroup<T>(options: {
 };
 ```
 
-- **A script speaks the same intents as the keys.** `act({ type: "next" })` moves focus and checks what it lands on, exactly as an arrow does (request, callbacks, ARIA included), `focus` moves focus alone and `check` is a request against an index; `snapshot()` is the same state as JSON — the checked and focused radio by index, the disabled ones, the flavor and `aria-orientation` — so a test, a demo script or an agent can drive the widget without dispatching DOM events. Read `snapshot()` after a flush: Solid 2 applies a write on the microtask.
+- **A script speaks the same intents as the keys.** `createRadioGroup` and `createListbox` both take `act()` — on the radio `next` / `previous` / `first` / `last` move focus and check what they land on, `focus` moves focus alone and `check` is a request against an index; on the list the same moves, plus `activate` (Space), `type` (type-ahead), `focus` and `click` — and both answer `snapshot()` with the state as JSON (the radio: checked and focused by index, the disabled ones, the flavor and `aria-orientation`; the list: selection, active option, focus, count, disabled and the selection mode). A test, a demo script or an agent drives the widget without dispatching DOM events. A radio moves by state; a list moves by DOM focus, so its `act` focuses the option's element and the host must have rendered it. Read `snapshot()` after a flush: Solid 2 applies a write on the microtask.
 - **Two flavors, one machine.** `"roving"` (the default) is the platform's tab stop: an arrow, Home or End
   moves DOM focus, the primitive never renders a roving `tabindex` (the polyfill writes `0` / `-1`; the native
   engine writes nothing and keeps the stop in its focus controller), and a focus that arrives from outside
@@ -3251,6 +3251,8 @@ createListbox(options: {
   clickOption(index: number): void;
   hoverOption(index: number): void;
   setFollowsFocus(value: boolean): void;
+  snapshot(): { selected: number[]; active: number; focused: boolean; count: number; disabled: number[]; selectionMode: "single" | "multiple" | "none" }; // read after a flush
+  act(intent: { type: "next" | "previous" | "first" | "last" | "activate" } | { type: "type"; text: string } | { type: "focus" | "click"; index: number }): void; // the keys' and the pointer's paths; a move is a DOM focus
   listboxProps: {
     role: "listbox";
     "aria-multiselectable": "true" | "false" | undefined; // undefined in "none"

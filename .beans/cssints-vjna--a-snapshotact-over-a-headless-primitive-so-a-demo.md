@@ -28,5 +28,9 @@ First primitive: `createRadioGroup` (wayfinder entry, same date). `snapshot()` r
 `focus` and `check`, through the keys' and the pointer's own functions. Five browser tests, one of which caught a real bug
 (an all-disabled group could focus index `count()`).
 
-Left: the same pair on `createListbox` and the rest, and a `Driver` over `act`/`snapshot` so a ported scenario runs against
-the primitive without a DOM — the reason the vocabulary is per pattern rather than a generic step type.
+Second: `createListbox` (same day), with the distinction the radio did not have — a list moves by DOM focus, so `act` focuses
+the option's element and the state follows `focusin`; its two controlled props stopped being effect-written signals in the
+same change.
+
+Left: the rest of the patterns, and a `Driver` over `act`/`snapshot` so a ported scenario runs against the primitive without
+a DOM — the reason the vocabulary is per pattern rather than a generic step type.

@@ -1,5 +1,6 @@
 import {
   type Accessor,
+  createMemo,
   createEffect,
   createSignal,
   createUniqueId,
@@ -123,6 +124,34 @@ export interface ListboxOptionProps {
   readonly onMouseEnter: () => void;
 }
 
+/**
+ * The list's observable state, JSON: the selection and the active option by index, whether it holds focus, the count, the
+ * disabled options and the selection mode (what `aria-multiselectable` says).
+ */
+export interface ListboxSnapshot {
+  readonly selected: ReadonlyArray<number>;
+  readonly active: number;
+  readonly focused: boolean;
+  readonly count: number;
+  readonly disabled: ReadonlyArray<number>;
+  readonly selectionMode: ListboxSelectionMode;
+}
+
+/**
+ * What a script may ask of the list: the moves the platform's keys make (`next` / `previous` / `first` / `last`, no wrap,
+ * disabled options skipped), the library's own `activate` (Space on the active option) and `type` (type-ahead), and the
+ * pointer's `click`. A list moves by moving DOM focus, so `act` focuses the option's element.
+ */
+export type ListboxIntent =
+  | { readonly type: "next" }
+  | { readonly type: "previous" }
+  | { readonly type: "first" }
+  | { readonly type: "last" }
+  | { readonly type: "activate" }
+  | { readonly type: "type"; readonly text: string }
+  | { readonly type: "focus"; readonly index: number }
+  | { readonly type: "click"; readonly index: number };
+
 export interface Listbox {
   readonly active: Accessor<number>;
   readonly selected: Accessor<ReadonlyArray<number>>;
@@ -144,6 +173,17 @@ export interface Listbox {
   readonly clickOption: (index: number) => void;
   readonly hoverOption: (index: number) => void;
   readonly setFollowsFocus: (value: boolean) => void;
+  /**
+   * The list's state as JSON, for a test, a demo script or an agent: read it after a flush, since Solid 2 applies a write on
+   * the microtask.
+   */
+  readonly snapshot: () => ListboxSnapshot;
+  /**
+   * Drive the list without a DOM event: an intent goes through the same paths its keys and its pointer do, so a script gets
+   * the same request/commit, callbacks and ARIA. Movement is DOM focus, so the option's element must be rendered. Read
+   * `snapshot()` after a flush.
+   */
+  readonly act: (intent: ListboxIntent) => void;
   readonly listboxProps: ListboxProps;
   readonly optionProps: (index: number) => ListboxOptionProps;
 }
@@ -223,25 +263,8 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     disabledIndices.has(index) || (itemList()[index]?.disabled ?? false);
   const clamp = (index: number): number => Math.max(0, Math.min(index, Math.max(count() - 1, 0)));
 
-  // The host's controlled props are JSX expressions: in Solid 2 reading one creates
-  // a computation, which is refused in an effect callback or a ref (the primitive is
-  // read from both, and by a probe during a flush). Reading them in an effect's
-  // *compute* is allowed, so the value is snapshotted into a signal there and every
-  // other read is a plain signal read.
-  const [hostActive, setHostActive] = createSignal<number | undefined>(options.activeValue);
-  createEffect(
-    () => options.activeValue,
-    (value) => {
-      setHostActive(() => value);
-    },
-  );
-  const [hostValue, setHostValue] = createSignal<ReadonlyArray<number> | undefined>(options.value);
-  createEffect(
-    () => options.value,
-    (value) => {
-      setHostValue(() => value);
-    },
-  );
+  const hostActive = createMemo((): number | undefined => options.activeValue);
+  const hostValue = createMemo((): ReadonlyArray<number> | undefined => options.value);
   const [active, requestActive] = createControllable<number>({
     value: hostActive,
     initial: clamp(options.defaultActive ?? 0),
@@ -599,6 +622,66 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     }
   }
 
+  const clickOption = (index: number): void => {
+    pointerDown = false;
+    if (isDisabled(index)) {
+      return;
+    }
+    setFocusedValue(true);
+    clampActive(index);
+    if (mode === "single") {
+      commit([index]);
+    } else if (mode === "multiple") {
+      toggle(index);
+    }
+  };
+
+  const focusIndex = (index: number): void => {
+    if (index < 0 || index >= count() || isDisabled(index)) {
+      return;
+    }
+    elements.get(index)?.focus();
+  };
+
+  const snapshot = (): ListboxSnapshot => ({
+    selected: selected(),
+    active: active(),
+    focused: focused(),
+    count: count(),
+    disabled: Array.from({ length: count() }, (_, index) => index).filter((index) =>
+      isDisabled(index),
+    ),
+    selectionMode: mode,
+  });
+
+  const act = (intent: ListboxIntent): void => {
+    if (intent.type === "focus") {
+      focusIndex(intent.index);
+      return;
+    }
+    if (intent.type === "click") {
+      clickOption(intent.index);
+      return;
+    }
+    if (intent.type === "type") {
+      type(intent.text);
+      return;
+    }
+    if (intent.type === "activate") {
+      handleKey(" ", {});
+      return;
+    }
+    if (intent.type === "first") {
+      focusIndex(firstEnabled());
+      return;
+    }
+    if (intent.type === "last") {
+      focusIndex(lastEnabled());
+      return;
+    }
+    focusIndex(stepIndex(active(), intent.type === "next" ? 1 : -1));
+  };
+
   return {
     active,
     selected,
@@ -634,18 +717,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
     },
     type,
     clearTypeahead,
-    clickOption: (index) => {
-      if (isDisabled(index)) {
-        return;
-      }
-      setFocusedValue(true);
-      clampActive(index);
-      if (mode === "single") {
-        commit([index]);
-      } else if (mode === "multiple") {
-        toggle(index);
-      }
-    },
+    clickOption,
     hoverOption: (index) => {
       if (!focusOnHover || isDisabled(index)) {
         return;
@@ -653,6 +725,8 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       setFocusedValue(true);
       clampActive(index);
     },
+    snapshot,
+    act,
     setFollowsFocus: (value) => {
       followsFlag = value;
       if (value && focusedFlag && mode === "single") {
@@ -721,19 +795,7 @@ export const createListbox = (options: ListboxOptions): Listbox => {
       ref: (element: HTMLElement) => {
         elements.set(index, element);
       },
-      onClick: () => {
-        pointerDown = false;
-        if (isDisabled(index)) {
-          return;
-        }
-        setFocusedValue(true);
-        clampActive(index);
-        if (mode === "single") {
-          commit([index]);
-        } else if (mode === "multiple") {
-          toggle(index);
-        }
-      },
+      onClick: () => clickOption(index),
       onFocus: () => {
         setFocusedValue(true);
         if (pointerDown) {
