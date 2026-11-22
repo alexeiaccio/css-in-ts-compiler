@@ -205,7 +205,9 @@
               }
             ]
           },
-          "declares": ["sections"]
+          "declares": [
+            "sections"
+          ]
         },
         {
           "id": "progress--named",
@@ -239,7 +241,10 @@
             ],
             "label": "How far through the article"
           },
-          "declares": ["sections", "label"]
+          "declares": [
+            "sections",
+            "label"
+          ]
         },
         {
           "id": "progress--short",
@@ -252,7 +257,9 @@
               }
             ]
           },
-          "declares": ["sections"]
+          "declares": [
+            "sections"
+          ]
         }
       ]
     },
@@ -326,7 +333,12 @@
             ],
             "columns": "1fr 7rem 4.5rem"
           },
-          "declares": ["label", "name", "options", "columns"]
+          "declares": [
+            "label",
+            "name",
+            "options",
+            "columns"
+          ]
         },
         {
           "id": "picker--delivery",
@@ -362,7 +374,12 @@
             ],
             "columns": "1fr 7rem 4.5rem"
           },
-          "declares": ["label", "name", "options", "columns"]
+          "declares": [
+            "label",
+            "name",
+            "options",
+            "columns"
+          ]
         },
         {
           "id": "picker--notes",
@@ -401,7 +418,12 @@
             ],
             "columns": "1fr"
           },
-          "declares": ["label", "name", "options", "columns"]
+          "declares": [
+            "label",
+            "name",
+            "options",
+            "columns"
+          ]
         },
         {
           "id": "picker--typefaces",
@@ -461,7 +483,12 @@
             ],
             "columns": "1fr 6rem"
           },
-          "declares": ["label", "name", "options", "columns"]
+          "declares": [
+            "label",
+            "name",
+            "options",
+            "columns"
+          ]
         }
       ]
     },
@@ -600,7 +627,12 @@
             "width": 720,
             "height": 460
           },
-          "declares": ["nodes", "label", "width", "height"]
+          "declares": [
+            "nodes",
+            "label",
+            "width",
+            "height"
+          ]
         },
         {
           "id": "canvas--one-column",
@@ -642,7 +674,12 @@
             "width": 720,
             "height": 460
           },
-          "declares": ["nodes", "label", "width", "height"]
+          "declares": [
+            "nodes",
+            "label",
+            "width",
+            "height"
+          ]
         },
         {
           "id": "canvas--two-canvases",
@@ -774,7 +811,12 @@
             "width": 720,
             "height": 460
           },
-          "declares": ["nodes", "label", "width", "height"]
+          "declares": [
+            "nodes",
+            "label",
+            "width",
+            "height"
+          ]
         }
       ]
     },
@@ -827,7 +869,10 @@
           "args": {
             "placeholder": "A plain input"
           },
-          "declares": ["placeholder", "disabled"]
+          "declares": [
+            "placeholder",
+            "disabled"
+          ]
         },
         {
           "id": "input--disabled",
@@ -837,7 +882,11 @@
             "disabled": true,
             "value": "Disabled"
           },
-          "declares": ["placeholder", "disabled", "value"]
+          "declares": [
+            "placeholder",
+            "disabled",
+            "value"
+          ]
         },
         {
           "id": "input--invalid",
@@ -847,7 +896,12 @@
             "aria-invalid": "true",
             "value": "not-an-email"
           },
-          "declares": ["placeholder", "aria-invalid", "value", "disabled"]
+          "declares": [
+            "placeholder",
+            "aria-invalid",
+            "value",
+            "disabled"
+          ]
         },
         {
           "id": "input--user-invalid",
@@ -855,7 +909,10 @@
           "args": {
             "placeholder": "A plain input"
           },
-          "declares": ["placeholder", "disabled"]
+          "declares": [
+            "placeholder",
+            "disabled"
+          ]
         }
       ]
     },
@@ -915,7 +972,12 @@
             "children": "Dark theme",
             "defaultValue": false
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "switch--disabled",
@@ -925,7 +987,12 @@
             "defaultValue": false,
             "disabled": true
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "switch--native",
@@ -934,7 +1001,12 @@
             "children": "Dark theme",
             "defaultValue": false
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "switch--off",
@@ -943,7 +1015,12 @@
             "children": "Dark theme",
             "defaultValue": false
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "switch--on",
@@ -952,7 +1029,12 @@
             "children": "Dark theme",
             "defaultValue": true
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "switch--read-only",
@@ -962,7 +1044,12 @@
             "defaultValue": false,
             "readOnly": true
           },
-          "declares": ["children", "defaultValue", "readOnly", "disabled"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "readOnly",
+            "disabled"
+          ]
         }
       ]
     },
@@ -978,7 +1065,11 @@
             "summary": "Shipping, returns and refunds",
             "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`."
           },
-          "declares": ["summary", "children", "disabled"]
+          "declares": [
+            "summary",
+            "children",
+            "disabled"
+          ]
         },
         {
           "id": "disclosure--disabled",
@@ -988,7 +1079,11 @@
             "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`.",
             "disabled": true
           },
-          "declares": ["summary", "children", "disabled"]
+          "declares": [
+            "summary",
+            "children",
+            "disabled"
+          ]
         },
         {
           "id": "disclosure--native",
@@ -997,7 +1092,11 @@
             "summary": "Shipping, returns and refunds",
             "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`."
           },
-          "declares": ["summary", "children", "disabled"]
+          "declares": [
+            "summary",
+            "children",
+            "disabled"
+          ]
         },
         {
           "id": "disclosure--open",
@@ -1007,7 +1106,12 @@
             "children": "A disclosure is one button and the panel it shows. The chevron turns with `aria-expanded`.",
             "defaultValue": true
           },
-          "declares": ["summary", "children", "defaultValue", "disabled"]
+          "declares": [
+            "summary",
+            "children",
+            "defaultValue",
+            "disabled"
+          ]
         }
       ]
     },
@@ -1043,7 +1147,12 @@
             "tone": "accent",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--as-a-link",
@@ -1053,7 +1162,12 @@
             "tone": "neutral",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--default",
@@ -1063,7 +1177,12 @@
             "tone": "neutral",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--disabled",
@@ -1074,7 +1193,12 @@
             "size": "md",
             "disabled": true
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--quiet",
@@ -1084,7 +1208,12 @@
             "tone": "quiet",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--sizes",
@@ -1094,7 +1223,12 @@
             "tone": "neutral",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--toggle",
@@ -1104,7 +1238,12 @@
             "tone": "neutral",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         },
         {
           "id": "button--tones",
@@ -1114,7 +1253,27 @@
             "tone": "neutral",
             "size": "md"
           },
-          "declares": ["children", "tone", "size", "disabled"]
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
+        },
+        {
+          "id": "button--with-an-icon",
+          "name": "With an icon",
+          "args": {
+            "children": "Save",
+            "tone": "neutral",
+            "size": "md"
+          },
+          "declares": [
+            "children",
+            "tone",
+            "size",
+            "disabled"
+          ]
         }
       ]
     },
@@ -1131,7 +1290,12 @@
             "defaultValue": "false",
             "disabled": true
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "checkbox--mixed",
@@ -1140,7 +1304,12 @@
             "children": "Send me the changelog",
             "defaultValue": "false"
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "checkbox--off",
@@ -1149,7 +1318,12 @@
             "children": "Send me the changelog",
             "defaultValue": "false"
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         },
         {
           "id": "checkbox--on",
@@ -1158,7 +1332,12 @@
             "children": "Send me the changelog",
             "defaultValue": "true"
           },
-          "declares": ["children", "defaultValue", "disabled", "readOnly"]
+          "declares": [
+            "children",
+            "defaultValue",
+            "disabled",
+            "readOnly"
+          ]
         }
       ]
     },
@@ -1194,7 +1373,11 @@
             "disabledTab": false,
             "narrow": true
           },
-          "declares": ["count", "disabledTab", "narrow"]
+          "declares": [
+            "count",
+            "disabledTab",
+            "narrow"
+          ]
         },
         {
           "id": "tabs--three",
@@ -1204,7 +1387,11 @@
             "disabledTab": false,
             "narrow": false
           },
-          "declares": ["count", "disabledTab", "narrow"]
+          "declares": [
+            "count",
+            "disabledTab",
+            "narrow"
+          ]
         },
         {
           "id": "tabs--with-disabled",
@@ -1214,7 +1401,11 @@
             "disabledTab": true,
             "narrow": false
           },
-          "declares": ["count", "disabledTab", "narrow"]
+          "declares": [
+            "count",
+            "disabledTab",
+            "narrow"
+          ]
         }
       ]
     },
@@ -1231,7 +1422,11 @@
             "multiple": false,
             "collapsible": false
           },
-          "declares": ["count", "multiple", "collapsible"]
+          "declares": [
+            "count",
+            "multiple",
+            "collapsible"
+          ]
         },
         {
           "id": "accordion--multiple",
@@ -1241,7 +1436,11 @@
             "multiple": true,
             "collapsible": true
           },
-          "declares": ["count", "multiple", "collapsible"]
+          "declares": [
+            "count",
+            "multiple",
+            "collapsible"
+          ]
         },
         {
           "id": "accordion--native",
@@ -1251,7 +1450,11 @@
             "multiple": false,
             "collapsible": true
           },
-          "declares": ["count", "multiple", "collapsible"]
+          "declares": [
+            "count",
+            "multiple",
+            "collapsible"
+          ]
         },
         {
           "id": "accordion--single",
@@ -1261,7 +1464,11 @@
             "multiple": false,
             "collapsible": true
           },
-          "declares": ["count", "multiple", "collapsible"]
+          "declares": [
+            "count",
+            "multiple",
+            "collapsible"
+          ]
         }
       ]
     },
@@ -1276,13 +1483,19 @@
           "args": {
             "decorative": true
           },
-          "declares": ["decorative", "orientation"]
+          "declares": [
+            "decorative",
+            "orientation"
+          ]
         },
         {
           "id": "separator--horizontal",
           "name": "Horizontal",
           "args": {},
-          "declares": ["orientation", "decorative"]
+          "declares": [
+            "orientation",
+            "decorative"
+          ]
         },
         {
           "id": "separator--vertical",
@@ -1290,7 +1503,10 @@
           "args": {
             "orientation": "vertical"
           },
-          "declares": ["orientation", "decorative"]
+          "declares": [
+            "orientation",
+            "decorative"
+          ]
         }
       ]
     },
@@ -1306,7 +1522,10 @@
             "children": "Accent",
             "tone": "accent"
           },
-          "declares": ["children", "tone"]
+          "declares": [
+            "children",
+            "tone"
+          ]
         },
         {
           "id": "badge--all-tones",
@@ -1314,7 +1533,10 @@
           "args": {
             "children": "Neutral"
           },
-          "declares": ["children", "tone"]
+          "declares": [
+            "children",
+            "tone"
+          ]
         },
         {
           "id": "badge--neutral",
@@ -1322,7 +1544,10 @@
           "args": {
             "children": "Neutral"
           },
-          "declares": ["children", "tone"]
+          "declares": [
+            "children",
+            "tone"
+          ]
         },
         {
           "id": "badge--quiet",
@@ -1331,7 +1556,10 @@
             "children": "Quiet",
             "tone": "quiet"
           },
-          "declares": ["children", "tone"]
+          "declares": [
+            "children",
+            "tone"
+          ]
         }
       ]
     },
@@ -1346,7 +1574,10 @@
           "args": {
             "height": "2.5rem"
           },
-          "declares": ["height", "width"]
+          "declares": [
+            "height",
+            "width"
+          ]
         },
         {
           "id": "skeleton--lines",
@@ -1354,7 +1585,10 @@
           "args": {
             "height": "2.5rem"
           },
-          "declares": ["height", "width"]
+          "declares": [
+            "height",
+            "width"
+          ]
         }
       ]
     },
@@ -1463,7 +1697,12 @@
             ],
             "label": "Requests per 25 ms bucket, last hour"
           },
-          "declares": ["points", "label", "max", "height"]
+          "declares": [
+            "points",
+            "label",
+            "max",
+            "height"
+          ]
         },
         {
           "id": "columns--flat",
@@ -1521,7 +1760,12 @@
             ],
             "label": "Requests per 25 ms bucket, last hour"
           },
-          "declares": ["points", "label", "max", "height"]
+          "declares": [
+            "points",
+            "label",
+            "max",
+            "height"
+          ]
         },
         {
           "id": "columns--latency",
@@ -1579,7 +1823,12 @@
             ],
             "label": "Requests per 25 ms bucket, last hour"
           },
-          "declares": ["points", "label", "max", "height"]
+          "declares": [
+            "points",
+            "label",
+            "max",
+            "height"
+          ]
         }
       ]
     },
@@ -1606,18 +1855,56 @@
                 "label": "ap-south"
               }
             ],
-            "categories": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            "categories": [
+              "00:00",
+              "04:00",
+              "08:00",
+              "12:00",
+              "16:00",
+              "20:00"
+            ],
             "values": [
-              [412, 980, 310],
-              [388, 1024, 292],
-              [1204, 2410, 866],
-              [1480, 3120, 1042],
-              [1390, 2870, 1180],
-              [820, 1640, 640]
+              [
+                412,
+                980,
+                310
+              ],
+              [
+                388,
+                1024,
+                292
+              ],
+              [
+                1204,
+                2410,
+                866
+              ],
+              [
+                1480,
+                3120,
+                1042
+              ],
+              [
+                1390,
+                2870,
+                1180
+              ],
+              [
+                820,
+                1640,
+                640
+              ]
             ],
             "label": "Requests by region, last day"
           },
-          "declares": ["series", "categories", "values", "label", "format", "max"]
+          "declares": [
+            "series",
+            "categories",
+            "values",
+            "label",
+            "format",
+            "max"
+          ]
         },
         {
           "id": "bars--hidden-series",
@@ -1637,18 +1924,56 @@
                 "label": "ap-south"
               }
             ],
-            "categories": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            "categories": [
+              "00:00",
+              "04:00",
+              "08:00",
+              "12:00",
+              "16:00",
+              "20:00"
+            ],
             "values": [
-              [412, 980, 310],
-              [388, 1024, 292],
-              [1204, 2410, 866],
-              [1480, 3120, 1042],
-              [1390, 2870, 1180],
-              [820, 1640, 640]
+              [
+                412,
+                980,
+                310
+              ],
+              [
+                388,
+                1024,
+                292
+              ],
+              [
+                1204,
+                2410,
+                866
+              ],
+              [
+                1480,
+                3120,
+                1042
+              ],
+              [
+                1390,
+                2870,
+                1180
+              ],
+              [
+                820,
+                1640,
+                640
+              ]
             ],
             "label": "Requests by region, last day"
           },
-          "declares": ["series", "categories", "values", "label", "format", "max"]
+          "declares": [
+            "series",
+            "categories",
+            "values",
+            "label",
+            "format",
+            "max"
+          ]
         }
       ]
     },
@@ -1685,7 +2010,11 @@
             ],
             "label": "Traffic by region, last 24 hours"
           },
-          "declares": ["slices", "label", "size"]
+          "declares": [
+            "slices",
+            "label",
+            "size"
+          ]
         },
         {
           "id": "donut--two-slices",
@@ -1715,7 +2044,11 @@
             ],
             "label": "Traffic by region, last 24 hours"
           },
-          "declares": ["slices", "label", "size"]
+          "declares": [
+            "slices",
+            "label",
+            "size"
+          ]
         }
       ]
     },
@@ -1758,11 +2091,36 @@
             "previous": 1310,
             "unit": "req/s",
             "samples": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ]
           },
-          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+          "declares": [
+            "label",
+            "value",
+            "previous",
+            "unit",
+            "samples",
+            "format"
+          ]
         },
         {
           "id": "stat--no-previous-value",
@@ -1773,11 +2131,36 @@
             "previous": 1310,
             "unit": "req/s",
             "samples": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ]
           },
-          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+          "declares": [
+            "label",
+            "value",
+            "previous",
+            "unit",
+            "samples",
+            "format"
+          ]
         },
         {
           "id": "stat--row",
@@ -1788,11 +2171,36 @@
             "previous": 1310,
             "unit": "req/s",
             "samples": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ]
           },
-          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+          "declares": [
+            "label",
+            "value",
+            "previous",
+            "unit",
+            "samples",
+            "format"
+          ]
         },
         {
           "id": "stat--worse",
@@ -1803,11 +2211,36 @@
             "previous": 1310,
             "unit": "req/s",
             "samples": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ]
           },
-          "declares": ["label", "value", "previous", "unit", "samples", "format"]
+          "declares": [
+            "label",
+            "value",
+            "previous",
+            "unit",
+            "samples",
+            "format"
+          ]
         }
       ]
     },
@@ -1824,49 +2257,203 @@
               {
                 "label": "Mon",
                 "values": [
-                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
-                  30, 22, 11
+                  8,
+                  7,
+                  8,
+                  7,
+                  8,
+                  9,
+                  9,
+                  15,
+                  19,
+                  34,
+                  46,
+                  65,
+                  94,
+                  123,
+                  105,
+                  103,
+                  100,
+                  87,
+                  63,
+                  52,
+                  54,
+                  30,
+                  22,
+                  11
                 ]
               },
               {
                 "label": "Tue",
                 "values": [
-                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
-                  35, 20, 13
+                  7,
+                  7,
+                  8,
+                  9,
+                  8,
+                  9,
+                  11,
+                  14,
+                  23,
+                  30,
+                  45,
+                  68,
+                  101,
+                  110,
+                  111,
+                  115,
+                  95,
+                  72,
+                  67,
+                  57,
+                  44,
+                  35,
+                  20,
+                  13
                 ]
               },
               {
                 "label": "Wed",
                 "values": [
-                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
-                  36, 17, 12
+                  9,
+                  7,
+                  9,
+                  7,
+                  8,
+                  10,
+                  10,
+                  15,
+                  19,
+                  36,
+                  57,
+                  76,
+                  106,
+                  106,
+                  125,
+                  115,
+                  98,
+                  76,
+                  68,
+                  61,
+                  47,
+                  36,
+                  17,
+                  12
                 ]
               },
               {
                 "label": "Thu",
                 "values": [
-                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
-                  38, 19, 11
+                  8,
+                  9,
+                  9,
+                  8,
+                  8,
+                  10,
+                  9,
+                  15,
+                  20,
+                  31,
+                  45,
+                  80,
+                  85,
+                  103,
+                  114,
+                  124,
+                  84,
+                  76,
+                  63,
+                  60,
+                  52,
+                  38,
+                  19,
+                  11
                 ]
               },
               {
                 "label": "Fri",
                 "values": [
-                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
-                  37, 22, 13
+                  8,
+                  9,
+                  9,
+                  7,
+                  8,
+                  8,
+                  10,
+                  15,
+                  23,
+                  32,
+                  45,
+                  72,
+                  92,
+                  114,
+                  134,
+                  118,
+                  97,
+                  79,
+                  65,
+                  47,
+                  53,
+                  37,
+                  22,
+                  13
                 ]
               },
               {
                 "label": "Sat",
                 "values": [
-                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
-                  10, 6
+                  3,
+                  3,
+                  3,
+                  4,
+                  3,
+                  4,
+                  4,
+                  6,
+                  10,
+                  14,
+                  20,
+                  30,
+                  38,
+                  48,
+                  46,
+                  56,
+                  45,
+                  31,
+                  26,
+                  23,
+                  20,
+                  14,
+                  10,
+                  6
                 ]
               },
               {
                 "label": "Sun",
                 "values": [
-                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  4,
+                  4,
+                  3,
+                  3,
+                  4,
+                  4,
+                  5,
+                  6,
+                  9,
+                  18,
+                  24,
+                  30,
+                  44,
+                  43,
+                  54,
+                  58,
+                  48,
+                  37,
+                  26,
+                  23,
+                  19,
+                  17,
+                  9,
                   6
                 ]
               }
@@ -1901,7 +2488,13 @@
             "unit": "thousands of requests",
             "max": 250
           },
-          "declares": ["rows", "columns", "label", "unit", "max"]
+          "declares": [
+            "rows",
+            "columns",
+            "label",
+            "unit",
+            "max"
+          ]
         },
         {
           "id": "heatmap--small",
@@ -1911,49 +2504,203 @@
               {
                 "label": "Mon",
                 "values": [
-                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
-                  30, 22, 11
+                  8,
+                  7,
+                  8,
+                  7,
+                  8,
+                  9,
+                  9,
+                  15,
+                  19,
+                  34,
+                  46,
+                  65,
+                  94,
+                  123,
+                  105,
+                  103,
+                  100,
+                  87,
+                  63,
+                  52,
+                  54,
+                  30,
+                  22,
+                  11
                 ]
               },
               {
                 "label": "Tue",
                 "values": [
-                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
-                  35, 20, 13
+                  7,
+                  7,
+                  8,
+                  9,
+                  8,
+                  9,
+                  11,
+                  14,
+                  23,
+                  30,
+                  45,
+                  68,
+                  101,
+                  110,
+                  111,
+                  115,
+                  95,
+                  72,
+                  67,
+                  57,
+                  44,
+                  35,
+                  20,
+                  13
                 ]
               },
               {
                 "label": "Wed",
                 "values": [
-                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
-                  36, 17, 12
+                  9,
+                  7,
+                  9,
+                  7,
+                  8,
+                  10,
+                  10,
+                  15,
+                  19,
+                  36,
+                  57,
+                  76,
+                  106,
+                  106,
+                  125,
+                  115,
+                  98,
+                  76,
+                  68,
+                  61,
+                  47,
+                  36,
+                  17,
+                  12
                 ]
               },
               {
                 "label": "Thu",
                 "values": [
-                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
-                  38, 19, 11
+                  8,
+                  9,
+                  9,
+                  8,
+                  8,
+                  10,
+                  9,
+                  15,
+                  20,
+                  31,
+                  45,
+                  80,
+                  85,
+                  103,
+                  114,
+                  124,
+                  84,
+                  76,
+                  63,
+                  60,
+                  52,
+                  38,
+                  19,
+                  11
                 ]
               },
               {
                 "label": "Fri",
                 "values": [
-                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
-                  37, 22, 13
+                  8,
+                  9,
+                  9,
+                  7,
+                  8,
+                  8,
+                  10,
+                  15,
+                  23,
+                  32,
+                  45,
+                  72,
+                  92,
+                  114,
+                  134,
+                  118,
+                  97,
+                  79,
+                  65,
+                  47,
+                  53,
+                  37,
+                  22,
+                  13
                 ]
               },
               {
                 "label": "Sat",
                 "values": [
-                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
-                  10, 6
+                  3,
+                  3,
+                  3,
+                  4,
+                  3,
+                  4,
+                  4,
+                  6,
+                  10,
+                  14,
+                  20,
+                  30,
+                  38,
+                  48,
+                  46,
+                  56,
+                  45,
+                  31,
+                  26,
+                  23,
+                  20,
+                  14,
+                  10,
+                  6
                 ]
               },
               {
                 "label": "Sun",
                 "values": [
-                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  4,
+                  4,
+                  3,
+                  3,
+                  4,
+                  4,
+                  5,
+                  6,
+                  9,
+                  18,
+                  24,
+                  30,
+                  44,
+                  43,
+                  54,
+                  58,
+                  48,
+                  37,
+                  26,
+                  23,
+                  19,
+                  17,
+                  9,
                   6
                 ]
               }
@@ -1987,7 +2734,13 @@
             "label": "Requests by hour, last week",
             "unit": "thousands of requests"
           },
-          "declares": ["rows", "columns", "label", "unit", "max"]
+          "declares": [
+            "rows",
+            "columns",
+            "label",
+            "unit",
+            "max"
+          ]
         },
         {
           "id": "heatmap--week",
@@ -1997,49 +2750,203 @@
               {
                 "label": "Mon",
                 "values": [
-                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
-                  30, 22, 11
+                  8,
+                  7,
+                  8,
+                  7,
+                  8,
+                  9,
+                  9,
+                  15,
+                  19,
+                  34,
+                  46,
+                  65,
+                  94,
+                  123,
+                  105,
+                  103,
+                  100,
+                  87,
+                  63,
+                  52,
+                  54,
+                  30,
+                  22,
+                  11
                 ]
               },
               {
                 "label": "Tue",
                 "values": [
-                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
-                  35, 20, 13
+                  7,
+                  7,
+                  8,
+                  9,
+                  8,
+                  9,
+                  11,
+                  14,
+                  23,
+                  30,
+                  45,
+                  68,
+                  101,
+                  110,
+                  111,
+                  115,
+                  95,
+                  72,
+                  67,
+                  57,
+                  44,
+                  35,
+                  20,
+                  13
                 ]
               },
               {
                 "label": "Wed",
                 "values": [
-                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
-                  36, 17, 12
+                  9,
+                  7,
+                  9,
+                  7,
+                  8,
+                  10,
+                  10,
+                  15,
+                  19,
+                  36,
+                  57,
+                  76,
+                  106,
+                  106,
+                  125,
+                  115,
+                  98,
+                  76,
+                  68,
+                  61,
+                  47,
+                  36,
+                  17,
+                  12
                 ]
               },
               {
                 "label": "Thu",
                 "values": [
-                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
-                  38, 19, 11
+                  8,
+                  9,
+                  9,
+                  8,
+                  8,
+                  10,
+                  9,
+                  15,
+                  20,
+                  31,
+                  45,
+                  80,
+                  85,
+                  103,
+                  114,
+                  124,
+                  84,
+                  76,
+                  63,
+                  60,
+                  52,
+                  38,
+                  19,
+                  11
                 ]
               },
               {
                 "label": "Fri",
                 "values": [
-                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
-                  37, 22, 13
+                  8,
+                  9,
+                  9,
+                  7,
+                  8,
+                  8,
+                  10,
+                  15,
+                  23,
+                  32,
+                  45,
+                  72,
+                  92,
+                  114,
+                  134,
+                  118,
+                  97,
+                  79,
+                  65,
+                  47,
+                  53,
+                  37,
+                  22,
+                  13
                 ]
               },
               {
                 "label": "Sat",
                 "values": [
-                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
-                  10, 6
+                  3,
+                  3,
+                  3,
+                  4,
+                  3,
+                  4,
+                  4,
+                  6,
+                  10,
+                  14,
+                  20,
+                  30,
+                  38,
+                  48,
+                  46,
+                  56,
+                  45,
+                  31,
+                  26,
+                  23,
+                  20,
+                  14,
+                  10,
+                  6
                 ]
               },
               {
                 "label": "Sun",
                 "values": [
-                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  4,
+                  4,
+                  3,
+                  3,
+                  4,
+                  4,
+                  5,
+                  6,
+                  9,
+                  18,
+                  24,
+                  30,
+                  44,
+                  43,
+                  54,
+                  58,
+                  48,
+                  37,
+                  26,
+                  23,
+                  19,
+                  17,
+                  9,
                   6
                 ]
               }
@@ -2073,7 +2980,13 @@
             "label": "Requests by hour, last week",
             "unit": "thousands of requests"
           },
-          "declares": ["rows", "columns", "label", "unit", "max"]
+          "declares": [
+            "rows",
+            "columns",
+            "label",
+            "unit",
+            "max"
+          ]
         },
         {
           "id": "heatmap--with-gaps",
@@ -2083,49 +2996,203 @@
               {
                 "label": "Mon",
                 "values": [
-                  8, 7, 8, 7, 8, 9, 9, 15, 19, 34, 46, 65, 94, 123, 105, 103, 100, 87, 63, 52, 54,
-                  30, 22, 11
+                  8,
+                  7,
+                  8,
+                  7,
+                  8,
+                  9,
+                  9,
+                  15,
+                  19,
+                  34,
+                  46,
+                  65,
+                  94,
+                  123,
+                  105,
+                  103,
+                  100,
+                  87,
+                  63,
+                  52,
+                  54,
+                  30,
+                  22,
+                  11
                 ]
               },
               {
                 "label": "Tue",
                 "values": [
-                  7, 7, 8, 9, 8, 9, 11, 14, 23, 30, 45, 68, 101, 110, 111, 115, 95, 72, 67, 57, 44,
-                  35, 20, 13
+                  7,
+                  7,
+                  8,
+                  9,
+                  8,
+                  9,
+                  11,
+                  14,
+                  23,
+                  30,
+                  45,
+                  68,
+                  101,
+                  110,
+                  111,
+                  115,
+                  95,
+                  72,
+                  67,
+                  57,
+                  44,
+                  35,
+                  20,
+                  13
                 ]
               },
               {
                 "label": "Wed",
                 "values": [
-                  9, 7, 9, 7, 8, 10, 10, 15, 19, 36, 57, 76, 106, 106, 125, 115, 98, 76, 68, 61, 47,
-                  36, 17, 12
+                  9,
+                  7,
+                  9,
+                  7,
+                  8,
+                  10,
+                  10,
+                  15,
+                  19,
+                  36,
+                  57,
+                  76,
+                  106,
+                  106,
+                  125,
+                  115,
+                  98,
+                  76,
+                  68,
+                  61,
+                  47,
+                  36,
+                  17,
+                  12
                 ]
               },
               {
                 "label": "Thu",
                 "values": [
-                  8, 9, 9, 8, 8, 10, 9, 15, 20, 31, 45, 80, 85, 103, 114, 124, 84, 76, 63, 60, 52,
-                  38, 19, 11
+                  8,
+                  9,
+                  9,
+                  8,
+                  8,
+                  10,
+                  9,
+                  15,
+                  20,
+                  31,
+                  45,
+                  80,
+                  85,
+                  103,
+                  114,
+                  124,
+                  84,
+                  76,
+                  63,
+                  60,
+                  52,
+                  38,
+                  19,
+                  11
                 ]
               },
               {
                 "label": "Fri",
                 "values": [
-                  8, 9, 9, 7, 8, 8, 10, 15, 23, 32, 45, 72, 92, 114, 134, 118, 97, 79, 65, 47, 53,
-                  37, 22, 13
+                  8,
+                  9,
+                  9,
+                  7,
+                  8,
+                  8,
+                  10,
+                  15,
+                  23,
+                  32,
+                  45,
+                  72,
+                  92,
+                  114,
+                  134,
+                  118,
+                  97,
+                  79,
+                  65,
+                  47,
+                  53,
+                  37,
+                  22,
+                  13
                 ]
               },
               {
                 "label": "Sat",
                 "values": [
-                  3, 3, 3, 4, 3, 4, 4, 6, 10, 14, 20, 30, 38, 48, 46, 56, 45, 31, 26, 23, 20, 14,
-                  10, 6
+                  3,
+                  3,
+                  3,
+                  4,
+                  3,
+                  4,
+                  4,
+                  6,
+                  10,
+                  14,
+                  20,
+                  30,
+                  38,
+                  48,
+                  46,
+                  56,
+                  45,
+                  31,
+                  26,
+                  23,
+                  20,
+                  14,
+                  10,
+                  6
                 ]
               },
               {
                 "label": "Sun",
                 "values": [
-                  4, 4, 3, 3, 4, 4, 5, 6, 9, 18, 24, 30, 44, 43, 54, 58, 48, 37, 26, 23, 19, 17, 9,
+                  4,
+                  4,
+                  3,
+                  3,
+                  4,
+                  4,
+                  5,
+                  6,
+                  9,
+                  18,
+                  24,
+                  30,
+                  44,
+                  43,
+                  54,
+                  58,
+                  48,
+                  37,
+                  26,
+                  23,
+                  19,
+                  17,
+                  9,
                   6
                 ]
               }
@@ -2159,7 +3226,13 @@
             "label": "Requests by hour, last week",
             "unit": "thousands of requests"
           },
-          "declares": ["rows", "columns", "label", "unit", "max"]
+          "declares": [
+            "rows",
+            "columns",
+            "label",
+            "unit",
+            "max"
+          ]
         }
       ]
     },
@@ -2554,7 +3627,11 @@
               }
             ]
           },
-          "declares": ["label", "nodes", "edges"]
+          "declares": [
+            "label",
+            "nodes",
+            "edges"
+          ]
         },
         {
           "id": "board--dark",
@@ -2942,7 +4019,11 @@
               }
             ]
           },
-          "declares": ["label", "nodes", "edges"]
+          "declares": [
+            "label",
+            "nodes",
+            "edges"
+          ]
         },
         {
           "id": "board--design-system",
@@ -3330,7 +4411,11 @@
               }
             ]
           },
-          "declares": ["label", "nodes", "edges"]
+          "declares": [
+            "label",
+            "nodes",
+            "edges"
+          ]
         }
       ]
     },
@@ -3363,7 +4448,10 @@
               }
             ]
           },
-          "declares": ["label", "items"]
+          "declares": [
+            "label",
+            "items"
+          ]
         },
         {
           "id": "scale--new-largest",
@@ -3393,7 +4481,10 @@
               }
             ]
           },
-          "declares": ["label", "items"]
+          "declares": [
+            "label",
+            "items"
+          ]
         },
         {
           "id": "scale--single",
@@ -3407,7 +4498,10 @@
               }
             ]
           },
-          "declares": ["label", "items"]
+          "declares": [
+            "label",
+            "items"
+          ]
         }
       ]
     },
@@ -3423,7 +4517,10 @@
             "label": "Storage",
             "value": 64
           },
-          "declares": ["label", "value"]
+          "declares": [
+            "label",
+            "value"
+          ]
         },
         {
           "id": "meter--full",
@@ -3432,7 +4529,10 @@
             "label": "Storage",
             "value": 100
           },
-          "declares": ["label", "value"]
+          "declares": [
+            "label",
+            "value"
+          ]
         },
         {
           "id": "meter--native",
@@ -3441,7 +4541,10 @@
             "label": "Storage",
             "value": 64
           },
-          "declares": ["label", "value"]
+          "declares": [
+            "label",
+            "value"
+          ]
         },
         {
           "id": "meter--with-value-text",
@@ -3451,7 +4554,11 @@
             "value": 92,
             "valueText": "92% of the file sent"
           },
-          "declares": ["label", "value", "valueText"]
+          "declares": [
+            "label",
+            "value",
+            "valueText"
+          ]
         }
       ]
     },
@@ -3466,11 +4573,34 @@
           "args": {
             "label": "Requests per second, the last 20 samples",
             "values": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ]
           },
-          "declares": ["label", "values", "tone", "height"]
+          "declares": [
+            "label",
+            "values",
+            "tone",
+            "height"
+          ]
         },
         {
           "id": "sparkline--default",
@@ -3478,11 +4608,34 @@
           "args": {
             "label": "Requests per second, the last 20 samples",
             "values": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ]
           },
-          "declares": ["label", "values", "tone", "height"]
+          "declares": [
+            "label",
+            "values",
+            "tone",
+            "height"
+          ]
         },
         {
           "id": "sparkline--muted",
@@ -3490,12 +4643,35 @@
           "args": {
             "label": "Requests per second, the last 20 samples",
             "values": [
-              1310, 1342, 1330, 1385, 1371, 1420, 1452, 1440, 1498, 1510, 1495, 1530, 1502, 1488,
-              1515, 1470, 1462, 1420, 1377, 1350
+              1310,
+              1342,
+              1330,
+              1385,
+              1371,
+              1420,
+              1452,
+              1440,
+              1498,
+              1510,
+              1495,
+              1530,
+              1502,
+              1488,
+              1515,
+              1470,
+              1462,
+              1420,
+              1377,
+              1350
             ],
             "tone": "muted"
           },
-          "declares": ["label", "values", "tone", "height"]
+          "declares": [
+            "label",
+            "values",
+            "tone",
+            "height"
+          ]
         }
       ]
     },
@@ -3554,10 +4730,20 @@
               }
             ],
             "label": "Files",
-            "defaultValue": [2],
-            "defaultExpanded": [1, 2]
+            "defaultValue": [
+              2
+            ],
+            "defaultExpanded": [
+              1,
+              2
+            ]
           },
-          "declares": ["nodes", "label", "defaultValue", "defaultExpanded"]
+          "declares": [
+            "nodes",
+            "label",
+            "defaultValue",
+            "defaultExpanded"
+          ]
         },
         {
           "id": "treeview--files",
@@ -3596,10 +4782,20 @@
               }
             ],
             "label": "Files",
-            "defaultValue": [2],
-            "defaultExpanded": [1, 2]
+            "defaultValue": [
+              2
+            ],
+            "defaultExpanded": [
+              1,
+              2
+            ]
           },
-          "declares": ["nodes", "label", "defaultValue", "defaultExpanded"]
+          "declares": [
+            "nodes",
+            "label",
+            "defaultValue",
+            "defaultExpanded"
+          ]
         }
       ]
     },
@@ -3649,7 +4845,12 @@
             "kind": "audio",
             "aspect": "3 / 2"
           },
-          "declares": ["label", "title", "kind", "aspect"]
+          "declares": [
+            "label",
+            "title",
+            "kind",
+            "aspect"
+          ]
         },
         {
           "id": "player--default",
@@ -3660,7 +4861,12 @@
             "kind": "video",
             "aspect": "3 / 2"
           },
-          "declares": ["label", "title", "kind", "aspect"]
+          "declares": [
+            "label",
+            "title",
+            "kind",
+            "aspect"
+          ]
         }
       ]
     },
@@ -3821,7 +5027,11 @@
           "args": {
             "placeholder": "A plain textarea"
           },
-          "declares": ["placeholder", "disabled", "rows"]
+          "declares": [
+            "placeholder",
+            "disabled",
+            "rows"
+          ]
         },
         {
           "id": "textarea--default",
@@ -3829,7 +5039,11 @@
           "args": {
             "placeholder": "A plain textarea"
           },
-          "declares": ["placeholder", "disabled", "rows"]
+          "declares": [
+            "placeholder",
+            "disabled",
+            "rows"
+          ]
         },
         {
           "id": "textarea--in-a-field",
@@ -3837,7 +5051,11 @@
           "args": {
             "placeholder": "A plain textarea"
           },
-          "declares": ["placeholder", "disabled", "rows"]
+          "declares": [
+            "placeholder",
+            "disabled",
+            "rows"
+          ]
         }
       ]
     },
@@ -3876,27 +5094,48 @@
           "name": "Controlled",
           "args": {
             "label": "Price",
-            "defaultValue": [3, 7]
+            "defaultValue": [
+              3,
+              7
+            ]
           },
-          "declares": ["label", "defaultValue", "disabled"]
+          "declares": [
+            "label",
+            "defaultValue",
+            "disabled"
+          ]
         },
         {
           "id": "slider-multithumb--range",
           "name": "Range",
           "args": {
             "label": "Price",
-            "defaultValue": [3, 7]
+            "defaultValue": [
+              3,
+              7
+            ]
           },
-          "declares": ["label", "defaultValue", "disabled"]
+          "declares": [
+            "label",
+            "defaultValue",
+            "disabled"
+          ]
         },
         {
           "id": "slider-multithumb--vertical",
           "name": "Vertical",
           "args": {
             "label": "Price",
-            "defaultValue": [3, 7]
+            "defaultValue": [
+              3,
+              7
+            ]
           },
-          "declares": ["label", "defaultValue", "disabled"]
+          "declares": [
+            "label",
+            "defaultValue",
+            "disabled"
+          ]
         }
       ]
     },
@@ -4085,7 +5324,11 @@
             ],
             "caption": "Oscar hopefuls, 2026: the audience's score, the critics', and the gross"
           },
-          "declares": ["rows", "columns", "caption"]
+          "declares": [
+            "rows",
+            "columns",
+            "caption"
+          ]
         },
         {
           "id": "modifiers--one-column",
@@ -4197,7 +5440,11 @@
             ],
             "caption": "Oscar hopefuls, 2026: the audience's score, the critics', and the gross"
           },
-          "declares": ["rows", "columns", "caption"]
+          "declares": [
+            "rows",
+            "columns",
+            "caption"
+          ]
         }
       ]
     },
@@ -4232,7 +5479,10 @@
             "page": 12,
             "pageCount": 24
           },
-          "declares": ["page", "pageCount"]
+          "declares": [
+            "page",
+            "pageCount"
+          ]
         },
         {
           "id": "pagination--first-page",
@@ -4241,7 +5491,10 @@
             "page": 1,
             "pageCount": 24
           },
-          "declares": ["page", "pageCount"]
+          "declares": [
+            "page",
+            "pageCount"
+          ]
         },
         {
           "id": "pagination--last-page",
@@ -4250,7 +5503,10 @@
             "page": 24,
             "pageCount": 24
           },
-          "declares": ["page", "pageCount"]
+          "declares": [
+            "page",
+            "pageCount"
+          ]
         }
       ]
     },
@@ -4269,7 +5525,15 @@
             "max": 100,
             "step": 1
           },
-          "declares": ["label", "defaultValue", "min", "max", "step", "format", "size"]
+          "declares": [
+            "label",
+            "defaultValue",
+            "min",
+            "max",
+            "step",
+            "format",
+            "size"
+          ]
         },
         {
           "id": "knob--large-dial",
@@ -4282,7 +5546,15 @@
             "step": 1,
             "size": "8rem"
           },
-          "declares": ["label", "defaultValue", "min", "max", "step", "format", "size"]
+          "declares": [
+            "label",
+            "defaultValue",
+            "min",
+            "max",
+            "step",
+            "format",
+            "size"
+          ]
         },
         {
           "id": "knob--pan",
@@ -4294,7 +5566,15 @@
             "max": 50,
             "step": 5
           },
-          "declares": ["label", "defaultValue", "min", "max", "step", "format", "size"]
+          "declares": [
+            "label",
+            "defaultValue",
+            "min",
+            "max",
+            "step",
+            "format",
+            "size"
+          ]
         }
       ]
     },
@@ -4341,7 +5621,9 @@
           "args": {
             "disabled": false
           },
-          "declares": ["disabled"]
+          "declares": [
+            "disabled"
+          ]
         },
         {
           "id": "combobox--disabled",
@@ -4349,7 +5631,9 @@
           "args": {
             "disabled": true
           },
-          "declares": ["disabled"]
+          "declares": [
+            "disabled"
+          ]
         }
       ]
     },
@@ -4362,7 +5646,16 @@
           "id": "listbox--cursor-only",
           "name": "Cursor only",
           "args": {
-            "items": ["Apple", "Apricot", "Banana", "Blackberry", "Cherry", "Fig", "Grape", "Kiwi"],
+            "items": [
+              "Apple",
+              "Apricot",
+              "Banana",
+              "Blackberry",
+              "Cherry",
+              "Fig",
+              "Grape",
+              "Kiwi"
+            ],
             "label": "Fruit",
             "selectionMode": "none",
             "defaultValue": []
@@ -4380,10 +5673,21 @@
           "id": "listbox--default",
           "name": "Default",
           "args": {
-            "items": ["Apple", "Apricot", "Banana", "Blackberry", "Cherry", "Fig", "Grape", "Kiwi"],
+            "items": [
+              "Apple",
+              "Apricot",
+              "Banana",
+              "Blackberry",
+              "Cherry",
+              "Fig",
+              "Grape",
+              "Kiwi"
+            ],
             "label": "Fruit",
             "selectionMode": "single",
-            "defaultValue": [2]
+            "defaultValue": [
+              2
+            ]
           },
           "declares": [
             "items",
@@ -4398,10 +5702,22 @@
           "id": "listbox--multiple",
           "name": "Multiple",
           "args": {
-            "items": ["Apple", "Apricot", "Banana", "Blackberry", "Cherry", "Fig", "Grape", "Kiwi"],
+            "items": [
+              "Apple",
+              "Apricot",
+              "Banana",
+              "Blackberry",
+              "Cherry",
+              "Fig",
+              "Grape",
+              "Kiwi"
+            ],
             "label": "Fruit",
             "selectionMode": "multiple",
-            "defaultValue": [0, 3]
+            "defaultValue": [
+              0,
+              3
+            ]
           },
           "declares": [
             "items",
@@ -4428,7 +5744,14 @@
             "tone": "default",
             "current": true
           },
-          "declares": ["children", "href", "tone", "current", "native", "disabled"]
+          "declares": [
+            "children",
+            "href",
+            "tone",
+            "current",
+            "native",
+            "disabled"
+          ]
         },
         {
           "id": "link--default",
@@ -4438,7 +5761,14 @@
             "href": "#link",
             "tone": "default"
           },
-          "declares": ["children", "href", "tone", "native", "current", "disabled"]
+          "declares": [
+            "children",
+            "href",
+            "tone",
+            "native",
+            "current",
+            "disabled"
+          ]
         },
         {
           "id": "link--disabled",
@@ -4449,7 +5779,14 @@
             "tone": "default",
             "disabled": true
           },
-          "declares": ["children", "href", "tone", "disabled", "native", "current"]
+          "declares": [
+            "children",
+            "href",
+            "tone",
+            "disabled",
+            "native",
+            "current"
+          ]
         }
       ]
     },

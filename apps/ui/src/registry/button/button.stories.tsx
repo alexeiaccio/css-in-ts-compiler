@@ -5,7 +5,7 @@ import type { JSX } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import type { Meta, Story } from "@cssints/stories";
-import { Button, type ButtonProps } from "./button.tsx";
+import { Button, ButtonIcon, type ButtonProps } from "./button.tsx";
 
 const meta = {
   title: "Button",
@@ -26,6 +26,39 @@ export const Accent: Story<ButtonProps> = { args: { tone: "accent", children: "P
 export const Quiet: Story<ButtonProps> = { args: { tone: "quiet", children: "Cancel" } };
 
 export const Disabled: Story<ButtonProps> = { args: { disabled: true } };
+
+// An icon is one line box square and sits on the cap height: the label and the glyph read as one line, not as a glyph with a
+// caption. `ButtonIcon` is `aria-hidden` — the label carries the meaning.
+export const WithIcon: Story<ButtonProps> = {
+  name: "With an icon",
+  render: () => (
+    <div class="demo-row">
+      <Button>
+        <ButtonIcon>
+          <svg viewBox="0 0 16 16" width="100%" height="100%" aria-hidden="true">
+            <path
+              d="M3 8.5 6.5 12 13 4.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </ButtonIcon>
+        Save
+      </Button>
+      <Button tone="accent">
+        <ButtonIcon>
+          <svg viewBox="0 0 16 16" width="100%" height="100%" aria-hidden="true">
+            <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </ButtonIcon>
+        Publish
+      </Button>
+    </div>
+  ),
+};
 
 export const Tones: Story<ButtonProps> = {
   render: () => (

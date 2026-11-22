@@ -1113,6 +1113,32 @@ shade("red", { by: "red" }); // error: tint.shade(2).by: unexpected "red"
 - **Errors** are `MemberError` values with the file, site and offset of the call, and `pluginName` is the scope: `tint: unexpected "solid" in "red solid", expected <percentage>` for the parts (the label is the member's `label`, else its key; a tuple's message names the position, `tint.shade(2).by: ...`); a `value` that throws (`cssints: boom: no luck`, any `Error`) or returns something else than a string or a Typed OM value (`cssints: tint() value must return a string or a Typed OM value`). A result that does not fit the property is that property's error, at the same site (`width: unexpected "color-mix(in" in "color-mix(in oklab, red, blue)"`): the engine cannot know the property a function is used for.
 - **Limits.** With a grammar as `args`, the parts are joined with a space, so it cannot tell the arguments apart (`<color> <color>` takes `"red", "blue"` and `"red blue"`; check `parts.length` in `value`, or use a tuple). A token is checked as the values of its type, so a wrong one is named by its value: `unexpected "1px" in "oklab 1px red"`. The css functions above are not value members: `lightDark(a, b)` is the text `light-dark(a, b)`, whose choice is the browser's at the element.
 
+### Optical spacing: `lh`, `cap` and `text-box`
+
+A line box is taller than the cap height of the text in it, so a label centred by its line box sits low against an icon and
+against symmetric padding. Both fixes are expressible: the modern one trims the leading, the arithmetic one derives the
+horizontal padding from the vertical.
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+
+const py = "0.875em";
+
+// padding-inline: calc(0.875em + calc(1lh - 1cap) / 2); text-box: trim-both cap alphabetic
+export const pill = css.cn(
+  css.paddingBlock(py),
+  css.paddingInline(css.calc(py, "+", css.calc("1lh", "-", "1cap"), "/", 2)),
+  css.textBox("trim-both cap alphabetic"),
+);
+```
+
+- **`text-box` first.** `trim-both cap alphabetic` cuts the leading above the cap and below the baseline, so the line box is the glyph box and a symmetric `padding` is already even; `textBox`, `textBoxTrim` and `textBoxEdge` are members like any other property, and `check.support` says when the targets do not have it (Chrome 133, Edge 133, Firefox 154, Safari 18.2).
+- **The `calc` where they do not.** With the vertical padding as the source of truth, the horizontal one is `calc(--py + (1lh - 1cap) / 2)` — half the leading added to the side where the text does not sit — and an icon is `1lh` square with `margin-inline-end: calc(--py - --px)` so the gap to the label and to the edge read the same. `lh` and `cap` are length units the grammar already knows, so a token or a string both work (`css.inlineSize("1lh")`).
+- **Measure, do not assume.** On the kit's own stack (Arial, `12px`, a `16px` line box) an icon centred on the line box is
+  **0.01px** from the centre of the label's ink, and the `(1lh - 1cap) / 2` nudge moves it 1.5px the wrong way; the same
+  arithmetic is what a font with off-centre metrics needs. So `ButtonIcon` is sized `1lh` and centred, nothing more, and a
+  component that changes its font re-measures rather than copying the calc.
+
 ### Lines and shapes: `shape()` and `border-shape` (decided 2026-11-12, cssints-n7jz)
 
 `shape()` (css-shapes-1 §3.1.1) is a value like any other, so it is checked and printed like one: the commands of an SVG

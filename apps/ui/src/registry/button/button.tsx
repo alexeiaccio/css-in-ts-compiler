@@ -144,6 +144,28 @@ const button = css.cv({
   defaultVariants: { tone: "neutral", size: "md" },
 });
 
+// `1lh`: the icon is the height of the line box it sits in, and no nudge is needed at this font (docs/API.md, "Optical spacing").
+const icon = css.cn(
+  css.display("inline-flex"),
+  css.inlineSize("1lh"),
+  css.blockSize("1lh"),
+  css.alignItems("center"),
+  css.justifyContent("center"),
+  css.flexShrink("0"),
+);
+
+/** A glyph that belongs to a `Button`: `aria-hidden`, one line box square, and aligned to the caps of the label. */
+export interface ButtonIconProps extends PartProps {
+  readonly children?: JSX.Element;
+  readonly class?: string;
+}
+
+export const ButtonIcon = (props: ButtonIconProps): JSX.Element => (
+  <span data-part="button-icon" aria-hidden="true" class={css.cn(icon, props.class)}>
+    {props.children}
+  </span>
+);
+
 /**
  * APG button, styled: a command button, and a toggle button with `isToggle`. `tone` and `size` are the look; `render`
  * replaces the `<button>` with another component or tag (`<a>` for a link that acts as a button). A pressed toggle, a

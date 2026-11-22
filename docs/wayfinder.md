@@ -6085,3 +6085,15 @@ sizing, not direction), the dominant `borderBottom` is the tabs' rule and must s
 `left`/`top`/`right`/`bottom` are overlays anchored by their own `side` API; what is left is **5 flow-relative calls**
 (three `marginLeft`, a `marginTop`, a `paddingTop`) to change when touched. RTL is claimed by the sliders, which carry
 `dir: "rtl"` cases; a component that claims it gets the same test, so the rest is LTR by statement rather than by accident.
+
+**The optical-spacing calc, measured (haz.dev's "CSS 🤝 Math", 2026-11-22):** the post derives horizontal padding from the
+vertical one — `--px: calc(--py + (1lh - 1cap) / 2)` — and sizes an icon `1lh`, because a line box is taller than the caps in
+it. Our engine already has every ingredient (`lh`, `cap` and `calc` compile; `textBox`/`textBoxTrim`/`textBoxEdge` are
+members, Baseline since Chrome 133, Firefox 154, Safari 18.2), so the work was to measure before applying. In Chrome 156 on
+the kit's stack (Arial 12px, a 16px line box), an icon centred on the line box is **0.01px** from the centre of the label's
+ink, and the post's nudge moves it **1.5px the wrong way**; `text-box` applied to the button changes nothing (the anonymous
+flex item's line box is not trimmed by it) and applied broadly only removes 2px of leading without moving the ink. So
+`ButtonIcon` is `1lh` square and centred, nothing more, with a browser test holding both (icon height == line box, icon centre
+within 0.75px of the ink centre), and `docs/API.md` "Optical spacing" carries both forms for the font that does need the
+arithmetic. The lesson is the one the docs section now states: the constant is a property of the font, so it is re-measured,
+not copied.
