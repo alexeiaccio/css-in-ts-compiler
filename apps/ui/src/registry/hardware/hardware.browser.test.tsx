@@ -16,8 +16,7 @@ import { Rocker } from "./rocker.tsx";
 import { SlideSwitch } from "./slide-switch.tsx";
 
 // The skin's own oracle: the primitives are checked in packages/headless, so this file never re-walks a pattern. It reads
-// what the sheet hangs off the primitives' announced state — `aria-pressed`, `aria-checked`, `aria-valuenow`, `role` — and
-// the attributes the skin adds (`data-part`, `data-state`), then drives the two interactive parts the way a reader does.
+// what the sheet hangs off their announced state (`aria-pressed`, `aria-checked`, `aria-valuenow`, `role`) and drives them.
 
 /** Solid applies setters and delegated events on a later tick; two frames let the paint settle before a style is read. */
 const frame = (): Promise<void> =>
@@ -356,11 +355,9 @@ describe("the printed legends", () => {
       expect(ratio, `${name} "${text}" at ${size}px`).toBeGreaterThanOrEqual(floorFor(size));
     }
 
-    // the exception is the rule, not a hole in it: only the screen's figure is large enough to sit at 3 : 1
     const value = part(root, "lcd-value");
     expect(Number.parseFloat(getComputedStyle(value).fontSize)).toBeGreaterThanOrEqual(18.66);
 
-    // every legend of the set was measured: a renamed part fails here rather than passing unmeasured
     for (const name of [
       "faceplate-title",
       "lcd-tag",
@@ -425,7 +422,6 @@ describe("the key", () => {
     expect(latch?.getAttribute("role")).toBe("button");
     expect(latch?.getAttribute("aria-label")).toBe("Mute the output");
     expect(latch?.getAttribute("aria-pressed")).toBe("false");
-    // a command key is not a toggle: no aria-pressed at all
     expect(command?.hasAttribute("aria-pressed")).toBe(false);
 
     await userEvent.click(latch!);
@@ -443,7 +439,7 @@ describe("the key", () => {
     const hole = part(root, "key");
     const cap = part(root, "key-face");
     const rest = getComputedStyle(cap).translate;
-    // one number drives both: the sheet's --lift is the travel at rest and 0 latched, and the cap's translate reads it
+    // one number drives both: --lift is the travel at rest, 0 latched
     expect(lift(hole)).toBe("10px");
 
     await userEvent.click(hole);
@@ -475,7 +471,7 @@ describe("the key", () => {
     ));
     const hole = await tabTo(root, "key");
     const style = getComputedStyle(hole);
-    // an outline, not a shadow: a ring painted with box-shadow is clipped by the hole's own overflow and reads as the key
+    // an outline, not a shadow: the hole's overflow clips a shadow ring
     expect(style.outlineStyle).toBe("solid");
     expect(parseFloat(style.outlineWidth)).toBeGreaterThanOrEqual(2);
     expect(style.boxShadow).not.toContain(style.outlineColor);
@@ -535,20 +531,10 @@ describe("the fader", () => {
 });
 
 describe("the layout", () => {
-  // What a skin can break without any attribute changing: a part with no box, a part that spills out of the panel it
-  // stands on, two parts on one row landing on each other. None of that fails a name, a contrast or an ARIA check, and a
-  // screenshot review catches it only if someone looks at that skin, at that width.
-  //
-  // The checks are geometric invariants, not a pixel snapshot: a snapshot breaks on a font or a platform and teaches
-  // people to re-record it, while "a key is not on top of the key beside it" is true at every size and says what broke.
+  // Geometric invariants, not a pixel snapshot: a snapshot breaks on a font or a platform, while "a key is not on top of
+  // the key beside it" is true at every size and says what broke. An sr-only value and an absolutely positioned layer are
+  // not findings; the rule is about the flow.
   const SLACK = 1;
-
-  // Two of the skin's own patterns look like findings and are not, so the rule names them:
-  //
-  //   - a live value is in the page and out of sight (`clip-path: inset(50%)`, 1x1). That is the sr-only idiom, not a
-  //     part that collapsed;
-  //   - a layer is a layer. The dial's print, its pointer and the fill under a fader's cap are absolutely positioned
-  //     on purpose; what the rule is for is the *flow*: a row whose parts do not fit, a grid cell on its neighbour.
   const outOfSight = (element: HTMLElement): boolean => {
     const style = getComputedStyle(element);
     return style.clipPath === "inset(50%)" || style.clip === "rect(0px, 0px, 0px, 0px)";
