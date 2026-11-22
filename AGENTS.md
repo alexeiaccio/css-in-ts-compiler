@@ -88,6 +88,14 @@ registry files did exactly that (two merged PRs undone: a deleted scratch file c
 section vanished). Stage the generated paths onto master's tree in an index of its own
 (`git read-tree origin/master` + `git add -- <paths>` + `git commit-tree -p origin/master`) so nothing else can travel.
 
+## Prohibited
+
+`docs/prohibited.md` is the list of legal CSS this repository does not generate, and the thing that holds each line: the
+compiler (an unknown value, an unlayered rule, `!important`), a gate (`no-prose-comments`, `no-test-sleep`, the comment
+budget, the forced-colours test), or a reviewer (a literal where a token exists, colour as the only channel for state,
+`z-index` as a magic number, a physical property in a component that claims RTL). Add to it only with the gate, or with the
+sentence that says why no gate can decide it.
+
 ## Commands
 
 ```bash

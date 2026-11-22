@@ -79,6 +79,10 @@ tree with the tabs.
 The same skin's `narrow` mode renders those sections as an accordion, one open, below the host's 800 px breakpoint
 (`matchMedia("(max-width: 799px)")` in `tabs.fixture.tsx`); the primitive is untouched.
 
+The CSS this kit deliberately does not write — literals instead of tokens, colour as the only channel for state, `z-index`
+as a magic number, a physical property in a component that claims RTL — is `docs/prohibited.md`, with the gate that holds
+each line.
+
 ## Charts: the accessibility bar
 
 Every chart starter is held to the same checks, taken from Frank Elavsky's _Accessibility in Data Visualization_ (Open

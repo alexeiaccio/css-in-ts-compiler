@@ -6071,3 +6071,17 @@ plugin packages and check a declaration but cannot add a starter. That is bean'd
 content and a link keeps its click, the pointer lands as percentages and the gradient follows, focus inside and hover each
 fade it in), plus the site's own run on the new item (`apps/ui` 71 files / 1030 tests, `test:site`, the registry and
 catalogue regenerated to 69 items).
+=======
+
+**Prohibited, and the physical/logical non-decision (css-reasoning-engine, 2026-11-22):** Sensiblemnd's "CSS Skills" is three
+agent roles (engineer, reviewer, refactor) over one shared rules base plus a zero-dependency linter — the prose version of what
+`css-grammar`, `check.support`, `groups`, the `@cssints/mcp` tools and the devtools cascade already do executably. The one
+thing it has that we did not is a **shared "never generate" list addressed to the agent**, so `docs/prohibited.md` now says
+what holds each line: the compiler (an unknown value, an unlayered rule, `!important` — cssints has no member for it), a gate
+(prose comments on added lines, `setTimeout` in tests, the comment budget, the forced-colours test), or a reviewer (a literal
+where a token exists, colour as the only channel for state, `z-index` as a magic number). The physical/logical question was
+decided rather than ratcheted: **233 physical calls against 53 logical**, and ~160 of the 233 are `width`/`height` (graphical
+sizing, not direction), the dominant `borderBottom` is the tabs' rule and must stay on the visual bottom, and
+`left`/`top`/`right`/`bottom` are overlays anchored by their own `side` API; what is left is **5 flow-relative calls**
+(three `marginLeft`, a `marginTop`, a `paddingTop`) to change when touched. RTL is claimed by the sliders, which carry
+`dir: "rtl"` cases; a component that claims it gets the same test, so the rest is LTR by statement rather than by accident.
