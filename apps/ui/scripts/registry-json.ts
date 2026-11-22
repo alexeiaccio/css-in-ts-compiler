@@ -321,6 +321,14 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row",
   },
   {
+    tested: true,
+    name: "spotlight",
+    with: ["render.tsx", "theme.ts", "tokens.ts"],
+    title: "Spotlight",
+    description:
+      "A card whose light follows the pointer: the position as `--spot-x` / `--spot-y`, the gradient under the content, and the light on hover or on focus inside",
+  },
+  {
     name: "stat",
     tested: true,
     // the tile draws its samples with `Sparkline`, so the line is one component and not a copy of it

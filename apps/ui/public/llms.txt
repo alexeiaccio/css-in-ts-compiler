@@ -54,6 +54,7 @@ TypeScript — read the item's `tsx` beside the story, or `compile` it through c
 - columns: A column chart as a list: one bar per category, its height the value, and the number in text above it. `add @cssints/columns`
 - bars: A multi-series bar chart as a table: each bar a background sized by its value, and the header row a legend of checkboxes that hide a series. `add @cssints/bars`
 - donut: A donut chart as a list: each slice the item's clipped `conic-gradient()` ring, with its name and share in the row. `add @cssints/donut`
+- spotlight: A card whose light follows the pointer: the position as `--spot-x` / `--spot-y`, the gradient under the content, and the light on hover or on focus inside. `add @cssints/spotlight`
 - stat: A stat tile: the metric's name, the value as `<data>`, the change in words on a chip and its samples as a sparkline. `add @cssints/stat`
 - heatmap: A heatmap as a table: every cell a square coloured by `color-mix()` from its share of the scale. `add @cssints/heatmap`
 - board: A design system on a DOM plane: token cards with their value and their rule, the components that use them, a line per use, a token's value you type into and watch the whole map follow, and an outline that reads the plane in order. `add @cssints/board`

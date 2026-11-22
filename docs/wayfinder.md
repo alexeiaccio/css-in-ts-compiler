@@ -6036,3 +6036,38 @@ want beyond that is exactly this animation, which the kit now has.
 **Verified:** `apps/ui/src/registry/reorder/reorder.browser.test.tsx` (4 in Chromium: the listbox contract, a pointer drag
 onto another row, Alt+Arrow with the announcement and the focus kept — now also asserting a row animates — and Home / End),
 and the probe app's Vite build for the Dragology side (357 kB / 117 kB gzip, `dragology@0.2.0`, React 19).
+
+## Solid Bits: 217 animated components, and the one idea the kit takes (2026-11-22)
+
+David Haz's [Solid Bits](https://solid-bits.dev) is the official Solid port of React Bits: 217 free animated components
+and backgrounds in Solid 2.0, each one TSX file with a plain CSS file beside it when it needs one, delivered by `jsrepo`
+through its shadcn output (`public/r/*.json`, the same `registry-item.json` schema `apps/ui` emits). The catalogue site is
+a real product — live demos with controls, favourites, search, an AI-export menu and an MCP server — and the repository
+was three days old when this was written, which is what a port looks like.
+
+**The catalogue and the kit do not overlap, and that is the verdict on copying.** Their 217 items are motion and
+background candy (33 text animations, 38 cursor/hover effects, WebGL and canvas backgrounds; the site's own dependencies
+are three, gsap, ogl, matter-js and motion), while the kit's 69 are APG-shaped widgets with a contract, a headless
+primitive and a browser test. Their licence is MIT **plus Commons Clause**: the components may be used in an application,
+but not sold, sublicensed or redistributed "alone, in a bundle, template, or as a ported version" — so no starter here
+can be a port of one, and none is.
+
+**The one idea worth taking is the pointer-follow highlight**, the genre's reusable primitive. Their `GlareHover` is 11.4 kB
+of TSX plus CSS: four modes (`hover`, `follow`, `loop`, `click`), a 33-stop `color-mix()` gradient computed in JavaScript,
+`smootherstep` bump profiles, a sweep engine and a masked rim glint. The kit had nothing of the kind, and `spotlight` (item 69) is the idea in the engine's own terms: one `pointermove` writes `--spot-x` / `--spot-y` as percentages on the card, a
+`radialGradient` over `colorMix(theme highlight)` reads them with fallbacks, the light is a `z-index: -1` child of an
+isolated card (over the surface, under the content, no wrapper), it fades in on `hover` or on `:focus-within`, and the
+transition exists only under `prefers-reduced-motion: no-preference`. No runtime style object, no per-pixel class, no
+animation loop — the only script is the two properties.
+
+**What the cssints form adds** is that the gradient is still made of the theme's token, so `data-mode="dark"` moves the
+light with the card, and the vendor-prefix story is the engine's: their CSS hand-writes `-webkit-mask-composite: xor`, while
+`maskComposite("exclude")` here becomes `-webkit-mask-composite: xor` under LightningCSS for a Safari target (checked with
+`lightningcss.transform`). Their registry model is ours (`jsrepo` is a different generator for the same JSON); the one
+product idea we do not have is theirs: an agent-facing install path for the catalogue, where `@cssints/mcp` can list the
+plugin packages and check a declaration but cannot add a starter. That is bean'd separately, not built here.
+
+**Verified:** `apps/ui/src/registry/spotlight/spotlight.browser.test.tsx` (3 in Chromium: the light is decoration under the
+content and a link keeps its click, the pointer lands as percentages and the gradient follows, focus inside and hover each
+fade it in), plus the site's own run on the new item (`apps/ui` 71 files / 1030 tests, `test:site`, the registry and
+catalogue regenerated to 69 items).

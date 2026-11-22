@@ -1720,6 +1720,31 @@
       ]
     },
     {
+      "name": "spotlight",
+      "title": "Spotlight",
+      "description": "A card whose light follows the pointer: the position as `--spot-x` / `--spot-y`, the gradient under the content, and the light on hover or on focus inside",
+      "stories": [
+        {
+          "id": "spotlight--in-dark-mode",
+          "name": "In dark mode",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "spotlight--text",
+          "name": "Text",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "spotlight--with-a-control",
+          "name": "With a control",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
       "name": "stat",
       "title": "Stat",
       "description": "A stat tile: the metric's name, the value as `<data>`, the change in words on a chip and its samples as a sparkline",
