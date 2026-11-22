@@ -533,3 +533,105 @@ describe("the fader", () => {
     expect(contrastRatio(style.outlineColor, panelOf(cap))).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe("the layout", () => {
+  // What a skin can break without any attribute changing: a part with no box, a part that spills out of the panel it
+  // stands on, two parts on one row landing on each other. None of that fails a name, a contrast or an ARIA check, and a
+  // screenshot review catches it only if someone looks at that skin, at that width.
+  //
+  // The checks are geometric invariants, not a pixel snapshot: a snapshot breaks on a font or a platform and teaches
+  // people to re-record it, while "a key is not on top of the key beside it" is true at every size and says what broke.
+  const SLACK = 1;
+
+  // Two of the skin's own patterns look like findings and are not, so the rule names them:
+  //
+  //   - a live value is in the page and out of sight (`clip-path: inset(50%)`, 1x1). That is the sr-only idiom, not a
+  //     part that collapsed;
+  //   - a layer is a layer. The dial's print, its pointer and the fill under a fader's cap are absolutely positioned
+  //     on purpose; what the rule is for is the *flow*: a row whose parts do not fit, a grid cell on its neighbour.
+  const outOfSight = (element: HTMLElement): boolean => {
+    const style = getComputedStyle(element);
+    return style.clipPath === "inset(50%)" || style.clip === "rect(0px, 0px, 0px, 0px)";
+  };
+  const inFlow = (element: HTMLElement): boolean => {
+    const position = getComputedStyle(element).position;
+    return position !== "absolute" && position !== "fixed";
+  };
+
+  const inside = (inner: DOMRect, outer: DOMRect): boolean =>
+    inner.left >= outer.left - SLACK &&
+    inner.top >= outer.top - SLACK &&
+    inner.right <= outer.right + SLACK &&
+    inner.bottom <= outer.bottom + SLACK;
+
+  const overlap = (a: DOMRect, b: DOMRect): boolean =>
+    Math.min(a.right, b.right) - Math.max(a.left, b.left) > SLACK &&
+    Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > SLACK;
+
+  const findingsIn = (root: HTMLElement): ReadonlyArray<string> => {
+    const findings: string[] = [];
+    const parts = [...root.querySelectorAll<HTMLElement>("[data-part]")];
+    const parentOf = (element: HTMLElement): HTMLElement | null =>
+      element.parentElement?.closest<HTMLElement>("[data-part]") ?? null;
+    const siblings = new Map<HTMLElement | null, HTMLElement[]>();
+
+    for (const element of parts) {
+      const name = element.dataset["part"] ?? "?";
+      const parent = parentOf(element);
+      const list = siblings.get(parent) ?? [];
+      list.push(element);
+      siblings.set(parent, list);
+
+      if (element.hidden || element.getClientRects().length === 0 || outOfSight(element)) {
+        continue;
+      }
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) {
+        findings.push(`${name} has no box (${Math.round(rect.width)}x${Math.round(rect.height)})`);
+      }
+      // A flow box belongs inside the part it sits on; a layer may hang past it on purpose.
+      if (parent !== null && inFlow(element) && !inside(rect, parent.getBoundingClientRect())) {
+        findings.push(`${name} spills out of ${parent.dataset["part"] ?? "?"}`);
+      }
+    }
+
+    for (const [, group] of siblings) {
+      for (let a = 0; a < group.length; a += 1) {
+        for (let b = a + 1; b < group.length; b += 1) {
+          const first = group[a];
+          const second = group[b];
+          if (first === undefined || second === undefined) continue;
+          if (!inFlow(first) || !inFlow(second)) continue;
+          if (overlap(first.getBoundingClientRect(), second.getBoundingClientRect())) {
+            findings.push(
+              `${first.dataset["part"] ?? "?"} overlaps ${second.dataset["part"] ?? "?"}`,
+            );
+          }
+        }
+      }
+    }
+    return findings;
+  };
+
+  it("keeps every part in its place on the whole instrument", async () => {
+    const { root } = mount(() => <Device />);
+    await frame();
+    expect(findingsIn(root)).toEqual([]);
+  });
+
+  it("keeps every part in its place on a row of parts", async () => {
+    const { root } = mount(() => (
+      <Faceplate title="Row">
+        <div data-part="row">
+          <Key label="One" legend="1" />
+          <Key label="Two" legend="2" />
+          <Led label="Lit" legend="Sig" on />
+          <Fader label="Level" min={0} max={100} value={40} />
+          <Dial label="Tone" min={0} max={10} step={1} value={5} />
+        </div>
+      </Faceplate>
+    ));
+    await frame();
+    expect(findingsIn(root)).toEqual([]);
+  });
+});
