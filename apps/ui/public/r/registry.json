@@ -3212,6 +3212,11 @@
           "type": "registry:ui"
         },
         {
+          "path": "flip.ts",
+          "target": "src/components/ui/flip.ts",
+          "type": "registry:file"
+        },
+        {
           "path": "theme.ts",
           "target": "src/components/ui/theme.ts",
           "type": "registry:file"

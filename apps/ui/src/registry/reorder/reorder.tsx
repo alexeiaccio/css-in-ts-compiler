@@ -11,6 +11,7 @@ import {
   untrack,
 } from "solid-js";
 
+import { captureRects, playFlip, type Rects } from "../flip.ts";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 /** One row of the list: its words, and the line under them. */
@@ -206,6 +207,11 @@ export const Reorder = (props: ReorderProps): JSX.Element => {
         }
       }
       untrack(() => props.onReorder)?.(ids.map(itemAt));
+      if (before !== undefined) {
+        const rects = before;
+        before = undefined;
+        queueMicrotask(() => playFlip(rects));
+      }
     },
   );
 
@@ -213,6 +219,7 @@ export const Reorder = (props: ReorderProps): JSX.Element => {
 
   /** The primitive says where the order is; the rows are the DOM, and the move is one step at a time. */
   const moveTo = (id: number, target: number): void => {
+    measure();
     let from = order().indexOf(id);
     const to = order().indexOf(target);
     while (from >= 0 && to >= 0 && from !== to) {
@@ -226,6 +233,10 @@ export const Reorder = (props: ReorderProps): JSX.Element => {
   };
 
   const [dragging, setDragging] = createSignal<number | null>(null);
+  let before: Rects | undefined;
+  const measure = (): void => {
+    before = captureRects(list?.querySelectorAll<HTMLElement>('[data-part="reorder-row"]') ?? []);
+  };
 
   const endDrag = (): void => {
     setDragging(null);
@@ -270,6 +281,9 @@ export const Reorder = (props: ReorderProps): JSX.Element => {
     if (event.key === "Enter" || event.key === "Delete") {
       event.preventDefault();
       return;
+    }
+    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+      measure();
     }
     listbox.listProps("a").onKeyDown(event);
   };

@@ -172,6 +172,8 @@ describe("Reorder", () => {
 
     await press(element, "ArrowUp", true);
     expect(labels(root)).toEqual(["Home", "Library", "Search", "Radio", "Podcasts", "Settings"]);
+    const rows = [...root.querySelectorAll<HTMLElement>('[data-part="reorder-row"]')];
+    expect(rows.some((row) => row.getAnimations().length > 0)).toBe(true);
     const library = rowByLabel(root, "Library");
     expect(library.getAttribute("aria-posinset")).toBe("2");
     expect(library.getAttribute("aria-selected")).toBe("true");

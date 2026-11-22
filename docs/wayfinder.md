@@ -5988,7 +5988,7 @@ the number cannot creep back, and `/delete-comment` is the pass that lowers it. 
 sentence a reader of that function sees.
 
 **Forced colours, verified for the first time (ReliCSS Code Scrolls, 2026-11-20):** Stu Robson's bookmarklets are a set of
-front-end archaeology tools; four of the five have a superset in `@cssints/devtools`, and the fifth — a *simulation* of forced
+front-end archaeology tools; four of the five have a superset in `@cssints/devtools`, and the fifth — a _simulation_ of forced
 colours — is exactly the tool not to copy, because the mode cannot be faked (`@media (forced-colors: active)` will not match,
 `forced-color-adjust` is ignored). It pointed at a real hole instead: `forcedColorsTheme` was defined and applied since the
 kit existed and **no test ever ran in the mode**. `apps/ui/test/forced-colors.mjs` (playwright-core, `emulateMedia({
@@ -5998,3 +5998,41 @@ would be gone), and the selected tab keeps a **thicker** underline than its sibl
 width is not). The kit passed without a fix, by construction rather than by luck: the components frame with `border`, never a
 shadow, and the tab state is a width. The guard is the deliverable — one redesign that moves a boundary to a shadow fails
 here and nowhere else.
+
+## Declarative dragging, built twice: a dependency not taken, one idea borrowed (cssints-2cxd, 2026-11-22)
+
+Horowitz, Blinn and Heer's _Declarative Dragging_ (UIST 2026 best paper; the library is `dragology@0.2.0`, MIT, and
+`declarative-dragging.github.io`) inverts drag and drop: the author declares which future model states dragging an element
+should reach, and the engine renders them speculatively, reads where the dragged element lands in each, and synthesises the
+feedback, the snapping and the animation.
+
+**The experiment was the reorderable list**, because both sides already ship one: Dragology's `examples/consumer` has a list
+whose rows declare `d.closest(items.map((_, j) => ({ items: moveItem(items, i, j) }))).withFloating()`, and the kit's
+`reorder` starter is the same interaction with the APG keyboard path. A probe app with that list (React 19 + dragology,
+built by Vite) weighs **357 kB, 117 kB gzipped**, for 24 lines of authoring; the kit's side is 345 lines of component and
+skin over `createRearrangeableListbox`, but it is DOM buttons with `aria-posinset`, `aria-setsize`,
+`aria-activedescendant`, Alt+↑ / Alt+↓, a polite status line, four browser tests and the engine's checked CSS — and none of
+React, SVG view trees, immer, five d3 packages and lodash.
+
+**Not taken: the dependency.** Its `Draggable` returns a React SVG element and its `SetState` is React's: taking it would
+put a second rendering model (SVG view trees) under components that are DOM attributes, add React to a Solid kit, and leave
+the keyboard and ARIA paths — the part this repository owns — to be rebuilt by hand on elements that are not focusable
+buttons.
+
+**Borrowed: the animation, which was the one thing it gave that we lacked.** The kit's reorder _jumped_ to the new order;
+Dragology interpolates. `apps/ui/src/registry/flip.ts` is that idea in 40 lines with no dependency: capture each row's box
+before the move, and after the DOM update play the delta as a `translate()` animation through the Web Animations API — only
+`transform`, so the move stays off the main thread, and `prefers-reduced-motion` skips it. Two details the experiment
+taught: Solid's user effects run _before_ the DOM patch, so the measurement and the play have to happen in a microtask after
+the flush (the first version measured the old positions and animated nothing), and a pointer drag that steps through rows
+must measure once per gesture so the whole move is one animation. The row assertion reads `getAnimations()`, so the test
+fails if the animation stops starting.
+
+The rest of the paper's idea is already data here, which is why the engine would be the only thing bought: `createCanvas`
+takes `snapCandidates` (the reachable positions of a drag, declared) and exposes a `landing` preview, `createDropzone` its
+targets, and the board its columns. What a _pile_ — the demo gallery's card piles, free placement rather than a value — would
+want beyond that is exactly this animation, which the kit now has.
+
+**Verified:** `apps/ui/src/registry/reorder/reorder.browser.test.tsx` (4 in Chromium: the listbox contract, a pointer drag
+onto another row, Alt+Arrow with the announcement and the focus kept — now also asserting a row animates — and Home / End),
+and the probe app's Vite build for the Dragology side (357 kB / 117 kB gzip, `dragology@0.2.0`, React 19).

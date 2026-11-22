@@ -593,7 +593,7 @@ const STARTERS: ReadonlyArray<Starter> = [
     tested: true,
     // the APG rearrangeable listbox's Quint spec walks the primitive; this starter renders one of its two lists
     name: "reorder",
-    with: ["theme.ts", "tokens.ts"],
+    with: ["flip.ts", "theme.ts", "tokens.ts"],
     title: "Reorderable list",
     description:
       "A list whose order the reader changes: a drag handle, Alt+↑ / Alt+↓ on the focused row, each row's position, and a status line that says where it moved",
