@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@cssints/apg-specs": "workspace:*",
-    "@quint-machine/core": "^0.1.0",
+    "@quint-machine/core": "catalog:",
     "cssints": "workspace:*",
     "vite": "catalog:"
   },

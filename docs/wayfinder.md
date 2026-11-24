@@ -6124,3 +6124,41 @@ Two rules stay off although they are about real behaviour, and the config says w
 nothing today — `strict-msw`, `no-silent-catch`, `no-shared-signal`, `no-clipboard-read-text`, `no-styling-class-assertion`,
 `no-project-max-workers`, `colocated-tests`, `no-github-scripts`, `no-cold-import-in-test`, `no-parameter-branch`,
 `no-self-container-query`, `no-stale-render-assertion` — the guard for what is written next.
+
+**The dependencies, and Solid out of RC (2026-11-24):** the monorepo ran `solid-js 2.0.0-rc.21` in eight manifests and
+`effect 4.0.6` in seven, with the same spec written out in each. The root `catalog` now holds the shared ones — `solid-js
+2.0.3`, `@solidjs/web 2.0.3`, `@solidjs/vite-plugin 3.0.1`, `@solidjs/router 2.0.1`, `@solidjs/compiler` and
+`@solidjs/babel-plugin 2.0.2`, `effect 4.1.5` with `@effect/platform-node`/`-bun`, `playwright 1.65.1` and
+`playwright-core`, `@vitest/browser-playwright 5.1.1`, `culori`, `lightningcss`, `happy-dom`, `mdn-data` (held at 2.27.1),
+`magic-string`, the two iconify sets — and `vite`/`vite-plus` moved to `8.3.8001`/`1.8.0` (vitest 5.1.1, oxlint 1.94).
+`csssky-tui` keeps `solid-js 1.9.12` for OpenTUI, and `typescript` stays 5.9 because the repo pins tsc 5.9 by path and
+`latest` is now 7.
+
+Six things had to change with the bump, each a real difference rather than a rename:
+
+- **A ref is not a scope in Solid 2.0.3.** `[CLEANUP_IN_FORBIDDEN_SCOPE]` — `createRadioGroup` registered its `onCleanup`
+  and its flavour effect inside the tablist's ref (under `runWithOwner`, which 2.0.3 also refuses there). The element is a
+  signal now (`hostElement`), the ref only names it, and the cleanup and the effect live in the primitive's body: the
+  radio's 37 tests went from red to green with that one move.
+- **The sheet a browser test paints.** `virtual:cssints.css` is cached per page, so the second file of a run painted the
+  first file's CSS — nothing styled, `padding` 1px instead of 8px, 118 failing tests in the kit. The engine gained
+  `virtual:cssints/sheet.css` (the same sheet, resolved without the `\0` prefix, so a query makes a fresh module), and the
+  test setups import it with a per-file query: 118 → 0.
+- **The pointer outlives its test.** With the page per file, `donut` read no animation and `spotlight`'s glow never went
+  dark, both because a pointer parked over the widget by an earlier test kept `:hover`. `apps/ui` now parks it on a 1px
+  corner element between tests, as `packages/headless` already did.
+- **Chrome 159 is a different browser.** Playwright 1.65.1 ships it: `justify-content: flex-end` computes as `flow-end`,
+  and the card's assertion says so; a transition onto a pseudo-element needs the start value computed first, which the
+  donut's test now does.
+- **`Layer.mergeAll` is checked now.** `effect/ai`'s McpServer case: the toolkit and the stdio layer were merged in
+  parallel while one provided what the other needed — `layerStdio({ registrations })` is the 4.1.5 shape.
+- **`Digest` is a service the codegen needs.** `generateModelArtifacts` requires `effect/crypto/Digest`; `NodeCrypto.layerDigest`
+  provides it, and `NodeRuntime.runMain`/`NodeStdio.layer` are still unstable in 4.1.5, so `@effect/platform-node` joins
+  `allowedUnstableApis`.
+
+`bun run build:packages` 32/32, `bun run typecheck` 48/48, `bun run release:check` green (which needed `scripts/stage.mjs`
+to resolve `catalog:` and to skip a private package: `@cssints/ds` is source-first and has no `dist`), `packages/cssints`,
+`packages/css-grammar`, `packages/headless` (1509), `apps/ui` (1032), `packages/mcp`, `apps/lab`, `apps/csssky` green in
+their turn. Held back, with the reason: `mdn-data 2.38.1` needs `bun run extract` and a Chrome pass (`webref`, `longhands`);
+`oxc-parser`, `@webref/css` and `@mdn/browser-compat-data` move with it; `apps/docs`' playground test is red on master for
+pages whose example project does not exist yet (123 pages, 36 examples, 26 skipped) — not this bump.

@@ -13,9 +13,10 @@
         // @opencode/client (the devtools' OpenCode prompt box, an optional peer of cssints) pins effect 4.0.0-rc.112 for its own
         // schemas; its Promise client shares no value with ours
         "allowedDuplicatedPackages": ["effect"],
-        // effect/ai and effect/http in @cssints/mcp (see unstableApiUsage below): permitted by module, so any other
-        // unstable API is still reported
-        "allowedUnstableApis": ["effect/ai", "effect/http"],
+        // effect/ai and effect/http in @cssints/mcp (see unstableApiUsage below), and platform-node's launchers — a CLI's
+        // `NodeRuntime.runMain` and the stdio layer a server is launched with, which 4.1.5 still marks unstable:
+        // permitted by module, so any other unstable API is still reported
+        "allowedUnstableApis": ["effect/ai", "effect/http", "@effect/platform-node"],
         "diagnosticSeverity": {
           "abortControllerInEffect": "error",
           "acquireReleaseDisposable": "error",

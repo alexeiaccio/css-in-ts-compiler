@@ -1,13 +1,4 @@
-import {
-  type Accessor,
-  createEffect,
-  createMemo,
-  createSignal,
-  createUniqueId,
-  getOwner,
-  onCleanup,
-  runWithOwner,
-} from "solid-js";
+import { type Accessor, createEffect, createMemo, createSignal, createUniqueId } from "solid-js";
 import {
   type FocusGroupDefinition,
   type FocusGroupHandle,
@@ -514,16 +505,40 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     owner = undefined;
   };
 
-  // The ref runs in a phase with no ambient owner, where Solid refuses to create a
-  // computation: the effect and the cleanup below belong to the group's owner, so
-  // they are parented to it explicitly (Solid's `runWithOwner`).
-  const setupOwner = getOwner();
+  // A ref callback is not a scope in Solid 2: the group's cleanup and its effects are created here, in the primitive's
+  // body, and the ref only names the element it landed on.
+  const [hostElement, setHostElement] = createSignal<HTMLElement | undefined>(undefined);
+
+  createEffect(
+    () => hostElement(),
+    (element) => {
+      if (element === undefined) {
+        return;
+      }
+      return () => detach();
+    },
+  );
+
+  createEffect(
+    () => ({ flavor: flavor(), stop: stop(), element: hostElement() }),
+    (state) => {
+      if (state.element === undefined || state.flavor !== "roving") {
+        detachGroup();
+        return;
+      }
+      attachGroup(state.element);
+      // the platform lands Tab on the start marker, so a check that moved it must
+      // reach the platform; the host may also write the controlled value
+      reconcile();
+    },
+  );
 
   const attach = (element: HTMLElement): void => {
     if (owner !== undefined) {
       return;
     }
     owner = element;
+    setHostElement(element);
     element.addEventListener("keydown", platformKeyDown);
     // the provider is built here, between the two listeners: activation, wrap and
     // the item tabindex are its business; the keydown flag precedes it and the
@@ -533,22 +548,6 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     }
     element.addEventListener("focusin", focusIn);
     element.addEventListener("focusout", focusOut);
-    runWithOwner(setupOwner, () => {
-      onCleanup(detach);
-      createEffect(
-        () => ({ flavor: flavor(), stop: stop() }),
-        (state) => {
-          if (state.flavor !== "roving") {
-            detachGroup();
-            return;
-          }
-          attachGroup(element);
-          // the platform lands Tab on the start marker, so a check that moved it must
-          // reach the platform; the host may also write the controlled value
-          reconcile();
-        },
-      );
-    });
   };
 
   // --- the primitive's half (both flavors) ----------------------------------

@@ -57,6 +57,7 @@ export { addGlobal, addLayers, globalEntries, layerEntries, renderSheet } from "
 const FILE_RE = /\.(ts|tsx|js|jsx|mts|mjs)$/;
 const VERSION = /[?&]v=\w+$/;
 const SHEET_IMPORT = "virtual:cssints.css";
+const SHEET_LIVE_IMPORT = "/@cssints/sheet.css";
 const SHEET = `\0${SHEET_IMPORT}`;
 // A dependency's file is a site module only when it carries the attribute (cssints' own dist and most of node_modules
 // mention "cssints" without it): a package written on cssints, published with its attributes kept.
@@ -771,13 +772,14 @@ export default function cssints({
     },
     resolveId(id) {
       if (id === SHEET_IMPORT) return SHEET;
+      if (id === SHEET_LIVE_IMPORT || id.startsWith(`${SHEET_LIVE_IMPORT}?`)) return id;
       if (id.startsWith(RUNTIME_ID)) return `\0${id}`;
     },
     // Build: the rules are known only once every module is transformed, so a placeholder until renderChunk.
     load(id) {
-      if (id === SHEET) {
+      if (id === SHEET || id === SHEET_LIVE_IMPORT || id.startsWith(`${SHEET_LIVE_IMPORT}?`)) {
         if (build) return LAYERS;
-        const code = runSync(hook("vite.load", id, sheet()));
+        const code = runSync(hook("vite.load", SHEET, sheet()));
         // Dev: the sheet's own measurement, over the HMR channel — the size, the class count and the file that changed
         // (`@cssints/devtools/vitals` keeps the last thirty and draws the growth). A cold load sends the first point.
         if (this.environment.name === "client" && server) {

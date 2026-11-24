@@ -1,8 +1,7 @@
-// The engine's sheet for a browser test: its content is the CSS of the modules transformed so far, so it is loaded once the
-// test file's imports are in (in `beforeAll`, not as a static import: vitest resolves the graph as it goes, and a sheet loaded
-// first is just the `@layer` statement).
+// The engine's sheet for a browser test. The bare `virtual:cssints.css` is cached per page, so a run would paint the first
+// file's sheet in every later file; `virtual:cssints/sheet.css` takes a query, which is a fresh module and a fresh sheet.
 import { beforeAll } from "vite-plus/test";
 
 beforeAll(async () => {
-  await import("virtual:cssints.css");
+  await import(`/@cssints/sheet.css?file=${Math.random().toString(36).slice(2)}`);
 });

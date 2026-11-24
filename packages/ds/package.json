@@ -26,15 +26,15 @@
     "cssints": "workspace:*"
   },
   "devDependencies": {
-    "@solidjs/vite-plugin": "3.0.0-next.57",
-    "@solidjs/web": "2.0.0-rc.21",
-    "@vitest/browser-playwright": "5.0.5",
-    "playwright": "1.64.1",
-    "solid-js": "2.0.0-rc.21",
+    "@solidjs/vite-plugin": "catalog:",
+    "@solidjs/web": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "catalog:",
+    "solid-js": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "solid-js": "^2.0.0-rc.21"
+    "solid-js": "^2.0.0"
   },
   "engines": {
     "node": ">=22"

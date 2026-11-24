@@ -59,10 +59,10 @@
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
-    "culori": "^4.0.2"
+    "culori": "catalog:"
   },
   "devDependencies": {
-    "@types/culori": "^4.0.0",
+    "@types/culori": "catalog:",
     "cssints": "workspace:*",
     "vite": "catalog:"
   },

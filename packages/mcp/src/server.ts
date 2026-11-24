@@ -458,7 +458,8 @@ const handlers = tools
     ),
   );
 
-const stdio = McpServer.layerStdio({
+/** The server over stdio: the toolkit is its registration, a Stdio is the host's. Logs go to stderr; stdout is the protocol. */
+export const layer = McpServer.layerStdio({
   name: "cssints",
   version: "0.1.0",
   protocols: [
@@ -467,7 +468,5 @@ const stdio = McpServer.layerStdio({
     McpProtocol.v2025_03_26,
     McpProtocol.v2024_11_05,
   ],
+  registrations: McpServer.toolkit(tools).pipe(Layer.provide(handlers)),
 }).pipe(Layer.provide(Layer.succeed(Logger.LogToStderr, true)));
-
-/** The server over stdio: provide a Stdio. Logs go to stderr; stdout is the protocol. */
-export const layer = Layer.mergeAll(McpServer.toolkit(tools).pipe(Layer.provide(handlers)), stdio);

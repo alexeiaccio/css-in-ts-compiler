@@ -51,12 +51,12 @@
   "dependencies": {
     "@cssints/css-grammar": "workspace:*",
     "@cssints/devtools": "workspace:*",
-    "@effect/platform-node": "4.0.0",
+    "@effect/platform-node": "catalog:",
     "@effect/platform-node-shared": "4.0.0",
     "cssints": "workspace:*",
-    "effect": "4.0.6",
-    "playwright-core": "^1.65.0",
-    "vite": "^8.3.0"
+    "effect": "catalog:",
+    "playwright-core": "catalog:",
+    "vite": "catalog:"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2"

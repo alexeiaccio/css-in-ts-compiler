@@ -139,17 +139,17 @@
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
-    "@quint-machine/core": "^0.1.0"
+    "@quint-machine/core": "catalog:"
   },
   "devDependencies": {
-    "@effect/platform-node": "4.0.0",
+    "@effect/platform-node": "catalog:",
     "@informalsystems/quint": "0.32.0",
     "@typeonce/effect-machine": "0.40.0",
-    "effect": "4.0.6",
+    "effect": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "effect": "^4.0.6"
+    "effect": "^4.1.5"
   },
   "engines": {
     "node": ">=22"

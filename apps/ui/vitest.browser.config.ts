@@ -19,6 +19,7 @@ export default defineConfig({
   // The starter has one copy by construction (installed tarballs), which is why only its smoke caught it.
   resolve: { dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"] },
   test: {
+    isolate: true,
     // The conformance walks are bounded by `runs` x `steps`, not by wall time, and the treeview's (seven nodes, 15 runs
     // of 25 steps) takes ~15 s on a CI runner beside a dozen other jobs, which is the default's own limit: the run then
     // fails on a test that was halfway through its last steps. A genuinely stuck walk still fails, at 60 s. Same
@@ -29,7 +30,7 @@ export default defineConfig({
     css: true,
     // the sheet of the modules a test imports: a test page has no app entry to bring it in, and
     // Solid's dev diagnostics become failures (see `diagnostics.ts`)
-    setupFiles: ["src/registry/sheet.ts", "src/registry/diagnostics.ts"],
+    setupFiles: ["src/registry/sheet.ts", "src/registry/pointer.ts", "src/registry/diagnostics.ts"],
     // `src/components/ui/` is where a copy lands; `registry/` is where the items are authored
     // in this repository, next to the page that renders them.
     // `src/docs/` is the site's own logic (the catalog and a screen), which has no DOM of its own but shares the rules it
@@ -43,6 +44,9 @@ export default defineConfig({
       enabled: true,
       provider: playwright(),
       headless: true,
+      // A page per test file: the sheet a file imports is the CSS of the modules transformed by then, so a shared page keeps
+      // the first file's sheet and every later file reads classes it never got.
+      isolate: true,
       viewport: { width: 1280, height: 1024 },
       instances: [{ browser: "chromium" }],
       // The default waits 60 s for a worker's iframe to come up, which a busy machine (or a CI runner with a dozen other

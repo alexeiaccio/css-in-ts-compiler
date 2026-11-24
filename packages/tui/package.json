@@ -80,12 +80,12 @@
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
-    "culori": "^4.0.2"
+    "culori": "catalog:"
   },
   "devDependencies": {
     "@bomb.sh/tty": "0.9.0",
     "@opentui/core": "0.5.17",
-    "@types/culori": "^4.0.1",
+    "@types/culori": "catalog:",
     "cssints": "workspace:*",
     "vite": "catalog:"
   },

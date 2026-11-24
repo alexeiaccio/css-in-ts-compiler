@@ -57,10 +57,10 @@
   },
   "dependencies": {
     "color-name-list": "14.61.0",
-    "culori": "^4.0.2"
+    "culori": "catalog:"
   },
   "devDependencies": {
-    "@types/culori": "^4.0.0",
+    "@types/culori": "catalog:",
     "cssints": "workspace:*",
     "vite": "catalog:"
   },

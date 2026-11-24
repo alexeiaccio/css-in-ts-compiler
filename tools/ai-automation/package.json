@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@oxlint/plugins": "1.79.0",
-    "oxlint": "1.85.0",
+    "oxlint": "catalog:",
     "vite-plus": "catalog:"
   },
   "engines": {

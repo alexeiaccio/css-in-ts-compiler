@@ -22,13 +22,26 @@ import { dirname, join, resolve } from "node:path";
 export const root = resolve(import.meta.dirname, "..");
 export const packageDirs = readdirSync(join(root, "packages"))
   .map((d) => join(root, "packages", d))
-  .filter((d) => existsSync(join(d, "package.json")));
+  .filter((d) => existsSync(join(d, "package.json")))
+  // A private package is not published: `@cssints/ds` is source-first (Solid's compiler is the app's), so it has no dist.
+  .filter((d) => !JSON.parse(readFileSync(join(d, "package.json"), "utf8")).private);
 export const read = (dir) => JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
 export const versions = Object.fromEntries(
   packageDirs.map((d) => read(d)).map((p) => [p.name, p.version]),
 );
 
+const catalog = read(root).catalog ?? {};
+
+// `catalog:` is a range too: bun resolves it on install, and a published manifest carries the range the catalog names.
+const uncatalog = (name, range) => {
+  if (range !== "catalog:") return range;
+  const spec = catalog[name];
+  if (!spec) throw new Error(`${name}: catalog: is not an entry of the root catalog`);
+  return spec;
+};
+
 const unworkspace = (name, range) => {
+  if (range === "catalog:") return uncatalog(name, range);
   if (!range.startsWith("workspace:")) return range;
   const version = versions[name];
   if (!version) throw new Error(`${name}: ${range} is not a package of this repo`);

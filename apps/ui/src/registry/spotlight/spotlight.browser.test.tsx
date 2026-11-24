@@ -8,6 +8,19 @@ import { Spotlight } from "./spotlight.tsx";
 
 const settle = (): Promise<void> => Promise.resolve();
 
+/** Waits for the computed opacity the pointer or the focus asks for, a frame at a time: a transition that never starts is a
+ *  failed test, not a hang. */
+const opacityIs = async (element: Element, value: string): Promise<void> => {
+  const limit = 600;
+  for (let frame = 0; frame < limit; frame += 1) {
+    if (getComputedStyle(element).opacity === value) {
+      return;
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+  }
+  throw new Error(`spotlight: opacity never became ${value}`);
+};
+
 interface Mounted {
   readonly root: HTMLElement;
   readonly card: HTMLElement;
@@ -129,24 +142,16 @@ describe("Spotlight", () => {
       throw new Error("spotlight: no link");
     }
 
-    const faded = (): Promise<void> =>
-      new Promise((resolve) => {
-        glow.addEventListener("transitionend", () => resolve(), { once: true });
-      });
-
-    const lit = faded();
     link.focus();
-    await lit;
+    await opacityIs(glow, "1");
     expect(getComputedStyle(glow).opacity).toBe("1");
 
-    const dark = faded();
     link.blur();
-    await dark;
+    await opacityIs(glow, "0");
     expect(getComputedStyle(glow).opacity).toBe("0");
 
-    const pointed = faded();
     await userEvent.hover(card);
-    await pointed;
+    await opacityIs(glow, "1");
     expect(getComputedStyle(glow).opacity).toBe("1");
   });
 });

@@ -146,6 +146,8 @@ describe("Donut", () => {
       list: list.getBoundingClientRect(),
       rows: slices(root).map((row) => row.getBoundingClientRect()),
     };
+    // the pseudo-element's style is computed before the hover, so the transition has a start value to move from
+    expect(ring(slices(root)[0]!).transform).toBe("none");
     await userEvent.hover(slices(root)[0]!);
     // the ring's lift is a transition on the slice's ::before: its end is what the reader's eye lands on, so ask it for
     // that end instead of sleeping through it — and the animation has to exist, or the "transition" is the assertion's lie

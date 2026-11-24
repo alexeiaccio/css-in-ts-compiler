@@ -11,7 +11,7 @@
  * An unsupported construct fails the whole run loudly — the generator never
  * emits a valid-looking model for a spec it cannot translate.
  */
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import { NodeCrypto, NodeRuntime, NodeServices } from "@effect/platform-node";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { isSharedSpec, specRelToOutRel } from "../src/layout.ts";
 import { Effect } from "effect";
@@ -45,4 +45,6 @@ const program = Effect.gen(function* () {
   yield* Effect.log(`generated ${specs.length} spec(s)`);
 });
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));
+NodeRuntime.runMain(
+  program.pipe(Effect.provide(NodeServices.layer), Effect.provide(NodeCrypto.layerDigest)),
+);

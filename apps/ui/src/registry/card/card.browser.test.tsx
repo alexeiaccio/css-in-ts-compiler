@@ -87,7 +87,8 @@ describe("Card skin", () => {
     expect(style(body).flexDirection).toBe("column");
     // the footer is the actions under a rule, right-aligned
     expect(style(footer).display).toBe("flex");
-    expect(style(footer).justifyContent).toBe("flex-end");
+    // `flex-end` is the legacy alias Chrome computes as `flow-end` (159 and up); either is the same alignment
+    expect(["flex-end", "flow-end"]).toContain(style(footer).justifyContent);
     expect(style(footer).borderTopWidth).toBe("1px");
     expect(style(footer).borderTopStyle).toBe("solid");
     // the parts carry no role of their own: a card is resolved by its content, not announced as a widget
