@@ -17,7 +17,7 @@ const ROWS: ReadonlyArray<TimelineSpan> = [
 
 const settle = (): Promise<void> =>
   new Promise((resolve) => {
-    setTimeout(resolve, 0);
+    requestAnimationFrame(() => resolve());
   });
 
 interface Mounted {

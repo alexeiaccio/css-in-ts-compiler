@@ -7,7 +7,7 @@
         "@changesets/cli": "^3.0.3",
         "@effect/language-service": "^0.87.5",
         "@effect/tsgo": "^0.57.0",
-        "@interfere/landmines": "^0.1.1",
+        "@interfere/landmines": "^0.3.1",
         "@types/bun": "^1.4.4",
         "@types/node": "^25.9.9",
         "@typescript/native": "npm:typescript@7.0.2",
@@ -1045,7 +1045,7 @@
 
     "@informalsystems/quint": ["@informalsystems/quint@0.32.0", "", { "dependencies": { "@grpc/grpc-js": "^1.11.1", "@grpc/proto-loader": "^0.7.7", "@octokit/request": "^8.1.1", "@sweet-monads/either": "~3.2.0", "@sweet-monads/maybe": "~3.2.0", "@types/line-column": "^1.0.0", "@types/lodash.clonedeep": "4.5.0", "@types/seedrandom": "^3.0.4", "adm-zip": "^0.5.16", "antlr4ts": "^0.5.0-alpha.4", "chalk": "^4.1.2", "cli-progress": "^3.12.0", "cross-spawn": "^7.0.6", "eol": "^0.9.1", "immutable": "^4.3.0", "json-bigint": "^1.0.0", "line-column": "^1.0.2", "lodash": "^4.17.21", "lodash.clonedeep": "4.5.0", "seedrandom": "^3.0.5", "tar": "^7.5.13", "yargs": "^17.7.2" }, "bin": { "quint": "dist/src/cli.js" } }, "sha512-9Yoji7DU6moRm1ofDaN+ftdxNcEGciiGbm7eN4MjlcCbfv7/Y/zchadcXXRmMZmN9oTPXUk9GmhjQOhADJsiSQ=="],
 
-    "@interfere/landmines": ["@interfere/landmines@0.1.1", "", { "dependencies": { "@babel/parser": "8.0.4", "@babel/types": "8.0.4", "@oxlint/plugins": "1.81.0", "oxc-resolver": "11.24.2", "zod": "4.6.6" }, "peerDependencies": { "oxlint": ">=1.81.0" } }, "sha512-ClZhJIIMJaibCU11dQru3APhnHtzrfSRFbAfUhisusA/6ueURr1FRjJeu0i1n0Y0lGMwPNTqv9GNspJ23N9/hg=="],
+    "@interfere/landmines": ["@interfere/landmines@0.3.1", "", { "dependencies": { "@babel/parser": "8.0.4", "@babel/types": "8.0.4", "@oxlint/plugins": "1.81.0", "jsonc-parser": "3.3.1", "oxc-resolver": "11.24.2", "zod": "4.6.6" }, "peerDependencies": { "oxlint": ">=1.81.0" } }, "sha512-w55JbpiBaswGV+kZmp7C1pxfcB/s+UIWuKP2NZpKqgDSpro7SguhBC9rXHa9+2WaTEwny6PO0VUWyQ1CV/Mjbg=="],
 
     "@isaacs/fs-minipass": ["@isaacs/fs-minipass@4.0.1", "", { "dependencies": { "minipass": "^7.0.4" } }, "sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w=="],
 

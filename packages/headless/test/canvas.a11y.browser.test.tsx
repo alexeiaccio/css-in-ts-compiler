@@ -9,7 +9,7 @@ import { userEvent } from "vite-plus/test/browser";
 
 const settle = (): Promise<void> =>
   new Promise((resolve) => {
-    setTimeout(resolve, 0);
+    requestAnimationFrame(() => resolve());
   });
 
 const SIZE = { width: 100, height: 60 };

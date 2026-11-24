@@ -25,7 +25,7 @@ const make = (snapCandidates: SnapCandidates | undefined) => {
 // Solid 2 applies signal writes on the microtask flush; `position` / `guides` read after it.
 const settle = (): Promise<void> =>
   new Promise((resolve) => {
-    setTimeout(resolve, 0);
+    requestAnimationFrame(() => resolve());
   });
 
 /** Press inside the node, drag it by `dx` screen px and report the live state. */

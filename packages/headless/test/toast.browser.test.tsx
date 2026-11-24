@@ -1,26 +1,18 @@
+import { createFakeClock } from "@cssints/machine";
 import { For } from "solid-js";
 import { type Status, createStatus } from "../src/status";
 import { type Toast, type ToastOptions, createToast } from "../src/toast";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { render } from "@solidjs/web";
 
-/** Solid 2 applies setters and delivers delegated events on a later tick. */
-const tick = (ms = 20): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+/** Solid 2 applies setters and delivers delegated events on a later tick: the microtask queue, not the clock. */
+const tick = (): Promise<void> => Promise.resolve();
 
-/**
- * Polls until `done` holds and returns how long it took. Timers run late on a
- * loaded machine, so a countdown is waited for, never slept through.
- */
-const waitFor = async (done: () => boolean, limit = 10_000): Promise<number> => {
-  const start = Date.now();
-  while (!done()) {
-    if (Date.now() - start > limit) {
-      throw new Error(`waitFor timed out after ${limit} ms`);
-    }
-    await tick();
-  }
-  return Date.now() - start;
-};
+/** The toast's own departure, as a promise: a countdown is awaited, never polled. */
+const departure = (): {
+  readonly promise: Promise<string>;
+  readonly resolve: (id: string) => void;
+} => Promise.withResolvers<string>();
 
 interface MountedToast {
   readonly root: HTMLDivElement;
@@ -165,18 +157,26 @@ describe("createToast", () => {
   });
 
   it("auto-dismisses after the timeout", async () => {
-    const toast = mountToast({ timeout: 200 });
+    const clock = createFakeClock();
+    const gone = departure();
+    const toast = mountToast({ timeout: 200, clock, onDismiss: gone.resolve });
     const id = toast.api.show({ title: "Gone soon" });
     await tick();
 
+    clock.advance(199);
     expect(byId(toast.root, id)).not.toBeNull();
-    await waitFor(() => byId(toast.root, id) === null);
+    clock.advance(1);
+    expect(await gone.promise).toBe(id);
+    await tick();
 
+    expect(byId(toast.root, id)).toBeNull();
     expect(toast.dismissed).toEqual([id]);
   });
 
   it("asks a renderer to remove the toast, and removes it when none claims the id", async () => {
-    const toast = mountToast({ timeout: 30 });
+    const clock = createFakeClock();
+    const gone = departure();
+    const toast = mountToast({ timeout: 30, clock, onDismiss: gone.resolve });
     const asked: string[] = [];
     toast.api.onDismissRequest((id) => {
       asked.push(id);
@@ -186,24 +186,32 @@ describe("createToast", () => {
     const id = toast.api.show({ title: "Asked" });
 
     // the countdown's expiry is the ask, and the unclaimed toast leaves at once with one departure announced
-    await waitFor(() => asked.length === 1);
+    clock.advance(30);
+    expect(await gone.promise).toBe(id);
+    await tick();
+
     expect(asked).toEqual([id]);
-    await waitFor(() => byId(toast.root, id) === null);
+    expect(byId(toast.root, id)).toBeNull();
     expect(toast.dismissed).toEqual([id]);
   });
 
   it("leaves the removal to the renderer that claims the toast", async () => {
-    const toast = mountToast({ timeout: 30 });
+    const clock = createFakeClock();
+    const toast = mountToast({ timeout: 30, clock });
     const asked: string[] = [];
+    const askedOnce = departure();
     const id = toast.api.show({ title: "Claimed" });
     toast.api.onDismissRequest((askedId) => {
       asked.push(askedId);
+      askedOnce.resolve(askedId);
       // this renderer owns the row: it removes the toast when the row is gone
       return askedId === id;
     });
 
     // the ask is not a removal: the toast is still queued (and counted by the ceiling) until the renderer answers
-    await waitFor(() => asked.length === 1);
+    clock.advance(30);
+    await askedOnce.promise;
+    expect(asked).toEqual([id]);
     expect(toast.api.toasts().map((item) => item.id)).toEqual([id]);
     expect(byId(toast.root, id)).not.toBeNull();
     expect(toast.dismissed).toEqual([]);
@@ -216,50 +224,68 @@ describe("createToast", () => {
   });
 
   it("pauses the countdown on hover and resumes from where it stopped", async () => {
-    // Hovered at ~800 of 1200: after the release about 400 ms are left, so a
-    // dismissal well before another 1200 ms is what tells a resume from a restart.
-    const toast = mountToast({ timeout: 1200 });
+    // Hovered at 800 of 1200, so 400 ms are left: the clock says a resume from a restart, exactly, with no wall clock.
+    const clock = createFakeClock();
+    const gone = departure();
+    const toast = mountToast({ timeout: 1200, clock, onDismiss: gone.resolve });
     const id = toast.api.show({ title: "Hover me" });
-    await tick(800);
+    await tick();
+    clock.advance(800);
     const element = byId(toast.root, id);
     expect(element).not.toBeNull();
 
     element?.dispatchEvent(new MouseEvent("mouseenter"));
-    // Held well past the deadline it was armed with.
-    await tick(1200);
+    // held well past the deadline it was armed with: nothing is scheduled while the pointer is on it
+    clock.advance(1200);
+    expect(clock.pending()).toBe(0);
     expect(byId(toast.root, id)).not.toBeNull();
 
     element?.dispatchEvent(new MouseEvent("mouseleave"));
-    const released = Date.now();
-    await waitFor(() => byId(toast.root, id) === null);
+    clock.advance(399);
+    expect(byId(toast.root, id)).not.toBeNull();
+    clock.advance(1);
+    expect(await gone.promise).toBe(id);
+    await tick();
 
-    expect(Date.now() - released).toBeLessThan(1200);
+    expect(byId(toast.root, id)).toBeNull();
     expect(toast.dismissed).toEqual([id]);
   });
 
   it("does not pause on hover when pauseOnHover is false", async () => {
-    const toast = mountToast({ timeout: 300, pauseOnHover: false });
+    const clock = createFakeClock();
+    const gone = departure();
+    const toast = mountToast({ timeout: 300, pauseOnHover: false, clock, onDismiss: gone.resolve });
     const id = toast.api.show({ title: "Keep going" });
     await tick();
 
     byId(toast.root, id)?.dispatchEvent(new MouseEvent("mouseenter"));
-    await waitFor(() => byId(toast.root, id) === null);
+    clock.advance(300);
+    expect(await gone.promise).toBe(id);
+    await tick();
 
+    expect(byId(toast.root, id)).toBeNull();
     expect(toast.dismissed).toEqual([id]);
   });
 
   it("pauses the countdown while a toast holds focus", async () => {
-    const toast = mountToast({ timeout: 200 });
+    const clock = createFakeClock();
+    const gone = departure();
+    const toast = mountToast({ timeout: 200, clock, onDismiss: gone.resolve });
     const id = toast.api.show({ title: "Focusable" });
     await tick();
     const element = byId(toast.root, id);
 
     element?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
-    await tick(600);
+    clock.advance(600);
+    expect(clock.pending()).toBe(0);
     expect(byId(toast.root, id)).not.toBeNull();
 
     element?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
-    await waitFor(() => byId(toast.root, id) === null);
+    clock.advance(200);
+    expect(await gone.promise).toBe(id);
+    await tick();
+
+    expect(byId(toast.root, id)).toBeNull();
     expect(toast.dismissed).toEqual([id]);
   });
 });

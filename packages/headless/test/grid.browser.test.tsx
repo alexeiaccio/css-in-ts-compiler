@@ -228,7 +228,10 @@ const tabStops = (root: HTMLElement): HTMLElement[] => [
 ];
 
 /** Let Solid's settled render and the runtime's post-render re-collect land. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const settle = (): Promise<void> =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
 
 const surround = (root: HTMLElement) => {
   const before = document.createElement("button");

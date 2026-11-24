@@ -32,7 +32,7 @@
     "@changesets/cli": "^3.0.3",
     "@effect/language-service": "^0.87.5",
     "@effect/tsgo": "^0.57.0",
-    "@interfere/landmines": "^0.1.1",
+    "@interfere/landmines": "^0.3.1",
     "@types/bun": "^1.4.4",
     "@types/node": "^25.9.9",
     "@typescript/native": "npm:typescript@7.0.2",

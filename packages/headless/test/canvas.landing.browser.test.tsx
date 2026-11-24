@@ -13,7 +13,7 @@ const NODE = { id: "a", x: 100, y: 100, width: 200, height: 100, label: "Alpha" 
 
 const settle = (): Promise<void> =>
   new Promise((resolve) => {
-    setTimeout(resolve, 0);
+    requestAnimationFrame(() => resolve());
   });
 
 const part = (mounted: CanvasMounted, name: string): HTMLElement => {

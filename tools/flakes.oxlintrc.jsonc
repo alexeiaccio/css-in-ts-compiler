@@ -1,37 +1,125 @@
-// The flake pass: the testing rules over the files the main lint leaves out (`**/test/**`, `apps/**`), because a test that
-// waits on the clock instead of on a signal is exactly what the main pass cannot see. Run with `bun run lint:flakes`.
+// The flake pass: landmines' testing rules over the files the main lint leaves out (`**/test/**`, `apps/**`), because a test
+// that waits on the clock instead of on a signal is exactly what the main pass cannot see. Run with `bun run lint:flakes`.
 //
-// `no-test-doubles` and `strict-msw` are not on: our doubles are fixtures of a protocol (a fake dev server, a fake clock, a
-// fake terminal palette), not stubs of the thing under test, and we do not use MSW.
+// `@interfere/landmines` 0.3.1 ships 25 rules in four groups. Ten are on at error and find nothing in this repo — they are
+// the guard for what is written next: no conditional expect in a fake, no silent catch, no shared AbortSignal, no MSW left
+// lenient, no Tailwind class assertion, no cold dynamic import, no `maxWorkers` in a named project, no self container query,
+// no detached test, no script under `.github`. The rest fall in three piles, each measured on 2026-11-24 over the same
+// `packages apps tools` tree:
 //
-// Every allowlist here is a ratchet with exact per-file counts: a file may keep what it has, and a file that improves
-// reports itself as stale until its entry is lowered. What is left is a delay that IS the subject — a toast's own
-// timeout, a real 200 ms carousel interval, a 300 ms tooltip grace, a velocity window, a page-side task in the vitals
-// test — plus the exploration timeouts the repo documents. `flakes/no-test-sleep` is ours: landmines reports the `await`,
-// and 125 sleeps hid behind a `settle()` helper it cannot follow. A zero delay is not reported at all: a task boundary is
-// the browser's own turn, not a race with the clock.
+//   on, with an allowlist of today's count  — the violation is the subject of that file (a toast's own countdown, a CLI
+//   spawned per case, a `RuleTester` that takes `describe`/`it` by assignment, a bounded `waitFor` that throws), and every
+//   count is exact, so a file that improves reports itself as stale until its entry is lowered.
+//
+//   off, because the code it flags is right here — measured, not assumed:
+//     no-comments                13 437. Our prose is a decision record (docs/wayfinder.md); `no-prose-comments` runs on
+//                                added lines only and `bun run lint:comments` holds the per-package ratchet.
+//     no-explicit-return-types    4 420. The same rule runs on added lines (`diff-check`); a repo-wide ban would delete the
+//                                Effect signatures that document every engine function.
+//     no-test-doubles                14. Our doubles are fixtures of a protocol — a dev server, a terminal palette, a clock —
+//                                not stubs of the thing under test.
+//     no-conditional-expect         83. Every one is data- or capability-driven: a scenario table's
+//                                `if (step.expect?.x !== undefined)`, a property walk's `if (from.owner !== to.owner)`, the
+//                                polyfill's `if (!native) expect(tabStops(fixture)).toBe(1)`. There the condition IS the
+//                                case, and the branch is the table's, not a fake's; making them unconditional asserts a
+//                                behaviour on a platform that does not have it.
+//     padding-between-statements 38 933. oxfmt owns layout; a second opinion on blank lines is 38 933 diffs.
+//     no-inline-hex-encoding         7. TS 5.9's lib does not type `Uint8Array.prototype.toHex`, and a shared helper for
+//                                seven two-character loops is a new dependency across five packages.
+//     test-file-names                2. `apps/docs/src/tui/fixtures.ts` and `record-fixtures.mjs` are named for what they
+//                                are; `<subject>.fixture.ts` would name them for what a reader already knows.
+//     no-scripts-directory          37, package-scripts 39. `scripts/` and the `build:*` names are the build.
+//     test-dir-only-cross-functional 73. A package's `test/` is where its node suite lives; the rule assumes colocation.
+//     declared-test-inputs          35. Turbo's inputs; this repo is Vite+ (`vp run -r`), not Turbo.
+//     max-file-lines 71, max-exports-per-module 240, max-files-per-directory 4, no-prefix-cluster 49. Size and layout
+//                                opinions; the only budget this repo keeps is the comment one.
+//     package-exports                1. `@cssints/css-grammar` exposes its modules as subpaths on purpose (15 of them,
+//                                `mdn`, `support`, `check`, ...); the wildcard is the map.
+//
+// `flakes/no-test-sleep` is ours: landmines reports the `await`, and sleeps hid behind a `settle()` helper it could not
+// follow. 0.3.1 follows it, which is how 61 sleeps became 9 — the `settle()` helpers were a `setTimeout(resolve, 0)` and are
+// now `requestAnimationFrame`, a frame instead of a clock, and the toast tests await the toast's own departure instead of
+// polling for it.
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "plugins": [],
   "categories": { "correctness": "off" },
   "jsPlugins": [
-    { "name": "landmines-testing", "specifier": "@interfere/landmines/testing" },
+    { "name": "landmines", "specifier": "@interfere/landmines" },
     { "name": "flakes", "specifier": "./ai-automation/scripts/flakes/plugin.ts" },
   ],
   "rules": {
-    "landmines-testing/no-fixed-sleep": [
-      "warn",
+    "landmines/no-clipboard-read-text": "error",
+    "landmines/no-cold-import-in-test": "error",
+    "landmines/no-parameter-branch": "error",
+    "landmines/no-project-max-workers": "error",
+    "landmines/no-self-container-query": "error",
+    "landmines/no-shared-signal": "error",
+    "landmines/no-silent-catch": "error",
+    "landmines/no-stale-render-assertion": "error",
+    "landmines/no-styling-class-assertion": "error",
+    "landmines/strict-msw": "error",
+    "landmines/colocated-tests": "error",
+    "landmines/no-elapsed-time-bound": "error",
+    "landmines/no-github-scripts": "error",
+
+    "landmines/no-comments": "off",
+    "landmines/no-explicit-return-types": "off",
+    "landmines/no-test-doubles": "off",
+    "landmines/no-conditional-expect": "off",
+    "landmines/padding-between-statements": "off",
+    "landmines/no-inline-hex-encoding": "off",
+    "landmines/test-file-names": "off",
+    "landmines/no-scripts-directory": "off",
+    "landmines/package-scripts": "off",
+    "landmines/test-dir-only-cross-functional": "off",
+    "landmines/declared-test-inputs": "off",
+    "landmines/max-file-lines": "off",
+    "landmines/max-exports-per-module": "off",
+    "landmines/max-files-per-directory": "off",
+    "landmines/no-prefix-cluster": "off",
+    "landmines/package-exports": "off",
+
+    "landmines/no-fixed-sleep": [
+      "error",
       {
         "allow": {
+          "apps/csssky/scripts/perf.mjs": 1,
           "apps/ui/src/registry/carousel/carousel.browser.test.tsx": 1,
           "apps/ui/src/registry/drawer/drawer.browser.test.tsx": 1,
           "apps/ui/src/registry/tooltip/tooltip.browser.test.tsx": 1,
         },
       },
     ],
-    "landmines-testing/no-unsignaled-poll": "warn",
-    "landmines-testing/no-flake-masking": [
-      "warn",
+    "landmines/no-unsignaled-poll": [
+      "error",
+      {
+        "allow": {
+          "apps/ui/src/registry/combobox/combobox.browser.test.tsx": 1,
+          "apps/ui/src/registry/drawer/drawer.browser.test.tsx": 1,
+          "apps/ui/src/registry/feed/feed.browser.test.tsx": 1,
+          "apps/ui/src/registry/hardware/hardware.browser.test.tsx": 1,
+          "apps/ui/src/registry/knob/knob.browser.test.tsx": 1,
+          "apps/ui/src/registry/player/player.browser.test.tsx": 1,
+          "apps/ui/src/registry/progress/progress.browser.test.tsx": 1,
+          "apps/ui/src/registry/resizable-panels/resizable-panels.browser.test.tsx": 1,
+          "apps/ui/src/registry/scrollspy/scrollspy.browser.test.tsx": 1,
+          "apps/ui/src/registry/timeline/timeline.browser.test.tsx": 1,
+          "apps/ui/src/registry/toast/toast.browser.test.tsx": 1,
+          "apps/ui/src/registry/tooltip/tooltip.browser.test.tsx": 1,
+          "apps/csssky-tui/test/screens.mjs": 1,
+          "packages/devtools/test/ask-browser.mjs": 1,
+          "packages/devtools/test/browsers.mjs": 1,
+          "packages/devtools/test/motion-browser.mjs": 1,
+          "packages/devtools/test/names-browser.mjs": 1,
+          "packages/headless/test/scrollprogress.browser.test.tsx": 1,
+          "packages/headless/test/scrollspy.browser.test.tsx": 1,
+          "packages/mcp/test/live.mjs": 1,
+        },
+      },
+    ],
+    "landmines/no-flake-masking": [
+      "error",
       {
         "allow": {
           "apps/ui/vitest.browser.config.ts": 1,
@@ -45,22 +133,35 @@
         },
       },
     ],
+    "landmines/no-cold-start-in-test": [
+      "error",
+      { "allow": { "tools/ai-automation/scripts/diff-check/test/integration/cli.test.ts": 12 } },
+    ],
+    "landmines/no-imported-mutation": [
+      "error",
+      {
+        "allow": {
+          "tools/ai-automation/scripts/diff-check/test/diff-check.test.ts": 2,
+          "tools/ai-automation/scripts/flakes/test/no-test-sleep.test.ts": 2,
+          "tools/ai-automation/test/ban.test.ts": 2,
+          "tools/ai-automation/test/rules.test.ts": 2,
+        },
+      },
+    ],
     "flakes/no-test-sleep": [
-      "warn",
+      "error",
       {
         "allow": {
           "apps/csssky-tui/test/screens.mjs": 1,
           "apps/ui/src/registry/carousel/carousel.browser.test.tsx": 1,
           "apps/ui/src/registry/drawer/drawer.browser.test.tsx": 2,
           "apps/ui/src/registry/panzoom/panzoom.browser.test.tsx": 1,
-          "apps/ui/src/registry/toast/toast.browser.test.tsx": 1,
           "apps/ui/src/registry/tooltip/tooltip.browser.test.tsx": 1,
           "apps/ui/test/vitals.mjs": 1,
           "packages/cssints/test/browsers.mjs": 1,
           "packages/cssints/test/fixtures/eval-timeout-wait.ts": 1,
           "packages/devtools/test/vitals-browser.mjs": 3,
           "packages/headless/test/canvas.content-visibility.browser.test.tsx": 1,
-          "packages/headless/test/toast.browser.test.tsx": 1,
           "packages/reveal/test/browsers.mjs": 1,
           "packages/tui/test/render.ts": 1,
         },

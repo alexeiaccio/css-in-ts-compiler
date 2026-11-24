@@ -1,3 +1,4 @@
+import { type Clock, systemClock, type TimerHandle } from "@cssints/machine";
 import { type Accessor, createSignal, createUniqueId, getOwner, onCleanup } from "solid-js";
 
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -18,6 +19,11 @@ export interface ToastOptions {
   readonly labels?: { readonly region?: string | undefined } | undefined;
   /** Called with the id whenever a toast leaves, for whatever reason. */
   readonly onDismiss?: ((id: string) => void) | undefined;
+  /**
+   * The clock the countdown reads, `systemClock` by default. A test passes `createFakeClock()` and advances time, so a
+   * resumed countdown is proven by the clock rather than by a wall-clock bound.
+   */
+  readonly clock?: Clock | undefined;
 }
 
 /** What `show` takes; `tone` defaults to `"info"`. */
@@ -79,7 +85,7 @@ export interface Toast {
 }
 
 interface Countdown {
-  handle: ReturnType<typeof setTimeout> | undefined;
+  handle: TimerHandle | undefined;
   /** When the countdown ends while it runs; stale while paused. */
   deadline: number;
   /** Time left when paused (and the value first armed). */
@@ -105,6 +111,7 @@ interface Countdown {
  * the toast leaves at once.
  */
 export const createToast = (options: ToastOptions = {}): Toast => {
+  const clock = options.clock ?? systemClock;
   const [version, setVersion] = createSignal(0);
   let items: ToastItem[] = [];
   const timers = new Map<string, Countdown>();
@@ -125,7 +132,7 @@ export const createToast = (options: ToastOptions = {}): Toast => {
       return;
     }
     if (countdown.handle !== undefined) {
-      clearTimeout(countdown.handle);
+      clock.clearTimeout(countdown.handle);
     }
     timers.delete(id);
   };
@@ -154,7 +161,7 @@ export const createToast = (options: ToastOptions = {}): Toast => {
   };
 
   const arm = (id: string, countdown: Countdown): void => {
-    countdown.handle = setTimeout(() => {
+    countdown.handle = clock.setTimeout(() => {
       countdown.handle = undefined;
       request(id);
     }, countdown.remaining);
@@ -168,7 +175,7 @@ export const createToast = (options: ToastOptions = {}): Toast => {
     const countdown = timers.get(id);
     if (countdown !== undefined) {
       if (countdown.handle !== undefined) {
-        clearTimeout(countdown.handle);
+        clock.clearTimeout(countdown.handle);
       }
       timers.delete(id);
     }
@@ -186,9 +193,9 @@ export const createToast = (options: ToastOptions = {}): Toast => {
     if (countdown === undefined || countdown.handle === undefined) {
       return;
     }
-    clearTimeout(countdown.handle);
+    clock.clearTimeout(countdown.handle);
     countdown.handle = undefined;
-    countdown.remaining = Math.max(0, countdown.deadline - Date.now());
+    countdown.remaining = Math.max(0, countdown.deadline - clock.now());
   };
 
   const paused = (countdown: Countdown): boolean =>
@@ -200,7 +207,7 @@ export const createToast = (options: ToastOptions = {}): Toast => {
     if (countdown === undefined || countdown.handle !== undefined || paused(countdown)) {
       return;
     }
-    countdown.deadline = Date.now() + countdown.remaining;
+    countdown.deadline = clock.now() + countdown.remaining;
     arm(id, countdown);
   };
 
@@ -236,7 +243,7 @@ export const createToast = (options: ToastOptions = {}): Toast => {
     const duration = Math.max(0, options.timeout ?? DEFAULT_TIMEOUT_MS);
     const countdown: Countdown = {
       handle: undefined,
-      deadline: Date.now() + duration,
+      deadline: clock.now() + duration,
       remaining: duration,
       hovered: false,
       focused: false,
@@ -268,7 +275,7 @@ export const createToast = (options: ToastOptions = {}): Toast => {
     onCleanup(() => {
       for (const countdown of timers.values()) {
         if (countdown.handle !== undefined) {
-          clearTimeout(countdown.handle);
+          clock.clearTimeout(countdown.handle);
         }
       }
       timers.clear();

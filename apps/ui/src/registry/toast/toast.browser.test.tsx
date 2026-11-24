@@ -1,4 +1,4 @@
-import { type EffectHandle, harness } from "@cssints/machine";
+import { createFakeClock, type EffectHandle, harness } from "@cssints/machine";
 import { createMachineStore } from "@cssints/machine/solid";
 import { createMemo, createRoot, flush } from "solid-js";
 import { afterEach, describe, expect, it } from "vite-plus/test";
@@ -6,20 +6,20 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { type MountedToaster, mountToaster } from "./toast.fixture";
 import { type ToastPhase, TOAST_ENTER_MS, TOAST_LEAVE_MS, toastRowMachine } from "./toast.tsx";
 
-/** Solid 2 applies setters and delivers delegated events on a later tick. */
-const tick = (ms = 20): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+/** Solid 2 applies setters and delivers delegated events on a later tick: the microtask queue, not the clock. */
+const tick = (): Promise<void> => Promise.resolve();
 
-/**
- * Polls until `done` holds and returns how long it took. Timers run late on a loaded machine, so a countdown is waited for,
- * never slept through.
- */
+/** A frame: the row's enter and leave are Web Animations, which advance on the compositor's own turn. */
+const frame = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+/** Polls until `done` holds and returns how long it took: the row's animations are the clock the test cannot fake. */
 const waitFor = async (done: () => boolean, limit = 10_000): Promise<number> => {
   const start = Date.now();
   while (!done()) {
     if (Date.now() - start > limit) {
       throw new Error(`waitFor timed out after ${limit} ms`);
     }
-    await tick();
+    await frame();
   }
   return Date.now() - start;
 };
@@ -312,7 +312,7 @@ describe("Toaster", () => {
     const watched = watchPhases(row);
 
     closeOf("Reversed")?.click();
-    await tick(0);
+    await tick();
     expect(row.getAttribute("data-state")).toBe("leaving");
     // the leave starts at the opacity the enter had reached, not at 1: no snap to visible first
     const leaving = row.getAnimations()[0];
@@ -525,7 +525,7 @@ describe("Toaster", () => {
     });
 
     closeOf("Painted")?.click();
-    await tick(0);
+    await tick();
     expect(row.getAttribute("data-state")).toBe("leaving");
     await waitFor(() => {
       if (row.isConnected) {
@@ -576,23 +576,25 @@ describe("Toaster", () => {
   });
 
   it("pauses the countdown on hover and resumes from where it stopped", async () => {
-    // Hovered at ~800 of 1200: after the release about 400 ms are left, so a dismissal well before another 1200 ms is what
-    // tells a resume from a restart.
-    const mounted = mount({ timeout: 1200 });
+    // Hovered at 800 of 1200, so 400 ms are left: the fake clock proves a resume from a restart, with no wall clock.
+    const clock = createFakeClock();
+    const mounted = mount({ timeout: 1200, clock });
     const id = mounted.api.show({ title: "Hover me" });
-    await tick(800);
+    await tick();
+    clock.advance(800);
     const toast = rowOf("Hover me");
     expect(toast).not.toBeUndefined();
 
     toast?.dispatchEvent(new MouseEvent("mouseenter"));
-    // held well past the deadline it was armed with
-    await tick(1200);
+    // held well past the deadline it was armed with: nothing is scheduled while the pointer is on it
+    clock.advance(1200);
+    expect(clock.pending()).toBe(0);
     expect(rowOf("Hover me")).not.toBeUndefined();
 
     toast?.dispatchEvent(new MouseEvent("mouseleave"));
-    const released = Date.now();
+    clock.advance(400);
+    // the countdown is over; the row still has its leave to run, in real frames
     await waitFor(() => rowOf("Hover me") === undefined);
-    expect(Date.now() - released).toBeLessThan(1200);
     expect(mounted.dismissed).toEqual([id]);
   });
 

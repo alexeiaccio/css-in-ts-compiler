@@ -120,7 +120,7 @@ cd packages/cssints && bun run members        # regenerate src/members.ts (the n
 cd packages/cssints && bun run groups         # regenerate src/groups/<id>.ts and src/groups-data.ts (cssints/widely-available, cssints/css-grid-2, ...: web-features, @webref/css 6, BCD); then bun run build
 bun run typecheck                             # per package: node ../../scripts/typecheck.mjs (effect-tsrs: tsc 7 and the Effect diagnostics in one pass, tsconfig.effect.json); the apps also run tsc 5.9
 bun run diff:check                            # the lines added since master, linted by the anti-slop rules and `no-prose-comments`, plus key-file changes (bun.lock, vite.config.ts, ...); exit 1 on a warning
-bun run lint:flakes                           # landmines' testing rules over `**/test/**` and `apps/**` (the main lint leaves both out): no fixed sleep, no poll on a recorder, no raised timeout. Its allowlist has exact per-file counts, so a file that improves reports itself
+bun run lint:flakes                           # landmines 0.3.1 + our own rule over `**/test/**` and `apps/**` (the main lint leaves both out): 12 rules at error that find nothing, 5 allowlisted (a countdown, a CLI, a RuleTester, a bounded waitFor), 16 off with a measured reason in tools/flakes.oxlintrc.jsonc
 cd packages/tui && bun run test               # the system theme (node test/system.ts), cssints/tui through the plugin (node --conditions=development test/tui.mjs), the OpenTUI adapter under Bun (test/render.ts), the bomb.sh adapter (node test/bomb.ts)
 cd tools/ai-automation && bun run test        # the rule tests and the diff-check tests (vp test run)
 cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed; a browser without style queries is detected, so an older playwright-core's WebKit runs with `PW=` and `PLAYWRIGHT_BROWSERS_PATH=`)
@@ -161,16 +161,18 @@ Two policies, both enforced rather than remembered:
   licence banner. The reason goes in the commit message or `docs/wayfinder.md`; the name of the thing goes in the code. The
   comments already written are untouched — the rule is a ratchet on new lines, not a sweep that deletes the reasoning.
 - **A test waits on a signal, not on the clock.** `bun run lint:flakes` covers the test files the main lint skips
-  (`**/test/**`, `apps/**`): landmines' `no-fixed-sleep`, `no-unsignaled-poll` and `no-flake-masking`, plus our own
-  `flakes/no-test-sleep` (`tools/ai-automation/scripts/flakes/`) for the sleeps landmines cannot see — a `settle()` helper
-  hides the `await` from a rule that reports call sites. Its allowlist counts are exact, so every entry names a delay that
-  _is_ the subject, and a file that improves reports itself as stale until the entry is lowered. Two passes took the repo
-  from **94 `setTimeout`s in 86 files to 17 in 14**: a microtask where the wait was Solid 2's delegated event, a frame where
-  it was a scroll, an animation or the platform's own `close`/`load`, and nothing at all for a zero-delay task hop. What is
-  left is a toast's timeout, a real 200 ms carousel interval, a 300 ms tooltip grace, a velocity window and the vitals
-  test's page-side tasks. The suites' `testTimeout` stays at 60 s on purpose: with the sleeps gone, the slow tests are the
-  CPU-bound differential walks, and lowering the deadline to 20 s made six of them fail under load — the deadline was never
-  what made them flaky.
+  (`**/test/**`, `apps/**`) with landmines 0.3.1's 25 rules plus our own `flakes/no-test-sleep`
+  (`tools/ai-automation/scripts/flakes/`). `tools/flakes.oxlintrc.jsonc` says, per rule, why it is on, allowlisted or off:
+  the 16 off carry the count they found (13 437 `no-comments`, 4 420 `no-explicit-return-types`, 38 933
+  `padding-between-statements`, ...), so the next adapter reads the measurement instead of re-deriving it. Allowlists hold
+  exact per-file counts and a file that improves reports itself as stale until its entry is lowered; what is left is a
+  delay that _is_ the subject (a carousel's 200 ms interval, a tooltip's 300 ms grace, a drawer's animation, a perf script's
+  `networkidle`) and a bounded `waitFor` per file, which throws on timeout instead of masking. Three passes took the repo
+  from **94 `setTimeout`s in 86 files to 9 in 6**: a microtask where the wait was Solid 2's delegated event, a frame where
+  it was a scroll or an animation, `onDismiss`/`Promise.withResolvers()` where it was a widget's own event, and an injected
+  `clock` where it was a countdown (`createToast({ clock: createFakeClock() })`). The suites' `testTimeout` stays at 60 s on
+  purpose: with the sleeps gone, the slow tests are the CPU-bound differential walks, and lowering the deadline to 20 s made
+  six of them fail under load — the deadline was never what made them flaky.
 
 The comment budget is the third leg (`bun run lint:comments`, `scripts/comment-budget.mjs`): `comment-budget.json` holds a
 prose-line count per package, a package over it fails, and a package under it fails until its entry is lowered. It exists

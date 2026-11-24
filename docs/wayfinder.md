@@ -6097,3 +6097,30 @@ flex item's line box is not trimmed by it) and applied broadly only removes 2px 
 within 0.75px of the ink centre), and `docs/API.md` "Optical spacing" carries both forms for the font that does need the
 arithmetic. The lesson is the one the docs section now states: the constant is a property of the font, so it is re-measured,
 not copied.
+
+**landmines, finished (0.1.1 → 0.3.1, 2026-11-24):** the adoption had stopped at 3 of 10 rules, because `no-test-doubles` and
+`strict-msw` do not fit (our doubles are protocol fixtures; there is no MSW) and the rest of the package was `style` and
+`structure`. 0.3.1 is a different tool: one plugin, 25 rules in five groups, an `allow` map with exact per-file counts on 13
+of them. Measured at `warn` over `packages apps tools` first — 57 570 findings, of which 38 933 are
+`padding-between-statements` (oxfmt's job), 13 437 `no-comments` (ours, on added lines, with the per-package budget) and
+4 420 `no-explicit-return-types` (ours too, and a repo-wide ban would delete the Effect signatures that document every
+engine function). Those three, and `no-test-doubles`, are counted and switched off in `tools/flakes.oxlintrc.jsonc`
+
+The flake rules did the work. 0.1.1 saw 17 sleeps, all ours to find; 0.3.1 follows a same-file helper, so it saw **61**, and
+the truth was that `settle()` was a `setTimeout(resolve, 0)` in six headless suites — a frame, not a clock, once it is
+`requestAnimationFrame`. The toast tests were worse: a `waitFor` loop with a deadline around a countdown, and in the kit a
+`Date.now() - released < 1200` bound that only a wall clock can prove. So `createToast` takes a `clock`
+(`systemClock` by default, `createFakeClock()` in tests, a `minor` for `@cssints/headless`): the pause-on-hover test advances
+800 of 1200, holds past the deadline, leaves and advances the 400 that were left — deterministic, and the "resumed, not
+restarted" question is answered by the clock instead of by a stopwatch. 61 sleeps became **9 in 6 files**, every one of them
+a delay that is the subject (a 200 ms carousel interval, a 300 ms tooltip grace, a drawer's animation, a perf script's
+`networkidle`). `no-elapsed-time-bound` now finds nothing, and `no-unsignaled-poll` is 20 bounded `waitFor` helpers, each
+allowlisted by count: they throw on timeout rather than masking a race.
+
+Two rules stay off although they are about real behaviour, and the config says why with the number: `no-conditional-expect`
+(83, all data- or capability-driven — a scenario table's `if (step.expect?.x !== undefined)`, the polyfill's
+`if (!native)`) and `package-exports` (1: `@cssints/css-grammar` exposes 15 modules as subpaths on purpose). `test-file-names`
+(2) would rename `fixtures.ts` to name test data for what a reader already knows. What is left is 12 rules at error that find
+nothing today — `strict-msw`, `no-silent-catch`, `no-shared-signal`, `no-clipboard-read-text`, `no-styling-class-assertion`,
+`no-project-max-workers`, `colocated-tests`, `no-github-scripts`, `no-cold-import-in-test`, `no-parameter-branch`,
+`no-self-container-query`, `no-stale-render-assertion` — the guard for what is written next.
