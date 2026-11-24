@@ -29,7 +29,12 @@ export type ArgTypes = Readonly<Record<string, Control>>;
  */
 export interface Meta<Props extends object = Record<string, unknown>, Node = unknown> {
   readonly title: string;
-  readonly component?: (props: Props) => Node;
+  /**
+   * The component every story without a `render` draws. Typed with no parameter because the loader is the only caller — it
+   * draws the component with the story's args — and a package listing its story modules would otherwise fail to assign one:
+   * a `(props: ButtonProps) => Node` is not a `(props: Record<string, unknown>) => Node`, contravariance being what it is.
+   */
+  readonly component?: (props: never) => Node;
   /** Arguments every story of the file starts from. */
   readonly args?: Partial<Props>;
   readonly argTypes?: ArgTypes;

@@ -289,6 +289,26 @@
         "cssints": "^0.47.0",
       },
     },
+    "packages/ds": {
+      "name": "@cssints/ds",
+      "version": "0.0.0",
+      "dependencies": {
+        "@cssints/headless": "workspace:*",
+        "@cssints/stories": "workspace:*",
+        "cssints": "workspace:*",
+      },
+      "devDependencies": {
+        "@solidjs/vite-plugin": "3.0.0-next.57",
+        "@solidjs/web": "2.0.0-rc.21",
+        "@vitest/browser-playwright": "5.0.5",
+        "playwright": "1.64.1",
+        "solid-js": "2.0.0-rc.21",
+        "vite-plus": "catalog:",
+      },
+      "peerDependencies": {
+        "solid-js": "^2.0.0-rc.21",
+      },
+    },
     "packages/fluid": {
       "name": "@cssints/fluid",
       "version": "0.47.0",
@@ -826,6 +846,8 @@
     "@cssints/data": ["@cssints/data@workspace:packages/data"],
 
     "@cssints/devtools": ["@cssints/devtools@workspace:packages/devtools"],
+
+    "@cssints/ds": ["@cssints/ds@workspace:packages/ds"],
 
     "@cssints/fluid": ["@cssints/fluid@workspace:packages/fluid"],
 

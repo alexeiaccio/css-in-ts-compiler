@@ -1,0 +1,42 @@
+{
+  "name": "@cssints/ds",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A design system on cssints: Button, Field, Switch and Tabs, a theme with its contrast checks, and the stories beside each component",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/ds"
+  },
+  "homepage": "https://cssints.dev",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./stories": "./src/stories.ts"
+  },
+  "scripts": {
+    "test": "vp test run",
+    "typecheck": "node ../../scripts/typecheck.mjs"
+  },
+  "dependencies": {
+    "@cssints/headless": "workspace:*",
+    "@cssints/stories": "workspace:*",
+    "cssints": "workspace:*"
+  },
+  "devDependencies": {
+    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "@solidjs/web": "2.0.0-rc.21",
+    "@vitest/browser-playwright": "5.0.5",
+    "playwright": "1.64.1",
+    "solid-js": "2.0.0-rc.21",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "solid-js": "^2.0.0-rc.21"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
