@@ -115,6 +115,9 @@ export interface StorybookProps {
  * The DS's storybook: a rail of stories, the canvas that draws the picked story's `view` with its args, and the controls its
  * `argTypes` declare. The panels detach into a window of their own — the page keeps the canvas and the story is drawn in it
  * natively, with no frame anywhere — and the two documents stay in step over a `BroadcastChannel`.
+ *
+ * @param {StorybookProps} props the stories, the story to open, the half this document is, the channel and the open call
+ * @returns {JSX.Element} the rail, the canvas, or both, as `panels` says
  */
 export const Storybook = (props: StorybookProps) => {
   const all = () => props.stories ?? shipped;
@@ -131,6 +134,9 @@ export const Storybook = (props: StorybookProps) => {
   const showCanvas = () => mine() !== "rail";
 
   const open = props.open ?? ((url: string) => window.open(url, "cssints-ds-panels"));
+
+  const shown = (value: Args[string]) =>
+    typeof value === "string" || typeof value === "number" ? String(value) : "";
 
   const pick = (entry: StoryEntry) => {
     setCurrent(entry);
@@ -197,7 +203,7 @@ export const Storybook = (props: StorybookProps) => {
       min={spec.min}
       max={spec.max}
       step={spec.step}
-      value={String(value() ?? "")}
+      value={shown(value())}
       onInput={(event) => {
         const next = Number(event.currentTarget.value);
         setArg(name, Number.isNaN(next) ? event.currentTarget.value : next);
@@ -217,13 +223,11 @@ export const Storybook = (props: StorybookProps) => {
             onChange={(event) => setArg(name, event.currentTarget.checked)}
           />
         </Show>
-        <Show
-          when={spec.type === "select" ? (spec as Extract<Control, { type: "select" }>) : undefined}
-        >
+        <Show when={spec.type === "select" ? spec : undefined}>
           {(select) => (
             <select
               class={control}
-              value={String(value() ?? "")}
+              value={shown(value())}
               onChange={(event) => setArg(name, event.currentTarget.value)}
             >
               <For each={select().options}>
@@ -236,7 +240,7 @@ export const Storybook = (props: StorybookProps) => {
           <input
             class={control}
             type="text"
-            value={String(value() ?? "")}
+            value={shown(value())}
             onInput={(event) => setArg(name, event.currentTarget.value)}
           />
         </Show>
