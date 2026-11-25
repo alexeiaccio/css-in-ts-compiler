@@ -31,8 +31,11 @@ packages/headless      @cssints/headless: Solid 2 APG widgets (and `resizablePan
 packages/ds            @cssints/ds: a design system on cssints — Button, Field, Switch and Tabs on @cssints/headless, the
                        theme (tokens.ts + theme.ts, with check.contrast), and the CSF 3 stories beside each component;
                        src/stories.ts lists the story modules and calls @cssints/stories' entries(), so a package carries its
-                       own storybook; source-first (no dist: the pack pipeline does not run Solid's compiler), test/ds.browser.test.tsx
-                       in Chromium drives the four components and every story's view
+                       own storybook; src/storybook.tsx is that storybook's chrome (rail, canvas, controls) whose panels detach
+                       into a window of their own over a BroadcastChannel (src/view.ts), the story drawn natively with no
+                       iframe; dev/ is its host (`bun run dev`); source-first (no dist: the pack pipeline does not run Solid's
+                       compiler), test/*.browser.test.tsx in Chromium drives the four components, every story's view and the
+                       detached panels
 packages/stories       @cssints/stories: the CSF 3 loader of a storybook (src/index.ts: `entries()` — the modules an app globs in, the
                        entries with Storybook's ids out — `storyOfId()`, `parseHash()`, and the `Meta`/`Story`/`ArgTypes` types with the
                        controls a story declares); no DOM and no styles, `solid-js` is a peer, and `Node` is a type parameter so the same

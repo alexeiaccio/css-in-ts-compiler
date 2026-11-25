@@ -1,3 +1,4 @@
+import type { JSX } from "@solidjs/web";
 import { entries, type Entry, type Module } from "@cssints/stories";
 
 import * as button from "./button.stories.tsx";
@@ -17,7 +18,7 @@ const modules = {
  * the CSF 3 modules listed above through `@cssints/stories`' loader, so the ids, the args and the controls are the ones
  * Storybook builds.
  */
-export const stories: ReadonlyArray<Entry> = entries(modules, (path) =>
+export const stories: ReadonlyArray<Entry<JSX.Element>> = entries<JSX.Element>(modules, (path) =>
   path.slice("./".length, -".stories.tsx".length),
 );
 
@@ -28,3 +29,5 @@ export const stories: ReadonlyArray<Entry> = entries(modules, (path) =>
  * @returns {Entry | undefined} the story, or nothing when no file declares it
  */
 export const storyOfId = (id: string) => stories.find((entry) => entry.id === id);
+
+export type { Entry };

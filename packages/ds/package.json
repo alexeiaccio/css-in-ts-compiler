@@ -3,22 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "description": "A design system on cssints: Button, Field, Switch and Tabs, a theme with its contrast checks, and the stories beside each component",
+  "homepage": "https://cssints.dev",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
     "directory": "packages/ds"
   },
-  "homepage": "https://cssints.dev",
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./stories": "./src/stories.ts"
+    "./stories": "./src/stories.ts",
+    "./storybook": "./src/storybook.tsx",
+    "./view": "./src/view.ts"
   },
   "scripts": {
     "test": "vp test run",
-    "typecheck": "node ../../scripts/typecheck.mjs"
+    "typecheck": "node ../../scripts/typecheck.mjs",
+    "dev": "vp dev --config vite.dev.config.ts"
   },
   "dependencies": {
     "@cssints/headless": "workspace:*",

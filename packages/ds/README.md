@@ -39,6 +39,24 @@ canvas and a controls panel read `Entry[]` and nothing else.
 The modules are listed rather than globbed: this file is a package entry, resolved by Vite, Node and a TypeScript
 consumer alike, and `import.meta.glob` belongs to an app.
 
+## The storybook
+
+`@cssints/ds/storybook` is the chrome the stories needed: a rail of every story, a canvas that draws the picked story's
+`view` with its args, and one control per `argType` the story declares (boolean, select, text, number, range).
+
+The panels detach into a window of their own — **Panels in a window** opens
+`?story=<id>&panels=rail` in a popup, the page keeps the canvas, and the popup holds the rail and the controls. The story is
+drawn in the page natively: there is no iframe anywhere, in the page or in the popup. The two documents are one storybook
+over a `BroadcastChannel` (`@cssints/ds/view`): a story picked on either side moves both, and an arg set in the panels
+window redraws the canvas. `Storybook` takes the channel, the `open` call and the stories as props, so a host (or a test)
+passes a wire of its own.
+
+```sh
+cd packages/ds && bun run dev   # http://localhost:5173 — the package's own storybook
+```
+
+A host imports the sheet in its entry, as every app does: `import "virtual:cssints.css";`.
+
 ## Source-first on purpose
 
 This package has no `dist`. A component package needs Solid's compiler (JSX and its reactive transform), which the
