@@ -32,6 +32,14 @@ export const startFake = async () => {
     if (url.pathname === "/api/session" && req.method === "POST")
       return json({ data: { id: "ses_fake1" } });
     if (url.pathname.endsWith("/prompt")) return json({ data: { id: "msg_1" } });
+    if (url.pathname.endsWith("/context"))
+      return json({
+        data: [
+          { id: "msg_1", type: "user", time: { created: 1 }, text: "make it blue" },
+          { id: "msg_2", type: "assistant", time: { created: 2 }, agent: "build", text: "done" },
+          { id: "msg_3", type: "system", time: { created: 3 }, text: "not a message to read" },
+        ],
+      });
     if (url.pathname.endsWith("/wait")) {
       await sleep(150);
       res.statusCode = 204;

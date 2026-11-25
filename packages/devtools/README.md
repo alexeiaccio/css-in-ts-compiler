@@ -80,6 +80,22 @@ new one`. The id is the session `/cssints-devtools` attached to this dev server 
 The page asks the dev server whether a service is found (a probe: it looks, it creates no session) when the panel opens, when
 the box gets focus and after a send that found none, so starting OpenCode later shows up without a reload.
 
+### The tab with the chat
+
+With the option on, the panel has two tabs: **Inspect** (the picked element, its structure and the classes that won each
+property) and **OpenCode**, which holds the conversation rather than one prompt at the panel's edge:
+
+- the transcript of the session — the user's and the assistant's messages, each with its role — read through the dev server
+  (`session.context`), so the page still holds no address and no credentials;
+- **new session**: a session of its own, created in the repository folder, without touching the one `/cssints-devtools`
+  attached (the attached session, when there is one, wins);
+- the same composer: on this tab, Enter sends the text as typed (a chat message, not an element instruction), the send is
+  followed by `running…` and then the transcript with the turn's outcome.
+
+`test/ask-browser.mjs` drives it in Chrome against the fake service (the tabs, `new session` creating exactly one, the
+transcript's roles, the raw text reaching the prompt), and `test/opencode.mjs` covers the server side: `open` creates no
+session, `new` creates one, `send` leaves the transcript of the messages and not of the session's own state.
+
 ### The command `/cssints-devtools`
 
 The box does not choose a session: an OpenCode command attaches the session it runs in to a dev server. The plugin is the

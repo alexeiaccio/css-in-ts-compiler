@@ -269,6 +269,49 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
     await shot(page, `${dock}-connected`);
   }
 
+  // the chat tab: the conversation in the panel, a session of its own, and the composer sending into it
+  await page.locator("[data-devtools=tab][data-tab=opencode]").click();
+  await page.locator("[data-devtools=chat]").waitFor();
+  const chatStatus = page.locator("[data-devtools=chat-status]");
+  await until(
+    "a session in the chat",
+    async () => (await chatStatus.getAttribute("data-status")) === "idle",
+  );
+  const created = fake.calls.filter((c) => c.path === "/api/session").length;
+  await page.locator("[data-devtools=chat-new]").click();
+  await until("the new session", async () =>
+    (await chatStatus.innerText()).includes("· session ses_"),
+  );
+  assert.equal(
+    fake.calls.filter((c) => c.path === "/api/session").length,
+    created + 1,
+    "new session creates one",
+  );
+  await input.fill("and the header");
+  await input.press("Enter");
+  await until(
+    "the transcript",
+    async () => (await page.locator("[data-devtools=chat-message]").count()) >= 2,
+  );
+  assert.deepEqual(
+    await page
+      .locator("[data-devtools=chat-message]")
+      .evaluateAll((all) => all.map((el) => el.getAttribute("data-role"))),
+    ["user", "assistant"],
+  );
+  assert.match(
+    await page.locator("[data-devtools=chat-message]").first().innerText(),
+    /USER\s+make it blue/i,
+    "the transcript is the session's messages, with the role over each",
+  );
+  assert.match(
+    fake.calls.findLast((c) => c.path.endsWith("/prompt")).body.text,
+    /^and the header$/,
+    "a chat prompt is sent as typed",
+  );
+  await page.locator("[data-devtools=tab][data-tab=inspect]").click();
+  await page.locator("[data-devtools=classes]").waitFor();
+
   // the service goes away: a failed send says so and keeps the text
   fake.unregister();
   await input.fill("one more");
@@ -288,6 +331,7 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
   const { page, errors } = await open(server);
   await pick(page);
   assert.equal(await page.locator("[data-devtools=ask]").count(), 0);
+  assert.equal(await page.locator("[data-devtools=tab]").count(), 0, "no chat without the option");
   assert.deepEqual(errors, []);
   await page.close();
   await server.close();

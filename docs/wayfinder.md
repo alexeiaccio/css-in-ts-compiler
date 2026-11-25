@@ -6162,3 +6162,16 @@ to resolve `catalog:` and to skip a private package: `@cssints/ds` is source-fir
 their turn. Held back, with the reason: `mdn-data 2.38.1` needs `bun run extract` and a Chrome pass (`webref`, `longhands`);
 `oxc-parser`, `@webref/css` and `@mdn/browser-compat-data` move with it; `apps/docs`' playground test is red on master for
 pages whose example project does not exist yet (123 pages, 36 examples, 26 skipped) — not this bump.
+
+**The OpenCode tab, a chat in the panel (2026-11-25):** the box at the panel's edge sent one prompt and told you the outcome,
+and a prompt with no attached session created one you never saw again. The panel now has two tabs — **Inspect** and
+**OpenCode** — and the second one holds the conversation: the transcript (the user's and the assistant's messages, role over
+each), **new session**, and the composer. The page still holds no address and no credentials: the dev server is the only
+client of the service, over the same HMR channel (`cssints:devtools:chat` up, `:chat:state` down), so a page of another
+origin cannot start a session. `open` is a read (it answers with the transcript and creates nothing), `new` creates a session
+in the repository folder and leaves an attached one alone, and `send` is the raw text — a chat message, not an element
+instruction — followed by `running…` and the turn's outcome. The transcript is `session.context`, filtered to
+`user`/`assistant` with a `text`: the model and location switches, a skill and a compaction are session state, not something
+to read. Two tests hold it: `test/opencode.mjs` (the fake service: `open` creates no session, `new` exactly one, the
+transcript has the two messages and not the third) and `test/ask-browser.mjs` in Chrome (the tabs, `new session`, the roles
+in the transcript, and the prompt reaching the service as typed).

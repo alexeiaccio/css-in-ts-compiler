@@ -48,10 +48,12 @@ const serve = async (opencode, root = app) => {
   await once(socket, "open");
   const asked = [];
   const linked = [];
+  const chat = [];
   socket.addEventListener("message", (e) => {
     const m = JSON.parse(e.data);
     if (m.type === "custom" && m.event === "cssints:devtools:asked") asked.push(m.data);
     if (m.type === "custom" && m.event === "cssints:devtools:linked") linked.push(m.data);
+    if (m.type === "custom" && m.event === "cssints:devtools:chat:state") chat.push(m.data);
   });
   const probe = async () => {
     const n = linked.length;
@@ -65,10 +67,12 @@ const serve = async (opencode, root = app) => {
     );
   const until = async (what, check, ms = 5000) => {
     for (const end = Date.now() + ms; Date.now() < end; await sleep(50)) if (check()) return;
-    throw new Error(`timed out: ${what}: ${JSON.stringify(asked)}`);
+    throw new Error(`timed out: ${what}: ${JSON.stringify({ asked, chat })}`);
   };
+  const talk = (op) =>
+    socket.send(JSON.stringify({ type: "custom", event: "cssints:devtools:chat", data: op }));
   const entry = await (await fetch(`${url}@id/virtual:cssints/devtools`)).text();
-  return { server, socket, asked, linked, probe, ask, until, entry };
+  return { server, socket, asked, linked, chat, probe, ask, talk, until, entry };
 };
 
 const PROMPT = [
@@ -109,6 +113,7 @@ if (process.argv[2] === "missing") {
   const t = await serve({ agent: "plan", skills: ["cssints"] });
   assert.match(t.entry, /ask: \(ref, prompt\) => hot\.send\("cssints:devtools:ask"/);
   assert.match(t.entry, /link: \(\) => hot\.send\("cssints:devtools:link"\)/);
+  assert.match(t.entry, /chat: \(op\) => hot\.send\("cssints:devtools:chat", op\)/);
 
   // the probe finds the service and creates no session; no service is no message but a fact; starting it later is found
   assert.deepEqual(await t.probe(), { connected: true, url: fake.url(), directory: repo });
@@ -169,6 +174,49 @@ if (process.argv[2] === "missing") {
   );
   await sleep(300);
   assert.equal(calls.length, before);
+
+  // the chat tab: opening it creates no session, "new" creates one of its own, and a prompt leaves a transcript
+  fake.outcome("succeeded");
+  calls.length = 0;
+  t.talk({ op: "open" });
+  await t.until("opened", () => t.chat.length > 0);
+  assert.deepEqual(t.chat.at(-1), {
+    connected: true,
+    url: fake.url(),
+    directory: repo,
+    status: "idle",
+    messages: [],
+  });
+  assert.equal(
+    calls.filter((c) => c.path === "/api/session").length,
+    0,
+    "opening the chat creates no session",
+  );
+
+  t.talk({ op: "new" });
+  await t.until("new session", () => t.chat.at(-1)?.session === "ses_fake1");
+  assert.equal(t.chat.at(-1).status, "idle");
+  assert.equal(calls.filter((c) => c.path === "/api/session").length, 1);
+
+  t.talk({ op: "send", text: "make it blue" });
+  await t.until("running", () => t.chat.at(-1)?.status === "running");
+  await t.until(
+    "transcript",
+    () => t.chat.at(-1)?.status === "idle" && t.chat.at(-1).messages.length > 0,
+  );
+  assert.deepEqual(
+    t.chat.at(-1).messages.map((m) => [m.role, m.text]),
+    [
+      ["user", "make it blue"],
+      ["assistant", "done"],
+    ],
+    "the transcript is the user's and the assistant's messages, without the session's own state",
+  );
+  assert.equal(
+    calls.find((c) => c.path === "/api/session/ses_fake1/prompt").body.text,
+    "make it blue",
+    "a chat prompt is sent as typed: no element, no page header",
+  );
 
   // no service runs: a message that says what to do
   fake.unregister();

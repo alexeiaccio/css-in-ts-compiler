@@ -27,6 +27,9 @@ import {
   session,
   Transport,
   type TransportApi,
+  CHAT_STATE,
+  type ChatOp,
+  type ChatState,
   type Xray,
   xray,
 } from "../core/index.ts";
@@ -594,8 +597,12 @@ function App(props: {
   /** with `ask`: probes for the OpenCode service; `linked` is what the last probe found (undefined before the first answer) */
   link?: () => void;
   linked: () => Linked | undefined;
+  /** with `chat`: the OpenCode tab — open the chat, start a session, send a prompt; `chatState` is what the server says */
+  chat?: (op: ChatOp) => void;
+  chatState: () => ChatState | undefined;
 }) {
   const [open, setOpen] = createSignal(false);
+  const [tab, setTab] = createSignal<"inspect" | "opencode">("inspect");
   const [picking, setPicking] = createSignal(false);
   const [hovered, setHovered] = createSignal<Element>();
   const [selected, setSelected] = createSignal<Element>();
@@ -717,6 +724,11 @@ function App(props: {
     const el = selected();
     const text = input()?.value.trim();
     if (!text) return;
+    if (props.chat && tab() === "opencode") {
+      if (input()) input()!.value = "";
+      props.chat({ op: "send", text });
+      return;
+    }
     const i = m && el?.isConnected ? run(m, el) : undefined;
     props.ask?.(
       el && typeof i === "object" ? buildPrompt(i, el, text) : pagePrompt(text, document),
@@ -848,6 +860,40 @@ function App(props: {
     if (props.build) toggle(true);
   });
 
+  const inspectBody = () => (
+    <>
+      <Show
+        when={props.model()}
+        fallback={
+          <div class={s.hint}>
+            {props.build ? "loading the table…" : "waiting for the dev server…"}
+          </div>
+        }
+      >
+        <Show
+          when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
+          fallback={
+            <div class={s.hint}>
+              {typeof inspection() === "string"
+                ? inspection()
+                : "hover an element and click to pick it"}
+            </div>
+          }
+        >
+          {(i) => (
+            <Panel
+              inspection={i()}
+              build={props.build}
+              xray={measured()}
+              element={() => target()}
+            />
+          )}
+        </Show>
+      </Show>
+      <Motion running={motions()} slow={slow()} onSlow={toggleSlow} onReduced={previewReduced} />
+    </>
+  );
+
   const Docked = () => (
     <>
       <aside
@@ -938,40 +984,76 @@ function App(props: {
             </div>
           </Show>
           <div class={s.body} data-devtools="body">
-            <Show
-              when={props.model()}
-              fallback={
-                <div class={s.hint}>
-                  {props.build ? "loading the table…" : "waiting for the dev server…"}
-                </div>
-              }
-            >
-              <Show
-                when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
-                fallback={
-                  <div class={s.hint}>
-                    {typeof inspection() === "string"
-                      ? inspection()
-                      : "hover an element and click to pick it"}
-                  </div>
-                }
-              >
-                {(i) => (
-                  <Panel
-                    inspection={i()}
-                    build={props.build}
-                    xray={measured()}
-                    element={() => target()}
-                  />
-                )}
-              </Show>
+            <Show when={props.chat}>
+              <div class={s.tabs} data-devtools="tabs">
+                <button
+                  class={cn(s.tab, tab() === "inspect" && s.tabOn)}
+                  data-devtools="tab"
+                  data-tab="inspect"
+                  data-on={tab() === "inspect" ? "yes" : "no"}
+                  onClick={() => setTab("inspect")}
+                >
+                  Inspect
+                </button>
+                <button
+                  class={cn(s.tab, tab() === "opencode" && s.tabOn)}
+                  data-devtools="tab"
+                  data-tab="opencode"
+                  data-on={tab() === "opencode" ? "yes" : "no"}
+                  onClick={() => {
+                    setTab("opencode");
+                    props.chat?.({ op: "open" });
+                  }}
+                >
+                  OpenCode
+                </button>
+              </div>
             </Show>
-            <Motion
-              running={motions()}
-              slow={slow()}
-              onSlow={toggleSlow}
-              onReduced={previewReduced}
-            />
+            <Show when={tab() === "opencode" && props.chat} fallback={inspectBody()}>
+              <div class={s.transcript} data-devtools="chat">
+                <div class={s.askHead}>
+                  <span class={s.askTitle}>OpenCode</span>
+                  <button
+                    class={s.button}
+                    data-devtools="chat-new"
+                    title="start a session of its own: the attached one is left alone"
+                    onClick={() => props.chat?.({ op: "new" })}
+                  >
+                    new session
+                  </button>
+                </div>
+                <Show
+                  when={props.chatState()}
+                  fallback={<div class={s.hint}>looking for an OpenCode service…</div>}
+                >
+                  {(state) => (
+                    <>
+                      <div
+                        class={cn(s.code, s.muted)}
+                        data-devtools="chat-status"
+                        data-status={state().status}
+                        data-connected={state().connected ? "yes" : "no"}
+                      >
+                        {state().connected ? `connected to ${state().url}` : "not connected"}
+                        {state().session
+                          ? ` · session ${state().session}`
+                          : " · no session yet: new session, or send a prompt"}
+                        {state().status === "running" ? " · running…" : ""}
+                        {state().message ? ` · ${state().message}` : ""}
+                      </div>
+                      <For each={state().messages}>
+                        {(message) => (
+                          <div class={s.msg} data-devtools="chat-message" data-role={message.role}>
+                            <span class={s.msgRole}>{message.role}</span>
+                            <span class={s.msgText}>{message.text}</span>
+                          </div>
+                        )}
+                      </For>
+                    </>
+                  )}
+                </Show>
+              </div>
+            </Show>
           </div>
         </div>
         <Show when={props.ask}>
@@ -1149,6 +1231,9 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
     });
   const [linked, setLinked] = createSignal<Linked>();
   if (transport.link) transport.on(LINKED, (data) => setLinked(data as Linked));
+  const [chatState, setChatState] = createSignal<ChatState>();
+  const chat = transport.chat && ((op: ChatOp) => transport.chat?.(op));
+  if (chat) transport.on(CHAT_STATE, (data) => setChatState(data as ChatState));
   render(
     () => (
       <App
@@ -1160,6 +1245,8 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
         asked={asked}
         link={transport.link}
         linked={linked}
+        chat={chat}
+        chatState={chatState}
       />
     ),
     root,

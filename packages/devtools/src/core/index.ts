@@ -17,8 +17,18 @@ export { domPage } from "./dom.ts";
 export { Page } from "./page.ts";
 export { buildPrompt, pagePrompt, relative, structureOf } from "./prompt.ts";
 export type { Foreign, Observed, Probe } from "./page.ts";
-export { ASK, ASKED, LINKED, session, STALE, TABLE, Transport } from "./session.ts";
-export type { Asked, Linked } from "./session.ts";
+export {
+  ASK,
+  ASKED,
+  CHAT,
+  CHAT_STATE,
+  LINKED,
+  session,
+  STALE,
+  TABLE,
+  Transport,
+} from "./session.ts";
+export type { Asked, ChatMessage, ChatOp, ChatState, Linked } from "./session.ts";
 export type { Session, TransportApi } from "./session.ts";
 export { toModel, Table, TableError } from "./table.ts";
 export type { ClassRecord, Model, Site } from "./table.ts";

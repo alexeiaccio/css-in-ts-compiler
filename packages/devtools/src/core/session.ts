@@ -35,6 +35,32 @@ export interface Linked {
   readonly message?: string;
 }
 
+/** the overlay's chat tab: an operation to the server, and the state it answers with */
+export const CHAT = "cssints:devtools:chat";
+export const CHAT_STATE = "cssints:devtools:chat:state";
+
+export interface ChatMessage {
+  readonly id: string;
+  readonly role: "user" | "assistant";
+  readonly text: string;
+}
+
+export interface ChatState {
+  readonly connected: boolean;
+  readonly url?: string;
+  readonly directory: string;
+  /** the session the chat reads and writes: the one `/cssints-devtools` attached, or the one this tab created */
+  readonly session?: string;
+  readonly status: "idle" | "running" | "failed";
+  readonly messages: ReadonlyArray<ChatMessage>;
+  readonly message?: string;
+}
+
+export type ChatOp =
+  | { readonly op: "open" }
+  | { readonly op: "new" }
+  | { readonly op: "send"; readonly text: string };
+
 export interface TransportApi {
   /** asks the server for the table (`cssints:devtools:get`); it answers with TABLE */
   readonly request: () => void;
@@ -43,6 +69,8 @@ export interface TransportApi {
   readonly ask?: (ref: number, prompt: string) => void;
   /** next to `ask`: probes for the service, the answer comes as LINKED */
   readonly link?: () => void;
+  /** next to `ask`: the chat tab — open, a new session, or a prompt; the answers come as CHAT_STATE */
+  readonly chat?: (op: ChatOp) => void;
 }
 
 export class Transport extends Context.Service<Transport, TransportApi>()(

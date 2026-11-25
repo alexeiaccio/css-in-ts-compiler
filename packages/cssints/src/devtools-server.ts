@@ -142,9 +142,34 @@ const ASK = "cssints:devtools:ask";
 const ASKED = "cssints:devtools:asked";
 const LINK = "cssints:devtools:link";
 const LINKED = "cssints:devtools:linked";
+const CHAT = "cssints:devtools:chat";
+const CHAT_STATE = "cssints:devtools:chat:state";
 // the browser builds a bounded prompt (@cssints/devtools core/prompt.ts); the server bounds it once more
 const MAX_PROMPT = 16_000;
 const Asking = Schema.Struct({ ref: Schema.Finite, prompt: Schema.String });
+const ChatOp = Schema.Union([
+  Schema.Struct({ op: Schema.Literal("open") }),
+  Schema.Struct({ op: Schema.Literal("new") }),
+  Schema.Struct({ op: Schema.Literal("send"), text: Schema.String }),
+]);
+
+/** One message of a session's transcript, as the overlay draws it. */
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+}
+
+/** What the server tells the overlay's chat tab (`cssints:devtools:chat:state`). */
+interface ChatState {
+  connected: boolean;
+  url?: string;
+  directory: string;
+  session?: string;
+  status: "idle" | "running" | "failed";
+  messages: ChatMessage[];
+  message?: string;
+}
 
 /** What the server tells the overlay (`cssints:devtools:asked`). */
 interface Asked {
@@ -306,6 +331,14 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (
   say({ ref, status: outcome === "succeeded" ? "completed" : (outcome ?? "failed"), id });
 });
 
+const transcript = (messages: ReadonlyArray<{ id: string; type: string }>) =>
+  messages.flatMap((message) => {
+    if (message.type !== "user" && message.type !== "assistant") return [];
+    const text = Predicate.hasProperty(message, "text") ? message.text : undefined;
+    const role: ChatMessage["role"] = message.type === "user" ? "user" : "assistant";
+    return typeof text === "string" ? [{ id: message.id, role, text }] : [];
+  });
+
 // The module the page loads: the overlay of @cssints/devtools, connected to this server.
 const entryModule = (overlay: string | undefined, root: string, opencode: boolean) =>
   overlay
@@ -314,7 +347,7 @@ const hot = import.meta.hot;
 mount({
   root: ${Formatter.formatJson(root)},
   request: () => hot.send("cssints:devtools:get"),
-  on: (event, listener) => hot.on(event, listener),${opencode ? `\n  ask: (ref, prompt) => hot.send("${ASK}", { ref, prompt }),\n  link: () => hot.send("${LINK}"),` : ""}
+  on: (event, listener) => hot.on(event, listener),${opencode ? `\n  ask: (ref, prompt) => hot.send("${ASK}", { ref, prompt }),\n  link: () => hot.send("${LINK}"),\n  chat: (op) => hot.send("${CHAT}", op),` : ""}
 });
 `
     : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed (or not built): add @cssints/devtools to the devDependencies of the app");\n`;
@@ -342,6 +375,70 @@ export const devtoolsPlugin = (
     const overlay = yield* Effect.tryPromise(resolve).pipe(Effect.orElseSucceed(() => null));
     return entryModule(overlay?.id, server?.config.root ?? "", !!opencode);
   });
+  const chatSession: string[] = [];
+  const chat = Effect.fn("cssints.opencodeChat")(function* (
+    op: typeof ChatOp.Type,
+    root: string,
+    options: OpenCodeOptions,
+    say: (state: ChatState) => void,
+  ) {
+    const directory = gitRoot(root);
+    const { url, client } = yield* connect();
+    const call = <A>(f: () => Promise<A>) =>
+      Effect.tryPromise({
+        try: f,
+        catch: (e) =>
+          new OpenCodeError({
+            status: "failed",
+            message: Predicate.isError(e) ? e.message : String(e),
+          }),
+      });
+    const fresh = () =>
+      call(() =>
+        client.session.create({
+          title: "cssints devtools",
+          ...(options.agent ? { agent: options.agent } : {}),
+          location: { directory },
+        }),
+      );
+    const attached = yield* attachedTo(root);
+    const created = attached === undefined && op.op !== "open" ? (yield* fresh()).id : undefined;
+    if (created !== undefined) chatSession[0] = created;
+    const chosen = attached ?? chatSession[0];
+    const read = (id: string) =>
+      call(() => client.session.context({ sessionID: id })).pipe(Effect.map(transcript));
+    const session = chosen;
+    if (session === undefined) {
+      say({ connected: true, url, directory, status: "idle", messages: [] });
+      return;
+    }
+    say({
+      connected: true,
+      url,
+      directory,
+      session,
+      status: "idle",
+      messages: yield* read(session),
+    });
+    if (op.op !== "send") {
+      return;
+    }
+    say({ connected: true, url, directory, session, status: "running", messages: [] });
+    yield* call(() => client.session.prompt({ sessionID: session, text: op.text }));
+    yield* call(() => client.session.wait({ sessionID: session }));
+    const messages = yield* read(session);
+    const { outcome } = yield* call(() => client.session.get({ sessionID: session }));
+    say({
+      connected: true,
+      url,
+      directory,
+      session,
+      status: outcome === "succeeded" ? "idle" : "failed",
+      messages,
+      ...(outcome === "succeeded" ? {} : { message: `the turn ended ${outcome ?? "failed"}` }),
+    });
+  });
+
   return {
     name: "cssints:devtools",
     apply: "serve",
@@ -360,6 +457,26 @@ export const devtoolsPlugin = (
             ),
           ),
         );
+        s.environments.client.hot.on(CHAT, (data) => {
+          const decoded = Schema.decodeUnknownOption(ChatOp)(data);
+          if (Option.isNone(decoded)) return;
+          const say = (state: ChatState) => s.environments.client.hot.send(CHAT_STATE, state);
+          Effect.runFork(
+            chat(decoded.value, s.config.root, opencode, say).pipe(
+              Effect.catchTag("OpenCodeError", (e) =>
+                Effect.sync(() =>
+                  say({
+                    connected: false,
+                    directory: gitRoot(s.config.root),
+                    status: "failed",
+                    messages: [],
+                    message: e.message,
+                  }),
+                ),
+              ),
+            ),
+          );
+        });
         s.environments.client.hot.on(ASK, (data) => {
           const asking = Schema.decodeUnknownOption(Asking)(data);
           if (Option.isNone(asking)) return;

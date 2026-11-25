@@ -345,3 +345,37 @@ export const askInput = cn(
   font("inherit"),
 );
 export const askInputGrow = cn(flexGrow(1), minHeight("3rem"), resize("none"));
+
+export const tabs = cn(
+  display("flex"),
+  gap(1),
+  paddingBlock("4px"),
+  borderBottom("1px solid", line),
+);
+export const tab = cn(
+  paddingInline("8px"),
+  paddingBlock("2px"),
+  borderRadius("4px"),
+  border("1px solid", "transparent"),
+  bg("transparent"),
+  color(dim),
+  fontSize("11px"),
+  cursor("pointer"),
+);
+export const tabOn = cn(color(ink), bg(panelBg), border("1px solid", line));
+export const transcript = cn(
+  display("flex"),
+  flexDirection("column"),
+  gap(2),
+  p(2),
+  flexGrow(1),
+  overflow("auto"),
+);
+export const msg = cn(display("flex"), flexDirection("column"), gap(1));
+export const msgRole = cn(
+  fontSize("10px"),
+  textTransform("uppercase"),
+  letterSpacing("0.06em"),
+  color(dim),
+);
+export const msgText = cn(fontSize("12px"), whiteSpace("pre-wrap"), overflowWrap("anywhere"));
