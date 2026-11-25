@@ -30,7 +30,7 @@ packages/apg-specs     @cssints/apg-specs (the test oracle, published for consum
 packages/headless      @cssints/headless: Solid 2 APG widgets (and `resizablePanels`, a group of window splitters) that return DOM attribute objects (src/<pattern>.ts, no styling, `solid-js` is a peer); test/: *.browser.test.tsx and fixtures that replay the Quint traces and scenarios of @cssints/apg-specs in Chromium (vitest browser mode, Playwright provider through `vite-plus/test`); in the changesets `fixed` group
 packages/ds            @cssints/ds: a design system on cssints — Button, Field, Switch and Tabs on @cssints/headless, the
                        theme (tokens.ts + theme.ts, with check.contrast), and the CSF 3 stories beside each component;
-                       src/stories.ts lists the story modules and calls @cssints/stories' entries(), so a package carries its
+                       src/stories.ts calls reset() of @cssints/reset and lists the story modules through @cssints/stories' entries(), so a package carries its
                        own storybook; src/storybook.tsx is that storybook's chrome (rail, canvas, controls) whose panels detach
                        into a window of their own over a BroadcastChannel (src/view.ts), the story drawn natively with no
                        iframe; dev/ is its host (`bun run dev`); source-first (no dist: the pack pipeline does not run Solid's

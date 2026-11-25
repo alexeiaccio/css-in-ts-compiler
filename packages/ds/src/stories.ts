@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import type { JSX } from "@solidjs/web";
 import { entries, type Entry, type Module } from "@cssints/stories";
 
@@ -5,6 +6,8 @@ import * as button from "./button.stories.tsx";
 import * as field from "./field.stories.tsx";
 import * as switchStories from "./switch.stories.tsx";
 import * as tabs from "./tabs.stories.tsx";
+
+reset();
 
 const modules = {
   "./button.stories.tsx": button,

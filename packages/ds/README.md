@@ -39,6 +39,10 @@ canvas and a controls panel read `Entry[]` and nothing else.
 The modules are listed rather than globbed: this file is a package entry, resolved by Vite, Node and a TypeScript
 consumer alike, and `import.meta.glob` belongs to an app.
 
+`src/stories.ts` also calls `reset()` from `@cssints/reset`, so a story is drawn on a clean baseline — no UA button border,
+`50%`-line-height headings, `text-wrap: balance` — and not on the browser's own defaults. It lives in a layer below every
+class, so the components keep their look; a host's own entry calls `reset()` as every app of the repository does.
+
 ## The storybook
 
 `@cssints/ds/storybook` is the chrome the stories needed: a rail of every story, a canvas that draws the picked story's

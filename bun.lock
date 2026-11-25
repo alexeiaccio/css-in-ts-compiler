@@ -294,6 +294,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@cssints/headless": "workspace:*",
+        "@cssints/reset": "workspace:*",
         "@cssints/stories": "workspace:*",
         "cssints": "workspace:*",
       },

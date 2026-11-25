@@ -67,6 +67,16 @@ describe("Storybook", () => {
     expect(root.querySelector("iframe")).toBeNull();
   });
 
+  it("draws the stories on the reset, not on the browser's own defaults", () => {
+    const root = mount(() => <Storybook channel={wire().join()} />);
+    const raw = document.createElement("button");
+    const heading = document.createElement("h1");
+    root.append(raw, heading);
+
+    expect(getComputedStyle(raw).borderTopWidth).toBe("0px");
+    expect(getComputedStyle(heading).textWrap).toBe("balance");
+  });
+
   it("moves the canvas to the story a rail click names", async () => {
     const root = mount(() => <Storybook channel={wire().join()} />);
     const accent = root.querySelector<HTMLElement>('[data-story="button--accent"]');

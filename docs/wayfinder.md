@@ -5097,7 +5097,7 @@ is the finding worth keeping.
 - **`@cssints/data`** (from [dCSS](https://github.com/noscripting/dCSS)) is a **member that prints a rig**, because dCSS's
   whole point is values that change _after_ the build: `data()` emits a zero-height measuring list, an auto grid column
   (`max`) or a hug-width flex row (`sum`, `count`), and a query container whose children get `--data-result:
-  round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
+round(100cqw / 1px)` and whose `<output>` prints it with a counter. No runtime, no state; the host's `--value`s stay the
   host's. The DOM contract is `data-data="max|sum|count"`, `<ul><li style="--value: n">`, `<b data-read><output>`. **Two
   limits it cannot design away**: CSS cannot hand a number to a sibling, so the answer only reaches the reader's subtree;
   and the counter's content is not text a screen reader or find-in-page sees, so the host puts the number in a
@@ -5890,7 +5890,7 @@ colleagues with one name told apart by title and department, and the rows that n
 Read against the kit, the article names two gaps, both of them the engine's rather than a component's:
 
 - **The grammar refused the value.** `css.appearance("base-select")` was an error — `expected none | auto | <compat-auto> |
-  <compat-special>` — because mdn-data 2.27.1 still lists `<compat-auto>` without it, while BCD 8.1.3 has
+<compat-special>` — because mdn-data 2.27.1 still lists `<compat-auto>` without it, while BCD 8.1.3 has
   `css.properties.appearance.base-select` (Chrome 135, Safari 27, Firefox 149). Fixed where the other shipped-but-stale
   keywords are fixed (`scripts/extract.mjs`): an `EXTRA` type patch that appends `base-select` to mdn-data's own
   `<compat-auto>`, in every mode, so both twins accept it and the support warning comes from BCD. `display: grid-lanes` is
@@ -6175,3 +6175,11 @@ instruction — followed by `running…` and the turn's outcome. The transcript 
 to read. Two tests hold it: `test/opencode.mjs` (the fake service: `open` creates no session, `new` exactly one, the
 transcript has the two messages and not the third) and `test/ask-browser.mjs` in Chrome (the tabs, `new session`, the roles
 in the transcript, and the prompt reaching the service as typed).
+
+**The stories on the reset (2026-11-25):** a story was drawn on the browser's defaults — a two-pixel UA border on every
+button, the UA line height, no `text-wrap` — because nothing in `@cssints/ds` called `reset()`, while every app and every
+example of the repository does. `src/stories.ts` now calls `reset()` from `@cssints/reset`: the one module the storybook, the
+dev host and the tests load, so all three draw on the same baseline, and the rule sits in the `reset` layer below every class
+(`_.k`), so a component keeps its look — the Button's padding is still `8px 12px`. Checked in the dev host in Chrome: `html`
+line height `24px`, a raw button's border `0px`, an `h1`'s `text-wrap` `balance`, `body` margin `0`, 14 stories, no iframes;
+`test/storybook.browser.test.tsx` asserts the border and the `text-wrap`, and the 13 tests before it still pass.

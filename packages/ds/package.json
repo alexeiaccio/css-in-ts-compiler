@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@cssints/headless": "workspace:*",
+    "@cssints/reset": "workspace:*",
     "@cssints/stories": "workspace:*",
     "cssints": "workspace:*"
   },
