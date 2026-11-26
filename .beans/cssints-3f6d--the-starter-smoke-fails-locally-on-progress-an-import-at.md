@@ -1,13 +1,13 @@
 ---
 # smoke
 title: 'the starter smoke fails locally on progress (an import attribute Bun will not load)'
-status: todo
+status: completed
 type: bug
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-11-22T20:40:00Z
-updated_at: 2026-11-22T20:40:00Z
+updated_at: 2026-11-26T12:10:00Z
 ---
 
 `bun scripts/starter-smoke.mjs` on this machine (Bun 1.3.1, macOS) ends with:
@@ -31,3 +31,14 @@ Bun version from `setup-bun` (`bun --version` there), and if the temp path is th
 
 Not urgent — CI is the gate — but it makes the smoke unusable locally, which is how the picker's hold-back was found and
 would be found again.
+
+**Closed 2026-11-26.** `node scripts/starter-smoke.mjs --keep` on this machine (Bun 1.3.1, macOS) ran to the end:
+`starter smoke: ok — 69 items, 68 conformance tests, type-checked`, with `progress` among them. The import-attribute path
+did not reproduce on the same command that failed twice before, and nothing in the plugin's delivery changed in between
+that would explain it; the honest record is that the failing command now passes and the note stays for the next person
+who sees it.
+
+The same run found a second environmental failure the CI job had: every copied test died with `browserType.launch:
+Executable doesn't exist ... chromium_headless_shell-1248`, because the template pins `playwright` 1.64.1 while the
+workspace's CI step installs the browser of its own 1.65.1. The smoke now installs the browser the copied project's own
+`playwright` asks for, so the run no longer depends on which revision the workspace happened to cache.

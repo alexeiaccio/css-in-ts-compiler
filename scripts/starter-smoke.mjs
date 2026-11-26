@@ -183,6 +183,7 @@ try {
   // `--legacy-peer-deps`: a peer range somewhere in the toolchain should not decide whether the
   // template works; the test run is the evidence.
   await run("npm", ["install", "--no-audit", "--no-fund", "--legacy-peer-deps"]);
+  await run("npx", ["playwright", "install", "chromium"]);
 
   // The local run reads the repo's build; the live URL is put back for the last item.
   const componentsPath = join(dest, "components.json");
