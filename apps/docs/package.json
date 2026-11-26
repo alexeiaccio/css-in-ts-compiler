@@ -37,7 +37,7 @@
     "@shikijs/twoslash": "^3.23.0",
     "@solidjs/vite-plugin": "catalog:",
     "@wasm-fmt/oxc_fmt": "0.2.9",
-    "alchemy": "2.0.0-beta.81",
+    "alchemy": "2.0.0-beta.87",
     "effect": "catalog:",
     "ghostty-web": "0.4.0",
     "lightningcss": "catalog:",
