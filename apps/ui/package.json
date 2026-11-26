@@ -31,12 +31,13 @@
     "solid-js": "catalog:"
   },
   "devDependencies": {
+    "@alchemy.run/cloudflare": "2.0.0-beta.87",
     "@cssints/apg-specs": "workspace:*",
     "@cssints/devtools": "workspace:*",
     "@quint-machine/core": "catalog:",
     "@solidjs/vite-plugin": "catalog:",
     "@vitest/browser-playwright": "catalog:",
-    "alchemy": "2.0.0-beta.81",
+    "alchemy": "2.0.0-beta.87",
     "effect": "catalog:",
     "lightningcss": "catalog:",
     "playwright": "catalog:",
