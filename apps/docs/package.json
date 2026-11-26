@@ -13,6 +13,7 @@
     "destroy": "alchemy destroy --stage prod"
   },
   "dependencies": {
+    "@alchemy.run/cloudflare": "2.0.0-beta.87",
     "@cssints/headless": "workspace:*",
     "@cssints/icons": "workspace:*",
     "@cssints/reset": "workspace:*",

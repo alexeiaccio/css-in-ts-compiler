@@ -1,7 +1,7 @@
 // The documentation site on Cloudflare at cssints.dev: `bun run build` in this directory, dist/ served as Worker static assets.
 // bun run deploy (alchemy deploy); credentials from `bun alchemy profile edit --add Cloudflare` (CI: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID); state in the account (Cloudflare.state()), shared by local and CI deploys.
 import * as Alchemy from "alchemy";
-import * as Cloudflare from "alchemy/Cloudflare";
+import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Effect from "effect/Effect";
 
 export default Alchemy.Stack(
