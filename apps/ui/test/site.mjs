@@ -83,6 +83,7 @@ try {
     "Sizes",
     "Toggle",
     "Tones",
+    "With an icon",
   ]);
   assert.equal(await preview.getByRole("button", { name: "Publish" }).count(), 1);
 
