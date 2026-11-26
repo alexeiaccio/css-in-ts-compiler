@@ -142,6 +142,9 @@ const SceneCanvas = (props: SceneCanvasProps) => {
         own(event);
       }}
       onWheel={(event) => {
+        if (event.deltaY === 0) {
+          return;
+        }
         event.preventDefault();
         const element = event.currentTarget;
         const rect = element.getBoundingClientRect();

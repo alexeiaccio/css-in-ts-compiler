@@ -118,7 +118,9 @@ const axis = (value: number, limit: number): number => Math.min(limit, Math.max(
  * Wheel is zoom-with-a-modifier only: `ctrl` / `meta` (the browser's own pinch
  * arrives as `ctrl+wheel`) zooms about the cursor; a bare wheel is never
  * `preventDefault`ed, so the page keeps scrolling. Trackpad gestures differ per
- * platform and a swallowed wheel is the one thing that is never acceptable.
+ * platform and a swallowed wheel is the one thing that is never acceptable — a
+ * wheel with no vertical delta (a horizontal swipe) is not a zoom either, and is
+ * left to the page.
  *
  * Pointer: a drag pans, a second pointer pinches (about its midpoint), a double
  * click resets. Capture is best-effort (a synthetic pointer cannot be captured).
@@ -312,6 +314,9 @@ export const createPanZoom = (options: PanZoomOptions = {}): PanZoom => {
 
   const wheel = (event: WheelEvent): void => {
     if (!event.ctrlKey && !event.metaKey) {
+      return;
+    }
+    if (event.deltaY === 0) {
       return;
     }
     event.preventDefault();

@@ -259,6 +259,8 @@ describe("createPanZoom", () => {
     expect(api().scale()).toBeCloseTo(1.1);
     expect(wheel({ deltaY: 100, metaKey: true })).toBe(false);
     expect(api().scale()).toBeCloseTo(1);
+    expect(wheel({ deltaX: 120, deltaY: 0, ctrlKey: true })).toBe(true);
+    expect(api().scale()).toBeCloseTo(1);
     dispose();
   });
 

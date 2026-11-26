@@ -6183,3 +6183,38 @@ dev host and the tests load, so all three draw on the same baseline, and the rul
 (`_.k`), so a component keeps its look — the Button's padding is still `8px 12px`. Checked in the dev host in Chrome: `html`
 line height `24px`, a raw button's border `0px`, an `h1`'s `text-wrap` `balance`, `body` margin `0`, 14 stories, no iframes;
 `test/storybook.browser.test.tsx` asserts the border and the `text-wrap`, and the 13 tests before it still pass.
+
+## react-zoom-pan-pinch: the library we already matched, and the bug it had found first (2026-11-26)
+
+[BetterTyped/react-zoom-pan-pinch](https://github.com/BetterTyped/react-zoom-pan-pinch) is the React pan/zoom most projects
+reach for (~2k stars, MIT): `TransformWrapper` + `TransformComponent` with a hook API, `KeepScale` / `MiniMap` /
+`Virtualize` as child components, bounds with an out-of-bounds settle, velocity panning, wheel, pinch, keyboard and
+double-click, and a storybook as its documentation.
+
+**We already have the pattern, in two shapes.** `createPanZoom` (one image fitted to its viewport: scale, offset, clamp,
+pinch, `ctrl`/`meta` + wheel, keys, double-click reset) and `createCanvas` (a camera over a world: nodes, marquee,
+`screenToWorld`, nested canvases, plus the `canvas` starter's minimap, edge auto-pan and `content-visibility` culling),
+and `board` on top of both. Their `MiniMap` is the canvas's minimap; their `Virtualize` is the canvas's
+`content-visibility` culling with no script attached (`canvas.content-visibility.browser.test.tsx`); their `KeepScale` has
+no consumer here — no plane in the kit renders text at a zoom where a constant screen size matters, and if one appears the
+whole implementation is one CSS declaration reading the plane's own scale variable.
+
+**Where we differ, we differ on purpose.** Their wheel zooms by default and offers `wheelDisabled` / `touchPadDisabled` /
+`activationKeys` to claw it back; ours never claims a bare wheel, because a swallowed wheel traps the page and trackpad
+gestures differ per platform (the primitive's TSDoc states the contract). Their bounds let the content leave the frame
+and settle back; ours clamps, and `bounds: "free"` is the explicit opt-out.
+
+**The transferable artifact is their issue history**, each cited in the source: #168 (`deltaY === 0` — a horizontal
+swipe — was read as zoom-out), #500 (`deltaMode` lines/pages converted to pixels before panning), #543 (a zoom mid-drag
+must re-anchor the pan and drop the velocity sample), #582 (a wheel-stop alignment animation overwrote the next zoom, and
+a no-op alignment pinned the transform), #290 (`instanceof TouchEvent` fails across windows). Auditing ours against that
+list found one: `createPanZoom` computed `deltaY < 0 ? ×1.1 : ÷1.1`, so `Ctrl` + a horizontal trackpad swipe — the exact
+#168 gesture — zoomed **out** and called `preventDefault`. `createKnob` had already guarded it (`deltaY === 0` returns
+before the default is touched), which is the shape the primitive and both canvas wheel wirings (the starter and
+`canvas.nested.fixture.tsx`) now take. #543 and #582 do not apply: our drag is in screen space, so there is no
+scale-mapped anchor to re-anchor, and a wheel write is synchronous — there is no animation a later frame can overwrite.
+
+**Verified:** `packages/headless/test/panzoom.browser.test.tsx` (14 in Chromium: the `deltaX`-only `ctrl` wheel is not
+claimed, is not `preventDefault`ed and leaves the scale alone, beside the vertical case), and
+`apps/ui/src/registry/canvas/canvas.browser.test.tsx` (6: the same guard on the starter's own wheel handler, then a
+vertical wheel zooms about the pointer).
