@@ -123,6 +123,21 @@ describe("Canvas", () => {
     expect(Number(view.getAttribute("width"))).toBeLessThan(168);
   });
 
+  it("zooms on a vertical wheel and leaves a gesture with no vertical delta to the page", async () => {
+    const host = mount();
+    const before = camera(host);
+    const frame = part<HTMLElement>(host, "canvas-frame");
+    const wheel = (init: WheelEventInit): boolean =>
+      frame.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, ...init }));
+
+    expect(wheel({ deltaX: 120, deltaY: 0 })).toBe(true);
+    expect(camera(host).zoom).toBe(before.zoom);
+
+    expect(wheel({ deltaY: -100 })).toBe(false);
+    await settle();
+    expect(camera(host).zoom).toBeGreaterThan(before.zoom);
+  });
+
   it("centres the camera on a click on the minimap", async () => {
     const host = mount();
     const before = camera(host);

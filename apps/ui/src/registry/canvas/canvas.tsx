@@ -279,6 +279,9 @@ export const Canvas = (props: CanvasProps): JSX.Element => {
   onCleanup(stopPanning);
 
   const wheel = (event: WheelEvent): void => {
+    if (event.deltaY === 0) {
+      return;
+    }
     const box = frame?.getBoundingClientRect();
     if (box === undefined) {
       return;
