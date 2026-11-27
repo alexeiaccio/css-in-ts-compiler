@@ -34,6 +34,7 @@
     "packages/css-grammar/src/longhands.ts",
     "packages/icons/src/",
     "packages/mise-en-mode/src/",
+    "packages/graph-layout/",
     "packages/headless/",
     "packages/machine/",
     "packages/apg-specs/",

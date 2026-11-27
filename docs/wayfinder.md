@@ -6433,3 +6433,23 @@ for two islands, four layers for the long edge, and the two cycles broken by rev
 ships the spec, the bridge and the scenarios under the existing `patterns` globs — no export-map change — and elk-rs stays a
 dev dependency of `@cssints/apg-specs`, never imported by published code (`test/elk-layout.d.ts` declares the slice its own
 `exports` map hides).
+
+**The graph layout engine, first slice (2026-11-27):** `@cssints/graph-layout` is the engine behind
+`specs/patterns/graph-layout.qnt`, and its API is deliberately the spec's vocabulary: `breakCycles`, `assignLayers`,
+`orderNodes`, and `layout` composing them, each a pure function over `{ nodes, edges }` whose node array order is the model
+order.
+
+Two things fell out of writing it. The first is that the model-order breaker is not a heuristic here but a proof: an edge
+whose target precedes its source is reversed, so every effective edge runs from a lower index to a higher one — the graph is
+acyclic and layering is one pass over the nodes, no Kahn queue and no fixed point. The second is what the oracle can and
+cannot check: the scenarios and the differential walk compare **layers**, because the rank inside a layer is the string
+`orderNodes` writes and the bridge's projection sorts the ids; a rank is asserted once, on the diamond
+(`b,c` at ranks 0 and 1), rather than pretended to be covered by the projection.
+
+The walk runs in Chromium (vitest browser mode, 2 tests: the diamond's ranks, then a seeded 8 × 24 walk against the
+generated reference model) and the eight scenarios run under Bun, not Node: `@cssints/apg-specs`' sources import each other
+without file extensions, which Bun and Vite resolve and Node's loader does not (the same reason elk-rs' own oracle test runs
+through vitest). The engine has no dependencies; `@cssints/apg-specs` is a dev dependency and no published code imports it.
+
+Both checks have teeth: neutering `breakCycles` fails the two-cycle scenario (`[a,d],[c],[b]` instead of `[a,d],[b],[c]`)
+and the walk on the next cycle graph, which is what a spec-first slice is supposed to give — the failure names the phase.

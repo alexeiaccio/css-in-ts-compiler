@@ -15,6 +15,7 @@
       "@cssints/gamut",
       "@cssints/gradient",
       "@cssints/gradient-2d",
+      "@cssints/graph-layout",
       "@cssints/headless",
       "@cssints/icons",
       "@cssints/layout",

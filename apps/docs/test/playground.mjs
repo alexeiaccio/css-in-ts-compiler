@@ -106,6 +106,7 @@ const SKIP = {
   "cssints-devtools": "the dev overlay",
   "cssints-fonts": "reads and downloads font files",
   "cssints-gradient-2d": "a runtime draws the mesh in the browser; the result frame has no script",
+  "cssints-graph-layout": "returns layers and ranks; the diagram that draws them is a later slice",
   "cssints-icons": "reads icon files from disk",
   "cssints-mcp": "a server for agents",
   "cssints-placeholder": "reads image files from disk",
