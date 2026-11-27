@@ -25,6 +25,11 @@ position and the optimistic split between what the host exposes and what the
 machine has committed, `specs/patterns/animation.qnt` (no APG pattern and no CSS
 specification — the source of truth is the protocol itself).
 
+`graph-layout` is the discrete part of Eclipse Layout Kernel's layered pipeline over a
+four-node graph (`specs/patterns/graph-layout.qnt`): cycle breaking, layering and
+ordering, replayed against elk-rs. Its scenarios compare layers, not the order inside
+one, because that order is the crossing-minimization strategy's.
+
 `focusgrid` is the platform contract of `focusgroup="grid"` (V2), not a widget:
 `specs/patterns/focusgrid.qnt` models the one tab stop, the two axes, `Home` / `End` and
 `Ctrl+Home` / `Ctrl+End`, the per-axis wrap and flow edges, entry / memory /

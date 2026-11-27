@@ -1,0 +1,3771 @@
+{
+  "generatedFrom": "../../specs/patterns/graph-layout.qnt",
+  "specHash": "791385b80d23a8d7b745e3991b445e488e6d22eece4c5ec20a5acfee7fb41f2a",
+  "module": "patterns_graph_layout",
+  "vars": [
+    {
+      "name": "e_ab",
+      "type": "int"
+    },
+    {
+      "name": "e_ac",
+      "type": "int"
+    },
+    {
+      "name": "e_ad",
+      "type": "int"
+    },
+    {
+      "name": "e_bc",
+      "type": "int"
+    },
+    {
+      "name": "e_bd",
+      "type": "int"
+    },
+    {
+      "name": "e_cd",
+      "type": "int"
+    },
+    {
+      "name": "r_ab",
+      "type": "bool"
+    },
+    {
+      "name": "r_ac",
+      "type": "bool"
+    },
+    {
+      "name": "r_ad",
+      "type": "bool"
+    },
+    {
+      "name": "r_bc",
+      "type": "bool"
+    },
+    {
+      "name": "r_bd",
+      "type": "bool"
+    },
+    {
+      "name": "r_cd",
+      "type": "bool"
+    },
+    {
+      "name": "layer_a",
+      "type": "int"
+    },
+    {
+      "name": "layer_b",
+      "type": "int"
+    },
+    {
+      "name": "layer_c",
+      "type": "int"
+    },
+    {
+      "name": "layer_d",
+      "type": "int"
+    },
+    {
+      "name": "order_a",
+      "type": "int"
+    },
+    {
+      "name": "order_b",
+      "type": "int"
+    },
+    {
+      "name": "order_c",
+      "type": "int"
+    },
+    {
+      "name": "order_d",
+      "type": "int"
+    },
+    {
+      "name": "phase",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "ZERO": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "0"
+      }
+    },
+    "ONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "1"
+      }
+    },
+    "TWO": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "2"
+      }
+    },
+    "THREE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "3"
+      }
+    },
+    "FOUR": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "4"
+      }
+    },
+    "edgeAb": {
+      "kind": "function",
+      "params": [
+        "pick"
+      ],
+      "body": {
+        "kind": "name",
+        "name": "ONE"
+      }
+    },
+    "edgeAc": {
+      "kind": "function",
+      "params": [
+        "pick"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ONE"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "pick"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "6"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "edgeAd": {
+      "kind": "function",
+      "params": [
+        "pick"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              },
+              {
+                "kind": "int",
+                "value": "4"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ONE"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "edgeBc": {
+      "kind": "function",
+      "params": [
+        "pick"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "pick"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "3"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "pick"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TWO"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "edgeBd": {
+      "kind": "function",
+      "params": [
+        "pick"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ONE"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "edgeCd": {
+      "kind": "function",
+      "params": [
+        "pick"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "pick"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "pick"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "3"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "pick"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ONE"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "has": {
+      "kind": "function",
+      "params": [
+        "e"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "neq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "e"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "flips": {
+      "kind": "function",
+      "params": [
+        "e"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "e"
+          },
+          {
+            "kind": "name",
+            "name": "TWO"
+          }
+        ]
+      }
+    },
+    "mx": {
+      "kind": "function",
+      "params": [
+        "x",
+        "y"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "x"
+              },
+              {
+                "kind": "name",
+                "name": "y"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "x"
+          },
+          {
+            "kind": "name",
+            "name": "y"
+          }
+        ]
+      }
+    },
+    "rank": {
+      "kind": "function",
+      "params": [
+        "pred",
+        "mine"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "mine"
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pred"
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "layerOfB": {
+      "kind": "function",
+      "params": [
+        "ab"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "has",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ab"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ONE"
+          },
+          {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        ]
+      }
+    },
+    "layerOfC": {
+      "kind": "function",
+      "params": [
+        "ac",
+        "bc",
+        "ab"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "mx",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "has",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ac"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "rank",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "layerOfB",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ab"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "has",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bc"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "layerOfD": {
+      "kind": "function",
+      "params": [
+        "ad",
+        "bd",
+        "cd",
+        "ab",
+        "ac",
+        "bc"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "mx",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "mx",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "has",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ad"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "rank",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "layerOfB",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ab"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "has",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "bd"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "rank",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "layerOfC",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ac"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "bc"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ab"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "has",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "cd"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "GraphWellFormed": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "e_ab"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ab"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TWO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "e_ac"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ilte",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "e_ac"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TWO"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "igte",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "e_ad"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "ZERO"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "ilte",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "e_ad"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "TWO"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "and",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "igte",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "e_bc"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "ZERO"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "and",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "ilte",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "e_bc"
+                                          },
+                                          {
+                                            "kind": "name",
+                                            "name": "TWO"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "and",
+                                        "args": [
+                                          {
+                                            "kind": "app",
+                                            "opcode": "igte",
+                                            "args": [
+                                              {
+                                                "kind": "name",
+                                                "name": "e_bd"
+                                              },
+                                              {
+                                                "kind": "name",
+                                                "name": "ZERO"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "kind": "app",
+                                            "opcode": "and",
+                                            "args": [
+                                              {
+                                                "kind": "app",
+                                                "opcode": "ilte",
+                                                "args": [
+                                                  {
+                                                    "kind": "name",
+                                                    "name": "e_bd"
+                                                  },
+                                                  {
+                                                    "kind": "name",
+                                                    "name": "TWO"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "kind": "app",
+                                                "opcode": "and",
+                                                "args": [
+                                                  {
+                                                    "kind": "app",
+                                                    "opcode": "igte",
+                                                    "args": [
+                                                      {
+                                                        "kind": "name",
+                                                        "name": "e_cd"
+                                                      },
+                                                      {
+                                                        "kind": "name",
+                                                        "name": "ZERO"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "kind": "app",
+                                                    "opcode": "ilte",
+                                                    "args": [
+                                                      {
+                                                        "kind": "name",
+                                                        "name": "e_cd"
+                                                      },
+                                                      {
+                                                        "kind": "name",
+                                                        "name": "TWO"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "PhaseInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "THREE"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ReversedOnlyBackwards": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r_ab"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r_ac"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "not",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r_ad"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "not",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "r_bc"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "not",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "r_bd"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "not",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "r_cd"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r_ab"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "flips",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "e_ab"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r_ac"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "flips",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "e_ac"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r_ad"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "flips",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "e_ad"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "r_bc"
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "flips",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "e_bc"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "r_bd"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "flips",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "e_bd"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "r_cd"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "flips",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "e_cd"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LayersOnlyAfterLayering": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "layer_a"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "layer_b"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_c"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ZERO"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_d"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ZERO"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "layer_a"
+              },
+              {
+                "kind": "name",
+                "name": "ZERO"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LayersForward": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "has",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "e_ab"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "layer_a"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "layer_b"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "or",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "not",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "has",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "e_ac"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ilt",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_a"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "layer_c"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "not",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "has",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "e_ad"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ilt",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "layer_a"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_d"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "or",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "not",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "has",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "e_bc"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "ilt",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_b"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_c"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "or",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "not",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "has",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "e_bd"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "ilt",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_b"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_d"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "or",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "not",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "has",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "e_cd"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "ilt",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_c"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_d"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LayersTight": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "layer_c"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "or",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "has",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "e_ac"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_a"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "ONE"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_c"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "has",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "e_bc"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_b"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "ONE"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_c"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "layer_d"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "or",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "has",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "e_ad"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "iadd",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_a"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "ONE"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_d"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "has",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "e_bd"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "iadd",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_b"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "ONE"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_d"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "has",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "e_cd"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "iadd",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_c"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "ONE"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_d"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OrdersOnlyAfterOrdering": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "THREE"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "order_a"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "order_b"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TWO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ilt",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "order_c"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "THREE"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ilt",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "order_d"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "FOUR"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "OrdersFollowModel": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "phase"
+              },
+              {
+                "kind": "name",
+                "name": "THREE"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_a"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "layer_b"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "order_a"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "order_b"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "or",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "not",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "layer_a"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_c"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ilt",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "order_a"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "order_c"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "or",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "not",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_a"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "layer_d"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ilt",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "order_a"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "order_d"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "or",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "not",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_b"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "layer_c"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "ilt",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "order_b"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "order_c"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "or",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "not",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "eq",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "layer_b"
+                                          },
+                                          {
+                                            "kind": "name",
+                                            "name": "layer_d"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "ilt",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "order_b"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "order_d"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "or",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "not",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "eq",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "layer_c"
+                                          },
+                                          {
+                                            "kind": "name",
+                                            "name": "layer_d"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "ilt",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "order_c"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "order_d"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "e_ab",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "e_ac",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "e_ad",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "e_bc",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "e_bd",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "e_cd",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "r_ab",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_ac",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_ad",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_bc",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_bd",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_cd",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "layer_a",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_b",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_c",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_d",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_a",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_b",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_c",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_d",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_graph",
+      "nondet": {
+        "name": "pick",
+        "kind": "int",
+        "pool": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "e_ab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "edgeAb",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              }
+            ]
+          }
+        },
+        {
+          "field": "e_ac",
+          "rhs": {
+            "kind": "app",
+            "opcode": "edgeAc",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              }
+            ]
+          }
+        },
+        {
+          "field": "e_ad",
+          "rhs": {
+            "kind": "app",
+            "opcode": "edgeAd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              }
+            ]
+          }
+        },
+        {
+          "field": "e_bc",
+          "rhs": {
+            "kind": "app",
+            "opcode": "edgeBc",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              }
+            ]
+          }
+        },
+        {
+          "field": "e_bd",
+          "rhs": {
+            "kind": "app",
+            "opcode": "edgeBd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              }
+            ]
+          }
+        },
+        {
+          "field": "e_cd",
+          "rhs": {
+            "kind": "app",
+            "opcode": "edgeCd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pick"
+              }
+            ]
+          }
+        },
+        {
+          "field": "r_ab",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_ac",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_ad",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_bc",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_bd",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "r_cd",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "layer_a",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_b",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_c",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_d",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_a",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_b",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_c",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_d",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "break_cycles",
+      "assignments": [
+        {
+          "field": "e_ab",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ab"
+          }
+        },
+        {
+          "field": "e_ac",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ac"
+          }
+        },
+        {
+          "field": "e_ad",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ad"
+          }
+        },
+        {
+          "field": "e_bc",
+          "rhs": {
+            "kind": "name",
+            "name": "e_bc"
+          }
+        },
+        {
+          "field": "e_bd",
+          "rhs": {
+            "kind": "name",
+            "name": "e_bd"
+          }
+        },
+        {
+          "field": "e_cd",
+          "rhs": {
+            "kind": "name",
+            "name": "e_cd"
+          }
+        },
+        {
+          "field": "r_ab",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "flips",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ab"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "r_ab"
+              }
+            ]
+          }
+        },
+        {
+          "field": "r_ac",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "flips",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ac"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "r_ac"
+              }
+            ]
+          }
+        },
+        {
+          "field": "r_ad",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "flips",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ad"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "r_ad"
+              }
+            ]
+          }
+        },
+        {
+          "field": "r_bc",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "flips",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_bc"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "r_bc"
+              }
+            ]
+          }
+        },
+        {
+          "field": "r_bd",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "flips",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_bd"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "r_bd"
+              }
+            ]
+          }
+        },
+        {
+          "field": "r_cd",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "flips",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_cd"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "r_cd"
+              }
+            ]
+          }
+        },
+        {
+          "field": "layer_a",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_a"
+          }
+        },
+        {
+          "field": "layer_b",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_b"
+          }
+        },
+        {
+          "field": "layer_c",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_c"
+          }
+        },
+        {
+          "field": "layer_d",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_d"
+          }
+        },
+        {
+          "field": "order_a",
+          "rhs": {
+            "kind": "name",
+            "name": "order_a"
+          }
+        },
+        {
+          "field": "order_b",
+          "rhs": {
+            "kind": "name",
+            "name": "order_b"
+          }
+        },
+        {
+          "field": "order_c",
+          "rhs": {
+            "kind": "name",
+            "name": "order_c"
+          }
+        },
+        {
+          "field": "order_d",
+          "rhs": {
+            "kind": "name",
+            "name": "order_d"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ONE"
+              },
+              {
+                "kind": "name",
+                "name": "phase"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "assign_layers",
+      "assignments": [
+        {
+          "field": "e_ab",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ab"
+          }
+        },
+        {
+          "field": "e_ac",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ac"
+          }
+        },
+        {
+          "field": "e_ad",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ad"
+          }
+        },
+        {
+          "field": "e_bc",
+          "rhs": {
+            "kind": "name",
+            "name": "e_bc"
+          }
+        },
+        {
+          "field": "e_bd",
+          "rhs": {
+            "kind": "name",
+            "name": "e_bd"
+          }
+        },
+        {
+          "field": "e_cd",
+          "rhs": {
+            "kind": "name",
+            "name": "e_cd"
+          }
+        },
+        {
+          "field": "r_ab",
+          "rhs": {
+            "kind": "name",
+            "name": "r_ab"
+          }
+        },
+        {
+          "field": "r_ac",
+          "rhs": {
+            "kind": "name",
+            "name": "r_ac"
+          }
+        },
+        {
+          "field": "r_ad",
+          "rhs": {
+            "kind": "name",
+            "name": "r_ad"
+          }
+        },
+        {
+          "field": "r_bc",
+          "rhs": {
+            "kind": "name",
+            "name": "r_bc"
+          }
+        },
+        {
+          "field": "r_bd",
+          "rhs": {
+            "kind": "name",
+            "name": "r_bd"
+          }
+        },
+        {
+          "field": "r_cd",
+          "rhs": {
+            "kind": "name",
+            "name": "r_cd"
+          }
+        },
+        {
+          "field": "layer_a",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "layer_b",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "layerOfB",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ab"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "layer_b"
+              }
+            ]
+          }
+        },
+        {
+          "field": "layer_c",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "layerOfC",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ac"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_bc"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_ab"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "layer_c"
+              }
+            ]
+          }
+        },
+        {
+          "field": "layer_d",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "layerOfD",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "e_ad"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_bd"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_cd"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_ab"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_ac"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "e_bc"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "layer_d"
+              }
+            ]
+          }
+        },
+        {
+          "field": "order_a",
+          "rhs": {
+            "kind": "name",
+            "name": "order_a"
+          }
+        },
+        {
+          "field": "order_b",
+          "rhs": {
+            "kind": "name",
+            "name": "order_b"
+          }
+        },
+        {
+          "field": "order_c",
+          "rhs": {
+            "kind": "name",
+            "name": "order_c"
+          }
+        },
+        {
+          "field": "order_d",
+          "rhs": {
+            "kind": "name",
+            "name": "order_d"
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "TWO"
+              },
+              {
+                "kind": "name",
+                "name": "phase"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "order_nodes",
+      "assignments": [
+        {
+          "field": "e_ab",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ab"
+          }
+        },
+        {
+          "field": "e_ac",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ac"
+          }
+        },
+        {
+          "field": "e_ad",
+          "rhs": {
+            "kind": "name",
+            "name": "e_ad"
+          }
+        },
+        {
+          "field": "e_bc",
+          "rhs": {
+            "kind": "name",
+            "name": "e_bc"
+          }
+        },
+        {
+          "field": "e_bd",
+          "rhs": {
+            "kind": "name",
+            "name": "e_bd"
+          }
+        },
+        {
+          "field": "e_cd",
+          "rhs": {
+            "kind": "name",
+            "name": "e_cd"
+          }
+        },
+        {
+          "field": "r_ab",
+          "rhs": {
+            "kind": "name",
+            "name": "r_ab"
+          }
+        },
+        {
+          "field": "r_ac",
+          "rhs": {
+            "kind": "name",
+            "name": "r_ac"
+          }
+        },
+        {
+          "field": "r_ad",
+          "rhs": {
+            "kind": "name",
+            "name": "r_ad"
+          }
+        },
+        {
+          "field": "r_bc",
+          "rhs": {
+            "kind": "name",
+            "name": "r_bc"
+          }
+        },
+        {
+          "field": "r_bd",
+          "rhs": {
+            "kind": "name",
+            "name": "r_bd"
+          }
+        },
+        {
+          "field": "r_cd",
+          "rhs": {
+            "kind": "name",
+            "name": "r_cd"
+          }
+        },
+        {
+          "field": "layer_a",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_a"
+          }
+        },
+        {
+          "field": "layer_b",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_b"
+          }
+        },
+        {
+          "field": "layer_c",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_c"
+          }
+        },
+        {
+          "field": "layer_d",
+          "rhs": {
+            "kind": "name",
+            "name": "layer_d"
+          }
+        },
+        {
+          "field": "order_a",
+          "rhs": {
+            "kind": "name",
+            "name": "ZERO"
+          }
+        },
+        {
+          "field": "order_b",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TWO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "layer_b"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "layer_a"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ONE"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZERO"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "order_b"
+              }
+            ]
+          }
+        },
+        {
+          "field": "order_c",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TWO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_c"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "layer_a"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_c"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "layer_b"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "order_c"
+              }
+            ]
+          }
+        },
+        {
+          "field": "order_d",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TWO"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "layer_d"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_a"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ONE"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ZERO"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "layer_d"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "layer_b"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ONE"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ZERO"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "layer_d"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "layer_c"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ONE"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ZERO"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "order_d"
+              }
+            ]
+          }
+        },
+        {
+          "field": "phase",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "phase"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TWO"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "THREE"
+              },
+              {
+                "kind": "name",
+                "name": "phase"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "set_graph",
+    "break_cycles",
+    "assign_layers",
+    "order_nodes"
+  ]
+}

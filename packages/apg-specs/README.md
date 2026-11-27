@@ -1,6 +1,6 @@
 # @cssints/apg-specs — APG widget specs
 
-The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels, a workspace's tabsets), and the model of a plugin's runtime (reactive), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the scenario sets (ported upstream ones and our own), and the spec-only verification. It is the test oracle of the widgets and of `native/headless`, and it is published so that widget libraries outside this repository can replay the same specs and scenarios against their own code.
+The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels, a workspace's tabsets), the model of a plugin's runtime (reactive), the layered graph layout pipeline (graph-layout, checked against elk-rs), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the scenario sets (ported upstream ones and our own), and the spec-only verification. It is the test oracle of the widgets and of `native/headless`, and it is published so that widget libraries outside this repository can replay the same specs and scenarios against their own code.
 
 The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are written by the code generation of [`@quint-machine/core`](https://www.npmjs.com/package/@quint-machine/core) and are never edited by hand. Ticket ids like `effects-of-atmosphere-dx00` in the comments of the specs and tests are tickets of the repository these files came from.
 
@@ -9,7 +9,7 @@ The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are
 ```
 specs/apg/<pattern>.qnt                           # APG pattern specs (one behavior-machine each)
 specs/canvas/<machine>.qnt                        # canvas camera + pointer specs
-specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels, workspace), a plugin runtime (reactive)
+specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels, workspace), a plugin runtime (reactive), the layered layout pipeline (graph-layout)
 shared/<module>.qnt                               # vocabulary + pure defs: aria, focusgroup, popover, invokers, details-group
 src/<service>/<machine>.model.generated.json      # generated model document
 src/<service>/<machine>.scaffolding.generated.ts  # generated typed scaffolding
@@ -22,6 +22,18 @@ scenarios/parts.json                              # part names per pattern
 test/<service>/<machine>.test.ts                  # spec-only verification
 scripts/generate-all.ts                           # regenerates every spec under specs/
 ```
+
+### The graph layout oracle
+
+`specs/patterns/graph-layout.qnt` models the discrete part of Eclipse Layout Kernel's layered pipeline — cycle breaking,
+layer assignment, ordering — over four nodes and six pair slots, and `test/patterns/graph-layout.test.ts` replays the same
+scenarios against the generated model and against [`elk-rs`](https://github.com/openedges/elk-rs)
+(`@openedges/elk-layout`, a dev dependency) with the portable strategies pinned: cycle breaking by model order,
+longest-path layering, no crossing minimization. Both sides answer with the layers, each layer's node ids sorted, because
+which node sits above which is the crossing-minimization strategy's choice; `layersOf` is that projection, and
+`test/elk-layout.d.ts` declares the slice of the package's API the oracle calls (its typings are outside its `exports`
+map). Node placement, edge routing, ports, labels and compound graphs are `NOT MODELLED` in the spec's header, and each is
+the next slice.
 
 Platform-contract modules (`shared/focusgroup.qnt` roving tabindex, `shared/popover.qnt` light dismiss, `shared/invokers.qnt` `commandfor`/`command`, `shared/details-group.qnt` `<details name>`) are one per native web feature; a pattern imports one and models only its delta. `shared/` holds vocabulary and pure defs only.
 

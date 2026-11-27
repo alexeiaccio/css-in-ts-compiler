@@ -6408,3 +6408,28 @@ Why it is worth doing at all, given the behaviour is correct: the same `collectP
 snapshot of those values, and the parts stay live only because the getters are re-read later (the `merge` view re-reads
 through its sources). A part that read its values at the attribute would be correct by construction rather than by the
 view's re-reading. Until then the budget counts them.
+
+**ELK's layered pipeline, on Quint specs (2026-11-27):** elk-rs (`@openedges/elk-layout` 0.12.2, the Rust port of Java ELK
+0.12.0 that keeps the phase semantics) is the reference implementation, and the spec states the pipeline's discrete
+contract over a graph small enough that every state is checkable: four nodes in model order, six pairs each carrying 0, 1 or
+2 (absent, earlier → later, backwards), and the phases cycle breaking → layering → ordering as separate actions
+(`specs/patterns/graph-layout.qnt`, `module patterns_graph_layout`).
+
+The first finding was the shape of a spec the generator accepts: no `const`, no `run`, no `instance`, one nondet pool per
+action and the payloads come only from it — so the graph is a literal `pick` of six (chain, diamond, islands, long edge, two
+cycles) rather than six parameters, and the `val`s are the invariants (acyclic-by-layering, longest-path tightness, ranks in
+model order, phase gating).
+
+The second was what a layout spec can honestly claim. The spec pins the portable strategies (cycle breaking by model order,
+longest-path layering, no crossing minimization) and the scenarios compare **layers, with each layer's ids sorted**: ELK's
+order inside a layer follows the order of the edges that reach it (`a → d, a → b` puts `d` above `b`), so ranking is the
+spec's own model-order rank and is not compared. Placement coordinates, routing, ports, labels and compound graphs are
+`NOT MODELLED` with reasons in the spec's header — each is the next slice.
+
+The same eight scenarios replay against the reference model and against elk-rs (15 tests: 6 spec-only including an
+`explore` of the whole state space, 8 agreement runs, 1 seeded differential walk), and the six graphs' layers came out
+identical on both sides: `[a,d],[b],[c]` for a chain with an isolated node, `[a],[b,c],[d]` for the diamond, `[a,c],[b,d]`
+for two islands, four layers for the long edge, and the two cycles broken by reversing the backwards edge. The package
+ships the spec, the bridge and the scenarios under the existing `patterns` globs — no export-map change — and elk-rs stays a
+dev dependency of `@cssints/apg-specs`, never imported by published code (`test/elk-layout.d.ts` declares the slice its own
+`exports` map hides).

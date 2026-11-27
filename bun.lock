@@ -179,6 +179,7 @@
       "devDependencies": {
         "@effect/platform-node": "catalog:",
         "@informalsystems/quint": "0.32.0",
+        "@openedges/elk-layout": "0.12.2",
         "@typeonce/effect-machine": "0.40.0",
         "effect": "catalog:",
         "vite-plus": "catalog:",
@@ -1127,6 +1128,20 @@
     "@opencode/protocol": ["@opencode/protocol@2.0.26", "", { "dependencies": { "@opencode/schema": "2.0.26", "effect": "4.0.0-rc.112" } }, "sha512-Q+kbu0zTneh0RC4jhiuB19WeP8et9dWXGJVjb5EbUdJ8E1j5Eh0lAyqLXlM2tzTxfMfK3gos9ss6mxMVsvDFIg=="],
 
     "@opencode/schema": ["@opencode/schema@2.0.26", "", { "dependencies": { "@standard-schema/spec": "1.1.0", "effect": "4.0.0-rc.112" } }, "sha512-DZ09xXCTkTI3Y9VzuQHsm5AMGh67EqkUM13lC0LGKvD12RAYaVmRX5lDv5AnD3OkmUmPPWLYWjicT18CDloy6Q=="],
+
+    "@openedges/elk-layout": ["@openedges/elk-layout@0.12.2", "", { "optionalDependencies": { "@openedges/elk-layout-darwin-arm64": "0.12.2", "@openedges/elk-layout-darwin-x64": "0.12.2", "@openedges/elk-layout-linux-arm64-gnu": "0.12.2", "@openedges/elk-layout-linux-x64-gnu": "0.12.2", "@openedges/elk-layout-linux-x64-musl": "0.12.2", "@openedges/elk-layout-win32-x64-msvc": "0.12.2" } }, "sha512-vUnhb0XxSalnZ4lA+a6TFRYT08V1RaJxXALMHg5v+si6dhhAVtNXJnV+MU22BcUe3Iarohflu0NUe5IrtJcdMw=="],
+
+    "@openedges/elk-layout-darwin-arm64": ["@openedges/elk-layout-darwin-arm64@0.12.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-U6v/NLhzfNBZcexo8b4XO73sahJ/cLb0zpcAxoO1futu76Lo7VJ/bvjnY2TVXBwfjsr3+ce5kvoc1vPKvvXUzQ=="],
+
+    "@openedges/elk-layout-darwin-x64": ["@openedges/elk-layout-darwin-x64@0.12.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-IbLyOUIeP3PHSVgbvz0EV/Hvp2SAVU6iGN0sJjpjQoGIN5P0m+D62zvAXt0E3UA9S+GrKGk9RD8Cr5bW96gBrg=="],
+
+    "@openedges/elk-layout-linux-arm64-gnu": ["@openedges/elk-layout-linux-arm64-gnu@0.12.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-Qhcc18OH39Ic9M4I3hBcFPD1KzRVJ9c2ErimqDbDVrN7JgROm+WaMdfGUsyBIbDV/s3Txqgfm9msf3bliYTinQ=="],
+
+    "@openedges/elk-layout-linux-x64-gnu": ["@openedges/elk-layout-linux-x64-gnu@0.12.2", "", { "os": "linux", "cpu": "x64" }, "sha512-LLKPpRLLZ34Bnji2ZhDQrUyL69U1BI/tRT/Mcg0ZgQnJk0pZjGh7sQP5GrRsBIoajiNhIHKuEh2vAEesHYzkvQ=="],
+
+    "@openedges/elk-layout-linux-x64-musl": ["@openedges/elk-layout-linux-x64-musl@0.12.2", "", { "os": "linux", "cpu": "x64" }, "sha512-miZp0AEu57vGjJHR6P1LcqeSdejrkDJN1zSffVA9H9Sqzm9PHDWC74FhwCDhaxr/bIA5YmKGJ7SS2VCRjdoKxg=="],
+
+    "@openedges/elk-layout-win32-x64-msvc": ["@openedges/elk-layout-win32-x64-msvc@0.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-iLDf3BupJmIrziJX19KcF2+PUhR/d9XtcyBcsDo1Q4s7my6kFN3mEwAVs5DgXOQXeW44CL3gZQhOSZXa7DMkCQ=="],
 
     "@opentui/core": ["@opentui/core@0.5.17", "", { "dependencies": { "bun-ffi-structs": "0.3.1", "diff": "9.0.0", "marked": "17.0.1", "string-width": "7.2.0", "strip-ansi": "7.1.2" }, "optionalDependencies": { "@opentui/core-darwin-arm64": "0.5.17", "@opentui/core-darwin-x64": "0.5.17", "@opentui/core-linux-arm64": "0.5.17", "@opentui/core-linux-arm64-musl": "0.5.17", "@opentui/core-linux-x64": "0.5.17", "@opentui/core-linux-x64-musl": "0.5.17", "@opentui/core-win32-arm64": "0.5.17", "@opentui/core-win32-x64": "0.5.17" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-75vMaKPKc6tnnUWEultPxiiSU0kqNSdAjbcsFGQecjCF4Z1Jrr4NZBiRo3SoMciai/nq24JCiYcVqPjaKtl/6Q=="],
 

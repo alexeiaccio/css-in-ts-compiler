@@ -1,0 +1,103 @@
+{
+  "pattern": "graph-layout",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Written from specs/patterns/graph-layout.qnt: the layered pipeline of Eclipse Layout Kernel (cycle breaking, layering, ordering) over four nodes and six pair slots, checked against elk-rs 0.12.2 with the portable strategies pinned (cycle breaking by model order, longest-path layering, no crossing minimization). A scenario picks one of the six modelled graphs with set_graph and runs the pipeline with layout (or the three phases one by one); the expectation is the layers, the layer's node ids sorted, because which node sits above which is the engine's crossing-minimization choice and not part of this contract.",
+  "skipped": [
+    {
+      "id": "graph-layout.spec.crossing-minimization",
+      "reason": "the order inside a layer is the crossing-minimization strategy's: with no minimization ELK orders by the edge model order (a -> d, a -> b puts d above b), so the scenarios compare layers and the spec's ranking invariant is checked against itself, not against elk"
+    },
+    {
+      "id": "graph-layout.spec.placement-and-routing",
+      "reason": "coordinates, spacing, bend points and ports are geometry; the rank is what placement consumes and what the discrete contract can state without a pixel model"
+    },
+    {
+      "id": "graph-layout.spec.compound-graphs",
+      "reason": "compound nodes, cross-hierarchy edges, ports, labels, partitions and layer constraints are intermediate processors and node splitting: the second slice, each with its own model"
+    },
+    {
+      "id": "graph-layout.spec.strategy-knobs",
+      "reason": "network simplex, Brandes-Kopf and orthogonal routing pick which valid layout is drawn, not which invariants hold; the spec pins the strategies a port can reproduce exactly"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "graph-layout.spec.chain",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 1 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.diamond",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 2 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a"], ["b", "c"], ["d"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.islands",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 3 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a", "c"], ["b", "d"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.long-edge",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a"], ["b"], ["c"], ["d"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.two-cycle",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 5 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.three-cycle",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 6 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.phases-one-by-one",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 2 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_nodes" },
+        { "expect": { "value": { "layers": [["a"], ["b", "c"], ["d"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout.spec.a-new-graph-replaces-the-old",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "layout" },
+        { "event": "set_graph", "value": 1 },
+        { "event": "layout" },
+        { "expect": { "value": { "layers": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    }
+  ]
+}

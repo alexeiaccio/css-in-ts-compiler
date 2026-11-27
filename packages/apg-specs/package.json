@@ -144,6 +144,7 @@
   "devDependencies": {
     "@effect/platform-node": "catalog:",
     "@informalsystems/quint": "0.32.0",
+    "@openedges/elk-layout": "0.12.2",
     "@typeonce/effect-machine": "0.40.0",
     "effect": "catalog:",
     "vite-plus": "catalog:"
