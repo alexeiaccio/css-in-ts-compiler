@@ -1,4 +1,11 @@
-import { type Accessor, createEffect, createMemo, createSignal, createUniqueId } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  createUniqueId,
+  untrack,
+} from "solid-js";
 import { createControllable } from "./controllable";
 import { type GridProps, createGrid } from "./grid";
 import { type PopoverContentProps, type PopoverStyle, createPopover } from "./popover";
@@ -299,7 +306,7 @@ export const createDatePicker = (options: DatePickerOptions): DatePicker => {
 
   const positionOf = (iso: string): { row: number; col: number } => {
     const parts = partsOf(iso);
-    const shown = visible();
+    const shown = untrack(visible);
     const index = parts === undefined ? 0 : dayNumber(parts.year, parts.month, parts.day);
     const offset = index - windowStart(shown.year, shown.month);
     return { row: Math.floor(offset / 7), col: offset % 7 };

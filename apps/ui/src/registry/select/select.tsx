@@ -1,7 +1,7 @@
 import { type Combobox, type ComboboxOption, createCombobox } from "@cssints/headless";
 import type { JSX } from "@solidjs/web";
 import * as css from "cssints" with { type: "cssints" };
-import { createContext, merge, omit, useContext } from "solid-js";
+import { createContext, merge, omit, untrack, useContext } from "solid-js";
 
 import { Button } from "../button/button.tsx";
 import { type PartProps, renderPart, type Renderable } from "../render.tsx";
@@ -262,7 +262,7 @@ export const SelectContent = (props: SelectContentProps): JSX.Element => {
 export const SelectOption = (props: SelectOptionProps): JSX.Element | null => {
   const { combobox, items } = useContext(SelectContext);
   const declared = items[props.index];
-  const option = combobox.options()[props.index];
+  const option = untrack(() => combobox.options()[props.index]);
   if (declared === undefined || option === undefined) {
     return null;
   }

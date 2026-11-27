@@ -6316,3 +6316,35 @@ the warning gone once the versions matched. Offline, `packages/mcp/test/tools.mj
 temp project whose every written file's relative imports resolve inside the written set, the second call, the refusal
 and `force`, a missing item, and the same registry over a local http server (the branch a project without a checkout
 takes). `npx shadcn add` stays the CLI, with the smoke as its test; the tools are the agent's path to the same bytes.
+
+## The untracked reads: one shape, a budget, and the one Solid keeps (2026-11-27)
+
+`cssints-b876` asked for one experiment: the `#sink` page mounts the whole kit, Solid's dev build warns
+`STRICT_READ_UNTRACKED` for every reactive read outside a tracking scope, and the hypothesis was that the kit's part idiom
+(`merge(rest, () => ({ get "aria-expanded"() { … } }))` spread into an element) was the cause.
+
+**The hypothesis was wrong, and the counts said so.** Measured on the sink with a page listener that splits the warnings
+(343 in the bean was an older Solid rc): **88 reads across 17 values**, and the top one had nothing to do with `merge` —
+42 of them were `createDatePicker.visible`, read by `cellProps(iso)` for every cell of the grid. The rest: `merge` (8, the
+kit's merged props proxy enumerated by a spread), `createControllable.version` (13, snapshot in a component body), the
+combobox's `query`/`active` (8, `SelectOption` taking `options()[index]` in its body), then a tail of one-time reads in
+`ref` callbacks and effect bodies.
+
+**So the one shape is the annotation, not a rewrite.** A read that must follow is already a getter read in JSX — that is
+what the part idiom does right. The reads that warn are _snapshots by design_: a cell's row and column belong to the month
+its row was built for (`monthDays()` rebuilds the rows when the month pages), and an option's identity comes from the fixed
+`items` array while everything reactive in it is a getter. Both are now `untrack(...)` — `positionOf` in
+`packages/headless/src/date-picker.ts` and the option lookup in the `select` starter — and the sink went **88 → 41**, with
+no test changed in behaviour (`packages/headless` 1509, `apps/ui` 1032 of 1033 with the known menubar flake, green alone).
+
+**The gate is a budget, not zero.** Across the whole site the run counts **156** reads. The remainder is a long tail of the
+same mistake one line at a time (a ref callback or an effect body reading a signal it is allowed to read once: `menu`,
+`modifiers`, `virtualizer`, `treeview`, `treegrid`, `feed`, `listbox`, `radio-group`, `accordion`, the date picker's
+controlled state). And seven of them — `merge` read in `<Button>` when a part's `render` is a `Button` — are Solid's own
+`merge` memo enumerated when one `merge` is handed to another, which user land cannot silence except by not using `merge`
+there. Raising `STRICT_READ_UNTRACKED` to a failure would therefore mean silencing a library-internal read, so
+`apps/ui/test/site.mjs` holds the count instead: `UNTRACKED_BUDGET = 156`, the run fails above it and says to lower it
+below. The same ratchet as the comment budget, and the same reason.
+
+**What is left for b876** is the tail, one `untrack` at a time, and a lower number each time; the budget is what makes it
+visible instead of a console nobody reads.

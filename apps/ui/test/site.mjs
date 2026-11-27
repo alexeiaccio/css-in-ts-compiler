@@ -14,6 +14,7 @@ import { pathToFileURL } from "node:url";
 
 import { createServer } from "vite";
 
+const UNTRACKED_BUDGET = 156;
 const root = join(import.meta.dirname, "..");
 process.chdir(root);
 const modules = join(root, "../../node_modules/.bun");
@@ -41,8 +42,9 @@ try {
   // so only a listener sees it; the kit fixes them one by one, and this page is where they surfaced.
   const relays = [];
   // The dev build's structural warnings: a reactive value read outside a tracking scope. They are live behaviour today (the
-  // select's aria-expanded test flips true and false), so the count is logged, not failed — `.beans/cssints-b876` is the work.
+  // select's aria-expanded test flips true and false), so the count is a budget, not a failure — `.beans/cssints-b876`.
   const untracked = new Set();
+  let untrackedCount = 0;
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     // a page asks the registry host for its preflight result: an item that is not published yet answers 404, and the page
@@ -51,9 +53,11 @@ try {
     if (text.includes("[EFFECT_RELAY_TEAR]")) {
       relays.push(text.split("\n")[0]);
     }
-    const read = /\[STRICT_READ_UNTRACKED\] Reactive value "([^"]+)"/.exec(text);
-    if (read?.[1] !== undefined) {
-      untracked.add(read[1]);
+    for (const block of text.split("[STRICT_READ_UNTRACKED]").slice(1)) {
+      if (!block.trimStart().startsWith("Reactive value")) continue;
+      untrackedCount += 1;
+      const named = /Reactive value "([^"]+)"/.exec(block);
+      if (named?.[1] !== undefined) untracked.add(named[1]);
     }
     if (
       message.type() === "error" &&
@@ -313,9 +317,14 @@ try {
     "27.0726",
   );
 
-  if (untracked.size > 0) {
+  console.log(`site: ${untrackedCount} untracked reads (budget ${UNTRACKED_BUDGET})`);
+  assert.ok(
+    untrackedCount <= UNTRACKED_BUDGET,
+    `site: ${untrackedCount} reads outside a tracking scope, over the budget of ${UNTRACKED_BUDGET}: ${[...untracked].join(", ")}`,
+  );
+  if (untrackedCount < UNTRACKED_BUDGET) {
     console.log(
-      `site: ${untracked.size} values are read outside a tracking scope (cssints-b876): ${[...untracked].join(", ")}`,
+      `site: ${untrackedCount} untracked reads, below the budget: lower UNTRACKED_BUDGET`,
     );
   }
   assert.deepEqual([...new Set(relays)], [], "a primitive relays derived state through an effect");
