@@ -7,7 +7,7 @@ priority: low
 tags:
     - wayfinder:task
 created_at: 2026-11-20T21:10:00Z
-updated_at: 2026-11-27T20:40:00Z
+updated_at: 2026-11-27T21:20:00Z
 ---
 
 The `#sink` page mounts the whole kit, so Solid's dev build speaks: 343 `STRICT_READ_UNTRACKED` (a read outside any tracking
@@ -61,3 +61,14 @@ Zero is not reachable without silencing Solid's own `merge` memo (it is enumerat
 a `Button` that merges again), so the budget is the end state, not a failure. What is left: the tail of one-line `untrack`s
 listed in the wayfinder entry of 2026-11-27 (`menu`, `modifiers`, `virtualizer`, `treeview`, `treegrid`, `feed`, `listbox`,
 `radio-group`, `accordion`, the date picker's controlled state), each one lowering the budget.
+
+## The tail, first pass (2026-11-27)
+
+Six `untrack`s at the reads themselves: `menu.ts` (`attach`'s definition and shown state, `transition`'s controlled check),
+`radio.ts` (`attach`'s flavor), `accordion.ts` (`toggle`, `setMultiple`, `setCollapsible`, the initial `normalize`), and
+`feed.ts` (`pageDown`, `pageUp`, `loadFinish`, `loadFail`, the value effect). Sink **39 → 27**; the site **156 → 134**, and
+`UNTRACKED_BUDGET` is 134. `packages/headless` 1509 tests green.
+
+Left: `date-picker`'s creation reads (3), an anonymous read in the sink's `<For>` at `feed.tsx:235`, the `Tabs`/`Accordion`
+anonymous pair, and the seven `merge` ones that are the kit's nested views and stay. Same shape each time: an `untrack` at
+a handler, ref or effect callback, and the budget drops by what it removes.

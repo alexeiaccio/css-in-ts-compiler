@@ -6348,3 +6348,25 @@ below. The same ratchet as the comment budget, and the same reason.
 
 **What is left for b876** is the tail, one `untrack` at a time, and a lower number each time; the budget is what makes it
 visible instead of a console nobody reads.
+
+### The tail, first pass: the sink's 39 down to 27, the site's 156 to 134 (2026-11-27)
+
+The one-time reads that the diagnostics name are the same shape everywhere: a **handler, a ref callback or an effect
+callback** reading a value it is allowed to read once. Six file-local fixes, each an `untrack` at the read and nothing
+else:
+
+| where                  | what it read                                                                                                           | why the read is one-time                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `menu.ts` `attach`     | `isOpen` twice (the focus group's definition and its shown state)                                                      | a ref runs once, and the effect that owns the group re-runs from `[isOpen, panel]`              |
+| `menu.ts` `transition` | `hostOpen().controlled`                                                                                                | a key or a click asks for a state; the host's answer is read at that moment                     |
+| `radio.ts` `attach`    | `flavor()`                                                                                                             | which provider to build depends on the flavor now                                               |
+| `accordion.ts`         | `expanded()`, `multiple()`, `collapsible()` in `toggle`, both setters, and the initial `normalize`                     | there is no `hover(p(4))` state reached twice — a click, and the props the host set at creation |
+| `feed.ts`              | `phase()`, `active()` in `pageDown`, `pageUp`, `loadFinish`, `loadFail`, and the effect that settles an arriving batch | the API's own calls, and a reaction to the host writing `value`                                 |
+
+`STRICT_READ_UNTRACKED` on the sink: **39 → 27**; over every page the site test drives: **156 → 134**, so
+`UNTRACKED_BUDGET` is 134 now. Suites: `packages/headless` 1509, `apps/ui` as before.
+
+What is left is the same work in the rest of the primitives — `date-picker`'s creation reads (3 of the 27, and neither
+`positionOf` nor the open effect is their source), an anonymous read inside the sink's `<For>` (`feed.tsx:235`), the
+`Tabs`/`Accordion` anonymous pair — and the seven `merge` ones, which are the kit's nested views and stay. Each round
+lowers the budget by the number it removes.

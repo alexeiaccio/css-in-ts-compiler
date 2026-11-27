@@ -1,4 +1,4 @@
-import { type Accessor, createEffect, createSignal, createUniqueId } from "solid-js";
+import { type Accessor, createEffect, createSignal, createUniqueId, untrack } from "solid-js";
 import { createControllable } from "./controllable";
 
 /**
@@ -134,7 +134,7 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
   };
 
   const pageDown = (): void => {
-    const current = active();
+    const current = untrack(active);
     if (typeof current !== "number") {
       return;
     }
@@ -146,7 +146,7 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
   };
 
   const pageUp = (): void => {
-    const current = active();
+    const current = untrack(active);
     if (typeof current === "number" && current > 1) {
       setActive(current - 1);
     }
@@ -157,10 +157,10 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
   createEffect(
     () => options.value,
     () => {
-      if (phase() === "loading") {
+      if (untrack(phase) === "loading") {
         setPhase("idle");
       }
-      const current = active();
+      const current = untrack(active);
       if (typeof current === "number" && current > loaded()) {
         setActive(Math.max(1, loaded()));
       }
@@ -195,7 +195,7 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
     ctrlHome: () => setActive("before"),
     loadStart: startLoad,
     loadFinish: (count) => {
-      if (phase() !== "loading") {
+      if (untrack(phase) !== "loading") {
         return;
       }
       const all = total();
@@ -205,7 +205,7 @@ export const createFeed = (options: FeedOptions = {}): Feed => {
       setPhase("idle");
     },
     loadFail: () => {
-      if (phase() === "loading") {
+      if (untrack(phase) === "loading") {
         setPhase("idle");
       }
     },

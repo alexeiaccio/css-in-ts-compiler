@@ -6,6 +6,7 @@ import {
   createUniqueId,
   onCleanup,
   onSettled,
+  untrack,
 } from "solid-js";
 import { createControllable } from "./controllable";
 import {
@@ -506,7 +507,7 @@ export const createMenu = (options: MenuOptions): Menu => {
       return;
     }
     requestOpen(want);
-    if (!hostOpen().controlled) {
+    if (!untrack(hostOpen).controlled) {
       apply();
       return;
     }
@@ -744,8 +745,8 @@ export const createMenu = (options: MenuOptions): Menu => {
     }
     element.addEventListener("keydown", keyDownEvent);
     const provider = options.provider === "polyfill" ? focusGroupPolyfill : focusGroup;
-    group = provider(element, { definition: definition(isOpen()), items: itemElements });
-    shownGroup = isOpen();
+    group = provider(element, { definition: definition(untrack(isOpen)), items: itemElements });
+    shownGroup = untrack(isOpen);
   };
 
   /**

@@ -1,4 +1,4 @@
-import { type Accessor, createSignal, createUniqueId } from "solid-js";
+import { type Accessor, createSignal, createUniqueId, untrack } from "solid-js";
 import { createControllable } from "./controllable";
 
 /**
@@ -131,8 +131,8 @@ export const createAccordion = (options: AccordionOptions = {}): Accordion => {
     initial: indicesOf(
       normalize(
         Array.from({ length: items }, (_, index) => (options.defaultValue ?? []).includes(index)),
-        multiple(),
-        collapsible(),
+        untrack(multiple),
+        untrack(collapsible),
       ),
     ),
     onChange: () => options.onValueChange,
@@ -163,13 +163,13 @@ export const createAccordion = (options: AccordionOptions = {}): Accordion => {
     if (isDisabled(index)) {
       return;
     }
-    const current = expanded();
+    const current = untrack(expanded);
     const next = [...current];
     if (current[index] === true) {
-      if (collapsible() || count(current) >= 2) {
+      if (untrack(collapsible) || count(current) >= 2) {
         next[index] = false;
       }
-    } else if (multiple()) {
+    } else if (untrack(multiple)) {
       next[index] = true;
     } else {
       next.fill(false);
@@ -185,14 +185,14 @@ export const createAccordion = (options: AccordionOptions = {}): Accordion => {
     toggle,
     setMultiple: (value) => {
       setMultipleOverride(value);
-      if (!controlled()) {
-        commit(normalize(expanded(), value, collapsible()));
+      if (!untrack(controlled)) {
+        commit(normalize(untrack(expanded), value, untrack(collapsible)));
       }
     },
     setCollapsible: (value) => {
       setCollapsibleOverride(value);
-      if (!controlled()) {
-        commit(normalize(expanded(), multiple(), value));
+      if (!untrack(controlled)) {
+        commit(normalize(untrack(expanded), untrack(multiple), value));
       }
     },
     setHeadingLevel: (level) => {

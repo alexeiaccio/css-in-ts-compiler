@@ -1,4 +1,11 @@
-import { type Accessor, createEffect, createMemo, createSignal, createUniqueId } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  createUniqueId,
+  untrack,
+} from "solid-js";
 import {
   type FocusGroupDefinition,
   type FocusGroupHandle,
@@ -543,7 +550,7 @@ export const createRadioGroup = <T = unknown>(options: RadioGroupOptions<T>): Ra
     // the provider is built here, between the two listeners: activation, wrap and
     // the item tabindex are its business; the keydown flag precedes it and the
     // focusin correction follows it
-    if (flavor() === "roving") {
+    if (untrack(flavor) === "roving") {
       attachGroup(element);
     }
     element.addEventListener("focusin", focusIn);
