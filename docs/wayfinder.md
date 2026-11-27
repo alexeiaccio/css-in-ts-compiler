@@ -6388,3 +6388,23 @@ What is left is now small and specific: the date picker's three creation reads, 
 `Modifiers` resisted a snapshot in `createSignal` and a `console.trace` probe inside `createControllable` — the read is
 not on that path, and finding it needs the trace to survive the page's own navigation, which is the next thing to fix in
 the probe rather than in the kit.
+
+### The trace: one cause behind the `merge` and `version` reads, and why it is a refactor (2026-11-27)
+
+A `console.trace` inside `createControllable`'s `current()` (reverted) settled the attribution the console's `at` line
+could not: the stack is `current() ← get aria-checked ← sourceGet ← collectProps ← collectSources` — `@solidjs/web`
+**collecting an element's props at creation**, reading a getter on a props object whose getter reads state. The `merge`
+warnings and the `version`/`hostOpen`/`hostModifiers` ones are therefore the same cause: a spread of a props object whose
+getters read reactive values, done where no computation is running. `merge` is the name of the view when the read passes
+through the view itself; a controllable is the name when it passes through a getter.
+
+That rules out the two cheap fixes. `untrack` at the `omit` (tried in `Button`) and at `renderPart`'s fallback call (tried)
+change nothing, because the read happens inside Solid's own `collectProps`, not in our call. The fix is the one the bean
+named first — read each value in JSX at the attribute, where the compiler wraps the read in an effect — and that is a
+part-by-part rewrite of the seven components that `render` a `Button` (menu, tooltip, popover, date-picker, select,
+command-palette, drawer) plus the date picker's own status/grid spreads, not one line in a shared helper.
+
+Why it is worth doing at all, given the behaviour is correct: the same `collectProps` path is what makes a _static_
+snapshot of those values, and the parts stay live only because the getters are re-read later (the `merge` view re-reads
+through its sources). A part that read its values at the attribute would be correct by construction rather than by the
+view's re-reading. Until then the budget counts them.

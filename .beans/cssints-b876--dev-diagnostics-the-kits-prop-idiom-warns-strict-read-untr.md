@@ -7,7 +7,7 @@ priority: low
 tags:
     - wayfinder:task
 created_at: 2026-11-20T21:10:00Z
-updated_at: 2026-11-27T22:10:00Z
+updated_at: 2026-11-27T22:50:00Z
 ---
 
 The `#sink` page mounts the whole kit, so Solid's dev build speaks: 343 `STRICT_READ_UNTRACKED` (a read outside any tracking
@@ -83,3 +83,15 @@ Sink **27 → 22**, the site **134 → 121**, `UNTRACKED_BUDGET = 121`. `apps/ui
 Left: the date picker's three creation reads, the `<For>` at `feed.tsx:235`, the `Tabs`/`Accordion` pair, the
 `version` reads of `Menu`/`Select`/`Combobox`/`Modifiers` (not on `createControllable`'s `current()` path — a trace probe
 did not catch them), and the seven nested-`merge` ones.
+
+## The cause, traced (2026-11-27)
+
+A `console.trace` in `createControllable`'s `current()` (reverted) shows `current() <- get aria-checked <- sourceGet <-
+collectProps <- collectSources`: `@solidjs/web` collecting an element's props at creation reads a getter on a props object,
+and the getter reads state. The `merge` and `version`/`hostOpen`/`hostModifiers` warnings are one cause, and `untrack` at
+`omit` (tried in `Button`) or at `renderPart`'s fallback (tried) cannot reach inside Solid's own `collectProps`.
+
+The remaining work is therefore a refactor, not an annotation: each of the seven components that renders a `Button` (menu,
+tooltip, popover, date-picker, select, command-palette, drawer) and the date picker's own status/grid spreads would read
+their values in JSX at the attribute, where the compiler wraps the read in an effect. Then the 7 `merge` and the 5
+`version` reads go together, and the budget drops by 12.
