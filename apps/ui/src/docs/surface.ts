@@ -42,7 +42,12 @@ export interface ScreenProblem {
   readonly message: string;
 }
 
-/** A value a catalog can carry: `JSON.stringify` keeps it as it is. */
+/**
+ * A value a catalog can carry: `JSON.stringify` keeps it as it is.
+ *
+ * @param {unknown} value the value a story's args declare
+ * @returns {boolean} whether the value survives a round trip through JSON
+ */
 const isJson = (value: unknown): boolean => {
   if (value === null || typeof value === "string" || typeof value === "boolean") {
     return true;
@@ -201,7 +206,12 @@ export const checkScreen = (
   return problems;
 };
 
-/** A screen as a hash carries it: `#screen=` and the encoded JSON. */
+/**
+ * A screen as a hash carries it: `#screen=` and the encoded JSON.
+ *
+ * @param {Screen} screen the blocks a screen names and the title over them
+ * @returns {string} the hash
+ */
 export const screenHash = (screen: Screen): string =>
   `#screen=${encodeURIComponent(JSON.stringify(screen))}`;
 

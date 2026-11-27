@@ -16,7 +16,12 @@ interface ResolvedBlock {
   readonly args: Args;
 }
 
-/** The blocks of a text, or nothing when the catalog refuses it. */
+/**
+ * The blocks of a text, or nothing when the catalog refuses it.
+ *
+ * @param {string} text a block's reference to the catalog
+ * @returns {object | undefined} the title and the blocks, or nothing
+ */
 const resolve = (
   text: string,
 ): {
@@ -95,6 +100,8 @@ export const ScreenPage = (props: { readonly text: string }): JSX.Element => {
 /**
  * The catalog as data: every starter, the stories it ships, the args each story uses and the args each one takes. This is
  * what a screen may name — and what an agent reads instead of guessing at props.
+ *
+ * @returns {JSX.Element} the catalog as a page
  */
 export const CatalogPage = (): JSX.Element => {
   const json = (): string =>
@@ -118,6 +125,8 @@ export const CatalogPage = (): JSX.Element => {
 /**
  * The sink: every starter on one page, its first story drawn live — the catalogue as something you can look at rather
  * than read. Each block links to the item's own page, which has its other stories, its controls and its code.
+ *
+ * @returns {JSX.Element} every starter on one page
  */
 export const SinkPage = (): JSX.Element => (
   <section data-part="sink">

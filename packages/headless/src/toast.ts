@@ -85,7 +85,7 @@ export interface Toast {
 }
 
 interface Countdown {
-  handle: TimerHandle | undefined;
+  handle: TimerHandle;
   /** When the countdown ends while it runs; stale while paused. */
   deadline: number;
   /** Time left when paused (and the value first armed). */

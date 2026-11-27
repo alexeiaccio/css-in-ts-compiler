@@ -48,6 +48,9 @@ const panel = css.cn(
 /**
  * APG tabs on `@cssints/headless`: the tablist is the focusgroup, the selection, the arrow keys, Home/End and the panels are the
  * primitive's. The selected tab is `aria-selected="true"`, so the skin reads the state and never a second copy of it.
+ *
+ * @param {TabsProps} props the labelled tabs and the panels they show
+ * @returns {JSX.Element} the tabs
  */
 export const Tabs = (props: TabsProps) => {
   const api = createTabs({

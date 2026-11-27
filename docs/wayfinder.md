@@ -6218,3 +6218,28 @@ scale-mapped anchor to re-anchor, and a wheel write is synchronous — there is 
 claimed, is not `preventDefault`ed and leaves the scale alone, beside the vertical case), and
 `apps/ui/src/registry/canvas/canvas.browser.test.tsx` (6: the same guard on the starter's own wheel handler, then a
 vertical wheel zooms about the pointer).
+
+**`bun run lint` red, and back to zero (2026-11-27):** the gate had 147 diagnostics, and it was red before the dep bump too
+(vite-plus 1.7 reports the same 147, so 1.8 is not the cause — the earlier guess that its globs broke was wrong: the
+patterns are handed to oxlint untouched, and `apps/**`/`**/test/**` were never in `lint.ignorePatterns` at all; they are
+in `plainCode`, which turns the automation rules off, not the file). What was actually wrong, and what each fix does:
+
+- 91 of the 147 were the `eslint-plugin-playwright` rules, 88 of them in `*.browser.test.ts(x)`: those are vitest with the
+  Playwright provider, not Playwright Test specs, so the plugin sees an `expect` it cannot place and calls it standalone.
+  The two rules that fire (`no-standalone-expect`, `prefer-web-first-assertions`) are off for `**/*.browser.test.ts` and
+  `**/*.browser.test.tsx` — a glob, not a package list, so the next browser test inherits it. The plugin keeps its teeth
+  where it earns them: the node scripts that drive `playwright-core`.
+- 4 in `apps/ui/scripts/catalog.ts`: `ssrLoadModule` returns `any`, like every import in a `.mjs` script, so the
+  no-unsafe family is off there too (`apps/*/scripts/**` joins `**/*.mjs`).
+- 1 in `packages/ds/dev/main.tsx`: the linter's type-check resolves that entry's JSX under React's runtime (TS2875) while
+  `vp dev` compiles it with Solid's plugin — `packages/ds/dev/**` is out of lint, as `apps/ui/src/registry/**/*.tsx` is.
+- 22 jsdoc `require-param`/`require-returns`: the four DS components, the two docs pages of `apps/ui`, its forced-colours
+  test and `structureOf` gained the tags the rule asks for (the components' JSDoc was prose only).
+- 19 in `packages/tui/test/system.ts` and 2 in `render.ts`: `PALETTES` is `Record<string, [Report, …]>` under
+  `noUncheckedIndexedAccess`, so every index read was `… | undefined` and the destructuring turned the value `any`. One
+  `paletteOf(name)` that throws on a name it does not know gives `Report` back: the 19 are gone without a suppression, and
+  a typo in a palette name now fails loudly instead of lint. `render.ts` needed one `!` on `lines[y]`.
+- The last few were real: an unused `createSignal`, an unawaited `confirm()`, a `TimerHandle | undefined` that is `unknown`
+  (`TimerHandle` is `unknown` in `@cssints/machine`, so the union added nothing), `.first()`/`.nth()` in two scripts (now
+  the element is named), and `page.waitForSelector` in the forced-colours test (now `waitForFunction` on the same selector:
+  a locator is strict, and that page has 42 buttons).

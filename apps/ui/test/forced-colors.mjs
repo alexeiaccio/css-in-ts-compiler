@@ -26,7 +26,13 @@ const browser = await chromium
   .launch({ channel: "chrome" })
   .catch(() => chromium.launch({ channel: undefined }));
 
-/** The paint of one element, as the browser resolved it. */
+/**
+ * The paint of one element, as the browser resolved it.
+ *
+ * @param {import("playwright-core").Page} page the page
+ * @param {string} selector the element
+ * @returns {Promise<object | undefined>} the colours, the borders and the shadow
+ */
 const paint = (page, selector) =>
   page.evaluate((sel) => {
     const el = document.querySelector(sel);
@@ -43,7 +49,12 @@ const paint = (page, selector) =>
     };
   }, selector);
 
-/** Every tabs strip on the page, as the selected tab versus the rest. The story renders more than one. */
+/**
+ * Every tabs strip on the page, as the selected tab versus the rest. The story renders more than one.
+ *
+ * @param {import("playwright-core").Page} page the page
+ * @returns {Promise<Array<object>>} one entry per strip
+ */
 const tabs = (page) =>
   page.evaluate(() =>
     [...document.querySelectorAll('[role="tablist"]')].map((list) => {
@@ -74,7 +85,7 @@ try {
 
   const open = async (hash, selector) => {
     await page.goto(`${base}${hash}`);
-    await page.waitForSelector(selector, { timeout: 300_000 });
+    await page.waitForFunction((sel) => document.querySelector(sel) !== null, selector);
   };
 
   // the same reads, before the emulation: what a colour change is proved against

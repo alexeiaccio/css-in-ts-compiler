@@ -47,7 +47,12 @@ const thumb = css.cn(
 
 const label = css.cn(css.paddingInline(t.space.md));
 
-/** APG switch on `@cssints/headless`: a track and a thumb; the widget owns `aria-checked`, the keys and the pointer. */
+/**
+ * APG switch on `@cssints/headless`: a track and a thumb; the widget owns `aria-checked`, the keys and the pointer.
+ *
+ * @param {SwitchProps} props the label and whether the switch starts on
+ * @returns {JSX.Element} the switch
+ */
 export const Switch = (props: SwitchProps) => {
   const api = createSwitch({
     get value() {

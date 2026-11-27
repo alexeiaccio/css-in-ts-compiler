@@ -258,7 +258,11 @@ try {
     "bars",
   ]);
   // the block's own arg reached the story: its caption is the screen's, not the story's
-  assert.ok((await blocks.nth(1).innerText()).includes("A screen's own label"));
+  assert.ok(
+    (await page.locator('[data-part="screen-block"][data-starter="bars"]').innerText()).includes(
+      "A screen's own label",
+    ),
+  );
   assert.equal(await page.locator('[data-part="screen-problems"]').count(), 0);
 
   await page.goto(screen({ blocks: [{ starter: "bars", args: { colour: "red" } }] }));

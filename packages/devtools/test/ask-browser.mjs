@@ -300,7 +300,7 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
     ["user", "assistant"],
   );
   assert.match(
-    await page.locator("[data-devtools=chat-message]").first().innerText(),
+    await page.locator("[data-devtools=chat-message][data-role=user]").innerText(),
     /USER\s+make it blue/i,
     "the transcript is the session's messages, with the role over each",
   );

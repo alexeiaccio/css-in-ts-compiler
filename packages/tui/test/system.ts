@@ -129,7 +129,13 @@ for (const [label, [report, appearance]] of Object.entries(PALETTES)) {
   console.log(label, JSON.stringify(v));
 }
 
-const [gruvbox] = PALETTES["Gruvbox dark"];
+const paletteOf = (name: string) => {
+  const found = PALETTES[name];
+  if (found === undefined) throw new Error(`no palette ${name}`);
+  return found[0];
+};
+
+const gruvbox = paletteOf("Gruvbox dark");
 const g = system.solve(gruvbox).values;
 // Gruvbox's dark red misses 4.5:1 on its background: it becomes lighter; its foreground passes and is kept
 assert.ok(contrast(gruvbox.ansi![1]!, gruvbox.bg!) < 4.5);
@@ -251,7 +257,7 @@ const style = {
   ":hover": { color: "#333333" },
   vars: { color: "color-text", ":hover": { color: "color-link" } },
 };
-const latte = system.apply(PALETTES["Catppuccin Latte"][0]);
+const latte = system.apply(paletteOf("Catppuccin Latte"));
 setTheme("system");
 assert.deepEqual(resolve(style), { color: latte.values["color-text"], backgroundColor: "#222222" });
 assert.equal(resolve(style, { hover: true }).color, latte.values["color-link"]);
@@ -274,7 +280,7 @@ assert.equal(
   "#111111",
   "nothing yet: the static theme (no indexed colour in bomb.sh)",
 );
-const [nord] = PALETTES.Nord;
+const nord = paletteOf("Nord");
 const answers =
   `${ESC}]10;rgb:d8/de/e9${BEL}${ESC}]11;rgb:2e/34/40${BEL}` +
   nord

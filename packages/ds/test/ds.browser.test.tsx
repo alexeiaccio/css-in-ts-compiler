@@ -161,7 +161,7 @@ describe("stories", () => {
     }
     const root = document.createElement("div");
     document.body.append(root);
-    const dispose = render(() => accent.view(accent.args) as JSX.Element, root);
+    const dispose = render(() => accent.view(accent.args), root);
     expect(root.querySelector<HTMLElement>('[data-part="button"]')?.textContent).toBe("Save");
     dispose();
     root.remove();

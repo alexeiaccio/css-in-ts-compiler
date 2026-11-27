@@ -75,6 +75,9 @@ const dataLines = (el: Element) => {
  * the picture a reader draws by hand to explain a screen, read from the only vocabulary the markup states for itself.
  * An element without a part is a wrapper and is walked through, so its labelled children stay at their structural level;
  * the walk stops at `STRUCTURE_DEPTH` levels and `STRUCTURE_NODES` lines, and says that it did.
+ *
+ * @param {Element} el the element to read
+ * @returns {string} the lines
  */
 export const structureOf = (el: Element) => {
   const state = { lines: [] as string[], cut: false };

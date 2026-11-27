@@ -68,6 +68,9 @@ const button = css.cv({
 /**
  * APG button on `@cssints/headless`: a command button, and a toggle button with `isToggle`. `tone` and `size` are the look;
  * the pressed and disabled states are the primitive's, not props of this component.
+ *
+ * @param {ButtonProps} props the tone, the size, the toggle flag and the handlers
+ * @returns {JSX.Element} the button
  */
 export const Button = (props: ButtonProps) => {
   const api = createButton({

@@ -28,6 +28,7 @@ const inputs = [
   // runtime (TS7026/TS2875 on every element, whatever tsconfig the app carries) while a copy of the same file
   // lints clean. `bun run typecheck` and the conformance test a copy ships cover them.
   "apps/ui/src/registry/**/*.tsx",
+  "packages/ds/dev/**",
   // The starters ship a copy of the headless driver and its scenario test; both are linted where
   // they come from (packages/headless/test), and a copy here is the file a consumer receives.
   "apps/ui/src/registry/*/dom-driver.ts",
@@ -173,7 +174,10 @@ export default defineConfig({
       correctness: "off",
     },
     overrides: [
-      { files: ["**/*.mjs"], rules: Object.fromEntries(noUnsafe.map((r) => [r, "off"])) },
+      {
+        files: ["**/*.mjs", "apps/*/scripts/**"],
+        rules: Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
+      },
       // Type tests call what does not exist on purpose (`@ts-expect-error`), and that call is `any`.
       {
         files: ["packages/cssints/test/types/**", "packages/tui/test/types/**"],
@@ -201,8 +205,20 @@ export default defineConfig({
       // The scripts build servers, spawn children and wait for tarballs: `new Promise` around `listen`/`close` is the
       // shape node gives those events, and there is no promise-returning alternative to await.
       {
-        files: ["scripts/**", "packages/*/scripts/**", "packages/cssints/test/hmr/**"],
+        files: [
+          "scripts/**",
+          "packages/*/scripts/**",
+          "apps/*/scripts/**",
+          "packages/cssints/test/hmr/**",
+        ],
         rules: { "promise/avoid-new": "off" },
+      },
+      {
+        files: ["**/*.browser.test.ts", "**/*.browser.test.tsx"],
+        rules: {
+          "playwright/no-standalone-expect": "off",
+          "playwright/prefer-web-first-assertions": "off",
+        },
       },
       // A Vite `?raw` import is the engine's sources as text: the plugin synthesises the default export, and there is
       // no module for the rule to resolve.

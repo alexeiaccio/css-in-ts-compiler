@@ -1,6 +1,6 @@
 // A native `<dialog>` host for `createConfirm`: the platform owns the modal layer, the focus containment and return, Escape
 // and the scroll lock; the promise, the Cancel-first focus and the request/answer split stay the primitive's.
-import { createSignal, Show } from "solid-js";
+import { Show } from "solid-js";
 import { render } from "@solidjs/web";
 import { describe, expect, it } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -116,7 +116,7 @@ describe("createConfirm on a native <dialog>", () => {
 
   it("closedby is any: a modal confirm takes a light dismiss", async () => {
     const { dialog, api, dispose } = mount();
-    api().confirm({ title: "Delete?" });
+    void api().confirm({ title: "Delete?" });
     await tick();
     expect(dialog().getAttribute("closedby")).toBe("any");
     dispose();

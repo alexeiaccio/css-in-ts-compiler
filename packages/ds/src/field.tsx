@@ -36,6 +36,9 @@ const problem = css.cn(css.fontSize(t.font.sizeSm), css.color(t.color.danger));
  * A labelled text field on `@cssints/headless`: the label, the control, the hint and the error are one field — the ids, the
  * `aria-describedby` chain and `aria-invalid` are the primitive's, so a message is read with its control and never orphaned.
  * Both message elements are always rendered, and the primitive hides the empty one.
+ *
+ * @param {FieldProps} props the label, the value and the message an error carries
+ * @returns {JSX.Element} the field
  */
 export const Field = (props: FieldProps) => {
   const api = createField({
