@@ -6243,3 +6243,45 @@ in `plainCode`, which turns the automation rules off, not the file). What was ac
   (`TimerHandle` is `unknown` in `@cssints/machine`, so the union added nothing), `.first()`/`.nth()` in two scripts (now
   the element is named), and `page.waitForSelector` in the forced-colours test (now `waitForFunction` on the same selector:
   a locator is strict, and that page has 42 buttons).
+
+## CSS mixins: the seven things `@mixin` gives, six of which are a helper module (2026-11-26)
+
+[The beauty of CSS mixins](https://patrickbrosset.com/articles/2026-11-25-the-beauty-of-css-mixins/) (Patrick Brosset,
+2026-11-25) is the first write-up of the whole spec rather than of the two at-rules: `@mixin --name(--bg <color>: royalblue)`
+with typed parameters and defaults, `@apply --name(args) { … }` where the block lands at `@contents`, `@private` variables, a
+mixin body that may hold `@media`/`@supports`/`@container` and nested selectors, and — the part he is most interested in — a
+mixin that nobody has defined doing nothing, so the _consumer_ of a page can define it and theme the site without touching
+the markup (his "Mixin Zen Garden"). It ships in Chromium behind `Experimental Web Platform features`.
+
+**Nothing is ported.** The scan in `docs/research/unshipped-specs.md` had already refused `@mixin`/`@apply` as class A ("plain
+TypeScript functions already return style objects"), but it judged two at-rules; the article shows the rest of the surface,
+so each feature is checked against a shape that exists today:
+
+| the spec's feature                                            | the shape here                                                                                                           |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `@mixin --visually-hidden { … }`                              | a function in a module imported `with { type: "cssints" }`, returning `sx()`, a `flex()` chain or a `cn()`               |
+| parameters, `<color>` types, defaults                         | TypeScript's, checked by the property's grammar at the call site rather than by the parameter                            |
+| `@apply --button(crimson)`                                    | `cn(button("crimson"))`                                                                                                  |
+| `@contents` (the caller's block, at a point inside the mixin) | a callback: `tabletUp(() => sx().inlineSize("12rem"))` puts the caller's declaration inside the helper's `@media`        |
+| a mixin whose body holds `@media` / `:hover`                  | `media(...)`/`hover(...)` wrappers returned in the same `cn()`                                                           |
+| named breakpoints                                             | `const { md, lg } = css.media({ md: "(width >= 40rem)", lg: "(width >= 64rem)" })` — one declaration, already documented |
+| `@private`                                                    | a local `const` in the helper module                                                                                     |
+| an undefined mixin as a hook                                  | no counterpart: a theme is a module, or a `class` prop at the place the component chooses                                |
+
+**Two properties make the module shape not a compromise but the better one, and both are now pinned.** A mixin's body is
+_inlined_ into the rule at each `@apply`, so a helper applied at N sites ships N copies; ours hashes the declaration, so a
+rule is emitted once however many sites call it. And `@apply` resolves an override by source order, inside one rule, where
+ours resolves it by property: `cn(surface(), p(0))` drops the helper's `p(4)` and keeps its radius and its `:hover` because
+the padding is the same property under the same condition and the radius is not. That is the difference between "the
+declarations are spliced where the call is" and "the declarations are atoms the call refines".
+
+`packages/cssints/test/mixin.mjs` is the check: it transforms `fixtures/helper-use.ts` and asserts that `padding:1rem` is one
+rule though two exports use it, that a call site gets that class, that `cn(surface("white"), p(0))` carries `padding:0rem`
+and `border-radius:0.5rem` and not `padding:1rem`, and that `tabletUp(() => sx().inlineSize("12rem"))` puts the caller's
+declaration inside the helper's `@media (width >= 40rem)`. The declarations are in docs/API.md ("Reuse: a helper module's
+function is a mixin") and `docs/prohibited.md` holds the at-rules: there is no member for them and a CSS string is a build
+error, so they cannot arrive as text.
+
+**What would change the verdict** is not the spec shipping: it is a consumer who needs a _cross-stylesheet_ seam — a mixin
+defined by one party and applied by another's page or shadow root. Nothing here has that seat, and if something does, a
+`class` prop passed down is a narrower version of it.

@@ -264,7 +264,16 @@ Risk: only worth it if someone asks; no-one has in this repo.
 ## What I did not build, and why
 
 - `@mixin` and `@apply` (class A). cssints already has plain TypeScript functions that return style objects, so a second mixin
-  system adds nothing.
+  system adds nothing. **Re-checked 2026-11-26** against Patrick Brosset's _The beauty of CSS mixins_, which shows the spec's
+  whole surface rather than the two at-rules: parameters with `<color>` types and defaults, `@contents` (the caller's block,
+  placed inside the mixin's `@media`), `@private` variables, conditional rules inside a mixin, an undefined mixin as a theme
+  hook, and nested selectors. Six of those are a helper module's function — parameters and defaults are TypeScript's, a
+  callback is `@contents`, a local `const` is `@private`, `hover()`/`media()`/`supports()` are the nested rules, and
+  `cn()` gives the caller's override by property instead of by source order. The seventh, a mixin defined in _another
+  stylesheet_ and applied by the page, has no counterpart and no consumer here: a theme is a module, or a `class` prop at
+  the place the component chooses. Pinned by `test/mixin.mjs` (one rule for a helper's declaration across call sites; a
+  caller's `p(0)` replaces the helper's `p(4)` and keeps its radius and its `:hover`), and stated for users in docs/API.md,
+  "Reuse: a helper module's function is a mixin".
 - `element()` and `param()` (class C). Live rendering of another element is not something a script can reproduce.
 - `prefers-reduced-data` (class C). It reads a user preference that no JavaScript API exposes.
 - box-shadow and border-radius longhands (class A). They need a merge of several declarations into one shorthand, and the

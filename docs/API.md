@@ -17,14 +17,18 @@ Every `ts` block here is type-checked against the workspace `cssints` types by `
 - **`container` is the condition.** `container("sidebar (width < 30rem)")` is a query; the `container` shorthand property is written with its longhands `containerName` and `containerType`.
 - **Arguments are build-time values.** The plugin runs your module at build time and replaces each call with a class string. A literal, a `const`, a token or a value from another attributed module works. A value that exists only at runtime (a prop, state) does not: `p(n)` with `n` a parameter is a build error (`css arguments must be known at build time: n is not defined where the call is evaluated`) that points at the call, also when the local is named like a global (`open`, `name`) or like a module binding. The types do not catch it: a helper module may take parameters (below), so a `string` or `number` is a fine argument there. Choose between styles with `cn(base, on && p(4))` (see "Runtime: `cn`, `cv`"), a `cv` variant, or a token set in a `style` prop. A helper module imported with the attribute may take parameters, because each call of it is a site with its own arguments: `stack(4)` below is a build-time call in the file that makes it.
 - **Top-level code runs at build time.** A call the run does not reach (`false && p(4)`, a branch not taken, a ternary arm) still gets its class string: it is evaluated after the module has loaded, like a call inside a function, so its arguments may use the bindings of the module but not the locals of the branch. A `cv(...)` at the top of a module works too: during the build it is the same function the browser gets, so `button({ size: "lg" })` at the top of a module gives its classes.
+- **Reuse: a helper module's function is a mixin.** A function that returns a style — one property, a `flex()` chain, or a `cn()` of several, conditions and nested rules included — is what CSS `@mixin` / `@apply` is for: it may take parameters and defaults, and it is emitted **once** however many sites call it, because the class hashes the declaration, not the site. A caller's later style replaces what the mixin sets, by property rather than by source order, and only under the same condition: `cn(surface(), p(0))` keeps the helper's radius and its `:hover`, and drops its padding. A named breakpoint is a wrapper (`const { md, lg } = css.media({ md: "(width >= 40rem)", lg: "(width >= 64rem)" })`, or a helper that applies one to the block it is given). What this does not give is a mixin defined in _someone else's stylesheet_: a theme is a module here, or a `class` prop at the place the component chooses.
 
 ```ts
 // stack.ts
 import * as css from "cssints" with { type: "cssints" };
 
-export const stack = (gap: number) => css.flex().direction("column").gap(gap);
+export const stack = (gap = 4) => css.flex().direction("column").gap(gap);
+export const surface = () =>
+  css.cn(css.bg("white"), css.p(4), css.borderRadius("0.5rem"), css.hover(css.bg("#eee")));
 
-// elsewhere: import { stack } from "./stack.ts" with { type: "cssints" }; ... className={stack(4)}
+// elsewhere: import { stack, surface } from "./stack.ts" with { type: "cssints" };
+// className={cn(surface(), p(0))} — the radius and the hover stay, the padding is the caller's
 ```
 
 ### Basic usage
@@ -1173,7 +1177,7 @@ export const link = css.cn(
   has to stand on its own.
 - **The fallback.** `shapePath` (`@cssints/css-grammar/shape`) turns the same value into SVG path data: `{ d, viewBox }`,
   `0 0 100 100` when no box is given (percentages against 100), or the box's pixels when one is. A `vector-effect:
-  non-scaling-stroke` keeps the line's width when the path is stretched (`preserveAspectRatio="none"`), and the path
+non-scaling-stroke` keeps the line's width when the path is stretched (`preserveAspectRatio="none"`), and the path
   scales exactly as the percentages of `shape()` do, so the two surfaces draw one curve. `apps/ui`'s board has a
   `line: "shape"` edge that is this pair, one shown by what `@supports (border-shape: …)` answers.
 - **What is not covered.** `anchor()`/`anchor-size()` positioning is what makes the article's connector follow two boxes

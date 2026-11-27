@@ -15,6 +15,10 @@ anything it can decide belongs there, not here.
   the only place the word should ever appear in this repo.
 - **A style that is both a plain style and a chain.** `plain styles do not chain` — the value is a declaration or a chain,
   never both.
+- **`@mixin` and `@apply`.** There is no member for either, and a CSS string is a build error (`CSS strings are gone`), so a
+  mixin cannot be smuggled in as text. The tool is a helper module's function, which is the same thing with a better shape:
+  the class hashes the declaration, so a rule is emitted once however many sites apply it, and a caller's later style still
+  replaces what it sets (docs/API.md, "Reuse: a helper module's function is a mixin").
 
 ## Refused by a gate
 
