@@ -2,6 +2,44 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.49.0 (2026-11-27)
+
+### Minor changes
+
+- A layered graph layout spec, replayed against elk-rs. `specs/patterns/graph-layout.qnt` models the discrete part of Eclipse
+  Layout Kernel's pipeline — cycle breaking, layer assignment, ordering — over four nodes and six pair slots, and
+  `src/patterns/graph-layout.bridge.ts` maps the scenario vocabulary (`set_graph` with one of six graphs, the three phases,
+  or `layout` for all of them) onto it, with `layersOf` as the projection both sides answer: one array of node ids per layer,
+  ids sorted. `test/patterns/graph-layout.test.ts` replays the eight scenarios of
+  `scenarios/patterns/graph-layout.spec.json` against the generated reference model and against `@openedges/elk-layout`
+  0.12.2 with the portable strategies pinned (model-order cycle breaking, longest-path layering, no crossing minimization),
+  and walks both with the same seeded steps. Node placement, routing, ports, labels, compound graphs and the strategy knobs
+  are not modelled, with the reasons in the spec's header.
+- Two tools over the starter kit. `list_starters` answers from the registry behind ui.cssints.dev — each item's name,
+  title, what it is, its npm dependencies, the starters its files import, the files it writes and the conformance test it
+  brings — and `add_starter` writes one into a project: its files, the starters they need, and their shared theme,
+  tokens, sheet and browser-test config, then the `npm install` commands and the tests to run. The files, paths and
+  contents are the ones `npx shadcn add @cssints/<name>` writes from the same registry; the tool needs no npx and no
+  prompt. A file that exists with a different content is refused unless `force`, so an edited `theme.ts` survives, and in a
+  checkout the answer warns when the project's `cssints` is not the one the items were generated from.
+
+### Patch changes
+
+- A deliberate one-time snapshot in `createDatePicker` says so: `cellProps(iso)` computed a cell's row and column through a
+  direct read of the shown month, which Solid's dev build reports as a read outside a tracking scope for every one of the 42
+  cells the grid draws. The read is a snapshot on purpose (a cell's coordinates belong to the month its row was built for,
+  and `monthDays()` rebuilds the rows when the month pages), so it is `untrack`ed instead of tracked: same values, and the
+  grid no longer trips `STRICT_READ_UNTRACKED`.
+  
+  The same annotation in the other primitives whose handlers, refs and effect callbacks read their own state once:
+  `createMenu` (a ref's focus-group definition and shown state, and the controlled check a transition makes), `createRadioGroup`
+  (which provider a ref builds), `createAccordion` (a toggle, both setters and the initial normalize) and `createFeed` (its
+  API's paging, the load finish and fail, and the effect that settles an arriving batch). Reads that must follow stay tracked;
+  only the deliberate snapshots say so. The kit's dev page counts 27 warnings where it counted 39.
+  
+  `createVirtualizer`'s `sync`, which a ref calls first and the scrollport's own listener calls after, reads the scrollport
+  through `untrack`: the element is the caller's, and the read is the signal's current value.
+
 ## 0.48.0 (2026-11-27)
 
 ### Minor changes
