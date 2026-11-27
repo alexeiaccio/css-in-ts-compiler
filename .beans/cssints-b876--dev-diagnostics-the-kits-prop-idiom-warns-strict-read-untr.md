@@ -7,7 +7,7 @@ priority: low
 tags:
     - wayfinder:task
 created_at: 2026-11-20T21:10:00Z
-updated_at: 2026-11-27T21:20:00Z
+updated_at: 2026-11-27T22:10:00Z
 ---
 
 The `#sink` page mounts the whole kit, so Solid's dev build speaks: 343 `STRICT_READ_UNTRACKED` (a read outside any tracking
@@ -72,3 +72,14 @@ Six `untrack`s at the reads themselves: `menu.ts` (`attach`'s definition and sho
 Left: `date-picker`'s creation reads (3), an anonymous read in the sink's `<For>` at `feed.tsx:235`, the `Tabs`/`Accordion`
 anonymous pair, and the seven `merge` ones that are the kit's nested views and stay. Same shape each time: an `untrack` at
 a handler, ref or effect callback, and the budget drops by what it removes.
+
+## Second pass (2026-11-27)
+
+Four effects that re-read in their callback what their compute already had now pass the value through instead
+(`listbox`, `treeview`, `treegrid` — whose compute must keep all four of `inGrid`, `kind`, `focusedRow`, `focusedCol`, or
+the roving focus stops following the arrows — and `board`), and `createVirtualizer`'s `sync` reads the port untracked.
+Sink **27 → 22**, the site **134 → 121**, `UNTRACKED_BUDGET = 121`. `apps/ui` 1033 tests green.
+
+Left: the date picker's three creation reads, the `<For>` at `feed.tsx:235`, the `Tabs`/`Accordion` pair, the
+`version` reads of `Menu`/`Select`/`Combobox`/`Modifiers` (not on `createControllable`'s `current()` path — a trace probe
+did not catch them), and the seven nested-`merge` ones.

@@ -1,5 +1,5 @@
 import { type Machine, createMachine, defineMachine } from "@cssints/machine";
-import { type Accessor, createMemo, createSignal } from "solid-js";
+import { type Accessor, createMemo, createSignal, untrack } from "solid-js";
 
 // A DOM virtualiser: which items a scrolling element declares this frame. A list of thousands costs what the screen
 // shows if the host renders only the visible items plus an overscan, and two spacer boxes stand in for the items above
@@ -472,7 +472,7 @@ export const createVirtualizer = (options: VirtualizerOptions): Virtualizer => {
   };
 
   const sync = (): void => {
-    const element = port();
+    const element = untrack(port);
     if (element === undefined) {
       return;
     }

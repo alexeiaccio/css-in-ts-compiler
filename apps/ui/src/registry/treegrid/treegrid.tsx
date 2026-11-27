@@ -226,9 +226,14 @@ export const Treegrid = (props: TreegridProps): JSX.Element => {
   let element: HTMLDivElement | undefined;
   // The primitive keeps the roving tabindex; real DOM focus is the host's to move to that stop when focus is inside.
   createEffect(
-    () => `${grid.inGrid()}|${grid.kind()}|${grid.focusedRow()}|${grid.focusedCol()}`,
-    () => {
-      if (!grid.inGrid()) {
+    () => ({
+      inGrid: grid.inGrid(),
+      kind: grid.kind(),
+      row: grid.focusedRow(),
+      col: grid.focusedCol(),
+    }),
+    (state) => {
+      if (!state.inGrid) {
         return;
       }
       const roving = element?.querySelector<HTMLElement>('[tabindex="0"]');

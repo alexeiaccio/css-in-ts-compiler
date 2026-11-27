@@ -447,9 +447,9 @@ export const Board = (props: BoardProps): JSX.Element => {
   // a split effect: the compute phase names the dependencies, the apply phase reads the plane
   createEffect(
     () => [placed(), mode(), props.nodes] as const,
-    () => {
+    ([isPlaced]) => {
       const element = world;
-      if (!placed() || element === undefined) {
+      if (!isPlaced || element === undefined) {
         return;
       }
       const style = getComputedStyle(element);

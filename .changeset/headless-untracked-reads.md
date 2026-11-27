@@ -13,3 +13,6 @@ The same annotation in the other primitives whose handlers, refs and effect call
 (which provider a ref builds), `createAccordion` (a toggle, both setters and the initial normalize) and `createFeed` (its
 API's paging, the load finish and fail, and the effect that settles an arriving batch). Reads that must follow stay tracked;
 only the deliberate snapshots say so. The kit's dev page counts 27 warnings where it counted 39.
+
+`createVirtualizer`'s `sync`, which a ref calls first and the scrollport's own listener calls after, reads the scrollport
+through `untrack`: the element is the caller's, and the read is the signal's current value.

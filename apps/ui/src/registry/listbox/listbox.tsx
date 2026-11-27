@@ -166,12 +166,12 @@ export const Listbox = (props: ListboxProps): JSX.Element => {
   // (type-ahead, a click, a controlled `activeValue`), so the host focuses the
   // active row while focus is inside, and the platform's own move is a no-op here.
   createEffect(
-    () => `${listbox.focused()}|${listbox.active()}`,
-    () => {
-      if (!listbox.focused()) {
+    () => ({ focused: listbox.focused(), active: listbox.active() }),
+    (state) => {
+      if (!state.focused) {
         return;
       }
-      const row = rows()[listbox.active()];
+      const row = rows()[state.active];
       if (row !== undefined && row !== document.activeElement) {
         row.focus();
       }

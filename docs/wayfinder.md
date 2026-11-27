@@ -6370,3 +6370,21 @@ What is left is the same work in the rest of the primitives — `date-picker`'s 
 `positionOf` nor the open effect is their source), an anonymous read inside the sink's `<For>` (`feed.tsx:235`), the
 `Tabs`/`Accordion` anonymous pair — and the seven `merge` ones, which are the kit's nested views and stay. Each round
 lowers the budget by the number it removes.
+
+### Second pass: the callbacks that re-read what their compute already had (2026-11-27)
+
+Four starters wrote `createEffect(() => \`${value()}|${other()}\`, () => { if (!value()) return; … })`— the compute names
+the dependencies, then the callback reads them again, which is the untracked read the diagnostic names. The fix is not`untrack`: it is to let the compute carry the value and the callback use it (`({ focused, active }) => …`), which is both
+silent and more correct — the callback acts on the same snapshot the compute saw. `listbox`, `treeview`and`treegrid`(whose compute must keep every one of`inGrid`, `kind`, `focusedRow`, `focusedCol`: dropping two of them from the object
+made the roving focus stop following the arrows, and three of its browser tests said so), and `board`'s split effect.
+
+`createVirtualizer`'s `sync` — the scrollport listener and the ref's first call — reads `port` untracked, since it is
+passed the element by the caller and only needs the signal's current value.
+
+Sink **27 → 22**, the site **134 → 121**; `UNTRACKED_BUDGET` is 121. `packages/headless` 1509 tests, `apps/ui` 1033 tests.
+
+What is left is now small and specific: the date picker's three creation reads, the `<For>` on `feed.tsx:235`, the
+`Tabs`/`Accordion` pair, and the seven nested-`merge` ones. The `version` reads of `Menu`, `Select`, `Combobox` and
+`Modifiers` resisted a snapshot in `createSignal` and a `console.trace` probe inside `createControllable` — the read is
+not on that path, and finding it needs the trace to survive the page's own navigation, which is the next thing to fix in
+the probe rather than in the kit.

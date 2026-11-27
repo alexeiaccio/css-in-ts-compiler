@@ -14,7 +14,7 @@ import { pathToFileURL } from "node:url";
 
 import { createServer } from "vite";
 
-const UNTRACKED_BUDGET = 134;
+const UNTRACKED_BUDGET = 121;
 const root = join(import.meta.dirname, "..");
 process.chdir(root);
 const modules = join(root, "../../node_modules/.bun");

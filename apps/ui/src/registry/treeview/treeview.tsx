@@ -108,9 +108,9 @@ export const Treeview = (props: TreeviewProps): JSX.Element => {
   let element: HTMLUListElement | undefined;
   // The primitive keeps the roving tabindex; real DOM focus is the host's to move to that row when focus is inside.
   createEffect(
-    () => `${treeControl.hasFocus()}|${treeControl.focus()}`,
-    () => {
-      if (!treeControl.hasFocus()) {
+    () => ({ focused: treeControl.hasFocus(), focus: treeControl.focus() }),
+    (state) => {
+      if (!state.focused) {
         return;
       }
       const roving = element?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]');
