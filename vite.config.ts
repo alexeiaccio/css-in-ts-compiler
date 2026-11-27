@@ -209,6 +209,7 @@ export default defineConfig({
           "scripts/**",
           "packages/*/scripts/**",
           "apps/*/scripts/**",
+          "packages/mcp/test/**",
           "packages/cssints/test/hmr/**",
         ],
         rules: { "promise/avoid-new": "off" },
