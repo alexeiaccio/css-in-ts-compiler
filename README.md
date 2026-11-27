@@ -170,8 +170,9 @@ npx skills add ./node_modules/cssints/skills  # or the skills CLI, for opencode,
 Agents working on this repository get `.agents/skills/cssints-contributor` (also `.claude/skills`) with no install.
 
 `@cssints/mcp` is an MCP server with the build's own checks (`check_declaration`, `check_support`, `check_contrast`,
-`compile`, `search_docs`, `list_plugins`), in [packages/mcp](packages/mcp) with the config for opencode, Claude Code
-and Cursor. The skills use it when it is configured and work without it.
+`compile`, `search_docs`, `list_plugins`) and the starter kit (`list_starters`, `add_starter`), in
+[packages/mcp](packages/mcp) with the config for opencode, Claude Code and Cursor. The skills use it when it is
+configured and work without it.
 
 ## Layout
 

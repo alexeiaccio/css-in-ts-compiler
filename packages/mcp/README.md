@@ -15,6 +15,13 @@ way the build checks it, without running the app, and ask a running app's dev se
 | `search_docs`       | the matching sections of docs/API.md, README.md and the plugin READMEs: file, line, heading trail, an excerpt                                                                                                                                                                                       | `{ "query": "firstThatWorks fallback" }`                                                                                     |
 | `list_plugins`      | the plugin packages, their members, what each does, the README                                                                                                                                                                                                                                      | `{}`                                                                                                                         |
 
+### The starter kit
+
+| Tool            | Answers                                                                                                                                                                                                                    | Example                                                                       |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `list_starters` | the starters of the kit behind ui.cssints.dev: name, title, what it is, its npm dependencies, the other starters its files import, the files it writes and the conformance test it brings                                  | `{}` → 68 items, `select` needs `button` and `theme`                          |
+| `add_starter`   | writes them into a project — the same files, paths and contents that `npx shadcn add @cssints/<name>` writes — and answers the dependencies to install and the tests to run; a file that differs is refused unless `force` | `{ "names": ["select"] }` → `src/components/ui/select.tsx`, `button.tsx`, ... |
+
 ### On a running dev server
 
 | Tool            | Answers                                                                                                                                                                                   | Example                                                                                             |

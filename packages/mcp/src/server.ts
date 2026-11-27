@@ -2,6 +2,7 @@
 // and `layer`, which needs a Stdio (NodeStdio in bin.ts, a test Stdio in test/tools.mjs).
 import { Effect, Layer, Logger, Schema } from "effect";
 import { McpProtocol, McpServer, Tool, Toolkit } from "effect/ai";
+import { FetchHttpClient, HttpClient } from "effect/http";
 
 import { checkDeclaration, checkSupport, ToolError } from "./check.ts";
 import { checkContrast } from "./contrast.ts";
@@ -9,6 +10,7 @@ import { Compiler } from "./compile.ts";
 import { listPlugins, searchDocs } from "./docs.ts";
 import { Inspector } from "./browser.ts";
 import { Live } from "./live.ts";
+import { addStarter, listStarters } from "./starters.ts";
 
 const Failure = Schema.instanceOf(ToolError);
 const Text = (description: string) => Schema.String.annotate({ description });
@@ -191,6 +193,97 @@ Example: {} -> { "plugins": [{ "name": "@cssints/fluid", "members": "\`fluid(min
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.OpenWorld, false);
+
+const RegistryParam = Maybe(
+  Text(
+    "The registry: a directory that holds registry.json and <name>.json (a cssints checkout: apps/ui/public/r), or an http(s) base such as https://ui.cssints.dev/r; default: this checkout, else that URL",
+  ),
+);
+
+const StarterFields = {
+  name: Schema.String,
+  title: Schema.String,
+  description: Schema.String,
+  dependencies: Schema.Array(Schema.String).annotate({
+    description: "the npm packages the starter imports: install them",
+  }),
+  registryDependencies: Schema.Array(Schema.String).annotate({
+    description: "the other starters its files import; add_starter writes them too",
+  }),
+};
+
+const ListStarters = Tool.make("list_starters", {
+  description: `Lists the starters of the cssints kit — the styleable components behind ui.cssints.dev, a shadcn-style registry of 68 items — with each one's title, what it is, the npm dependencies it needs, the other starters it imports, the files it writes (relative to a project root) and the conformance test it brings. Read it before writing a component by hand and before choosing colours or states: an item that exists is already styled with the kit's tokens, accessible and tested. add_starter writes one into a project.
+Example: {} -> { "source": ".../apps/ui/public/r/registry.json", "items": [{ "name": "select", "title": "Select", "description": "APG select-only combobox: ...", "dependencies": ["@cssints/headless", "cssints"], "registryDependencies": ["theme", "button"], "files": ["src/components/ui/select.tsx", ...], "test": "src/components/ui/select.browser.test.tsx" }, ...] }`,
+  parameters: Schema.Struct({ registry: RegistryParam }),
+  success: Schema.Struct({
+    source: Schema.String,
+    homepage: Maybe(Schema.String),
+    items: Schema.Array(
+      Schema.Struct({
+        ...StarterFields,
+        files: Schema.Array(Schema.String).annotate({
+          description: "the paths it writes, relative to the project root",
+        }),
+        test: Maybe(
+          Schema.String.annotate({
+            description: "its conformance test in Chromium, absent when it has none",
+          }),
+        ),
+      }),
+    ),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, true);
+
+const AddStarter = Tool.make("add_starter", {
+  description: `Writes starters of the kit into a project: each item's files, the other starters its imports need, and their shared theme.ts, tokens.ts, sheet.ts and browser-test config — the same files, paths and contents that \`npx shadcn add @cssints/<name>\` writes from https://ui.cssints.dev/r (whose behaviour the starter smoke checks on every item), without npx and without a prompt. It answers what it wrote, what was already there, the npm dependencies and devDependencies to install, and the conformance tests to run (npx vp test run --config vitest.browser.config.ts <test>). An existing file that differs is refused, so an edited theme.ts is never lost, unless force is true. The items are built from the repository's sources: in a checkout, when the project's cssints differs from it, the answer carries a warning — install the workspace's packages, not the release.
+Example: { "names": ["select"] } -> { "written": ["src/components/ui/select.tsx", "src/components/ui/button.tsx", ...], "install": "npm install @cssints/headless @cssints/mise-en-mode cssints", "tests": ["src/components/ui/select.browser.test.tsx"] }`,
+  parameters: Schema.Struct({
+    names: Schema.Array(
+      Text('One starter or several, named as list_starters names them: "select", "button-group"'),
+    ),
+    root: Maybe(Text("The project to write into; default: the server's working directory")),
+    registry: RegistryParam,
+    force: Maybe(
+      Schema.Boolean.annotate({
+        description: "Replace the files that exist and differ (default: refuse, and write nothing)",
+      }),
+    ),
+  }),
+  success: Schema.Struct({
+    root: Schema.String,
+    registry: Schema.String,
+    items: Schema.Array(Schema.String).annotate({
+      description: "the starters written, the ones asked for and the ones they need",
+    }),
+    written: Schema.Array(Schema.String),
+    unchanged: Schema.Array(Schema.String).annotate({
+      description: "files that were already there with the same content",
+    }),
+    dependencies: Schema.Array(Schema.String),
+    devDependencies: Schema.Array(Schema.String),
+    install: Maybe(
+      Schema.String.annotate({
+        description: "the command that installs the dependencies, in the project",
+      }),
+    ),
+    installDev: Maybe(
+      Schema.String.annotate({
+        description: "the command that installs the devDependencies, when the item needs any",
+      }),
+    ),
+    tests: Schema.Array(Schema.String),
+    warning: Maybe(Schema.String),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, false)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, true);
 
 const Url = Maybe(
   Text(
@@ -421,6 +514,8 @@ export const tools = Toolkit.make(
   Compile,
   SearchDocs,
   ListPlugins,
+  ListStarters,
+  AddStarter,
   ExplainClass,
   ModuleStyles,
   DevErrors,
@@ -433,6 +528,7 @@ const handlers = tools
     Effect.gen(function* () {
       const { compile } = yield* Compiler;
       const live = yield* Live;
+      const http = yield* HttpClient.HttpClient;
       const inspector = yield* Inspector;
       return tools.of({
         check_declaration: ({ property, value }) => checkDeclaration(property, value),
@@ -443,6 +539,9 @@ const handlers = tools
         compile: (input) => compile(input),
         search_docs: ({ query, limit }) => searchDocs(query, limit),
         list_plugins: () => listPlugins(),
+        list_starters: ({ registry }) => listStarters(http, registry),
+        add_starter: ({ names, root, registry, force }) =>
+          addStarter(http, names, root, registry, force),
         explain_class: ({ classes, url }) => live.explain(classes, url),
         module_styles: ({ file, url }) => live.moduleStyles(file, url),
         dev_errors: ({ url }) => live.errors(url),
@@ -454,7 +553,11 @@ const handlers = tools
   )
   .pipe(
     Layer.provide(
-      Layer.mergeAll(Compiler.layer, Inspector.layer.pipe(Layer.provideMerge(Live.layer))),
+      Layer.mergeAll(
+        Compiler.layer,
+        Inspector.layer.pipe(Layer.provideMerge(Live.layer)),
+        FetchHttpClient.layer,
+      ),
     ),
   );
 

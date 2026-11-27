@@ -20,7 +20,9 @@ parts below are what you need most of the time.
 
 If the cssints MCP server is configured, prefer it for checks: `check_declaration` (is this value valid, and the
 message the build would give), `check_support` (browser support for the project's browserslist), `check_contrast`,
-`compile` (a module's classes, CSS, errors and warnings), `search_docs` and `list_plugins`. On a running dev server
+`compile` (a module's classes, CSS, errors and warnings), `search_docs`, `list_plugins`, and the starter kit
+(`list_starters`, `add_starter`: the 68 components behind ui.cssints.dev, written into the project with their tests). On a
+running dev server
 of an app with `cssints({ devtools: true })` (`url`, default `http://localhost:5173`): `explain_class` (a class from
 the DOM → its declarations, conditions, layer, tokens and the call that made it), `module_styles` (a file's calls and
 their CSS) and `dev_errors` (the build errors Vite has now). In a headless Chromium (playwright-core):

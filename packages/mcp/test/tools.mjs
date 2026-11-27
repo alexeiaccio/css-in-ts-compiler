@@ -1,6 +1,7 @@
 // Every tool through an MCP client in-process (client.mjs), good and bad inputs, against fixtures/. Run: node test/tools.mjs
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -17,6 +18,7 @@ const call = async (name, args) => {
 // tools/list: the names, each with a description an agent can act on
 const { tools } = await client.listTools();
 assert.deepEqual(tools.map((t) => t.name).sort(), [
+  "add_starter",
   "check_contrast",
   "check_declaration",
   "check_support",
@@ -25,6 +27,7 @@ assert.deepEqual(tools.map((t) => t.name).sort(), [
   "explain_class",
   "inspect_element",
   "list_plugins",
+  "list_starters",
   "module_styles",
   "search_docs",
   "why_property",
@@ -244,6 +247,93 @@ const fluid = plugins.find((p) => p.name === "@cssints/fluid");
 assert.match(fluid.members, /fluid\(min, max/);
 assert.match(fluid.readme, /packages\/fluid\/README\.md$/);
 assert.ok(plugins.length >= 15);
+
+// ---------- list_starters, add_starter: the registry, and the files a copy is made of
+const starters = await call("list_starters", {});
+assert.match(starters.source, /apps\/ui\/public\/r\/registry\.json$/);
+assert.ok(starters.items.length >= 60, `${starters.items.length} starters`);
+const selectItem = starters.items.find((i) => i.name === "select");
+assert.equal(selectItem.title, "Select");
+assert.equal(selectItem.test, "src/components/ui/select.browser.test.tsx");
+assert.deepEqual(selectItem.registryDependencies, ["theme", "button"]);
+assert.ok(selectItem.dependencies.includes("cssints"));
+assert.equal(starters.items.find((i) => i.name === "theme").test, null);
+
+const project = mkdtempSync(join(tmpdir(), "mcp-starters-"));
+const written0 = (root, path) =>
+  [path, `${path}.ts`, `${path}.tsx`, join(path, "index.ts")].some((p) =>
+    existsSync(join(root, p)),
+  );
+const imports = (root, file) => {
+  const text = readFileSync(join(root, file), "utf8");
+  return [...text.matchAll(/from "(\.\/[^"]+)"/g)].map((m) => join(dirname(file), m[1]));
+};
+const added = await call("add_starter", { names: ["select"], root: project });
+assert.deepEqual([...added.items].sort(), ["button", "select", "theme"]);
+assert.ok(added.written.includes("src/components/ui/select.tsx"));
+assert.ok(added.written.includes("src/components/ui/button.tsx"));
+assert.ok(added.written.includes("src/components/ui/theme.ts"));
+assert.equal(added.tests[0], "src/components/ui/select.browser.test.tsx");
+assert.ok(added.dependencies.includes("@cssints/headless"));
+assert.match(added.install, /^npm install .*@cssints\/mise-en-mode/);
+assert.match(added.installDev, /^npm install -D @cssints\/apg-specs/);
+assert.match(added.warning, /not installed/);
+for (const file of added.written) {
+  assert.ok(existsSync(join(project, file)), `${file} landed`);
+  if (!file.endsWith(".tsx")) continue;
+  for (const sibling of imports(project, file)) {
+    assert.ok(written0(project, sibling), `${file} imports ${sibling}, which is written too`);
+  }
+}
+// a second run has nothing to do: the same bytes are already there
+const again = await call("add_starter", { names: ["select"], root: project });
+assert.deepEqual(again.written, []);
+assert.deepEqual([...again.unchanged].sort(), [...added.written].sort());
+// an edited file is never replaced without force, and nothing is written
+const theme = join(project, "src/components/ui/theme.ts");
+const mine = `${readFileSync(theme, "utf8")}\nexport const mine = 1;\n`;
+writeFileSync(theme, mine);
+const refused = await call("add_starter", { names: ["select"], root: project });
+assert.match(
+  refused.error,
+  /src\/components\/ui\/theme\.ts already exist .* differ: pass force: true/,
+);
+assert.equal(readFileSync(theme, "utf8"), mine);
+assert.equal(
+  (await call("add_starter", { names: ["select"], root: project, force: true })).written[0],
+  "src/components/ui/theme.ts",
+);
+assert.match(
+  (await call("add_starter", { names: ["nope"], root: project })).error,
+  /cannot read .*nope\.json/,
+);
+rmSync(project, { recursive: true, force: true });
+
+// the same registry over http, as a project without a checkout reads it
+{
+  const publicDir = `${import.meta.dirname}/../../../apps/ui/public`;
+  const server = createServer((req, res) => {
+    const file = join(publicDir, req.url);
+    const ok = existsSync(file);
+    res.writeHead(ok ? 200 : 404, { "content-type": "application/json" });
+    res.end(ok ? readFileSync(file) : "");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const overHttp = await call("list_starters", {
+      registry: `http://127.0.0.1:${server.address().port}/r`,
+    });
+    assert.equal(overHttp.items.length, starters.items.length);
+    assert.equal(overHttp.source, `http://127.0.0.1:${server.address().port}/r/registry.json`);
+    assert.match(
+      (await call("list_starters", { registry: `http://127.0.0.1:${server.address().port}/nope` }))
+        .error,
+      /cannot read/,
+    );
+  } finally {
+    server.close();
+  }
+}
 
 await client.close();
 console.log("tools: ok");

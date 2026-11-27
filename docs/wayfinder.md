@@ -6285,3 +6285,34 @@ error, so they cannot arrive as text.
 **What would change the verdict** is not the spec shipping: it is a consumer who needs a _cross-stylesheet_ seam — a mixin
 defined by one party and applied by another's page or shadow root. Nothing here has that seat, and if something does, a
 `class` prop passed down is a narrower version of it.
+
+## The starter kit over MCP: two tools, and the install an agent has to run itself (2026-11-27)
+
+The registry behind ui.cssints.dev is the same shape as shadcn's (one `registry.json`, one `<name>.json` per item with
+its files and contents), and `scripts/starter-smoke.mjs` already proves the whole of it works: it serves `apps/ui/r` over
+a local http server, points the template's `components.json` at it and runs `npx shadcn@latest add` on all 68 items. What
+was missing was the path an agent takes when it cannot run a CLI and wait for a prompt: `@cssints/mcp` knew the engine's
+checks and could not say which components exist.
+
+`list_starters` reads the one committed file and answers per item the title, the description, the npm dependencies, the
+starters its imports need, the files it writes and whether it ships a conformance test (a `.browser.test.tsx` among its
+files). `add_starter` resolves `registryDependencies` transitively — `select` brings `button` and `theme` — plans the
+targets (`src/components/ui/select.tsx`, …), and writes them: no npx, no prompt. The registry is read from a checkout
+(`apps/ui/public/r`), from any directory, or over http (`https://ui.cssints.dev/r`), through `effect/http`'s `HttpClient`
+and `FetchHttpClient.layer` at the handler layer, the shape `live.ts` already uses.
+
+**Two decisions came from running it against the real template.** The first run failed at
+`Cannot find module '@cssints/mise-en-mode'`: the item's code imports a package the template does not list, and only the
+shadcn CLI installs an item's dependencies for you. So `add_starter` does not install — it answers
+`npm install @cssints/headless @cssints/mise-en-mode cssints` (and the `-D` one) — because the version is the consumer's
+choice and, in a checkout, its own tarballs. The second: an item file that exists with different content is a failure
+naming the paths, so an edited `theme.ts` is never lost to a re-add; `force` writes them. In a checkout the answer also
+carries a warning when the project's `cssints` differs from the one the items were generated from, which is the tarball
+problem the smoke solves by rewriting dependency specs.
+
+**Verified** on a fresh copy of `templates/solid-vite`: 24 files written for `["select"]`, the answered install commands
+with the workspace's tarballs, `select.browser.test.tsx` green in Chromium (9 tests), a second call writing nothing, and
+the warning gone once the versions matched. Offline, `packages/mcp/test/tools.mjs` holds the rest: the repo registry, a
+temp project whose every written file's relative imports resolve inside the written set, the second call, the refusal
+and `force`, a missing item, and the same registry over a local http server (the branch a project without a checkout
+takes). `npx shadcn add` stays the CLI, with the smoke as its test; the tools are the agent's path to the same bytes.
