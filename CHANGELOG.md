@@ -2,6 +2,40 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.48.0 (2026-11-27)
+
+### Minor changes
+
+- `createRadioGroup` takes intents and answers with a snapshot: `act({ type: "next" | "previous" | "first" | "last" })`,
+  `act({ type: "focus" | "check", index })` drive the same paths the keys and the pointer drive (request/commit, callbacks and
+  ARIA included), and `snapshot()` is the group's observable state as JSON — the checked and focused radios by index, the
+  disabled ones, the flavor and `aria-orientation`. A test, a demo script or an agent can move the widget without dispatching
+  DOM events; read the snapshot after a flush.
+  
+  `createListbox` carries the same pair: `act({ type: "next" | "previous" | "first" | "last" | "activate" })`,
+  `act({ type: "type", text })`, `act({ type: "focus" | "click", index })` and `snapshot()` with the selection, the active
+  option, focus, the count, the disabled options and the selection mode. A list moves by DOM focus, so its `act` focuses the
+  option's element. Its two controlled props are memos now, not signals written by effects (the same relay a controlled value
+  is not allowed to be).
+- `createToast` takes a `clock` (`systemClock` from `@cssints/machine` by default). The countdown reads it for the deadline
+  and both timers, so a test passes `createFakeClock()` and advances the countdown deterministically: hovering 800 ms into a
+  1200 ms toast, holding it past the deadline, and leaving is proven to resume with the 400 ms that were left rather than
+  restart, with no wall clock and no sleep. The toast suite (headless and the kit's) now runs on the fake clock.
+
+### Patch changes
+
+- `createPanZoom` leaves a wheel with no vertical delta to the page: a horizontal swipe with `ctrl` / `meta` held (a Magic
+  Mouse pan, a `deltaX`-only event) used to read as "zoom out" and be `preventDefault`ed. `createKnob` already guarded
+  `deltaY === 0`; the primitive now does too, and so does every wheel handler in the starters.
+- `createRadioGroup` mounts under Solid 2.0.3: the group's cleanup and its effects are created in the
+  primitive's body and the ref only names the element it landed on. They used to be created inside the
+  ref callback through `runWithOwner`, which 2.0.3 rejects — `onCleanup` in a ref callback is
+  `CLEANUP_IN_FORBIDDEN_SCOPE`, and it threw on mount, halting the whole reactive graph of the host.
+  
+  Found by the dev console in `effects-of-atmosphere`, which goes blank on 2.0.3 because its mode and
+  pane controls are radio groups. The behaviour is unchanged: the roving group still attaches,
+  reconciles and detaches on the same transitions, and the primitive's own suite (37 tests) is green.
+
 ## 0.47.0 (2026-11-20)
 
 ### Minor changes
