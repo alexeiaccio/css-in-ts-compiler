@@ -8,7 +8,7 @@ tags:
     - layout
     - ui
 created_at: 2026-11-27T20:27:36Z
-updated_at: 2026-11-27T20:27:36Z
+updated_at: 2026-11-28T07:24:26Z
 parent: cssints-sw9a
 blocked_by:
     - cssints-i6pb
@@ -29,3 +29,12 @@ layout problem for the skin).
 
 Done when: the starter lays out on demand in Chrome, the conformance and the site tests are green, and the wayfinder entry
 records the bundle cost.
+
+
+## The comparator (from docs/research/graph-drawing.md, 2026-11-28)
+
+The bench is `@dagrejs/dagre` (1.4 MB unpacked, MIT, the maintained fork of the JS Sugiyama baseline), on the same graph and
+the same measure anvaka's harness uses: the largest graph the handler still returns for inside a frame, not an average
+latency. `elkjs` is not a candidate to bundle — EPL-2.0 OR GPL-3.0 — and stays a dev-only oracle. Publish the limit beside
+the engine so a consumer knows what it is buying, and once routing lands review the drawing as the same graph under every
+strategy side by side.

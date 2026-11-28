@@ -6453,3 +6453,14 @@ through vitest). The engine has no dependencies; `@cssints/apg-specs` is a dev d
 
 Both checks have teeth: neutering `breakCycles` fails the two-cycle scenario (`[a,d],[c],[b]` instead of `[a,d],[b],[c]`)
 and the walk on the next cycle graph, which is what a spec-first slice is supposed to give — the failure names the phase.
+
+**Graph drawing libraries, the map (2026-11-28):** anvaka/graph-drawing-libraries catalogues 22 JavaScript drawing libraries
+and, more usefully, measures them the same way — one graph, a screenshot ten seconds after each starts, and a Chrome slowed
+four times that records the smallest graph which keeps the tab silent for ten seconds. Read for the layered-layout epic and
+written up in `docs/research/graph-drawing.md`. Three things were taken. `@dagrejs/dagre` (1.4 MB unpacked, MIT) is the
+comparator the starter's bench must answer on the same graph and the same measure: the largest graph a click handler still
+answers, not an average. `elkjs` is EPL-2.0 OR GPL-3.0, so the reference implementation cannot be bundled into an MIT kit —
+the licence reason to state the discrete algorithm in Quint and own it, with elk-rs kept as a dev-only oracle. And sixteen of
+the 22 are force-directed or rendering frameworks, which is a different problem from laying out a flow: no direction, no
+layers, positions from repulsion. Our slice ships 2.35 kB packed against dagre's 1.4 MB and elkjs' 8.2 MB unpacked; that is
+the size of one slice, not parity, and the epic's remaining beans are exactly the gap.
