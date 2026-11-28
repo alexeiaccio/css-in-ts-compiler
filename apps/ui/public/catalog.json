@@ -3351,6 +3351,25 @@
       ]
     },
     {
+      "name": "kanban",
+      "title": "Kanban",
+      "description": "A card board whose drops are declared states: three columns of kit cards, a pointer drag that reads the measured boxes once per gesture, the same reachable states on the keyboard, and the target and refused columns as attributes",
+      "stories": [
+        {
+          "id": "kanban--default",
+          "name": "Default",
+          "args": {},
+          "declares": []
+        },
+        {
+          "id": "kanban--two-columns",
+          "name": "Two columns",
+          "args": {},
+          "declares": []
+        }
+      ]
+    },
+    {
       "name": "scale",
       "title": "Scale",
       "description": "A bar list whose scale is its own largest value, read out of layout: one `auto` grid column measures the widest mark, `round(100cqw / 1px)` in a registered `@property` carries it back as a number, and a counter prints it — no script computes the scale, and the numbers are text where container units are missing",

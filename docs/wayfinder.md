@@ -6926,3 +6926,38 @@ now carries its own source — `join(press.id, target)` — rather than re-readi
 browser needs and exact in a test. Tests: `packages/headless` 1 513 (four new: the threshold, the release and the click after
 it, a refused target and a lost pointer, the declared attributes), `apps/ui`'s diagram 31 unchanged, and the skin lost its
 `DRAG_THRESHOLD` and its pointer handlers.
+
+**A card board whose drops are declared states (2026-11-28):** the case the Dragology note (`cssints-2cxd`) named — a card
+between columns, where "is this pair allowed" is not enough because the answer is a whole model. `createCardBoard` declares
+the reachable **model states** instead: `statesOf(card)` is every column `canDrop` allows times every insertion index in it,
+each state carrying the whole columns array after the move, and the state at the card's own column and index is the no-move
+one (`commit()` then calls nothing). The primitive writes nothing back: `columns` is read from the host whenever it is needed,
+`onMove(state)` is the whole write, and every other path — the landing, the attributes a skin styles, the keyboard — is derived
+from that one list. Six cards in three columns declare 8 states a card and 48 in all (cards + columns − 1); a board of forty in
+three columns declares 42 a card, 1 680 in all, and `statesOf` over all forty reads in 593 µs (14.8 µs a card). This is the
+paper's declaration without its engine: the host's own DOM is the rendered state, and nothing is speculatively drawn.
+
+**The geometry is the reader, and it is measured once.** A press under 4 px (the pointer machine's `DRAG_PX`) is a click; past
+it the primitive reads the frame's box, each `[data-column]` box and each `[data-card]` box once, then answers every move from
+that snapshot: the column whose x-range holds the pointer (else the nearest centre, so the channel between two columns still
+lands), and the number of that column's other cards whose centre is above the pointer — the dragged card is excluded, which is
+what makes an index mean the same thing in the source column and in a destination one. On the 40-card board a gesture reads 44
+rects and costs 65 µs, a move after that is 4.6 µs, and a per-card distance hit test over the same forty is 22.2 µs a pick, so
+the declaration repays its measurement inside the first gesture and is a wash on a one-move drag. A release outside the frame,
+on a blocked column, on `pointercancel` or a lost capture moves nothing, and the click after a drag is swallowed once.
+
+**The keyboard shares the list, not a second copy of it.** A board is a group of buttons rather than a composite, so every card
+is a tab stop: Space lifts the focused card at its own slot, Left / Right step to the neighbouring reachable column at the same
+index (clamped, and a blocked column is skipped because it is not in the declaration), Up / Down step one index in the column,
+Enter commits and Escape cancels, and the polite region says the target ("Sprint board. Write the spec to Doing, position 1 of 3. Enter to drop, Escape to cancel."). While a state is held the declaration is on the DOM — `data-drop-column` per column
+(`source` / `target` / `blocked`), `data-drop-target` on the dragged card, `data-drop-index` on the cards it would push — so the
+skin draws the future without asking the primitive anything, and Enter focuses the card after the host applied the move because
+a card that changed columns is a new element.
+
+**What is left is the host's, on purpose.** Piles, free placement, multi-select and touch are not modelled, and the paper's
+speculative rendering is not either: the declaration is data, and a host that wants a ghost of the future draws it from the
+state. The animation did not come along — `reorder`'s FLIP keys on the element, and a card that changes column is recreated by
+the starter's keyed lists, so half the moves would animate and half would jump; a shared card layer is the piece that would fix
+it. The starter is `apps/ui`'s kanban, with five Chromium tests on the skin and twelve on the primitive (the declaration, the
+landing from real rects, the commit, the pointer rules, the keyboard and the attributes), and the numbers above are the
+benchmark in `packages/headless/test/cardboard.browser.test.tsx`.

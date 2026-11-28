@@ -867,6 +867,50 @@ const diagram = createDiagramFocus({
 - **The host owns the DOM and may lose it.** A node id that is not in `nodes` is a no-op in `nodeProps` / `focus`; an edge whose endpoint is missing is ignored everywhere. A node that arrives later is fine: the lists take getters (`() => nodes()`), read at attribute-read time, and the tab stop keeps its node while it exists, else falls back to the first.
 - **`labels`** names the diagram in every announcement ("State chart. Payment. 2 edges: …") and the edge noun (`edges: "transitions"`); absent, both are left out and English.
 
+## Card board
+
+`createCardBoard` is the one drag whose answer is a whole model rather than a number: a card moving between columns. It is the case the Dragology note (`cssints-2cxd`) said a predicate cannot carry — "is this pair allowed" does not say which column, which index, or what the rest of the board looks like afterwards — so the primitive declares the reachable **model states** and derives the landing, the preview and the keyboard walk from that list.
+
+```tsx
+const cards = [
+  { id: "spec", label: "Write the spec" },
+  { id: "api", label: "Shape the API" },
+  { id: "drag", label: "Drag a card" },
+];
+const columns = [
+  { id: "todo", label: "Todo", cards: ["spec", "api"] },
+  { id: "doing", label: "Doing", cards: ["drag"] },
+  { id: "done", label: "Done", cards: [] },
+];
+const board = createCardBoard({
+  cards,
+  columns: () => columns,
+  // the host's policy: a full column declares fewer states instead of refusing a drop
+  canDrop: (_card, column) => column !== "done",
+  // the model is the host's: the primitive only says which state was chosen
+  onMove: (state) => setColumns(state.columns),
+});
+
+<div {...board.boardProps}>
+  <For each={columns}>
+    {(column) => (
+      <div {...board.columnProps(column.id)}>
+        <For each={column.cards}>{(id) => <div {...board.cardProps(id)}>{labelOf(id)}</div>}</For>
+      </div>
+    )}
+  </For>
+</div>;
+<p {...board.statusProps}>{board.status()}</p>;
+```
+
+- **The declaration is the state set, and nothing else decides where a card can go.** `statesOf(card)` is every column `canDrop(card, column)` allows, every insertion index in it (`0..rest.length`, where `rest` is the column without the card), and each state carries the **whole columns array after the move**. A card's own column and its own index is the no-move state: dropping a card on itself calls `onMove` with nothing (and `commit()` returns false). Six cards in three columns declare 8 states a card and 48 in all; forty cards in three columns declare 42 a card and 1 680 in all, and reading all forty declarations costs 593 µs (14.8 µs a card) on a quiet Chromium.
+- **The landing is read from geometry, measured once per gesture.** `boardProps` is the frame: a press on `cardProps(id)` under `dragThreshold` (default 4 px, the pointer machine's `DRAG_PX`) is a click; past it the primitive reads the frame's box, each `[data-column]` box and each `[data-card]` box once, then answers every move from that snapshot — the column whose x-range holds the pointer, else the nearest centre, and the number of that column's _other_ cards whose centre is above it. One gesture over 40 cards reads 44 rects and costs 65 µs; after it, a move is 4.6 µs, against 22.2 µs for a per-card distance hit test over the same 40. The declaration therefore wins from the second long drag, and one move is a wash.
+- **The pointer never owns the interaction.** `commit()` hands `onMove` the landing state and returns whether it moved; `cancel()` drops it. A release outside the frame, on a column `canDrop` refuses, or after `pointercancel` / a lost capture moves nothing, and the click the browser sends after a drag is swallowed once, so the card's own action does not fire.
+- **The keyboard walks the same declared list.** Every card is a tab stop — a board is a group of buttons, not a composite — Space lifts the focused card at its own slot, Left / Right move to the neighbouring reachable column at the same index (clamped), Up / Down move one index in the column (clamped), Enter drops and Escape forgets. The polite live region names the target ("Sprint board. Write the spec to Doing, position 1 of 3. Enter to drop, Escape to cancel."), and after a commit Enter puts the focus back on the card, which is a new element when it changed columns.
+- **The attributes are the declaration, so a skin styles it without asking.** While a pointer drag or the keyboard holds a state, each column carries `data-drop-column="source" | "target" | "blocked"` (`blocked` is a column `canDrop` refuses), the dragged card carries `data-drop-target="true"`, and the other cards in the target column carry `data-drop-index`, their index after the move. Nothing is set while no state is held.
+- **`canDrop` is consulted once per column** whenever the declaration is read, so a full column or a fixed column is one predicate and the pointer, the attributes and the keyboard all agree without a second rule. `labels.board` prefixes every announcement.
+- **Not modelled:** one card at a time, no piles, no free placement, no multi-select, and no speculative rendering — the host draws the attributes or nothing. A card that changes column is a new element in the host's keyed list, so animating it across columns (the FLIP `reorder` plays) needs a shared layer; the nested lists the starter renders jump.
+
 ## Hotkeys
 
 `createHotkeys` is a **platform utility, not a widget**: one registry for the chords every app hand-rolls (the docs app's `/` and Cmd/Ctrl+K, the CMS's Cmd/Ctrl+S). **No APG pattern exists for a keyboard registry**, so there is no role, no element, no styling and no Quint spec; `test/hotkeys.browser.test.tsx` is the oracle.

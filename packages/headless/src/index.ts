@@ -55,6 +55,7 @@ export * from "./alert";
 export * from "./alertdialog";
 export * from "./breadcrumb";
 export * from "./button";
+export * from "./cardboard";
 export * from "./carousel";
 export * from "./checkbox";
 export * from "./checkbox-group";

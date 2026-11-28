@@ -364,6 +364,22 @@ const STARTERS: ReadonlyArray<Starter> = [
       "A design system on a DOM plane: token cards with their value and their rule, the components that use them, a line per use, a token's value you type into and watch the whole map follow, and an outline that reads the plane in order",
   },
   {
+    name: "kanban",
+    tested: true,
+    // no APG pattern and no Quint spec: the fixture and the browser test are the whole oracle
+    with: [
+      "badge/badge.tsx",
+      "button/button.tsx",
+      "card/card.tsx",
+      "render.tsx",
+      "theme.ts",
+      "tokens.ts",
+    ],
+    title: "Kanban",
+    description:
+      "A card board whose drops are declared states: three columns of kit cards, a pointer drag that reads the measured boxes once per gesture, the same reachable states on the keyboard, and the target and refused columns as attributes",
+  },
+  {
     name: "scale",
     tested: true,
     // the registration is a sheet, not a class: `@property` is global and per name, so a copy brings `scale.css` too

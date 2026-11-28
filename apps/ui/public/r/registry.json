@@ -1789,6 +1789,73 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "kanban",
+      "type": "registry:ui",
+      "title": "Kanban",
+      "description": "A card board whose drops are declared states: three columns of kit cards, a pointer drag that reads the measured boxes once per gesture, the same reachable states on the keyboard, and the target and refused columns as attributes",
+      "dependencies": ["@cssints/headless", "@cssints/mise-en-mode", "cssints"],
+      "devDependencies": [],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "kanban.tsx",
+          "target": "src/components/ui/kanban.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "badge.tsx",
+          "target": "src/components/ui/badge.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "button.tsx",
+          "target": "src/components/ui/button.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "card.tsx",
+          "target": "src/components/ui/card.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "render.tsx",
+          "target": "src/components/ui/render.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "theme.ts",
+          "target": "src/components/ui/theme.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tokens.ts",
+          "target": "src/components/ui/tokens.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "kanban.fixture.tsx",
+          "target": "src/components/ui/kanban.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "kanban.browser.test.tsx",
+          "target": "src/components/ui/kanban.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/sheet.ts",
+          "target": "src/sheet.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "scale",
       "type": "registry:ui",
       "title": "Scale",
