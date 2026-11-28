@@ -7,7 +7,7 @@ priority: deferred
 tags:
     - layout
 created_at: 2026-11-28T10:28:10Z
-updated_at: 2026-11-28T13:57:01Z
+updated_at: 2026-11-28T14:46:40Z
 parent: cssints-a65d
 ---
 
@@ -17,7 +17,7 @@ placement (straighter drawings than the median sweeps), and spline routing.
 - [ ] `layout`/`minimizeCrossings`/`place` take a strategy, the default being today's behaviour; each strategy is checked
   against the same invariants and its own numbers (crossings, deviation, time) on the corpus
 - [x] network simplex: measured against longest path on the corpus (layers, crossings, µs)
-- [ ] Brandes-Köpf: measured against the median sweeps (edge deviation, µs)
+- [x] Brandes–Köpf: measured against the median sweeps (edge deviation, µs)
 - [ ] each strategy that is not a function of the input says so and is compared by its numbers, not by equality
 
 ## Summary of Changes
@@ -44,3 +44,24 @@ model order and after the sweep, 12 of the 120 graphs shorter. Times over 1 000 
 Deferred and unticked: Brandes–Köpf placement and spline routing (the bean's other two items), the exact min-cost flow —
 the relaxation is optimal on every graph brute force can enumerate and 2 units of span short of ELK on two of sixty — and
 per-edge weights, which need a `weight` on `Edge` or a second option.
+
+## Summary of Changes
+
+Brandes–Köpf placement landed behind the same `place`: `place(graph, layout, spacing, { placement: "brandes-kopf" })` runs
+the paper's four vertical alignments on the y coordinate — layers down and up, each resolved leftmost and rightmost — with
+type-1 conflict marking, a block-graph longest path per alignment, and the balancing step that anchors the narrowest
+assignment and takes the mean of the middle two coordinates; `"median"` is the default and byte-identical. Dummies are not
+aligned by the strategy: each is put on the straight line between its edge's two nodes and clamped into its slot's gap, as
+before, so the router's channel is unchanged.
+
+Numbers: over the 120 seeded graphs the edge deviation is 15 805 px for the median against 13 772.5 (−12.9%, better on 14
+graphs, worse on 16, the same on 90), over the 8 shapes 1 365 against 1 730 (the 200-node cycle 0 → 35, the dense 40
+1 365 → 1 695), and over the specs' six graphs 80 against 140 (picks 4 and 6 are 30 px off). `place` is 120.46 µs a graph over
+1 000 random graphs against 33.68, and 34.10 over 400 two-level graphs against 18.49; the containment still pushes 10 boxes
+in one round with 0 violations. elk-rs with `nodePlacement.strategy: BRANDES_KOEPF` takes 113.3 on the six and 2 726.5 over
+60 seeded graphs against 3 192.5 here, laying the graphs out in its own slot order (the real nodes' order within a column
+agrees on 12 of the 60), so that oracle compares drawings rather than one algorithm's two runs.
+
+`test/brandes-kopf.mjs` holds both strategies to the placement invariants and prints these numbers; `test/bench.mjs` has the
+`place (brandes-kopf)` row; `packages/graph-layout/README.md` and `docs/wayfinder.md` carry the section; the changeset is
+`.changeset/graph-layout-brandes-kopf.md` (minor). Splines and per-edge weights stay open in this bean.

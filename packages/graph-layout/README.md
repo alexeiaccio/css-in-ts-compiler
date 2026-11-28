@@ -104,6 +104,33 @@ the straight line between the two nodes its edge joins, clamped into the gap of 
 router will route through it. Over the specs' six graphs the placement is at least as straight as elk-rs with
 `nodePlacement.strategy: SIMPLE` (80 px of total edge deviation against 102), and five of the six are perfectly straight.
 
+## The second placement
+
+`place(graph, layout, spacing, { placement: "brandes-kopf" })` is Brandes and Köpf's horizontal coordinate assignment, with
+`"median"` the default and byte-identical to the passes above. Four vertical alignments — layers down and up, each resolved
+leftmost and rightmost — align every slot with its median neighbour in the layer before, skipping a segment that crosses an
+inner one (Brandes–Köpf's type-1 conflict) so a long edge's chain stays straight in preference to a node's. Each alignment is
+compacted to the smallest coordinates the slot order and the spacing allow, by the longest path over the block graph its
+aligned chains induce, and the four are balanced: the narrowest anchors the others, and each slot's y is the mean of the
+middle two of its four candidates. Dummies are not aligned by the strategy; after the four alignments each is put on the
+straight line between its edge's two nodes and clamped into its slot's gap, exactly as with the median, which is what the
+router's channel assumes (16 of the 120-graph corpus's 164 dummy rows are clamped away from that line, against 25 for the
+median).
+
+The deviation — `Σ |centre(source) − centre(target)|` over the edges — is better on the seeded corpus and worse where one
+alignment is already perfect, because the balance averages it away: 13 772.5 px over the 120 graphs against the median's
+15 805 (−12.9%, better on 14 graphs, worse on 16, the same on 90), and 1 730 px over the 8 shapes against 1 365 — the
+200-node cycle costs 35 px where the median is straight, and the dense 40 goes 1 365 → 1 695. Over the specs' six graphs the
+median stays at 80 px and Brandes–Köpf is 140: the long edge of pick 4 and the three-cycle of pick 6 are 30 px off, which is
+the balancing step's price, not a bug. elk-rs with `nodePlacement.strategy: BRANDES_KOEPF` totals 113.3 px on the six and
+2 726.5 over 60 seeded graphs against 3 192.5 here; ELK lays those graphs out in its own slot order (the real nodes' order
+within a column agrees on 12 of the 60) and resolves its own medians, so the oracle compares two drawings, not one algorithm.
+
+It costs time: `place` is 120.46 µs a graph over 1 000 random graphs against 33.68 for the median, and 34.10 over 400
+two-level graphs against 18.49. A cluster's box still holds no stranger: the containment passes pushes 10 boxes in one round
+on the 120 two-level corpus, the same as the median, and 0 violations remain. `test/brandes-kopf.mjs` holds both strategies
+to the placement suite's invariants and prints these numbers; `test/bench.mjs` carries the row.
+
 A **self loop** (`a -> a`) is not a way to another layer: it leaves the layering, the slots and the crossings alone — the same
 graph with loops lays out exactly as the graph without them — and `route` draws it as a bracket on the node's right border. A
 skin that draws from the border midpoints needs a loop shape of its own; the engine's polyline is what such a shape follows.
@@ -175,7 +202,7 @@ of the fixture are 2 against ELK's 6.
 
 Not here yet, and each its own slice: the A\* over a lattice with per-line weights, ports beyond the border midpoints, labels of
 loops inside the channels, a route crossing the same band as a label's box, multi-line labels, compound graphs and the rest of
-the strategy knobs (Brandes–Köpf placement, splines, per-edge weights).
+the strategy knobs (splines, per-edge weights).
 
 loops inside the channels, a route crossing the same band as a label's box, multi-line labels, clusters inside clusters, the
 recursive (cluster-as-node) layout, labels on a cluster's border, a crossing minimization that orders a block's inside against
@@ -191,7 +218,9 @@ bun run bench  # every phase over 1k random graphs, and a 200-node chain
 The scenarios run against the engine under Bun; the walks drive the engine and the spec models with the same random steps and
 compare the layers, then the slots, after every one; `@cssints/apg-specs` is a dev dependency and no published code imports
 it. `test/elk-placement.mjs` runs the six graphs through elk-rs with the same boxes and the same pinned strategies, and fails
-if the columns differ, if a box overlaps, or if the placement is less straight than ELK's simplest one. `test/placement.mjs`
+if the columns differ, if a box overlaps, or if the placement is less straight than ELK's simplest one. `test/brandes-kopf.mjs`
+holds the second placement to the same invariants, prints both strategies' deviation, and compares it with elk-rs'
+`BRANDES_KOEPF` on the six graphs and 60 seeded ones. `test/placement.mjs`
 and `test/routing.mjs` hold the geometric contracts over shapes and seeded graphs, including that the router adds no overlap
 outside a channel or a shared port, and that the sweep's layouts are drawn with fewer crossings than the model order's.
 `test/clusters.mjs` holds the compound contract over five hand-built shapes and 120 random two-level graphs: contiguity in

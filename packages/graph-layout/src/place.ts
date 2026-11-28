@@ -32,6 +32,14 @@ export interface Spacing {
   readonly clusters?: ClusterSpacing;
 }
 
+/** Which placement runs: `median` is the median sweeps and settles, `brandes-kopf` the balanced four alignments. */
+export type PlacementStrategy = "median" | "brandes-kopf";
+
+/** The knobs of {@link place}: the placement strategy, `median` when absent. */
+export interface PlacementOptions {
+  readonly placement?: PlacementStrategy;
+}
+
 const DEFAULT_NODE_SPACING = 20;
 const DEFAULT_LAYER_SPACING = 30;
 const MAX_CONTAINMENT_ROUNDS = 8;
@@ -272,13 +280,14 @@ const push = (map: Map<string, string[]>, key: string, value: string): void => {
 };
 
 /**
- * The drawing's relations, from the slots: nodes that meet across one boundary (what the alignment passes move), and the
- * dummies with the two nodes their edge joins (which are placed on the straight line between them, not aligned themselves).
+ * The drawing's relations, from the slots: nodes that meet across one boundary (what the alignment passes move), the
+ * dummies with the two nodes their edge joins (which are placed on the straight line between them, not aligned themselves),
+ * and the proper graph of every edge split at each layer it crosses (what Brandes–Köpf aligns).
  *
  * @param {Graph} graph the graph the layout belongs to
  * @param {Layout} layout a layout of that graph
- * @returns {{ before: Map<string, string[]>; after: Map<string, string[]>; chains: Map<string, Chain> }} the adjacency and
- * the dummies' chains
+ * @returns {{ before: Map<string, string[]>; after: Map<string, string[]>; chains: Map<string, Chain>;
+ *   proper: ReadonlyArray<readonly [string, string]> }} the adjacency, the dummies' chains and the proper graph
  */
 const relationsOf = (
   graph: Graph,
@@ -287,12 +296,14 @@ const relationsOf = (
   before: Map<string, string[]>;
   after: Map<string, string[]>;
   chains: Map<string, Chain>;
+  proper: ReadonlyArray<readonly [string, string]>;
 } => {
   const layerOf = new Map<string, number>();
   layout.slots.forEach((ids, layer) => ids.forEach((id) => layerOf.set(id, layer)));
   const before = new Map<string, string[]>();
   const after = new Map<string, string[]>();
   const chains = new Map<string, Chain>();
+  const proper: Array<readonly [string, string]> = [];
   const seen = new Set<string>();
   for (const edge of graph.edges) {
     const source = layerOf.get(edge.source);
@@ -309,12 +320,15 @@ const relationsOf = (
       push(after, from, to);
       push(before, to, from);
     }
-    for (let layer = first + 1; layer < last; layer += 1) {
-      const id = dummyId({ source: from, target: to }, layer);
-      chains.set(id, { from, to, layer });
+    let previous = from;
+    for (let layer = first + 1; layer <= last; layer += 1) {
+      const next = layer === last ? to : dummyId({ source: from, target: to }, layer);
+      proper.push([previous, next]);
+      if (layer < last) chains.set(next, { from, to, layer });
+      previous = next;
     }
   }
-  return { before, after, chains };
+  return { before, after, chains, proper };
 };
 
 const centre = (point: Point | undefined): number =>
@@ -329,23 +343,273 @@ const median = (values: ReadonlyArray<number>): number => {
   return sorted.length % 2 === 0 && below !== undefined ? (below + at) / 2 : at;
 };
 
+const conflictKey = (one: string, two: string): string => `${one}\u0000${two}`;
+
 /**
- * Boxes for a layout: each layer a column at its own x, each slot a box below the one before, then the boxes moved toward
- * the median of their neighbours' centres (a pass forward, a pass backward, twice), each layer moved as one piece onto its
- * neighbours, and every dummy put on the straight line between the two nodes its edge joins. The slot order and the gaps are
- * never broken, so the result is a placement the invariants hold for.
+ * Brandes–Köpf's preprocessing: the non-inner segments that cross an inner segment are marked, so the vertical alignment
+ * keeps a long edge's chain straight in preference to a node's.
+ *
+ * @param {ReadonlyArray<ReadonlyArray<Point>>} points the slots per layer, in drawing order
+ * @param {ReadonlyMap<string, string[]>} pred each slot's neighbours in the layer before
+ * @param {(id: string) => boolean} dummy whether a slot is a dummy
+ * @returns {(one: string, two: string) => boolean} whether the segment `one → two` is marked
+ */
+const conflictsOf = (
+  points: ReadonlyArray<ReadonlyArray<Point>>,
+  pred: ReadonlyMap<string, string[]>,
+  dummy: (id: string) => boolean,
+): ((one: string, two: string) => boolean) => {
+  const marked = new Set<string>();
+  for (let layer = 1; layer < points.length; layer += 1) {
+    const previous = points[layer - 1] ?? [];
+    const current = points[layer] ?? [];
+    const at = new Map(previous.map((point, index) => [point.id, index]));
+    let k0 = 0;
+    let scan = 0;
+    for (const [index, point] of current.entries()) {
+      const inner = dummy(point.id)
+        ? (pred.get(point.id) ?? []).find((id) => dummy(id))
+        : undefined;
+      if (inner === undefined && index !== current.length - 1) continue;
+      const k1 = inner === undefined ? previous.length : (at.get(inner) ?? previous.length);
+      for (let cursor = scan; cursor <= index; cursor += 1) {
+        const node = current[cursor];
+        if (node === undefined) continue;
+        for (const id of pred.get(node.id) ?? []) {
+          const position = at.get(id);
+          if (position === undefined) continue;
+          if ((position < k0 || position > k1) && !(dummy(id) && dummy(node.id))) {
+            marked.add(conflictKey(id, node.id));
+          }
+        }
+      }
+      scan = index + 1;
+      k0 = k1;
+    }
+  }
+  return (one, two) => marked.has(conflictKey(one, two)) || marked.has(conflictKey(two, one));
+};
+
+const traversal = (count: number, lower: boolean): number[] =>
+  Array.from({ length: Math.max(0, count - 1) }, (_, index) =>
+    lower ? count - 2 - index : index + 1,
+  );
+
+interface Assignment {
+  readonly right: boolean;
+  readonly centres: Map<string, number>;
+}
+
+/**
+ * The slots of one block: the root each vertex is aligned to, from the paper's median-neighbour alignment with its type-0
+ * conflicts resolved in the traversal's direction.
+ *
+ * @param {ReadonlyArray<ReadonlyArray<string>>} lists the slots per layer in the traversal's order
+ * @param {ReadonlyArray<number>} layers the layers the alignment visits, in order
+ * @param {(id: string) => ReadonlyArray<string>} neighbour a vertex's neighbours in the layer before
+ * @param {(one: string, two: string) => boolean} conflicted whether a segment is marked
+ * @returns {ReadonlyMap<string, string>} each slot's block root
+ */
+const rootsOf = (
+  lists: ReadonlyArray<ReadonlyArray<string>>,
+  layers: ReadonlyArray<number>,
+  neighbour: (id: string) => ReadonlyArray<string>,
+  conflicted: (one: string, two: string) => boolean,
+): ReadonlyMap<string, string> => {
+  const root = new Map<string, string>();
+  const align = new Map<string, string>();
+  const pos = new Map<string, number>();
+  for (const ids of lists) {
+    ids.forEach((id, at) => {
+      root.set(id, id);
+      align.set(id, id);
+      pos.set(id, at);
+    });
+  }
+  for (const layer of layers) {
+    let last = -1;
+    for (const id of lists[layer] ?? []) {
+      const candidates = [...neighbour(id)].sort(
+        (one, two) => (pos.get(one) ?? 0) - (pos.get(two) ?? 0),
+      );
+      if (candidates.length === 0) continue;
+      const count = candidates.length;
+      const high = Math.ceil((count + 1) / 2) - 1;
+      const low = Math.floor((count + 1) / 2) - 1;
+      for (const at of high === low ? [high] : [high, low]) {
+        if (align.get(id) !== id) break;
+        const upper = candidates[at];
+        if (upper === undefined || conflicted(upper, id)) continue;
+        const position = pos.get(upper) ?? -1;
+        if (position <= last) continue;
+        align.set(upper, id);
+        root.set(id, root.get(upper) ?? upper);
+        align.set(id, root.get(id) ?? id);
+        last = position;
+      }
+    }
+  }
+  return root;
+};
+
+/**
+ * Horizontal compaction: the smallest coordinates of the blocks that respect the slot order and the separation, as the
+ * longest path over the block graph the ordering induces.
+ *
+ * @param {ReadonlyArray<ReadonlyArray<string>>} lists the slots per layer in the compaction's order
+ * @param {ReadonlyMap<string, string>} root each slot's block root
+ * @param {(id: string) => number} height each slot's box height
+ * @param {number} gap the space between two boxes of a layer
+ * @returns {ReadonlyMap<string, number>} each block root's coordinate
+ */
+const compactionOf = (
+  lists: ReadonlyArray<ReadonlyArray<string>>,
+  root: ReadonlyMap<string, string>,
+  height: (id: string) => number,
+  gap: number,
+): ReadonlyMap<string, number> => {
+  const outgoing = new Map<string, Map<string, number>>();
+  const incoming = new Map<string, number>();
+  const blocks = new Set<string>();
+  const add = (from: string, to: string, weight: number): void => {
+    const mine = outgoing.get(from) ?? new Map<string, number>();
+    outgoing.set(from, mine);
+    if (!mine.has(to)) incoming.set(to, (incoming.get(to) ?? 0) + 1);
+    mine.set(to, Math.max(mine.get(to) ?? 0, weight));
+  };
+  for (const ids of lists) {
+    for (const id of ids) blocks.add(root.get(id) ?? id);
+    for (let at = 1; at < ids.length; at += 1) {
+      const above = ids[at - 1];
+      const below = ids[at];
+      if (above === undefined || below === undefined) continue;
+      const from = root.get(above) ?? above;
+      const to = root.get(below) ?? below;
+      if (from === to) continue;
+      add(from, to, (height(above) + height(below)) / 2 + gap);
+    }
+  }
+  const coords = new Map<string, number>();
+  const queue = [...blocks].filter((id) => (incoming.get(id) ?? 0) === 0);
+  for (const id of queue) coords.set(id, 0);
+  for (let at = 0; at < queue.length; at += 1) {
+    const from = queue[at];
+    if (from === undefined) continue;
+    const next = coords.get(from) ?? 0;
+    for (const [to, weight] of outgoing.get(from) ?? []) {
+      coords.set(to, Math.max(coords.get(to) ?? 0, next + weight));
+      const left = (incoming.get(to) ?? 0) - 1;
+      incoming.set(to, left);
+      if (left === 0) queue.push(to);
+    }
+  }
+  return coords;
+};
+
+/**
+ * The four alignments of Brandes–Köpf, balanced into one placement: the layers traversed down and up, each with the
+ * leftmost and the rightmost resolution of type-0 conflicts, the smallest of the four as the anchor, and each slot's
+ * coordinate the average of the middle two of the four. All four respect the slot order and the separation, so their
+ * balanced coordinate does too.
+ *
+ * @param {Graph} graph the graph the placement belongs to
+ * @param {ReadonlyArray<ReadonlyArray<Point>>} points the slots per layer, mutated
+ * @param {ReadonlyArray<readonly [string, string]>} proper every edge split at each layer it crosses
+ * @param {number} gap the space between two boxes of a layer
+ */
+const brandesKopf = (
+  graph: Graph,
+  points: ReadonlyArray<ReadonlyArray<Point>>,
+  proper: ReadonlyArray<readonly [string, string]>,
+  gap: number,
+): void => {
+  const nodes = new Set(graph.nodes);
+  const dummy = (id: string): boolean => !nodes.has(id);
+  const byId = new Map<string, Point>();
+  for (const ids of points) for (const point of ids) byId.set(point.id, point);
+  const pred = new Map<string, string[]>();
+  const succ = new Map<string, string[]>();
+  for (const [from, to] of proper) {
+    push(pred, to, from);
+    push(succ, from, to);
+  }
+  const conflicted = conflictsOf(points, pred, dummy);
+  const lists = points.map((ids) => ids.map((point) => point.id));
+  const height = (id: string): number => byId.get(id)?.height ?? 0;
+  const assignments: Assignment[] = [];
+  for (const lower of [false, true]) {
+    for (const right of [false, true]) {
+      const ordered = right ? lists.map((ids) => [...ids].reverse()) : lists;
+      const root = rootsOf(
+        ordered,
+        traversal(lists.length, lower),
+        lower ? (id) => succ.get(id) ?? [] : (id) => pred.get(id) ?? [],
+        conflicted,
+      );
+      const coords = compactionOf(ordered, root, height, gap);
+      const sign = right ? -1 : 1;
+      assignments.push({
+        right,
+        centres: new Map(
+          lists.flat().map((id) => [id, sign * (coords.get(root.get(id) ?? id) ?? 0)]),
+        ),
+      });
+    }
+  }
+  const extent = (assignment: Assignment): { low: number; high: number } => {
+    let low = Number.POSITIVE_INFINITY;
+    let high = Number.NEGATIVE_INFINITY;
+    for (const [id, centre] of assignment.centres) {
+      low = Math.min(low, centre - height(id) / 2);
+      high = Math.max(high, centre + height(id) / 2);
+    }
+    return { low, high };
+  };
+  let anchor = assignments[0];
+  let width = Number.POSITIVE_INFINITY;
+  for (const assignment of assignments) {
+    const box = extent(assignment);
+    if (box.high - box.low < width) {
+      width = box.high - box.low;
+      anchor = assignment;
+    }
+  }
+  const target = anchor === undefined ? { low: 0, high: 0 } : extent(anchor);
+  for (const assignment of assignments) {
+    const box = extent(assignment);
+    const shift = assignment.right ? target.high - box.high : target.low - box.low;
+    for (const [id, centre] of assignment.centres) assignment.centres.set(id, centre + shift);
+  }
+  const sorted = assignments.map((assignment) => assignment.centres);
+  for (const point of points.flat()) {
+    const values = sorted
+      .map((centres) => centres.get(point.id) ?? 0)
+      .sort((one, two) => one - two);
+    const below = values[1] ?? 0;
+    const above = values[2] ?? below;
+    point.y = (below + above) / 2 - point.height / 2;
+  }
+};
+
+/**
+ * Boxes for a layout: each layer a column at its own x, each slot a box below the one before, then the boxes moved to the
+ * strategy's y — the median sweeps (a pass forward, a pass backward, twice, each layer settled as one piece onto its
+ * neighbours) or Brandes–Köpf's balanced four alignments — and every dummy put on the straight line between the two nodes
+ * its edge joins. The slot order and the gaps are never broken, so the result is a placement the invariants hold for.
  *
  * Sizes come from `graph.sizes`; a node without one is placed as a point, and so is every dummy.
  *
  * @param {Graph} graph the graph the layout belongs to
  * @param {Layout} layout a layout of that graph
  * @param {Spacing} spacing the gaps between boxes and between layers
+ * @param {PlacementOptions} options the placement strategy, `median` when absent
  * @returns {ReadonlyArray<Placement>} the slots' boxes, dummies included
  */
 export const place = (
   graph: Graph,
   layout: Layout,
   spacing: Spacing = {},
+  options: PlacementOptions = {},
 ): ReadonlyArray<Placement> => {
   const nodeGap = spacing.nodes ?? DEFAULT_NODE_SPACING;
   const layerGap = spacing.layers ?? DEFAULT_LAYER_SPACING;
@@ -373,7 +637,7 @@ export const place = (
   });
   const byId = new Map<string, Point>();
   for (const point of points.flat()) byId.set(point.id, point);
-  const { before, after, chains } = relationsOf(graph, layout);
+  const { before, after, chains, proper } = relationsOf(graph, layout);
 
   const align = (neighbours: ReadonlyMap<string, string[]>, order: ReadonlyArray<number>): void => {
     for (const layer of order) {
@@ -418,13 +682,17 @@ export const place = (
   };
 
   const spine = points.map((_, layer) => layer);
-  for (let round = 0; round < 2; round += 1) {
-    align(before, spine);
-    compact();
-    align(after, [...spine].reverse());
-    compact();
-    settle(before, spine);
-    settle(after, [...spine].reverse());
+  if ((options.placement ?? "median") === "brandes-kopf") {
+    brandesKopf(graph, points, proper, nodeGap);
+  } else {
+    for (let round = 0; round < 2; round += 1) {
+      align(before, spine);
+      compact();
+      align(after, [...spine].reverse());
+      compact();
+      settle(before, spine);
+      settle(after, [...spine].reverse());
+    }
   }
 
   const straighten = (): void => {

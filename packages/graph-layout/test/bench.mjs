@@ -64,6 +64,10 @@ const phases = [
   ["layout (min)", (index) => layout(graphs[index], { layering: "minimize-length" }).slots.length],
   ["minimizeCrossings", (index) => minimizeCrossings(graphs[index], ordered[index]).slots.length],
   ["place", (index) => place(sized[index], swept[index]).length],
+  [
+    "place (brandes-kopf)",
+    (index) => place(sized[index], swept[index], {}, { placement: "brandes-kopf" }).length,
+  ],
   ["route", (index) => route(sized[index], swept[index], placed[index]).length],
   [
     "route (8 dirs)",
@@ -89,7 +93,6 @@ for (const [name, graph] of [
     `  ${name.padEnd(17)} ${micros(() => layout(graph).slots.length, 1000).toFixed(2)} µs/layout`,
   );
 }
-
 
 const pipeline = (index, strategy) => {
   const sweptAt = minimizeCrossings(graphs[index], layout(graphs[index], { layering: strategy }));
@@ -131,6 +134,11 @@ console.log(
 for (const [name, perRun] of [
   ["layout", (index) => layout(clumped[index]).slots.length],
   ["place", (index) => place(clumped[index], clumpedOrdered[index]).length],
+  [
+    "place (brandes-kopf)",
+    (index) =>
+      place(clumped[index], clumpedOrdered[index], {}, { placement: "brandes-kopf" }).length,
+  ],
   ["route", (index) => route(clumped[index], clumpedOrdered[index], clumpedPlaced[index]).length],
   ["layout (flat)", (index) => layout(clumpedFlat[index]).slots.length],
   ["place (flat)", (index) => place(clumpedFlat[index], clumpedFlatOrdered[index]).length],

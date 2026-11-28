@@ -6804,3 +6804,39 @@ right to left), the boxes agree on the two-cluster fixture (ours 134×44, ELK 13
 three-cluster fixture are 2 against ELK's 6. Left for their own slices: clusters inside clusters, the recursive reading, labels
 on a cluster's border, a crossing minimization that orders a block's inside against the clustering, and a long edge over a
 foreign cluster's box, which crosses it twice and gets no port.
+
+**Brandes–Köpf placement, and what the balance costs (2026-11-28):** the strategy bean's middle item, behind the same `place`:
+`place(graph, layout, spacing, { placement: "brandes-kopf" })`, with `"median"` the default and byte-identical (the placement,
+routing, label and cluster suites print their old numbers). The algorithm is the paper's, on the y coordinate: a vertical
+alignment of the slot order with each slot's median neighbour in the layer before, four times — layers traversed down and up,
+each resolved leftmost and rightmost — with the preprocessing that marks a non-inner segment crossing an inner one (a type-1
+conflict) so a long edge's chain is preferred over a node's. Each alignment is compacted by the longest path over the block
+graph its aligned chains induce, which is the smallest coordinate per block that keeps the slot order and the spacing; the
+narrowest of the four anchors the others, and each slot's y becomes the mean of the middle two of its four candidates. Dummies
+are not aligned: after the four, each is put on the straight line between its edge's two nodes and clamped into its slot's gap,
+exactly as the median places it, which is the row the router routes through (16 of the corpus's 164 dummy rows are clamped
+away from that line, against 25 for the median — the clause is the gap's, not the strategy's).
+
+The deviation `Σ |centre(source) − centre(target)|` improves where the median's two rounds leave freedom and worsens where one
+alignment was already perfect, because the balance averages that alignment away. Over the 120 seeded graphs it is **15 805 px
+for the median against 13 772.5** (−12.9 %), better on 14 graphs, worse on 16 and the same on 90; over the 8 shapes 1 365
+against 1 730, the whole difference a 200-node cycle at 35 px where the median is straight and the dense 40 at 1 695 against
+1 365. Over the specs' six graphs the median's 80 px stands against **140**: pick 4's long edge and pick 6's three-cycle are
+30 px off, the price of averaging four alignments rather than following one. It costs time: `place` is 120.46 µs a graph over
+1 000 random graphs against 33.68, and 34.10 over 400 two-level graphs against 18.49, because the strategy does four
+alignments and four compactions instead of two rounds of sweeps. The containment is untouched: 10 boxes pushed in one round on
+the 120 two-level corpus, 0 violations, the same numbers as the median.
+
+The oracle is honest about what it measures: elk-rs with `nodePlacement.strategy: BRANDES_KOEPF` takes **113.3 px on the six**
+against 140 here and **2 726.5 over 60 seeded graphs** against 3 192.5 (−15 %). ELK does not lay those graphs out in this
+engine's slot order — with crossing minimisation `NONE` it keeps its own dummy placement and model order, and the real nodes'
+order within a column agrees on 12 of the 60 graphs — and its alignment tie-breaks and balancing differ, so the two numbers
+compare two drawings, not two implementations of one algorithm. The six-graph comparison is the closer one, and there ELK's
+balance is also worse than the median's 80; the difference is ELK's 13.3 px against our 30 on the two graphs with a chain the
+median happens to keep straight.
+
+Kept as an option and not the default: it buys 13 % of the deviation on the random corpus and loses on the six spec graphs
+and on two hand-built shapes, so the default stays the strategy the spec oracle can pin. Left for their own slices: splines
+(another agent's item in this bean), per-edge weights, which the deviation would need a `weight` on `Edge` to express, a
+cluster-aware alignment (the containment is a post-pass on whatever either strategy drew, not an input to the alignment), and
+the exact ELK tie-breaks and post-compaction, whose difference the oracle above isolates to 15 % on the corpus.
