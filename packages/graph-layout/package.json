@@ -37,7 +37,7 @@
   },
   "scripts": {
     "build": "vp pack",
-    "test": "bun test/scenarios.mjs && bun test/label-scenarios.mjs && bun test/elk-placement.mjs && bun test/brandes-kopf.mjs && bun test/layering.mjs && bun test/splines.mjs && node test/properties.mjs && node test/placement.mjs && node test/routing.mjs && node test/octilinear.mjs && node test/labels.mjs && node test/clusters.mjs && bun test/elk-compound.mjs && vp test run",
+    "test": "bun test/scenarios.mjs && bun test/label-scenarios.mjs && bun test/elk-placement.mjs && bun test/brandes-kopf.mjs && bun test/layering.mjs && bun test/splines.mjs && node test/properties.mjs && node test/placement.mjs && node test/routing.mjs && node test/octilinear.mjs && bun test/lattice.mjs && node test/labels.mjs && node test/clusters.mjs && bun test/elk-compound.mjs && vp test run",
     "typecheck": "node ../../scripts/typecheck.mjs",
     "pack:tgz": "node ../../scripts/pack.mjs",
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1",

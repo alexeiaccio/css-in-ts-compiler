@@ -16,6 +16,7 @@ import {
   route,
 } from "../src/index.ts";
 import { clusterCorpus, threeClusters, twoClusters } from "./cluster-graphs.mjs";
+import { bordersOf } from "./geometry.mjs";
 
 const NODE_GAP = 20;
 const sizesOf = (graph) =>
@@ -50,35 +51,6 @@ const crossesBox = (segment, box) => {
     from.x < box.x + box.width &&
     Math.max(low, box.y) < Math.min(high, box.y + box.height)
   );
-};
-
-// Where the polyline crosses a cluster's border: a segment that runs from one side of a border line to the other, strictly
-// inside its extent. A segment that runs along the border is not a crossing, and neither is a corner touch.
-const bordersOf = (points, rect) => {
-  const right = rect.x + rect.width;
-  const bottom = rect.y + rect.height;
-  const hits = [];
-  for (const segment of segmentsOf(points)) {
-    const { from, to } = segment;
-    if (segment.horizontal) {
-      for (const x of [rect.x, right]) {
-        const low = Math.min(from.x, to.x);
-        const high = Math.max(from.x, to.x);
-        if (low < x && x < high && from.y > rect.y && from.y < bottom) {
-          hits.push(`${x},${from.y}`);
-        }
-      }
-    } else {
-      for (const y of [rect.y, bottom]) {
-        const low = Math.min(from.y, to.y);
-        const high = Math.max(from.y, to.y);
-        if (low < y && y < high && from.x > rect.x && from.x < right) {
-          hits.push(`${from.x},${y}`);
-        }
-      }
-    }
-  }
-  return hits;
 };
 
 const tally = {

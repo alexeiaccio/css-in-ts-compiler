@@ -6864,3 +6864,34 @@ smooths a corridor the channel router already fixed. What is left for a real spl
 chosen against the boxes, not the polyline — plus curves for label boxes and a skin that draws `curve`. The gain here is in
 length and crossings, not in fewer bends, and the negative finding is recorded as such: a rounded corner can cross a line its
 polyline did not, and one drawing of the 128 does.
+**A lattice of the channel, and the weight that separates rather than bundles (2026-11-28):** the A\* slice deferred by the
+octilinear entry, behind the same `route`: `route(graph, layout, boxes, { router: "lattice" })`, with `"channels"` the default
+and byte-identical. The lattice is the channel of one layer boundary — the strip between the left layer's right borders and the
+right layer's left edges, free of node boxes by construction. Its columns are a 6 px pitch with the strip's two edges kept; its
+rows are the height of every slot on both sides of the boundary (node centres, dummy heights, box tops and bottoms) plus a
+uniform 6 px grid shared by the drawing, so routes in different channels have rows in common. A move is right, up, down or —
+with `directions: 8` — the two 45° diagonals, and none goes left, so a path is monotone in x and crosses each boundary between
+its ends once. A path pays `length + bends·wBend + reused·wReuse + crossings·wCross`: `reused` is the number of earlier routes
+on that lattice edge in the channel, `crossings` the earlier routes' segments the move cuts, and the edges are routed shortest
+(port-to-port distance) first. The ends are still the ports and band heights the channel router uses; an edge that touches a
+cluster keeps the channel path, so the staircase, the border ports and the loop bracket are untouched.
+
+The weight sweep over the 120-graph corpus at `wBend` 20 — `wReuse` 0, 2, 5, 10 against `wCross` 0, 5, 20 — draws 2 crossings
+and 170 bundled corridor pairs at 0, 97 and 15 at 2, 112 and 4 at 5, and 114 and 2 at 10, with bends 624, 610, 615, 616 and the
+same 37 682 px each time, at 480–560 µs a graph. The per-line inflation therefore **separates** rather than bundles: a positive
+reuse cost is an incentive to open a lane, and the bundles are what routing the shortest first with the shared tile free gives.
+`wCross` 20 is kept because it matters at eight directions (13 crossings against 30 at 0), and the pair (0, 20) is the default;
+`wBend` 20 over 10 because the eight-direction drawing goes from 762 to 654 bends for three more crossings while every
+four-direction drawing is identical at both weights.
+
+Against the channel router over the same 120 swept drawings: 2 drawn crossings against 168, 170 bundled pairs against 5, 624
+bends against 730, the same 37 682 px, 506 µs a graph against 9.2 and 546 µs of the whole pipeline against 58. Eight directions
+on the lattice draw 16 crossings, 77 bundles and 654 bends, shorten the drawing to 35 599 px (−5.5%) and cost 853 µs. At the
+model order the crossings go 539 → 14 and the bundles 18 → 503, and over the specs' six graphs the lattice takes picks 2, 4
+and 6 from 8 bends to 4, 5 and 5, with no crossing either way. The large shapes sit at the frame's edge — the 200-node chain
+routes in 1.7–1.8 ms and the 200-node cycle in 5.4–6.9, both inside 16.7 ms, while the dense 40 measured 15.8 and 18.1 ms on
+two runs and is not claimed as inside one. The honest reading: the win is real — fewer crossings, fewer bends, a crowded
+corridor drawn once — but it is not the weight table's, it is the order and the shared rows; the lattice is also nine times the
+pipeline, so it stays an option and `"channels"` stays the default. Left for another slice: the MIP as the quality oracle (a
+solver is not a dependency), a lattice over the whole drawing rather than one channel, and crossing costs against routes in
+_other_ channels — the six spec graphs are too small for the last two to show.

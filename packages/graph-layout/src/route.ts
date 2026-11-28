@@ -1,7 +1,10 @@
 import { clusterIndexOf } from "./cluster.ts";
 import { dummyId } from "./dummy.ts";
 import type { Graph, Layout } from "./index.ts";
+import { latticeOf, type LatticeGrid, type LatticeWeights } from "./lattice.ts";
 import { DEFAULT_CLUSTER_PADDING, clusterBoxes, type Placement } from "./place.ts";
+
+export type { LatticeWeights } from "./lattice.ts";
 
 /** A point of a route. */
 export interface RoutePoint {
@@ -33,6 +36,13 @@ export interface Route {
 /** The set of directions a route's segments may take: `4` is orthogonal, `8` adds the two diagonals (octilinear). */
 export interface RouteOptions {
   readonly directions?: 4 | 8;
+  /**
+   * Which router draws the channels: `channels` is the per-edge track, one vertical per boundary and the default; `lattice`
+   * searches a lattice of the channel (see {@link LatticeWeights}) and bundles the corridors it can.
+   */
+  readonly router?: "channels" | "lattice";
+  /** The lattice router's weights, its column pitch and its cost per bend, reuse and crossing. */
+  readonly lattice?: LatticeWeights;
   /**
    * What a skin draws: `polyline` is {@link Route.points} alone, `spline` adds {@link Route.curve}, the same polyline with
    * every corner rounded, `polyline` when absent.
@@ -156,32 +166,36 @@ export const route = (
     chains.push({ id, source, target, chain });
   }
 
-  const crossingsAt = new Map<number, Array<{ id: string; y: number }>>();
-  for (const { id, chain } of chains) {
-    for (let index = 0; index + 1 < chain.length; index += 1) {
-      const layer = layerOf.get(chain[index] ?? "");
-      if (layer === undefined) continue;
-      const list = crossingsAt.get(layer) ?? [];
-      list.push({ id, y: centreOf(chain[index + 1] ?? "") });
-      crossingsAt.set(layer, list);
-    }
-  }
+  const { owner } = clusterIndexOf(graph);
+  const routed = (options.router ?? "channels") === "lattice";
   const tracks = new Map<string, number>();
-  for (const [boundary, crossings] of crossingsAt) {
-    crossings.sort((one, two) => one.y - two.y || one.id.localeCompare(two.id));
-    const channel = channelOf(boundary);
-    const width = channel.end - channel.start;
-    crossings.forEach((crossing, index) => {
-      tracks.set(
-        `${crossing.id}@${boundary}`,
-        clearOf(
-          channel.start + (width * (index + 1)) / (crossings.length + 1),
-          bordersAt,
-          channel,
-          bands,
-        ),
-      );
-    });
+  if (!routed || owner.size > 0) {
+    const crossingsAt = new Map<number, Array<{ id: string; y: number }>>();
+    for (const { id, chain } of chains) {
+      for (let index = 0; index + 1 < chain.length; index += 1) {
+        const layer = layerOf.get(chain[index] ?? "");
+        if (layer === undefined) continue;
+        const list = crossingsAt.get(layer) ?? [];
+        list.push({ id, y: centreOf(chain[index + 1] ?? "") });
+        crossingsAt.set(layer, list);
+      }
+    }
+    for (const [boundary, crossings] of crossingsAt) {
+      crossings.sort((one, two) => one.y - two.y || one.id.localeCompare(two.id));
+      const channel = channelOf(boundary);
+      const width = channel.end - channel.start;
+      crossings.forEach((crossing, index) => {
+        tracks.set(
+          `${crossing.id}@${boundary}`,
+          clearOf(
+            channel.start + (width * (index + 1)) / (crossings.length + 1),
+            bordersAt,
+            channel,
+            bands,
+          ),
+        );
+      });
+    }
   }
 
   /**
@@ -218,7 +232,6 @@ export const route = (
     incoming.set(chain.target, ins);
   }
 
-  const { owner } = clusterIndexOf(graph);
   const ports = portsOf(chains, owner, rects, boxOf);
   const band = Math.min(6, Math.max(1, padding / 2));
   const nodes = new Set(graph.nodes);
@@ -236,29 +249,172 @@ export const route = (
     return y;
   };
 
-  const through = chains.map(({ id, source, target, chain }, index) => {
+  /**
+   * A lattice path vertex for every column and row it crosses: the corners are the route, the points between two corners are
+   * collinear, and a skin drawing the polyline needs only the corners.
+   *
+   * @param {ReadonlyArray<RoutePoint>} points the lattice's path
+   * @returns {ReadonlyArray<RoutePoint>} the same path without its collinear middle points
+   */
+  const corners = (points: ReadonlyArray<RoutePoint>): ReadonlyArray<RoutePoint> => {
+    const out: RoutePoint[] = [];
+    for (const [at, point] of points.entries()) {
+      const before = out.at(-1);
+      const after = points[at + 1];
+      if (before !== undefined && after !== undefined) {
+        const span = (before.x - point.x) * (after.y - point.y);
+        const other = (before.y - point.y) * (after.x - point.x);
+        const onward = (point.x - before.x) * (after.x - point.x);
+        const along = (point.y - before.y) * (after.y - point.y);
+        if (span === other && onward + along > 0) continue;
+      }
+      out.push(point);
+    }
+    return out;
+  };
+
+  const levels = chains.map(({ source, target, chain }, index) => {
+    const from = layerOf.get(source) ?? 0;
+    const to = layerOf.get(target) ?? 0;
+    const ys = [anchorOf(outgoing.get(source) ?? [], source, index)];
+    for (let boundary = from; boundary < to; boundary += 1) {
+      ys.push(
+        boundary + 1 === to
+          ? anchorOf(incoming.get(target) ?? [], target, index)
+          : rowOf({ source, target }, chain[boundary - from + 1] ?? ""),
+      );
+    }
+    return ys;
+  });
+
+  const channelPoints = (index: number): ReadonlyArray<RoutePoint> => {
+    const { id, source, target } = chains[index] ?? { id: "", source: "", target: "" };
     const from = layerOf.get(source) ?? 0;
     const to = layerOf.get(target) ?? 0;
     const start = boxOf.get(source);
     const end = boxOf.get(target);
-    const startX = start === undefined ? 0 : start.x + start.width;
-    const startY = anchorOf(outgoing.get(source) ?? [], source, index);
-    const points: RoutePoint[] = [{ x: startX, y: startY }];
-    let y = startY;
-    for (let boundary = from; boundary < to; boundary += 1) {
+    const ys = levels[index] ?? [];
+    const points: RoutePoint[] = [
+      { x: start === undefined ? 0 : start.x + start.width, y: ys[0] ?? 0 },
+    ];
+    let y = ys[0] ?? 0;
+    for (let boundary = from, at = 0; boundary < to; boundary += 1, at += 1) {
       const channel = channelOf(boundary);
       const x = tracks.get(`${id}@${boundary}`) ?? channel.start;
-      const next =
-        boundary + 1 === to
-          ? anchorOf(incoming.get(target) ?? [], target, index)
-          : rowOf({ source, target }, chain[boundary - from + 1] ?? "");
+      const next = ys[at + 1] ?? y;
       points.push({ x, y });
       const rise = next - y;
-      const diagonal = octilinear && x + Math.abs(rise) < channel.end;
+      const diagonal =
+        octilinear && !(routed && clustered(index)) && x + Math.abs(rise) < channel.end;
       points.push(diagonal ? { x: x + Math.abs(rise), y: next } : { x, y: next });
       y = next;
     }
     points.push({ x: end === undefined ? 0 : end.x, y });
+    return points;
+  };
+
+  const pitch = options.lattice?.pitch ?? 6;
+  const latticeRows = (): ReadonlyArray<number> => {
+    const rows = new Set<number>();
+    let low = Number.POSITIVE_INFINITY;
+    let high = Number.NEGATIVE_INFINITY;
+    for (const box of boxes) {
+      low = Math.min(low, box.y);
+      high = Math.max(high, box.y + box.height);
+      rows.add(box.y);
+      rows.add(box.y + box.height);
+      rows.add(box.y + box.height / 2);
+    }
+    if (!(high >= low)) return [0];
+    for (let y = Math.floor(low / pitch) * pitch; y <= high + pitch; y += pitch) rows.add(y);
+    for (const ys of levels) for (const y of ys) rows.add(y);
+    return [...rows].sort((one, two) => one - two);
+  };
+  const allRows = routed ? latticeRows() : [];
+  const windowRows = (boundary: number): ReadonlyArray<number> => {
+    let low = Number.POSITIVE_INFINITY;
+    let high = Number.NEGATIVE_INFINITY;
+    for (const id of [...(layout.slots[boundary] ?? []), ...(layout.slots[boundary + 1] ?? [])]) {
+      const box = boxOf.get(id);
+      if (box === undefined) continue;
+      low = Math.min(low, box.y);
+      high = Math.max(high, box.y + box.height);
+    }
+    if (!(high >= low)) return allRows;
+    return allRows.filter((y) => y >= low - pitch && y <= high + pitch);
+  };
+
+  const lattices = new Map<number, LatticeGrid>();
+  const gridOf = (boundary: number): LatticeGrid => {
+    const existing = lattices.get(boundary);
+    if (existing !== undefined) return existing;
+    const grid = latticeOf(channelOf(boundary), windowRows(boundary), {
+      directions: octilinear ? 8 : 4,
+      ...options.lattice,
+    });
+    lattices.set(boundary, grid);
+    return grid;
+  };
+
+  const latticePoints = (index: number): ReadonlyArray<RoutePoint> => {
+    const { source, target } = chains[index] ?? { source: "", target: "" };
+    const from = layerOf.get(source) ?? 0;
+    const to = layerOf.get(target) ?? 0;
+    const ys = levels[index] ?? [];
+    const start = boxOf.get(source);
+    const end = boxOf.get(target);
+    const points: RoutePoint[] = [
+      { x: start === undefined ? 0 : start.x + start.width, y: ys[0] ?? 0 },
+    ];
+    for (let boundary = from, at = 0; boundary < to; boundary += 1, at += 1) {
+      const channel = channelOf(boundary);
+      const grid = gridOf(boundary);
+      const path = grid.path(
+        { x: channel.start, y: ys[at] ?? 0 },
+        { x: channel.end, y: ys[at + 1] ?? ys[at] ?? 0 },
+      );
+      grid.commit(path);
+      points.push(...path);
+    }
+    points.push({ x: end === undefined ? 0 : end.x, y: ys.at(-1) ?? 0 });
+    return corners(points);
+  };
+
+  const clustered = (index: number): boolean => {
+    const chain = chains[index];
+    if (chain === undefined) return false;
+    return owner.get(chain.source) !== undefined || owner.get(chain.target) !== undefined;
+  };
+  const baseOf = (index: number): ReadonlyArray<RoutePoint> =>
+    routed && !clustered(index) ? latticePoints(index) : channelPoints(index);
+
+  const bases: Array<ReadonlyArray<RoutePoint>> = [];
+  if (routed) {
+    const distance = (index: number): number => {
+      const chain = chains[index];
+      if (chain === undefined) return 0;
+      const start = boxOf.get(chain.source);
+      const end = boxOf.get(chain.target);
+      const ys = levels[index] ?? [];
+      return Math.hypot(
+        (end?.x ?? 0) - ((start?.x ?? 0) + (start?.width ?? 0)),
+        (ys.at(-1) ?? 0) - (ys[0] ?? 0),
+      );
+    };
+    const order = chains
+      .map((_, index) => index)
+      .sort((one, two) => {
+        const apart = distance(one) - distance(two);
+        if (apart !== 0) return apart;
+        return (chains[one]?.id ?? "").localeCompare(chains[two]?.id ?? "");
+      });
+    for (const index of order) bases[index] = baseOf(index);
+  } else {
+    for (const [index] of chains.entries()) bases[index] = channelPoints(index);
+  }
+
+  const through = chains.map(({ id, source, target }, index) => {
+    const points = bases[index] ?? [];
 
     const borders: BorderPort[] = [];
     const open = (ports.get(index) ?? []).flatMap((port) => {
