@@ -59,6 +59,17 @@ drawing would show one.
 | `crossings(graph, layout)`    | crossing pairs, counted per layer boundary                            |
 | `label(graph, l, b, r, req)`  | one box per requested route, at the middle boundary it crosses        |
 
+| Function                      | Phase                                                               |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `breakCycles(graph)`          | reverse every edge that points backwards in model order             |
+| `assignLayers(graph)`         | longest path from a source, over the already-broken graph           |
+| `orderSlots(graph, layerOf)`  | slots per layer: its nodes in model order, then the dummies         |
+| `layout(graph)`               | all three, in that order                                            |
+| `minimizeCrossings(graph, l)` | barycentre sweeps and a greedy switch over those slots, never worse |
+| `crossings(graph, layout)`    | crossing pairs, counted per layer boundary                          |
+| `label(graph, l, b, r, req)`  | one box per requested route, at the middle boundary it crosses      |
+| `clusterBoxes(graph, b, pad)` | one box per cluster: what it holds, grown by the padding            |
+
 `minimizeCrossings` is a heuristic with a guarantee: the layout it returns is only used if it has fewer crossings than the
 one it was given, so composing it never costs a crossing.
 
@@ -134,9 +145,41 @@ greedy first-fit that tries the ideal band and then steps down and up by a label
 ideal band, 1.94 px mean and 48.00 px worst — it buys 0.3 labels per 100 at 1.3 px of extra mean movement, which is why the
 engine has the one-directional stack and not the search.
 
+A **cluster** groups nodes under one box, one level deep: `graph.clusters` is `{ id, members }`, and the layering stays
+hierarchy-agnostic — every node takes its longest-path layer, member or not, which is ELK's `INCLUDE_CHILDREN` reading (one flat
+order with the cluster a box around some of it) and not the recursive one (a cluster as a node of its own layer). That buys three
+things. A cluster's members sit in **one contiguous block** of every layer's slots, so `orderSlots` groups them first and the
+barycentre sweep orders blocks — never a slot across a block, in the barycentre pass or in the greedy switch — by the mean of
+their members' positions. The box `clusterBoxes` reports is the bounding box of the members and of the dummies of the long edges
+between them, grown by `spacing.clusters.padding` (12), and it holds **no node that is not a member**: `place` reads the boxes
+after its own passes and pushes every offender away — up when it sits above the cluster's block in its layer, down when below,
+and the rest of the layer follows — until a round finds nothing, at most 8 rounds, then it throws rather than shipping a box
+with a stranger in it. An edge with one end inside crosses the border **once, at a port of its own**: the left and right borders
+spread their ports evenly, ordered by the height of the other end, ties by edge order, the way a node's ports spread, and the
+path jogs to the port's height in the cluster's padding and in the gap beside it, where no box reaches, so the crossing adds two
+bends and never a segment through a box; a top or bottom border needs no point of its own because the route already crosses it
+at its own track, one per edge. `route` reports them as `borders: [{ cluster, point }]` and keeps a long edge's dummy inside its
+cluster's box while the edge crosses the cluster's columns.
+
+A graph with no clusters is untouched: the same layouts, placements and routes it had before this, so the suites print their
+old numbers (168 drawn crossings at the swept layouts, 5 bundled pairs, 96 diagonals, 379 labels). Over 5 hand-built shapes and
+120 random two-level graphs (902 nodes, 954 edges, 645 cross edges) the sweep with the blocks costs **507** crossings against
+385 for the same graphs flattened — the price of contiguity — and the corpus needs **10 pushes in one round** to clear every
+box; 1 310 ports sit on 251 borders, at most 18 on one, and use 5.3% to 94.7% of its height. The phase costs, over 400 two-level
+graphs: layout 5.60 µs against 4.00 flattened, `place` 19.09 against 12.08, `route` 26.57 against 11.14. Against elk-rs with
+`hierarchyHandling: INCLUDE_CHILDREN` on the three-cluster fixture both engines put each cluster's members in their own columns
+in model order, both keep every box around its members and its members only, and each cross edge crosses each border exactly
+once; the columns differ where the readings do — we layer the unclustered nodes with their edges (`x` and `y` in the first
+column), ELK layers the clusters and puts them after every one of them, drawing `x>c` right to left — and the drawn crossings
+of the fixture are 2 against ELK's 6.
+
 Not here yet, and each its own slice: the A\* over a lattice with per-line weights, ports beyond the border midpoints, labels of
 loops inside the channels, a route crossing the same band as a label's box, multi-line labels, compound graphs and the rest of
 the strategy knobs (Brandes–Köpf placement, splines, per-edge weights).
+
+loops inside the channels, a route crossing the same band as a label's box, multi-line labels, clusters inside clusters, the
+recursive (cluster-as-node) layout, labels on a cluster's border, a crossing minimization that orders a block's inside against
+the other clusters, and the strategy knobs.
 
 ## Tests
 
@@ -151,6 +194,10 @@ it. `test/elk-placement.mjs` runs the six graphs through elk-rs with the same bo
 if the columns differ, if a box overlaps, or if the placement is less straight than ELK's simplest one. `test/placement.mjs`
 and `test/routing.mjs` hold the geometric contracts over shapes and seeded graphs, including that the router adds no overlap
 outside a channel or a shared port, and that the sweep's layouts are drawn with fewer crossings than the model order's.
+`test/clusters.mjs` holds the compound contract over five hand-built shapes and 120 random two-level graphs: contiguity in
+every layer, a box per cluster that holds its members and no stranger, one crossing per cross edge per border and none for an
+edge inside one, every port a point of its own on the border, no segment through a box, determinism, and the same graph with the
+clusters removed routing by the flat contract; `test/elk-compound.mjs` is the elk-rs comparison with `INCLUDE_CHILDREN` above.
 `test/octilinear.mjs` runs the same shapes and corpus through `directions: 8` and asserts what the eight directions promise:
 every segment is horizontal, vertical or exactly 45°, a route never goes back, it crosses each boundary between its ends once,
 no segment enters a box, a port is one anchor and each route leaves and arrives horizontally — and every diagonal replaces a

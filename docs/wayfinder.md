@@ -6764,3 +6764,43 @@ reorder on the corpus. Left for their own slices, each with the reason it is not
 routing, the rest of the same bean; the exact min-cost flow, since the relaxation is optimal on every graph brute force can
 enumerate and two units of span short of ELK's simplex on two of sixty; and per-edge weights, which the objective would need a
 second option or a `weight` on `Edge` to express.
+
+**A cluster is a box, not a layer (2026-11-28):** the sixth deferred bean's compound-graph slice, read as ELK's
+`INCLUDE_CHILDREN`: `graph.clusters` names groups of nodes and nothing else about the pipeline changes — every node still takes
+the longest-path layer it would take without the clusters, and a cluster is a box drawn around some of the columns. The other
+reading, a cluster as a node of a layer of its own with its contents laid out inside it, is deferred, and this is the sentence
+that says so: it is a second placement inside every box, and it is not what `INCLUDE_CHILDREN` does — elk-rs on the two-cluster
+probe layers the clusters at the root and puts an unclustered node with a cross edge after every one of them, drawing that edge
+right to left, so it offers no clean outer layer index to compare with either.
+Four guarantees come with the box, and each has a gate. **Contiguity:** `orderSlots` groups a cluster's members into one block
+per layer, ahead of the non-members, and the sweep orders blocks by the mean of their members' barycentres and only then the
+inside of a block — the greedy switch may not swap across a block edge, though it may swap inside one — while `crossings` still
+counts pairs, so the constraint shows up as cost: over 5 shapes and 120 random two-level graphs (902 nodes, 954 edges, 645 cross
+edges) the constrained sweep leaves 507 crossings where the same graphs flattened leave 385, and the sweep's own guarantee
+(never worse than the order it was given) holds on both sides. **Containment:** `clusterBoxes` is what the cluster holds — its
+members and the dummies of the long edges between them — grown by 12 px, and `place` reads the boxes after its alignment passes
+and pushes every node that is not a member out of one, up when it sits above the cluster's block in its layer and down when
+below, the rest of the layer following through the same spacing, for at most 8 rounds, then throws rather than shipping a box a
+stranger overlaps. The corpus needed 10 pushes, all in the first round, and 0 violations are left on the far side.
+**One crossing, at a port:** an edge with one end inside a cluster and one outside crosses that border exactly once. The left and
+right borders spread their ports the way a node spreads its own — evenly, ordered by the height of the other end, ties by edge
+order — and the route jogs to the port's height inside the cluster's padding band and back in the gap beside it, which no box
+reaches, so a port costs two bends and can never draw a segment through a box; a top or bottom border needs no point of its own
+because the route already crosses it at its own track, one per edge and ordered by the same height. 1 310 ports sit on 251
+borders in the corpus, at most 18 on one, using 5.3–94.7% of its height, and `route` reports them as `borders: [{ cluster,
+point }]` for a skin to name. Two things had to move out of their way, both the router's and not the placement's: a track (the x
+a boundary gives an edge) may not land on a cluster's border, where the port would sit on a vertex, nor inside a padding band,
+where a row change would leave the box through the top or the bottom although the edge's other end is beyond the side; and a
+long edge's dummy row is clamped into its cluster's box while the edge crosses the cluster's columns, so the line stays in the
+box until its port. A box that followed a cross edge's dummy grew after every node the containment pushed away from it, and the
+two chases fed each other — that is why the dummy is the router's to hold, not the box's to hold.
+A graph with no clusters is untouched, and the existing suites print their old numbers (168 drawn crossings, 5 bundled pairs, 96
+diagonals, 379 labels); the cost is where the clusters are: over 400 two-level graphs layout goes 4.00 → 5.60 µs, `place` 12.08
+→ 19.09 and `route` 11.14 → 26.57. Against elk-rs with `hierarchyHandling: INCLUDE_CHILDREN` on three clusters, a long edge and
+two unclustered nodes: both engines keep each cluster's members in their own columns in model order, both keep every box around
+its members and its members only, and every cross edge crosses every border once on both; the columns differ where the readings
+do (ours `[x,a] [b] [c] [d] [e] [f]` with `y` in the first column, ELK's `[a] [b] [c] [d] [e] [f] [x,y]`, its cross edges drawn
+right to left), the boxes agree on the two-cluster fixture (ours 134×44, ELK 134×44 and 164×44), and the drawn crossings of the
+three-cluster fixture are 2 against ELK's 6. Left for their own slices: clusters inside clusters, the recursive reading, labels
+on a cluster's border, a crossing minimization that orders a block's inside against the clustering, and a long edge over a
+foreign cluster's box, which crosses it twice and gets no port.

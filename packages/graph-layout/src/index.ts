@@ -23,6 +23,19 @@ export interface Graph {
   readonly edges: ReadonlyArray<Edge>;
   /** What a node's box reserves; a node without an entry is a point (see {@link place}). */
   readonly sizes?: Readonly<Record<string, Size>>;
+  /** Groups of nodes drawn inside one box. One level: a cluster holds nodes, not clusters. */
+  readonly clusters?: ReadonlyArray<Cluster>;
+}
+
+/**
+ * A named group of nodes, one level deep. The layering stays hierarchy-agnostic — every node takes its longest-path layer,
+ * members or not — and the cluster buys three things: its members sit in one contiguous block of every layer's slots, its box
+ * (the members, and the dummies of the long edges between them, grown by the padding) contains no node that is not a member, and
+ * every edge with one end inside crosses its border once, at a port of its own.
+ */
+export interface Cluster {
+  readonly id: string;
+  readonly members: ReadonlyArray<string>;
 }
 
 /**
@@ -35,6 +48,7 @@ export interface Layout {
   readonly slots: ReadonlyArray<ReadonlyArray<string>>;
 }
 
+import { blocksOf, clusterIndexOf, contiguous } from "./cluster.ts";
 import { dummyId } from "./dummy.ts";
 import { relaxLayers } from "./minimize-length.ts";
 import type { Size } from "./place.ts";
@@ -65,7 +79,8 @@ const slotsOf = (graph: Graph, layerOf: ReadonlyMap<string, number>): ReadonlyAr
       slots[layer]?.push(dummyId(edge, layer));
     }
   }
-  return slots;
+  const { owner } = clusterIndexOf(graph);
+  return owner.size === 0 ? slots : slots.map((ids) => [...contiguous(ids, owner)]);
 };
 
 const build = (graph: Graph, slots: ReadonlyArray<ReadonlyArray<string>>): Layout => {
@@ -96,7 +111,7 @@ export const breakCycles = (graph: Graph): Graph => {
     }
     return target < source ? { source: edge.target, target: edge.source } : edge;
   });
-  return { nodes: graph.nodes, edges };
+  return { ...graph, edges };
 };
 
 /**
@@ -192,18 +207,19 @@ const boundaryPairs = (
  */
 export const minimizeCrossings = (graph: Graph, layout: Layout): Layout => {
   const oriented = breakCycles(graph);
+  const { owner } = clusterIndexOf(oriented);
   const slots = layout.slots.map((ids) => [...ids]);
   const pairs = boundaryPairs(oriented, slots);
 
   for (let round = 0; round < 4; round += 1) {
     for (let layer = 1; layer < slots.length; layer += 1) {
-      reorder(slots, layer, pairs[layer - 1] ?? [], "previous");
+      reorder(slots, layer, pairs[layer - 1] ?? [], "previous", owner);
     }
     for (let layer = slots.length - 2; layer >= 0; layer -= 1) {
-      reorder(slots, layer, pairs[layer] ?? [], "next");
+      reorder(slots, layer, pairs[layer] ?? [], "next", owner);
     }
   }
-  greedySwitch(slots, pairs);
+  greedySwitch(slots, pairs, owner);
   const swept = build(oriented, slots);
   return crossings(graph, swept) < crossings(graph, layout) ? swept : layout;
 };
@@ -213,6 +229,7 @@ const reorder = (
   layer: number,
   boundary: ReadonlyArray<ReadonlyArray<string>>,
   side: "previous" | "next",
+  owner: ReadonlyMap<string, string>,
 ): void => {
   const other = slots[side === "previous" ? layer - 1 : layer + 1];
   const ids = slots[layer];
@@ -234,9 +251,16 @@ const reorder = (
     if (at === undefined || at.length === 0) return mineIndex.get(id) ?? 0;
     return at.reduce((sum, position) => sum + position, 0) / at.length;
   };
-  slots[layer] = [...ids].sort(
-    (one, two) =>
-      barycentre(one) - barycentre(two) || (mineIndex.get(one) ?? 0) - (mineIndex.get(two) ?? 0),
+  const blocks = [...blocksOf(ids, owner)];
+  const score = (block: ReadonlyArray<string>): number =>
+    block.reduce((sum, id) => sum + barycentre(id), 0) / block.length;
+  const at = (block: ReadonlyArray<string>): number => mineIndex.get(block[0] ?? "") ?? 0;
+  blocks.sort((one, two) => score(one) - score(two) || at(one) - at(two));
+  slots[layer] = blocks.flatMap((block) =>
+    [...block].sort(
+      (one, two) =>
+        barycentre(one) - barycentre(two) || (mineIndex.get(one) ?? 0) - (mineIndex.get(two) ?? 0),
+    ),
   );
 };
 
@@ -320,8 +344,13 @@ const touching = (
   return count;
 };
 
-const greedySwitch = (slots: string[][], pairs: ReadonlyArray<string[][]>): void => {
+const greedySwitch = (
+  slots: string[][],
+  pairs: ReadonlyArray<string[][]>,
+  owner: ReadonlyMap<string, string>,
+): void => {
   const positions = slots.map((ids) => new Map(ids.map((id, index) => [id, index])));
+  const blockOf = (id: string): string => owner.get(id) ?? "";
   const local = (layer: number, targets: ReadonlySet<string>): number =>
     touching(pairs[layer - 1] ?? [], positions, layer - 1, targets) +
     touching(pairs[layer] ?? [], positions, layer, targets);
@@ -335,6 +364,7 @@ const greedySwitch = (slots: string[][], pairs: ReadonlyArray<string[][]>): void
         const first = ids[index];
         const second = ids[index + 1];
         if (first === undefined || second === undefined) continue;
+        if (blockOf(first) !== blockOf(second)) continue;
         const targets = new Set([first, second]);
         const before = local(layer, targets);
         if (!swap(ids, index)) continue;
@@ -367,6 +397,7 @@ export const crossings = (graph: Graph, layout: Layout): number => {
 };
 
 export { dummyId } from "./dummy.ts";
+export { clusterIndexOf } from "./cluster.ts";
 export * from "./place.ts";
 export * from "./route.ts";
 export * from "./label.ts";

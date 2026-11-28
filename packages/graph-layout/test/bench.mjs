@@ -1,5 +1,6 @@
 // What the engine costs and what the crossing minimization buys: the phases over a corpus of random graphs, the crossings
-// before and after the sweep, and the shape a diagram is most likely to hurt — a 200-node chain.
+// before and after the sweep, the shape a diagram is most likely to hurt — a 200-node chain — and the same pipeline over
+// two-level graphs, against the same graphs flattened.
 import { performance } from "node:perf_hooks";
 
 import {
@@ -13,6 +14,7 @@ import {
   place,
   route,
 } from "../src/index.ts";
+import { clusterCorpus } from "./cluster-graphs.mjs";
 import { chain, corpus, cycle } from "./graphs.mjs";
 
 const graphs = corpus(1000);
@@ -88,6 +90,7 @@ for (const [name, graph] of [
   );
 }
 
+
 const pipeline = (index, strategy) => {
   const sweptAt = minimizeCrossings(graphs[index], layout(graphs[index], { layering: strategy }));
   return route(sized[index], sweptAt, place(sized[index], sweptAt)).length;
@@ -97,6 +100,50 @@ for (const strategy of ["longest-path", "minimize-length"]) {
   console.log(`  ${`pipeline (${strategy})`.padEnd(17)} ${micro.toFixed(2)} µs/graph`);
 }
 
+const clumped = clusterCorpus(400).map((graph) => ({
+  ...graph,
+  sizes: Object.fromEntries(
+    graph.nodes.map((id, index) => [
+      id,
+      { width: 40 + (index % 3) * 10, height: 20 + (index % 2) * 10 },
+    ]),
+  ),
+}));
+const clumpedFlat = clumped.map((graph) => ({ ...graph, clusters: undefined }));
+const clumpedOrdered = clumped.map((graph) => minimizeCrossings(graph, layout(graph)));
+const clumpedFlatOrdered = clumpedFlat.map((graph) => minimizeCrossings(graph, layout(graph)));
+const clumpedPlaced = clumped.map((graph, index) => place(graph, clumpedOrdered[index]));
+const clumpedFlatPlaced = clumpedFlat.map((graph, index) =>
+  place(graph, clumpedFlatOrdered[index]),
+);
+const clumpedRouted = clumped.map((graph, index) =>
+  route(graph, clumpedOrdered[index], clumpedPlaced[index]),
+);
+const clumpedFlatRouted = clumpedFlat.map((graph, index) =>
+  route(graph, clumpedFlatOrdered[index], clumpedFlatPlaced[index]),
+);
+
+console.log(
+  `two-level layout over ${clumped.length} random graphs: ` +
+    `${clumped.reduce((sum, graph) => sum + graph.nodes.length, 0)} nodes, ` +
+    `${clumped.reduce((sum, graph) => sum + graph.clusters.length, 0)} clusters`,
+);
+for (const [name, perRun] of [
+  ["layout", (index) => layout(clumped[index]).slots.length],
+  ["place", (index) => place(clumped[index], clumpedOrdered[index]).length],
+  ["route", (index) => route(clumped[index], clumpedOrdered[index], clumpedPlaced[index]).length],
+  ["layout (flat)", (index) => layout(clumpedFlat[index]).slots.length],
+  ["place (flat)", (index) => place(clumpedFlat[index], clumpedFlatOrdered[index]).length],
+  [
+    "route (flat)",
+    (index) =>
+      route(clumpedFlat[index], clumpedFlatOrdered[index], clumpedFlatPlaced[index]).length,
+  ],
+]) {
+  console.log(`  ${name.padEnd(17)} ${micros(perRun, clumped.length).toFixed(2)} µs/graph`);
+}
+void clumpedRouted;
+void clumpedFlatRouted;
 const before = graphs.reduce((sum, graph, index) => sum + crossings(graph, ordered[index]), 0);
 const after = graphs.reduce((sum, graph, index) => sum + crossings(graph, swept[index]), 0);
 const improved = graphs.filter(
