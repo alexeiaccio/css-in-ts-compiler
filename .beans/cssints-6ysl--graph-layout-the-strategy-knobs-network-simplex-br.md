@@ -1,7 +1,7 @@
 ---
 # cssints-6ysl
 title: 'graph-layout: the strategy knobs (network simplex, Brandes-Köpf, splines)'
-status: todo
+status: completed
 type: feature
 priority: deferred
 tags:
@@ -14,11 +14,11 @@ parent: cssints-a65d
 The knobs ELK offers behind the invariants: network-simplex layering (fewer total layers for some graphs), Brandes-Köpf
 placement (straighter drawings than the median sweeps), and spline routing.
 
-- [ ] `layout`/`minimizeCrossings`/`place` take a strategy, the default being today's behaviour; each strategy is checked
+- [x] `layout`/`minimizeCrossings`/`place` take a strategy, the default being today's behaviour; each strategy is checked
   against the same invariants and its own numbers (crossings, deviation, time) on the corpus
 - [x] network simplex: measured against longest path on the corpus (layers, crossings, µs)
 - [x] Brandes–Köpf: measured against the median sweeps (edge deviation, µs)
-- [ ] each strategy that is not a function of the input says so and is compared by its numbers, not by equality
+- [x] each strategy that is not a function of the input says so and is compared by its numbers, not by equality
 - [x] spline routing: a third shape behind `route`, the polyline kept and a cubic per bend, measured over the corpus and against ELK's `SPLINES`
 
 ## Summary of Changes
@@ -83,3 +83,11 @@ this engine 24 fillets; the sampled crossings are 0 against 3. ELK chooses contr
 crossing), this smooths the corridor the channel router fixed, so the comparison states the difference instead of scoring it.
 Left for their own slices: a real spline router that searches control points against the boxes, curves for label boxes, and
 the skin that assigns `curve` to a `<path>`.
+
+Three strategies are in, each behind an option whose default is byte-identical, each with its own oracle and its own numbers:
+`minimize-length` layering (brute force 411/411 optimal, ELK `NETWORK_SIMPLEX` agreeing on the six graphs and 58 of 60 seeded),
+`brandes-kopf` placement (worse on the specs' six and the shapes, 12.9% better over the random corpus, 3.6x the time) and the
+`spline` drawing (3.70% shorter, 249 to 237 drawn crossings, one drawing worse). The umbrella item is ticked because all three
+now go through an option rather than a rewrite, and the honesty item because every claim above is a printed measurement — the
+Brandes-Kopf one says it loses where it loses. Per-edge weights stay unbuilt: they need a `weight` on `Edge` or a second option,
+and no consumer asked.
