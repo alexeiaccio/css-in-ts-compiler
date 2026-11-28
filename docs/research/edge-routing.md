@@ -58,11 +58,42 @@ transit map. Like ELK, it belongs in this note, and at most in a fixture that sa
 
 - For `cssints-i6pb`: the goal is bundling and overlap reduction, not merely "no overlaps" — shared corridors are drawn once.
 - The first implementation is A\* over a lattice with per-line weight inflation, because its return is reported and it needs
-  no channel bookkeeping; the orthogonal channel router stays as the reference its results are checked against.
+  no channel bookkeeping; the orthogonal channel router stays as the reference its results are checked against. _Both halves
+  of that were partly wrong when built: it needed the channel bookkeeping after all, and the inflation separates lines instead
+  of bundling them — the section below has the numbers._
 - The route type is a polyline of points, and the router's invariants are stated per direction set, so octilinear is a
   strategy rather than a rewrite.
 - Octilinear as the named second strategy, and the metro map's quality measures (bends, angular resolution, edge lengths) as
   the numbers to record when it lands.
+
+## What the implementation found (2026-11-28)
+
+The four items above were built in this order, and three of them changed the plan they came from; the numbers are in
+[`docs/wayfinder.md`](../wayfinder.md), one entry per slice.
+
+**Octilinear is a type, not a gain.** `directions: 8` moves a bend rather than removing it: a jog becomes one 45° segment, the
+same two corners at a smaller angle. Over the corpus it shortens the drawing 1.3% and leaves the bend count at 730 either way,
+while its wider sweep raises the drawn crossings from 168 to 174. It stays because it defines what the A\* result is allowed
+to be, and because the default costs nothing.
+
+**The channel bookkeeping stayed.** This note expected the A\* to need none; it needs one. The lattice is built per layer
+boundary — the strip between two layers, which is free of boxes by construction — because that is what keeps a route monotone
+in x, keeps one crossing per boundary between an edge's ends, and leaves the ports and the band heights (the dummies) exactly
+where the channel router put them; a whole-drawing lattice would have had to re-solve both. The channel router remains the
+reference the lattice is compared against, in the same suite.
+
+**The per-line weight separates, it does not bundle.** The sweep over the corpus (`wReuse` 0, 2, 5, 10 against `wCross` 0, 5,
+20) is unambiguous: at 0 the drawing has 2 crossings and 170 bundled corridor pairs, at 2 it has 97 and 15, at 5 112 and 4, at
+10 114 and 2. A positive price for a shared tile is an incentive to open a lane, so the inflation does the opposite of what the
+thread reported. What does the bundling is the recipe's _other_ half — route the shortest paths first over a lattice whose rows
+the drawing shares. `wCross` still earns its place at eight directions (13 crossings against 30 at 0), and the default pair is
+(0, 20).
+
+The result is a metro map at a price: 2 drawn crossings and 170 bundled pairs against the channel router's 168 and 5, 624 bends
+against 730, the same 37 682 px, and nine times the pipeline time (506 µs a graph against 9.2 at four directions, 546 against 58
+for the whole pipeline). The 200-node chain routes in 1.7 ms and the 200-node cycle in 5.4–6.9, both inside a frame; the dense
+40-node graph takes 15.8–18.1 ms and is not claimed to be. That is why `router: "channels"` stays the default and the lattice an
+option: the win is real, its price is the cost, and the weight table is not what buys it.
 
 ## Not taken
 

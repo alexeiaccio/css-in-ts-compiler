@@ -23,17 +23,45 @@ should report that number against dagre on the same graph, not a microseconds-pe
 Sizes are what npm ships for the latest version (`registry.npmjs.org/<pkg>/latest`, 2026-11-28): unpacked package size, which
 includes sources and maps, so it is not a minified bundle — it is a comparable order of magnitude.
 
-| Package                 | Version | What it does                                                         | Unpacked                      | Licence                     |
-| ----------------------- | ------- | -------------------------------------------------------------------- | ----------------------------- | --------------------------- |
-| `@dagrejs/dagre`        | 3.1.4   | Sugiyama: acyclic, rank, order, position, edge points                | 1.4 MB                        | MIT                         |
-| `elkjs`                 | 0.12.2  | ELK itself (the pipeline our spec states), compiled to JS/WASM       | 8.2 MB                        | EPL-2.0 OR GPL-3.0-or-later |
-| `@msagl/core`           | 1.1.25  | MSAGL: layered layout, orthogonal routing, labels, clusters          | 12.9 MB                       | MIT                         |
-| `@viz-js/viz`           | 3.31.0  | Graphviz `dot` as WASM — the canonical Sugiyama implementation       | 5.0 MB                        | MIT                         |
-| `@cssints/graph-layout` | 0.48    | Three phases: model-order cycle breaking, longest-path layers, ranks | 2.35 kB packed (0.90 kB gzip) | MIT                         |
+| Package                 | Version | What it does                                                                                                                                                                    | Unpacked                                   | Licence                     |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------- |
+| `@dagrejs/dagre`        | 3.1.4   | Sugiyama: acyclic, rank, order, position, edge points                                                                                                                           | 1.4 MB                                     | MIT                         |
+| `elkjs`                 | 0.12.2  | ELK itself (the pipeline our spec states), compiled to JS/WASM                                                                                                                  | 8.2 MB                                     | EPL-2.0 OR GPL-3.0-or-later |
+| `@msagl/core`           | 1.1.25  | MSAGL: layered layout, orthogonal routing, labels, clusters                                                                                                                     | 12.9 MB                                    | MIT                         |
+| `@viz-js/viz`           | 3.31.0  | Graphviz `dot` as WASM — the canonical Sugiyama implementation                                                                                                                  | 5.0 MB                                     | MIT                         |
+| `@cssints/graph-layout` | 0.48.0  | Sugiyama: acyclic, rank (longest path or minimize-length), order, position (median or Brandes–Köpf), routing (channels, octilinear, lattice A\*), labels, one level of clusters | 244 kB unpacked (60 kB packed, 22 kB gzip) | MIT                         |
 
-The last row is the truth about the gap: it is one slice — layers and ranks, no dummy nodes, no placement, no routing — and
-the epic's remaining beans are exactly that gap. The comparison is fair as a size of the _shipped thing_ today, not as
-parity: dagre, ELK and MSAGL also place and route.
+The last row was written when the engine was one slice — layers and ranks, no dummy nodes, no placement, no routing — and
+the epic's remaining beans were exactly that gap. They are not any more: the same five phases dagre names (acyclic, rank,
+order, position, edge points) are in the package, plus the two things dagre does not do (a label slot per edge, and one level of
+compound nodes). The parity is on the phases, not on the drawing: dagre's rank defaults to network simplex and ours
+is a relaxation, dagre's position is Brandes–Köpf and ours is that too but it loses to the median passes on our own six
+graphs, and dagre's edge points are what a renderer then curves — we route to a polyline and can draw it as a curve. The
+comparison fair to both remains what this note took from the survey: the return time in a click handler on the same graph.
+
+## Where the engine stands, phase by phase (2026-11-28)
+
+Measured in this repository, one row per phase, each with the entry in [`docs/wayfinder.md`](../wayfinder.md) that carries the
+full table:
+
+- **acyclic and rank** — cycle breaking by model order is stated in Quint; the longest path is the spec's layering, and
+  `minimize-length` is the second strategy (a relaxation: optimal on every graph brute force can enumerate, 411 of 411, and
+  the same layers as ELK's `NETWORK_SIMPLEX` on the six spec graphs and on all 60 seeded ones, with the total edge length 153
+  against ELK's 149 over those 60 — it is 4 units short on exactly two graphs).
+- **order** — barycentre sweeps plus a greedy adjacent switch: 85 388 → 23 681 crossings over the corpus, 72% off the model
+  order, and the sweep returns its result only if it is strictly better.
+- **position** — the median alignment passes, and Brandes–Köpf behind an option: −12.9% edge deviation on the random corpus,
+  worse on the six spec graphs (80 → 140) and on the shapes (1 365 → 1 730), at 3.6× the time; ELK's Brandes–Köpf takes
+  113.3 on the six against our 140.
+- **edge points** — channels with one port per edge on the border (168 drawn crossings on the corpus), octilinear as eight
+  directions (174), a lattice A\* per channel (2 crossings and 170 bundled corridor pairs at nine times the pipeline time),
+  and a spline drawing of the polyline (−3.7% length, 249 → 237 drawn crossings).
+- **beyond dagre** — labels as slots (379 placed, 0.68 px mean drift from the route) and one level of clusters (inline, blocks
+  contiguous, containment, one border crossing at a port, at the cost of 507 crossings against 385 flat).
+
+What is still owed is the comparison this note asked for and the epic has not wired: dagre in a script on the same graph. It
+was measured once by hand — 4, 20, 60 and 200 nodes in 0.23, 0.49, 1.15 and 3.96 ms against dagre's 0.77, 7.2, 22.3 and
+88.4 — and that number is recorded in the wayfinder, not asserted by a gate.
 
 Two facts that decide more than the sizes:
 
@@ -54,7 +82,9 @@ flow; a force layout is for exploring a network whose shape nobody knows yet —
 ## Taken
 
 - `@dagrejs/dagre` as the comparator in the starter's bench, on the same graph, measuring the same thing: the return time
-  inside the click handler and the largest graph that still fits in a frame.
+  inside the click handler and the largest graph that still fits in a frame. It has been measured once by hand (4, 20, 60 and
+  200 nodes: 0.23, 0.49, 1.15 and 3.96 ms against 0.77, 7.2, 22.3 and 88.4) and is **not** wired into a script, so the number
+  in the wayfinder is a record, not a gate; the freeze-guard table is still owed.
 - The freeze-guard framing: a limit that names a graph size, published beside the engine, instead of an average latency.
 - The screenshot wall as a review form for the drawing once routing lands — the same graph under every strategy, side by side,
   which is how a crossing count becomes something a person can check.
@@ -71,7 +101,9 @@ flow; a force layout is for exploring a network whose shape nobody knows yet —
 
 Where the lines go is a second literature, and a better picture to aim at than "orthogonal": the metro map. Bundling and
 overlap reduction, eight directions, A\* with per-line weights, and the exact program as a quality oracle are in
-[`edge-routing.md`](edge-routing.md).
+[`edge-routing.md`](edge-routing.md), whose four items are now measured: eight directions, the lattice A\* (2 crossings and
+170 bundled pairs against 168 and 5, at nine times the pipeline), and the finding that the per-line weight separates lines
+rather than bundling them. The mixed-integer program stays an oracle.
 
 ## Sources
 
