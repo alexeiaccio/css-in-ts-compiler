@@ -1,6 +1,7 @@
 import { userEvent } from "vite-plus/test/browser";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
+import { crossingsOf, shapeBetween } from "../route.ts";
 import { type MountedDiagram, mountDiagram, mountStarter, STARTER_EDGES } from "./diagram.fixture";
 
 // No APG pattern and no Quint spec exists for a diagram, so this file is the skin's oracle: it mounts the starter in a real
@@ -258,9 +259,10 @@ describe("Diagram", () => {
     ]);
 
     // pay runs from cart's right border (128) to paid's left border (196), arrow included, at the two centres' y
-    const d = required<SVGPathElement>(root, '[data-edge="pay"] path:not([class])').getAttribute(
-      "d",
-    )!;
+    const d = required<SVGPathElement>(
+      root,
+      '[data-edge="pay"] path[data-part="diagram-line"]',
+    ).getAttribute("d")!;
     const [, x1, y1, x2, y2] = /^M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)$/.exec(d)!.map(Number) as [
       string,
       number,
@@ -277,9 +279,10 @@ describe("Diagram", () => {
   it("draws the same graph in any of the four shapes", () => {
     for (const shape of ["straight", "bezier", "step", "smoothstep"] as const) {
       const { root } = mountDiagram({ edge: shape });
-      const d = required<SVGPathElement>(root, '[data-edge="pay"] path:not([class])').getAttribute(
-        "d",
-      )!;
+      const d = required<SVGPathElement>(
+        root,
+        '[data-edge="pay"] path[data-part="diagram-line"]',
+      ).getAttribute("d")!;
       expect(d.startsWith("M "), shape).toBe(true);
       if (shape === "bezier") {
         expect(d, shape).toContain(" C ");
@@ -426,6 +429,75 @@ describe("Diagram", () => {
     expect(under.dataset.crossing).toBeUndefined();
     expect(under.querySelector('[data-part="diagram-cutout"]')).toBeNull();
   });
+
+  it("draws a loop out of a node's right border in any of the four shapes", () => {
+    for (const shape of ["straight", "bezier", "step", "smoothstep"] as const) {
+      const { root } = mountDiagram({
+        nodes: [{ id: "a", label: "A", x: 0, y: 0, width: 120, height: 44 }],
+        edges: [{ id: "again", from: "a", to: "a", label: "again" }],
+        edge: shape,
+      });
+      const line = required<SVGPathElement>(
+        root,
+        '[data-edge="again"] path[data-part="diagram-line"]',
+      );
+      const d = line.getAttribute("d")!;
+      const box = line.getBBox();
+
+      expect(d.startsWith("M 120 14 "), shape).toBe(true);
+      expect(d.includes(" C "), shape).toBe(shape === "bezier");
+      expect(d.includes(" Q "), shape).toBe(shape === "smoothstep");
+      expect(box.x, shape).toBe(120);
+      const arrow = required<SVGPolygonElement>(root, '[data-edge="again"] polygon').getAttribute(
+        "points",
+      )!;
+      expect(arrow.startsWith("120,30 "), shape).toBe(true);
+      const label = required<SVGTextElement>(root, '[data-edge="again"] text');
+      expect(Number(label.getAttribute("x")), shape).toBe(148);
+      expect(Number(label.getAttribute("y")), shape).toBe(50);
+      expect(getComputedStyle(label).textAnchor, shape).toBe("start");
+    }
+  });
+
+  it("activates a loop from its label, like any other edge", async () => {
+    const instance = mountDiagram({
+      edges: [{ id: "retry", from: "cart", to: "cart", label: "retry" }],
+    });
+    const label = required<SVGTextElement>(instance.root, '[data-edge="retry"] text');
+
+    expect(required(instance.root, '[data-edge="retry"]').getAttribute("aria-label")).toBe(
+      "retry: Cart → Cart",
+    );
+    label.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    await settle();
+    expect(instance.fired).toEqual(["retry"]);
+    instance.dispose();
+  });
+
+  it("lets another edge cut a loop, and a loop cut another edge", () => {
+    const box = { x: 0, y: 0, width: 80, height: 40 };
+    const loop = shapeBetween("straight", box, box)!;
+    const through = shapeBetween(
+      "straight",
+      { x: 72, y: -160, width: 40, height: 40 },
+      { x: 72, y: 160, width: 40, height: 40 },
+    )!;
+    const first = crossingsOf([
+      { id: "loop", route: loop },
+      { id: "through", route: through },
+    ]);
+    const second = crossingsOf([
+      { id: "through", route: through },
+      { id: "loop", route: loop },
+    ]);
+
+    expect(first.map((crossing) => crossing.over)).toEqual(["through", "through"]);
+    expect(second.map((crossing) => crossing.over)).toEqual(["loop", "loop"]);
+    expect(first.map((crossing) => crossing.at)).toEqual([
+      { x: 92, y: 12 },
+      { x: 92, y: 28 },
+    ]);
+  });
 });
 
 describe("the starter lays the graph out on demand", () => {
@@ -492,6 +564,9 @@ describe("the starter lays the graph out on demand", () => {
       }
     }
     for (const edge of STARTER_EDGES) {
+      if (edge.from === edge.to) {
+        continue;
+      }
       const from = after[edge.from];
       const to = after[edge.to];
       expect(from === undefined || to === undefined ? false : from.x < to.x, edge.id).toBe(true);
@@ -500,6 +575,59 @@ describe("the starter lays the graph out on demand", () => {
     required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
     await settle();
     expect(boxes(root)).toEqual(after);
+  });
+
+  it("draws the retry loop on paid, beside its own label", async () => {
+    const { root } = started();
+    const group = required<SVGGElement>(root, '[data-edge="retry"]');
+    const line = required<SVGPathElement>(
+      root,
+      '[data-edge="retry"] path[data-part="diagram-line"]',
+    );
+    const box = line.getBBox();
+    const label = required<SVGTextElement>(root, '[data-edge="retry"] text');
+
+    expect(line.getAttribute("d")).toBe("M 324 40 L 344 40 L 344 56 L 332 56");
+    expect(box.x).toBe(324);
+    expect(box.width).toBe(20);
+    expect(box.height).toBe(16);
+    expect(required(root, '[data-edge="retry"] polygon').getAttribute("points")).toMatch(
+      /^324,56 /,
+    );
+    expect(Number(label.getAttribute("x"))).toBe(352);
+    expect(Number(label.getAttribute("y"))).toBe(76);
+    expect(label.textContent).toBe("retry");
+
+    expect(group.getAttribute("role")).toBe("button");
+    expect(group.getAttribute("aria-label")).toBe("retry: Paid → Paid");
+    expect(group.getAttribute("tabindex")).toBe("-1");
+    expect(tabStops(root).map((button) => button.dataset["node"])).toEqual(["cart"]);
+    expect(group.dataset.crossing).toBe("true");
+    expect(group.querySelector('[data-part="diagram-cutout"]')).not.toBeNull();
+
+    const covered = (): string[] => {
+      const text = required<SVGTextElement>(root, '[data-edge="retry"] text').getBBox();
+      return Object.entries(boxes(root))
+        .filter(
+          ([, node]) =>
+            text.x < node.x + node.width &&
+            node.x < text.x + text.width &&
+            text.y < node.y + node.height &&
+            node.y < text.y + text.height,
+        )
+        .map(([id]) => id);
+    };
+    expect(covered()).toEqual([]);
+
+    required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+    await settle();
+    expect(covered()).toEqual([]);
+    expect(
+      required<SVGPathElement>(
+        root,
+        '[data-edge="retry"] path[data-part="diagram-line"]',
+      ).getAttribute("d"),
+    ).toBe("M 320 50 L 340 50 L 340 66 L 328 66");
   });
 
   it("keeps the arrows working on the laid-out drawing", async () => {

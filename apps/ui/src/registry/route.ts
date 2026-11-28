@@ -337,18 +337,36 @@ const polyline = (
 const CORNER = 12;
 const STEP_OFFSET = 20;
 
+/** A loop's bracket: how far out of the box it reaches, and how far its two ends sit either side of the border's centre. */
+const LOOP_OUT = 20;
+const LOOP_HALF = 8;
+
+/** Where a loop's cubic puts its controls, so its own bulge is `LOOP_OUT` and no wider than the bracket's. */
+const LOOP_CONTROL = LOOP_OUT + ARROW / 2;
+
+/** Whether two boxes are one box: an edge between them is a loop, and there is no line to draw between them. */
+const sameBox = (a: RoutedBox, b: RoutedBox): boolean => {
+  const one = size(a);
+  const two = size(b);
+  return a.x === b.x && a.y === b.y && one.width === two.width && one.height === two.height;
+};
+
 /**
  * The path of an edge in one of the four shapes, with its arrow and the place of its label.
  *
  * All four start and end on the border midpoints that face each other (`facing`), so adding a shape is a `d` and not a
  * re-derivation of the geometry: `step` goes out of each box, turns on a shared center line and comes back in; `smoothstep`
- * is the same polyline with rounded corners; `bezier` is one cubic whose controls sit halfway between the boxes.
+ * is the same polyline with rounded corners; `bezier` is one cubic whose controls sit halfway between the boxes. An edge
+ * whose ends are the same box is a loop (`loopBetween`) instead of a line between two points.
  */
 export const shapeBetween = (
   shape: EdgeShape,
   from: RoutedBox,
   to: RoutedBox,
 ): PathRoute | undefined => {
+  if (sameBox(from, to)) {
+    return loopBetween(shape, from);
+  }
   if (shape === "straight") {
     const straight = routeBetween(from, to);
     return straight === undefined
@@ -445,6 +463,62 @@ export const shapeBetween = (
 
 /** How finely a cubic is sampled for crossings: 1/24 of its length is far below a stroke's width. */
 const BEZIER_STEPS = 24;
+
+/**
+ * A loop: an edge whose two ends are the same box, drawn as a bracket off its right border — out `LOOP_OUT`, between
+ * `centre - LOOP_HALF` and `centre + LOOP_HALF`, and back — with the arrow head on the end that returns.
+ *
+ * The bracket is the polyline the engine routes a loop with, so a diagram and its layout agree; `step` keeps its sharp
+ * corners, `smoothstep` rounds them, and `bezier` bulges to the same `LOOP_OUT`, its controls a little further out than
+ * that so the curve's own extent matches the bracket's. The label sits beside the bracket's far side, two label offsets
+ * below its mouth's lower arm — clear of the box, of the line, and of an edge leaving the same border — and runs away
+ * from the loop.
+ */
+const loopBetween = (shape: EdgeShape, box: RoutedBox): PathRoute | undefined => {
+  const { width, height } = size(box);
+  const right = box.x + width;
+  const centre = box.y + height / 2;
+  const start = point(right, centre - LOOP_HALF);
+  const end = point(right, centre + LOOP_HALF);
+  const label = labelAt(point(right + LOOP_OUT, centre + LOOP_HALF + LABEL_OFFSET * 2), true);
+  if (shape === "bezier") {
+    const c1 = point(right + LOOP_CONTROL, centre - LOOP_HALF);
+    const c2 = point(right + LOOP_CONTROL, centre + LOOP_HALF);
+    const travel = unit(c2, end);
+    if (travel === undefined) {
+      return undefined;
+    }
+    const tail = point(end.x - travel.x * ARROW, end.y - travel.y * ARROW);
+    const points = Array.from({ length: BEZIER_STEPS + 1 }, (_, index) => {
+      const t = index / BEZIER_STEPS;
+      const rest = 1 - t;
+      return point(
+        start.x * rest ** 3 +
+          3 * c1.x * rest * rest * t +
+          3 * c2.x * rest * t * t +
+          tail.x * t ** 3,
+        start.y * rest ** 3 +
+          3 * c1.y * rest * rest * t +
+          3 * c2.y * rest * t * t +
+          tail.y * t ** 3,
+      );
+    });
+    return {
+      d: `M ${start.x} ${start.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${tail.x} ${tail.y}`,
+      points,
+      arrow: headAt(end, travel),
+      label,
+    };
+  }
+  const out = point(right + LOOP_OUT, centre - LOOP_HALF);
+  const back = point(right + LOOP_OUT, centre + LOOP_HALF);
+  const line = polyline([start, out, back, end], shape === "smoothstep");
+  const travel = unit(back, end);
+  if (line === undefined || travel === undefined) {
+    return undefined;
+  }
+  return { d: line.d, points: line.points, arrow: headAt(end, travel), label };
+};
 
 /** A crossing: where one edge's path meets another's, and which of the two is drawn over the other. */
 export interface Crossing {

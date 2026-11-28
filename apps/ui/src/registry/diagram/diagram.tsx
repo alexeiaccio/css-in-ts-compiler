@@ -88,7 +88,9 @@ const edgeClass = css.cn(
   ),
 );
 
-// The visible line is thin; the target is a wide transparent stroke over it, so a pointer can find an edge.
+// The visible line is thin and unfilled; the target is a wide transparent stroke over it, so a pointer can find an edge.
+const lineClass = css.cn(css.fill("none"));
+
 const hitClass = css.cn(
   css.stroke("transparent"),
   css.strokeWidth("14"),
@@ -237,6 +239,9 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
       return undefined;
     }
     const at = pointer();
+    if (at === undefined && diagram.active() === from) {
+      return undefined;
+    }
     const target =
       at === undefined
         ? byId().get(diagram.active() ?? "")
@@ -335,7 +340,7 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
                   <path class={cutoutClass} d={item.route.d} data-part="diagram-cutout" />
                 </Show>
                 <path class={hitClass} d={item.route.d} />
-                <path d={item.route.d} />
+                <path class={lineClass} d={item.route.d} data-part="diagram-line" />
                 <polygon points={item.route.arrow} />
                 {item.edge.label === undefined ? undefined : (
                   <text

@@ -23,8 +23,12 @@ const EDGES: ReadonlyArray<DiagramEdgeInput> = [
   { id: "resend", from: "refunded", to: "shipped", label: "resend" },
 ];
 
-/** The starter's flow: the payment graph without `refunded -> shipped`, the one edge that points back. */
-const STARTER_EDGES = EDGES.filter((edge) => edge.id !== "resend");
+/** The starter's flow: the payment graph without `refunded -> shipped`, the one edge that points back, and the retry a
+ * self loop is drawn for. */
+const STARTER_EDGES: ReadonlyArray<DiagramEdgeInput> = [
+  ...EDGES.filter((edge) => edge.id !== "resend"),
+  { id: "retry", from: "paid", to: "paid", label: "retry" },
+];
 
 const labelOf = (id: string): string => NODES.find((node) => node.id === id)?.label ?? id;
 

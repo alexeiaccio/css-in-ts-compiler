@@ -6619,7 +6619,6 @@ them by the height each edge arrives with, which is what keeps the stems apart.
 The browser test that draws a route as an SVG path caught the coordinate precision the DOM keeps (a float32 path point is not the
 float64 the engine computed): the length is compared at three decimals now, and the start point with `toBeCloseTo` instead of an
 exact pair.
-
 **Eight directions, and the bend they do not remove (2026-11-28):** the third slice of the deferred epic. `route` grew an
 option instead of a strategy object: `route(graph, layout, boxes, { directions: 8 })`, where `directions: 4` is the default and
 the drawing that was there before, byte for byte. The channels, the per-edge tracks, the dummies the bands pass through and the
@@ -6656,3 +6655,34 @@ What is left for the A\* slice: the eight directions only fix the vocabulary. Re
 lattice with per-line weight inflation (`docs/research/edge-routing.md`), the shortest paths first and a raised weight on the
 tiles a line already used, measured by the same harness — and the MIP (Nöllenburg–Wolff) stays the oracle for the six spec
 graphs, not a dependency.
+**The skin draws a self loop (2026-11-28):** the third slice of the deferred bean. `shapeBetween` takes the loop case before it
+takes a shape: two ends that are one box (the same corner and the same size, `sameBox`) are `loopBetween`, which leaves the
+node's right border at `centre - 8` and comes back at `centre + 8`, 20 px out — the engine's bracket (16 px, ±6) made larger so
+the arrow head and the 6 px crossing stroke do not fill it. `straight` and `step` draw it with sharp corners, `smoothstep` with
+the same 12 px corner rule every other edge uses (cut to half the neighbouring segment, which is what makes the 16 px mouth a
+small ear), and `bezier` is one cubic whose controls sit 24 px out so the curve's own bulge is the bracket's 20 px. The arrow is
+on the end that returns, at the border, and the line stops an `ARROW` short of it like every other edge; `points` is the same
+polyline `d` is drawn from, so `crossingsOf` needed no change at all — the later edge cuts the earlier one, and the starter shows
+both directions (its loop is drawn over `ship`'s stem, which leaves the same border).
+
+The label is the part a loop makes hard. It sits beside the mouth, one bracket out and two label offsets below the lower arm
+(`right + 28`, baseline `centre + 28`): outside the node's box, off the loop's line, and clear of the label of an edge that
+leaves the same border, which `labelAt` puts 8 px *above* its line. That also forced one line outside the skin: the starter's
+layout now asks `place` for 64 px layers instead of the engine's 30. A word is 27 px and the engine reserves nothing for labels,
+so at 30 px every label sat on the two box borders — `ship`'s did before this slice, with no loop in sight. It is the first
+consumer saying the engine's default spacing is a drawing's spacing, not a labelled drawing's.
+
+The drawing also had a latent fill: the visible path inherited `fill` from its group, and SVG fills an open subpath as if it
+were closed. A straight line's fill is invisible, but a loop's bracket came out as a solid rectangle — the browser showed it and
+no test could, since both are one `<path>`. The line now carries `fill: none` (the board's line class has had it all along) and
+`data-part="diagram-line"`, so the tests name the line instead of `path:not([class])`. The pending link keeps its old behaviour
+too: `c` on a node still draws nothing to itself rather than previewing a loop the primitive would refuse.
+
+Numbers: the loop is a 20 x 16 bracket from 324 to 344 on `paid` (nothing was drawn before), the same 20 px in all four shapes,
+and `retry`'s ink (32.3 x 18 at `sizeSm`) measured against every node box is clear of all four — both at the authored positions
+and after `Lay out`, where `paid` moves to 192 and the bracket to 320..340. Four new Chrome tests (the four shapes, the label's
+activation, `crossingsOf` with a loop on either side of the order, the starter's own loop and its label), 24 in the diagram file
+and 1 045 in apps/ui's 73; the site's stories/ids/controls run at 121 untracked reads (unchanged), and typecheck, skin, theme,
+catalog (byte-identical), lint and the added-lines check are green. Left for its own slice: a node's edges still share one border
+midpoint, so a loop's ear crosses the stem of every edge that leaves the same border and shares the gap with their labels; the
+engine's port spreading is the fix, and two loops on one node cannot exist yet because the router keeps one loop per node.

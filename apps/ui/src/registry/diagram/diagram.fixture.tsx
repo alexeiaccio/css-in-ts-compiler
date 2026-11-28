@@ -131,10 +131,12 @@ export const mountDiagram = (overrides: DiagramOverrides = {}): MountedDiagram =
   };
 };
 
-/** The starter's flow: the payment graph without the edge that points back, which a layered layout does not draw yet. */
-export const STARTER_EDGES: ReadonlyArray<DiagramEdgeInput> = PAYMENT_EDGES.filter(
-  (edge) => edge.id !== "resend",
-);
+/** The starter's flow: the payment graph without the edge that points back, which a layered layout does not draw yet, and
+ * the retry a loop is drawn for. */
+export const STARTER_EDGES: ReadonlyArray<DiagramEdgeInput> = [
+  ...PAYMENT_EDGES.filter((edge) => edge.id !== "resend"),
+  { id: "retry", from: "paid", to: "paid", label: "retry" },
+];
 
 /** The starter, mounted for a test: its root, and the button that lays the graph out. */
 export const mountStarter = (

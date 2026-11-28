@@ -7,6 +7,12 @@ const DEFAULT_WIDTH = 120;
 const DEFAULT_HEIGHT = 44;
 
 /**
+ * The gap between layers: the engine's 30 px leaves a stub too short for an edge's label (a word is ~27 px) and no room
+ * for a loop's ear (20 px) beside it, so the starter lays the graph out with the room a labelled drawing needs.
+ */
+const LAYER_GAP = 64;
+
+/**
  * The starter's graph, laid out: the nodes in the diagram's own order are the engine's model order, their boxes its sizes,
  * the edges its pairs, and every node comes back at the engine's top-left. Nothing of the input is mutated, so a second press
  * reads the same graph and gives the same drawing.
@@ -31,7 +37,7 @@ export const layOut = (
     edges: edges.map((edge) => ({ source: edge.from, target: edge.to })),
   };
   const ordered = minimizeCrossings(graph, layout(graph));
-  const boxes = new Map(place(graph, ordered).map((box) => [box.id, box]));
+  const boxes = new Map(place(graph, ordered, { layers: LAYER_GAP }).map((box) => [box.id, box]));
   return nodes.map((node) => {
     const box = boxes.get(node.id);
     return box === undefined ? node : { ...node, x: box.x, y: box.y };
