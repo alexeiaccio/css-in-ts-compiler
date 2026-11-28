@@ -6895,3 +6895,14 @@ corridor drawn once — but it is not the weight table's, it is the order and th
 pipeline, so it stays an option and `"channels"` stays the default. Left for another slice: the MIP as the quality oracle (a
 solver is not a dependency), a lattice over the whole drawing rather than one channel, and crossing costs against routes in
 _other_ channels — the six spec graphs are too small for the last two to show.
+
+**The canvas and generator notes come home (2026-11-28):** four citations in this repository pointed at research notes that
+were only ever in `effects-of-atmosphere`, and `docs/research/canvas-prior-art.md` was cited by both canvas specs and by the
+canvas scenarios' README while never existing here. It is now copied with its pinned commits and evidence unchanged, under a
+provenance line that names its bean ids as that repository's tracker; the two generator notes (`quint-generator-ui-extensions`,
+`quint-generator-service-extension-backlog`) and the `quint-generator-gap/` reproducers came with it, since the first cites the
+second and the second the directory, and the deeper chain (the authorization pattern and the two notes under it) is named as
+external rather than copied, because it is atproto authorisation and nothing here reads it. Two citations were simply wrong and
+are fixed: the popover spec's `docs/research/apg-platform-features.md` is `packages/headless/docs/`, and the compositions note's
+`references-2026-10.md §6` now says whose it is. Re-running the audit over `docs packages apps` leaves only references that
+name their repository in the text.

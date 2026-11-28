@@ -2,7 +2,7 @@
 
 Research for `cssints-77wx`; feeds `cssints-vk1y` (popover), `cssints-yntz` (filterable menu, command palette, date picker), `cssints-03li` (table), `cssints-6ca5` (toast), `cssints-jzwx` (drawer), `cssints-6sib` (drop zone). Read 2026-10-30 from the published docs; no library installed and no React run, so every line is a documented decision, not a measurement.
 
-Claims that are accessibility requirements rather than library choices are marked **[TL]**: they belong to the requirement → Gherkin → test model of the TetraLogical library (references-2026-10.md §6, effects-of-atmosphere), not to one of the three implementations.
+Claims that are accessibility requirements rather than library choices are marked **[TL]**: they belong to the requirement → Gherkin → test model of the TetraLogical library (effects-of-atmosphere's `docs/research/references-2026-10.md` §6), not to one of the three implementations.
 
 ## The three models, against ours
 

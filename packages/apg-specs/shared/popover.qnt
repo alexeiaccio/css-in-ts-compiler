@@ -46,7 +46,7 @@
 // ancestor, Esc closes only the topmost, `hint` stays alongside an open auto,
 // a second hint closes the first, showing an auto closes an open hint.
 // Pin: WHATWG HTML popover API (Baseline newly: C114 / F125 / S17); `hint`
-// C151 / F153 per docs/research/apg-platform-features.md.
+// C151 / F153 per packages/headless/docs/apg-platform-features.md.
 module popover {
   def popoverKindKnown(kind: str): bool =
     or(or(kind == "auto", kind == "hint"), kind == "manual")

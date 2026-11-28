@@ -82,8 +82,7 @@ in x, keeps one crossing per boundary between an edge's ends, and leaves the por
 where the channel router put them; a whole-drawing lattice would have had to re-solve both. The channel router remains the
 reference the lattice is compared against, in the same suite.
 
-**The per-line weight separates, it does not bundle.** The sweep over the corpus (`wReuse` 0, 2, 5, 10 against `wCross` 0, 5,
-20) is unambiguous: at 0 the drawing has 2 crossings and 170 bundled corridor pairs, at 2 it has 97 and 15, at 5 112 and 4, at
+**The per-line weight separates, it does not bundle.** The sweep over the corpus (`wReuse` 0, 2, 5, 10 against `wCross` 0, 5, 20) is unambiguous: at 0 the drawing has 2 crossings and 170 bundled corridor pairs, at 2 it has 97 and 15, at 5 112 and 4, at
 10 114 and 2. A positive price for a shared tile is an incentive to open a lane, so the inflation does the opposite of what the
 thread reported. What does the bundling is the recipe's _other_ half — route the shortest paths first over a lattice whose rows
 the drawing shares. `wCross` still earns its place at eight directions (13 crossings against 30 at 0), and the default pair is
