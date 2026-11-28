@@ -6619,3 +6619,40 @@ them by the height each edge arrives with, which is what keeps the stems apart.
 The browser test that draws a route as an SVG path caught the coordinate precision the DOM keeps (a float32 path point is not the
 float64 the engine computed): the length is compared at three decimals now, and the start point with `toBeCloseTo` instead of an
 exact pair.
+
+**Eight directions, and the bend they do not remove (2026-11-28):** the third slice of the deferred epic. `route` grew an
+option instead of a strategy object: `route(graph, layout, boxes, { directions: 8 })`, where `directions: 4` is the default and
+the drawing that was there before, byte for byte. The channels, the per-edge tracks, the dummies the bands pass through and the
+ports are the orthogonal router's; what changes is one decision per boundary — if the height a jog has to change fits in the
+channel to the right of the edge's own track, the jog is one 45° segment instead of a vertical. The diagonal starts at the track
+and ends strictly inside the channel, so both stems stay horizontal and the band at the next slot height still crosses the dummy
+horizontally. That strictness is not cosmetic: with `<=` the diagonal could land exactly on the target's border, and one route in
+the corpus arrived at its port on a diagonal, losing a bend by accident and breaking the stem rule.
+
+The measurement over the 120-graph corpus, swept layouts, four directions against eight: 1 203 segments either way, 96 of the
+365 jogs diagonalised (8% of segments, one jog in four — the rest have more height to change than the 30 px channel offers to
+the right of their track), **730 bends either way**, total route length 37 682 → 37 200 px (1.3% shorter, because the diagonal
+cuts the corner instead of adding to it), drawn crossings 168 → 174, and bundled corridor pairs 5 → 4. At the model order it is
+790 bends either way, 539 → 545 crossings and 18 → 16 bundles. On the specs' six graphs six of twelve jogs become diagonals,
+length 907 → 879 px, bends 24 either way, no crossing either way. Time is unchanged within the noise of this machine: `bench`
+reports `route` at 26.1 µs a graph with 14.8 edges (1.8 µs a route) and the eight-direction run at 25.3, both medians of five
+rounds; the variant costs one comparison and one addition per jog.
+
+So the honest answer to "does a diagonal remove a bend" is no: a jog is horizontal → vertical → horizontal and becomes horizontal
+→ diagonal → horizontal, the same two turns at 45° instead of 90°. It moves the bend and cuts the corner. The crossing count is
+the price: the diagonal spans more x than the vertical it replaced, so it meets more horizontal bands. The breakdown says it is
+not a pure loss — right-angle crossings fall 168 → 156, and 18 new ones involve a diagonal (6 with a horizontal, 12 with a
+vertical) — but the net is six more crossings over 379 routes, and the bundles fall by one exactly because a shared vertical
+inside a channel, once diagonal, can never coincide with another route's diagonal (distinct tracks, parallel lines). A metro map
+wants crossings at right angles and corridors drawn once, so this slice buys legibility of direction and pays a little in both
+of the measures the research says matter most.
+
+Kept anyway, because the bean's slice is the strategy behind the same `route` and because the option costs the default nothing;
+`test/octilinear.mjs` is the new suite: the same eight shapes and 120 seeded graphs through `directions: 8`, asserting one of the
+eight directions per segment (equal `|dx|` and `|dy|` within 1e-9, since a double's `50 + 16.67 − 50` is not `16.67`), monotone
+x, one contiguous pass per boundary, no segment through a box's inset interior, one anchor per edge, both stems horizontal, every
+diagonal replacing a vertical, and the bend count equal to the orthogonal route's. The orthogonal suite is untouched and green.
+What is left for the A\* slice: the eight directions only fix the vocabulary. Removing bends and bundling corridors needs the
+lattice with per-line weight inflation (`docs/research/edge-routing.md`), the shortest paths first and a raised weight on the
+tiles a line already used, measured by the same harness — and the MIP (Nöllenburg–Wolff) stays the oracle for the six spec
+graphs, not a dependency.

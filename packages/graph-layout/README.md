@@ -1,8 +1,8 @@
 # @cssints/graph-layout
 
 The discrete half of Eclipse Layout Kernel's layered (Sugiyama) pipeline: **cycle breaking by model order, longest-path
-layering, ordering, crossing minimization over the result, placement and orthogonal routing**. A graph in, boxes and polylines
-out — no DOM, no reactivity, no dependencies.
+layering, ordering, crossing minimization over the result, placement and orthogonal routing** (four directions by default,
+eight as an option). A graph in, boxes and polylines out — no DOM, no reactivity, no dependencies.
 
 The contract is the Quint specs [`specs/patterns/graph-layout.qnt`](../apg-specs/specs/patterns/graph-layout.qnt) and
 [`specs/patterns/graph-layout-slots.qnt`](../apg-specs/specs/patterns/graph-layout-slots.qnt) of `@cssints/apg-specs`, their
@@ -81,8 +81,19 @@ that from 262 bundled corridor pairs on 120 random graphs to 5, and the per-edge
 (the octilinear strategy in `docs/research/edge-routing.md`). Drawn over swept layouts the routes cut the crossings to 168
 against 539 at the model order.
 
-Not here yet, and each its own slice: octilinear routing, ports beyond the border midpoints, labels, compound graphs and the
-strategy knobs.
+`route(graph, layout, boxes, { directions: 8 })` is the octilinear option, and `directions: 4` (the default) is the drawing
+above, unchanged. A channel's jog becomes one 45° segment from the edge's own track to the right when the height it has to
+change fits before the next layer's boxes; without that room it stays vertical. The bands stay horizontal at the slots' heights,
+so a long edge still passes through its dummy, and both stems stay horizontal, so a port is still a port. Over the 120-graph
+corpus that turns 96 of 365 jogs into diagonals (96 of 1 203 segments) and changes no bend at all: a jog is horizontal →
+diagonal → horizontal either way. What it buys is a cut corner, not a straighter line: total route length falls from 37 682 to
+37 200 px (1.3%) and the drawn crossings move from 168 to 174 (156 right-angle pairs plus 18 that touch a diagonal), while the
+bundled corridors fall from 5 to 4. On the specs' six graphs six of twelve jogs become diagonals, length falls from 907 to
+879 px and no crossing appears. The finding is that eight directions alone do not remove a bend; the A\* over a lattice with
+per-line weights is the step that would, and it is the next slice.
+
+Not here yet, and each its own slice: the A\* over a lattice with per-line weights, ports beyond the border midpoints, labels,
+compound graphs and the strategy knobs.
 
 ## Tests
 
@@ -97,6 +108,10 @@ it. `test/elk-placement.mjs` runs the six graphs through elk-rs with the same bo
 if the columns differ, if a box overlaps, or if the placement is less straight than ELK's simplest one. `test/placement.mjs`
 and `test/routing.mjs` hold the geometric contracts over shapes and seeded graphs, including that the router adds no overlap
 outside a channel or a shared port, and that the sweep's layouts are drawn with fewer crossings than the model order's.
+`test/octilinear.mjs` runs the same shapes and corpus through `directions: 8` and asserts what the eight directions promise:
+every segment is horizontal, vertical or exactly 45°, a route never goes back, it crosses each boundary between its ends once,
+no segment enters a box, a port is one anchor and each route leaves and arrives horizontally — and every diagonal replaces a
+vertical with the bend count unchanged.
 
 The property suite (`test/properties.mjs`) is the part the specs cannot carry — a spec's graph is a literal `pick` of six, so
 everything the engine does on an arbitrary graph is checked as a property over 8 hand-built shapes and 400 seeded graphs (up

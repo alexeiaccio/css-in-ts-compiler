@@ -16,22 +16,35 @@ export interface Route {
   readonly points: ReadonlyArray<RoutePoint>;
 }
 
+/** The set of directions a route's segments may take: `4` is orthogonal, `8` adds the two diagonals (octilinear). */
+export interface RouteOptions {
+  readonly directions?: 4 | 8;
+}
+
 /**
- * Orthogonal routes through the placement's channels: every layer boundary gets a channel, each edge crossing it gets its own
- * track there (ordered by the y it leaves with, so two verticals never share a line), the route crosses each layer in between
- * at its dummy's y — which the placement has already put in a gap between the boxes — and a node's ports are one anchor per
- * edge along the border, ordered by where each edge goes, so two edges from one node never share their stem.
+ * Routes through the placement's channels: every layer boundary gets a channel, each edge crossing it gets its own track
+ * there (ordered by the y it leaves with, so two verticals never share a line), the route crosses each layer in between at
+ * its dummy's y — which the placement has already put in a gap between the boxes — and a node's ports are one anchor per edge
+ * along the border, ordered by where each edge goes, so two edges from one node never share their stem.
+ *
+ * With `directions: 8` a channel's jog may become a single 45° segment from the edge's track to the right, when the height it
+ * has to change fits in the channel before the next layer's boxes. The bands stay horizontal at the slots' heights, so a long
+ * edge still passes through its dummy; the diagonal only replaces the vertical, which is the same number of bends at a
+ * smaller angle.
  *
  * @param {Graph} graph the graph the layout and the placement belong to
  * @param {Layout} layout the layout the routes cross
  * @param {ReadonlyArray<Placement>} boxes the slots' boxes, as {@link place} returns them
+ * @param {RouteOptions} options the direction set, four (the default) or eight
  * @returns {ReadonlyArray<Route>} one route per edge, in the graph's edge order
  */
 export const route = (
   graph: Graph,
   layout: Layout,
   boxes: ReadonlyArray<Placement>,
+  options: RouteOptions = {},
 ): ReadonlyArray<Route> => {
+  const octilinear = (options.directions ?? 4) === 8;
   const layerOf = new Map<string, number>();
   layout.slots.forEach((ids, layer) => ids.forEach((id) => layerOf.set(id, layer)));
   const boxOf = new Map(boxes.map((box) => [box.id, box]));
@@ -149,13 +162,16 @@ export const route = (
     const points: RoutePoint[] = [{ x: startX, y: startY }];
     let y = startY;
     for (let boundary = from; boundary < to; boundary += 1) {
-      const x = tracks.get(`${id}@${boundary}`) ?? channelOf(boundary).start;
+      const channel = channelOf(boundary);
+      const x = tracks.get(`${id}@${boundary}`) ?? channel.start;
       const next =
         boundary + 1 === to
           ? anchorOf(incoming.get(target) ?? [], target, index)
           : centreOf(chain[boundary - from + 1] ?? "");
       points.push({ x, y });
-      points.push({ x, y: next });
+      const rise = next - y;
+      const diagonal = octilinear && x + Math.abs(rise) < channel.end;
+      points.push(diagonal ? { x: x + Math.abs(rise), y: next } : { x, y: next });
       y = next;
     }
     points.push({ x: end === undefined ? 0 : end.x, y });

@@ -37,7 +37,7 @@
   },
   "scripts": {
     "build": "vp pack",
-    "test": "bun test/scenarios.mjs && bun test/elk-placement.mjs && node test/properties.mjs && node test/placement.mjs && node test/routing.mjs && vp test run",
+    "test": "bun test/scenarios.mjs && bun test/elk-placement.mjs && node test/properties.mjs && node test/placement.mjs && node test/routing.mjs && node test/octilinear.mjs && vp test run",
     "typecheck": "node ../../scripts/typecheck.mjs",
     "pack:tgz": "node ../../scripts/pack.mjs",
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1",

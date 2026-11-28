@@ -56,6 +56,10 @@ const phases = [
   ["minimizeCrossings", (index) => minimizeCrossings(graphs[index], ordered[index]).slots.length],
   ["place", (index) => place(sized[index], swept[index]).length],
   ["route", (index) => route(sized[index], swept[index], placed[index]).length],
+  [
+    "route (8 dirs)",
+    (index) => route(sized[index], swept[index], placed[index], { directions: 8 }).length,
+  ],
 ];
 
 console.log(
