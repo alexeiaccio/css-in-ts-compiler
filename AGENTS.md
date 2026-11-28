@@ -31,7 +31,9 @@ packages/graph-layout  @cssints/graph-layout: layered (Sugiyama) layout as three
                        (breakCycles, assignLayers, orderNodes, and layout composing them) over `{ nodes, edges }` in model order, no DOM and
                        no dependencies; the contract is specs/patterns/graph-layout.qnt of @cssints/apg-specs — a dev dependency: the eight
                        scenarios replay against the engine under Bun (`bun test/scenarios.mjs`: the oracle's sources import without extensions,
-                       which Node does not resolve) and a seeded differential walk runs in Chromium (`vp test run`)
+                       which Node does not resolve), a seeded differential walk runs in Chromium (`vp test run`), and `test/properties.mjs` checks
+                       the whole contract over 8 shapes and 400 seeded graphs (up to 200 nodes, cycles, isolates, parallel edges), with
+                       `test/bench.mjs` (`bun run bench`) recording the cost of the three phases
 packages/headless      @cssints/headless: Solid 2 APG widgets (and `resizablePanels`, a group of window splitters) that return DOM attribute objects (src/<pattern>.ts, no styling, `solid-js` is a peer); test/: *.browser.test.tsx and fixtures that replay the Quint traces and scenarios of @cssints/apg-specs in Chromium (vitest browser mode, Playwright provider through `vite-plus/test`); in the changesets `fixed` group
 packages/ds            @cssints/ds: a design system on cssints — Button, Field, Switch and Tabs on @cssints/headless, the
                        theme (tokens.ts + theme.ts, with check.contrast), and the CSF 3 stories beside each component;

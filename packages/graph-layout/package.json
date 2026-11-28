@@ -1,7 +1,7 @@
 {
   "name": "@cssints/graph-layout",
   "version": "0.48.0",
-  "description": "Layered graph layout: cycle breaking by model order, longest-path layering and model-order ranks — the discrete pipeline ELK runs, checked against its Quint spec and against elk-rs",
+  "description": "Layered graph layout: cycle breaking by model order, longest-path layering and model-order ranks \u2014 the discrete pipeline ELK runs, checked against its Quint spec and against elk-rs",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -37,10 +37,11 @@
   },
   "scripts": {
     "build": "vp pack",
-    "test": "bun test/scenarios.mjs && vp test run",
+    "test": "bun test/scenarios.mjs && node test/properties.mjs && vp test run",
     "typecheck": "node ../../scripts/typecheck.mjs",
     "pack:tgz": "node ../../scripts/pack.mjs",
-    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1",
+    "bench": "node test/bench.mjs"
   },
   "devDependencies": {
     "@cssints/apg-specs": "workspace:*",

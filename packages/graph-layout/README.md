@@ -46,11 +46,19 @@ labels, compound graphs and the strategy knobs. The spec's `NOT MODELLED` header
 ## Tests
 
 ```sh
-bun run test   # the spec's eight scenarios under Bun, then the seeded differential walk in Chromium
+bun run test   # the spec's eight scenarios, the property suite, then the seeded differential walk in Chromium
+bun run bench  # the three phases and the composition over 1k random graphs, and a 200-node chain
 ```
 
-The walk drives the engine and the spec's generated model with the same random steps and compares the layers after every
-one. `@cssints/apg-specs` is a dev dependency: no published code imports it.
+The scenarios run against the engine under Bun; the walk drives the engine and the spec's generated model with the same
+random steps and compares the layers after every one; `@cssints/apg-specs` is a dev dependency and no published code imports
+it.
+
+The property suite (`test/properties.mjs`) is the part the spec cannot carry — the spec's graph is a literal `pick` of six,
+so everything the engine does on an arbitrary graph is checked as a property over 8 hand-built shapes and 400 seeded graphs
+(up to 200 nodes, cycles, isolates, parallel edges, several components): an independent topological sort proves phase 1
+leaves no cycle, every effective edge points forward in model order, every node at layer `k` has a predecessor at `k - 1`,
+layers and ranks are dense and in model order, no node is lost or duplicated, and the same input gives the same output.
 
 The scenarios run under Bun rather than plain Node because the oracle's sources import each other without file
 extensions, which Bun and Vite resolve and Node does not; the browser run is the same code in a page with no Node

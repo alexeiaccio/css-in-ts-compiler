@@ -6464,3 +6464,18 @@ the licence reason to state the discrete algorithm in Quint and own it, with elk
 the 22 are force-directed or rendering frameworks, which is a different problem from laying out a flow: no direction, no
 layers, positions from repulsion. Our slice ships 2.35 kB packed against dagre's 1.4 MB and elkjs' 8.2 MB unpacked; that is
 the size of one slice, not parity, and the epic's remaining beans are exactly the gap.
+
+**The engine on arbitrary graphs, and what it costs (2026-11-28):** the spec's graph is a literal `pick` of six, so the
+general contract lives in `packages/graph-layout/test/properties.mjs`: 8 shapes (empty, single, isolates, two components, a
+200-node chain, a 200-node cycle, a dense 40-node graph, parallel edges) and 400 seeded graphs, checked as properties — an
+independent Kahn sort proves phase 1 left no cycle, every effective edge points forward in model order, every node at layer
+`k` has a predecessor at `k - 1`, layers and ranks are dense and in model order, no node lost or duplicated, the same input
+twice is the same output. The suite has teeth by construction: three mutations each fail a different assertion — relaxing
+every edge instead of the longest one ("`n4` sits above `n6`"), a rank off by one ("the rank of `only` is its index"), and
+leaving one backward edge unreversed ("edge 19 is reversed").
+
+The cost (`node test/bench.mjs`, best of five rounds, this machine): over 1000 random graphs of up to 80 nodes — 17 605 nodes
+and 14 846 edges — a layout is 3.9 µs, split 1.2 (`breakCycles`) + 2.2 (`assignLayers`) + 0.9 (`orderNodes`); a 200-node
+chain, the longest layering the node limit allows, is 42 µs and a 200-node cycle 46 µs. That is a round-off inside a click
+handler, and it stays a `bench` script rather than a gate: the number that matters is the comparison with dagre on the same
+graph in `cssints-osne`, not a budget here.
