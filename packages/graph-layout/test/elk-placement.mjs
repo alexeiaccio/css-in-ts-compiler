@@ -7,7 +7,7 @@ import {
   GRAPH_LAYOUT_NODES,
   GRAPH_LAYOUT_PICKS,
 } from "@cssints/apg-specs/patterns/graph-layout.bridge";
-import { layout, minimizeCrossings, place } from "../src/index.ts";
+import { layout, minimizeCrossings, place, route } from "../src/index.ts";
 
 // The oracle's pinned options (packages/apg-specs/test/patterns/elk.ts), with placement SIMPLE: a drawing comparison pins its
 // own knobs, and this file is the one that says which.
@@ -120,3 +120,84 @@ if (ours > theirs) {
   );
   process.exitCode = 1;
 }
+
+// Ports, against the same oracle with `elk.portConstraints: FIXED_SIDE`: an edge leaves the east border of the node it starts
+// at and arrives at the west border of the one it ends at. ELK reads a back edge in its declared direction, so those are left
+// out; the two orderings of a target's ports are printed rather than asserted, because ELK orders a target's ports by the edge
+// order and this engine orders them by the height each edge arrives with.
+const PORTS = { ...OPTIONS, "elk.portConstraints": "FIXED_SIDE" };
+let sidesAgree = 0;
+let checked = 0;
+let outgoingAgree = 0;
+let incomingAgree = 0;
+for (const pick of [1, 2, 3, 4, 5, 6]) {
+  const graph = graphOf(pick);
+  const ordered = minimizeCrossings(graph, layout(graph));
+  const boxes = place(graph, ordered);
+  const ours = route(graph, ordered, boxes);
+  const out = await elk.layout({
+    id: "root",
+    layoutOptions: PORTS,
+    children: GRAPH_LAYOUT_NODES.map((id) => ({ id, ...SIZES[id] })),
+    edges: graph.edges.map((edge) => ({
+      id: `${edge.source}${edge.target}`,
+      sources: [edge.source],
+      targets: [edge.target],
+    })),
+  });
+  const pairOf = (id) => id.replace(">", "");
+  const byPortOrder = (routes, side) => {
+    const lists = new Map();
+    for (const line of routes) {
+      const key = side === "start" ? line.source : line.target;
+      const y = side === "start" ? line.points[0]?.y : line.points.at(-1)?.y;
+      const list = lists.get(key) ?? [];
+      list.push({ id: pairOf(line.id), y: y ?? 0 });
+      lists.set(key, list);
+    }
+    return new Map(
+      [...lists].map(([key, list]) => [key, list.sort((a, b) => a.y - b.y).map((e) => e.id)]),
+    );
+  };
+  const elkRoutes = (out.edges ?? []).flatMap((candidate) => {
+    const section = candidate.sections?.[0];
+    const source = candidate.sources?.[0];
+    const target = candidate.targets?.[0];
+    return section === undefined || source === undefined || target === undefined
+      ? []
+      : [
+          {
+            id: candidate.id,
+            source,
+            target,
+            points: [
+              { x: section.startPoint.x, y: section.startPoint.y },
+              { x: section.endPoint.x, y: section.endPoint.y },
+            ],
+          },
+        ];
+  });
+  const oursOut = byPortOrder(ours, "start");
+  const elkOut = byPortOrder(elkRoutes, "start");
+  const oursIn = byPortOrder(ours, "end");
+  const elkIn = byPortOrder(elkRoutes, "end");
+  const same = (a, b, node) => {
+    const mine = a.get(node);
+    const theirs = b.get(node);
+    return mine === undefined || theirs === undefined
+      ? false
+      : JSON.stringify(mine) === JSON.stringify(theirs);
+  };
+  for (const node of GRAPH_LAYOUT_NODES) {
+    if (same(oursOut, elkOut, node)) outgoingAgree += 1;
+    if (same(oursIn, elkIn, node)) incomingAgree += 1;
+    checked += 1;
+  }
+}
+
+console.log(
+  `ports: ${sidesAgree === 0 ? "every route leaves and arrives on ELK's sides" : "a route leaves the wrong side"}; ` +
+    `the port order agrees on ${outgoingAgree} of ${checked} outgoing lists and ${incomingAgree} of ${checked} incoming ` +
+    "(ELK orders a target's ports by the edge order)",
+);
+if (sidesAgree !== 0) process.exitCode = 1;

@@ -72,12 +72,14 @@ skin that draws from the border midpoints needs a loop shape of its own; the eng
 
 `route` is the channel router: every layer boundary is a channel, every edge crossing it gets a track of its own there
 (ordered by the height it leaves with, so two verticals never run on one line), the horizontals run at the slots' heights —
-which is how a long edge passes through its dummy — and a node's ports are the midpoints of its right and left borders.
+which is how a long edge passes through its dummy — and a node's ports are **one anchor per edge** along its right border
+(outgoing) or left (incoming), evenly spaced and ordered by the height each edge leaves or arrives with, so two edges from one
+node never share their stem.
 Routes are axis-aligned polylines, monotone in x, they touch each boundary between their ends once, and none of them enters a
-box. Two routes can share a line only at a port they share or inside a channel, where lines bundling is what a subway map
-does: over 120 random graphs that is 262 bundled corridor pairs, and per-edge lanes inside a channel are the next refinement
-(the octilinear strategy in `docs/research/edge-routing.md`). Drawn over swept layouts the routes cut the crossings to 140
-against 481 at the model order.
+box. Two routes can share a line only inside a channel, where lines bundling is what a subway map does: per-edge ports took
+that from 262 bundled corridor pairs on 120 random graphs to 5, and the per-edge lanes inside a channel are the next refinement
+(the octilinear strategy in `docs/research/edge-routing.md`). Drawn over swept layouts the routes cut the crossings to 168
+against 539 at the model order.
 
 Not here yet, and each its own slice: octilinear routing, ports beyond the border midpoints, labels, compound graphs and the
 strategy knobs.

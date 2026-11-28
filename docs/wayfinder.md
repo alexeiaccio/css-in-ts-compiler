@@ -6600,3 +6600,22 @@ The check that pays for itself: the property suite now asserts the equality (loo
 routes a loopy shape (four edges, two of them loops) and holds every geometry invariant for the brackets, and the placement
 suite places one. The rest of the deferred bean — ports beyond the midpoints, labels, compound graphs, layer constraints, the
 strategy knobs and the octilinear drawing — is now seven children of `cssints-a65d` rather than one paragraph.
+
+**Ports, and what they cost the corridor (2026-11-28):** the second slice of the deferred epic. `route` no longer starts every
+edge at its source's midpoint: a node's outgoing edges get evenly spaced anchors along its right border, ordered by the height
+each leaves with, and its incoming edges the same along the left, ordered by the height each arrives with — so two edges from one
+node never share their stem. The diamond shows it in three numbers: `a>b` leaves at 26.67 and `a>c` at 33.33 of a 20 px border.
+
+The shared corridors fell from **262 bundled segment pairs to 5** over the 120-graph corpus — only the ones inside a channel
+remain, which is the corridor a subway map would draw once. The drawn crossings moved to 168 against 539 at the model order (69%
+fewer), a little above the 140 of the midpoint ports because the ports now follow the routes' heights rather than the boxes'
+centres.
+
+Against elk-rs with `elk.portConstraints: FIXED_SIDE`: every route leaves and arrives on the modelled side (the east border out,
+the west in), and the side check is part of `test/elk-placement.mjs`. The _order_ of the ports agrees for 13 of 24 outgoing lists
+and 10 of 24 incoming — the deviation is real and stated: ELK orders a target's ports by the edge declaration, this engine orders
+them by the height each edge arrives with, which is what keeps the stems apart.
+
+The browser test that draws a route as an SVG path caught the coordinate precision the DOM keeps (a float32 path point is not the
+float64 the engine computed): the length is compared at three decimals now, and the start point with `toBeCloseTo` instead of an
+exact pair.

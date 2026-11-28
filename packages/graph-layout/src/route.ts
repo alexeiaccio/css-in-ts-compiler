@@ -18,8 +18,9 @@ export interface Route {
 
 /**
  * Orthogonal routes through the placement's channels: every layer boundary gets a channel, each edge crossing it gets its own
- * track there (ordered by the y it leaves with, so two verticals never share a line), and the route crosses each layer in
- * between at its dummy's y — which the placement has already put in a gap between the boxes.
+ * track there (ordered by the y it leaves with, so two verticals never share a line), the route crosses each layer in between
+ * at its dummy's y — which the placement has already put in a gap between the boxes — and a node's ports are one anchor per
+ * edge along the border, ordered by where each edge goes, so two edges from one node never share their stem.
  *
  * @param {Graph} graph the graph the layout and the placement belong to
  * @param {Layout} layout the layout the routes cross
@@ -104,23 +105,60 @@ export const route = (
     });
   }
 
-  const through = chains.map(({ id, source, target, chain }) => {
+  /**
+   * One anchor per edge on a node's border, evenly spaced between the corners and ordered by the height its edges leave
+   * (right) or arrive (left) with; a node with one edge keeps the midpoint.
+   *
+   * @param {ReadonlyArray<{ chain: number; y: number }>} list the node's edges with the height of the other end
+   * @param {string} id the node
+   * @param {number} index the chain whose anchor is wanted
+   * @returns {number} the anchor's y
+   */
+  const anchorOf = (
+    list: ReadonlyArray<{ chain: number; y: number }>,
+    id: string,
+    index: number,
+  ): number => {
+    const sorted = [...list].sort((one, two) => one.y - two.y || one.chain - two.chain);
+    const at = sorted.findIndex((entry) => entry.chain === index);
+    const box = boxOf.get(id);
+    const height = box?.height ?? 0;
+    return (box?.y ?? 0) + (height * (at + 1)) / (sorted.length + 1);
+  };
+  const outgoing = new Map<string, Array<{ chain: number; y: number }>>();
+  const incoming = new Map<string, Array<{ chain: number; y: number }>>();
+  for (const [index, chain] of chains.entries()) {
+    const last = chain.chain.length - 1;
+    const leave = centreOf(chain.chain[1] ?? "");
+    const arrive = centreOf(chain.chain[last - 1] ?? "");
+    const outs = outgoing.get(chain.source) ?? [];
+    outs.push({ chain: index, y: leave });
+    outgoing.set(chain.source, outs);
+    const ins = incoming.get(chain.target) ?? [];
+    ins.push({ chain: index, y: arrive });
+    incoming.set(chain.target, ins);
+  }
+
+  const through = chains.map(({ id, source, target, chain }, index) => {
     const from = layerOf.get(source) ?? 0;
     const to = layerOf.get(target) ?? 0;
     const start = boxOf.get(source);
     const end = boxOf.get(target);
     const startX = start === undefined ? 0 : start.x + start.width;
-    const points: RoutePoint[] = [{ x: startX, y: centreOf(source) }];
-    let y = centreOf(source);
+    const startY = anchorOf(outgoing.get(source) ?? [], source, index);
+    const points: RoutePoint[] = [{ x: startX, y: startY }];
+    let y = startY;
     for (let boundary = from; boundary < to; boundary += 1) {
       const x = tracks.get(`${id}@${boundary}`) ?? channelOf(boundary).start;
       const next =
-        boundary + 1 === to ? centreOf(target) : centreOf(chain[boundary - from + 1] ?? "");
+        boundary + 1 === to
+          ? anchorOf(incoming.get(target) ?? [], target, index)
+          : centreOf(chain[boundary - from + 1] ?? "");
       points.push({ x, y });
       points.push({ x, y: next });
       y = next;
     }
-    points.push({ x: end === undefined ? 0 : end.x, y: centreOf(target) });
+    points.push({ x: end === undefined ? 0 : end.x, y });
     return { id, source, target, points: dedupe(points) };
   });
   return [...through, ...loops];

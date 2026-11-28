@@ -101,15 +101,15 @@ const checkRoutes = (
         `${label}: ${line.id} stays outside its node`,
       );
     } else {
-      assert.deepEqual(
-        first,
-        { x: from.x + from.width, y: from.y + from.height / 2 },
-        `${label}: ${line.id} starts at its source's right port`,
+      assert.equal(first.x, from.x + from.width, `${label}: ${line.id} leaves the right border`);
+      assert.ok(
+        (first.y ?? 0) > from.y && (first.y ?? 0) < from.y + from.height,
+        `${label}: ${line.id} leaves inside the border`,
       );
-      assert.deepEqual(
-        last,
-        { x: to.x, y: to.y + to.height / 2 },
-        `${label}: ${line.id} ends at its target's left port`,
+      assert.equal(last.x, to.x, `${label}: ${line.id} arrives at the left border`);
+      assert.ok(
+        (last.y ?? 0) > to.y && (last.y ?? 0) < to.y + to.height,
+        `${label}: ${line.id} arrives inside the border`,
       );
     }
     for (const point of line.points) {
@@ -188,11 +188,7 @@ const checkRoutes = (
         for (const theirs of segmentsOf(two.points)) {
           const overlap = overlapOf(mine, theirs);
           if (overlap <= 0) continue;
-          const sharedStart =
-            one.points[0]?.x === two.points[0]?.x && one.points[0]?.y === two.points[0]?.y;
-          const sharedEnd =
-            one.points.at(-1)?.x === two.points.at(-1)?.x &&
-            one.points.at(-1)?.y === two.points.at(-1)?.y;
+
           const low = Math.max(
             Math.min(mine.from.x, mine.to.x),
             Math.min(theirs.from.x, theirs.to.x),
@@ -205,8 +201,8 @@ const checkRoutes = (
             (channel) => low >= channel.right && high <= channel.left,
           );
           assert.ok(
-            sharedStart || sharedEnd || inChannel,
-            `${label}: ${one.id} and ${two.id} share a segment outside a port or a channel`,
+            inChannel,
+            `${label}: ${one.id} and ${two.id} share a segment outside a channel`,
           );
           if (inChannel) bundled += 1;
         }

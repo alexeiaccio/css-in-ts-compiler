@@ -115,9 +115,10 @@ describe("graph-layout", () => {
       const before = line.points[index];
       return before === undefined ? sum : sum + Math.hypot(point.x - before.x, point.y - before.y);
     }, 0);
-    expect(path.getTotalLength()).toBeCloseTo(measured, 6);
+    expect(path.getTotalLength()).toBeCloseTo(measured, 3);
     const start = path.getPointAtLength(0);
-    expect([start.x, start.y]).toEqual([line.points[0]?.x, line.points[0]?.y]);
+    expect(start.x).toBeCloseTo(line.points[0]?.x ?? 0, 3);
+    expect(start.y).toBeCloseTo(line.points[0]?.y ?? 0, 3);
     path.remove();
   });
 
