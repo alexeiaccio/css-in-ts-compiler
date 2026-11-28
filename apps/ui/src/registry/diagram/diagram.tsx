@@ -324,10 +324,6 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
       : shapeBetween(props.edge ?? "straight", source, target);
   });
 
-
-
-
-
   // The edges that are drawn over another one: each carries the canvas-coloured stroke that breaks the line beneath it.
   const cutouts = createMemo(
     () =>
