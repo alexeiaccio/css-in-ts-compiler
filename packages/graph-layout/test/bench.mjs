@@ -9,12 +9,17 @@ import {
   layout,
   minimizeCrossings,
   orderSlots,
+  place,
 } from "../src/index.ts";
 import { chain, corpus, cycle } from "./graphs.mjs";
 
 const graphs = corpus(1000);
 const oriented = graphs.map(breakCycles);
 const layered = oriented.map(assignLayers);
+const sized = graphs.map((graph) => ({
+  ...graph,
+  sizes: Object.fromEntries(graph.nodes.map((id) => [id, { width: 40, height: 20 }])),
+}));
 const ordered = graphs.map((graph, index) => orderSlots(oriented[index], layered[index]));
 const swept = graphs.map((graph, index) => minimizeCrossings(graph, ordered[index]));
 
@@ -47,6 +52,7 @@ const phases = [
   ["orderSlots", (index) => orderSlots(oriented[index], layered[index]).slots.length],
   ["layout", (index) => layout(graphs[index]).slots.length],
   ["minimizeCrossings", (index) => minimizeCrossings(graphs[index], ordered[index]).slots.length],
+  ["place", (index) => place(sized[index], swept[index]).length],
 ];
 
 console.log(

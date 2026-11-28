@@ -6530,3 +6530,25 @@ candidate swap, while only the pairs that touch the two swapped slots can change
 The engine now also replays the slots spec's eight scenarios and walks its generated model in Chromium with `slotsDriver`,
 which answers sorted occupants so the comparison is about _which_ nodes and dummies sit in a layer, not the order — the order
 is what the sweep changes. Next: `cssints-xfma`, placement.
+
+**Placement, and why the alignment pass was undoing itself (2026-11-28):** the fifth slice. `place(graph, layout, spacing)` gives
+every slot a box: a layer is a column at its own x, its slots stack with the node spacing, sizes come from `graph.sizes` (a
+node without one is a point), then boxes move toward the median of their neighbours' centres — a pass forward, a pass
+backward, twice — each layer settles onto its neighbours as one piece, and a dummy is put on the straight line between the two
+nodes its edge joins, clamped into the gap of the layer it crosses.
+
+Two things only the measurement showed. The first layer-centring ("shift every layer against the tallest") broke the very
+alignment the passes had just made: pick 1 of the spec's graphs stayed 20 px off, because the layer's median was moved instead
+of its connected box. Settling a layer by the median of its _offsets_ to its neighbours fixed three of the six graphs at once.
+The second: a dummy is not a box to align. Taking dummies out of the alignment and interpolating them between their edge's ends
+made the long edge (pick 4) and the three-cycle (pick 6) perfectly straight — before that, the dummy's own slot position pulled
+the median sideways.
+
+The comparison, against elk-rs with `nodePlacement.strategy: SIMPLE` (the placement that is a function of the input; Brandes-Köpf
+and network simplex return either of two equivalent drawings): columns agree on all six graphs, no box overlaps on either side,
+and the total edge deviation is **80 px for the engine against 102 px for ELK** — five of the six graphs perfectly straight, the
+diamond 80 for both. That is now the test's assertion, and `test/placement.mjs` holds the invariants (no overlaps, the gaps, one
+column per layer, edges left to right, dummies as points in a gap, the same input twice) over 7 shapes and 120 seeded graphs.
+
+Cost: `place` is 31 µs a graph over the 1000-graph corpus, against 8 µs for the layout and 336 µs for the sweep. Next:
+`cssints-i6pb`, routing.

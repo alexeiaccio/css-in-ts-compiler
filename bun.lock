@@ -391,6 +391,7 @@
       "version": "0.48.0",
       "devDependencies": {
         "@cssints/apg-specs": "workspace:*",
+        "@openedges/elk-layout": "0.12.2",
         "@quint-machine/core": "catalog:",
         "@vitest/browser-playwright": "catalog:",
         "effect": "catalog:",

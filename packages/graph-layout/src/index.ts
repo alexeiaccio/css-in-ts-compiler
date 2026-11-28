@@ -21,6 +21,8 @@ export interface Edge {
 export interface Graph {
   readonly nodes: ReadonlyArray<string>;
   readonly edges: ReadonlyArray<Edge>;
+  /** What a node's box reserves; a node without an entry is a point (see {@link place}). */
+  readonly sizes?: Readonly<Record<string, Size>>;
 }
 
 /**
@@ -33,10 +35,11 @@ export interface Layout {
   readonly slots: ReadonlyArray<ReadonlyArray<string>>;
 }
 
+import { dummyId } from "./dummy.ts";
+import type { Size } from "./place.ts";
+
 const positionOf = (nodes: ReadonlyArray<string>): ReadonlyMap<string, number> =>
   new Map(nodes.map((id, position) => [id, position]));
-
-const dummyOf = (edge: Edge, layer: number): string => `${edge.source}>${edge.target}@${layer}`;
 
 const unique = (edges: ReadonlyArray<Edge>): ReadonlyArray<Edge> => {
   const seen = new Set<string>();
@@ -58,7 +61,7 @@ const slotsOf = (graph: Graph, layerOf: ReadonlyMap<string, number>): ReadonlyAr
     const from = layerOf.get(edge.source) ?? 0;
     const to = layerOf.get(edge.target) ?? 0;
     for (let layer = from + 1; layer < to; layer += 1) {
-      slots[layer]?.push(dummyOf(edge, layer));
+      slots[layer]?.push(dummyId(edge, layer));
     }
   }
   return slots;
@@ -152,7 +155,7 @@ const boundaryPairs = (
     if (from === undefined || to === undefined) continue;
     let left = edge.source;
     for (let layer = from; layer < to; layer += 1) {
-      const right = layer + 1 === to ? edge.target : dummyOf(edge, layer + 1);
+      const right = layer + 1 === to ? edge.target : dummyId(edge, layer + 1);
       pairs[layer]?.push([left, right]);
       left = right;
     }
@@ -345,3 +348,6 @@ export const crossings = (graph: Graph, layout: Layout): number => {
   const pairs = boundaryPairs(breakCycles(graph), layout.slots);
   return pairs.reduce((sum, boundary, layer) => sum + inversions(layout.slots, boundary, layer), 0);
 };
+
+export { dummyId } from "./dummy.ts";
+export * from "./place.ts";

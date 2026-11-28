@@ -21,7 +21,7 @@ import scenariosJson from "@cssints/apg-specs/scenarios/patterns/graph-layout.sp
 import slotsScenariosJson from "@cssints/apg-specs/scenarios/patterns/graph-layout-slots.spec.json";
 import { describe, expect, it } from "vite-plus/test";
 
-import { crossings, layout, minimizeCrossings } from "../src/index";
+import { crossings, layout, minimizeCrossings, place } from "../src/index";
 import { engineDriver, slotsDriver } from "./engine-driver";
 
 const model = makeReferenceModel(decodeDefinition(definitionJson));
@@ -45,6 +45,49 @@ describe("graph-layout", () => {
       ranks: { a: 0, b: 0, c: 1, d: 0 },
       slots: [["a"], ["b", "c"], ["d"]],
     });
+  });
+
+  it("places the diamond's boxes in three columns", () => {
+    const sizes = Object.fromEntries(
+      ["a", "b", "c", "d"].map((id) => [id, { width: 40, height: 20 }]),
+    );
+    const diamond = {
+      nodes: ["a", "b", "c", "d"],
+      sizes,
+      edges: [
+        { source: "a", target: "b" },
+        { source: "a", target: "c" },
+        { source: "b", target: "d" },
+        { source: "c", target: "d" },
+      ],
+    };
+    expect(place(diamond, layout(diamond))).toEqual([
+      { id: "a", x: 0, y: 20, width: 40, height: 20 },
+      { id: "b", x: 70, y: 0, width: 40, height: 20 },
+      { id: "c", x: 70, y: 40, width: 40, height: 20 },
+      { id: "d", x: 140, y: 20, width: 40, height: 20 },
+    ]);
+  });
+
+  it("puts a long edge's dummies in the gap of the layers they cross", () => {
+    const sizes = Object.fromEntries(
+      ["a", "b", "c", "d"].map((id) => [id, { width: 40, height: 20 }]),
+    );
+    const long = {
+      nodes: ["a", "b", "c", "d"],
+      sizes,
+      edges: [
+        { source: "a", target: "b" },
+        { source: "b", target: "c" },
+        { source: "c", target: "d" },
+        { source: "a", target: "d" },
+      ],
+    };
+    const boxes = place(long, layout(long));
+    expect(boxes.filter((box) => box.id.includes(">"))).toEqual([
+      { id: "a>d@1", x: 70, y: 40, width: 0, height: 0 },
+      { id: "a>d@2", x: 140, y: 40, width: 0, height: 0 },
+    ]);
   });
 
   it("splices a long edge into a dummy and uncrosses two edges", () => {
