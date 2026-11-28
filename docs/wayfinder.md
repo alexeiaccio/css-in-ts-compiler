@@ -6498,3 +6498,17 @@ the model's domain fails an invariant instead of silently dropping a dummy.
 17 tests for the slice (7 spec-only, 8 elk-rs agreements, a seeded walk, the projection's own test), 1090 in the package; a
 `slotOne` that ignores dummies fails six of them, including the exploration. Next: `cssints-cj4i`, crossing minimization over
 these slots.
+
+**Edges, after the subway map (2026-11-28):** the routing half of the layered-layout epic, from MacWright's thread on his
+diagram tool and the two papers the replies name; written up in `docs/research/edge-routing.md`. The useful sentence is the
+thread's north star — "edge bundling _and_ overlap reduction, ala good subway maps" — because it turns the invariant we had in
+parentheses ("no two routes share a segment, or they are grouped into one and drawn once") into the goal: a corridor two lines
+share is drawn once. His implementation is A\* over a grid, shortest paths first, raising the weight of tiles earlier lines
+touched, reported as "surprisingly great ROI"; that becomes `cssints-i6pb`'s first implementation, with the channel router
+through the dummy slots as what its results are checked against.
+
+Two constraints it put on the type before the type is fixed: metro maps are octilinear — eight directions, Kindermann's
+lecture, NP-hard with bends, angular resolution and edge lengths as the quality — so a route that can only hold axis-aligned
+segments forecloses it; orthogonal stays the first strategy (cheaper collision tests, and the skin's step shapes speak it) and
+octilinear is a second one behind the same polyline. And Nöllenburg & Wolff's mixed-integer program is the quality oracle, not
+a dependency: exact on small instances, and these are diagrams, not transit maps.

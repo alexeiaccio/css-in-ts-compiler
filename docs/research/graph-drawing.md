@@ -67,6 +67,12 @@ flow; a force layout is for exploring a network whose shape nobody knows yet —
 - The catalogue's own frameworks (`G6`, `cytoscape.js`, `echarts`) — they are applications with layout plugins, and their
   layout plugins are the same algorithms as the rows above.
 
+## Edges
+
+Where the lines go is a second literature, and a better picture to aim at than "orthogonal": the metro map. Bundling and
+overlap reduction, eight directions, A\* with per-line weights, and the exact program as a quality oracle are in
+[`edge-routing.md`](edge-routing.md).
+
 ## Sources
 
 - <https://anvaka.github.io/graph-drawing-libraries/> and <https://github.com/anvaka/graph-drawing-libraries> (README, harness
