@@ -19,6 +19,7 @@ placement (straighter drawings than the median sweeps), and spline routing.
 - [x] network simplex: measured against longest path on the corpus (layers, crossings, µs)
 - [x] Brandes–Köpf: measured against the median sweeps (edge deviation, µs)
 - [ ] each strategy that is not a function of the input says so and is compared by its numbers, not by equality
+- [x] spline routing: a third shape behind `route`, the polyline kept and a cubic per bend, measured over the corpus and against ELK's `SPLINES`
 
 ## Summary of Changes
 
@@ -41,10 +42,9 @@ model order and after the sweep, 12 of the 120 graphs shorter. Times over 1 000 
 2.11, `layout` 19.57 against 8.75, the whole pipeline 375.34 against 432.25 (the sweep has 21 fewer dummies on the corpus).
 `test/layering.mjs` carries the invariants for both strategies and both oracles; `test/bench.mjs` the two rows.
 
-Deferred and unticked: Brandes–Köpf placement and spline routing (the bean's other two items), the exact min-cost flow —
+Deferred and unticked at that point: Brandes–Köpf placement and spline routing (the spline landed in the section below), the exact min-cost flow —
 the relaxation is optimal on every graph brute force can enumerate and 2 units of span short of ELK on two of sixty — and
 per-edge weights, which need a `weight` on `Edge` or a second option.
-
 ## Summary of Changes
 
 Brandes–Köpf placement landed behind the same `place`: `place(graph, layout, spacing, { placement: "brandes-kopf" })` runs
@@ -65,3 +65,21 @@ agrees on 12 of the 60), so that oracle compares drawings rather than one algori
 `test/brandes-kopf.mjs` holds both strategies to the placement invariants and prints these numbers; `test/bench.mjs` has the
 `place (brandes-kopf)` row; `packages/graph-layout/README.md` and `docs/wayfinder.md` carry the section; the changeset is
 `.changeset/graph-layout-brandes-kopf.md` (minor). Splines and per-edge weights stay open in this bean.
+
+The spline is a drawing, not a router: `route(..., { shape: "spline" })` keeps the orthogonal route's `points`, ports and
+`borders` and adds `curve`, an SVG path with one cubic per bend. The cubic follows the circular-arc approximation, its control
+points on the two segments at `(4/3) r tan(δ/4)` from the tangent points; its tangent reach is at most half of each adjacent
+segment and its radius at most 8 px, so adjacent bends cannot overlap and the ends stay on the ports. The curve is a function of the
+polyline alone, stays inside its bounding box, and no sampled chord enters a box; the default shape is byte-identical.
+
+Over the 8 shapes and 120 seeded graphs (16 chords per cubic, one per straight segment): 1 232 of 1 232 bends soften (the
+other 498 interior vertices are collinear), the smallest radius is 0.833 px, the drawing is 3.70% shorter (71 229.42 to
+68 591.12 px) and at most 2.34 px from the polyline, and drawn crossings fall from 249 to 237 with one drawing of the 128
+gaining one. Eight directions: 502 bends, 1.29% shorter, 81 to 77 crossings. Sixty clustered graphs: 2 636 bends, 15.41%
+shorter, every port and border unmoved. `route` costs 36.25 → 56.88 µs a graph (`test/bench.mjs`'s `route (spline)` row).
+
+The oracle is elk-rs with `elk.edgeRouting: "SPLINES"` on the specs' six graphs: ELK draws 25 cubic segments for 18 edges,
+this engine 24 fillets; the sampled crossings are 0 against 3. ELK chooses control points in the channel (and can bend into a
+crossing), this smooths the corridor the channel router fixed, so the comparison states the difference instead of scoring it.
+Left for their own slices: a real spline router that searches control points against the boxes, curves for label boxes, and
+the skin that assigns `curve` to a `<path>`.

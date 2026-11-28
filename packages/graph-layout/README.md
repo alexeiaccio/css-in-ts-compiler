@@ -2,8 +2,8 @@
 
 The discrete half of Eclipse Layout Kernel's layered (Sugiyama) pipeline: **cycle breaking by model order, longest-path
 layering, ordering, crossing minimization over the result, placement, orthogonal routing** (four directions by default,
-eight as an option) **and edge labels as slots**. A graph in, boxes, polylines and label bands out — no DOM, no reactivity, no
-dependencies.
+eight as an option, and a spline drawing of the same polyline) **and edge labels as slots**. A graph in, boxes, polylines and
+label bands out — no DOM, no reactivity, no dependencies.
 
 The contract is the Quint specs [`specs/patterns/graph-layout.qnt`](../apg-specs/specs/patterns/graph-layout.qnt),
 [`specs/patterns/graph-layout-slots.qnt`](../apg-specs/specs/patterns/graph-layout-slots.qnt) and
@@ -157,6 +157,23 @@ bundled corridors fall from 5 to 4. On the specs' six graphs six of twelve jogs 
 879 px and no crossing appears. The finding is that eight directions alone do not remove a bend; the A\* over a lattice with
 per-line weights is the step that would, and it is the next slice.
 
+`route(graph, layout, boxes, { shape: "spline" })` keeps every route's `points`, ports and `borders` and adds `curve`: the
+same polyline with every bend rounded, as an SVG `d` a skin assigns to a `<path>` — the consumer needs no serializer of its
+own — while `points` stays what labels, crossings and ports read, which is why the curve is a function of the polyline alone.
+A cubic per bend replaces the corner, its control points on the two segments at `(4/3) r tan(δ/4)` from the tangent points of
+a circular arc; its tangent reach is at most half of each adjacent segment and its radius at most 8 px, so two bends sharing a
+segment cannot overlap and the route's ends do not move.
+
+Over the 8 shapes and 120 seeded graphs (1 232 bends) every bend is softened, the smallest radius is 0.833 px (a 1.7 px
+segment's half) and the cap 8, the drawing is 3.70% shorter (71 229 to 68 591 px) and at most 2.34 px from the polyline, and
+the drawn crossings fall from 249 to 237, one of the 128 drawings gaining one. Sampled with 16 chords per cubic and one per
+straight segment, the polyline's count is its analytic 168 on the corpus, so the two numbers are the same measurement. With
+`directions: 8` the same holds (502 bends, 1.29% shorter, 81 to 77), and over 60 clustered graphs 2 636 bends soften with
+every port and border unmoved. The curve costs `route` 36.25 → 56.88 µs a graph. Against elk-rs with
+`elk.edgeRouting: "SPLINES"` on the specs' six graphs, ELK draws 25 cubic segments for the 18 edges and 3 sampled crossings,
+this engine 24 fillets and 0: ELK chooses its own control points and this rounds the corridor the channel router chose, so
+the drawings differ rather than the numbers being a scoreboard.
+
 `label(graph, layout, boxes, routes, requests, spacing)` is where an edge's word goes. Its x band is the channel of the
 boundary the label sits at — `inset` px inside the previous layer's right border, and short of the next layer's left one, so a
 request wider than the channel is clamped rather than allowed over a box. The boundary is the middle of the ones the route
@@ -204,6 +221,8 @@ Not here yet, and each its own slice: the A\* over a lattice with per-line weigh
 loops inside the channels, a route crossing the same band as a label's box, multi-line labels, compound graphs and the rest of
 the strategy knobs (splines, per-edge weights).
 
+the strategy knobs (Brandes–Köpf placement, per-edge weights).
+
 loops inside the channels, a route crossing the same band as a label's box, multi-line labels, clusters inside clusters, the
 recursive (cluster-as-node) layout, labels on a cluster's border, a crossing minimization that orders a block's inside against
 the other clusters, and the strategy knobs.
@@ -230,7 +249,11 @@ clusters removed routing by the flat contract; `test/elk-compound.mjs` is the el
 `test/octilinear.mjs` runs the same shapes and corpus through `directions: 8` and asserts what the eight directions promise:
 every segment is horizontal, vertical or exactly 45°, a route never goes back, it crosses each boundary between its ends once,
 no segment enters a box, a port is one anchor and each route leaves and arrives horizontally — and every diagonal replaces a
-vertical with the bend count unchanged. `test/labels.mjs` holds the labels' contract over the same shapes and corpus: one slot per
+vertical with the bend count unchanged. `test/splines.mjs` holds the spline drawing's contract over the shapes, the corpus,
+the eight-direction set and 60 clustered graphs: the points, ports and borders unchanged, one curve per route (loops
+included), the curve's ends exactly at the polyline's, every bend and only a bend rounded, the 8 px and half-segment bounds,
+no sampled chord in a box, the samples monotone in x, the curve no longer than the polyline — then the length, deviation and
+crossing numbers above, and elk-rs with `SPLINES` on the six graphs. `test/labels.mjs` holds the labels' contract over the same shapes and corpus: one slot per
 requested route in route order, the box inside its channel, no two labels overlapping, no label over a node's box, the ideal y
 never moved up, the order at a boundary the routes' own, a request wider than the channel clamped, a loop's slot beside its
 bracket, and the same graph labelled the same way twice — then the greedy first-fit's numbers above.

@@ -23,11 +23,21 @@ export interface Route {
   readonly points: ReadonlyArray<RoutePoint>;
   /** Where the route crosses a cluster's border: one port per cluster it enters or leaves, absent with no clusters. */
   readonly borders?: ReadonlyArray<BorderPort>;
+  /**
+   * The drawing with a spline's shape: an SVG path, one line and one cubic per softened corner of {@link points}, from the
+   * same first point to the same last one. Absent unless `shape` is `"spline"`; the polyline stays the route's geometry.
+   */
+  readonly curve?: string;
 }
 
 /** The set of directions a route's segments may take: `4` is orthogonal, `8` adds the two diagonals (octilinear). */
 export interface RouteOptions {
   readonly directions?: 4 | 8;
+  /**
+   * What a skin draws: `polyline` is {@link Route.points} alone, `spline` adds {@link Route.curve}, the same polyline with
+   * every corner rounded, `polyline` when absent.
+   */
+  readonly shape?: "polyline" | "spline";
   /** The space a cluster's box keeps around its members, 12 by default: the border a port sits on is grown by it. */
   readonly clusterPadding?: number;
 }
@@ -97,6 +107,7 @@ export const route = (
   options: RouteOptions = {},
 ): ReadonlyArray<Route> => {
   const octilinear = (options.directions ?? 4) === 8;
+  const spline = options.shape === "spline";
   const layerOf = new Map<string, number>();
   layout.slots.forEach((ids, layer) => ids.forEach((id) => layerOf.set(id, layer)));
   const boxOf = new Map(boxes.map((box) => [box.id, box]));
@@ -127,7 +138,7 @@ export const route = (
     if (first === last) {
       if (edge.source !== edge.target || seen.has(`${edge.source}>${edge.target}`)) continue;
       seen.add(`${edge.source}>${edge.target}`);
-      loops.push(loopOf(edge.source, boxOf.get(edge.source)));
+      loops.push(loopOf(edge.source, boxOf.get(edge.source), spline));
       continue;
     }
     const source = first < last ? edge.source : edge.target;
@@ -278,6 +289,7 @@ export const route = (
       source,
       target,
       points: crossed,
+      ...(spline ? { curve: curveOf(crossed) } : {}),
       ...(borders.length === 0 ? {} : { borders }),
     };
   });
@@ -476,20 +488,88 @@ const crossing = (
 const LOOP_OUT = 16;
 const LOOP_HALF = 6;
 
-const loopOf = (id: string, box: Placement | undefined): Route => {
+const loopOf = (id: string, box: Placement | undefined, spline: boolean): Route => {
   const x = box === undefined ? 0 : box.x + box.width;
   const y = box === undefined ? 0 : box.y + box.height / 2;
+  const points = [
+    { x, y: y - LOOP_HALF },
+    { x: x + LOOP_OUT, y: y - LOOP_HALF },
+    { x: x + LOOP_OUT, y: y + LOOP_HALF },
+    { x, y: y + LOOP_HALF },
+  ].map((point) => ({ ...point }));
   return {
     id: `${id}>${id}`,
     source: id,
     target: id,
-    points: [
-      { x, y: y - LOOP_HALF },
-      { x: x + LOOP_OUT, y: y - LOOP_HALF },
-      { x: x + LOOP_OUT, y: y + LOOP_HALF },
-      { x, y: y + LOOP_HALF },
-    ].map((point) => ({ ...point })),
+    points,
+    ...(spline ? { curve: curveOf(points) } : {}),
   };
+};
+
+const CORNER_RADIUS = 8;
+
+interface Fillet {
+  readonly start: RoutePoint;
+  readonly one: RoutePoint;
+  readonly two: RoutePoint;
+  readonly end: RoutePoint;
+}
+
+const filletOf = (
+  before: RoutePoint,
+  corner: RoutePoint,
+  after: RoutePoint,
+): Fillet | undefined => {
+  const inX = corner.x - before.x;
+  const inY = corner.y - before.y;
+  const outX = after.x - corner.x;
+  const outY = after.y - corner.y;
+  const inLength = Math.hypot(inX, inY);
+  const outLength = Math.hypot(outX, outY);
+  if (inLength === 0 || outLength === 0) return undefined;
+  const cosine = (inX * outX + inY * outY) / (inLength * outLength);
+  const turn = Math.acos(Math.min(1, Math.max(-1, cosine)));
+  if (!(turn > 1e-6 && turn < Math.PI - 1e-6)) return undefined;
+  const half = Math.tan(turn / 2);
+  const radius = Math.min(CORNER_RADIUS, inLength / 2 / half, outLength / 2 / half);
+  const reach = radius * half;
+  const pull = (4 / 3) * radius * Math.tan(turn / 4);
+  const start = { x: corner.x - (reach / inLength) * inX, y: corner.y - (reach / inLength) * inY };
+  const end = {
+    x: corner.x + (reach / outLength) * outX,
+    y: corner.y + (reach / outLength) * outY,
+  };
+  return {
+    start,
+    one: { x: start.x + (pull / inLength) * inX, y: start.y + (pull / inLength) * inY },
+    two: { x: end.x - (pull / outLength) * outX, y: end.y - (pull / outLength) * outY },
+    end,
+  };
+};
+
+const curveOf = (points: ReadonlyArray<RoutePoint>): string => {
+  const first = points[0];
+  const last = points.at(-1);
+  if (first === undefined || last === undefined) return "";
+  const parts = [`M ${first.x} ${first.y}`];
+  let at = first;
+  for (let index = 1; index + 1 < points.length; index += 1) {
+    const before = points[index - 1];
+    const corner = points[index];
+    const after = points[index + 1];
+    if (before === undefined || corner === undefined || after === undefined) continue;
+    const fillet = filletOf(before, corner, after);
+    if (fillet === undefined) continue;
+    if (fillet.start.x !== at.x || fillet.start.y !== at.y) {
+      parts.push(`L ${fillet.start.x} ${fillet.start.y}`);
+    }
+    parts.push(
+      `C ${fillet.one.x} ${fillet.one.y} ${fillet.two.x} ${fillet.two.y} ${fillet.end.x} ${fillet.end.y}`,
+    );
+    at = fillet.end;
+  }
+  parts.push(`L ${last.x} ${last.y}`);
+  return parts.join(" ");
 };
 
 const dedupe = (points: ReadonlyArray<RoutePoint>): ReadonlyArray<RoutePoint> =>

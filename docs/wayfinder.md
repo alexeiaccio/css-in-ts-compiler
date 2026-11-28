@@ -6804,7 +6804,6 @@ right to left), the boxes agree on the two-cluster fixture (ours 134×44, ELK 13
 three-cluster fixture are 2 against ELK's 6. Left for their own slices: clusters inside clusters, the recursive reading, labels
 on a cluster's border, a crossing minimization that orders a block's inside against the clustering, and a long edge over a
 foreign cluster's box, which crosses it twice and gets no port.
-
 **Brandes–Köpf placement, and what the balance costs (2026-11-28):** the strategy bean's middle item, behind the same `place`:
 `place(graph, layout, spacing, { placement: "brandes-kopf" })`, with `"median"` the default and byte-identical (the placement,
 routing, label and cluster suites print their old numbers). The algorithm is the paper's, on the y coordinate: a vertical
@@ -6840,3 +6839,28 @@ and on two hand-built shapes, so the default stays the strategy the spec oracle 
 (another agent's item in this bean), per-edge weights, which the deviation would need a `weight` on `Edge` to express, a
 cluster-aware alignment (the containment is a post-pass on whatever either strategy drew, not an input to the alignment), and
 the exact ELK tie-breaks and post-compaction, whose difference the oracle above isolates to 15 % on the corpus.
+
+**A spline is a rounded polyline (2026-11-28):** the third knob of `cssints-6ysl`, read as a drawing rather than a router:
+`route(graph, layout, boxes, { shape: "spline" })` keeps every route's `points`, ports and `borders` exactly as the
+orthogonal router made them and adds `curve`, an SVG path a skin puts on a `<path>` with no serializer of its own — labels,
+crossings and the ports keep reading the polyline, which is why the curve is a function of the polyline alone. A cubic
+replaces each bend, its control points on the two segments at `(4/3) r tan(δ/4)` from the tangent points of a circular arc;
+its tangent reach is at most half of each adjacent segment and its radius at most 8 px, so two bends sharing a segment cannot
+overlap and the route's ends do not move. The curve never leaves the polyline's bounding box and no sampled chord enters a node's box.
+
+The numbers, over the 8 shapes and 120 seeded graphs with 16 chords per cubic and one chord per straight segment: 1 232 of
+1 232 bends soften (the other 498 interior vertices are collinear), the smallest radius is 0.833 px and the cap 8, the
+drawing is 3.70% shorter (71 229 to 68 591 px) and at most 2.34 px from the polyline, and the drawn crossings fall from 249
+to 237, exactly one of the 128 drawings gaining one. The polyline's sampled count is its analytic 168 on the corpus, so the
+two numbers are the same measurement rather than two counters. Eight directions behaves the same (502 bends, 1.29% shorter,
+81 to 77), and 60 clustered graphs soften 2 636 bends with every port and border unmoved. The curve costs `route` 36.25 →
+56.88 µs a graph, about 1.4 µs a corner.
+
+The oracle is elk-rs with `elk.edgeRouting: "SPLINES"` on the specs' six graphs: ELK emits 25 cubic segments for the 18 edges
+— every edge is at least one cubic, the long `a>d` five — and its sampled drawing crosses 3 times; this engine emits 24
+fillets, one per corner of the orthogonal corridor, and crosses 0. That is not the same algorithm: ELK's spline router chooses
+its own control points in the channel, which is how it can remove a bend and how it can bend into a crossing, while this
+smooths a corridor the channel router already fixed. What is left for a real spline router is that search — control points
+chosen against the boxes, not the polyline — plus curves for label boxes and a skin that draws `curve`. The gain here is in
+length and crossings, not in fewer bends, and the negative finding is recorded as such: a rounded corner can cross a line its
+polyline did not, and one drawing of the 128 does.

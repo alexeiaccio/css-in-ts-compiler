@@ -74,6 +74,10 @@ const phases = [
     (index) => route(sized[index], swept[index], placed[index], { directions: 8 }).length,
   ],
   [
+    "route (spline)",
+    (index) => route(sized[index], swept[index], placed[index], { shape: "spline" }).length,
+  ],
+  [
     "label",
     (index) => label(sized[index], swept[index], placed[index], routed[index], asked[index]).length,
   ],
