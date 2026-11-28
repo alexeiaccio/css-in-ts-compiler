@@ -57,9 +57,6 @@ export interface DiagramProps {
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 44;
 
-/** How far a press must move before it is a drag that makes a link, rather than a click that activates a node. */
-const DRAG_THRESHOLD = 6;
-
 interface RoutedEdge {
   readonly edge: DiagramEdgeInput;
   readonly route: PathRoute;
@@ -213,14 +210,6 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
     },
   });
 
-  // A pointer drag is the second way to make a link: a press is a click until it has moved DRAG_THRESHOLD px, and only
-  // then does the primitive learn about it, so a click still activates the node.
-  let press:
-    | { readonly id: string; readonly x: number; readonly y: number; moved: boolean }
-    | undefined;
-  let suppressClick = false;
-  const [pointer, setPointer] = createSignal<{ readonly x: number; readonly y: number }>();
-
   // the ids the edges name, and the frame the nodes fill
   const byId = createMemo(() => new Map(nodes().map((node) => [node.id, node])));
   const bounds = createMemo(() =>
@@ -312,65 +301,32 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
       return route === undefined ? [] : [{ edge, route }];
     });
   });
-  // The link being made, from the node it leaves to the node the tab stop is on, or to the pointer while one is dragged.
+  // The link being made, from the node it leaves to the node the tab stop is on, or to the landing the pointer's drag
+  // reports. Both halves are the primitive's state; the skin draws the line they describe.
   const pendingRoute = createMemo<PathRoute | undefined>(() => {
     const from = diagram.connectFrom();
     const source = from === undefined ? undefined : byId().get(from);
     if (source === undefined) {
       return undefined;
     }
-    const at = pointer();
-    if (at === undefined && diagram.active() === from) {
+    const linking = diagram.linking();
+    if (linking === undefined && diagram.active() === from) {
       return undefined;
     }
     const target =
-      at === undefined
+      linking === undefined
         ? byId().get(diagram.active() ?? "")
-        : { x: at.x, y: at.y, width: 0, height: 0 };
+        : linking.to === undefined
+          ? { x: linking.point.x, y: linking.point.y, width: 0, height: 0 }
+          : byId().get(linking.to);
     return target === undefined
       ? undefined
       : shapeBetween(props.edge ?? "straight", source, target);
   });
 
-  const local = (event: PointerEvent, frame: Element): { x: number; y: number } => {
-    const box = frame.getBoundingClientRect();
-    return { x: event.clientX - box.left, y: event.clientY - box.top };
-  };
 
-  const pointerDown = (event: PointerEvent, id: string): void => {
-    suppressClick = false;
-    press = { id, x: event.clientX, y: event.clientY, moved: false };
-  };
 
-  const pointerMove = (event: PointerEvent): void => {
-    if (press === undefined) {
-      return;
-    }
-    if (!press.moved) {
-      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < DRAG_THRESHOLD) {
-        return;
-      }
-      press.moved = true;
-      diagram.startConnect(press.id);
-    }
-    setPointer(local(event, event.currentTarget as Element));
-  };
 
-  const pointerUp = (event: PointerEvent): void => {
-    const moved = press?.moved === true;
-    press = undefined;
-    setPointer(undefined);
-    if (!moved) {
-      return;
-    }
-    // the release is over the target, so the click that follows a drag is not an activation
-    suppressClick = true;
-    const element = event.target instanceof Element ? event.target.closest("[data-node]") : null;
-    const to = element instanceof HTMLElement ? element.dataset.node : undefined;
-    if (to === undefined || !diagram.connectTo(to)) {
-      diagram.cancelConnect();
-    }
-  };
 
   // The edges that are drawn over another one: each carries the canvas-coloured stroke that breaks the line beneath it.
   const cutouts = createMemo(
@@ -396,10 +352,9 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
       class={css.cn(rootClass, props.class)}
     >
       <div
+        {...diagram.frameProps}
         data-part="diagram-frame"
         class={frameClass}
-        onPointerMove={pointerMove}
-        onPointerUp={pointerUp}
         style={{ width: `${bounds().width}px`, height: `${bounds().height}px` }}
       >
         <svg
@@ -445,17 +400,7 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
             <button
               type="button"
               {...diagram.nodeProps(node.id)}
-              onClick={(event) => {
-                if (suppressClick) {
-                  suppressClick = false;
-                  event.preventDefault();
-                  return;
-                }
-                diagram.nodeProps(node.id).onClick();
-              }}
-              onPointerDown={(event) => pointerDown(event, node.id)}
               data-part="diagram-node"
-              data-node={node.id}
               class={nodeClass}
               style={{
                 left: `${node.x}px`,

@@ -88,6 +88,12 @@ export interface DiagramOptions {
    * reader can pick another target; the live region says the pair is not allowed.
    */
   readonly canConnect?: ((from: string, to: string) => boolean) | undefined;
+  /**
+   * How far, in screen px, a press must travel before it is a drag rather than
+   * a click. Default 4: the pointer machine's `DRAG_PX` (`pointer.qnt`), so a
+   * pointer drag has one threshold in the kit and not one per skin.
+   */
+  readonly dragThreshold?: number | undefined;
   readonly labels?: DiagramLabels | undefined;
   /**
    * Base for the nodes' element ids (`<id>-node-<node id>`), which is how a
@@ -100,15 +106,45 @@ export interface DiagramOptions {
 /** Spread onto the element that draws one node. */
 export interface DiagramNodeProps {
   readonly "data-part": string;
+  /** The node's id, for a hit test: the pointer drag finds the node it lands on by this attribute. */
+  readonly "data-node": string;
   /** The element id a keyboard move focuses; set it by spreading, never by hand. */
   readonly id: string;
   readonly role: "button";
   readonly "aria-roledescription": "node";
   readonly "aria-label": string;
   readonly tabindex: 0 | -1;
+  /** Whether a release would make the pending link to this node; absent when no link is pending. */
+  readonly "data-link-target"?: "allowed" | "blocked" | undefined;
   readonly onFocus: () => void;
   readonly onClick: () => void;
   readonly onKeyDown: (event: KeyboardEvent) => void;
+  /** Starts the pointer half of a link; the frame's `frameProps` end it. */
+  readonly onPointerDown: (event: PointerEvent) => void;
+}
+
+/**
+ * Spread onto the element that draws the nodes: it hears the moves and the release a pointer drag that started on a
+ * node sends, and it is the frame the pointer is measured in.
+ */
+export interface DiagramFrameProps {
+  readonly "data-part": "frame";
+  readonly ref: (element: Element | undefined) => void;
+  readonly onPointerMove: (event: PointerEvent) => void;
+  readonly onPointerUp: (event: PointerEvent) => void;
+  readonly onPointerCancel: (event: PointerEvent) => void;
+  readonly onLostPointerCapture: (event: PointerEvent) => void;
+}
+
+/**
+ * The link a pointer release would make right now — the declarative half of a drag: the source, the pointer in diagram
+ * px, the node it is over when it is over one, and whether a release would make that edge.
+ */
+export interface DiagramLinking {
+  readonly from: string;
+  readonly point: { readonly x: number; readonly y: number };
+  readonly to?: string | undefined;
+  readonly allowed: boolean;
 }
 
 /** Spread onto the element that draws one edge. */
@@ -142,6 +178,12 @@ export interface DiagramFocus {
   /** What a polite live region says now; empty while the diagram is empty. */
   readonly status: Accessor<string>;
   readonly statusProps: DiagramStatusProps;
+  readonly frameProps: DiagramFrameProps;
+  /**
+   * The link a pointer drag would make now: absent until the press has travelled `dragThreshold`, and undefined again
+   * once it is released. The keyboard's pending link is `connectFrom`, not this.
+   */
+  readonly linking: Accessor<DiagramLinking | undefined>;
   /** The node a link is being made from, or `undefined` when no link is pending. */
   readonly connectFrom: Accessor<string | undefined>;
   /** Start a link from `id`, or from the active node when it is left out. A node that does not exist is a no-op. */
@@ -329,6 +371,112 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
   const allowed = (from: string, to: string): boolean =>
     to !== from && nodeOf(to) !== undefined && (options.canConnect?.(from, to) ?? true);
 
+  const threshold = options.dragThreshold ?? 4;
+  let frame: Element | undefined;
+  let press: { id: string; x: number; y: number; moved: boolean } | undefined;
+  let suppressClick = false;
+  const [landing, setLanding] = createSignal<
+    { x: number; y: number; to: string | undefined } | undefined
+  >();
+
+  /** The node under a screen point: the element the host marked with `data-node`, nowhere a node is not drawn. */
+  const nodeAt = (clientX: number, clientY: number): string | undefined => {
+    if (typeof document === "undefined") {
+      return undefined;
+    }
+    const element = document.elementFromPoint(clientX, clientY);
+    const node = element?.closest("[data-node]");
+    const id = node instanceof HTMLElement ? node.dataset.node : undefined;
+    return id !== undefined && nodeOf(id) !== undefined ? id : undefined;
+  };
+
+  const pointOf = (event: PointerEvent): { x: number; y: number } => {
+    const rect = frame?.getBoundingClientRect();
+    return { x: event.clientX - (rect?.left ?? 0), y: event.clientY - (rect?.top ?? 0) };
+  };
+
+  const pointerDown = (event: PointerEvent, id: string): void => {
+    if (event.button !== 0 || nodeOf(id) === undefined) {
+      return;
+    }
+    press = { id, x: event.clientX, y: event.clientY, moved: false };
+    suppressClick = false;
+    try {
+      if (event.currentTarget instanceof Element) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+    } catch {
+      return;
+    }
+  };
+
+  const pointerMove = (event: PointerEvent): void => {
+    if (press === undefined) {
+      return;
+    }
+    if (!press.moved) {
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < threshold) {
+        return;
+      }
+      press.moved = true;
+      startConnect(press.id);
+    }
+    const point = pointOf(event);
+    setLanding({ ...point, to: nodeAt(event.clientX, event.clientY) });
+  };
+
+  const endPress = (): boolean => {
+    const moved = press?.moved === true;
+    press = undefined;
+    setLanding(undefined);
+    return moved;
+  };
+
+  const pointerUp = (event: PointerEvent): void => {
+    const source = press?.id;
+    if (!endPress() || source === undefined) {
+      return;
+    }
+    suppressClick = true;
+    const to = nodeAt(event.clientX, event.clientY);
+    if (to === undefined || !join(source, to)) {
+      cancelConnect();
+    }
+  };
+
+  const pointerCancel = (): void => {
+    if (endPress()) {
+      suppressClick = true;
+    }
+    cancelConnect();
+  };
+
+  const frameProps: DiagramFrameProps = {
+    "data-part": "frame",
+    ref: (element) => {
+      frame = element ?? undefined;
+    },
+    onPointerMove: pointerMove,
+    onPointerUp: pointerUp,
+    onPointerCancel: pointerCancel,
+    onLostPointerCapture: pointerCancel,
+  };
+
+  const linking = (): DiagramLinking | undefined => {
+    const from = connectFrom();
+    const at = landing();
+    if (from === undefined || at === undefined) {
+      return undefined;
+    }
+    const to = at.to;
+    return {
+      from,
+      point: { x: at.x, y: at.y },
+      ...(to === undefined ? {} : { to }),
+      allowed: to !== undefined && allowed(from, to),
+    };
+  };
+
   const edgesNoun = (): string => options.labels?.edges ?? "edges";
 
   const nodeSentence = (id: string): string => {
@@ -426,14 +574,18 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
     setPending(undefined);
   };
 
-  const connectTo = (id: string): boolean => {
-    const from = connectFrom();
-    if (from === undefined || !allowed(from, id)) {
+  const join = (from: string, to: string): boolean => {
+    if (!allowed(from, to)) {
       return false;
     }
     setPending(undefined);
-    options.onConnect?.(from, id);
+    options.onConnect?.(from, to);
     return true;
+  };
+
+  const connectTo = (id: string): boolean => {
+    const from = connectFrom();
+    return from === undefined ? false : join(from, id);
   };
 
   const keyDown = (id: string, event: KeyboardEvent): void => {
@@ -532,6 +684,7 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
       if (node === undefined) {
         return {
           "data-part": "node",
+          "data-node": id,
           id: elementId(id),
           role: "button",
           "aria-roledescription": "node",
@@ -540,23 +693,34 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
           onFocus: () => {},
           onClick: () => {},
           onKeyDown: () => {},
+          onPointerDown: () => {},
         };
       }
+      const from = connectFrom();
+      const target =
+        from === undefined || from === id ? undefined : allowed(from, id) ? "allowed" : "blocked";
       return {
         "data-part": "node",
+        "data-node": id,
         id: elementId(id),
         role: "button",
         "aria-roledescription": "node",
         "aria-label": node.label,
         tabindex: active() === id ? 0 : -1,
+        "data-link-target": target,
         onFocus: () => {
           setStored(id);
           setCursor(-1);
         },
         onClick: () => {
+          if (suppressClick) {
+            suppressClick = false;
+            return;
+          }
           options.onActivate?.(id);
         },
         onKeyDown: (event) => keyDown(id, event),
+        onPointerDown: (event) => pointerDown(event, id),
       };
     },
     edgeProps: (id) => {
@@ -577,15 +741,21 @@ export const createDiagramFocus = (options: DiagramOptions): DiagramFocus => {
         "aria-label": edge.label === undefined ? name : `${edge.label}: ${name}`,
         tabindex: -1,
         onClick: () => {
+          if (suppressClick) {
+            suppressClick = false;
+            return;
+          }
           options.onEdgeActivate?.(id);
         },
       };
     },
+    frameProps,
     edgesOf,
     edgeCursor,
     setEdgeCursor,
     status,
     statusProps: { "data-part": "status", role: "status", "aria-live": "polite" },
+    linking,
     connectFrom,
     startConnect,
     cancelConnect,

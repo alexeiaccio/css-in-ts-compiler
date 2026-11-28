@@ -16,6 +16,7 @@ interface Mounted {
   readonly node: (id: string) => HTMLButtonElement;
   readonly edge: (id: string) => HTMLButtonElement;
   readonly status: () => HTMLElement;
+  readonly frame: () => HTMLElement;
   /** Every rendered node with `tabindex="0"`; a roving tab stop means at most one. */
   readonly tabStops: () => HTMLButtonElement[];
 }
@@ -77,10 +78,10 @@ const mount = (options: {
     return (
       <div data-part="diagram">
         <p {...diagram.statusProps}>{diagram.status()}</p>
-        <div data-part="nodes">
+        <div {...diagram.frameProps} data-part="nodes">
           <For each={options.nodes}>
             {(node) => (
-              <button type="button" data-node={node.id} {...diagram.nodeProps(node.id)}>
+              <button type="button" {...diagram.nodeProps(node.id)}>
                 {node.label}
               </button>
             )}
@@ -130,6 +131,7 @@ const mount = (options: {
     node,
     edge,
     status: () => part('[data-part="status"]'),
+    frame: () => part('[data-part="nodes"]'),
     tabStops: () =>
       Array.from(root.querySelectorAll<HTMLButtonElement>('[data-node][tabindex="0"]')),
   };
@@ -534,5 +536,121 @@ describe("createDiagramFocus: making an edge", () => {
     api.cancelConnect();
     await settled();
     expect(api.connectFrom()).toBeUndefined();
+  });
+});
+
+describe("the pointer half of a link", () => {
+  /** The events a browser sends, without an active pointer for `setPointerCapture` to take. */
+  const pointer = (target: Element, type: string, at: { x: number; y: number }): void => {
+    target.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: at.x,
+        clientY: at.y,
+        button: 0,
+        pointerId: 1,
+      }),
+    );
+  };
+  const centre = (element: Element): { x: number; y: number } => {
+    const rect = element.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  };
+
+  it("starts nothing under the threshold and names the landing past it", async () => {
+    const { api, node } = mount({ nodes: GRID, edges: [] });
+    await settled();
+    const from = centre(node("a1"));
+    const onB = centre(node("b1"));
+
+    pointer(node("a1"), "pointerdown", from);
+    pointer(node("a1"), "pointermove", { x: from.x + 2, y: from.y });
+    await settled();
+    expect(api.connectFrom()).toBeUndefined();
+    expect(api.linking()).toBeUndefined();
+    pointer(node("a1"), "pointerup", { x: from.x + 2, y: from.y });
+    await settled();
+    expect(api.connectFrom()).toBeUndefined();
+
+    pointer(node("a1"), "pointerdown", from);
+    pointer(node("a1"), "pointermove", onB);
+    await settled();
+    expect(api.connectFrom()).toBe("a1");
+    const linking = api.linking();
+    expect(linking?.from).toBe("a1");
+    expect(linking?.to).toBe("b1");
+    expect(linking?.allowed).toBe(true);
+    expect(typeof linking?.point.x).toBe("number");
+  });
+
+  it("connects on release over a node, and the click after the drag activates nothing", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { api, node, activated } = mount({ nodes: GRID, edges: [], connected });
+    await settled();
+    const from = centre(node("a1"));
+    const onB = centre(node("b1"));
+
+    pointer(node("a1"), "pointerdown", from);
+    pointer(node("a1"), "pointermove", onB);
+    pointer(node("a1"), "pointerup", onB);
+    await settled();
+    expect(connected).toEqual([["a1", "b1"]]);
+    expect(api.connectFrom()).toBeUndefined();
+    expect(api.linking()).toBeUndefined();
+
+    node("b1").click();
+    await settled();
+    expect(activated).toEqual([]);
+    node("b1").click();
+    await settled();
+    expect(activated).toEqual(["b1"]);
+  });
+
+  it("cancels on a refused target and on a lost pointer", async () => {
+    const connected: Array<readonly [string, string]> = [];
+    const { api, node } = mount({
+      nodes: GRID,
+      edges: [],
+      connected,
+      canConnect: (_from, to) => to !== "b1",
+    });
+    await settled();
+    const from = centre(node("a1"));
+    const onB = centre(node("b1"));
+
+    pointer(node("a1"), "pointerdown", from);
+    pointer(node("a1"), "pointermove", onB);
+    await settled();
+    expect(api.linking()?.allowed).toBe(false);
+    pointer(node("a1"), "pointerup", onB);
+    await settled();
+    expect(connected).toEqual([]);
+    expect(api.connectFrom()).toBeUndefined();
+
+    pointer(node("a1"), "pointerdown", from);
+    pointer(node("a1"), "pointermove", centre(node("c1")));
+    await settled();
+    expect(api.connectFrom()).toBe("a1");
+    pointer(node("a1"), "pointercancel", centre(node("c1")));
+    await settled();
+    expect(api.connectFrom()).toBeUndefined();
+    expect(api.linking()).toBeUndefined();
+  });
+
+  it("declares the reachable targets as attributes while a link is pending", async () => {
+    const { api, node } = mount({
+      nodes: GRID,
+      edges: [],
+      canConnect: (_from, to) => to !== "b1",
+    });
+    await settled();
+    expect(node("b1").getAttribute("data-link-target")).toBeNull();
+
+    api.startConnect("a1");
+    await settled();
+    expect(node("a1").getAttribute("data-link-target")).toBeNull();
+    expect(node("b1").getAttribute("data-link-target")).toBe("blocked");
+    expect(node("c1").getAttribute("data-link-target")).toBe("allowed");
   });
 });

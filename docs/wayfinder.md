@@ -6906,3 +6906,23 @@ external rather than copied, because it is atproto authorisation and nothing her
 are fixed: the popover spec's `docs/research/apg-platform-features.md` is `packages/headless/docs/`, and the compositions note's
 `references-2026-10.md §6` now says whose it is. Re-running the audit over `docs packages apps` leaves only references that
 name their repository in the text.
+
+**The diagram's drag becomes the primitive's, and declares its reachable targets (2026-11-28):** the last drag in the kit that
+was plumbing in a skin. `createDiagramFocus` now takes `frameProps` (moves, release, cancel, lost capture) and starts a press
+from `nodeProps.onPointerDown`; it captures the pointer itself (in a `try`, because a synthetic pointer is not an active one),
+treats a press under 4 px as a click and one past it as a link, commits on a release over a node and cancels on nothing, on a
+refused target, `pointercancel` or a lost capture. Four px is not a new number: it is the pointer machine's `DRAG_PX`, so the
+skin's 6 is gone and one gesture has one threshold.
+
+The declarative half is what the Dragology note (`cssints-2cxd`) said was already data here and was not: `linking()` reports
+`{ from, point, to?, allowed }` while a drag runs — the prediction a release would commit — and every other node carries
+`data-link-target="allowed" | "blocked"` while a link is pending, so a skin styles the reachable set the primitive declares
+instead of re-deriving it. The preview line and the committed edge stay one call to `shapeBetween`, so what the drag shows is
+what the release draws.
+
+One bug the tests found, worth the sentence: in Solid 2 a signal written and read in the same task can read stale, so a move
+and a release dispatched in one task dropped the edge (`connectFrom()` was still empty at the release). The pointer's commit
+now carries its own source — `join(press.id, target)` — rather than re-reading the pending signal, which is stricter than the
+browser needs and exact in a test. Tests: `packages/headless` 1 513 (four new: the threshold, the release and the click after
+it, a refused target and a lost pointer, the declared attributes), `apps/ui`'s diagram 31 unchanged, and the skin lost its
+`DRAG_THRESHOLD` and its pointer handlers.
