@@ -6,6 +6,7 @@ import { createSignal } from "solid-js";
 
 import type { Meta, Story } from "@cssints/stories";
 import { Diagram, type DiagramEdgeInput, type DiagramNodeInput } from "./diagram.tsx";
+import { DiagramStarter } from "./starter.tsx";
 
 const NODES: ReadonlyArray<DiagramNodeInput> = [
   { id: "cart", label: "Cart", x: 0, y: 24, width: 128, height: 48 },
@@ -21,6 +22,9 @@ const EDGES: ReadonlyArray<DiagramEdgeInput> = [
   { id: "refund", from: "paid", to: "refunded", label: "refund" },
   { id: "resend", from: "refunded", to: "shipped", label: "resend" },
 ];
+
+/** The starter's flow: the payment graph without `refunded -> shipped`, the one edge that points back. */
+const STARTER_EDGES = EDGES.filter((edge) => edge.id !== "resend");
 
 const labelOf = (id: string): string => NODES.find((node) => node.id === id)?.label ?? id;
 
@@ -131,5 +135,17 @@ export const Crossings: Story = {
         under its line, wide enough to cut the first.
       </p>
     </div>
+  ),
+};
+
+export const LayOut: Story = {
+  name: "Laid out on demand",
+  render: (): JSX.Element => (
+    <DiagramStarter
+      nodes={NODES}
+      edges={STARTER_EDGES}
+      labels={{ diagram: "Payment flow, laid out on demand" }}
+      hint="The layout runs in the handler, with no worker: a graph this size is a few microseconds."
+    />
   ),
 };

@@ -68,7 +68,9 @@ apps/lab               the lab: the @cssints/reactive stories, in dev only (no S
 apps/ui                the starters' site (Solid 2 + cssints): one page per registry item — src/registry/<name>/<name>.tsx is the
                        component and <name>.stories.tsx its CSF stories; src/docs/catalog.ts reads the registry build (r/*.json), the
                        preview is the item's story (every page has one, 54 of them), read by @cssints/stories, with the controls the story declares (src/stories/:
-                       site.ts the glob, controls.tsx the panel on the kit's own Field/Select/Switch/Slider); the chrome is the kit
+                       site.ts the glob, controls.tsx the panel on the kit's own Field/Select/Switch/Slider); the diagram's starter (`src/registry/diagram/starter.tsx`
+                       + `layout.ts`) is @cssints/graph-layout's first consumer — one labelled button lays the demo graph out in the handler (0.5 ms for
+                       20 nodes against dagre's 7.2); the chrome is the kit
                        itself (Tabs for the stories, Switch for the theme, RadioGroup for the tint, Button for the copies, the add
                        command and the conformance record the starter smoke wrote for the item's files); scripts/registry-json.ts regenerates r/*.json;
                        deploy is Cloudflare static assets (alchemy.run.ts); test/site.mjs drives the dev server in Chrome (not in `test`)

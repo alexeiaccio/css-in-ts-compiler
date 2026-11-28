@@ -6569,3 +6569,21 @@ The win that survives the drawing: over the same 120 graphs the sweeps' layouts 
 the model order** — 71% fewer, so the crossing minimization is a property of the picture and not only of a table. The Chrome
 check draws a route as an SVG path and lets the DOM measure it (`getTotalLength`), which is the bean's "measures the path, not a
 screenshot". A route is 21 µs a graph; the whole pipeline on the corpus is ~400 µs, four fifths of it the sweep.
+
+**The engine's first consumer (2026-11-28):** the diagram starter in `apps/ui` lays its graph out on demand — one labelled
+`<button>`, outside the diagram's own tab stop, and the layout runs in the handler with no worker. The starter holds the graph
+in a signal and feeds the engine the same nodes it draws (ids, sizes from the boxes, edges from `from`/`to`), so a second press
+reads what the first wrote: the browser test presses twice and compares the boxes, and the arrows still walk the new drawing.
+
+The claim "a graph this size is a few microseconds" is measured in the browser it runs in (`layout.browser.test.tsx`, median of
+twenty runs) and outside it against the reference the survey named: on the same forward-only graph, ours lays out 4 nodes in
+0.23 ms, 20 in 0.49, 60 in 1.15 and 200 in 3.96; `@dagrejs/dagre` (the maintained JS Sugiyama baseline, 1.4 MB unpacked) takes
+0.77, 7.2, 22.3 and 88.4 ms for the same graphs. Fifteen times faster at 20 nodes and still inside a frame at 200 is what
+"runs in a click handler" means; the test asserts the frame at 20 nodes and prints the rest.
+
+Two things the starter made explicit. The demo flow has one edge that points back (`refunded -> shipped`); a layered layout
+draws the others left to right and a back edge is still the router's next slice, so the starter's story holds the flow without
+it and says so in one sentence. And the registry's catalog is generated: `bun run catalog` rewrote it unformatted (the trap
+`AGENTS.md` names) — the diff went from 1 529 lines to the 6 the new story needs once `vp fmt` had run. Gates: apps/ui 73 files
+and 1 041 browser tests, the site's stories/ids/controls/theme check, 121 untracked reads (unchanged), skin and theme checks,
+lint 0/0.

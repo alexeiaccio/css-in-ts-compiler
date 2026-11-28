@@ -2,6 +2,7 @@ import { render } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
 import { Diagram, type DiagramEdgeInput, type DiagramNodeInput } from "./diagram.tsx";
+import { DiagramStarter } from "./starter.tsx";
 import type { EdgeShape } from "../route.ts";
 
 /** A payment flow: four steps and the five ways between them. Not a state chart — any graph reads the same. */
@@ -123,6 +124,39 @@ export const mountDiagram = (overrides: DiagramOverrides = {}): MountedDiagram =
     connected,
     edges: edges,
     log: () => root.querySelector('[data-part="diagram-log"]')?.textContent ?? "",
+    dispose: () => {
+      dispose();
+      root.remove();
+    },
+  };
+};
+
+/** The starter's flow: the payment graph without the edge that points back, which a layered layout does not draw yet. */
+export const STARTER_EDGES: ReadonlyArray<DiagramEdgeInput> = PAYMENT_EDGES.filter(
+  (edge) => edge.id !== "resend",
+);
+
+/** The starter, mounted for a test: its root, and the button that lays the graph out. */
+export const mountStarter = (
+  overrides: {
+    readonly nodes?: ReadonlyArray<DiagramNodeInput>;
+    readonly edges?: ReadonlyArray<DiagramEdgeInput>;
+  } = {},
+): { readonly root: HTMLElement; readonly dispose: () => void } => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  const dispose = render(
+    () => (
+      <DiagramStarter
+        nodes={overrides.nodes ?? PAYMENT_NODES}
+        edges={overrides.edges ?? STARTER_EDGES}
+        labels={{ diagram: "Payment flow, laid out" }}
+      />
+    ),
+    root,
+  );
+  return {
+    root,
     dispose: () => {
       dispose();
       root.remove();

@@ -1,7 +1,7 @@
 import { userEvent } from "vite-plus/test/browser";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
-import { type MountedDiagram, mountDiagram } from "./diagram.fixture";
+import { type MountedDiagram, mountDiagram, mountStarter, STARTER_EDGES } from "./diagram.fixture";
 
 // No APG pattern and no Quint spec exists for a diagram, so this file is the skin's oracle: it mounts the starter in a real
 // Chromium and drives the same graph a reader does. The accessible contract (a named group, one tab stop, the edges of the
@@ -425,5 +425,107 @@ describe("Diagram", () => {
     // the one underneath is not cut and carries no break of its own
     expect(under.dataset.crossing).toBeUndefined();
     expect(under.querySelector('[data-part="diagram-cutout"]')).toBeNull();
+  });
+});
+
+describe("the starter lays the graph out on demand", () => {
+  const starters: Array<{ readonly dispose: () => void }> = [];
+
+  const started = () => {
+    const instance = mountStarter();
+    starters.push(instance);
+    return instance;
+  };
+
+  afterEach(() => {
+    for (const instance of starters.splice(0)) instance.dispose();
+  });
+
+  interface Box {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  }
+
+  const boxes = (root: ParentNode): Readonly<Record<string, Box>> =>
+    Object.fromEntries(
+      [...root.querySelectorAll<HTMLElement>('[data-part="diagram-node"]')].map((element) => [
+        element.dataset["node"] ?? "",
+        {
+          x: Number.parseFloat(element.style.left),
+          y: Number.parseFloat(element.style.top),
+          width: element.offsetWidth,
+          height: element.offsetHeight,
+        },
+      ]),
+    );
+
+  it("is one labelled button outside the diagram's tab stop", () => {
+    const { root } = started();
+    const control = required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]');
+    expect(control.textContent?.trim()).toBe("Lay out");
+    expect(control.type).toBe("button");
+    expect(tabStops(root).map((button) => button.dataset["node"])).toEqual(["cart"]);
+  });
+
+  it("lays the graph out into layers, and a second press changes nothing", async () => {
+    const { root } = started();
+    const before = boxes(root);
+    required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+    await settle();
+    const after = boxes(root);
+    expect(after).not.toEqual(before);
+
+    const ids = Object.keys(after);
+    for (let first = 0; first < ids.length; first += 1) {
+      for (let second = first + 1; second < ids.length; second += 1) {
+        const one = after[ids[first] ?? ""];
+        const two = after[ids[second] ?? ""];
+        if (one === undefined || two === undefined) continue;
+        const overlaps =
+          one.x < two.x + two.width &&
+          two.x < one.x + one.width &&
+          one.y < two.y + two.height &&
+          two.y < one.y + one.height;
+        expect(overlaps, `${ids[first]} / ${ids[second]}`).toBe(false);
+      }
+    }
+    for (const edge of STARTER_EDGES) {
+      const from = after[edge.from];
+      const to = after[edge.to];
+      expect(from === undefined || to === undefined ? false : from.x < to.x, edge.id).toBe(true);
+    }
+
+    required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+    await settle();
+    expect(boxes(root)).toEqual(after);
+  });
+
+  it("keeps the arrows working on the laid-out drawing", async () => {
+    const { root } = started();
+    required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+    await settle();
+    const cart = node(root, "cart");
+    cart.focus();
+    await press(cart, "ArrowRight");
+    const active = document.activeElement;
+    expect(active instanceof HTMLElement ? active.dataset["node"] : undefined).toBe("paid");
+  });
+
+  it("logs no error while it lays the graph out", async () => {
+    const errors: string[] = [];
+    const { error } = console;
+    console.error = (...args: unknown[]) => {
+      errors.push(args.map(String).join(" "));
+    };
+    try {
+      const { root } = started();
+      required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+      await settle();
+    } finally {
+      console.error = error;
+    }
+    expect(errors).toEqual([]);
   });
 });

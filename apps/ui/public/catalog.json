@@ -274,6 +274,12 @@
           "declares": []
         },
         {
+          "id": "diagram--laid-out-on-demand",
+          "name": "Laid out on demand",
+          "args": {},
+          "declares": []
+        },
+        {
           "id": "diagram--making-an-edge",
           "name": "Making an edge",
           "args": {},
