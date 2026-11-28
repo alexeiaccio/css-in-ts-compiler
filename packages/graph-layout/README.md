@@ -49,18 +49,42 @@ layers apart becomes one dummy per layer it crosses, named `a>d@1` (the edge `a>
 `layers` and `ranks` are the nodes alone, in the order they take among those slots. Parallel edges are one line, because a
 drawing would show one.
 
-| Function                      | Phase                                                               |
-| ----------------------------- | ------------------------------------------------------------------- |
-| `breakCycles(graph)`          | reverse every edge that points backwards in model order             |
-| `assignLayers(graph)`         | longest path from a source, over the already-broken graph           |
-| `orderSlots(graph, layerOf)`  | slots per layer: its nodes in model order, then the dummies         |
-| `layout(graph)`               | all three, in that order                                            |
-| `minimizeCrossings(graph, l)` | barycentre sweeps and a greedy switch over those slots, never worse |
-| `crossings(graph, layout)`    | crossing pairs, counted per layer boundary                          |
-| `label(graph, l, b, r, req)`  | one box per requested route, at the middle boundary it crosses      |
+| Function                      | Phase                                                                 |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `breakCycles(graph)`          | reverse every edge that points backwards in model order               |
+| `assignLayers(graph, s?)`     | longest path from a source, or that layering with its edges shortened |
+| `orderSlots(graph, layerOf)`  | slots per layer: its nodes in model order, then the dummies           |
+| `layout(graph, options?)`     | all three, in that order                                              |
+| `minimizeCrossings(graph, l)` | barycentre sweeps and a greedy switch over those slots, never worse   |
+| `crossings(graph, layout)`    | crossing pairs, counted per layer boundary                            |
+| `label(graph, l, b, r, req)`  | one box per requested route, at the middle boundary it crosses        |
 
 `minimizeCrossings` is a heuristic with a guarantee: the layout it returns is only used if it has fewer crossings than the
 one it was given, so composing it never costs a crossing.
+
+## The second layering
+
+`assignLayers(graph, "minimize-length")` and `layout(graph, { layering: "minimize-length" })` keep the same phases and choose
+the layers for the length of the edges instead: `Σ (layer(target) − layer(source))` over the dummy-expanded graph, which is
+`Σᵥ (indegree(v) − outdegree(v)) · layer(v)` with every edge at least one layer long. The longest path is the earliest
+feasible layering, not always the shortest one: `a→b` beside `x1→x2→b`, in the model order `a, x1, x2, b`, lays out as
+`a=0, x1=0, x2=1, b=2` and spans 4, while `a=1` spans 3.
+
+The solver is a relaxation, not the exact min-cost flow the objective asks for. From the longest path it raises a node that
+has more out-edges than in-edges into the highest layer its successors leave free, in reverse model order, in rounds until
+no single node can move. Every move shortens the sum by at least one and keeps every edge pointing forward, so the rounds
+terminate; the fixpoint is "no single node helps", which is not the same as the optimum. Two oracles say how close it gets.
+Brute force over every feasible layering of 411 graphs of up to 7 nodes finds it optimal on all 411. elk-rs with
+`elk.layered.layering.strategy: NETWORK_SIMPLEX`, the option that minimises this sum, gives the same layers and the same span
+on the specs' six graphs; over 60 seeded graphs of up to 40 nodes the layer counts agree on all of them and the total span is
+153 against ELK's 149 — 2 longer on two graphs (corpus 40 and corpus 55), which are the counterexamples the relaxation does
+not climb out of.
+
+Over the 120-graph corpus the option leaves the layers alone (239 of them, the same as the longest path) and shortens what is
+drawn: dummies fall from 80 to 59, total span from 459 to 438, crossings from 310 at the model order and 65 after the sweep
+to 274 and 55, and 12 of the 120 graphs lay out shorter than the default. It costs time: `assignLayers` 11.98 µs a graph
+against 2.11 and `layout` 19.57 against 8.75 over 1 000 graphs, while the whole pipeline (layout, sweep, placement, routing)
+is 375.34 µs against 432.25, because the sweep has fewer dummies to reorder.
 
 `place` gives every slot a box: a layer is a column at its own x, its slots stack with `spacing.nodes`, the columns are
 `spacing.layers` apart, sizes come from `graph.sizes` (a node without one is a point, and so is every dummy), then the boxes
@@ -111,8 +135,8 @@ ideal band, 1.94 px mean and 48.00 px worst — it buys 0.3 labels per 100 at 1.
 engine has the one-directional stack and not the search.
 
 Not here yet, and each its own slice: the A\* over a lattice with per-line weights, ports beyond the border midpoints, labels of
-loops inside the channels, a route crossing the same band as a label's box, multi-line labels, compound graphs and the strategy
-knobs.
+loops inside the channels, a route crossing the same band as a label's box, multi-line labels, compound graphs and the rest of
+the strategy knobs (Brandes–Köpf placement, splines, per-edge weights).
 
 ## Tests
 
@@ -141,6 +165,13 @@ to 200 nodes, cycles, isolates, parallel edges, several components): an independ
 cycle, every effective edge points forward in model order, every node at layer `k` has a predecessor at `k - 1`, layers and
 ranks are dense and in model order, every dummy sits strictly between its ends and in a slot of its own, no node is lost or
 duplicated, the sweep keeps the occupants and never adds a crossing, and the same input gives the same output.
+
+`test/layering.mjs` runs the same shapes and 120 seeded graphs through both strategies: every node's layer is integral and at
+least 0, every effective edge points forward, the same graph lays out the same way twice, the default is the longest path
+(the scenarios already pin that) and no layering is ever longer than it. Then the two oracles: brute force over every feasible
+layering of 411 graphs of up to 7 nodes, and elk-rs with `NETWORK_SIMPLEX` on the specs' six graphs and 60 seeded ones,
+comparing the layers, the span and the crossings of the drawing. The six agree with ELK exactly; the print names the seeded
+graphs where the relaxation is two longer.
 
 The scenarios run under Bun rather than plain Node because the oracle's sources import each other without file extensions,
 which Bun and Vite resolve and Node does not; the browser run is the same code in a page with no Node built-ins.

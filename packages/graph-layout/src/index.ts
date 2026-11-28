@@ -36,6 +36,7 @@ export interface Layout {
 }
 
 import { dummyId } from "./dummy.ts";
+import { relaxLayers } from "./minimize-length.ts";
 import type { Size } from "./place.ts";
 
 const positionOf = (nodes: ReadonlyArray<string>): ReadonlyMap<string, number> =>
@@ -99,12 +100,23 @@ export const breakCycles = (graph: Graph): Graph => {
 };
 
 /**
- * Phase 2: the longest path from a source over a graph whose edges point forward in model order.
+ * Which layering phase 2 runs: `longest-path` is the earliest layer every node can take, `minimize-length` raises the nodes
+ * that shorten more edges than they lengthen until no single node can move (see {@link relaxLayers}).
+ */
+export type LayeringStrategy = "longest-path" | "minimize-length";
+
+/**
+ * Phase 2: the longest path from a source over a graph whose edges point forward in model order, or that layering with its
+ * total edge length lowered.
  *
  * @param {Graph} graph a graph as {@link breakCycles} returns it
+ * @param {LayeringStrategy} strategy which layering, `longest-path` when absent
  * @returns {ReadonlyMap<string, number>} each node's layer, a source at 0
  */
-export const assignLayers = (graph: Graph): ReadonlyMap<string, number> => {
+export const assignLayers = (
+  graph: Graph,
+  strategy: LayeringStrategy = "longest-path",
+): ReadonlyMap<string, number> => {
   const outgoing = new Map<string, string[]>();
   for (const edge of graph.edges) {
     if (edge.source === edge.target) continue;
@@ -119,7 +131,7 @@ export const assignLayers = (graph: Graph): ReadonlyMap<string, number> => {
       }
     }
   }
-  return layer;
+  return strategy === "minimize-length" ? relaxLayers(graph, layer) : layer;
 };
 
 /**
@@ -136,11 +148,15 @@ export const orderSlots = (graph: Graph, layerOf: ReadonlyMap<string, number>): 
  * All three phases, in the order the spec runs them.
  *
  * @param {Graph} graph the graph in model order
+ * @param {{ readonly layering?: LayeringStrategy }} options the layering strategy, `longest-path` when absent
  * @returns {Layout} the layers, the ranks and the slots
  */
-export const layout = (graph: Graph): Layout => {
+export const layout = (
+  graph: Graph,
+  options: { readonly layering?: LayeringStrategy } = {},
+): Layout => {
   const oriented = breakCycles(graph);
-  return orderSlots(oriented, assignLayers(oriented));
+  return orderSlots(oriented, assignLayers(oriented, options.layering));
 };
 
 const boundaryPairs = (

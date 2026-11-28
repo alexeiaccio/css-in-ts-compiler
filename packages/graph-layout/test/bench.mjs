@@ -56,8 +56,10 @@ const around = cycle(200);
 const phases = [
   ["breakCycles", (index) => breakCycles(graphs[index]).edges.length],
   ["assignLayers", (index) => assignLayers(oriented[index]).size],
+  ["assignLayers (min)", (index) => assignLayers(oriented[index], "minimize-length").size],
   ["orderSlots", (index) => orderSlots(oriented[index], layered[index]).slots.length],
   ["layout", (index) => layout(graphs[index]).slots.length],
+  ["layout (min)", (index) => layout(graphs[index], { layering: "minimize-length" }).slots.length],
   ["minimizeCrossings", (index) => minimizeCrossings(graphs[index], ordered[index]).slots.length],
   ["place", (index) => place(sized[index], swept[index]).length],
   ["route", (index) => route(sized[index], swept[index], placed[index]).length],
@@ -84,6 +86,15 @@ for (const [name, graph] of [
   console.log(
     `  ${name.padEnd(17)} ${micros(() => layout(graph).slots.length, 1000).toFixed(2)} µs/layout`,
   );
+}
+
+const pipeline = (index, strategy) => {
+  const sweptAt = minimizeCrossings(graphs[index], layout(graphs[index], { layering: strategy }));
+  return route(sized[index], sweptAt, place(sized[index], sweptAt)).length;
+};
+for (const strategy of ["longest-path", "minimize-length"]) {
+  const micro = micros((index) => pipeline(index, strategy), graphs.length);
+  console.log(`  ${`pipeline (${strategy})`.padEnd(17)} ${micro.toFixed(2)} µs/graph`);
 }
 
 const before = graphs.reduce((sum, graph, index) => sum + crossings(graph, ordered[index]), 0);

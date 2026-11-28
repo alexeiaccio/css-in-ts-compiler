@@ -6739,3 +6739,28 @@ crossing line can still run through a label's box, which is the A\* slice's bund
 channel's stack, because their column is the bracket's and the skin draws them; a label wider than the channel is clamped and the
 text can still overhang it, since the engine has no font; multi-line and rotated labels, ports beyond the border and a
 label-to-label search are each their own slice.
+**The layering gets a second strategy (2026-11-28):** the first slice of the strategy-knob bean, and the one the epic had a
+reason to ask for. The longest path is the earliest layer every node can take, which is feasible and not always the
+shortest drawing: `a→b` beside `x1→x2→b`, in the model order `a, x1, x2, b`, comes out `0, 0, 1, 2` and spans 4, while
+putting `a` at 1 spans 3. `assignLayers(graph, "minimize-length")` and `layout(graph, { layering: "minimize-length" })` are
+the same pipeline over layers chosen for `Σ (layer(target) − layer(source))` over the dummy-expanded graph — that is
+`Σᵥ (indegree(v) − outdegree(v)) · layer(v)`, every edge at least one layer long — and the default is byte-identical: the
+scenarios and the 400-graph property suite replay unchanged.
+
+The solver is a relaxation, not the exact min-cost flow the objective asks for. From the longest path it raises a node with
+more out-edges than in-edges into the highest layer its successors leave free, in reverse model order, in rounds until no
+single node can move; each move shortens the sum by at least one and keeps every edge forward, so the rounds terminate at
+"no single node helps", which is a fixpoint and not necessarily the optimum. What the optimum costs is measured rather than
+assumed. Brute force over every feasible layering of 411 graphs of up to 7 nodes finds the relaxation optimal on all 411;
+elk-rs with `elk.layered.layering.strategy: NETWORK_SIMPLEX` — the exact option for this sum — agrees on the specs' six
+graphs in layers and span, and over 60 seeded graphs of up to 40 nodes agrees in layers on all of them with a span of 153
+against 149 (corpus 40 is 10 against 8, corpus 55 is 18 against 16: the two the single-node move cannot climb out of).
+
+Over the 120-graph corpus the option leaves the layer count alone (239, the same as longest path) and shortens what is drawn:
+dummies 80 → 59, span 459 → 438, crossings 310 → 274 at the model order and 65 → 55 after the sweep, 12 of the 120 graphs
+shorter. It costs `assignLayers` 11.98 µs a graph against 2.11 and `layout` 19.57 against 8.75 over 1 000 graphs — and the
+whole pipeline (layout, sweep, placement, routing) 375.34 µs against 432.25, because the sweep has 21 fewer dummies to
+reorder on the corpus. Left for their own slices, each with the reason it is not here: Brandes–Köpf placement and spline
+routing, the rest of the same bean; the exact min-cost flow, since the relaxation is optimal on every graph brute force can
+enumerate and two units of span short of ELK's simplex on two of sixty; and per-edge weights, which the objective would need a
+second option or a `weight` on `Edge` to express.
