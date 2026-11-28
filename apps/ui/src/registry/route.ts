@@ -16,6 +16,8 @@ export interface RoutedBox {
   readonly y: number;
   readonly width?: number | undefined;
   readonly height?: number | undefined;
+  /** The y on the left or right border this edge uses; the border's centre when absent. */
+  readonly port?: number | undefined;
 }
 
 export interface Route {
@@ -50,6 +52,9 @@ const size = (box: RoutedBox): { readonly width: number; readonly height: number
   height: box.height ?? DEFAULT_BOX.height,
 });
 
+/** The y on a box's left and right border an edge uses: its port, or the border's centre. */
+const portOf = (box: RoutedBox): number => box.port ?? box.y + size(box).height / 2;
+
 const centreOf = (box: RoutedBox): RoutedPoint => {
   const { width, height } = size(box);
   return { x: box.x + width / 2, y: box.y + height / 2 };
@@ -70,8 +75,10 @@ const borderOf = (box: RoutedBox, ux: number, uy: number): number => {
 
 /** The line from one box's border to the other's, the arrow at the target's end, and the label at the middle. */
 export const routeBetween = (from: RoutedBox, to: RoutedBox): Route | undefined => {
-  const start = centreOf(from);
-  const end = centreOf(to);
+  const ported = from.port !== undefined || to.port !== undefined;
+  const ports = ported ? facing(from, to) : undefined;
+  const start = ports?.start ?? centreOf(from);
+  const end = ports?.end ?? centreOf(to);
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
@@ -80,8 +87,8 @@ export const routeBetween = (from: RoutedBox, to: RoutedBox): Route | undefined 
   }
   const ux = dx / length;
   const uy = dy / length;
-  const lineFrom = borderOf(from, ux, uy) + EDGE_GAP;
-  const tip = length - borderOf(to, ux, uy) - EDGE_GAP;
+  const lineFrom = (ported ? 0 : borderOf(from, ux, uy)) + EDGE_GAP;
+  const tip = length - (ported ? 0 : borderOf(to, ux, uy)) - EDGE_GAP;
   const lineTo = tip - ARROW;
   if (lineTo <= lineFrom) {
     return undefined;
@@ -218,9 +225,12 @@ const facing = (from: RoutedBox, to: RoutedBox): Facing => {
       horizontal,
       start: {
         x: right ? from.x + a.width : from.x,
-        y: clamp(fromCentre.y, from.y, from.y + a.height),
+        y: clamp(portOf(from), from.y, from.y + a.height),
       },
-      end: { x: right ? to.x : to.x + b.width, y: clamp(toCentre.y, to.y, to.y + b.height) },
+      end: {
+        x: right ? to.x : to.x + b.width,
+        y: clamp(portOf(to), to.y, to.y + b.height),
+      },
       sourceDir: { x: right ? 1 : -1, y: 0 },
       targetDir: { x: right ? -1 : 1, y: 0 },
     };
@@ -475,9 +485,9 @@ const BEZIER_STEPS = 24;
  * from the loop.
  */
 const loopBetween = (shape: EdgeShape, box: RoutedBox): PathRoute | undefined => {
-  const { width, height } = size(box);
+  const { width } = size(box);
   const right = box.x + width;
-  const centre = box.y + height / 2;
+  const centre = portOf(box);
   const start = point(right, centre - LOOP_HALF);
   const end = point(right, centre + LOOP_HALF);
   const label = labelAt(point(right + LOOP_OUT, centre + LOOP_HALF + LABEL_OFFSET * 2), true);

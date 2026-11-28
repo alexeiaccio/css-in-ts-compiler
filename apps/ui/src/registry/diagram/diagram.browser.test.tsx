@@ -258,22 +258,35 @@ describe("Diagram", () => {
       "resend",
     ]);
 
-    // pay runs from cart's right border (128) to paid's left border (196), arrow included, at the two centres' y
-    const d = required<SVGPathElement>(
-      root,
-      '[data-edge="pay"] path[data-part="diagram-line"]',
-    ).getAttribute("d")!;
-    const [, x1, y1, x2, y2] = /^M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)$/.exec(d)!.map(Number) as [
-      string,
-      number,
-      number,
-      number,
-      number,
-    ];
-    expect(x1).toBeGreaterThan(128);
-    expect(x2!).toBeLessThan(196);
-    expect(y1).toBe(48);
-    expect(y2).toBe(48);
+    const startOf = (id: string): [number, number] => {
+      const d = required<SVGPathElement>(
+        root,
+        `[data-edge="${id}"] path[data-part="diagram-line"]`,
+      ).getAttribute("d")!;
+      const [, x, y] = /^M ([\d.]+) ([\d.]+)/.exec(d)!.map(Number) as [string, number, number];
+      return [x!, y!];
+    };
+    const [payX, payY] = startOf("pay");
+    const [cancelX, cancelY] = startOf("cancel");
+    expect(payX).toBeGreaterThan(128);
+    expect(payY).toBeLessThan(48);
+    expect(cancelY).toBeGreaterThan(48);
+    expect(payY).not.toBe(cancelY);
+    const endOf = (id: string): [number, number] => {
+      const d = required<SVGPathElement>(
+        root,
+        `[data-edge="${id}"] path[data-part="diagram-line"]`,
+      ).getAttribute("d")!;
+      const [, x, y] = /^M [\d.]+ [\d.]+ L ([\d.]+) ([\d.]+)$/.exec(d)!.map(Number) as [
+        string,
+        number,
+        number,
+      ];
+      return [x!, y!];
+    };
+    const [paidX, paidY] = endOf("pay");
+    expect(paidX).toBeLessThan(196);
+    expect(Math.abs(paidY - 48)).toBeLessThan(4);
   });
 
   it("draws the same graph in any of the four shapes", () => {
@@ -501,6 +514,12 @@ describe("Diagram", () => {
 });
 
 describe("the starter lays the graph out on demand", () => {
+  const paidBorder = (): { x: number; y: number; width: number; height: number } => ({
+    x: 196,
+    y: 24,
+    width: 128,
+    height: 48,
+  });
   const starters: Array<{ readonly dispose: () => void }> = [];
 
   const started = () => {
@@ -587,23 +606,29 @@ describe("the starter lays the graph out on demand", () => {
     const box = line.getBBox();
     const label = required<SVGTextElement>(root, '[data-edge="retry"] text');
 
-    expect(line.getAttribute("d")).toBe("M 324 40 L 344 40 L 344 56 L 332 56");
+    const points = (
+      /M [\d.]+ ([\d.]+) L [\d.]+ [\d.]+ L [\d.]+ ([\d.]+)/.exec(line.getAttribute("d")!) ?? []
+    )
+      .slice(1)
+      .map(Number);
+    const port = ((points[0] ?? 0) + (points[1] ?? 0)) / 2;
     expect(box.x).toBe(324);
     expect(box.width).toBe(20);
     expect(box.height).toBe(16);
-    expect(required(root, '[data-edge="retry"] polygon').getAttribute("points")).toMatch(
-      /^324,56 /,
-    );
+    // paid shares its right border with ship, so the loop takes one of two ports: a third of the border, not its centre
+    expect(port).toBeGreaterThan(paidBorder().y);
+    expect(port).toBeLessThan(paidBorder().y + paidBorder().height / 2);
+    expect(required(root, '[data-edge="retry"] polygon').getAttribute("points")).toMatch(/^324,/);
     expect(Number(label.getAttribute("x"))).toBe(352);
-    expect(Number(label.getAttribute("y"))).toBe(76);
+    expect(Number(label.getAttribute("y"))).toBe(port + 8 + 16 + 4);
     expect(label.textContent).toBe("retry");
 
     expect(group.getAttribute("role")).toBe("button");
     expect(group.getAttribute("aria-label")).toBe("retry: Paid → Paid");
     expect(group.getAttribute("tabindex")).toBe("-1");
     expect(tabStops(root).map((button) => button.dataset["node"])).toEqual(["cart"]);
-    expect(group.dataset.crossing).toBe("true");
-    expect(group.querySelector('[data-part="diagram-cutout"]')).not.toBeNull();
+    expect(group.dataset.crossing).toBeUndefined();
+    expect(group.querySelector('[data-part="diagram-cutout"]')).toBeNull();
 
     const covered = (): string[] => {
       const text = required<SVGTextElement>(root, '[data-edge="retry"] text').getBBox();
@@ -622,12 +647,12 @@ describe("the starter lays the graph out on demand", () => {
     required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
     await settle();
     expect(covered()).toEqual([]);
-    expect(
-      required<SVGPathElement>(
-        root,
-        '[data-edge="retry"] path[data-part="diagram-line"]',
-      ).getAttribute("d"),
-    ).toBe("M 320 50 L 340 50 L 340 66 L 328 66");
+    const laidOut = required<SVGPathElement>(
+      root,
+      '[data-edge="retry"] path[data-part="diagram-line"]',
+    );
+    expect(laidOut.getBBox().width).toBe(20);
+    expect(laidOut.getBBox().height).toBe(16);
   });
 
   it("keeps the arrows working on the laid-out drawing", async () => {

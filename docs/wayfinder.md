@@ -6667,7 +6667,7 @@ both directions (its loop is drawn over `ship`'s stem, which leaves the same bor
 
 The label is the part a loop makes hard. It sits beside the mouth, one bracket out and two label offsets below the lower arm
 (`right + 28`, baseline `centre + 28`): outside the node's box, off the loop's line, and clear of the label of an edge that
-leaves the same border, which `labelAt` puts 8 px *above* its line. That also forced one line outside the skin: the starter's
+leaves the same border, which `labelAt` puts 8 px _above_ its line. That also forced one line outside the skin: the starter's
 layout now asks `place` for 64 px layers instead of the engine's 30. A word is 27 px and the engine reserves nothing for labels,
 so at 30 px every label sat on the two box borders — `ship`'s did before this slice, with no loop in sight. It is the first
 consumer saying the engine's default spacing is a drawing's spacing, not a labelled drawing's.
@@ -6686,3 +6686,17 @@ and 1 045 in apps/ui's 73; the site's stories/ids/controls run at 121 untracked 
 catalog (byte-identical), lint and the added-lines check are green. Left for its own slice: a node's edges still share one border
 midpoint, so a loop's ear crosses the stem of every edge that leaves the same border and shares the gap with their labels; the
 engine's port spreading is the fix, and two loops on one node cannot exist yet because the router keeps one loop per node.
+
+**The skin takes its ports (2026-11-28):** the item `cssints-mamm` left ticked but undone — the engine spreads a node's edges
+over its border, and the skin still started every one at the midpoint. Now `shapeBetween` reads a `port` on a `RoutedBox` (the
+y an edge uses on the left or right border, the centre when absent), `facing` clamps it into the border instead of the centre,
+`routeBetween` shortens the straight line from the port rather than from the ray's border crossing, and the loop's bracket is
+drawn on its own port. `diagram.tsx` computes one port per edge — outgoing on the right, incoming on the left, evenly spaced and
+ordered by the height of the other end, ties by the edge id — and hands the two ends to `shapeBetween`.
+
+Two things the demo had been hiding. `cart` has two edges (`pay` and `cancel`); they now leave at a third and two thirds of its
+border instead of sharing the midpoint, so a two-edge node reads as two lines rather than one that forks. And the starter's
+`retry` loop on `paid` no longer crosses `ship`'s stem: it moved to its own port, so the crossing the loop slice exercised (and
+the cut-out it drew) is gone from that page — the unit test with a hand-made through-line still covers the break. The Chrome
+tests name the ports instead of the centres (the two stems differ, the loop's mouth is a third of the border, its label rides the
+mouth), 28 in the diagram file and 1 045 in apps/ui; the board's geometry is untouched because its connectors pass no port.

@@ -219,15 +219,66 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
       { width: 0, height: 0 },
     ),
   );
+  /**
+   * One port per edge on the border it leaves or arrives at, evenly spaced and ordered by the height of the other end, so two
+   * edges from one node never share their stem; a loop takes one too, and its bracket is drawn on it.
+   */
+  const ports = createMemo(() => {
+    const found = byId();
+    const centreY = (id: string): number => {
+      const box = found.get(id);
+      return box === undefined ? 0 : box.y + (box.height ?? NODE_HEIGHT) / 2;
+    };
+    const outgoing = new Map<string, Array<{ id: string; far: number }>>();
+    const incoming = new Map<string, Array<{ id: string; far: number }>>();
+    for (const edge of props.edges) {
+      if (found.get(edge.from) === undefined || found.get(edge.to) === undefined) continue;
+      const out = outgoing.get(edge.from) ?? [];
+      out.push({ id: edge.id, far: centreY(edge.to) });
+      outgoing.set(edge.from, out);
+      if (edge.from !== edge.to) {
+        const into = incoming.get(edge.to) ?? [];
+        into.push({ id: edge.id, far: centreY(edge.from) });
+        incoming.set(edge.to, into);
+      }
+    }
+    const anchors = (node: string, list: ReadonlyArray<{ id: string; far: number }>) => {
+      const box = found.get(node);
+      const height = box?.height ?? NODE_HEIGHT;
+      const top = box?.y ?? 0;
+      return [...list]
+        .sort((one, two) => one.far - two.far || one.id.localeCompare(two.id))
+        .map(
+          (entry, index) => [entry.id, top + (height * (index + 1)) / (list.length + 1)] as const,
+        );
+    };
+    const result = new Map<string, { from?: number; to?: number }>();
+    for (const [node, list] of outgoing) {
+      for (const [id, y] of anchors(node, list)) {
+        result.set(id, { ...(result.get(id) ?? {}), from: y });
+      }
+    }
+    for (const [node, list] of incoming) {
+      for (const [id, y] of anchors(node, list)) {
+        result.set(id, { ...(result.get(id) ?? {}), to: y });
+      }
+    }
+    return result;
+  });
+
   // An edge whose endpoint is missing is the primitive's to ignore, and the skin's not to draw.
   const routed = createMemo<RoutedEdge[]>(() => {
     const found = byId();
     const shape = props.edge ?? "straight";
+    const at = ports();
     return props.edges.flatMap((edge) => {
       const from = found.get(edge.from);
       const to = found.get(edge.to);
+      const ends = at.get(edge.id) ?? {};
       const route =
-        from === undefined || to === undefined ? undefined : shapeBetween(shape, from, to);
+        from === undefined || to === undefined
+          ? undefined
+          : shapeBetween(shape, { ...from, port: ends.from }, { ...to, port: ends.to });
       return route === undefined ? [] : [{ edge, route }];
     });
   });

@@ -42,3 +42,8 @@ and the start point with `toBeCloseTo`.
 
 Gates: package 8 scenarios + the ELK boxes and ports + 400 + 120 + 120 seeded graphs + 9 browser tests, lint 0/0, typecheck 15
 files, lint:comments clean. Next child: `cssints-boq9` (the skin draws a self loop) or `cssints-m0f0` (octilinear).
+
+Follow-up 2026-11-28: the third checkbox above was ticked before it was true. The skin now really takes the port — `shapeBetween`
+reads a `port` on a `RoutedBox`, `facing` and the straight line use it, the loop's bracket sits on its own port, and
+`diagram.tsx` computes one port per edge on the border it leaves or arrives at. The starter's `retry` loop stopped crossing
+`ship`'s stem because of it, and `cart`'s two edges left the shared midpoint. 28 diagram tests, 1 045 in apps/ui.
