@@ -29,6 +29,7 @@ import {
   specDriver,
 } from "../../src/scenario";
 import scenariosJson from "../../scenarios/patterns/graph-layout.spec.json";
+import { graphOf, placementsOf } from "./elk";
 
 // Spec-only verification for specs/patterns/graph-layout.qnt, and the oracle run it exists for: the same scenarios
 // against the generated reference model and against elk-rs, the implementation the spec was written from.
@@ -46,33 +47,6 @@ const run = (state: QuintModelValue, ...tags: ReadonlyArray<string>): QuintModel
   tags.reduce((current, tag) => step(current, { _tag: tag }), state);
 
 // elk-rs as a Driver: the same steps, the engine's layout projected onto the spec's layers.
-const PINNED_OPTIONS = {
-  "elk.algorithm": "layered",
-  "elk.direction": "RIGHT",
-  "elk.spacing.nodeNode": 20,
-  "elk.layered.spacing.nodeNodeBetweenLayers": 30,
-  "elk.layered.cycleBreaking.strategy": "MODEL_ORDER",
-  "elk.layered.layering.strategy": "LONGEST_PATH",
-  "elk.layered.crossingMinimization.strategy": "NONE",
-  "elk.layered.nodePlacement.strategy": "SIMPLE",
-} as const;
-
-const graphOf = (pick: GraphLayoutPick) => {
-  const edges = GRAPH_LAYOUT_PICKS[pick].edges
-    .split(" ")
-    .filter((pair) => pair.length > 0)
-    .map((pair) => {
-      const [source, target] = pair.split(">") as [string, string];
-      return { id: `${source}${target}`, sources: [source], targets: [target] };
-    });
-  return {
-    id: "root",
-    layoutOptions: PINNED_OPTIONS,
-    children: ["a", "b", "c", "d"].map((id) => ({ id, width: 40, height: 20 })),
-    edges,
-  };
-};
-
 const elkDriver = (elk: ELK, _config: ScenarioConfig): Driver => {
   let layout: ReadonlyArray<ReadonlyArray<string>> | undefined;
   let phase = 0;
@@ -85,13 +59,7 @@ const elkDriver = (elk: ELK, _config: ScenarioConfig): Driver => {
             throw new Unsupported(`graph ${JSON.stringify(pick)}`);
           }
           const out = await elk.layout(graphOf(pick as GraphLayoutPick));
-          layout = layersOf(
-            (out.children ?? []).map((child) => ({
-              id: child.id,
-              x: child.x ?? 0,
-              y: child.y ?? 0,
-            })),
-          );
+          layout = layersOf(placementsOf(out));
           phase = 0;
           return;
         }

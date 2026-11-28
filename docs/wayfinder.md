@@ -6479,3 +6479,22 @@ and 14 846 edges — a layout is 3.9 µs, split 1.2 (`breakCycles`) + 2.2 (`assi
 chain, the longest layering the node limit allows, is 42 µs and a 200-node cycle 46 µs. That is a round-off inside a click
 handler, and it stays a `bench` script rather than a gate: the number that matters is the comparison with dagre on the same
 graph in `cssints-osne`, not a budget here.
+
+**Long edges as dummies, on the spec (2026-11-28):** the second slice of the layered-layout epic.
+`specs/patterns/graph-layout-slots.qnt` keeps the six graphs and the three phases and turns phase 3 into slots: two per layer,
+holding the layer's nodes and the dummy of a long edge (codes 5–10 for the six pairs), with the value projected as `{ slots }`
+— node ids and `ad@1` — because the crossing-minimization slice needs the structure, not the drawing.
+
+Three decisions. `init` picks the chain graph, not the empty one: four nodes with no edges put all four in layer 0, which two
+slots cannot hold, and the first exploration found exactly that (`NodesInTheirLayers` at step 3) — the model's domain is the
+six graphs, so `init` is one of them. The dummies are compared against elk-rs **geometrically**: `slotsOfLayout` reads each
+edge's polyline and requires it to cross each intermediate layer's x in the gap between the boxes, so an edge whose ends are
+two layers apart must be drawn through the layer it spans. The first version of that check — "the route must cross the
+layer's x" — was vacuous, because a connected polyline from left to right always crosses; the check that bites is the one
+about _where_, and a handcrafted route through a node is the test that proves it. The two-slot bound is stated rather than
+hidden: `NoCrowdedLayer` (a layer with two nodes has no dummy through it) and `AtMostOneLongEdgePerLayer`, so a graph outside
+the model's domain fails an invariant instead of silently dropping a dummy.
+
+17 tests for the slice (7 spec-only, 8 elk-rs agreements, a seeded walk, the projection's own test), 1090 in the package; a
+`slotOne` that ignores dummies fails six of them, including the exploration. Next: `cssints-cj4i`, crossing minimization over
+these slots.

@@ -28,7 +28,10 @@ specification — the source of truth is the protocol itself).
 `graph-layout` is the discrete part of Eclipse Layout Kernel's layered pipeline over a
 four-node graph (`specs/patterns/graph-layout.qnt`): cycle breaking, layering and
 ordering, replayed against elk-rs. Its scenarios compare layers, not the order inside
-one, because that order is the crossing-minimization strategy's.
+one, because that order is the crossing-minimization strategy's. `graph-layout-slots`
+(`specs/patterns/graph-layout-slots.qnt`) is the same pipeline with the junction points
+made explicit: a long edge becomes one dummy per layer it crosses, so a layer's slots
+hold its nodes and those dummies (`ad@1`), read back from elk's own routes.
 
 `focusgrid` is the platform contract of `focusgroup="grid"` (V2), not a widget:
 `specs/patterns/focusgrid.qnt` models the one tab stop, the two axes, `Home` / `End` and

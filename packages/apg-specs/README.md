@@ -1,6 +1,6 @@
 # @cssints/apg-specs — APG widget specs
 
-The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels, a workspace's tabsets), the model of a plugin's runtime (reactive), the layered graph layout pipeline (graph-layout, checked against elk-rs), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the scenario sets (ported upstream ones and our own), and the spec-only verification. It is the test oracle of the widgets and of `native/headless`, and it is published so that widget libraries outside this repository can replay the same specs and scenarios against their own code.
+The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels, a workspace's tabsets), the model of a plugin's runtime (reactive), the layered graph layout pipeline (graph-layout, and its slots and dummies in graph-layout-slots, both checked against elk-rs), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the scenario sets (ported upstream ones and our own), and the spec-only verification. It is the test oracle of the widgets and of `native/headless`, and it is published so that widget libraries outside this repository can replay the same specs and scenarios against their own code.
 
 The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are written by the code generation of [`@quint-machine/core`](https://www.npmjs.com/package/@quint-machine/core) and are never edited by hand. Ticket ids like `effects-of-atmosphere-dx00` in the comments of the specs and tests are tickets of the repository these files came from.
 
@@ -9,7 +9,7 @@ The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are
 ```
 specs/apg/<pattern>.qnt                           # APG pattern specs (one behavior-machine each)
 specs/canvas/<machine>.qnt                        # canvas camera + pointer specs
-specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels, workspace), a plugin runtime (reactive), the layered layout pipeline (graph-layout)
+specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels, workspace), a plugin runtime (reactive), the layered layout pipeline and its slots (graph-layout, graph-layout-slots)
 shared/<module>.qnt                               # vocabulary + pure defs: aria, focusgroup, popover, invokers, details-group
 src/<service>/<machine>.model.generated.json      # generated model document
 src/<service>/<machine>.scaffolding.generated.ts  # generated typed scaffolding
@@ -34,6 +34,14 @@ which node sits above which is the crossing-minimization strategy's choice; `lay
 `test/elk-layout.d.ts` declares the slice of the package's API the oracle calls (its typings are outside its `exports`
 map). Node placement, edge routing, ports, labels and compound graphs are `NOT MODELLED` in the spec's header, and each is
 the next slice.
+
+`specs/patterns/graph-layout-slots.qnt` is the second slice: the same six graphs and the same phases, with phase 3 becoming
+slots — two per layer, holding the layer's nodes and the dummies of the long edges that pass through it (an id like
+`ad@1`). `test/patterns/graph-layout-slots.test.ts` replays its scenarios against the model and against elk-rs, reading the
+dummies back from elk's routes: at each intermediate layer's x the edge has to be drawn between the boxes, and a route that
+skips the layer or crosses it inside a node fails. A layer compares as a set, as in the first slice; the order inside it is
+the crossing-minimization strategy's. Eight slots cannot hold two nodes and a dummy, so `NoCrowdedLayer` and
+`AtMostOneLongEdgePerLayer` turn the bound into a checked property of these six graphs instead of a silent drop.
 
 Platform-contract modules (`shared/focusgroup.qnt` roving tabindex, `shared/popover.qnt` light dismiss, `shared/invokers.qnt` `commandfor`/`command`, `shared/details-group.qnt` `<details name>`) are one per native web feature; a pattern imports one and models only its delta. `shared/` holds vocabulary and pure defs only.
 

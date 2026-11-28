@@ -1,0 +1,111 @@
+{
+  "pattern": "graph-layout-slots",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Written from specs/patterns/graph-layout-slots.qnt: the layered pipeline with its junction points explicit — a long edge is a chain of dummy nodes, one per layer it crosses, and a layer's slots hold its nodes and the dummies that pass through it. The same six graphs as graph-layout, and the same elk-rs 0.12.2 with the portable strategies pinned; the dummies are read back from elk's own routes, so the comparison also checks that a long edge is drawn through the layers it spans. A layer compares as a set (the order inside it is the crossing-minimization strategy's), and a dummy's id is the pair and the layer it passes through, like ad@1.",
+  "skipped": [
+    {
+      "id": "graph-layout-slots.spec.crossing-minimization",
+      "reason": "the slot order is the crossing-minimization strategy's: this model orders nodes by model order and then the dummy as a baseline, and the scenarios compare occupants as a set, not as slots"
+    },
+    {
+      "id": "graph-layout-slots.spec.three-occupants",
+      "reason": "two slots per layer cannot hold two nodes and a dummy: the six graphs never need it, and NoCrowdedLayer and AtMostOneLongEdgePerLayer turn that bound into a checked property instead of a silent drop"
+    },
+    {
+      "id": "graph-layout-slots.spec.placement-and-routing",
+      "reason": "coordinates, bend points, channels and ports are geometry; a dummy is a structure the routing consumes, and the drawing is only read to confirm it passes through the layers it spans"
+    },
+    {
+      "id": "graph-layout-slots.spec.compound-graphs",
+      "reason": "compound nodes, cross-hierarchy edges, ports, labels, partitions and self loops are the deferred slice, as in graph-layout"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "graph-layout-slots.spec.chain",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 1 },
+        { "event": "layout" },
+        { "expect": { "value": { "slots": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.diamond",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 2 },
+        { "event": "layout" },
+        { "expect": { "value": { "slots": [["a"], ["b", "c"], ["d"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.islands",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 3 },
+        { "event": "layout" },
+        { "expect": { "value": { "slots": [["a", "c"], ["b", "d"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.long-edge",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "layout" },
+        {
+          "expect": {
+            "value": { "slots": [["a"], ["ad@1", "b"], ["ad@2", "c"], ["d"]] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.two-cycle",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 5 },
+        { "event": "layout" },
+        { "expect": { "value": { "slots": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.three-cycle",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 6 },
+        { "event": "layout" },
+        { "expect": { "value": { "slots": [["a", "d"], ["ac@1", "b"], ["c"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.phases-one-by-one",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_nodes" },
+        {
+          "expect": {
+            "value": { "slots": [["a"], ["ad@1", "b"], ["ad@2", "c"], ["d"]] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "graph-layout-slots.spec.a-new-graph-replaces-the-old",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "layout" },
+        { "event": "set_graph", "value": 1 },
+        { "event": "layout" },
+        { "expect": { "value": { "slots": [["a", "d"], ["b"], ["c"]] } } }
+      ]
+    }
+  ]
+}
