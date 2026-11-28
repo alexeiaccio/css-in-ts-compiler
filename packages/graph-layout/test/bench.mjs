@@ -1,13 +1,22 @@
-// What the engine costs: the three phases separately and composed, over a corpus of random graphs, plus the shape a diagram
-// is most likely to hurt — a 200-node chain, the longest layering possible for the node limit.
+// What the engine costs and what the crossing minimization buys: the phases over a corpus of random graphs, the crossings
+// before and after the sweep, and the shape a diagram is most likely to hurt — a 200-node chain.
 import { performance } from "node:perf_hooks";
 
-import { assignLayers, breakCycles, layout, orderNodes } from "../src/index.ts";
+import {
+  assignLayers,
+  breakCycles,
+  crossings,
+  layout,
+  minimizeCrossings,
+  orderSlots,
+} from "../src/index.ts";
 import { chain, corpus, cycle } from "./graphs.mjs";
 
 const graphs = corpus(1000);
 const oriented = graphs.map(breakCycles);
 const layered = oriented.map(assignLayers);
+const ordered = graphs.map((graph, index) => orderSlots(oriented[index], layered[index]));
+const swept = graphs.map((graph, index) => minimizeCrossings(graph, ordered[index]));
 
 // `perRun` returns a number, summed into a checksum nobody prints: without a consumer the JIT may delete the whole loop.
 const micros = (perRun, count) => {
@@ -35,21 +44,32 @@ const around = cycle(200);
 const phases = [
   ["breakCycles", (index) => breakCycles(graphs[index]).edges.length],
   ["assignLayers", (index) => assignLayers(oriented[index]).size],
-  ["orderNodes", (index) => orderNodes(graphs[index].nodes, layered[index]).layers.length],
-  ["layout", (index) => layout(graphs[index]).layers.length],
+  ["orderSlots", (index) => orderSlots(oriented[index], layered[index]).slots.length],
+  ["layout", (index) => layout(graphs[index]).slots.length],
+  ["minimizeCrossings", (index) => minimizeCrossings(graphs[index], ordered[index]).slots.length],
 ];
 
 console.log(
   `layered layout over ${graphs.length} random graphs: ${nodes} nodes, ${edges} edges, at most 80 nodes a graph`,
 );
 for (const [name, perRun] of phases) {
-  console.log(`  ${name.padEnd(13)} ${micros(perRun, graphs.length).toFixed(2)} µs/graph`);
+  console.log(`  ${name.padEnd(17)} ${micros(perRun, graphs.length).toFixed(2)} µs/graph`);
 }
 for (const [name, graph] of [
   ["chain of 200", longest],
   ["cycle of 200", around],
 ]) {
   console.log(
-    `  ${name.padEnd(13)} ${micros(() => layout(graph).layers.length, 1000).toFixed(2)} µs/layout`,
+    `  ${name.padEnd(17)} ${micros(() => layout(graph).slots.length, 1000).toFixed(2)} µs/layout`,
   );
 }
+
+const before = graphs.reduce((sum, graph, index) => sum + crossings(graph, ordered[index]), 0);
+const after = graphs.reduce((sum, graph, index) => sum + crossings(graph, swept[index]), 0);
+const improved = graphs.filter(
+  (graph, index) => crossings(graph, swept[index]) < crossings(graph, ordered[index]),
+).length;
+const crossing = graphs.filter((graph, index) => crossings(graph, swept[index]) > 0).length;
+console.log(
+  `crossings: ${before} at the model order, ${after} after the sweep (${improved} of ${graphs.length} graphs improve, ${crossing} still cross)`,
+);

@@ -6512,3 +6512,21 @@ lecture, NP-hard with bends, angular resolution and edge lengths as the quality 
 segments forecloses it; orthogonal stays the first strategy (cheaper collision tests, and the skin's step shapes speak it) and
 octilinear is a second one behind the same polyline. And Nöllenburg & Wolff's mixed-integer program is the quality oracle, not
 a dependency: exact on small instances, and these are diagrams, not transit maps.
+
+**Crossing minimization over the slots (2026-11-28):** the fourth slice. The engine grew the slots the second spec models — a
+layer's nodes and one dummy per long edge (`a>d@1`), with parallel edges folded to one line — and then a sweep over them:
+barycentre passes forward and backward, ties kept where they were, then a greedy switch on adjacent pairs. `minimizeCrossings`
+returns the layout it was given unless the sweep's is strictly better, because a barycentre pass can make a graph worse: the
+guard is what lets the property suite say "never adds a crossing" instead of "usually helps".
+
+The numbers, over the same 1000 random graphs of up to 80 nodes (`bun run bench`): the model order crosses 85 388 times, the
+sweep leaves 23 681 — 72% fewer, 585 of the 1000 graphs improved and 379 still cross. The barycentre alone leaves 26 276
+crossings in 80 µs a graph; the greedy switch removes another 2 595 (10%) for 4× the time. The first greedy cost 2.57 ms a
+graph, and measuring where it went was the whole fix: it counted every pair of edges at a layer's two boundaries for every
+candidate swap, while only the pairs that touch the two swapped slots can change. Counting those alone is the same result at
+0.33 ms — p50 53 µs, p90 0.7 ms, p99 6 ms, worst 13 ms for a dense 48-node graph. A layout is 7.6 µs (1.1 `breakCycles` + 1.9
+`assignLayers` + 5.4 `orderSlots`).
+
+The engine now also replays the slots spec's eight scenarios and walks its generated model in Chromium with `slotsDriver`,
+which answers sorted occupants so the comparison is about _which_ nodes and dummies sit in a layer, not the order — the order
+is what the sweep changes. Next: `cssints-xfma`, placement.

@@ -3,7 +3,14 @@
 // independent topological sort proves the graph is acyclic after phase 1, and the rest follows from the three phases.
 import assert from "node:assert/strict";
 
-import { assignLayers, breakCycles, layout, orderNodes } from "../src/index.ts";
+import {
+  assignLayers,
+  breakCycles,
+  crossings,
+  layout,
+  minimizeCrossings,
+  orderSlots,
+} from "../src/index.ts";
 import { chain, corpus, cycle, randomGraph } from "./graphs.mjs";
 
 const positionOf = (graph) => new Map(graph.nodes.map((node, position) => [node, position]));
@@ -58,7 +65,7 @@ const checkGraph = (graph, label) => {
   }
 
   const layerOf = assignLayers(oriented);
-  const result = orderNodes(graph.nodes, layerOf);
+  const result = orderSlots(oriented, layerOf);
   assert.deepEqual(layout(graph), result, `${label}: layout composes the three phases`);
   assert.deepEqual(layout(graph), result, `${label}: the same input gives the same output`);
 
@@ -102,9 +109,54 @@ const checkGraph = (graph, label) => {
   for (let index = 1; index < result.layers.length; index += 1) {
     assert.ok(result.layers[index - 1].length > 0, `${label}: layers have no gaps`);
   }
+
+  const nodeSet = new Set(graph.nodes);
+  const placed = new Map();
+  for (const [layer, ids] of result.slots.entries()) {
+    assert.ok(ids.length > 0, `${label}: slot layer ${layer} is not empty`);
+    for (const [index, id] of ids.entries()) {
+      assert.ok(!placed.has(id), `${label}: ${id} occupies one slot`);
+      placed.set(id, { layer, index });
+      if (nodeSet.has(id)) {
+        assert.equal(layerOf.get(id), layer, `${label}: ${id} sits in its layer`);
+        continue;
+      }
+      const dummy = /^(.+?)>(.+)@(\d+)$/.exec(id);
+      assert.ok(dummy !== null, `${label}: ${id} is a dummy id`);
+      const source = dummy[1];
+      const target = dummy[2];
+      assert.equal(Number(dummy[3]), layer, `${label}: ${id} names its layer`);
+      const from = layerOf.get(source);
+      const to = layerOf.get(target);
+      assert.ok(
+        from !== undefined && to !== undefined && from < layer && layer < to,
+        `${label}: ${id} is strictly between its ends`,
+      );
+    }
+  }
+  assert.deepEqual(
+    result.slots.map((ids) => ids.filter((id) => nodeSet.has(id))),
+    result.layers,
+    `${label}: layers are the slots' nodes`,
+  );
+  for (const [_layer, ids] of result.layers.entries()) {
+    ids.forEach((id, rank) => {
+      assert.equal(result.ranks[id], rank, `${label}: the rank of ${id} is its index`);
+    });
+  }
+
+  const baseline = crossings(graph, result);
+  const swept = minimizeCrossings(graph, result);
+  assert.deepEqual(
+    swept.slots.map((ids) => [...ids].sort()),
+    result.slots.map((ids) => [...ids].sort()),
+    `${label}: the sweep keeps the occupants`,
+  );
+  assert.ok(crossings(graph, swept) <= baseline, `${label}: the sweep does not add crossings`);
+  assert.deepEqual(minimizeCrossings(graph, result), swept, `${label}: the sweep is deterministic`);
 };
 
-assert.deepEqual(layout({ nodes: [], edges: [] }), { layers: [], ranks: {} });
+assert.deepEqual(layout({ nodes: [], edges: [] }), { layers: [], ranks: {}, slots: [] });
 assert.throws(
   () => layout({ nodes: ["a"], edges: [{ source: "a", target: "ghost" }] }),
   RangeError,
@@ -143,6 +195,20 @@ const shapes = [
 for (const [name, graph] of shapes) {
   checkGraph(graph, name);
 }
+
+const crossing = {
+  nodes: ["a", "b", "c", "d"],
+  edges: [
+    { source: "a", target: "d" },
+    { source: "b", target: "c" },
+  ],
+};
+assert.equal(crossings(crossing, layout(crossing)), 1, "the baseline crosses");
+assert.equal(
+  crossings(crossing, minimizeCrossings(crossing, layout(crossing))),
+  0,
+  "the sweep uncrosses",
+);
 
 const graphs = corpus(400);
 for (const [seed, graph] of graphs.entries()) {
