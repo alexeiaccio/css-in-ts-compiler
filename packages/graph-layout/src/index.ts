@@ -107,6 +107,7 @@ export const breakCycles = (graph: Graph): Graph => {
 export const assignLayers = (graph: Graph): ReadonlyMap<string, number> => {
   const outgoing = new Map<string, string[]>();
   for (const edge of graph.edges) {
+    if (edge.source === edge.target) continue;
     outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), edge.target]);
   }
   const layer = new Map(graph.nodes.map((id) => [id, 0]));

@@ -66,6 +66,10 @@ the straight line between the two nodes its edge joins, clamped into the gap of 
 router will route through it. Over the specs' six graphs the placement is at least as straight as elk-rs with
 `nodePlacement.strategy: SIMPLE` (80 px of total edge deviation against 102), and five of the six are perfectly straight.
 
+A **self loop** (`a -> a`) is not a way to another layer: it leaves the layering, the slots and the crossings alone — the same
+graph with loops lays out exactly as the graph without them — and `route` draws it as a bracket on the node's right border. A
+skin that draws from the border midpoints needs a loop shape of its own; the engine's polyline is what such a shape follows.
+
 `route` is the channel router: every layer boundary is a channel, every edge crossing it gets a track of its own there
 (ordered by the height it leaves with, so two verticals never run on one line), the horizontals run at the slots' heights —
 which is how a long edge passes through its dummy — and a node's ports are the midpoints of its right and left borders.

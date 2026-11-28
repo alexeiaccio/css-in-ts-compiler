@@ -90,16 +90,28 @@ const checkRoutes = (
     assert.ok(from !== undefined && to !== undefined, `${label}: ${line.id} has ends`);
     const first = line.points[0];
     const last = line.points.at(-1);
-    assert.deepEqual(
-      first,
-      { x: from.x + from.width, y: from.y + from.height / 2 },
-      `${label}: ${line.id} starts at its source's right port`,
-    );
-    assert.deepEqual(
-      last,
-      { x: to.x, y: to.y + to.height / 2 },
-      `${label}: ${line.id} ends at its target's left port`,
-    );
+    if (line.source === line.target) {
+      assert.equal(line.points.length, 4, `${label}: ${line.id} is a bracket`);
+      assert.ok(
+        (first?.x ?? 0) >= from.x + from.width && (last?.x ?? 0) >= from.x + from.width,
+        `${label}: ${line.id} leaves and returns on the right border`,
+      );
+      assert.ok(
+        line.points.every((point) => point.x >= from.x + from.width),
+        `${label}: ${line.id} stays outside its node`,
+      );
+    } else {
+      assert.deepEqual(
+        first,
+        { x: from.x + from.width, y: from.y + from.height / 2 },
+        `${label}: ${line.id} starts at its source's right port`,
+      );
+      assert.deepEqual(
+        last,
+        { x: to.x, y: to.y + to.height / 2 },
+        `${label}: ${line.id} ends at its target's left port`,
+      );
+    }
     for (const point of line.points) {
       assert.ok(
         Number.isFinite(point.x) && Number.isFinite(point.y),
@@ -112,7 +124,9 @@ const checkRoutes = (
         !(segment.horizontal && segment.vertical),
         `${label}: ${line.id} has no zero-length segment`,
       );
-      assert.ok(segment.to.x >= segment.from.x, `${label}: ${line.id} never goes back`);
+      if (line.source !== line.target) {
+        assert.ok(segment.to.x >= segment.from.x, `${label}: ${line.id} never goes back`);
+      }
     }
     const startLayer = ordered.slots.findIndex((ids) => ids.includes(line.source));
     const endLayer = ordered.slots.findIndex((ids) => ids.includes(line.target));
@@ -230,6 +244,18 @@ const shapes = [
       edges: [
         { source: "a", target: "b" },
         { source: "c", target: "d" },
+      ],
+    },
+  ],
+  [
+    "self loops",
+    {
+      nodes: ["a", "b", "c"],
+      edges: [
+        { source: "a", target: "a" },
+        { source: "a", target: "b" },
+        { source: "b", target: "c" },
+        { source: "c", target: "c" },
       ],
     },
   ],

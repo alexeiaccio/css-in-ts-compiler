@@ -53,12 +53,19 @@ export const route = (
     end: columns[boundary + 1] ?? 0,
   });
 
+  const loops: Route[] = [];
   const chains: Array<{ id: string; source: string; target: string; chain: string[] }> = [];
   const seen = new Set<string>();
   for (const edge of graph.edges) {
     const first = layerOf.get(edge.source);
     const last = layerOf.get(edge.target);
-    if (first === undefined || last === undefined || first === last) continue;
+    if (first === undefined || last === undefined) continue;
+    if (first === last) {
+      if (edge.source !== edge.target || seen.has(`${edge.source}>${edge.target}`)) continue;
+      seen.add(`${edge.source}>${edge.target}`);
+      loops.push(loopOf(edge.source, boxOf.get(edge.source)));
+      continue;
+    }
     const source = first < last ? edge.source : edge.target;
     const target = first < last ? edge.target : edge.source;
     const id = `${source}>${target}`;
@@ -97,7 +104,7 @@ export const route = (
     });
   }
 
-  return chains.map(({ id, source, target, chain }) => {
+  const through = chains.map(({ id, source, target, chain }) => {
     const from = layerOf.get(source) ?? 0;
     const to = layerOf.get(target) ?? 0;
     const start = boxOf.get(source);
@@ -116,6 +123,26 @@ export const route = (
     points.push({ x: end === undefined ? 0 : end.x, y: centreOf(target) });
     return { id, source, target, points: dedupe(points) };
   });
+  return [...through, ...loops];
+};
+
+const LOOP_OUT = 16;
+const LOOP_HALF = 6;
+
+const loopOf = (id: string, box: Placement | undefined): Route => {
+  const x = box === undefined ? 0 : box.x + box.width;
+  const y = box === undefined ? 0 : box.y + box.height / 2;
+  return {
+    id: `${id}>${id}`,
+    source: id,
+    target: id,
+    points: [
+      { x, y: y - LOOP_HALF },
+      { x: x + LOOP_OUT, y: y - LOOP_HALF },
+      { x: x + LOOP_OUT, y: y + LOOP_HALF },
+      { x, y: y + LOOP_HALF },
+    ].map((point) => ({ ...point })),
+  };
 };
 
 const dedupe = (points: ReadonlyArray<RoutePoint>): ReadonlyArray<RoutePoint> =>

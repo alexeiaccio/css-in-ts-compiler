@@ -6587,3 +6587,16 @@ it and says so in one sentence. And the registry's catalog is generated: `bun ru
 `AGENTS.md` names) — the diff went from 1 529 lines to the 6 the new story needs once `vp fmt` had run. Gates: apps/ui 73 files
 and 1 041 browser tests, the site's stories/ids/controls/theme check, 121 untracked reads (unchanged), skin and theme checks,
 lint 0/0.
+
+**Self loops, and the bug they were hiding (2026-11-28):** the first slice of the deferred bean. A loop is not a way to another
+layer, but `assignLayers` counted it as an edge into its own node: `a -> a, a -> b` put `a` on layer 1, `b` on layer 2 and left
+layer 0 empty — every graph with a loop laid out wrong, silently. The layering now skips an edge whose ends are the same node,
+so `layout` of a graph with loops is byte-identical to the layout of the same graph without them, and the slots and crossings
+never see a loop. `route` draws each loop as a bracket on its node's right border (`x + width` out 16 px and back between
+`centre - 6` and `centre + 6`), which is the polyline a skin's loop shape follows; the skin's own drawing of it is a separate
+slice, because the skin draws every edge between two boxes and has no loop case yet.
+
+The check that pays for itself: the property suite now asserts the equality (looped graph versus plain), the routing suite
+routes a loopy shape (four edges, two of them loops) and holds every geometry invariant for the brackets, and the placement
+suite places one. The rest of the deferred bean — ports beyond the midpoints, labels, compound graphs, layer constraints, the
+strategy knobs and the octilinear drawing — is now seven children of `cssints-a65d` rather than one paragraph.

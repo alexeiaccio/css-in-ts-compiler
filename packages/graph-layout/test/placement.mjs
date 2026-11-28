@@ -114,6 +114,18 @@ const shapes = [
       ],
     },
   ],
+  [
+    "self loops",
+    {
+      nodes: ["a", "b", "c"],
+      edges: [
+        { source: "a", target: "a" },
+        { source: "a", target: "b" },
+        { source: "b", target: "c" },
+        { source: "c", target: "c" },
+      ],
+    },
+  ],
   ["chain of 200", chain(200)],
   ["cycle of 200", cycle(200)],
   ["dense 40", randomGraph(7, { maxNodes: 40, density: 0.5, isolates: 0 })],

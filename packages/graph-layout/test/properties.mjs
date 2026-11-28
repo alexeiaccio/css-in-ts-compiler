@@ -156,6 +156,31 @@ const checkGraph = (graph, label) => {
   assert.deepEqual(minimizeCrossings(graph, result), swept, `${label}: the sweep is deterministic`);
 };
 
+// A self loop is not a way to another layer: the same graph with loops lays out exactly as the graph without them, and the
+// crossings do not count a loop, which has no boundary to cross.
+const looped = {
+  nodes: ["a", "b", "c"],
+  edges: [
+    { source: "a", target: "b" },
+    { source: "a", target: "a" },
+    { source: "b", target: "c" },
+    { source: "c", target: "c" },
+  ],
+};
+const plain = {
+  nodes: ["a", "b", "c"],
+  edges: [
+    { source: "a", target: "b" },
+    { source: "b", target: "c" },
+  ],
+};
+assert.deepEqual(layout(looped), layout(plain), "loops do not move a node");
+assert.equal(
+  crossings(looped, layout(looped)),
+  crossings(plain, layout(plain)),
+  "loops cross nothing",
+);
+
 assert.deepEqual(layout({ nodes: [], edges: [] }), { layers: [], ranks: {}, slots: [] });
 assert.throws(
   () => layout({ nodes: ["a"], edges: [{ source: "a", target: "ghost" }] }),
