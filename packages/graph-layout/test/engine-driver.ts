@@ -7,7 +7,16 @@ import {
 } from "@cssints/apg-specs/patterns/graph-layout.bridge";
 import type { Schema } from "effect";
 
-import { type Graph, type Layout, assignLayers, breakCycles, orderSlots } from "../src/index.ts";
+import {
+  type Graph,
+  type Layout,
+  assignLayers,
+  breakCycles,
+  label,
+  orderSlots,
+  place,
+  route,
+} from "../src/index.ts";
 
 // The spec's dummy id is the pair in model order (`ad@1`); the engine names the edge's effective ends (`a>d@1`). The six
 // graphs have one-letter ids, so dropping the arrow is the whole translation.
@@ -18,6 +27,7 @@ interface Pipeline {
   oriented: Graph | undefined;
   layerOf: ReadonlyMap<string, number> | undefined;
   result: Layout | undefined;
+  labels: ReadonlyArray<ReadonlyArray<string>> | undefined;
 }
 
 const emptyPipeline = (): Pipeline => ({
@@ -25,7 +35,40 @@ const emptyPipeline = (): Pipeline => ({
   oriented: undefined,
   layerOf: undefined,
   result: undefined,
+  labels: undefined,
 });
+
+/** The boxes the labels spec places: the four nodes of every one of its six graphs, 40 x 20 like elk's. */
+const LABEL_SIZES = Object.fromEntries(
+  GRAPH_LAYOUT_NODES.map((id) => [id, { width: 40, height: 20 }]),
+);
+
+/**
+ * Phase 4 of the labels spec, on the drawing the first three phases give: place, route, and put a 10 px label on every
+ * route — then read the labels back per boundary, sorted by their top, which is the stacking's order. The spec's one-based
+ * boundary is the paper's zero-based one, and a plus one is the whole translation.
+ *
+ * @param {Pipeline} pipeline the graph and the layout the first three phases gave
+ * @returns {ReadonlyArray<ReadonlyArray<string>>} per boundary, the pair ids in track order
+ */
+const placeLabels = (pipeline: Pipeline): ReadonlyArray<ReadonlyArray<string>> => {
+  const graph = pipeline.graph;
+  const ordered = pipeline.result;
+  if (graph === undefined || ordered === undefined) return [];
+  const sized = { ...graph, sizes: LABEL_SIZES };
+  const boxes = place(sized, ordered);
+  const routes = route(sized, ordered, boxes);
+  const requests = Object.fromEntries(routes.map((line) => [line.id, { height: 10 }]));
+  const slots = label(sized, ordered, boxes, routes, requests);
+  const at = new Map<number, Array<{ id: string; y: number }>>();
+  for (const slot of slots) {
+    if (slot.boundary < 0) continue;
+    at.set(slot.boundary, [...(at.get(slot.boundary) ?? []), { id: slot.id, y: slot.y }]);
+  }
+  return [...at]
+    .sort((one, two) => one[0] - two[0])
+    .map(([, list]) => [...list].sort((one, two) => one.y - two.y).map((slot) => pairOf(slot.id)));
+};
 
 /**
  * One user-level step, gated exactly as the spec's actions are: `set_graph` picks one of the six graphs, the three phases
@@ -51,6 +94,7 @@ const perform = (state: Pipeline, action: ActionStep): void => {
       state.oriented = undefined;
       state.layerOf = undefined;
       state.result = undefined;
+      state.labels = undefined;
       return;
     }
     case "break_cycles":
@@ -64,6 +108,7 @@ const perform = (state: Pipeline, action: ActionStep): void => {
       }
       return;
     case "order_nodes":
+    case "order_slots":
       if (
         state.oriented !== undefined &&
         state.layerOf !== undefined &&
@@ -76,6 +121,11 @@ const perform = (state: Pipeline, action: ActionStep): void => {
       perform(state, { event: "break_cycles" });
       perform(state, { event: "assign_layers" });
       perform(state, { event: "order_nodes" });
+      return;
+    case "place_labels":
+      if (state.result !== undefined && state.labels === undefined) {
+        state.labels = placeLabels(state);
+      }
       return;
     default:
       throw new Unsupported(`event ${action.event}`);
@@ -131,5 +181,19 @@ export const slotsDriver = (): Driver => {
     observer: observerOf(() => ({
       slots: (state.result?.slots ?? []).map((ids) => ids.map(pairOf).sort()),
     })),
+  };
+};
+
+/**
+ * The engine as the labels spec's driver: per boundary with a label, the pair ids in the order the labels stack, which is
+ * the engine's `label` read back through the routes' own track order.
+ *
+ * @returns {Driver} a fresh driver
+ */
+export const labelsDriver = (): Driver => {
+  const state = emptyPipeline();
+  return {
+    perform: (action) => perform(state, action),
+    observer: observerOf(() => ({ boundaries: state.labels ?? [] })),
   };
 };

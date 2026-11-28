@@ -13,6 +13,14 @@ import { t } from "../theme.ts" with { type: "cssints" };
 
 export type { DiagramEdgeInput, DiagramLabels, DiagramNodeInput };
 
+/** Where an edge's label goes, in the frame's own px: the band it has to stay inside. */
+export interface DiagramLabelBand {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 /** The graph, the words for its live region, and what a node or an edge activation goes to. */
 export interface DiagramProps {
   /**
@@ -37,6 +45,11 @@ export interface DiagramProps {
   readonly onConnect?: ((from: string, to: string) => void) | undefined;
   /** Whether a link may be made (default: any other node). */
   readonly canConnect?: ((from: string, to: string) => boolean) | undefined;
+  /**
+   * Where each edge's label goes, when the host laid the graph out: a band keyed by `from>to` or `to>from`. An edge without
+   * one keeps the skin's own place on its line, and a loop's label is always the skin's.
+   */
+  readonly labelSlots?: Readonly<Record<string, DiagramLabelBand>> | undefined;
   readonly class?: string | undefined;
 }
 
@@ -266,6 +279,23 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
     return result;
   });
 
+  const bandOf = (edge: DiagramEdgeInput): DiagramLabelBand | undefined =>
+    props.labelSlots?.[`${edge.from}>${edge.to}`] ?? props.labelSlots?.[`${edge.to}>${edge.from}`];
+
+  const labelOf = (
+    item: RoutedEdge,
+  ): { readonly class: string; readonly x: number; readonly y: number } => {
+    const band = bandOf(item.edge);
+    if (band === undefined) {
+      return {
+        class: item.route.label.along ? labelAlongClass : labelClass,
+        x: item.route.label.x,
+        y: item.route.label.y,
+      };
+    }
+    return { class: labelClass, x: band.x + band.width / 2, y: band.y + band.height / 2 + 4 };
+  };
+
   // An edge whose endpoint is missing is the primitive's to ignore, and the skin's not to draw.
   const routed = createMemo<RoutedEdge[]>(() => {
     const found = byId();
@@ -394,13 +424,7 @@ export const Diagram = (props: DiagramProps): JSX.Element => {
                 <path class={lineClass} d={item.route.d} data-part="diagram-line" />
                 <polygon points={item.route.arrow} />
                 {item.edge.label === undefined ? undefined : (
-                  <text
-                    class={item.route.label.along ? labelAlongClass : labelClass}
-                    x={item.route.label.x}
-                    y={item.route.label.y}
-                  >
-                    {item.edge.label}
-                  </text>
+                  <text {...labelOf(item)}>{item.edge.label}</text>
                 )}
               </g>
             )}

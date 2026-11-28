@@ -6,6 +6,7 @@ import {
   assignLayers,
   breakCycles,
   crossings,
+  label,
   layout,
   minimizeCrossings,
   orderSlots,
@@ -24,6 +25,10 @@ const sized = graphs.map((graph) => ({
 const ordered = graphs.map((graph, index) => orderSlots(oriented[index], layered[index]));
 const swept = graphs.map((graph, index) => minimizeCrossings(graph, ordered[index]));
 const placed = sized.map((graph, index) => place(graph, swept[index]));
+const routed = sized.map((graph, index) => route(graph, swept[index], placed[index]));
+const asked = routed.map((routes) =>
+  Object.fromEntries(routes.map((line) => [line.id, { height: 12 }])),
+);
 
 // `perRun` returns a number, summed into a checksum nobody prints: without a consumer the JIT may delete the whole loop.
 const micros = (perRun, count) => {
@@ -59,6 +64,10 @@ const phases = [
   [
     "route (8 dirs)",
     (index) => route(sized[index], swept[index], placed[index], { directions: 8 }).length,
+  ],
+  [
+    "label",
+    (index) => label(sized[index], swept[index], placed[index], routed[index], asked[index]).length,
   ],
 ];
 

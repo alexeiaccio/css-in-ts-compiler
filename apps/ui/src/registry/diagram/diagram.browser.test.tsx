@@ -2,7 +2,15 @@ import { userEvent } from "vite-plus/test/browser";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { crossingsOf, shapeBetween } from "../route.ts";
-import { type MountedDiagram, mountDiagram, mountStarter, STARTER_EDGES } from "./diagram.fixture";
+import {
+  type MountedDiagram,
+  mountDiagram,
+  mountStarter,
+  nodeLabel,
+  PAYMENT_NODES,
+  STARTER_EDGES,
+} from "./diagram.fixture";
+import { layOut } from "./layout.ts";
 
 // No APG pattern and no Quint spec exists for a diagram, so this file is the skin's oracle: it mounts the starter in a real
 // Chromium and drives the same graph a reader does. The accessible contract (a named group, one tab stop, the edges of the
@@ -653,6 +661,53 @@ describe("the starter lays the graph out on demand", () => {
     );
     expect(laidOut.getBBox().width).toBe(20);
     expect(laidOut.getBBox().height).toBe(16);
+  });
+
+  it("puts the two labels of one boundary on bands of their own", async () => {
+    const { root } = started();
+    required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+    await settle();
+    const pay = required<SVGTextElement>(root, '[data-edge="pay"] text').getBBox();
+    const cancel = required<SVGTextElement>(root, '[data-edge="cancel"] text').getBBox();
+    const apart = pay.y + pay.height <= cancel.y || cancel.y + cancel.height <= pay.y;
+    expect(apart).toBe(true);
+  });
+
+  it("draws every label inside the band the engine gave it", async () => {
+    const { root } = started();
+    required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]').click();
+    await settle();
+    const laid = layOut(PAYMENT_NODES, STARTER_EDGES);
+    for (const edge of STARTER_EDGES) {
+      const text = required<SVGTextElement>(root, `[data-edge="${edge.id}"] text`);
+      expect(text.textContent, edge.id).toBe(edge.label);
+      expect(required(root, `[data-edge="${edge.id}"]`).getAttribute("aria-label")).toBe(
+        `${edge.label}: ${nodeLabel(edge.from)} → ${nodeLabel(edge.to)}`,
+      );
+      const band = laid.labelSlots[`${edge.from}>${edge.to}`];
+      if (band === undefined) continue;
+      const box = text.getBBox();
+      expect(box.x, edge.id).toBeGreaterThanOrEqual(band.x);
+      expect(box.x + box.width, edge.id).toBeLessThanOrEqual(band.x + band.width);
+      expect(box.y, edge.id).toBeGreaterThanOrEqual(band.y);
+      expect(box.y + box.height, edge.id).toBeLessThanOrEqual(band.y + band.height);
+    }
+  });
+
+  it("draws the same label bands on a second press", async () => {
+    const { root } = started();
+    const control = required<HTMLButtonElement>(root, '[data-part="starter-lay-out"]');
+    control.click();
+    await settle();
+    const bands = (): ReadonlyArray<ReadonlyArray<string | null>> =>
+      STARTER_EDGES.map((edge) => {
+        const text = required<SVGTextElement>(root, `[data-edge="${edge.id}"] text`);
+        return [text.getAttribute("x"), text.getAttribute("y")];
+      });
+    const first = bands();
+    control.click();
+    await settle();
+    expect(bands()).toEqual(first);
   });
 
   it("keeps the arrows working on the laid-out drawing", async () => {

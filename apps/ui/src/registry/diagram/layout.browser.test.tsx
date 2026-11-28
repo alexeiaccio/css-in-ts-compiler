@@ -42,13 +42,14 @@ describe("laying a graph out in the handler", () => {
       });
       // eslint-disable-next-line no-console
       console.log(`${count} nodes: ${time.toFixed(2)} ms`);
-      expect(first).toHaveLength(count);
+      expect(first.nodes).toHaveLength(count);
       if (count <= 20) expect(time).toBeLessThan(16);
     });
   }
 
   it("gives the same drawing the second time", () => {
     const { nodes, edges } = graphOf(20);
-    expect(layOut(layOut(nodes, edges), edges)).toEqual(layOut(nodes, edges));
+    const first = layOut(nodes, edges);
+    expect(layOut(first.nodes, edges)).toEqual(first);
   });
 });

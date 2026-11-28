@@ -4,6 +4,7 @@ import { createSignal } from "solid-js";
 import {
   Diagram,
   type DiagramEdgeInput,
+  type DiagramLabelBand,
   type DiagramLabels,
   type DiagramNodeInput,
 } from "./diagram.tsx";
@@ -29,16 +30,24 @@ const NOT_LAID = "The graph is where its author put it. “Lay out” runs the l
  */
 export const DiagramStarter = (props: DiagramStarterProps): JSX.Element => {
   const [nodes, setNodes] = createSignal(props.nodes);
+  const [labelSlots, setLabelSlots] = createSignal<Readonly<Record<string, DiagramLabelBand>>>({});
   const [log, setLog] = createSignal(NOT_LAID);
   return (
     <div class="demo-diagram">
-      <Diagram nodes={nodes()} edges={props.edges} labels={props.labels} />
+      <Diagram
+        nodes={nodes()}
+        edges={props.edges}
+        labels={props.labels}
+        labelSlots={labelSlots()}
+      />
       <div class="demo-row">
         <button
           type="button"
           data-part="starter-lay-out"
           onClick={() => {
-            setNodes((current) => layOut(current, props.edges));
+            const laid = layOut(nodes(), props.edges);
+            setNodes(laid.nodes);
+            setLabelSlots(laid.labelSlots);
             setLog("Laid out: layers left to right, boxes aligned, crossings minimized.");
           }}
         >

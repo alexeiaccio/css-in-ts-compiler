@@ -1,11 +1,13 @@
 # @cssints/graph-layout
 
 The discrete half of Eclipse Layout Kernel's layered (Sugiyama) pipeline: **cycle breaking by model order, longest-path
-layering, ordering, crossing minimization over the result, placement and orthogonal routing** (four directions by default,
-eight as an option). A graph in, boxes and polylines out — no DOM, no reactivity, no dependencies.
+layering, ordering, crossing minimization over the result, placement, orthogonal routing** (four directions by default,
+eight as an option) **and edge labels as slots**. A graph in, boxes, polylines and label bands out — no DOM, no reactivity, no
+dependencies.
 
-The contract is the Quint specs [`specs/patterns/graph-layout.qnt`](../apg-specs/specs/patterns/graph-layout.qnt) and
-[`specs/patterns/graph-layout-slots.qnt`](../apg-specs/specs/patterns/graph-layout-slots.qnt) of `@cssints/apg-specs`, their
+The contract is the Quint specs [`specs/patterns/graph-layout.qnt`](../apg-specs/specs/patterns/graph-layout.qnt),
+[`specs/patterns/graph-layout-slots.qnt`](../apg-specs/specs/patterns/graph-layout-slots.qnt) and
+[`specs/patterns/graph-layout-labels.qnt`](../apg-specs/specs/patterns/graph-layout-labels.qnt) of `@cssints/apg-specs`, their
 scenarios are replayed against the generated reference models, against elk-rs and against this engine, and the differential
 walks drive the engine and the models with the same seeded steps.
 
@@ -55,6 +57,7 @@ drawing would show one.
 | `layout(graph)`               | all three, in that order                                            |
 | `minimizeCrossings(graph, l)` | barycentre sweeps and a greedy switch over those slots, never worse |
 | `crossings(graph, layout)`    | crossing pairs, counted per layer boundary                          |
+| `label(graph, l, b, r, req)`  | one box per requested route, at the middle boundary it crosses      |
 
 `minimizeCrossings` is a heuristic with a guarantee: the layout it returns is only used if it has fewer crossings than the
 one it was given, so composing it never costs a crossing.
@@ -92,8 +95,24 @@ bundled corridors fall from 5 to 4. On the specs' six graphs six of twelve jogs 
 879 px and no crossing appears. The finding is that eight directions alone do not remove a bend; the A\* over a lattice with
 per-line weights is the step that would, and it is the next slice.
 
-Not here yet, and each its own slice: the A\* over a lattice with per-line weights, ports beyond the border midpoints, labels,
-compound graphs and the strategy knobs.
+`label(graph, layout, boxes, routes, requests, spacing)` is where an edge's word goes. Its x band is the channel of the
+boundary the label sits at — `inset` px inside the previous layer's right border, and short of the next layer's left one, so a
+request wider than the channel is clamped rather than allowed over a box. The boundary is the middle of the ones the route
+crosses (`first + floor((last - first - 1) / 2)`), and the ideal y is the middle of the route's own segment in that channel.
+At one boundary the labels are ordered by that y, ties by route id, and stacked top-down with `spacing.labels` between them;
+a label is pushed down by the one above it and never moves back up, which is one pass, no search, and no two labels can overlap.
+A loop has no boundary (`boundary: -1`) and gets a column beside its bracket.
+
+Over 120 random graphs at the swept layouts that places all 379 requested labels: 351 sit exactly at their ideal band and the
+stack moves the rest 0.68 px on average and 19.50 px at worst; 79 of the 119 boundaries carry two or more labels, the deepest
+stack is 12, and the whole phase costs 10.36 µs a graph (against `route`'s 30.58 and `place`'s 32.74 over 1 000 graphs). A
+greedy first-fit that tries the ideal band and then steps down and up by a label and a gap places all 379 as well, but 342 at the
+ideal band, 1.94 px mean and 48.00 px worst — it buys 0.3 labels per 100 at 1.3 px of extra mean movement, which is why the
+engine has the one-directional stack and not the search.
+
+Not here yet, and each its own slice: the A\* over a lattice with per-line weights, ports beyond the border midpoints, labels of
+loops inside the channels, a route crossing the same band as a label's box, multi-line labels, compound graphs and the strategy
+knobs.
 
 ## Tests
 
@@ -111,7 +130,10 @@ outside a channel or a shared port, and that the sweep's layouts are drawn with 
 `test/octilinear.mjs` runs the same shapes and corpus through `directions: 8` and asserts what the eight directions promise:
 every segment is horizontal, vertical or exactly 45°, a route never goes back, it crosses each boundary between its ends once,
 no segment enters a box, a port is one anchor and each route leaves and arrives horizontally — and every diagonal replaces a
-vertical with the bend count unchanged.
+vertical with the bend count unchanged. `test/labels.mjs` holds the labels' contract over the same shapes and corpus: one slot per
+requested route in route order, the box inside its channel, no two labels overlapping, no label over a node's box, the ideal y
+never moved up, the order at a boundary the routes' own, a request wider than the channel clamped, a loop's slot beside its
+bracket, and the same graph labelled the same way twice — then the greedy first-fit's numbers above.
 
 The property suite (`test/properties.mjs`) is the part the specs cannot carry — a spec's graph is a literal `pick` of six, so
 everything the engine does on an arbitrary graph is checked as a property over 8 hand-built shapes and 400 seeded graphs (up

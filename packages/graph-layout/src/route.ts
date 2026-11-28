@@ -21,6 +21,42 @@ export interface RouteOptions {
   readonly directions?: 4 | 8;
 }
 
+/** The x band of one layer boundary: from the right borders of the layer before it to the left edges of the next. */
+export interface Channel {
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
+ * The channels of a drawing, one per layer boundary: the band between a layer's rightmost node border and the next layer's
+ * left column. The router puts one track per edge inside it and a label takes its x from it.
+ *
+ * @param {Graph} graph the graph the layout and the placement belong to
+ * @param {Layout} layout the layout whose boundaries are wanted
+ * @param {ReadonlyArray<Placement>} boxes the slots' boxes, as {@link place} returns them
+ * @returns {ReadonlyArray<Channel>} one channel per boundary, `{0, 0}` where the drawing has none
+ */
+export const channels = (
+  graph: Graph,
+  layout: Layout,
+  boxes: ReadonlyArray<Placement>,
+): ReadonlyArray<Channel> => {
+  const nodes = new Set(graph.nodes);
+  const boxOf = new Map(boxes.map((box) => [box.id, box]));
+  const columns = layout.slots.map((ids) => Math.min(...ids.map((id) => boxOf.get(id)?.x ?? 0)));
+  const borders = layout.slots.map((ids) =>
+    Math.max(
+      ...ids
+        .filter((id) => nodes.has(id))
+        .map((id) => (boxOf.get(id)?.x ?? 0) + (boxOf.get(id)?.width ?? 0)),
+    ),
+  );
+  return columns.slice(0, -1).map((_, boundary) => ({
+    start: borders[boundary] ?? 0,
+    end: columns[boundary + 1] ?? 0,
+  }));
+};
+
 /**
  * Routes through the placement's channels: every layer boundary gets a channel, each edge crossing it gets its own track
  * there (ordered by the y it leaves with, so two verticals never share a line), the route crosses each layer in between at
@@ -48,24 +84,13 @@ export const route = (
   const layerOf = new Map<string, number>();
   layout.slots.forEach((ids, layer) => ids.forEach((id) => layerOf.set(id, layer)));
   const boxOf = new Map(boxes.map((box) => [box.id, box]));
-  const nodes = new Set(graph.nodes);
   const centreOf = (id: string): number => {
     const box = boxOf.get(id);
     return box === undefined ? 0 : box.y + box.height / 2;
   };
 
-  const columns = layout.slots.map((ids) => Math.min(...ids.map((id) => boxOf.get(id)?.x ?? 0)));
-  const borders = layout.slots.map((ids) =>
-    Math.max(
-      ...ids
-        .filter((id) => nodes.has(id))
-        .map((id) => (boxOf.get(id)?.x ?? 0) + (boxOf.get(id)?.width ?? 0)),
-    ),
-  );
-  const channelOf = (boundary: number): { start: number; end: number } => ({
-    start: borders[boundary] ?? 0,
-    end: columns[boundary + 1] ?? 0,
-  });
+  const column = channels(graph, layout, boxes);
+  const channelOf = (boundary: number): Channel => column[boundary] ?? { start: 0, end: 0 };
 
   const loops: Route[] = [];
   const chains: Array<{ id: string; source: string; target: string; chain: string[] }> = [];

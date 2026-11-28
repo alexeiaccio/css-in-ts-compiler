@@ -1,0 +1,131 @@
+{
+  "pattern": "graph-layout-labels",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Written from specs/patterns/graph-layout-labels.qnt: the layered pipeline with its slots, plus edge labels as slots of their own. Each edge's label takes the middle of the layer boundaries its edge crosses, and a track of its own at that boundary — the track order is the right-side slot in the next layer, ties in the pairs' model order (ab < ac < ad < bc < bd < cd). The value is per boundary, from the lowest up, the pair ids in track order; pixel sizes and the y stacking are the engine's and are not modelled.",
+  "skipped": [
+    {
+      "id": "graph-layout-labels.spec.label-sizes",
+      "reason": "a label's width, height, the channel band and every pixel are geometry: the engine's `label` measures the band, and the model carries only which boundary a label sits at and its order there"
+    },
+    {
+      "id": "graph-layout-labels.spec.stacking",
+      "reason": "the y stacking and the greedy first-fit it is measured against need the labels' heights; a discrete model has no sizes to stack"
+    },
+    {
+      "id": "graph-layout-labels.spec.more-than-six",
+      "reason": "the bounds of four nodes and six pairs: a seventh label or a seventh track would need a collection the generator does not have, and the six graphs never ask for one"
+    },
+    {
+      "id": "graph-layout-labels.spec.loops",
+      "reason": "none of the six graphs has a self loop and a loop's label has no boundary to sit between; the engine puts one beside the bracket, and the skin draws it"
+    },
+    {
+      "id": "graph-layout-labels.spec.multi-edges",
+      "reason": "a pair is one edge either way, as in the first two slices: two edges between the same nodes are one line and one label"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "graph-layout-labels.spec.chain",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 1 },
+        { "event": "place_labels" },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab"], ["bc"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.diamond",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 2 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab", "ac"], ["bd", "cd"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.islands",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 3 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab", "cd"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.long-edge",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab"], ["bc", "ad"], ["cd"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.two-cycle",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 5 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab"], ["bc"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.three-cycle",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 6 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab", "ac"], ["bc"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.the-shorthand-lays-out-then-labels",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "layout" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab"], ["bc", "ad"], ["cd"]] } } }
+      ]
+    },
+    {
+      "id": "graph-layout-labels.spec.a-new-graph-replaces-the-old",
+      "config": {},
+      "steps": [
+        { "event": "set_graph", "value": 4 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "event": "set_graph", "value": 1 },
+        { "event": "break_cycles" },
+        { "event": "assign_layers" },
+        { "event": "order_slots" },
+        { "event": "place_labels" },
+        { "expect": { "value": { "boundaries": [["ab"], ["bc"]] } } }
+      ]
+    }
+  ]
+}

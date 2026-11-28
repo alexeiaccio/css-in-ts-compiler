@@ -6700,3 +6700,42 @@ border instead of sharing the midpoint, so a two-edge node reads as two lines ra
 the cut-out it drew) is gone from that page — the unit test with a hand-made through-line still covers the break. The Chrome
 tests name the ports instead of the centres (the two stems differ, the loop's mouth is a third of the border, its label rides the
 mouth), 28 in the diagram file and 1 045 in apps/ui; the board's geometry is untouched because its connectors pass no port.
+**An edge's label gets a slot (2026-11-28):** the fifth slice of the deferred bean. The engine routed edges through the channels
+between layers and left the label to the skin's `labelAt`, the middle of the line offset by 8 px — so two edges out of one node
+put their words in the same 64 px gap on top of each other, which the starter's `pay` and `cancel` did exactly after "Lay out".
+`label(graph, layout, boxes, routes, requests, spacing)` now gives every requested route one box: the x band is the channel of
+the boundary the label sits at, less a 2 px inset on each side, and a request wider than that band comes back clamped to it —
+which is what makes "no label over a box" true by construction rather than by a check, since a channel is by definition the gap
+between two layers. The boundary is the middle of the ones the edge crosses, `first + floor((last - first - 1) / 2)` — a long
+edge's label lands in the middle of its span, not at either end where both of its neighbours' labels already are. A loop has no
+boundary: its slot is a column beside the bracket and `boundary: -1`, and the skin keeps drawing that one itself.
+
+The order is the routes' own: per boundary, sort by the middle of the route's segment inside the channel (the vertical's midpoint
+for the orthogonal router, the diagonal's for the octilinear one), ties by route id, then stack top-down, each label keeping its
+ideal y unless it would reach the one above. Only down, never up: a label's place depends on the labels before it and never on the
+ones after, so one pass is enough, there is no search, and no two labels can overlap — a stack that could move a label upward
+would have to revisit the ones already placed, which is a different problem (a first-fit over both directions, measured below).
+That choice costs drift: 351 of 379 labels sit at their ideal band and the stack moves the rest 0.68 px on average, 19.50 px at
+worst over 120 random graphs at the swept layouts (2.09 px mean, 33.75 px worst at the model order). A greedy first-fit that tries
+the ideal band and then steps down and up by a label and its gap places all 379 too, but 342 at the ideal band, 1.94 px mean and
+48.00 px worst — so the greedy is no better at placing and buys 0.3 labels per 100 at 1.3 px of extra mean movement. 79 of the 119
+boundaries in the corpus carry two or more labels (deepest stack 12), which is the collision this slice exists for; `label` costs
+10.36 µs a graph against `route`'s 30.58 and `place`'s 32.74 over 1 000 graphs.
+
+`route`'s `columns`/`borders`/`channelOf` became `channels(graph, layout, boxes)` with two consumers, and the router's output is
+byte-identical (the routing and octilinear suites print the same 168 and 174 crossings, 5 and 4 bundled pairs). The discrete half
+is `specs/patterns/graph-layout-labels.qnt`: a boundary `l_<pair>` and a track `o_<pair>` per pair, one-based with 0 for absent so
+the model has no negative number, the track being the count of labels at the same boundary with a smaller key — the edge's
+right-side slot in the next layer, then the pair's model order. `LabelOnSpan`, `MiddleBoundary`, `DistinctTracks` and `TrackOrder`
+are the four invariants; the slots spec is untouched and regenerates byte-identically. The engine's `labelsDriver` replays the eight
+scenarios and agrees on all of them, including the long edge's middle boundary at `bc`/`ad`.
+
+The skin takes the slot: `layOut` runs `route` and `label` and returns `{ nodes, labelSlots }`, keyed by `from>to` and `to>from`
+so an edge finds its band whichever way it points, and `Diagram` grows one optional prop. After "Lay out" `pay`'s band is
+130..190 x 45..63 and `cancel`'s is the same column at 75..93 — 30 px apart in the same 60 px channel, where before both words sat
+on the middle of their lines. A loop's label is still the skin's own (the engine gives it `boundary: -1`), so `retry`'s numbers
+hold. Left for later, each with the reason it is not here: the y stacking knows nothing of a route crossing the same band (a
+crossing line can still run through a label's box, which is the A\* slice's bundling to fix); labels of loops never join a
+channel's stack, because their column is the bracket's and the skin draws them; a label wider than the channel is clamped and the
+text can still overhang it, since the engine has no font; multi-line and rotated labels, ports beyond the border and a
+label-to-label search are each their own slice.
