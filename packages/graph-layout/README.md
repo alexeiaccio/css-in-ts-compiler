@@ -1,8 +1,8 @@
 # @cssints/graph-layout
 
 The discrete half of Eclipse Layout Kernel's layered (Sugiyama) pipeline: **cycle breaking by model order, longest-path
-layering, ordering, crossing minimization over the result, and placement**. A graph in, boxes out — no DOM, no reactivity, no
-dependencies.
+layering, ordering, crossing minimization over the result, placement and orthogonal routing**. A graph in, boxes and polylines
+out — no DOM, no reactivity, no dependencies.
 
 The contract is the Quint specs [`specs/patterns/graph-layout.qnt`](../apg-specs/specs/patterns/graph-layout.qnt) and
 [`specs/patterns/graph-layout-slots.qnt`](../apg-specs/specs/patterns/graph-layout-slots.qnt) of `@cssints/apg-specs`, their
@@ -14,7 +14,7 @@ npm install @cssints/graph-layout
 ```
 
 ```ts
-import { crossings, layout, minimizeCrossings, place } from "@cssints/graph-layout";
+import { crossings, layout, minimizeCrossings, place, route } from "@cssints/graph-layout";
 
 const sizes = Object.fromEntries(["a", "b", "c", "d"].map((id) => [id, { width: 40, height: 20 }]));
 
@@ -34,7 +34,8 @@ const ordered = layout(graph);
 
 minimizeCrossings(graph, ordered); // the same slots, uncrossed where a sweep can
 crossings(graph, ordered); // 0
-place(graph, ordered); // boxes: a at (0, 20), b (70, 0), c (70, 40), d (140, 20) at 40x20 and 20/30 gaps
+const boxes = place(graph, ordered); // a at (0, 20), b (70, 0), c (70, 40), d (140, 20) at 40x20 and 20/30 gaps
+route(graph, ordered, boxes); // a polyline per edge, from a source's right border to its target's left
 ```
 
 The array order of `nodes` is the **model order**: an edge whose target precedes its source is backwards, and phase 1
@@ -65,20 +66,31 @@ the straight line between the two nodes its edge joins, clamped into the gap of 
 router will route through it. Over the specs' six graphs the placement is at least as straight as elk-rs with
 `nodePlacement.strategy: SIMPLE` (80 px of total edge deviation against 102), and five of the six are perfectly straight.
 
-Not here yet, and each its own slice: edge routing (orthogonal now, octilinear after the metro-map notes in
-`docs/research/edge-routing.md`), ports, labels, compound graphs and the strategy knobs.
+`route` is the channel router: every layer boundary is a channel, every edge crossing it gets a track of its own there
+(ordered by the height it leaves with, so two verticals never run on one line), the horizontals run at the slots' heights —
+which is how a long edge passes through its dummy — and a node's ports are the midpoints of its right and left borders.
+Routes are axis-aligned polylines, monotone in x, they touch each boundary between their ends once, and none of them enters a
+box. Two routes can share a line only at a port they share or inside a channel, where lines bundling is what a subway map
+does: over 120 random graphs that is 262 bundled corridor pairs, and per-edge lanes inside a channel are the next refinement
+(the octilinear strategy in `docs/research/edge-routing.md`). Drawn over swept layouts the routes cut the crossings to 140
+against 481 at the model order.
+
+Not here yet, and each its own slice: octilinear routing, ports beyond the border midpoints, labels, compound graphs and the
+strategy knobs.
 
 ## Tests
 
 ```sh
 bun run test   # the specs' scenarios, elk-rs' boxes, the property suites, then the seeded walks in Chromium
-bun run bench  # the phases, the sweep, the placement and a 200-node chain over 1k random graphs
+bun run bench  # every phase over 1k random graphs, and a 200-node chain
 ```
 
 The scenarios run against the engine under Bun; the walks drive the engine and the spec models with the same random steps and
 compare the layers, then the slots, after every one; `@cssints/apg-specs` is a dev dependency and no published code imports
 it. `test/elk-placement.mjs` runs the six graphs through elk-rs with the same boxes and the same pinned strategies, and fails
-if the columns differ, if a box overlaps, or if the placement is less straight than ELK's simplest one.
+if the columns differ, if a box overlaps, or if the placement is less straight than ELK's simplest one. `test/placement.mjs`
+and `test/routing.mjs` hold the geometric contracts over shapes and seeded graphs, including that the router adds no overlap
+outside a channel or a shared port, and that the sweep's layouts are drawn with fewer crossings than the model order's.
 
 The property suite (`test/properties.mjs`) is the part the specs cannot carry — a spec's graph is a literal `pick` of six, so
 everything the engine does on an arbitrary graph is checked as a property over 8 hand-built shapes and 400 seeded graphs (up

@@ -21,7 +21,7 @@ import scenariosJson from "@cssints/apg-specs/scenarios/patterns/graph-layout.sp
 import slotsScenariosJson from "@cssints/apg-specs/scenarios/patterns/graph-layout-slots.spec.json";
 import { describe, expect, it } from "vite-plus/test";
 
-import { crossings, layout, minimizeCrossings, place } from "../src/index";
+import { crossings, layout, minimizeCrossings, place, route } from "../src/index";
 import { engineDriver, slotsDriver } from "./engine-driver";
 
 const model = makeReferenceModel(decodeDefinition(definitionJson));
@@ -88,6 +88,37 @@ describe("graph-layout", () => {
       { id: "a>d@1", x: 70, y: 40, width: 0, height: 0 },
       { id: "a>d@2", x: 140, y: 40, width: 0, height: 0 },
     ]);
+  });
+
+  it("draws a route as a path the DOM measures", () => {
+    const sizes = Object.fromEntries(
+      ["a", "b", "c", "d"].map((id) => [id, { width: 40, height: 20 }]),
+    );
+    const diamond = {
+      nodes: ["a", "b", "c", "d"],
+      sizes,
+      edges: [
+        { source: "a", target: "b" },
+        { source: "a", target: "c" },
+        { source: "b", target: "d" },
+        { source: "c", target: "d" },
+      ],
+    };
+    const ordered = layout(diamond);
+    const [line] = route(diamond, ordered, place(diamond, ordered));
+    expect(line).toBeDefined();
+    if (line === undefined) return;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${line.points.map((point) => `${point.x} ${point.y}`).join(" L ")}`);
+    document.body.append(path);
+    const measured = line.points.slice(1).reduce((sum, point, index) => {
+      const before = line.points[index];
+      return before === undefined ? sum : sum + Math.hypot(point.x - before.x, point.y - before.y);
+    }, 0);
+    expect(path.getTotalLength()).toBeCloseTo(measured, 6);
+    const start = path.getPointAtLength(0);
+    expect([start.x, start.y]).toEqual([line.points[0]?.x, line.points[0]?.y]);
+    path.remove();
   });
 
   it("splices a long edge into a dummy and uncrosses two edges", () => {

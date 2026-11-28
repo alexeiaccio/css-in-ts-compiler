@@ -10,6 +10,7 @@ import {
   minimizeCrossings,
   orderSlots,
   place,
+  route,
 } from "../src/index.ts";
 import { chain, corpus, cycle } from "./graphs.mjs";
 
@@ -22,6 +23,7 @@ const sized = graphs.map((graph) => ({
 }));
 const ordered = graphs.map((graph, index) => orderSlots(oriented[index], layered[index]));
 const swept = graphs.map((graph, index) => minimizeCrossings(graph, ordered[index]));
+const placed = sized.map((graph, index) => place(graph, swept[index]));
 
 // `perRun` returns a number, summed into a checksum nobody prints: without a consumer the JIT may delete the whole loop.
 const micros = (perRun, count) => {
@@ -53,6 +55,7 @@ const phases = [
   ["layout", (index) => layout(graphs[index]).slots.length],
   ["minimizeCrossings", (index) => minimizeCrossings(graphs[index], ordered[index]).slots.length],
   ["place", (index) => place(sized[index], swept[index]).length],
+  ["route", (index) => route(sized[index], swept[index], placed[index]).length],
 ];
 
 console.log(

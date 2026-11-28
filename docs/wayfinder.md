@@ -6552,3 +6552,20 @@ column per layer, edges left to right, dummies as points in a gap, the same inpu
 
 Cost: `place` is 31 µs a graph over the 1000-graph corpus, against 8 µs for the layout and 336 µs for the sweep. Next:
 `cssints-i6pb`, routing.
+
+**Orthogonal routes, and what a channel can promise (2026-11-28):** the last phase. `route(graph, layout, boxes)` makes a channel
+of every layer boundary, gives each crossing a track of its own inside it (ordered by the height the route leaves with), runs
+the horizontals at the slots' heights — which is how a long edge passes through its dummy — and puts the ports at the border
+midpoints. The result is monotone in x, touches each boundary between its ends once, never enters a box, and starts and ends
+exactly at the ports.
+
+The honest part is where two routes may share a line: at a port (two edges leaving or entering one node — the bundling a subway
+map draws once) and inside a channel, where the router keeps one track per crossing but two lines can still meet at the same
+height. The corpus counts them: 262 bundled corridor pairs over 120 graphs. Removing them means a lane per line _inside_ the
+channel, which costs two extra bends per boundary; that belongs with the octilinear strategy
+(`docs/research/edge-routing.md`), not with this geometry.
+
+The win that survives the drawing: over the same 120 graphs the sweeps' layouts are drawn with **140 crossings against 481 at
+the model order** — 71% fewer, so the crossing minimization is a property of the picture and not only of a table. The Chrome
+check draws a route as an SVG path and lets the DOM measure it (`getTotalLength`), which is the bean's "measures the path, not a
+screenshot". A route is 21 µs a graph; the whole pipeline on the corpus is ~400 µs, four fifths of it the sweep.

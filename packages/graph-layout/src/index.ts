@@ -351,3 +351,4 @@ export const crossings = (graph: Graph, layout: Layout): number => {
 
 export { dummyId } from "./dummy.ts";
 export * from "./place.ts";
+export * from "./route.ts";
